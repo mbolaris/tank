@@ -25,6 +25,8 @@ class FishTankSimulator:
         fish1 = sprites.Fish(self.screen, self.sprites)
         fish2 = sprites.SchoolingFish(self.screen, self.sprites)
         self.fish_sprites.add(fish1, fish2)
+        self.food_sprites = pygame.sprite.Group()  # Create the food_sprites group
+
         self.sprites.add(
             fish1,
             fish2,
@@ -32,7 +34,8 @@ class FishTankSimulator:
             sprites.Plant(self.screen, 1),
             sprites.Plant(self.screen, 2),
             sprites.Castle(self.screen),
-        )     
+        )
+
         # Create multiple schooling fish
         for _ in range(5):
             schooling_fish = sprites.SchoolingFish(self.screen, self.sprites)
@@ -43,9 +46,15 @@ class FishTankSimulator:
         """Update the state of the simulation."""
         elapsed_time = pygame.time.get_ticks() - self.start_ticks
         self.handle_collisions()
+
         for sprite in self.sprites:
             sprite.update(elapsed_time)
             self.keep_sprite_on_screen(sprite)
+
+        for sprite in self.food_sprites:
+            sprite.update(elapsed_time)
+            if sprite.rect.y >= SCREEN_HEIGHT - sprite.rect.height:  # If the food has reached the bottom of the screen...
+                sprite.kill()  # ...remove it
 
     def handle_collisions(self):
         """Handle collisions between sprites."""
@@ -63,6 +72,7 @@ class FishTankSimulator:
         """Render the current state of the simulation to the screen."""
         self.screen.fill((0, 0, 0))
         self.sprites.draw(self.screen)
+        self.food_sprites.draw(self.screen)  # Draw the food sprites
         pygame.display.flip()
 
     def handle_events(self):
@@ -70,6 +80,12 @@ class FishTankSimulator:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and not any(isinstance(sprite, sprites.Food) for sprite in self.food_sprites):
+                    # If the key pressed is the spacebar and there is no food already present
+                    food = sprites.Food(self.screen)  # Create a new food sprite
+                    self.food_sprites.add(food)  # Add it to the food_sprites group
+                    self.sprites.add(food)  # Add it to the sprites group
         return True
 
     def run(self):

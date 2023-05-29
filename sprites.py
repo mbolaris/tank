@@ -150,3 +150,19 @@ class Plant(Sprite):
 class Castle(Sprite):
     def __init__(self, screen):
         super().__init__(screen, FILES['castle'], *INIT_POS['castle'])
+
+class Food(Sprite):
+    def __init__(self, screen):
+        super().__init__(screen, FILES['food'], random.randint(0, SCREEN_WIDTH), 0, 2)  # Starts from a random position at the top of the screen
+        self.vel = Vector2(0, 1)  # Initial velocity is downwards
+
+    def update(self, elapsed_time):
+        """Update the sprite."""
+        self.add_random_direction_change()
+        self.update_position()
+        self.image = self.get_current_image()
+
+    def add_random_direction_change(self):
+        """Add a random direction change to the sprite."""
+        random_x_direction = random.choices([-1, 0, 1], [0.05, 0.9, 0.05])[0]
+        self.vel.x += random_x_direction/5.0

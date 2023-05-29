@@ -7,6 +7,7 @@ FILES = {
     'school': ['school.png'],
     'plant': ['plant1.png', 'plant2.png'],
     'castle': ['castle.png'],
+    'food': ['food1.png', 'food2.png'],    
 }
 
 INIT_POS = {
