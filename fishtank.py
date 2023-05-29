@@ -17,19 +17,14 @@ class FishTankSimulator:
         self.clock = pygame.time.Clock()
         self.start_ticks = pygame.time.get_ticks()
         self.sprites = pygame.sprite.Group()
-        self.fish_sprites = pygame.sprite.Group()  # group for fish-type sprites
         self.create_initial_sprites()
 
     def create_initial_sprites(self):
         """Create initial sprites in the fish tank."""
         fish1 = sprites.Fish(self.screen, self.sprites)
-        fish2 = sprites.SchoolingFish(self.screen, self.sprites)
-        self.fish_sprites.add(fish1, fish2)
-        self.food_sprites = pygame.sprite.Group()  # Create the food_sprites group
-
+        
         self.sprites.add(
             fish1,
-            fish2,
             sprites.Crab(self.screen, self.sprites),
             sprites.Plant(self.screen, 1),
             sprites.Plant(self.screen, 2),
@@ -40,7 +35,6 @@ class FishTankSimulator:
         for _ in range(5):
             schooling_fish = sprites.SchoolingFish(self.screen, self.sprites)
             self.sprites.add(schooling_fish)
-            self.fish_sprites.add(schooling_fish)
 
     def update(self):
         """Update the state of the simulation."""
@@ -50,19 +44,23 @@ class FishTankSimulator:
         for sprite in self.sprites:
             sprite.update(elapsed_time)
             self.keep_sprite_on_screen(sprite)
-
-        for sprite in self.food_sprites:
-            sprite.update(elapsed_time)
-            if sprite.rect.y >= SCREEN_HEIGHT - sprite.rect.height:  # If the food has reached the bottom of the screen...
+            if isinstance(sprite, sprites.Food) and sprite.rect.y >= SCREEN_HEIGHT - sprite.rect.height:  # If the food has reached the bottom of the screen...
                 sprite.kill()  # ...remove it
 
     def handle_collisions(self):
         """Handle collisions between sprites."""
-        for sprite in self.fish_sprites:  # Only check fish-type sprites
-            collisions = pygame.sprite.spritecollide(sprite, self.sprites, False, pygame.sprite.collide_mask)
-            for collision_sprite in collisions:
-                if isinstance(collision_sprite, sprites.Crab):
-                    sprite.kill()
+        for sprite in self.sprites:  # Check all sprites
+            if isinstance(sprite, (sprites.Fish, sprites.SchoolingFish)):  # Only handle fish-type sprites
+                collisions = pygame.sprite.spritecollide(sprite, self.sprites, False, pygame.sprite.collide_mask)
+                for collision_sprite in collisions:
+                    if isinstance(collision_sprite, sprites.Crab):
+                        sprite.kill()
+
+            if isinstance(sprite, sprites.Food):  # Handle food-type sprites
+                collisions = pygame.sprite.spritecollide(sprite, self.sprites, False, pygame.sprite.collide_mask)
+                for collision_sprite in collisions:
+                    if isinstance(collision_sprite, (sprites.Fish, sprites.SchoolingFish, sprites.Crab)):
+                        sprite.kill()  # Remove the food if it collides with a fish, schooling fish, or crab
 
     def keep_sprite_on_screen(self, sprite):
         """Keep a sprite within the bounds of the screen."""
@@ -72,7 +70,6 @@ class FishTankSimulator:
         """Render the current state of the simulation to the screen."""
         self.screen.fill((0, 0, 0))
         self.sprites.draw(self.screen)
-        self.food_sprites.draw(self.screen)  # Draw the food sprites
         pygame.display.flip()
 
     def handle_events(self):
@@ -81,10 +78,9 @@ class FishTankSimulator:
             if event.type == pygame.QUIT:
                 return False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and not any(isinstance(sprite, sprites.Food) for sprite in self.food_sprites):
+                if event.key == pygame.K_SPACE and not any(isinstance(sprite, sprites.Food) for sprite in self.sprites):
                     # If the key pressed is the spacebar and there is no food already present
                     food = sprites.Food(self.screen)  # Create a new food sprite
-                    self.food_sprites.add(food)  # Add it to the food_sprites group
                     self.sprites.add(food)  # Add it to the sprites group
         return True
 
