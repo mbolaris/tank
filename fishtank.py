@@ -1,9 +1,7 @@
 import pygame
-from constants import SCREEN_WIDTH, SCREEN_HEIGHT
+from constants import SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH, FILES, INIT_POS
 import sprites
-
-# Define constants
-FRAME_RATE = 30
+import movment_strategy
 
 class FishTankSimulator:
     """A simulation of a fish tank."""
@@ -21,10 +19,8 @@ class FishTankSimulator:
 
     def create_initial_sprites(self):
         """Create initial sprites in the fish tank."""
-        fish1 = sprites.Fish(self.screen, self.sprites)
-        
         self.sprites.add(
-            fish1,
+            sprites.Fish(self.screen, self.sprites, movment_strategy.SoloFishMovement(), FILES['solo_fish'], *INIT_POS['fish']),
             sprites.Crab(self.screen, self.sprites),
             sprites.Plant(self.screen, 1),
             sprites.Plant(self.screen, 2),
@@ -32,9 +28,8 @@ class FishTankSimulator:
         )
 
         # Create multiple schooling fish
-        for _ in range(5):
-            schooling_fish = sprites.SchoolingFish(self.screen, self.sprites)
-            self.sprites.add(schooling_fish)
+        for _ in range(NUM_SCHOOLING_FISH):
+            self.sprites.add(sprites.Fish(self.screen, self.sprites, movment_strategy.SchoolingFishMovement(), FILES['schooling_fish'], *INIT_POS['school']))
 
     def update(self):
         """Update the state of the simulation."""
@@ -50,16 +45,19 @@ class FishTankSimulator:
     def handle_collisions(self):
         """Handle collisions between sprites."""
         for sprite in self.sprites:  # Check all sprites
-            if isinstance(sprite, (sprites.Fish, sprites.SchoolingFish)):  # Only handle fish-type sprites
+            if isinstance(sprite, (sprites.Fish)):  # Only handle fish-type sprites
                 collisions = pygame.sprite.spritecollide(sprite, self.sprites, False, pygame.sprite.collide_mask)
                 for collision_sprite in collisions:
                     if isinstance(collision_sprite, sprites.Crab):
                         sprite.kill()
+                    elif isinstance(collision_sprite, sprites.Food):
+                        sprite.grow()  # Grow the fish if it eats food
+                        collision_sprite.kill()  # Remove the food
 
             if isinstance(sprite, sprites.Food):  # Handle food-type sprites
                 collisions = pygame.sprite.spritecollide(sprite, self.sprites, False, pygame.sprite.collide_mask)
                 for collision_sprite in collisions:
-                    if isinstance(collision_sprite, (sprites.Fish, sprites.SchoolingFish, sprites.Crab)):
+                    if isinstance(collision_sprite, (sprites.Fish, sprites.Crab)):
                         sprite.kill()  # Remove the food if it collides with a fish, schooling fish, or crab
 
     def keep_sprite_on_screen(self, sprite):
