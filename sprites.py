@@ -4,27 +4,26 @@ import random
 from pygame.math import Vector2
 from constants import FILES, INIT_POS, SCREEN_HEIGHT, SCREEN_WIDTH
 
-class Sprite(pygame.sprite.Sprite):
+class Agent(pygame.sprite.Sprite):
     """A base class for all sprites in the game."""
     image_cache = {}
 
     @staticmethod
     def load_image(filename):
         """Load an image from a file."""
-        if filename in Sprite.image_cache:
-            return Sprite.image_cache[filename]
+        if filename in Agent.image_cache:
+            return Agent.image_cache[filename]
         else:
             try:
                 image = pygame.image.load(filename).convert_alpha()
-                Sprite.image_cache[filename] = image
+                Agent.image_cache[filename] = image
                 return image
             except pygame.error as e:
                 raise SystemExit(f"Couldn't load image: {filename}") from e
 
-    def __init__(self, screen, filenames, x, y, speed):
+    def __init__(self, environment, filenames, x, y, speed):
         """Initialize a sprite."""
         super().__init__()
-        self.screen = screen
         self.animation_frames = [self.load_image(os.path.join('images', filename)) for filename in filenames]
         self.image_index = 0
         self.speed = speed
@@ -34,6 +33,7 @@ class Sprite(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.avoidance_velocity = Vector2(0, 0)
+        self.environment = environment
 
     def get_current_image(self):
         """Get the current image of the sprite."""
@@ -41,10 +41,6 @@ class Sprite(pygame.sprite.Sprite):
             return self.animation_frames[self.image_index]
         else:
             return pygame.transform.flip(self.animation_frames[self.image_index], True, False)
-
-    def display(self):
-        """Display the sprite on the screen."""
-        self.screen.blit(self.image, self.rect.topleft)
 
     def update_position(self):
         """Update the position of the sprite."""
@@ -98,7 +94,8 @@ class Sprite(pygame.sprite.Sprite):
             return
         avg_pos = self.get_average_position(other_sprites)
         self.adjust_velocity_towards_or_away_from_other_sprites(other_sprites, avg_pos, min_distance)
-        self.vel = self.vel.normalize() * abs(self.speed)
+        if self.vel.x != 0 or self.vel.y != 0:  # Checking if it's a zero vector
+            self.vel = self.vel.normalize() * abs(self.speed)
 
     def get_average_position(self, other_sprites):
         """Calculate the average position of other sprites."""
@@ -126,19 +123,14 @@ class Sprite(pygame.sprite.Sprite):
         """Adjust velocity to move towards the average position of other sprites."""
         self.vel += difference.normalize() / 10.0
 
-    def get_sprites_of_type(self, sprite_class):
-        """Get all other sprites of the given class."""
-        return [sprite for sprite in self.sprites if isinstance(sprite, sprite_class) and sprite != self]
-
-class Fish(Sprite):
-    def __init__(self, screen, sprites, movement_strategy, filenames, x, y, speed):
+class Fish(Agent):
+    def __init__(self, environment, movement_strategy, filenames, x, y, speed):
         self.size = 1
         self.animation_frames = [self.load_image(os.path.join('images', filename)) for filename in filenames]        
         self.base_width = self.animation_frames[0].get_width()
         self.base_height = self.animation_frames[0].get_height()     
-        self.sprites = sprites
         self.movement_strategy = movement_strategy
-        super().__init__(screen, filenames, x, y, speed)
+        super().__init__(environment, filenames, x, y, speed)
 
     def grow(self):
         """Increase the size of the fish."""
@@ -153,27 +145,26 @@ class Fish(Sprite):
         current_image = super().get_current_image()
         return pygame.transform.scale(current_image, (int(self.size * self.base_width), int(self.size * self.base_height)))       
         
-class Crab(Sprite):
-    def __init__(self, screen, sprites):
-        super().__init__(screen, FILES['crab'], *INIT_POS['crab'])
-        self.sprites = sprites
+class Crab(Agent):
+    def __init__(self, environment):
+        super().__init__(environment, FILES['crab'], *INIT_POS['crab'], 2)
 
     def update(self, elapsed_time):
-        self.align_near([food for food in self.sprites if isinstance(food, Food)], 1)
+        self.align_near(self.environment.get_agents_of_type(Food), 1)
         self.vel.y = 0        
         super().update(elapsed_time)
 
-class Plant(Sprite):
-    def __init__(self, screen, plant_type):
-        super().__init__(screen, [FILES['plant'][plant_type-1]], *INIT_POS[f'plant{plant_type}'])
+class Plant(Agent):
+    def __init__(self, environment, plant_type):
+        super().__init__(environment, [FILES['plant'][plant_type-1]], *INIT_POS[f'plant{plant_type}'], 0)
 
-class Castle(Sprite):
-    def __init__(self, screen):
-        super().__init__(screen, FILES['castle'], *INIT_POS['castle'])
+class Castle(Agent):
+    def __init__(self, environment):
+        super().__init__(environment, FILES['castle'], *INIT_POS['castle'], 0)
 
-class Food(Sprite):
-    def __init__(self, screen):
-        super().__init__(screen, FILES['food'], random.randint(0, SCREEN_WIDTH), 0, 2)
+class Food(Agent):
+    def __init__(self, environment):
+        super().__init__(environment, FILES['food'], random.randint(0, SCREEN_WIDTH), 0, 2)
         self.vel = Vector2(0, 1)
 
     def update(self, elapsed_time):
