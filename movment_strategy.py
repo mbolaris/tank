@@ -1,6 +1,6 @@
 from pygame import Vector2
 import pygame
-from sprites import Crab, Food, Fish
+from agents import Crab, Food, Fish
 
 class MovementStrategy:
     def move(self, sprite):
