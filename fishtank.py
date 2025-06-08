@@ -83,7 +83,7 @@ class FishTankSimulator:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     # If the key pressed is the spacebar and there is no food already present
-                    food = agents.Food(environment)  # Create a new food sprite
+                    food = agents.Food(self.environment)  # Create a new food sprite
                     self.agents.add(food)  # Add it to the sprites group
         return True
 
