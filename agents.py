@@ -202,5 +202,6 @@ class Food(Agent):
         
     def get_eaten(self):
         """Get eaten."""
-        # For example, remove the food from the game
-        self.kill()        
+        self.kill()
+
+
