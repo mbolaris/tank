@@ -1,11 +1,13 @@
+import random
 import pygame
 from constants import SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH, FILES, INIT_POS
 import agents
-import movment_strategy
+import movement_strategy
 import environment
 
 class FishTankSimulator:
     """A simulation of a fish tank."""
+
     def __init__(self):
         """Initialize the simulation."""
         self.clock = pygame.time.Clock()
@@ -25,16 +27,15 @@ class FishTankSimulator:
     def create_initial_agents(self):
         """Create initial sprites in the fish tank."""
         self.agents.add(
-            agents.Fish(self.environment, movment_strategy.SoloFishMovement(), FILES['solo_fish'], *INIT_POS['fish'], 3),
+            agents.Fish(self.environment, movement_strategy.SoloFishMovement(), FILES['solo_fish'], *INIT_POS['fish'], 3),
             agents.Crab(self.environment),
             agents.Plant(self.environment, 1),
             agents.Plant(self.environment, 2),
             agents.Castle(self.environment),
         )
 
-        # Create multiple schooling fish
         for _ in range(NUM_SCHOOLING_FISH):
-            self.agents.add(agents.Fish(self.environment, movment_strategy.SchoolingFishMovement(), FILES['schooling_fish'], *INIT_POS['school'], 4))
+            self.agents.add(agents.Fish(self.environment, movement_strategy.SchoolingFishMovement(), FILES['schooling_fish'], *INIT_POS['school'], 4))
 
     def update(self):
         """Update the state of the simulation."""
@@ -44,26 +45,33 @@ class FishTankSimulator:
         for sprite in self.agents:
             sprite.update(elapsed_time)
             self.keep_sprite_on_screen(sprite)
-            if isinstance(sprite, agents.Food) and sprite.rect.y >= SCREEN_HEIGHT - sprite.rect.height:  # If the food has reached the bottom of the screen...
-                sprite.kill()  # ...remove it
+            if isinstance(sprite, agents.Food) and sprite.rect.y >= SCREEN_HEIGHT - sprite.rect.height:
+                sprite.kill()
 
     def handle_collisions(self):
         """Handle collisions between sprites."""
-        for sprite in self.agents:  # Check all sprites
-            if isinstance(sprite, (agents.Fish)):  # Only handle fish-type sprites
-                collisions = pygame.sprite.spritecollide(sprite, self.agents, False, pygame.sprite.collide_mask)
+        self.handle_fish_collisions()
+        self.handle_food_collisions()
+
+    def handle_fish_collisions(self):
+        """Handle collisions involving fish."""
+        for fish in self.agents.sprites():
+            if isinstance(fish, agents.Fish):
+                collisions = pygame.sprite.spritecollide(fish, self.agents, False, pygame.sprite.collide_mask)
                 for collision_sprite in collisions:
                     if isinstance(collision_sprite, agents.Crab):
-                        sprite.kill()
+                        fish.kill()
                     elif isinstance(collision_sprite, agents.Food):
-                        sprite.grow()  # Grow the fish if it eats food
-                        collision_sprite.kill()  # Remove the food
+                        fish.eat(collision_sprite)
 
-            if isinstance(sprite, agents.Food):  # Handle food-type sprites
-                collisions = pygame.sprite.spritecollide(sprite, self.agents, False, pygame.sprite.collide_mask)
+    def handle_food_collisions(self):
+        """Handle collisions involving food."""
+        for food in self.agents.sprites():
+            if isinstance(food, agents.Food):
+                collisions = pygame.sprite.spritecollide(food, self.agents, False, pygame.sprite.collide_mask)
                 for collision_sprite in collisions:
                     if isinstance(collision_sprite, (agents.Fish, agents.Crab)):
-                        sprite.kill()  # Remove the food if it collides with a fish, schooling fish, or crab
+                        food.get_eaten()
 
     def keep_sprite_on_screen(self, sprite):
         """Keep a sprite within the bounds of the screen."""
@@ -76,15 +84,15 @@ class FishTankSimulator:
         pygame.display.flip()
 
     def handle_events(self):
-        """Handle events from the user."""
+        """Handle user input and other events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    # If the key pressed is the spacebar and there is no food already present
-                    food = agents.Food(environment)  # Create a new food sprite
-                    self.agents.add(food)  # Add it to the sprites group
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                x = random.randint(0, SCREEN_WIDTH)
+                y = 0  # Food will drop from the top of the screen
+                food = agents.Food(self.environment, x, y)
+                self.agents.add(food)
         return True
 
     def run(self):
@@ -100,7 +108,10 @@ def main():
     """Entry point for the simulation."""
     pygame.init()
     game = FishTankSimulator()
-    game.run()
-    pygame.quit()
+    try:
+        game.run()
+    finally:
+        pygame.quit()
 
-main()
+if __name__ == "__main__":
+    main()
