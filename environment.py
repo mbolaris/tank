@@ -1,18 +1,22 @@
-from typing import List, Optional, Type
-import pygame
-from agents import Agent
+from typing import Iterable, List, Optional, Type
+
+# Avoid importing pygame-dependent Agent during tests
+try:
+    from agents import Agent
+except Exception:  # pragma: no cover - fallback for environments without pygame
+    Agent = object
 
 class Environment:
     """
     The environment in which the agents operate. 
     This class provides methods to interact with and query the state of the environment.
     """
-    def __init__(self, agents: Optional[pygame.sprite.Group] = None):
+    def __init__(self, agents: Optional[Iterable[Agent]] = None):
         """
         Initialize the environment.
 
         Args:
-            agents (pygame.sprite.Group, optional): A group of agents. Defaults to None.
+            agents (Iterable[Agent], optional): A collection of agents. Defaults to None.
         """
         self.agents = agents
 
