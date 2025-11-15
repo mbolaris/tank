@@ -16,3 +16,7 @@
 # Python cache
 __pycache__/
 *.pyc
+
+# Test coverage
+.coverage
+.pytest_cache/
