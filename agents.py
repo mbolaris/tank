@@ -187,12 +187,12 @@ class Fish(Agent):
     # Energy constants
     BASE_MAX_ENERGY = 100.0
     ENERGY_FROM_FOOD = 40.0  # More energy from food
-    BASE_METABOLISM = 0.015  # Lower metabolism (was 0.02)
-    MOVEMENT_ENERGY_COST = 0.005  # Lower movement cost (was 0.01)
+    BASE_METABOLISM = 0.025  # Increased metabolism for resource competition
+    MOVEMENT_ENERGY_COST = 0.01  # Increased movement cost for resource competition
 
     # Reproduction constants
-    REPRODUCTION_ENERGY_THRESHOLD = 40.0  # Lower threshold to enable breeding during scarcity
-    REPRODUCTION_COOLDOWN = 300  # 10 seconds (reduced from 20 for faster recovery)
+    REPRODUCTION_ENERGY_THRESHOLD = 55.0  # Higher threshold - must be well-fed to reproduce
+    REPRODUCTION_COOLDOWN = 450  # 15 seconds (increased to reduce population pressure)
     PREGNANCY_DURATION = 300  # 10 seconds
     MATING_DISTANCE = 50.0
 
@@ -255,7 +255,12 @@ class Fish(Agent):
 
         # Record birth
         if ecosystem is not None:
-            ecosystem.record_birth(self.fish_id, self.generation)
+            # Get algorithm ID if fish has a behavior algorithm
+            algorithm_id = None
+            if self.genome.behavior_algorithm is not None:
+                from behavior_algorithms import get_algorithm_index
+                algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            ecosystem.record_birth(self.fish_id, self.generation, algorithm_id=algorithm_id)
 
     def get_current_image(self) -> Surface:
         """Get the current image with genetic color tint applied."""
@@ -470,6 +475,13 @@ class Fish(Agent):
         """
         energy_gained = food.get_energy_value()
         self.energy = min(self.max_energy, self.energy + energy_gained)
+
+        # Record food consumption for algorithm performance tracking
+        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
+            from behavior_algorithms import get_algorithm_index
+            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            if algorithm_id >= 0:
+                self.ecosystem.record_food_eaten(algorithm_id)
 
 class Crab(Agent):
     """A predator crab that hunts fish and food.

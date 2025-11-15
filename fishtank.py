@@ -187,12 +187,18 @@ class FishTankSimulator:
                 # Handle fish death
                 if sprite.is_dead():
                     if self.ecosystem is not None:
+                        # Get algorithm ID if fish has a behavior algorithm
+                        algorithm_id = None
+                        if sprite.genome.behavior_algorithm is not None:
+                            from behavior_algorithms import get_algorithm_index
+                            algorithm_id = get_algorithm_index(sprite.genome.behavior_algorithm)
                         self.ecosystem.record_death(
                             sprite.fish_id,
                             sprite.generation,
                             sprite.age,
                             sprite.get_death_cause(),
-                            sprite.genome
+                            sprite.genome,
+                            algorithm_id=algorithm_id
                         )
                     sprite.kill()
 
@@ -257,12 +263,18 @@ class FishTankSimulator:
                         if collision_sprite.can_hunt():
                             # Record death from predation
                             if self.ecosystem is not None:
+                                # Get algorithm ID if fish has a behavior algorithm
+                                algorithm_id = None
+                                if fish.genome.behavior_algorithm is not None:
+                                    from behavior_algorithms import get_algorithm_index
+                                    algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
                                 self.ecosystem.record_death(
                                     fish.fish_id,
                                     fish.generation,
                                     fish.age,
                                     'predation',
-                                    fish.genome
+                                    fish.genome,
+                                    algorithm_id=algorithm_id
                                 )
                             collision_sprite.eat_fish(fish)
                             fish.kill()
@@ -462,6 +474,19 @@ class FishTankSimulator:
                 elif event.key == pygame.K_h:
                     # Toggle stats and health bars HUD
                     self.show_stats_hud = not self.show_stats_hud
+                elif event.key == pygame.K_r:
+                    # Print algorithm performance report
+                    if self.ecosystem is not None:
+                        print("\n" + "=" * 80)
+                        print("GENERATING ALGORITHM PERFORMANCE REPORT...")
+                        print("=" * 80)
+                        report = self.ecosystem.get_algorithm_performance_report()
+                        print(report)
+                        # Also save to file
+                        with open('algorithm_performance_report.txt', 'w') as f:
+                            f.write(report)
+                        print("\nReport saved to: algorithm_performance_report.txt")
+                        print("=" * 80 + "\n")
                 elif event.key == pygame.K_ESCAPE:
                     # Quit
                     return False
@@ -479,6 +504,7 @@ class FishTankSimulator:
         print("  SPACE - Drop food manually")
         print("  P     - Pause/Resume")
         print("  H     - Toggle stats/health bars")
+        print("  R     - Generate algorithm performance report")
         print("  ESC   - Quit")
         print()
         print("Features:")

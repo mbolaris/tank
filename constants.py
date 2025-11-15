@@ -6,7 +6,7 @@ SCREEN_HEIGHT = 600
 FRAME_RATE = 30
 
 # The number of schooling fish to create at the start of the game
-NUM_SCHOOLING_FISH = 6  # Reduced to ease food pressure
+NUM_SCHOOLING_FISH = 10  # Increased to create resource competition
 
 # The rate at which the sprite images change, in milliseconds
 IMAGE_CHANGE_RATE = 500  # change this to your preference
@@ -34,7 +34,7 @@ PLANT_SWAY_SPEED = 0.0005
 FOOD_SINK_ACCELERATION = 0.01
 
 # Automatic food spawning
-AUTO_FOOD_SPAWN_RATE = 180  # Spawn food every 6 seconds (180 frames at 30fps)
+AUTO_FOOD_SPAWN_RATE = 360  # Spawn food every 12 seconds (360 frames at 30fps) - increased scarcity
 AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
 
 # Food type definitions with nutrient properties
@@ -42,35 +42,35 @@ FOOD_TYPES = {
     'algae': {
         'name': 'Algae Flake',
         'files': ['food_algae1.png', 'food_algae2.png'],
-        'energy': 30.0,  # Moderate energy
+        'energy': 20.0,  # Moderate energy (reduced for competition)
         'rarity': 0.35,  # 35% spawn rate
         'sink_multiplier': 0.8,  # Sinks slower (lighter)
     },
     'protein': {
         'name': 'Protein Flake',
         'files': ['food_protein1.png', 'food_protein2.png'],
-        'energy': 50.0,  # High energy
+        'energy': 35.0,  # High energy (reduced for competition)
         'rarity': 0.25,  # 25% spawn rate
         'sink_multiplier': 1.2,  # Sinks faster (heavier)
     },
     'vitamin': {
         'name': 'Vitamin Flake',
         'files': ['food_vitamin1.png', 'food_vitamin2.png'],
-        'energy': 35.0,  # Moderate energy
+        'energy': 25.0,  # Moderate energy (reduced for competition)
         'rarity': 0.20,  # 20% spawn rate
         'sink_multiplier': 0.9,  # Sinks slightly slower
     },
     'energy': {
         'name': 'Energy Flake',
         'files': ['food_energy1.png', 'food_energy2.png'],
-        'energy': 45.0,  # High energy
+        'energy': 30.0,  # High energy (reduced for competition)
         'rarity': 0.15,  # 15% spawn rate
         'sink_multiplier': 1.0,  # Normal sink rate
     },
     'rare': {
         'name': 'Rainbow Flake',
         'files': ['food_rare1.png', 'food_rare2.png'],
-        'energy': 70.0,  # Very high energy (rare treat!)
+        'energy': 50.0,  # Very high energy (reduced for competition)
         'rarity': 0.05,  # 5% spawn rate (rare)
         'sink_multiplier': 1.1,  # Sinks bit faster
     },
