@@ -81,12 +81,27 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
+        from agents import Food, Crab
+
+        # Check for predators first - don't chase food if predator is too close
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
+            # Flee from predator instead
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.2, direction.y * 1.2
 
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
-            direction = (nearest_food.pos - fish.pos).normalize()
-            return direction.x * self.parameters["speed_multiplier"], direction.y * self.parameters["speed_multiplier"]
+            distance = (nearest_food.pos - fish.pos).length()
+            # Consider energy efficiency - don't chase food that's too far if energy is medium
+            energy_ratio = fish.energy / fish.max_energy
+            max_chase_distance = 150 + (energy_ratio * 200)  # Chase further when high energy
+
+            if distance < max_chase_distance:
+                direction = (nearest_food.pos - fish.pos).normalize()
+                # Speed up when closer to food
+                speed_boost = 1.0 + (1.0 - min(distance / 100, 1.0)) * 0.5
+                return direction.x * self.parameters["speed_multiplier"] * speed_boost, direction.y * self.parameters["speed_multiplier"] * speed_boost
         return 0, 0
 
 
@@ -109,13 +124,44 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
+        from agents import Food, Crab
 
         energy_ratio = fish.energy / fish.max_energy
-        nearest_food = self._find_nearest(fish, Food)
 
+        # Check for predators - even urgent fish should avoid immediate danger
+        nearest_predator = self._find_nearest(fish, Crab)
+        predator_nearby = nearest_predator and (nearest_predator.pos - fish.pos).length() < 100
+
+        # In critical energy state, take calculated risks
+        if energy_ratio < 0.15:
+            # Desperate - must eat even with some predator risk
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                # If predator is blocking food, try to path around it
+                if predator_nearby:
+                    predator_to_food = (nearest_food.pos - nearest_predator.pos).length()
+                    if predator_to_food < 80:  # Predator is guarding the food
+                        # Try perpendicular approach
+                        to_food = (nearest_food.pos - fish.pos).normalize()
+                        perp_x, perp_y = -to_food.y, to_food.x
+                        return perp_x * 0.8, perp_y * 0.8
+                direction = (nearest_food.pos - fish.pos).normalize()
+                return direction.x * self.parameters["urgent_speed"], direction.y * self.parameters["urgent_speed"]
+
+        # Flee if predator too close
+        if predator_nearby:
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.3, direction.y * 1.3
+
+        nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
-            speed = self.parameters["urgent_speed"] if energy_ratio < self.parameters["urgency_threshold"] else self.parameters["calm_speed"]
+            # Graduated urgency based on energy level
+            if energy_ratio < self.parameters["urgency_threshold"]:
+                speed = self.parameters["urgent_speed"]
+            else:
+                # Scale speed based on energy - conserve when high energy
+                speed = self.parameters["calm_speed"] + (1.0 - energy_ratio) * 0.3
+
             direction = (nearest_food.pos - fish.pos).normalize()
             return direction.x * speed, direction.y * speed
         return 0, 0
@@ -168,23 +214,48 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
+        from agents import Food, Crab
+
+        # Check predators first
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 90:
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.4, direction.y * 1.4
 
         foods = fish.environment.get_agents_of_type(Food)
         best_food = None
         best_score = -float('inf')
 
+        energy_ratio = fish.energy / fish.max_energy
+
         for food in foods:
             distance = (food.pos - fish.pos).length()
             quality = food.get_energy_value()
-            score = quality * self.parameters["quality_weight"] - distance * self.parameters["distance_weight"]
+
+            # Check if predator is near this food (danger score)
+            danger_score = 0
+            if nearest_predator:
+                predator_food_dist = (nearest_predator.pos - food.pos).length()
+                if predator_food_dist < 100:
+                    danger_score = 100 - predator_food_dist  # Higher danger when predator is closer to food
+
+            # Calculate value: high quality, close distance, low danger
+            # When desperate (low energy), ignore danger more
+            danger_weight = 0.3 if energy_ratio < 0.3 else 0.8
+            score = (quality * self.parameters["quality_weight"]
+                    - distance * self.parameters["distance_weight"]
+                    - danger_score * danger_weight)
+
             if score > best_score:
                 best_score = score
                 best_food = food
 
-        if best_food:
+        if best_food and best_score > -50:  # Don't pursue if score is terrible
+            distance_to_food = (best_food.pos - fish.pos).length()
             direction = (best_food.pos - fish.pos).normalize()
-            return direction.x, direction.y
+            # Move faster when food is close
+            speed = 0.8 + min(50 / max(distance_to_food, 1), 0.6)
+            return direction.x * speed, direction.y * speed
         return 0, 0
 
 
@@ -388,7 +459,13 @@ class CircularHunter(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
+        from agents import Food, Crab
+
+        # Predator check
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 110:
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.3, direction.y * 1.3
 
         nearest_food = self._find_nearest(fish, Food)
         if not nearest_food:
@@ -396,19 +473,34 @@ class CircularHunter(BehaviorAlgorithm):
 
         distance = (nearest_food.pos - fish.pos).length()
 
-        # Strike if close enough
-        if distance < self.parameters["circle_radius"] * self.parameters["strike_threshold"]:
-            direction = (nearest_food.pos - fish.pos).normalize()
-            return direction.x, direction.y
+        # If food is moving (has velocity), predict its position
+        food_future_pos = nearest_food.pos
+        if hasattr(nearest_food, 'vel') and nearest_food.vel.length() > 0:
+            # Predict food position 10 frames ahead
+            food_future_pos = nearest_food.pos + nearest_food.vel * 10
 
-        # Circle around food
-        self.circle_angle += self.parameters["circle_speed"]
-        target_x = nearest_food.pos.x + math.cos(self.circle_angle) * self.parameters["circle_radius"]
-        target_y = nearest_food.pos.y + math.sin(self.circle_angle) * self.parameters["circle_radius"]
+        # Strike if close enough and angle is good
+        if distance < self.parameters["circle_radius"] * self.parameters["strike_threshold"]:
+            direction = (food_future_pos - fish.pos).normalize()
+            # Fast strike
+            return direction.x * 1.5, direction.y * 1.5
+
+        # Tighten circle as we get closer
+        effective_radius = self.parameters["circle_radius"] * (distance / 150)
+        effective_radius = max(effective_radius, self.parameters["circle_radius"] * 0.5)
+
+        # Circle around food with varying speed (faster when farther)
+        circle_speed = self.parameters["circle_speed"] * (1 + distance / 200)
+        self.circle_angle += circle_speed
+
+        target_x = nearest_food.pos.x + math.cos(self.circle_angle) * effective_radius
+        target_y = nearest_food.pos.y + math.sin(self.circle_angle) * effective_radius
         direction = (Vector2(target_x, target_y) - fish.pos)
         if direction.length() > 0:
             direction = direction.normalize()
-            return direction.x, direction.y
+            # Move faster when adjusting position
+            speed = 0.8 + min(direction.length() / 100, 0.5)
+            return direction.x * speed, direction.y * speed
         return 0, 0
 
 
@@ -471,22 +563,65 @@ class CooperativeForager(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Fish as FishClass
+        from agents import Food, Fish as FishClass, Crab
 
-        # Check if any nearby fish are near food
+        # Check for predators
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 95:
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.3, direction.y * 1.3
+
+        # Look for food directly first
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food and (nearest_food.pos - fish.pos).length() < 80:
+            # Food is close, go for it directly
+            direction = (nearest_food.pos - fish.pos).normalize()
+            return direction.x * 1.1, direction.y * 1.1
+
+        # Check if any nearby fish are near food (social learning)
         foods = fish.environment.get_agents_of_type(Food)
-        fishes = fish.environment.get_agents_of_type(FishClass)
+        fishes = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish]
+
+        best_target = None
+        best_score = 0
 
         for other_fish in fishes:
-            if other_fish == fish:
+            fish_dist = (other_fish.pos - fish.pos).length()
+            if fish_dist > 200:  # Too far to follow
                 continue
+
+            # Check if this fish is near food or moving toward food
             for food in foods:
-                if (other_fish.pos - food.pos).length() < 50:
-                    # Follow that fish!
-                    direction = (other_fish.pos - fish.pos)
-                    if direction.length() > 0:
-                        direction = direction.normalize()
-                        return direction.x * self.parameters["follow_strength"], direction.y * self.parameters["follow_strength"]
+                food_dist = (other_fish.pos - food.pos).length()
+                if food_dist < 80:
+                    # Score based on how close the other fish is to food
+                    # and how close we are to that fish
+                    score = (100 - food_dist) * (200 - fish_dist) / 100
+
+                    # Bonus if fish is moving toward the food
+                    if hasattr(other_fish, 'vel') and other_fish.vel.length() > 0:
+                        to_food = (food.pos - other_fish.pos).normalize()
+                        vel_dir = other_fish.vel.normalize()
+                        alignment = to_food.dot(vel_dir)
+                        if alignment > 0.5:  # Fish is moving toward food
+                            score *= 1.5
+
+                    if score > best_score:
+                        best_score = score
+                        best_target = other_fish.pos
+
+        if best_target:
+            direction = (best_target - fish.pos)
+            if direction.length() > 0:
+                direction = direction.normalize()
+                # Follow with varying intensity
+                intensity = min(best_score / 100, 1.0)
+                return direction.x * self.parameters["follow_strength"] * intensity, \
+                       direction.y * self.parameters["follow_strength"] * intensity
+
+        # No one to follow, explore independently
+        if random.random() < self.parameters["independence"]:
+            return random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)
 
         return 0, 0
 
@@ -607,13 +742,52 @@ class ErraticEvader(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Fish as FishClass
+        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator and (nearest_predator.pos - fish.pos).length() < self.parameters["threat_range"]:
-            vx = random.uniform(-1, 1) * self.parameters["randomness"] * self.parameters["evasion_speed"]
-            vy = random.uniform(-1, 1) * self.parameters["randomness"] * self.parameters["evasion_speed"]
-            return vx, vy
+        if nearest_predator:
+            distance = (nearest_predator.pos - fish.pos).length()
+
+            if distance < self.parameters["threat_range"]:
+                # Erratic movement with some directional bias away from predator
+                away_dir = (fish.pos - nearest_predator.pos).normalize()
+
+                # Add randomness perpendicular to escape direction
+                perp_x = -away_dir.y
+                perp_y = away_dir.x
+
+                # Mix escape direction with random perpendicular movement
+                randomness = self.parameters["randomness"]
+                vx = away_dir.x * 0.6 + perp_x * random.uniform(-randomness, randomness)
+                vy = away_dir.y * 0.6 + perp_y * random.uniform(-randomness, randomness)
+
+                # Adjust speed based on proximity - panic more when closer
+                proximity_multiplier = 1.0 + (1.0 - min(distance / self.parameters["threat_range"], 1.0)) * 0.8
+
+                # Try to stay away from edges when fleeing (avoid getting cornered)
+                edge_margin = 80
+                if fish.pos.x < edge_margin:
+                    vx += 0.3
+                elif fish.pos.x > SCREEN_WIDTH - edge_margin:
+                    vx -= 0.3
+                if fish.pos.y < edge_margin:
+                    vy += 0.3
+                elif fish.pos.y > SCREEN_HEIGHT - edge_margin:
+                    vy -= 0.3
+
+                # Sometimes join nearby fish for group defense
+                if random.random() < 0.2:
+                    allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish]
+                    if allies:
+                        nearest_ally = min(allies, key=lambda f: (f.pos - fish.pos).length())
+                        if (nearest_ally.pos - fish.pos).length() < 100:
+                            ally_dir = (nearest_ally.pos - fish.pos).normalize()
+                            vx += ally_dir.x * 0.3
+                            vy += ally_dir.y * 0.3
+
+                return vx * self.parameters["evasion_speed"] * proximity_multiplier, \
+                       vy * self.parameters["evasion_speed"] * proximity_multiplier
         return 0, 0
 
 
@@ -793,7 +967,7 @@ class DistanceKeeper(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -802,12 +976,49 @@ class DistanceKeeper(BehaviorAlgorithm):
             if direction.length() > 0:
                 direction = direction.normalize()
 
-                if distance < self.parameters["safe_distance"] * 0.7:
-                    # Too close, flee
-                    return direction.x * self.parameters["flee_speed"], direction.y * self.parameters["flee_speed"]
-                elif distance > self.parameters["safe_distance"] * 1.3:
-                    # Too far, can move closer
-                    return -direction.x * self.parameters["approach_speed"], -direction.y * self.parameters["approach_speed"]
+                energy_ratio = fish.energy / fish.max_energy
+
+                # Adjust safe distance based on energy - stay farther when low energy (can't flee well)
+                effective_safe_distance = self.parameters["safe_distance"]
+                if energy_ratio < 0.3:
+                    effective_safe_distance *= 1.4  # Stay farther when weak
+
+                if distance < effective_safe_distance * 0.7:
+                    # Too close, flee urgently
+                    # Flee speed depends on energy
+                    flee_multiplier = max(0.6, energy_ratio)  # Slower when low energy (realistic)
+                    return direction.x * self.parameters["flee_speed"] * flee_multiplier, \
+                           direction.y * self.parameters["flee_speed"] * flee_multiplier
+
+                elif distance < effective_safe_distance:
+                    # In the danger zone, maintain distance
+                    # Strafe perpendicular while keeping distance
+                    perp_x, perp_y = -direction.y, direction.x
+                    if random.random() > 0.5:
+                        perp_x, perp_y = -perp_x, -perp_y
+                    return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], \
+                           (direction.y * 0.4 + perp_y * 0.6) * self.parameters["flee_speed"]
+
+                elif distance > effective_safe_distance * 1.5:
+                    # Safe enough - can focus on food if hungry
+                    if energy_ratio < 0.6:
+                        nearest_food = self._find_nearest(fish, Food)
+                        if nearest_food and (nearest_food.pos - fish.pos).length() < 150:
+                            # Food nearby and relatively safe
+                            food_dir = (nearest_food.pos - fish.pos).normalize()
+                            # Move toward food but keep an eye on predator
+                            return (food_dir.x * 0.7 + direction.x * 0.3) * 0.8, \
+                                   (food_dir.y * 0.7 + direction.y * 0.3) * 0.8
+                    # Otherwise just maintain awareness
+                    return direction.x * self.parameters["approach_speed"] * 0.3, \
+                           direction.y * self.parameters["approach_speed"] * 0.3
+
+        # No predator - search for food
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            direction = (nearest_food.pos - fish.pos).normalize()
+            return direction.x * 0.6, direction.y * 0.6
+
         return 0, 0
 
 
@@ -1093,37 +1304,96 @@ class BoidsBehavior(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
+        from agents import Fish as FishClass, Crab, Food
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
 
+        # Check for predators - school tightens when threatened
+        nearest_predator = self._find_nearest(fish, Crab)
+        predator_distance = nearest_predator and (nearest_predator.pos - fish.pos).length() or float('inf')
+        in_danger = predator_distance < 200
+
+        # Check for food opportunities
+        nearest_food = self._find_nearest(fish, Food)
+        food_distance = nearest_food and (nearest_food.pos - fish.pos).length() or float('inf')
+        food_nearby = food_distance < 100
+
         if not allies:
+            # Alone - seek food or flee
+            if in_danger and predator_distance < 150:
+                direction = (fish.pos - nearest_predator.pos).normalize()
+                return direction.x * 1.3, direction.y * 1.3
+            elif food_nearby:
+                direction = (nearest_food.pos - fish.pos).normalize()
+                return direction.x * 0.7, direction.y * 0.7
             return 0, 0
 
-        # Separation
-        sep_x, sep_y = 0, 0
-        for ally in allies:
-            distance = (ally.pos - fish.pos).length()
-            if 0 < distance < 50:
-                direction = (fish.pos - ally.pos).normalize()
-                sep_x += direction.x / distance
-                sep_y += direction.y / distance
+        # Filter to nearby allies for efficiency
+        nearby_allies = [f for f in allies if (f.pos - fish.pos).length() < 150]
+        if not nearby_allies:
+            nearby_allies = allies[:5]  # Use closest 5 if none nearby
 
-        # Alignment
-        avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)
+        # Separation - avoid crowding
+        sep_x, sep_y = 0, 0
+        separation_distance = 40 if in_danger else 50  # Tighter when threatened
+        for ally in nearby_allies:
+            distance = (ally.pos - fish.pos).length()
+            if 0 < distance < separation_distance:
+                direction = (fish.pos - ally.pos).normalize()
+                # Stronger separation when very close
+                strength = (separation_distance - distance) / separation_distance
+                sep_x += direction.x * strength / max(distance, 1)
+                sep_y += direction.y * strength / max(distance, 1)
+
+        # Alignment - match velocity
+        avg_vel = sum((f.vel for f in nearby_allies), Vector2()) / len(nearby_allies)
+        if avg_vel.length() > 0:
+            avg_vel = avg_vel.normalize()
         align_x, align_y = avg_vel.x, avg_vel.y
 
-        # Cohesion
-        center = sum((f.pos for f in allies), Vector2()) / len(allies)
-        coh_dir = (center - fish.pos).normalize() if (center - fish.pos).length() > 0 else Vector2()
+        # Cohesion - move toward center
+        center = sum((f.pos for f in nearby_allies), Vector2()) / len(nearby_allies)
+        coh_dir = (center - fish.pos)
+        if coh_dir.length() > 0:
+            coh_dir = coh_dir.normalize()
+        else:
+            coh_dir = Vector2()
 
-        # Combine
-        vx = (sep_x * self.parameters["separation_weight"] +
-              align_x * self.parameters["alignment_weight"] +
-              coh_dir.x * self.parameters["cohesion_weight"])
-        vy = (sep_y * self.parameters["separation_weight"] +
-              align_y * self.parameters["alignment_weight"] +
-              coh_dir.y * self.parameters["cohesion_weight"])
+        # Dynamic weight adjustment based on context
+        sep_weight = self.parameters["separation_weight"]
+        align_weight = self.parameters["alignment_weight"]
+        coh_weight = self.parameters["cohesion_weight"]
+
+        if in_danger:
+            # When threatened: increase cohesion and alignment (school tightens)
+            coh_weight *= 1.8
+            align_weight *= 1.5
+            sep_weight *= 0.6
+        elif food_nearby:
+            # When food nearby: increase separation (compete for food)
+            sep_weight *= 1.4
+            coh_weight *= 0.7
+
+        # Combine forces
+        vx = (sep_x * sep_weight +
+              align_x * align_weight +
+              coh_dir.x * coh_weight)
+        vy = (sep_y * sep_weight +
+              align_y * align_weight +
+              coh_dir.y * coh_weight)
+
+        # Add predator avoidance
+        if in_danger and predator_distance < 150:
+            avoid_dir = (fish.pos - nearest_predator.pos).normalize()
+            threat_strength = (150 - predator_distance) / 150
+            vx += avoid_dir.x * threat_strength * 2.0
+            vy += avoid_dir.y * threat_strength * 2.0
+
+        # Add food attraction for whole school
+        if food_nearby and food_distance < 80:
+            food_dir = (nearest_food.pos - fish.pos).normalize()
+            vx += food_dir.x * 0.5
+            vy += food_dir.y * 0.5
 
         # Normalize
         length = math.sqrt(vx*vx + vy*vy)
@@ -1151,22 +1421,82 @@ class DynamicScholer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass, Crab
+        from agents import Fish as FishClass, Crab, Food
 
-        # Check for danger
+        # Check for danger with graded threat levels
         predators = fish.environment.get_agents_of_type(Crab)
-        in_danger = any((p.pos - fish.pos).length() < self.parameters["danger_threshold"] for p in predators)
+        nearest_predator = self._find_nearest(fish, Crab)
 
-        # Adjust cohesion based on danger
-        cohesion = self.parameters["danger_cohesion"] if in_danger else self.parameters["calm_cohesion"]
+        # Calculate threat level (0 = no threat, 1 = extreme threat)
+        threat_level = 0
+        if nearest_predator:
+            pred_distance = (nearest_predator.pos - fish.pos).length()
+            if pred_distance < self.parameters["danger_threshold"]:
+                threat_level = 1.0 - (pred_distance / self.parameters["danger_threshold"])
+
+        # Check for food opportunities
+        nearest_food = self._find_nearest(fish, Food)
+        food_opportunity = 0
+        if nearest_food:
+            food_distance = (nearest_food.pos - fish.pos).length()
+            if food_distance < 120:
+                food_opportunity = 1.0 - (food_distance / 120)
+
+        # Check energy state
+        energy_ratio = fish.energy / fish.max_energy
+
+        # Dynamic cohesion based on multiple factors
+        if threat_level > 0.5:
+            # High threat - tight schooling
+            cohesion = self.parameters["danger_cohesion"]
+        elif energy_ratio < 0.4 and food_opportunity > 0.3:
+            # Hungry with food nearby - break formation to compete
+            cohesion = self.parameters["calm_cohesion"] * 0.5
+        elif energy_ratio > 0.8:
+            # Well-fed and safe - loose exploration
+            cohesion = self.parameters["calm_cohesion"] * 0.7
+        else:
+            # Normal conditions - moderate cohesion
+            cohesion = self.parameters["calm_cohesion"]
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
         if allies:
+            # Move toward school center
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
             direction = (center - fish.pos)
+
+            vx, vy = 0, 0
             if direction.length() > 0:
                 direction = direction.normalize()
-                return direction.x * cohesion, direction.y * cohesion
+                vx = direction.x * cohesion
+                vy = direction.y * cohesion
+
+            # Add threat response
+            if threat_level > 0.3 and nearest_predator:
+                avoid_dir = (fish.pos - nearest_predator.pos).normalize()
+                vx += avoid_dir.x * threat_level * 1.5
+                vy += avoid_dir.y * threat_level * 1.5
+
+            # Add food seeking when safe and hungry
+            if threat_level < 0.2 and energy_ratio < 0.6 and nearest_food:
+                food_dir = (nearest_food.pos - fish.pos).normalize()
+                hunger = 1.0 - energy_ratio
+                vx += food_dir.x * hunger * 0.7
+                vy += food_dir.y * hunger * 0.7
+
+            # Normalize
+            length = math.sqrt(vx*vx + vy*vy)
+            if length > 0:
+                return vx/length, vy/length
+
+        # No allies - go solo
+        if threat_level > 0.5 and nearest_predator:
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.2, direction.y * 1.2
+        elif energy_ratio < 0.5 and nearest_food:
+            direction = (nearest_food.pos - fish.pos).normalize()
+            return direction.x * 0.8, direction.y * 0.8
+
         return 0, 0
 
 
@@ -1192,10 +1522,30 @@ class EnergyConserver(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
+        from agents import Food, Crab
+
         energy_ratio = fish.energy / fish.max_energy
-        if energy_ratio < self.parameters["activity_threshold"]:
-            # Rest mode
-            return 0, 0
+
+        # Check for immediate threats
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 100:
+            # Must flee even if conserving energy
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            # Slower flee when low energy (realistic)
+            flee_speed = 0.8 + energy_ratio * 0.5
+            return direction.x * flee_speed, direction.y * flee_speed
+
+        # Only pursue very close food when in conservation mode
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            food_distance = (nearest_food.pos - fish.pos).length()
+            # Only move for food if it's very close or energy is critical
+            if food_distance < 40 or energy_ratio < 0.25:
+                direction = (nearest_food.pos - fish.pos).normalize()
+                # Slow approach to conserve energy
+                return direction.x * self.parameters["rest_speed"], direction.y * self.parameters["rest_speed"]
+
+        # Rest mode - minimal movement
         return 0, 0
 
 
@@ -1220,19 +1570,66 @@ class BurstSwimmer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
+        from agents import Food, Crab
+
+        energy_ratio = fish.energy / fish.max_energy
+
+        # Check environment
+        nearest_predator = self._find_nearest(fish, Crab)
+        nearest_food = self._find_nearest(fish, Food)
+
+        predator_nearby = nearest_predator and (nearest_predator.pos - fish.pos).length() < 150
+        food_nearby = nearest_food and (nearest_food.pos - fish.pos).length() < 100
+
         self.cycle_timer += 1
 
-        if self.is_bursting and self.cycle_timer > self.parameters["burst_duration"]:
-            self.is_bursting = False
-            self.cycle_timer = 0
-        elif not self.is_bursting and self.cycle_timer > self.parameters["rest_duration"]:
+        # Interrupt cycle for emergencies
+        if predator_nearby and not self.is_bursting:
+            # Emergency burst to escape
             self.is_bursting = True
             self.cycle_timer = 0
 
+        # Adjust cycle based on energy
+        burst_duration = self.parameters["burst_duration"]
+        rest_duration = self.parameters["rest_duration"]
+
+        if energy_ratio < 0.3:
+            # Low energy - shorter bursts, longer rest
+            burst_duration *= 0.7
+            rest_duration *= 1.3
+        elif energy_ratio > 0.7:
+            # High energy - longer bursts
+            burst_duration *= 1.2
+            rest_duration *= 0.8
+
+        if self.is_bursting and self.cycle_timer > burst_duration:
+            self.is_bursting = False
+            self.cycle_timer = 0
+        elif not self.is_bursting and self.cycle_timer > rest_duration:
+            # Only burst if there's a reason (food, exploration, or good energy)
+            if food_nearby or energy_ratio > 0.5:
+                self.is_bursting = True
+                self.cycle_timer = 0
+
         if self.is_bursting:
-            # Move forward during burst
-            return self.parameters["burst_speed"], 0
-        return 0, 0
+            # Directed burst movement
+            if predator_nearby:
+                # Burst away from predator
+                direction = (fish.pos - nearest_predator.pos).normalize()
+                return direction.x * self.parameters["burst_speed"], direction.y * self.parameters["burst_speed"]
+            elif food_nearby:
+                # Burst toward food
+                direction = (nearest_food.pos - fish.pos).normalize()
+                return direction.x * self.parameters["burst_speed"], direction.y * self.parameters["burst_speed"]
+            else:
+                # Exploration burst - vary direction
+                angle = self.cycle_timer * 0.1
+                vx = math.cos(angle) * self.parameters["burst_speed"]
+                vy = math.sin(angle) * self.parameters["burst_speed"] * 0.5
+                return vx, vy
+        else:
+            # Resting - minimal drift
+            return 0, 0
 
 
 @dataclass
@@ -1400,9 +1797,71 @@ class AdaptivePacer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
+        from agents import Food, Crab, Fish as FishClass
+
         energy_ratio = fish.energy / fish.max_energy
-        speed = self.parameters["base_speed"] * (1 + (energy_ratio - 0.5) * self.parameters["energy_influence"])
-        return speed, 0
+
+        # Base speed influenced by energy
+        base_speed = self.parameters["base_speed"] * (1 + (energy_ratio - 0.5) * self.parameters["energy_influence"])
+
+        # Check environment for context
+        nearest_predator = self._find_nearest(fish, Crab)
+        nearest_food = self._find_nearest(fish, Food)
+
+        vx, vy = 0, 0
+
+        # Predator response
+        if nearest_predator:
+            pred_distance = (nearest_predator.pos - fish.pos).length()
+            if pred_distance < 140:
+                # Escape with pace proportional to energy and threat
+                threat = 1.0 - (pred_distance / 140)
+                escape_speed = base_speed * (1.5 + threat * 0.8)
+                # Reduce if low energy
+                if energy_ratio < 0.3:
+                    escape_speed *= 0.7
+                direction = (fish.pos - nearest_predator.pos).normalize()
+                return direction.x * escape_speed, direction.y * escape_speed
+
+        # Food seeking with adaptive pacing
+        if nearest_food:
+            food_distance = (nearest_food.pos - fish.pos).length()
+            hunger = 1.0 - energy_ratio
+
+            # Only pursue if hungry enough or food is very close
+            if hunger > 0.3 or food_distance < 60:
+                # Pace based on distance and hunger
+                pursuit_speed = base_speed * (0.7 + hunger * 0.6)
+                # Speed up as we get closer
+                if food_distance < 80:
+                    pursuit_speed *= 1.3
+
+                direction = (nearest_food.pos - fish.pos).normalize()
+                vx = direction.x * pursuit_speed
+                vy = direction.y * pursuit_speed
+
+        # Social pacing - match nearby fish speeds
+        if vx == 0 and vy == 0:
+            allies = [f for f in fish.environment.get_agents_of_type(FishClass)
+                     if f != fish and (f.pos - fish.pos).length() < 100]
+            if allies:
+                avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)
+                if avg_vel.length() > 0:
+                    avg_vel_normalized = avg_vel.normalize()
+                    # Match their pace but adjusted by our energy
+                    social_pace = base_speed * 0.8
+                    vx = avg_vel_normalized.x * social_pace
+                    vy = avg_vel_normalized.y * social_pace
+
+        # Default gentle cruising if nothing else to do
+        if vx == 0 and vy == 0:
+            # Cruise in a gentle pattern
+            import time
+            t = time.time() * 0.3
+            vx = math.cos(t) * base_speed * 0.6
+            vy = math.sin(t * 0.5) * base_speed * 0.3
+
+        return vx, vy
 
 
 # ============================================================================
@@ -1470,12 +1929,61 @@ class RandomExplorer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        if random.random() < self.parameters["change_frequency"]:
-            self.current_direction = Vector2(random.uniform(-1, 1), random.uniform(-1, 1))
+        from agents import Food, Crab, Fish as FishClass
+        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
+
+        # Check for important stimuli
+        nearest_predator = self._find_nearest(fish, Crab)
+        nearest_food = self._find_nearest(fish, Food)
+
+        # Predator avoidance
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.2, direction.y * 1.2
+
+        # Food opportunism
+        if nearest_food:
+            food_distance = (nearest_food.pos - fish.pos).length()
+            if food_distance < 70:
+                direction = (nearest_food.pos - fish.pos).normalize()
+                return direction.x * 1.0, direction.y * 1.0
+
+        # Boundary avoidance - don't explore into walls
+        edge_margin = 60
+        avoid_x, avoid_y = 0, 0
+        if fish.pos.x < edge_margin:
+            avoid_x = 0.5
+        elif fish.pos.x > SCREEN_WIDTH - edge_margin:
+            avoid_x = -0.5
+        if fish.pos.y < edge_margin:
+            avoid_y = 0.5
+        elif fish.pos.y > SCREEN_HEIGHT - edge_margin:
+            avoid_y = -0.5
+
+        # Change direction periodically or when hitting boundaries
+        if random.random() < self.parameters["change_frequency"] or (avoid_x != 0 or avoid_y != 0):
+            # Bias new direction away from edges
+            new_x = random.uniform(-1, 1) + avoid_x
+            new_y = random.uniform(-1, 1) + avoid_y
+            self.current_direction = Vector2(new_x, new_y)
             if self.current_direction.length() > 0:
                 self.current_direction = self.current_direction.normalize()
 
-        return self.current_direction.x * self.parameters["exploration_speed"], self.current_direction.y * self.parameters["exploration_speed"]
+        # Sometimes explore toward unexplored areas (away from other fish)
+        if random.random() < 0.1:
+            allies = fish.environment.get_agents_of_type(FishClass)
+            if len(allies) > 1:
+                # Find average position of other fish
+                other_fish = [f for f in allies if f != fish]
+                if other_fish:
+                    crowd_center = sum((f.pos for f in other_fish), Vector2()) / len(other_fish)
+                    # Explore away from the crowd
+                    away_from_crowd = (fish.pos - crowd_center)
+                    if away_from_crowd.length() > 0:
+                        self.current_direction = away_from_crowd.normalize()
+
+        return self.current_direction.x * self.parameters["exploration_speed"], \
+               self.current_direction.y * self.parameters["exploration_speed"]
 
 
 @dataclass
@@ -1600,29 +2108,69 @@ class RoutePatroller(BehaviorAlgorithm):
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
         from constants import SCREEN_WIDTH, SCREEN_HEIGHT
+        from agents import Food, Crab
 
         if not self.initialized:
-            # Create random waypoints
-            num_waypoints = random.randint(3, 6)
-            for _ in range(num_waypoints):
-                self.waypoints.append(Vector2(random.uniform(50, SCREEN_WIDTH - 50),
-                                            random.uniform(50, SCREEN_HEIGHT - 50)))
+            # Create strategic waypoints - cover different areas of tank
+            num_waypoints = random.randint(4, 7)
+            for i in range(num_waypoints):
+                # Distribute waypoints in a pattern
+                angle = (2 * math.pi * i) / num_waypoints
+                radius = random.uniform(120, 250)
+                center_x, center_y = SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2
+                wp_x = center_x + math.cos(angle) * radius
+                wp_y = center_y + math.sin(angle) * radius
+                # Clamp to bounds
+                wp_x = max(60, min(SCREEN_WIDTH - 60, wp_x))
+                wp_y = max(60, min(SCREEN_HEIGHT - 60, wp_y))
+                self.waypoints.append(Vector2(wp_x, wp_y))
             self.initialized = True
 
         if not self.waypoints:
             return 0, 0
 
+        # Check for threats and opportunities
+        nearest_predator = self._find_nearest(fish, Crab)
+        nearest_food = self._find_nearest(fish, Food)
+
+        # Interrupt patrol for immediate threats
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 100:
+            direction = (fish.pos - nearest_predator.pos).normalize()
+            return direction.x * 1.3, direction.y * 1.3
+
+        # Interrupt patrol for close food
+        if nearest_food and (nearest_food.pos - fish.pos).length() < 60:
+            direction = (nearest_food.pos - fish.pos).normalize()
+            return direction.x * 0.9, direction.y * 0.9
+
+        # Continue patrol
         target = self.waypoints[self.current_waypoint_idx]
         distance = (target - fish.pos).length()
 
+        # Reached waypoint
         if distance < self.parameters["waypoint_threshold"]:
+            # Look for food near this waypoint before moving on
+            if nearest_food and (nearest_food.pos - target).length() < 100:
+                # Food near waypoint - pursue it
+                direction = (nearest_food.pos - fish.pos).normalize()
+                return direction.x * self.parameters["patrol_speed"], direction.y * self.parameters["patrol_speed"]
+
+            # Move to next waypoint
             self.current_waypoint_idx = (self.current_waypoint_idx + 1) % len(self.waypoints)
             target = self.waypoints[self.current_waypoint_idx]
 
+        # Move toward current waypoint
         direction = (target - fish.pos)
         if direction.length() > 0:
             direction = direction.normalize()
-            return direction.x * self.parameters["patrol_speed"], direction.y * self.parameters["patrol_speed"]
+
+            # Vary speed based on distance - slow down when approaching
+            speed_multiplier = 1.0
+            if distance < 80:
+                speed_multiplier = 0.7 + (distance / 80) * 0.3
+
+            return direction.x * self.parameters["patrol_speed"] * speed_multiplier, \
+                   direction.y * self.parameters["patrol_speed"] * speed_multiplier
         return 0, 0
 
 
@@ -1675,11 +2223,64 @@ class NomadicWanderer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        # Gradually change direction
-        self.wander_angle += random.gauss(0, self.parameters["direction_change_rate"])
+        from agents import Food, Crab
+        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
+
+        # Check for threats and opportunities
+        nearest_predator = self._find_nearest(fish, Crab)
+        nearest_food = self._find_nearest(fish, Food)
+
+        # Immediate threat response
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 110:
+            # Flee but maintain nomadic unpredictability
+            base_escape = (fish.pos - nearest_predator.pos).normalize()
+            perp_x, perp_y = -base_escape.y, base_escape.x
+            randomness = random.uniform(-0.4, 0.4)
+            vx = base_escape.x * 1.0 + perp_x * randomness
+            vy = base_escape.y * 1.0 + perp_y * randomness
+            return vx, vy
+
+        # Opportunistic food grab
+        if nearest_food:
+            food_distance = (nearest_food.pos - fish.pos).length()
+            if food_distance < 50:
+                # Close food - grab it
+                direction = (nearest_food.pos - fish.pos).normalize()
+                return direction.x * 1.0, direction.y * 1.0
+
+        # Boundary awareness - avoid getting stuck in corners
+        edge_margin = 70
+        boundary_influence = 0
+        if fish.pos.x < edge_margin or fish.pos.x > SCREEN_WIDTH - edge_margin or \
+           fish.pos.y < edge_margin or fish.pos.y > SCREEN_HEIGHT - edge_margin:
+            # Turn toward center
+            center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+            to_center = (center - fish.pos).normalize()
+            # Blend turn toward center with random wandering
+            boundary_influence = 0.4
+            self.wander_angle = math.atan2(to_center.y, to_center.x) + random.gauss(0, 0.3)
+
+        # Gradually change direction with smooth random walk
+        angle_change = random.gauss(0, self.parameters["direction_change_rate"])
+        self.wander_angle += angle_change
+
+        # Add some Perlin-like noise for more natural wandering
+        # Use fish position to add spatial variation
+        spatial_influence = math.sin(fish.pos.x * 0.01) * 0.05 + math.cos(fish.pos.y * 0.01) * 0.05
+        self.wander_angle += spatial_influence
 
         vx = math.cos(self.wander_angle) * self.parameters["wander_strength"]
         vy = math.sin(self.wander_angle) * self.parameters["wander_strength"]
+
+        # Energy-based activity
+        energy_ratio = fish.energy / fish.max_energy
+        if energy_ratio < 0.4:
+            # Lower energy = more purposeful toward food
+            if nearest_food and (nearest_food.pos - fish.pos).length() < 150:
+                food_dir = (nearest_food.pos - fish.pos).normalize()
+                # Blend wandering with food seeking
+                vx = vx * 0.4 + food_dir.x * 0.6
+                vy = vy * 0.4 + food_dir.y * 0.6
 
         return vx, vy
 
