@@ -45,6 +45,7 @@ FOOD_TYPES = {
         'energy': 20.0,  # Moderate energy (reduced for competition)
         'rarity': 0.35,  # 35% spawn rate
         'sink_multiplier': 0.8,  # Sinks slower (lighter)
+        'stationary': False,
     },
     'protein': {
         'name': 'Protein Flake',
@@ -52,6 +53,7 @@ FOOD_TYPES = {
         'energy': 35.0,  # High energy (reduced for competition)
         'rarity': 0.25,  # 25% spawn rate
         'sink_multiplier': 1.2,  # Sinks faster (heavier)
+        'stationary': False,
     },
     'vitamin': {
         'name': 'Vitamin Flake',
@@ -59,6 +61,7 @@ FOOD_TYPES = {
         'energy': 25.0,  # Moderate energy (reduced for competition)
         'rarity': 0.20,  # 20% spawn rate
         'sink_multiplier': 0.9,  # Sinks slightly slower
+        'stationary': False,
     },
     'energy': {
         'name': 'Energy Flake',
@@ -66,6 +69,7 @@ FOOD_TYPES = {
         'energy': 30.0,  # High energy (reduced for competition)
         'rarity': 0.15,  # 15% spawn rate
         'sink_multiplier': 1.0,  # Normal sink rate
+        'stationary': False,
     },
     'rare': {
         'name': 'Rainbow Flake',
@@ -73,6 +77,15 @@ FOOD_TYPES = {
         'energy': 50.0,  # Very high energy (reduced for competition)
         'rarity': 0.05,  # 5% spawn rate (rare)
         'sink_multiplier': 1.1,  # Sinks bit faster
+        'stationary': False,
+    },
+    'nectar': {
+        'name': 'Plant Nectar',
+        'files': ['food1.png', 'food2.png'],
+        'energy': 40.0,  # Rewarding snack for curious fish
+        'rarity': 0.15,  # Used for plant-only spawn weighting
+        'sink_multiplier': 0.0,  # Remains in place
+        'stationary': True,
     },
 }
 

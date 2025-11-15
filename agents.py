@@ -583,6 +583,8 @@ class Plant(Agent):
 
     BASE_FOOD_PRODUCTION_RATE = 90  # 3 seconds at 30fps (increased from 5s for better energy economy)
     MAX_FOOD_CAPACITY = 10  # Maximum food items per plant (increased to support larger populations)
+    STATIONARY_FOOD_CHANCE = 0.25  # Chance to grow nectar that stays on the plant
+    STATIONARY_FOOD_TYPE = 'nectar'
 
     def __init__(self, environment: 'environment.Environment', plant_type: int) -> None:
         super().__init__(environment, [FILES['plant'][plant_type-1]], *INIT_POS[f'plant{plant_type}'], 0)
@@ -618,20 +620,33 @@ class Plant(Agent):
         return False
 
     def produce_food(self) -> 'Food':
-        """Produce a food item near the plant.
+        """Produce a food item near or on the plant.
 
         Returns:
             New food item
         """
         self.current_food_count += 1
 
-        # Spawn food near plant with slight randomization
+        if random.random() < self.STATIONARY_FOOD_CHANCE:
+            # Grow nectar that clings to the top of the plant
+            food = Food(
+                self.environment,
+                self.rect.centerx,
+                self.rect.top,
+                source_plant=self,
+                food_type=self.STATIONARY_FOOD_TYPE
+            )
+            anchor_x = self.rect.centerx - food.rect.width / 2
+            anchor_y = self.rect.top - food.rect.height
+            food.pos.update(anchor_x, anchor_y)
+            food.rect.topleft = (anchor_x, anchor_y)
+            return food
+
+        # Spawn traditional floating food near plant with slight randomization
         food_x = self.pos.x + random.uniform(-20, 20)
         food_y = self.pos.y - 30  # Spawn above plant
 
-        food = Food(self.environment, food_x, food_y, source_plant=self)
-
-        return food
+        return Food(self.environment, food_x, food_y, source_plant=self)
 
     def notify_food_eaten(self) -> None:
         """Notify plant that one of its food items was eaten."""
@@ -673,22 +688,27 @@ class Food(Agent):
     """
 
     def __init__(self, environment: 'environment.Environment', x: float, y: float,
-                 source_plant: Optional['Plant'] = None, food_type: Optional[str] = None) -> None:
+                 source_plant: Optional['Plant'] = None, food_type: Optional[str] = None,
+                 allow_stationary_types: bool = True) -> None:
         # Select random food type based on rarity if not specified
         if food_type is None:
-            food_type = self._select_random_food_type()
+            food_type = self._select_random_food_type(include_stationary=allow_stationary_types)
 
         self.food_type = food_type
         self.food_properties = FOOD_TYPES[food_type]
+        self.is_stationary: bool = self.food_properties.get('stationary', False)
 
         # Initialize with type-specific images
         super().__init__(environment, self.food_properties['files'], x, y, 0)
         self.source_plant: Optional['Plant'] = source_plant
 
     @staticmethod
-    def _select_random_food_type() -> str:
+    def _select_random_food_type(include_stationary: bool = True) -> str:
         """Select a random food type based on rarity weights."""
-        food_types = list(FOOD_TYPES.keys())
+        food_types = [
+            ft for ft, props in FOOD_TYPES.items()
+            if include_stationary or not props.get('stationary', False)
+        ]
         weights = [FOOD_TYPES[ft]['rarity'] for ft in food_types]
         return random.choices(food_types, weights=weights)[0]
 
@@ -698,11 +718,22 @@ class Food(Agent):
 
     def update(self, elapsed_time: int) -> None:
         """Update the sprite."""
-        super().update(elapsed_time)
-        self.sink()
+        if self.is_stationary:
+            self.update_image_index(elapsed_time)
+            self.image = self.animation_frames[self.image_index]
+            if self.source_plant is not None:
+                anchor_x = self.source_plant.rect.centerx - self.rect.width / 2
+                anchor_y = self.source_plant.rect.top - self.rect.height
+                self.pos.update(anchor_x, anchor_y)
+                self.rect.topleft = (anchor_x, anchor_y)
+        else:
+            super().update(elapsed_time)
+            self.sink()
 
     def sink(self) -> None:
         """Make the food sink at a rate based on its type."""
+        if self.is_stationary:
+            return
         sink_rate = FOOD_SINK_ACCELERATION * self.food_properties['sink_multiplier']
         self.vel.y += sink_rate
 

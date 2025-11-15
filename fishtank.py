@@ -230,8 +230,16 @@ class FishTankSimulator:
                 self.auto_food_timer = 0
                 # Spawn food from the top at random x position
                 x = random.randint(0, SCREEN_WIDTH)
-                y = 0  # Drop from the top of the screen
-                food = agents.Food(self.environment, x, y)
+                food = agents.Food(
+                    self.environment,
+                    x,
+                    0,
+                    source_plant=None,
+                    allow_stationary_types=False
+                )
+                # Ensure the food starts exactly at the top edge before falling
+                food.pos.y = 0
+                food.rect.y = 0
                 self.agents.add(food)
 
         # Handle collisions
