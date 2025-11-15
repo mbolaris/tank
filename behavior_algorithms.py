@@ -1766,6 +1766,22 @@ ALL_ALGORITHMS = [
 ]
 
 
+def get_algorithm_index(algorithm: BehaviorAlgorithm) -> int:
+    """Get the index of an algorithm in the ALL_ALGORITHMS list.
+
+    Args:
+        algorithm: The behavior algorithm instance
+
+    Returns:
+        Index (0-47) of the algorithm, or -1 if not found
+    """
+    algorithm_class = type(algorithm)
+    try:
+        return ALL_ALGORITHMS.index(algorithm_class)
+    except ValueError:
+        return -1
+
+
 def get_random_algorithm() -> BehaviorAlgorithm:
     """Get a random behavior algorithm instance."""
     algorithm_class = random.choice(ALL_ALGORITHMS)
