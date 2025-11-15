@@ -6,7 +6,10 @@ mutations, and evolutionary dynamics.
 
 import random
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from neural_brain import NeuralBrain
 
 
 @dataclass
@@ -23,6 +26,7 @@ class Genome:
         aggression: Territorial/competitive behavior (0.0-1.0)
         social_tendency: Preference for schooling (0.0-1.0)
         color_hue: Color variation for visual diversity (0.0-1.0)
+        brain: Neural network brain (optional, can be None for simple AI)
     """
 
     # Performance traits
@@ -42,9 +46,25 @@ class Genome:
     # Visual traits
     color_hue: float = 0.5
 
+    # Neural brain (optional)
+    brain: Optional['NeuralBrain'] = None
+
     @classmethod
-    def random(cls) -> 'Genome':
-        """Create a random genome with traits within normal ranges."""
+    def random(cls, use_brain: bool = True) -> 'Genome':
+        """Create a random genome with traits within normal ranges.
+
+        Args:
+            use_brain: Whether to include a neural network brain
+
+        Returns:
+            New random genome
+        """
+        # Import here to avoid circular dependency
+        brain = None
+        if use_brain:
+            from neural_brain import NeuralBrain
+            brain = NeuralBrain.random()
+
         return cls(
             speed_modifier=random.uniform(0.7, 1.3),
             size_modifier=random.uniform(0.7, 1.3),
@@ -55,6 +75,7 @@ class Genome:
             aggression=random.uniform(0.0, 1.0),
             social_tendency=random.uniform(0.0, 1.0),
             color_hue=random.random(),
+            brain=brain,
         )
 
     @classmethod
@@ -84,6 +105,20 @@ class Genome:
             # Clamp to valid range
             return max(min_val, min(max_val, inherited))
 
+        # Handle brain inheritance
+        brain = None
+        if parent1.brain is not None and parent2.brain is not None:
+            from neural_brain import NeuralBrain
+            brain = NeuralBrain.crossover(parent1.brain, parent2.brain,
+                                         mutation_rate=mutation_rate,
+                                         mutation_strength=mutation_strength)
+        elif parent1.brain is not None or parent2.brain is not None:
+            # If only one parent has a brain, randomly inherit it
+            from neural_brain import NeuralBrain
+            parent_brain = parent1.brain if parent1.brain is not None else parent2.brain
+            if parent_brain and random.random() < 0.5:
+                brain = NeuralBrain.random()  # Create random brain for diversity
+
         return cls(
             speed_modifier=inherit_trait(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5),
             size_modifier=inherit_trait(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
@@ -94,6 +129,7 @@ class Genome:
             aggression=inherit_trait(parent1.aggression, parent2.aggression, 0.0, 1.0),
             social_tendency=inherit_trait(parent1.social_tendency, parent2.social_tendency, 0.0, 1.0),
             color_hue=inherit_trait(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
+            brain=brain,
         )
 
     def get_color_tint(self) -> Tuple[int, int, int]:

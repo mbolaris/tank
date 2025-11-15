@@ -25,6 +25,42 @@ class MovementStrategy:
             if pygame.sprite.collide_rect(sprite, food):
                 sprite.vel = Vector2(0, 0)  # Set velocity to 0
 
+
+class NeuralMovement(MovementStrategy):
+    """Movement strategy controlled by a neural network brain."""
+
+    def move(self, sprite: 'Fish') -> None:
+        """Move using neural network decision making."""
+        # Check if fish has a brain
+        if sprite.genome.brain is None:
+            # Fallback to simple random movement
+            sprite.add_random_velocity_change()
+            super().move(sprite)
+            return
+
+        # Get inputs for the neural network
+        from neural_brain import get_brain_inputs
+        inputs = get_brain_inputs(sprite)
+
+        # Think and get desired velocity
+        desired_vx, desired_vy = sprite.genome.brain.think(inputs)
+
+        # Apply neural network decision
+        # Scale by speed to get actual velocity
+        target_vx = desired_vx * sprite.speed
+        target_vy = desired_vy * sprite.speed
+
+        # Smoothly interpolate toward desired velocity (not instant turns)
+        smoothing = 0.15  # Lower = smoother, higher = more responsive
+        sprite.vel.x += (target_vx - sprite.vel.x) * smoothing
+        sprite.vel.y += (target_vy - sprite.vel.y) * smoothing
+
+        # Normalize velocity to maintain consistent speed
+        if sprite.vel.length() > 0:
+            sprite.vel = sprite.vel.normalize() * sprite.speed
+
+        super().move(sprite)
+
 class SoloFishMovement(MovementStrategy):
     """Movement strategy for a solo fish."""
     def move(self, sprite: 'Fish') -> None:

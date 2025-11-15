@@ -7,6 +7,7 @@ import movement_strategy
 import environment
 from ecosystem import EcosystemManager
 from time_system import TimeSystem
+from evolution_viz import EvolutionVisualizer, SpeciesTracker
 
 class FishTankSimulator:
     """A simulation of a fish tank with full ecosystem dynamics.
@@ -55,11 +56,11 @@ class FishTankSimulator:
         self.create_initial_agents()
 
     def create_initial_agents(self) -> None:
-        """Create initial sprites in the fish tank."""
+        """Create initial sprites in the fish tank with multiple species."""
         if self.environment is None or self.ecosystem is None:
             return
 
-        # Create one solo fish
+        # Species 1: Solo fish with traditional AI (rule-based)
         solo_fish = agents.Fish(
             self.environment,
             movement_strategy.SoloFishMovement(),
@@ -70,18 +71,37 @@ class FishTankSimulator:
             ecosystem=self.ecosystem
         )
 
-        # Create schooling fish
-        schooling_fish = []
-        for i in range(NUM_SCHOOLING_FISH):
-            # Randomize spawn positions a bit
+        # Species 2: Schooling fish with neural network brains (learning AI)
+        neural_schooling_fish = []
+        for i in range(3):  # Fewer neural fish to start
             x = INIT_POS['school'][0] + random.randint(-50, 50)
             y = INIT_POS['school'][1] + random.randint(-30, 30)
+            fish = agents.Fish(
+                self.environment,
+                movement_strategy.NeuralMovement(),
+                FILES['schooling_fish'],
+                x, y,
+                4,
+                generation=0,
+                ecosystem=self.ecosystem
+            )
+            neural_schooling_fish.append(fish)
+
+        # Species 3: Traditional schooling fish (rule-based AI)
+        schooling_fish = []
+        for i in range(3):  # Also 3 traditional schooling fish
+            x = INIT_POS['school'][0] + random.randint(-50, 50)
+            y = INIT_POS['school'][1] + random.randint(-30, 30)
+            # Create genome without neural brain
+            from genetics import Genome
+            genome = Genome.random(use_brain=False)
             fish = agents.Fish(
                 self.environment,
                 movement_strategy.SchoolingFishMovement(),
                 FILES['schooling_fish'],
                 x, y,
                 4,
+                genome=genome,
                 generation=0,
                 ecosystem=self.ecosystem
             )
@@ -99,8 +119,9 @@ class FishTankSimulator:
         # Add all agents
         self.agents.add(
             solo_fish,
-            *schooling_fish,
-            # agents.Crab(self.environment),  # Disabled for now - too deadly!
+            *neural_schooling_fish,  # Neural network fish
+            *schooling_fish,  # Traditional rule-based fish
+            agents.Crab(self.environment),  # Re-enabled with better balance!
             plant1,
             plant2,
             plant3,
@@ -192,16 +213,19 @@ class FishTankSimulator:
                 collisions = pygame.sprite.spritecollide(fish, self.agents, False, pygame.sprite.collide_mask)
                 for collision_sprite in collisions:
                     if isinstance(collision_sprite, agents.Crab):
-                        # Record death from predation
-                        if self.ecosystem is not None:
-                            self.ecosystem.record_death(
-                                fish.fish_id,
-                                fish.generation,
-                                fish.age,
-                                'predation',
-                                fish.genome
-                            )
-                        fish.kill()
+                        # Crab can only kill if hunt cooldown is ready
+                        if collision_sprite.can_hunt():
+                            # Record death from predation
+                            if self.ecosystem is not None:
+                                self.ecosystem.record_death(
+                                    fish.fish_id,
+                                    fish.generation,
+                                    fish.age,
+                                    'predation',
+                                    fish.genome
+                                )
+                            collision_sprite.eat_fish(fish)
+                            fish.kill()
                     elif isinstance(collision_sprite, agents.Food):
                         fish.eat(collision_sprite)
 
@@ -212,7 +236,10 @@ class FishTankSimulator:
             if isinstance(food, agents.Food):
                 collisions = pygame.sprite.spritecollide(food, self.agents, False, pygame.sprite.collide_mask)
                 for collision_sprite in collisions:
-                    if isinstance(collision_sprite, (agents.Fish, agents.Crab)):
+                    if isinstance(collision_sprite, agents.Fish):
+                        food.get_eaten()
+                    elif isinstance(collision_sprite, agents.Crab):
+                        collision_sprite.eat_food(food)
                         food.get_eaten()
 
     def handle_reproduction(self) -> None:
