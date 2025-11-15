@@ -6,7 +6,7 @@ SCREEN_HEIGHT = 600
 FRAME_RATE = 30
 
 # The number of schooling fish to create at the start of the game
-NUM_SCHOOLING_FISH = 10
+NUM_SCHOOLING_FISH = 6  # Reduced to ease food pressure
 
 # The rate at which the sprite images change, in milliseconds
 IMAGE_CHANGE_RATE = 500  # change this to your preference
@@ -50,5 +50,6 @@ INIT_POS = {
     'school': (300, 200),
     'plant1': (250, 510),
     'plant2': (10, 510),
+    'plant3': (500, 510),  # Add third plant
     'castle': (100, 500),
 }
