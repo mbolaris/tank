@@ -7,7 +7,7 @@ from image_loader import ImageLoader
 from constants import (FILES, INIT_POS, SCREEN_WIDTH, SCREEN_HEIGHT, IMAGE_CHANGE_RATE,
                        AVOIDANCE_SPEED_CHANGE, ALIGNMENT_SPEED_CHANGE, RANDOM_MOVE_PROBABILITIES,
                        RANDOM_VELOCITY_DIVISOR, FISH_GROWTH_RATE, PLANT_SWAY_RANGE,
-                       PLANT_SWAY_SPEED, FOOD_SINK_ACCELERATION)
+                       PLANT_SWAY_SPEED, FOOD_SINK_ACCELERATION, FOOD_TYPES)
 import random
 import math
 from enum import Enum
@@ -468,7 +468,7 @@ class Fish(Agent):
         Args:
             food: The food being eaten
         """
-        energy_gained = self.ENERGY_FROM_FOOD
+        energy_gained = food.get_energy_value()
         self.energy = min(self.max_energy, self.energy + energy_gained)
 
 class Crab(Agent):
@@ -518,7 +518,8 @@ class Crab(Agent):
 
     def eat_food(self, food: 'Food') -> None:
         """Eat food and gain energy."""
-        self.energy = min(self.max_energy, self.energy + self.ENERGY_FROM_FOOD)
+        energy_gained = food.get_energy_value()
+        self.energy = min(self.max_energy, self.energy + energy_gained)
 
     def update(self, elapsed_time: int) -> None:
         # Update cooldown
@@ -651,16 +652,37 @@ class Castle(Agent):
         super().__init__(environment, FILES['castle'], *INIT_POS['castle'], 0)
 
 class Food(Agent):
-    """A food sprite.
+    """A food sprite with variable nutrients.
 
     Attributes:
         source_plant: Optional plant that produced this food
+        food_type: Type of food (algae, protein, vitamin, energy, rare)
+        food_properties: Dictionary containing energy and other properties
     """
 
     def __init__(self, environment: 'environment.Environment', x: float, y: float,
-                 source_plant: Optional['Plant'] = None) -> None:
-        super().__init__(environment, FILES['food'], x, y, 0)
+                 source_plant: Optional['Plant'] = None, food_type: Optional[str] = None) -> None:
+        # Select random food type based on rarity if not specified
+        if food_type is None:
+            food_type = self._select_random_food_type()
+
+        self.food_type = food_type
+        self.food_properties = FOOD_TYPES[food_type]
+
+        # Initialize with type-specific images
+        super().__init__(environment, self.food_properties['files'], x, y, 0)
         self.source_plant: Optional['Plant'] = source_plant
+
+    @staticmethod
+    def _select_random_food_type() -> str:
+        """Select a random food type based on rarity weights."""
+        food_types = list(FOOD_TYPES.keys())
+        weights = [FOOD_TYPES[ft]['rarity'] for ft in food_types]
+        return random.choices(food_types, weights=weights)[0]
+
+    def get_energy_value(self) -> float:
+        """Get the energy value this food provides."""
+        return self.food_properties['energy']
 
     def update(self, elapsed_time: int) -> None:
         """Update the sprite."""
@@ -668,8 +690,9 @@ class Food(Agent):
         self.sink()
 
     def sink(self) -> None:
-        """Make the food sink."""
-        self.vel.y += FOOD_SINK_ACCELERATION
+        """Make the food sink at a rate based on its type."""
+        sink_rate = FOOD_SINK_ACCELERATION * self.food_properties['sink_multiplier']
+        self.vel.y += sink_rate
 
     def get_eaten(self) -> None:
         """Get eaten and notify source plant if applicable."""

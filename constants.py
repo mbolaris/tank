@@ -33,6 +33,45 @@ PLANT_SWAY_SPEED = 0.0005
 # Food physics
 FOOD_SINK_ACCELERATION = 0.01
 
+# Food type definitions with nutrient properties
+FOOD_TYPES = {
+    'algae': {
+        'name': 'Algae Flake',
+        'files': ['food_algae1.png', 'food_algae2.png'],
+        'energy': 30.0,  # Moderate energy
+        'rarity': 0.35,  # 35% spawn rate
+        'sink_multiplier': 0.8,  # Sinks slower (lighter)
+    },
+    'protein': {
+        'name': 'Protein Flake',
+        'files': ['food_protein1.png', 'food_protein2.png'],
+        'energy': 50.0,  # High energy
+        'rarity': 0.25,  # 25% spawn rate
+        'sink_multiplier': 1.2,  # Sinks faster (heavier)
+    },
+    'vitamin': {
+        'name': 'Vitamin Flake',
+        'files': ['food_vitamin1.png', 'food_vitamin2.png'],
+        'energy': 35.0,  # Moderate energy
+        'rarity': 0.20,  # 20% spawn rate
+        'sink_multiplier': 0.9,  # Sinks slightly slower
+    },
+    'energy': {
+        'name': 'Energy Flake',
+        'files': ['food_energy1.png', 'food_energy2.png'],
+        'energy': 45.0,  # High energy
+        'rarity': 0.15,  # 15% spawn rate
+        'sink_multiplier': 1.0,  # Normal sink rate
+    },
+    'rare': {
+        'name': 'Rainbow Flake',
+        'files': ['food_rare1.png', 'food_rare2.png'],
+        'energy': 70.0,  # Very high energy (rare treat!)
+        'rarity': 0.05,  # 5% spawn rate (rare)
+        'sink_multiplier': 1.1,  # Sinks bit faster
+    },
+}
+
 # Filenames for the animation frames of each type of sprite
 FILES = {
     'solo_fish': ['george1.png', 'george2.png'],
@@ -40,7 +79,7 @@ FILES = {
     'schooling_fish': ['school.png'],
     'plant': ['plant1.png', 'plant2.png'],
     'castle': ['castle.png'],
-    'food': ['food1.png', 'food2.png'],    
+    'food': ['food1.png', 'food2.png'],  # Kept for backward compatibility
 }
 
 # The initial positions of the sprites in the game
