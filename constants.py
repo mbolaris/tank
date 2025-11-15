@@ -33,6 +33,10 @@ PLANT_SWAY_SPEED = 0.0005
 # Food physics
 FOOD_SINK_ACCELERATION = 0.01
 
+# Automatic food spawning
+AUTO_FOOD_SPAWN_RATE = 180  # Spawn food every 6 seconds (180 frames at 30fps)
+AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
+
 # Food type definitions with nutrient properties
 FOOD_TYPES = {
     'algae': {

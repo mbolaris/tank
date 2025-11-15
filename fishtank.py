@@ -1,7 +1,8 @@
 import random
 import pygame
 from typing import Optional, List
-from constants import SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH, FILES, INIT_POS
+from constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH, FILES, INIT_POS,
+                       AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED)
 import agents
 import movement_strategy
 import environment
@@ -37,6 +38,7 @@ class FishTankSimulator:
         self.stats_font: Optional[pygame.font.Font] = None
         self.paused: bool = False
         self.show_stats_hud: bool = True  # Toggle for stats and health bars
+        self.auto_food_timer: int = 0  # Timer for automatic food spawning
 
     def setup_game(self) -> None:
         """Setup the game."""
@@ -188,6 +190,17 @@ class FishTankSimulator:
         # Add new agents
         if new_agents:
             self.agents.add(*new_agents)
+
+        # Automatic food spawning
+        if AUTO_FOOD_ENABLED and self.environment is not None:
+            self.auto_food_timer += 1
+            if self.auto_food_timer >= AUTO_FOOD_SPAWN_RATE:
+                self.auto_food_timer = 0
+                # Spawn food from the top at random x position
+                x = random.randint(0, SCREEN_WIDTH)
+                y = 0  # Drop from the top of the screen
+                food = agents.Food(self.environment, x, y)
+                self.agents.add(food)
 
         # Handle collisions
         self.handle_collisions()

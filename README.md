@@ -138,6 +138,7 @@ Genomes now include:
   - Production every 5 seconds per plant
   - Max 8 food items per plant
   - Faster production during daytime
+  - **Automatic food shop** drops food from the top every 6 seconds
 
 - **Ecosystem Balance**:
   - Sustainable population with proper food supply
@@ -228,6 +229,10 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FRAME_RATE = 30
 NUM_SCHOOLING_FISH = 6
+
+# Automatic food spawning
+AUTO_FOOD_SPAWN_RATE = 180  # Spawn food every 6 seconds
+AUTO_FOOD_ENABLED = True  # Enable/disable automatic food
 ```
 
 Key parameters in `agents.py`:
