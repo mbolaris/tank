@@ -54,12 +54,25 @@ class Agent(pygame.sprite.Sprite):
 
     def handle_screen_edges(self) -> None:
         """Handle the sprite hitting the edge of the screen."""
-        if self.rect.x < 0 or self.rect.right > SCREEN_WIDTH:
-            self.vel.x *= -1
-        if self.rect.y < 0:
-            self.rect.y = 0
+        # Horizontal boundaries - reverse velocity and clamp position
+        if self.rect.left < 0:
+            self.rect.left = 0
+            self.pos.x = self.rect.left
+            self.vel.x = abs(self.vel.x)  # Bounce right
+        elif self.rect.right > SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+            self.pos.x = self.rect.left
+            self.vel.x = -abs(self.vel.x)  # Bounce left
+
+        # Vertical boundaries - reverse velocity and clamp position
+        if self.rect.top < 0:
+            self.rect.top = 0
+            self.pos.y = self.rect.top
+            self.vel.y = abs(self.vel.y)  # Bounce down
         elif self.rect.bottom > SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
+            self.pos.y = self.rect.top
+            self.vel.y = -abs(self.vel.y)  # Bounce up
 
     def get_current_image(self) -> Surface:
         """Get the current image of the sprite."""
