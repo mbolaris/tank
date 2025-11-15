@@ -474,7 +474,7 @@ class FishTankSimulator:
                     if self.environment is not None:
                         x = random.randint(0, SCREEN_WIDTH)
                         y = 0  # Food will drop from the top of the screen
-                        food = agents.Food(self.environment, x, y)
+                        food = agents.Food(self.environment, x, y, allow_stationary_types=False)
                         self.agents.add(food)
                 elif event.key == pygame.K_p:
                     # Toggle pause

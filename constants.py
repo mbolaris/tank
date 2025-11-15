@@ -81,7 +81,7 @@ FOOD_TYPES = {
     },
     'nectar': {
         'name': 'Plant Nectar',
-        'files': ['food1.png', 'food2.png'],
+        'files': ['food_vitamin1.png', 'food_vitamin2.png'],
         'energy': 40.0,  # Rewarding snack for curious fish
         'rarity': 0.15,  # Used for plant-only spawn weighting
         'sink_multiplier': 0.0,  # Remains in place
