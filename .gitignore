@@ -12,3 +12,7 @@
 /SCHOOL1.DAT
 /SCHOOL2.DAT
 /tank.png
+
+# Python cache
+__pycache__/
+*.pyc
