@@ -1,19 +1,48 @@
 # 🐠 Artificial Life Fish Tank Simulation
 
-An advanced artificial life ecosystem simulation featuring **neural network brains**, genetics, evolution, energy systems, and emergent population dynamics.
+An advanced artificial life ecosystem simulation featuring **48 parametrizable behavior algorithms**, **neural network brains**, genetics, evolution, energy systems, and emergent population dynamics.
 
 ## 🎯 Overview
 
-This is a **cutting-edge ALife simulation** built with Pygame that demonstrates complex ecosystem behaviors, **neuroevolution**, and competitive dynamics. Fish have **evolving neural network brains**, genetics, energy systems, and compete for survival across multiple species. The simulation features:
+This is a **cutting-edge ALife simulation** built with Pygame that demonstrates complex ecosystem behaviors, **algorithmic evolution**, **neuroevolution**, and competitive dynamics. Fish can evolve with different AI systems including parametrizable algorithms, neural networks, or rule-based behavior. The simulation features:
 
+- 🧬 **ALGORITHMIC EVOLUTION** - 48 unique parametrizable behavior strategies! (NEW!)
 - 🧠 **Neural Network Brains** - Fish with evolving AI that learn survival strategies
 - 🦀 **Balanced Predator-Prey** - Crabs hunt fish with realistic hunting mechanics
-- 🐠 **Multiple Competing Species** - Neural AI vs Rule-based AI fish
-- 🧬 **Genetic Evolution** - Traits AND brains evolve across generations
+- 🐠 **Multiple Competing Species** - Algorithmic vs Neural vs Rule-based AI
+- 🧬 **Genetic Evolution** - Traits, algorithms, AND brains evolve across generations
 - 📊 **Real-time Visualization** - Watch traits evolve with live graphs
 - 🌍 **Rich Ecosystem** - Day/night cycles, living plants, population dynamics
 
 ## 🌟 **NEW: Advanced Features**
+
+### 🧬 **ALGORITHMIC EVOLUTION SYSTEM** 🚀
+
+The simulation now features **48 parametrizable behavior algorithms** that fish can inherit and evolve! This creates unprecedented diversity and sophistication in fish behavior.
+
+**Key Features:**
+- **48 Unique Algorithms** across 5 categories:
+  - 🍔 Food Seeking (12 algorithms)
+  - 🛡️ Predator Avoidance (10 algorithms)
+  - 🐟 Schooling/Social (10 algorithms)
+  - ⚡ Energy Management (8 algorithms)
+  - 🗺️ Territory/Exploration (8 algorithms)
+
+- **Parametrizable Behaviors**: Each algorithm has tunable parameters that mutate during reproduction
+- **Inheritance**: Offspring inherit parent's algorithm type with parameter mutations
+- **Natural Selection**: Better algorithms survive and spread through the population
+- **High Interpretability**: Unlike neural networks, algorithm behaviors are clear and debuggable
+
+**Example Algorithms:**
+- `GreedyFoodSeeker` - Always move toward nearest food
+- `AmbushFeeder` - Wait for food to come close
+- `PanicFlee` - Escape from predators at maximum speed
+- `TightScholer` - Stay very close to school members
+- `BurstSwimmer` - Alternate between bursts and rest
+- `TerritorialDefender` - Defend territory from intruders
+- ...and 42 more!
+
+**See [ALGORITHMIC_EVOLUTION.md](ALGORITHMIC_EVOLUTION.md) for complete documentation!**
 
 ### 🧠 **Neural Network Brains**
 Fish can now have **evolving neural network brains** that control their behavior:
@@ -32,13 +61,14 @@ Fish can now have **evolving neural network brains** that control their behavior
 - Survive longer and reproduce more
 
 ### 🐠 **Multiple Competing Species**
-The ecosystem now supports **3 different species** competing for resources:
+The ecosystem now supports **4 different AI approaches** competing for resources:
 
-1. **Solo Fish** - Rule-based AI, traditional behavior
-2. **Neural Schooling Fish** - AI-controlled with evolving brains
+1. **Algorithmic Fish** - 48 different parametrizable behavior algorithms (NEW!)
+2. **Neural Schooling Fish** - AI-controlled with evolving neural network brains
 3. **Traditional Schooling Fish** - Rule-based flocking behavior
+4. **Solo Fish** - Rule-based AI, traditional behavior
 
-**Competition**: All species compete for the same food, creating evolutionary pressure for better strategies.
+**Competition**: All species compete for the same food, creating evolutionary pressure for better strategies. Watch as different AI approaches compete!
 
 ### 🦀 **Balanced Predator System**
 Crabs are re-enabled with **major balance improvements**:
