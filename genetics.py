@@ -10,6 +10,7 @@ from typing import Tuple, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from neural_brain import NeuralBrain
+    from behavior_algorithms import BehaviorAlgorithm
 
 
 @dataclass
@@ -27,6 +28,7 @@ class Genome:
         social_tendency: Preference for schooling (0.0-1.0)
         color_hue: Color variation for visual diversity (0.0-1.0)
         brain: Neural network brain (optional, can be None for simple AI)
+        behavior_algorithm: Parametrizable behavior algorithm (NEW!)
     """
 
     # Performance traits
@@ -49,12 +51,16 @@ class Genome:
     # Neural brain (optional)
     brain: Optional['NeuralBrain'] = None
 
+    # Behavior algorithm (NEW: algorithmic evolution system)
+    behavior_algorithm: Optional['BehaviorAlgorithm'] = None
+
     @classmethod
-    def random(cls, use_brain: bool = True) -> 'Genome':
+    def random(cls, use_brain: bool = True, use_algorithm: bool = True) -> 'Genome':
         """Create a random genome with traits within normal ranges.
 
         Args:
             use_brain: Whether to include a neural network brain
+            use_algorithm: Whether to include a behavior algorithm
 
         Returns:
             New random genome
@@ -64,6 +70,12 @@ class Genome:
         if use_brain:
             from neural_brain import NeuralBrain
             brain = NeuralBrain.random()
+
+        # Create random behavior algorithm
+        algorithm = None
+        if use_algorithm:
+            from behavior_algorithms import get_random_algorithm
+            algorithm = get_random_algorithm()
 
         return cls(
             speed_modifier=random.uniform(0.7, 1.3),
@@ -76,6 +88,7 @@ class Genome:
             social_tendency=random.uniform(0.0, 1.0),
             color_hue=random.random(),
             brain=brain,
+            behavior_algorithm=algorithm,
         )
 
     @classmethod
@@ -119,6 +132,29 @@ class Genome:
             if parent_brain and random.random() < 0.5:
                 brain = NeuralBrain.random()  # Create random brain for diversity
 
+        # Handle behavior algorithm inheritance (NEW!)
+        algorithm = None
+        if parent1.behavior_algorithm is not None:
+            # Inherit from parent1 and mutate
+            from behavior_algorithms import inherit_algorithm_with_mutation
+            algorithm = inherit_algorithm_with_mutation(
+                parent1.behavior_algorithm,
+                mutation_rate=mutation_rate * 1.5,  # Slightly higher mutation for algorithms
+                mutation_strength=mutation_strength * 1.5
+            )
+        elif parent2.behavior_algorithm is not None:
+            # Inherit from parent2 and mutate
+            from behavior_algorithms import inherit_algorithm_with_mutation
+            algorithm = inherit_algorithm_with_mutation(
+                parent2.behavior_algorithm,
+                mutation_rate=mutation_rate * 1.5,
+                mutation_strength=mutation_strength * 1.5
+            )
+        else:
+            # No algorithm from either parent, create random
+            from behavior_algorithms import get_random_algorithm
+            algorithm = get_random_algorithm()
+
         return cls(
             speed_modifier=inherit_trait(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5),
             size_modifier=inherit_trait(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
@@ -130,6 +166,7 @@ class Genome:
             social_tendency=inherit_trait(parent1.social_tendency, parent2.social_tendency, 0.0, 1.0),
             color_hue=inherit_trait(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
             brain=brain,
+            behavior_algorithm=algorithm,
         )
 
     def get_color_tint(self) -> Tuple[int, int, int]:

@@ -61,6 +61,42 @@ class NeuralMovement(MovementStrategy):
 
         super().move(sprite)
 
+
+class AlgorithmicMovement(MovementStrategy):
+    """Movement strategy controlled by a behavior algorithm (NEW!)."""
+
+    def move(self, sprite: 'Fish') -> None:
+        """Move using the fish's behavior algorithm."""
+        # Check if fish has a behavior algorithm
+        if sprite.genome.behavior_algorithm is None:
+            # Fallback to simple random movement
+            sprite.add_random_velocity_change()
+            super().move(sprite)
+            return
+
+        # Execute the algorithm to get desired velocity
+        desired_vx, desired_vy = sprite.genome.behavior_algorithm.execute(sprite)
+
+        # Apply algorithm decision
+        # Scale by speed to get actual velocity
+        target_vx = desired_vx * sprite.speed
+        target_vy = desired_vy * sprite.speed
+
+        # Smoothly interpolate toward desired velocity
+        smoothing = 0.2  # Slightly more responsive than neural
+        sprite.vel.x += (target_vx - sprite.vel.x) * smoothing
+        sprite.vel.y += (target_vy - sprite.vel.y) * smoothing
+
+        # Normalize velocity to maintain consistent speed
+        vel_length = sprite.vel.length()
+        if vel_length > 0:
+            # Allow some variation in speed based on algorithm output
+            max_speed_mult = 1.2
+            target_speed = min(sprite.speed * max_speed_mult, vel_length)
+            sprite.vel = sprite.vel.normalize() * target_speed
+
+        super().move(sprite)
+
 class SoloFishMovement(MovementStrategy):
     """Movement strategy for a solo fish."""
     def move(self, sprite: 'Fish') -> None:

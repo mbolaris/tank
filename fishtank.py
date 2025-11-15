@@ -74,30 +74,55 @@ class FishTankSimulator:
             ecosystem=self.ecosystem
         )
 
-        # Species 2: Schooling fish with neural network brains (learning AI)
+        # Species 2: Algorithmic fish with parametrizable behavior algorithms (NEW!)
+        # These fish use the new algorithmic evolution system
+        algorithmic_fish = []
+        for i in range(5):  # Start with 5 algorithmic fish
+            x = INIT_POS['school'][0] + random.randint(-80, 80)
+            y = INIT_POS['school'][1] + random.randint(-50, 50)
+            # Create genome WITH behavior algorithm but WITHOUT neural brain
+            from genetics import Genome
+            genome = Genome.random(use_brain=False, use_algorithm=True)
+            fish = agents.Fish(
+                self.environment,
+                movement_strategy.AlgorithmicMovement(),
+                FILES['schooling_fish'],
+                x, y,
+                4,
+                genome=genome,
+                generation=0,
+                ecosystem=self.ecosystem
+            )
+            algorithmic_fish.append(fish)
+
+        # Species 3: Schooling fish with neural network brains (learning AI)
         neural_schooling_fish = []
-        for i in range(3):  # Fewer neural fish to start
+        for i in range(2):  # Fewer neural fish to start
             x = INIT_POS['school'][0] + random.randint(-50, 50)
             y = INIT_POS['school'][1] + random.randint(-30, 30)
+            # Neural fish should NOT have algorithmic behavior (use brain instead)
+            from genetics import Genome
+            genome = Genome.random(use_brain=True, use_algorithm=False)
             fish = agents.Fish(
                 self.environment,
                 movement_strategy.NeuralMovement(),
                 FILES['schooling_fish'],
                 x, y,
                 4,
+                genome=genome,
                 generation=0,
                 ecosystem=self.ecosystem
             )
             neural_schooling_fish.append(fish)
 
-        # Species 3: Traditional schooling fish (rule-based AI)
+        # Species 4: Traditional schooling fish (rule-based AI)
         schooling_fish = []
-        for i in range(3):  # Also 3 traditional schooling fish
+        for i in range(2):  # Also 2 traditional schooling fish
             x = INIT_POS['school'][0] + random.randint(-50, 50)
             y = INIT_POS['school'][1] + random.randint(-30, 30)
-            # Create genome without neural brain
+            # Create genome without neural brain or algorithm (uses movement strategy only)
             from genetics import Genome
-            genome = Genome.random(use_brain=False)
+            genome = Genome.random(use_brain=False, use_algorithm=False)
             fish = agents.Fish(
                 self.environment,
                 movement_strategy.SchoolingFishMovement(),
@@ -122,6 +147,7 @@ class FishTankSimulator:
         # Add all agents
         self.agents.add(
             solo_fish,
+            *algorithmic_fish,  # NEW: Algorithmic evolution fish!
             *neural_schooling_fish,  # Neural network fish
             *schooling_fish,  # Traditional rule-based fish
             agents.Crab(self.environment),  # Re-enabled with better balance!
@@ -440,9 +466,11 @@ class FishTankSimulator:
         print()
         print("Features:")
         print("  ✓ Genetics & Evolution")
+        print("  ✓ ALGORITHMIC EVOLUTION - 48 Behavior Algorithms! (NEW)")
         print("  ✓ Energy & Metabolism")
         print("  ✓ Life Cycles (Baby → Juvenile → Adult → Elder)")
         print("  ✓ Reproduction with genetic mixing")
+        print("  ✓ Parameter mutations for algorithm tuning")
         print("  ✓ Day/Night cycles")
         print("  ✓ Plants produce food")
         print("  ✓ Population dynamics")
