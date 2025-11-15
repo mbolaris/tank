@@ -262,9 +262,23 @@ class FishTankSimulator:
                     break  # Found a mate, stop looking
 
     def keep_sprite_on_screen(self, sprite: agents.Agent) -> None:
-        """Keep a sprite within the bounds of the screen."""
+        """Keep a sprite fully within the bounds of the screen."""
         if self.screen is not None:
-            sprite.rect.clamp_ip(self.screen.get_rect())
+            # Clamp horizontally
+            if sprite.rect.left < 0:
+                sprite.rect.left = 0
+                sprite.pos.x = sprite.rect.left
+            elif sprite.rect.right > SCREEN_WIDTH:
+                sprite.rect.right = SCREEN_WIDTH
+                sprite.pos.x = sprite.rect.left
+
+            # Clamp vertically
+            if sprite.rect.top < 0:
+                sprite.rect.top = 0
+                sprite.pos.y = sprite.rect.top
+            elif sprite.rect.bottom > SCREEN_HEIGHT:
+                sprite.rect.bottom = SCREEN_HEIGHT
+                sprite.pos.y = sprite.rect.top
 
     def draw_health_bar(self, fish: agents.Fish) -> None:
         """Draw health/energy bar above a fish.
