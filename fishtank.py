@@ -353,6 +353,23 @@ class FishTankSimulator:
         if filled_width > 0:
             pygame.draw.rect(self.screen, color, (bar_x, bar_y, filled_width, bar_height))
 
+        # Display algorithm number if fish has a behavior algorithm
+        if fish.genome.behavior_algorithm is not None:
+            from behavior_algorithms import get_algorithm_index
+            algo_index = get_algorithm_index(fish.genome.behavior_algorithm)
+
+            if algo_index >= 0:
+                # Create a small font for the algorithm number
+                small_font = pygame.font.Font(None, 16)
+                algo_text = f"#{algo_index}"
+                text_surface = small_font.render(algo_text, True, (200, 200, 200))
+
+                # Position text below the health bar, centered
+                text_x = fish.rect.centerx - text_surface.get_width() // 2
+                text_y = bar_y + bar_height + 1
+
+                self.screen.blit(text_surface, (text_x, text_y))
+
     def draw_stats_panel(self) -> None:
         """Draw statistics panel showing ecosystem data."""
         if self.screen is None or self.stats_font is None or self.ecosystem is None:
