@@ -178,8 +178,8 @@ class Fish(Agent):
     MOVEMENT_ENERGY_COST = 0.005  # Lower movement cost (was 0.01)
 
     # Reproduction constants
-    REPRODUCTION_ENERGY_THRESHOLD = 60.0
-    REPRODUCTION_COOLDOWN = 600  # 20 seconds
+    REPRODUCTION_ENERGY_THRESHOLD = 40.0  # Lower threshold to enable breeding during scarcity
+    REPRODUCTION_COOLDOWN = 300  # 10 seconds (reduced from 20 for faster recovery)
     PREGNANCY_DURATION = 300  # 10 seconds
     MATING_DISTANCE = 50.0
 
@@ -357,8 +357,8 @@ class Fish(Agent):
         # Other fish also goes on cooldown
         other.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
 
-        # Energy cost for reproduction
-        self.energy -= 20.0
+        # Energy cost for reproduction (reduced to prevent post-mating starvation)
+        self.energy -= 10.0
 
         return True
 
@@ -472,7 +472,7 @@ class Crab(Agent):
     ENERGY_FROM_FISH = 60.0  # Substantial energy from catching fish
     ENERGY_FROM_FOOD = 20.0
     BASE_METABOLISM = 0.01  # Slower metabolism than fish
-    HUNT_COOLDOWN = 60  # 2 seconds between kills
+    HUNT_COOLDOWN = 180  # 6 seconds between kills (increased from 2s to reduce predation pressure)
 
     def __init__(self, environment: 'environment.Environment', genome: Optional[Genome] = None) -> None:
         # Crabs are slower and less aggressive now
@@ -555,8 +555,8 @@ class Plant(Agent):
         current_food_count: Current number of food items from this plant
     """
 
-    BASE_FOOD_PRODUCTION_RATE = 150  # 5 seconds at 30fps (even faster production)
-    MAX_FOOD_CAPACITY = 8  # Maximum food items per plant
+    BASE_FOOD_PRODUCTION_RATE = 90  # 3 seconds at 30fps (increased from 5s for better energy economy)
+    MAX_FOOD_CAPACITY = 10  # Maximum food items per plant (increased to support larger populations)
 
     def __init__(self, environment: 'environment.Environment', plant_type: int) -> None:
         super().__init__(environment, [FILES['plant'][plant_type-1]], *INIT_POS[f'plant{plant_type}'], 0)
