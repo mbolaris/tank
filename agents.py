@@ -459,13 +459,75 @@ class Fish(Agent):
         self.energy = min(self.max_energy, self.energy + energy_gained)
 
 class Crab(Agent):
-    def __init__(self, environment: 'environment.Environment') -> None:
-        super().__init__(environment, FILES['crab'], *INIT_POS['crab'], 2)
+    """A predator crab that hunts fish and food.
+
+    Attributes:
+        genome: Genetic traits for the crab (speed, aggression, etc.)
+        energy: Current energy level
+        max_energy: Maximum energy capacity
+        hunt_cooldown: Frames until can hunt again
+    """
+
+    BASE_MAX_ENERGY = 150.0
+    ENERGY_FROM_FISH = 60.0  # Substantial energy from catching fish
+    ENERGY_FROM_FOOD = 20.0
+    BASE_METABOLISM = 0.01  # Slower metabolism than fish
+    HUNT_COOLDOWN = 60  # 2 seconds between kills
+
+    def __init__(self, environment: 'environment.Environment', genome: Optional[Genome] = None) -> None:
+        # Crabs are slower and less aggressive now
+        self.genome: Genome = genome if genome is not None else Genome.random()
+        base_speed = 1.5  # Much slower than before (was 2)
+        speed = base_speed * self.genome.speed_modifier
+
+        super().__init__(environment, FILES['crab'], *INIT_POS['crab'], speed)
+
+        # Energy system
+        self.max_energy: float = self.BASE_MAX_ENERGY * self.genome.max_energy
+        self.energy: float = self.max_energy
+
+        # Hunting mechanics
+        self.hunt_cooldown: int = 0
+
+    def can_hunt(self) -> bool:
+        """Check if crab can hunt (cooldown expired)."""
+        return self.hunt_cooldown <= 0
+
+    def consume_energy(self) -> None:
+        """Consume energy based on metabolism."""
+        metabolism = self.BASE_METABOLISM * self.genome.metabolism_rate
+        self.energy = max(0, self.energy - metabolism)
+
+    def eat_fish(self, fish: Fish) -> None:
+        """Eat a fish and gain energy."""
+        self.energy = min(self.max_energy, self.energy + self.ENERGY_FROM_FISH)
+        self.hunt_cooldown = self.HUNT_COOLDOWN
+
+    def eat_food(self, food: 'Food') -> None:
+        """Eat food and gain energy."""
+        self.energy = min(self.max_energy, self.energy + self.ENERGY_FROM_FOOD)
 
     def update(self, elapsed_time: int) -> None:
-        food_sprites = self.environment.agents_to_align_with(self, 1, Food)
+        # Update cooldown
+        if self.hunt_cooldown > 0:
+            self.hunt_cooldown -= 1
+
+        # Consume energy
+        self.consume_energy()
+
+        # Hunt for food (prefers food over fish now - less aggressive)
+        food_sprites = self.environment.agents_to_align_with(self, 100, Food)  # Increased radius for food seeking
         if food_sprites:
             self.align_near(food_sprites, 1)
+        else:
+            # Only hunt fish if no food available and can hunt
+            if self.can_hunt() and self.energy < self.max_energy * 0.7:  # Only hunt when hungry
+                fish_sprites = self.environment.agents_to_align_with(self, 80, Fish)  # Reduced hunting radius
+                if fish_sprites:
+                    # Move toward nearest fish slowly
+                    self.align_near(fish_sprites, 1)
+
+        # Stay on bottom
         self.vel.y = 0
         super().update(elapsed_time)
 
