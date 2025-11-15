@@ -189,6 +189,8 @@ class Fish(Agent):
     ENERGY_FROM_FOOD = 40.0  # More energy from food
     BASE_METABOLISM = 0.025  # Increased metabolism for resource competition
     MOVEMENT_ENERGY_COST = 0.01  # Increased movement cost for resource competition
+    SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
+    SHARP_TURN_ENERGY_COST = 0.05  # Extra energy cost for sharp reversals
 
     # Reproduction constants
     REPRODUCTION_ENERGY_THRESHOLD = 55.0  # Higher threshold - must be well-fed to reproduce
@@ -261,6 +263,9 @@ class Fish(Agent):
                 from behavior_algorithms import get_algorithm_index
                 algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
             ecosystem.record_birth(self.fish_id, self.generation, algorithm_id=algorithm_id)
+
+        self.last_direction: Optional[Vector2] = (self.vel.normalize()
+                                                  if self.vel.length_squared() > 0 else None)
 
     def get_current_image(self) -> Surface:
         """Get the current image with genetic color tint applied."""
@@ -455,12 +460,16 @@ class Fish(Agent):
         # Energy
         self.consume_energy(time_modifier)
 
+        previous_direction = self.last_direction
+
         # Movement (only if not starving or very young)
         if not self.is_starving() and self.life_stage != LifeStage.BABY:
             self.movement_strategy.move(self)
         else:
             # Slow down when starving or baby
             self.vel *= 0.5
+
+        self._apply_turn_energy_cost(previous_direction)
 
         # Reproduction
         newborn = self.update_reproduction()
@@ -482,6 +491,20 @@ class Fish(Agent):
             algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
             if algorithm_id >= 0:
                 self.ecosystem.record_food_eaten(algorithm_id)
+
+    def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
+        """Apply an energy penalty for sharp 180-degree turns."""
+        if self.vel.length_squared() == 0:
+            self.last_direction = None
+            return
+
+        new_direction = self.vel.normalize()
+
+        if (previous_direction is not None and
+                previous_direction.dot(new_direction) <= self.SHARP_TURN_DOT_THRESHOLD):
+            self.energy = max(0, self.energy - self.SHARP_TURN_ENERGY_COST)
+
+        self.last_direction = new_direction
 
 class Crab(Agent):
     """A predator crab that hunts fish and food.
