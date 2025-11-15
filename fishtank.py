@@ -36,6 +36,7 @@ class FishTankSimulator:
         self.time_system: TimeSystem = TimeSystem()
         self.stats_font: Optional[pygame.font.Font] = None
         self.paused: bool = False
+        self.show_stats_hud: bool = True  # Toggle for stats and health bars
 
     def setup_game(self) -> None:
         """Setup the game."""
@@ -374,13 +375,15 @@ class FishTankSimulator:
         # Draw all sprites
         self.agents.draw(self.screen)
 
-        # Draw health bars for fish
-        for sprite in self.agents:
-            if isinstance(sprite, agents.Fish):
-                self.draw_health_bar(sprite)
+        # Draw health bars and stats panel (if HUD is enabled)
+        if self.show_stats_hud:
+            # Draw health bars for fish
+            for sprite in self.agents:
+                if isinstance(sprite, agents.Fish):
+                    self.draw_health_bar(sprite)
 
-        # Draw stats panel
-        self.draw_stats_panel()
+            # Draw stats panel
+            self.draw_stats_panel()
 
         pygame.display.flip()
 
@@ -400,6 +403,9 @@ class FishTankSimulator:
                 elif event.key == pygame.K_p:
                     # Toggle pause
                     self.paused = not self.paused
+                elif event.key == pygame.K_h:
+                    # Toggle stats and health bars HUD
+                    self.show_stats_hud = not self.show_stats_hud
                 elif event.key == pygame.K_ESCAPE:
                     # Quit
                     return False
@@ -416,6 +422,7 @@ class FishTankSimulator:
         print("Controls:")
         print("  SPACE - Drop food manually")
         print("  P     - Pause/Resume")
+        print("  H     - Toggle stats/health bars")
         print("  ESC   - Quit")
         print()
         print("Features:")
