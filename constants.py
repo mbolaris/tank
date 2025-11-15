@@ -17,6 +17,22 @@ AVOIDANCE_SPEED_CHANGE = 0.2  # change this to your preference
 # The rate at which the speed of an agent changes when aligning, as a fraction of the current speed
 ALIGNMENT_SPEED_CHANGE = 0.1  # change this to your preference
 
+# Random movement probabilities for agents [left, straight, right]
+RANDOM_MOVE_PROBABILITIES = [0.05, 0.9, 0.05]
+
+# Velocity change divisor for random movements
+RANDOM_VELOCITY_DIVISOR = 10.0
+
+# Fish growth rate when eating food
+FISH_GROWTH_RATE = 0.1
+
+# Plant animation parameters
+PLANT_SWAY_RANGE = 5
+PLANT_SWAY_SPEED = 0.0005
+
+# Food physics
+FOOD_SINK_ACCELERATION = 0.01
+
 # Filenames for the animation frames of each type of sprite
 FILES = {
     'solo_fish': ['george1.png', 'george2.png'],
