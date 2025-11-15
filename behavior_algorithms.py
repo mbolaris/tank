@@ -1688,12 +1688,12 @@ class NomadicWanderer(BehaviorAlgorithm):
 # HELPER METHODS (shared across algorithms)
 # ============================================================================
 
-    def _find_nearest(self, fish: 'Fish', agent_type) -> Optional[Any]:
-        """Find nearest agent of given type."""
-        agents = fish.environment.get_agents_of_type(agent_type)
-        if not agents:
-            return None
-        return min(agents, key=lambda a: (a.pos - fish.pos).length())
+def _find_nearest(self, fish: 'Fish', agent_type) -> Optional[Any]:
+    """Find nearest agent of given type."""
+    agents = fish.environment.get_agents_of_type(agent_type)
+    if not agents:
+        return None
+    return min(agents, key=lambda a: (a.pos - fish.pos).length())
 
 
 # Inject helper method into base class
