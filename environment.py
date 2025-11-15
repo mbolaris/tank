@@ -36,7 +36,7 @@ class Environment:
 
     def get_agents_of_type(self, agent_class: Type[Agent]) -> List[Agent]:
         """
-        Get all other agent of the given class.
+        Get all agents of the given class.
 
         Args:
             agent_class (Type[Agent]): The class of the agents to consider.
@@ -44,7 +44,7 @@ class Environment:
         Returns:
             List[Agent]: The agents of the given class.
         """
-        return [agent for agent in self.agents if isinstance(agent, agent_class) and agent != self]
+        return [agent for agent in self.agents if isinstance(agent, agent_class)]
     
     def agents_to_avoid(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
         """
