@@ -6,9 +6,16 @@ Each algorithm has tunable parameters that mutate during reproduction.
 
 import random
 import math
+import sys
+import os
 from abc import ABC, abstractmethod
 from typing import Tuple, Dict, Any, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
+
+# Add parent directory to path for imports
+_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 # Use pygame Vector2 if available, otherwise use pure Python implementation
 try:
@@ -57,6 +64,10 @@ except ImportError:
 if TYPE_CHECKING:
     from agents import Fish
     from environment import Environment
+
+# Runtime imports - now that parent dir is in sys.path, we can import directly
+from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
+from agents import Food, Crab, Fish as FishClass
 
 
 ALGORITHM_PARAMETER_BOUNDS = {
@@ -352,7 +363,6 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
 
         # Check for predators first - don't chase food if predator is too close
         nearest_predator = self._find_nearest(fish, Crab)
@@ -395,7 +405,6 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
 
         energy_ratio = fish.energy / fish.max_energy
 
@@ -456,7 +465,6 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
 
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
@@ -485,7 +493,6 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
 
         # Check predators first
         nearest_predator = self._find_nearest(fish, Crab)
@@ -549,7 +556,6 @@ class AmbushFeeder(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
 
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
@@ -581,7 +587,6 @@ class PatrolFeeder(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
 
         # Check for nearby food first
         nearest_food = self._find_nearest(fish, Food)
@@ -621,8 +626,6 @@ class SurfaceSkimmer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from constants import SCREEN_HEIGHT
-        from agents import Food
 
         target_y = SCREEN_HEIGHT * self.parameters["preferred_depth"]
 
@@ -658,8 +661,6 @@ class BottomFeeder(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from constants import SCREEN_HEIGHT
-        from agents import Food
 
         target_y = SCREEN_HEIGHT * self.parameters["preferred_depth"]
         vy = (target_y - fish.pos.y) / 100
@@ -694,7 +695,6 @@ class ZigZagForager(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
 
         # Check for nearby food
         nearest_food = self._find_nearest(fish, Food)
@@ -730,7 +730,6 @@ class CircularHunter(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
 
         # Predator check
         nearest_predator = self._find_nearest(fish, Crab)
@@ -794,7 +793,6 @@ class FoodMemorySeeker(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
 
         # Look for current food
         nearest_food = self._find_nearest(fish, Food)
@@ -834,7 +832,6 @@ class CooperativeForager(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Fish as FishClass, Crab
 
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
@@ -919,7 +916,6 @@ class PanicFlee(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -958,7 +954,6 @@ class StealthyAvoider(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -998,7 +993,6 @@ class FreezeResponse(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -1033,8 +1027,6 @@ class ErraticEvader(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Fish as FishClass
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -1100,7 +1092,6 @@ class VerticalEscaper(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -1136,7 +1127,6 @@ class GroupDefender(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Fish as FishClass, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 200:
@@ -1180,7 +1170,6 @@ class SpiralEscape(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -1221,8 +1210,6 @@ class BorderHugger(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Food
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 180:
@@ -1265,7 +1252,6 @@ class PerpendicularEscape(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -1313,7 +1299,6 @@ class DistanceKeeper(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -1390,7 +1375,6 @@ class TightScholer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
         if allies:
@@ -1420,7 +1404,6 @@ class LooseScholer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
         if allies:
@@ -1450,7 +1433,6 @@ class LeaderFollower(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
         if allies:
@@ -1481,7 +1463,6 @@ class AlignmentMatcher(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass)
                  if f != fish and f.species == fish.species and (f.pos - fish.pos).length() < self.parameters["alignment_radius"]]
@@ -1512,7 +1493,6 @@ class SeparationSeeker(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish]
 
@@ -1546,7 +1526,6 @@ class FrontRunner(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         # Move in a consistent direction
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
@@ -1580,7 +1559,6 @@ class PerimeterGuard(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
         if allies:
@@ -1617,7 +1595,6 @@ class MirrorMover(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass)
                  if f != fish and (f.pos - fish.pos).length() < self.parameters["mirror_distance"]]
@@ -1650,7 +1627,6 @@ class BoidsBehavior(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass, Crab, Food
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
 
@@ -1767,7 +1743,6 @@ class DynamicScholer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass, Crab, Food
 
         # Check for danger with graded threat levels
         predators = fish.environment.get_agents_of_type(Crab)
@@ -1873,7 +1848,6 @@ class EnergyConserver(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
 
         energy_ratio = fish.energy / fish.max_energy
 
@@ -1921,7 +1895,6 @@ class BurstSwimmer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
 
         energy_ratio = fish.energy / fish.max_energy
 
@@ -2001,7 +1974,6 @@ class OpportunisticRester(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
 
         # Check for nearby stimuli
         foods = fish.environment.get_agents_of_type(Food)
@@ -2088,7 +2060,6 @@ class StarvationPreventer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food
 
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < self.parameters["critical_threshold"]:
@@ -2148,7 +2119,6 @@ class AdaptivePacer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab, Fish as FishClass
 
         energy_ratio = fish.energy / fish.max_energy
 
@@ -2238,7 +2208,6 @@ class TerritorialDefender(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Fish as FishClass
 
         if self.territory_center is None:
             self.territory_center = fish.pos.copy()
@@ -2280,8 +2249,6 @@ class RandomExplorer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab, Fish as FishClass
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         # Check for important stimuli
         nearest_predator = self._find_nearest(fish, Crab)
@@ -2355,7 +2322,6 @@ class WallFollower(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         # Find nearest wall
         dist_to_left = fish.pos.x
@@ -2390,7 +2356,6 @@ class CornerSeeker(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         # Determine corner position
         corners = {
@@ -2426,7 +2391,6 @@ class CenterHugger(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         distance = (center - fish.pos).length()
@@ -2458,8 +2422,6 @@ class RoutePatroller(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
-        from agents import Food, Crab
 
         if not self.initialized:
             # Create strategic waypoints - cover different areas of tank
@@ -2543,7 +2505,6 @@ class BoundaryExplorer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         # Move toward edges
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
@@ -2574,8 +2535,6 @@ class NomadicWanderer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Food, Crab
-        from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         # Check for threats and opportunities
         nearest_predator = self._find_nearest(fish, Crab)

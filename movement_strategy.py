@@ -153,9 +153,11 @@ class SchoolingFishMovement(MovementStrategy):
     def get_same_type_sprites(self, sprite: 'Fish') -> List['Fish']:
         """Get sprites of the same type as the given sprite."""
         return [other_sprite for other_sprite in sprite.environment.get_agents_of_type(Fish)
-                if other_sprite.animation_frames == sprite.animation_frames]
+                if hasattr(other_sprite, 'species') and hasattr(sprite, 'species')
+                and other_sprite.species == sprite.species]
 
     def get_different_type_sprites(self, sprite: 'Fish') -> List['Fish']:
         """Get sprites of a different type from the given sprite."""
         return [other_sprite for other_sprite in sprite.environment.get_agents_of_type(Fish)
-                if other_sprite.animation_frames != sprite.animation_frames]
+                if hasattr(other_sprite, 'species') and hasattr(sprite, 'species')
+                and other_sprite.species != sprite.species]
