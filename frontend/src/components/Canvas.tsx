@@ -50,15 +50,6 @@ export function Canvas({ state, width = 800, height = 600 }: CanvasProps) {
   }, [state, width, height, imagesLoaded]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={width}
-      height={height}
-      style={{
-        border: '2px solid #333',
-        borderRadius: '8px',
-        backgroundColor: '#1a4d6d',
-      }}
-    />
+    <canvas ref={canvasRef} width={width} height={height} className="tank-canvas" />
   );
 }

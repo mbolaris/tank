@@ -23,7 +23,32 @@ function App() {
 
       <main className="main">
         <div className="canvas-section">
-          <Canvas state={state} width={800} height={600} />
+          <div className="canvas-wrapper">
+            <div className="canvas-meta">
+              <div>
+                <p className="canvas-label">Simulation</p>
+                <p className="canvas-value">
+                  {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}{' '}
+                  <span>frames</span>
+                </p>
+              </div>
+              <div>
+                <p className="canvas-label">Population</p>
+                <p className="canvas-value">
+                  {state?.stats?.fish_count ?? 0}
+                  <span> fish</span>
+                </p>
+              </div>
+              <div>
+                <p className="canvas-label">Status</p>
+                <p className={`canvas-status ${isConnected ? 'online' : 'offline'}`}>
+                  {isConnected ? 'Connected' : 'Waiting'}
+                </p>
+              </div>
+            </div>
+            <Canvas state={state} width={800} height={600} />
+            <div className="canvas-glow" aria-hidden />
+          </div>
           <PokerEvents
             events={state?.poker_events ?? []}
             currentFrame={state?.frame ?? 0}

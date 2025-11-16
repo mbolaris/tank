@@ -52,6 +52,7 @@ export interface PokerStatsData {
   net_energy: number;
   best_hand_rank: number;
   best_hand_name: string;
+  total_house_cuts?: number;
 }
 
 export interface StatsData {
