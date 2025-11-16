@@ -184,19 +184,19 @@ class Fish(Agent):
     ELDER_AGE = 3600  # 2 minutes
     BASE_MAX_AGE = 5400  # 3 minutes base lifespan
 
-    # Energy constants
+    # Energy constants (REBALANCED FOR SUSTAINABILITY)
     BASE_MAX_ENERGY = 100.0
     ENERGY_FROM_FOOD = 40.0  # More energy from food
-    BASE_METABOLISM = 0.025  # Increased metabolism for resource competition
-    MOVEMENT_ENERGY_COST = 0.01  # Increased movement cost for resource competition
+    BASE_METABOLISM = 0.018  # Reduced from 0.025 to slow energy drain
+    MOVEMENT_ENERGY_COST = 0.008  # Reduced from 0.01 to allow more exploration
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
-    SHARP_TURN_ENERGY_COST = 0.05  # Extra energy cost for sharp reversals
+    SHARP_TURN_ENERGY_COST = 0.03  # Reduced from 0.05 to reduce turn penalty
 
-    # Reproduction constants
-    REPRODUCTION_ENERGY_THRESHOLD = 55.0  # Higher threshold - must be well-fed to reproduce
-    REPRODUCTION_COOLDOWN = 450  # 15 seconds (increased to reduce population pressure)
+    # Reproduction constants (IMPROVED FOR BETTER BREEDING)
+    REPRODUCTION_ENERGY_THRESHOLD = 45.0  # Lowered from 55 to enable more reproduction
+    REPRODUCTION_COOLDOWN = 360  # 12 seconds (reduced from 15s to increase breeding opportunities)
     PREGNANCY_DURATION = 300  # 10 seconds
-    MATING_DISTANCE = 50.0
+    MATING_DISTANCE = 60.0  # Increased from 50 to make mating easier
 
     def __init__(self, environment: 'environment.Environment', movement_strategy: 'MovementStrategy',
                  filenames: List[str], x: float, y: float, speed: float,
@@ -604,9 +604,9 @@ class Plant(Agent):
         current_food_count: Current number of food items from this plant
     """
 
-    BASE_FOOD_PRODUCTION_RATE = 90  # 3 seconds at 30fps (increased from 5s for better energy economy)
-    MAX_FOOD_CAPACITY = 10  # Maximum food items per plant (increased to support larger populations)
-    STATIONARY_FOOD_CHANCE = 0.25  # Chance to grow nectar that stays on the plant
+    BASE_FOOD_PRODUCTION_RATE = 60  # 2 seconds at 30fps (IMPROVED from 3s for better food supply)
+    MAX_FOOD_CAPACITY = 15  # Maximum food items per plant (INCREASED from 10 to support population)
+    STATIONARY_FOOD_CHANCE = 0.35  # Increased from 0.25 to grow more stationary nectar
     STATIONARY_FOOD_TYPE = 'nectar'
 
     def __init__(self, environment: 'environment.Environment', plant_type: int) -> None:
