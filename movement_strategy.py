@@ -9,9 +9,15 @@ This module provides different movement behaviors for fish:
 
 from typing import TYPE_CHECKING, List
 
-from pygame import Vector2
+try:
+    from pygame.math import Vector2
+except ImportError:
+    from core.entities import Vector2
 
-from agents import Crab, Fish, Food
+try:
+    from agents import Crab, Fish, Food
+except ImportError:
+    from core.entities import Crab, Fish, Food
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
 
