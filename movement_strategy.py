@@ -39,7 +39,7 @@ class NeuralMovement(MovementStrategy):
             return
 
         # Get inputs for the neural network
-        from neural_brain import get_brain_inputs
+        from core.neural_brain import get_brain_inputs
         inputs = get_brain_inputs(sprite)
 
         # Think and get desired velocity

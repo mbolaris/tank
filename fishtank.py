@@ -1,13 +1,13 @@
 import random
 import pygame
 from typing import Optional, List
-from constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH, FILES, INIT_POS,
+from core.constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH, FILES, INIT_POS,
                        AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED)
 import agents
 import movement_strategy
-import environment
-from ecosystem import EcosystemManager
-from time_system import TimeSystem
+from core import environment
+from core.ecosystem import EcosystemManager
+from core.time_system import TimeSystem
 from evolution_viz import EvolutionVisualizer, SpeciesTracker
 
 class FishTankSimulator:
@@ -81,7 +81,7 @@ class FishTankSimulator:
             x = INIT_POS['school'][0] + random.randint(-80, 80)
             y = INIT_POS['school'][1] + random.randint(-50, 50)
             # Create genome WITH behavior algorithm but WITHOUT neural brain
-            from genetics import Genome
+            from core.genetics import Genome
             genome = Genome.random(use_brain=False, use_algorithm=True)
             fish = agents.Fish(
                 self.environment,
@@ -101,7 +101,7 @@ class FishTankSimulator:
             x = INIT_POS['school'][0] + random.randint(-50, 50)
             y = INIT_POS['school'][1] + random.randint(-30, 30)
             # Neural fish should NOT have algorithmic behavior (use brain instead)
-            from genetics import Genome
+            from core.genetics import Genome
             genome = Genome.random(use_brain=True, use_algorithm=False)
             fish = agents.Fish(
                 self.environment,
@@ -121,7 +121,7 @@ class FishTankSimulator:
             x = INIT_POS['school'][0] + random.randint(-50, 50)
             y = INIT_POS['school'][1] + random.randint(-30, 30)
             # Create genome without neural brain or algorithm (uses movement strategy only)
-            from genetics import Genome
+            from core.genetics import Genome
             genome = Genome.random(use_brain=False, use_algorithm=False)
             fish = agents.Fish(
                 self.environment,
