@@ -31,6 +31,19 @@ class EntityData(BaseModel):
     plant_type: Optional[int] = None
 
 
+class PokerStatsData(BaseModel):
+    """Poker game statistics."""
+    total_games: int
+    total_wins: int
+    total_losses: int
+    total_ties: int
+    total_energy_won: float
+    total_energy_lost: float
+    net_energy: float
+    best_hand_rank: int
+    best_hand_name: str
+
+
 class StatsData(BaseModel):
     """Ecosystem statistics."""
     frame: int
@@ -44,6 +57,7 @@ class StatsData(BaseModel):
     fish_count: int
     food_count: int
     plant_count: int
+    poker_stats: PokerStatsData
 
 
 class SimulationUpdate(BaseModel):

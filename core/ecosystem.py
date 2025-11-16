@@ -401,6 +401,7 @@ class EcosystemManager:
             Dictionary with key ecosystem metrics
         """
         total_pop = self.get_total_population()
+        poker_summary = self.get_poker_stats_summary()
 
         return {
             'total_population': total_pop,
@@ -411,6 +412,43 @@ class EcosystemManager:
             'capacity_usage': f"{int(100 * total_pop / self.max_population)}%" if self.max_population > 0 else "0%",
             'death_causes': dict(self.death_causes),
             'generations_alive': len([g for g, s in self.generation_stats.items() if s.population > 0]),
+            'poker_stats': poker_summary,
+        }
+
+    def get_poker_stats_summary(self) -> Dict[str, any]:
+        """Get summary poker statistics across all algorithms.
+
+        Returns:
+            Dictionary with aggregated poker statistics
+        """
+        total_games = sum(s.total_games for s in self.poker_stats.values())
+        total_wins = sum(s.total_wins for s in self.poker_stats.values())
+        total_losses = sum(s.total_losses for s in self.poker_stats.values())
+        total_ties = sum(s.total_ties for s in self.poker_stats.values())
+        total_energy_won = sum(s.total_energy_won for s in self.poker_stats.values())
+        total_energy_lost = sum(s.total_energy_lost for s in self.poker_stats.values())
+
+        # Find best hand rank across all algorithms
+        best_hand_rank = max((s.best_hand_rank for s in self.poker_stats.values()), default=0)
+
+        # Get hand rank name
+        hand_rank_names = [
+            "High Card", "Pair", "Two Pair", "Three of a Kind",
+            "Straight", "Flush", "Full House", "Four of a Kind",
+            "Straight Flush", "Royal Flush"
+        ]
+        best_hand_name = hand_rank_names[best_hand_rank] if 0 <= best_hand_rank < len(hand_rank_names) else "Unknown"
+
+        return {
+            'total_games': total_games,
+            'total_wins': total_wins,
+            'total_losses': total_losses,
+            'total_ties': total_ties,
+            'total_energy_won': total_energy_won,
+            'total_energy_lost': total_energy_lost,
+            'net_energy': total_energy_won - total_energy_lost,
+            'best_hand_rank': best_hand_rank,
+            'best_hand_name': best_hand_name,
         }
 
     def record_reproduction(self, algorithm_id: int) -> None:

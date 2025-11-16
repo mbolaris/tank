@@ -14,7 +14,7 @@ from simulation_engine import SimulationEngine
 from core import entities
 from core.behavior_algorithms import get_algorithm_index
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-from models import EntityData, StatsData, SimulationUpdate
+from models import EntityData, StatsData, SimulationUpdate, PokerStatsData
 
 
 class SimulationRunner:
@@ -77,6 +77,21 @@ class SimulationRunner:
 
             # Get ecosystem stats
             stats = self.engine.get_stats()
+
+            # Create poker stats data
+            poker_stats_dict = stats.get('poker_stats', {})
+            poker_stats_data = PokerStatsData(
+                total_games=poker_stats_dict.get('total_games', 0),
+                total_wins=poker_stats_dict.get('total_wins', 0),
+                total_losses=poker_stats_dict.get('total_losses', 0),
+                total_ties=poker_stats_dict.get('total_ties', 0),
+                total_energy_won=poker_stats_dict.get('total_energy_won', 0.0),
+                total_energy_lost=poker_stats_dict.get('total_energy_lost', 0.0),
+                net_energy=poker_stats_dict.get('net_energy', 0.0),
+                best_hand_rank=poker_stats_dict.get('best_hand_rank', 0),
+                best_hand_name=poker_stats_dict.get('best_hand_name', 'None')
+            )
+
             stats_data = StatsData(
                 frame=self.engine.frame_count,
                 population=stats.get('total_population', 0),
@@ -88,7 +103,8 @@ class SimulationRunner:
                 death_causes=stats.get('death_causes', {}),
                 fish_count=stats.get('fish_count', 0),
                 food_count=stats.get('food_count', 0),
-                plant_count=stats.get('plant_count', 0)
+                plant_count=stats.get('plant_count', 0),
+                poker_stats=poker_stats_data
             )
 
             return SimulationUpdate(

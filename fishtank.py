@@ -396,8 +396,8 @@ class FishTankSimulator:
         if self.screen is None or self.stats_font is None or self.ecosystem is None:
             return
 
-        # Semi-transparent background
-        panel_surface = pygame.Surface((250, 200))
+        # Semi-transparent background (larger to fit poker stats)
+        panel_surface = pygame.Surface((280, 300))
         panel_surface.set_alpha(200)
         panel_surface.fill((20, 20, 40))
         self.screen.blit(panel_surface, (10, 10))
@@ -423,8 +423,27 @@ class FishTankSimulator:
             for cause, count in stats['death_causes'].items():
                 lines.append(f"  {cause}: {count}")
 
+        # Add poker stats
+        poker = stats.get('poker_stats', {})
+        if poker and poker.get('total_games', 0) > 0:
+            lines.append("")
+            lines.append("Poker Stats:")
+            lines.append(f"  Games: {poker['total_games']}")
+            lines.append(f"  Wins/Losses/Ties: {poker['total_wins']}/{poker['total_losses']}/{poker['total_ties']}")
+            lines.append(f"  Energy Won: {poker['total_energy_won']:.1f}")
+            lines.append(f"  Energy Lost: {poker['total_energy_lost']:.1f}")
+            net_energy = poker['net_energy']
+            net_color = (100, 255, 100) if net_energy >= 0 else (255, 100, 100)
+            lines.append((f"  Net Energy: {net_energy:+.1f}", net_color))
+            lines.append(f"  Best Hand: {poker['best_hand_name']}")
+
         for line in lines:
-            text_surface = self.stats_font.render(line, True, (220, 220, 255))
+            # Check if line is a tuple (text, color)
+            if isinstance(line, tuple):
+                text, color = line
+                text_surface = self.stats_font.render(text, True, color)
+            else:
+                text_surface = self.stats_font.render(line, True, (220, 220, 255))
             self.screen.blit(text_surface, (20, y_offset))
             y_offset += 22
 
