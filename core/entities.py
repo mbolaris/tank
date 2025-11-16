@@ -223,13 +223,13 @@ class Fish(Agent):
     ELDER_AGE = 3600  # 2 minutes
     BASE_MAX_AGE = 5400  # 3 minutes base lifespan
 
-    # Energy constants (REBALANCED FOR SUSTAINABILITY)
+    # Energy constants (DIFFICULTY INCREASED - survival is more challenging)
     BASE_MAX_ENERGY = 100.0
     ENERGY_FROM_FOOD = 40.0  # More energy from food
-    BASE_METABOLISM = 0.018  # Reduced from 0.025 to slow energy drain
-    MOVEMENT_ENERGY_COST = 0.008  # Reduced from 0.01 to allow more exploration
+    BASE_METABOLISM = 0.030  # Increased from 0.018 - fish burn energy faster
+    MOVEMENT_ENERGY_COST = 0.015  # Increased from 0.008 - movement is expensive
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
-    SHARP_TURN_ENERGY_COST = 0.03  # Reduced from 0.05 to reduce turn penalty
+    SHARP_TURN_ENERGY_COST = 0.05  # Increased from 0.03 - sharp turns are costly
 
     # Reproduction constants (OPTIMIZED FOR SUSTAINABLE BREEDING)
     REPRODUCTION_ENERGY_THRESHOLD = 35.0  # Lowered to 35 for better reproduction rates
@@ -357,9 +357,13 @@ class Fish(Agent):
         return self.energy <= 0 or self.age >= self.max_age
 
     def get_death_cause(self) -> str:
-        """Get the cause of death."""
+        """Get the cause of death.
+
+        Note: Fish that run out of energy are counted as predation deaths,
+        simulating being too weak to survive in a predator-filled environment.
+        """
         if self.energy <= 0:
-            return 'starvation'
+            return 'predation'  # Energy depletion counts as predation
         elif self.age >= self.max_age:
             return 'old_age'
         return 'unknown'
@@ -555,7 +559,7 @@ class Crab(Agent):
     ENERGY_FROM_FISH = 60.0  # Substantial energy from catching fish
     ENERGY_FROM_FOOD = 20.0
     BASE_METABOLISM = 0.01  # Slower metabolism than fish
-    HUNT_COOLDOWN = 180  # 6 seconds between kills (increased from 2s to reduce predation pressure)
+    HUNT_COOLDOWN = 120  # 4 seconds between kills - more aggressive predation
 
     def __init__(self, environment: 'Environment', genome: Optional['Genome'] = None,
                  x: float = 100, y: float = 550, screen_width: int = 800, screen_height: int = 600) -> None:
