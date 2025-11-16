@@ -426,7 +426,7 @@ class SimulationEngine:
             stats_interval: Print stats every N frames
         """
         print("=" * 60)
-        print("🐠 HEADLESS FISH TANK SIMULATION 🐠")
+        print("HEADLESS FISH TANK SIMULATION")
         print("=" * 60)
         print(f"Running for {max_frames} frames ({max_frames/30:.1f} seconds of sim time)")
         print(f"Stats will be printed every {stats_interval} frames")
