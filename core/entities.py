@@ -487,6 +487,10 @@ class Fish(Agent):
         self.age += 1
         self.update_life_stage()
 
+        # Poker cooldown
+        if hasattr(self, 'poker_cooldown') and self.poker_cooldown > 0:
+            self.poker_cooldown -= 1
+
         # Energy
         self.consume_energy(time_modifier)
 
