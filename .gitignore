@@ -20,3 +20,6 @@ __pycache__/
 # Test coverage
 .coverage
 .pytest_cache/
+
+# Generated reports
+algorithm_performance_report.txt
