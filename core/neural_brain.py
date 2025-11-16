@@ -10,7 +10,7 @@ from typing import List, Tuple, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
-    from agents import Fish, Food, Crab, Agent
+    from core.entities import Fish, Food, Crab, Agent
 
 
 def sigmoid(x: float) -> float:
@@ -173,8 +173,15 @@ def get_brain_inputs(fish: 'Fish') -> List[float]:
     Returns:
         List of 12 normalized input values
     """
-    from agents import Food, Crab, Fish as FishClass
-    from pygame.math import Vector2
+    try:
+        from agents import Food, Crab, Fish as FishClass
+    except ImportError:
+        from core.entities import Food, Crab, Fish as FishClass
+
+    try:
+        from pygame.math import Vector2
+    except ImportError:
+        from core.entities import Vector2
 
     # Initialize inputs
     inputs = [0.0] * 12

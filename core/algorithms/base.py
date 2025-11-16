@@ -58,7 +58,7 @@ except ImportError:
             self.y = float(y)
 
 if TYPE_CHECKING:
-    from agents import Fish
+    from core.entities import Fish
 
 
 ALGORITHM_PARAMETER_BOUNDS = {

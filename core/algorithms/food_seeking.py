@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.constants import SCREEN_HEIGHT
-from agents import Food, Crab, Fish as FishClass
+from core.entities import Food, Crab, Fish as FishClass
 
 
 @dataclass
