@@ -18,8 +18,6 @@ export class Renderer {
   }
 
   renderEntity(entity: EntityData) {
-    const { ctx } = this;
-
     switch (entity.type) {
       case 'fish':
         this.renderFish(entity);
