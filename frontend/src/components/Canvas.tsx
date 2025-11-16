@@ -2,9 +2,10 @@
  * Canvas component for rendering the simulation
  */
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
 import { Renderer } from '../utils/renderer';
+import { ImageLoader } from '../utils/ImageLoader';
 
 interface CanvasProps {
   state: SimulationUpdate | null;
@@ -15,6 +16,7 @@ interface CanvasProps {
 export function Canvas({ state, width = 800, height = 600 }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,12 +25,18 @@ export function Canvas({ state, width = 800, height = 600 }: CanvasProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Initialize renderer
-    rendererRef.current = new Renderer(ctx);
+    // Initialize renderer and preload images
+    const initRenderer = async () => {
+      await ImageLoader.preloadGameImages();
+      rendererRef.current = new Renderer(ctx);
+      setImagesLoaded(true);
+    };
+
+    initRenderer();
   }, []);
 
   useEffect(() => {
-    if (!state || !rendererRef.current) return;
+    if (!state || !rendererRef.current || !imagesLoaded) return;
 
     const renderer = rendererRef.current;
 
@@ -37,9 +45,9 @@ export function Canvas({ state, width = 800, height = 600 }: CanvasProps) {
 
     // Render all entities
     state.entities.forEach((entity) => {
-      renderer.renderEntity(entity);
+      renderer.renderEntity(entity, state.elapsed_time || 0);
     });
-  }, [state, width, height]);
+  }, [state, width, height, imagesLoaded]);
 
   return (
     <canvas

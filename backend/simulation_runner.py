@@ -93,6 +93,7 @@ class SimulationRunner:
 
             return SimulationUpdate(
                 frame=self.engine.frame_count,
+                elapsed_time=self.engine.elapsed_time if hasattr(self.engine, 'elapsed_time') else self.engine.frame_count * 33,
                 entities=entities_data,
                 stats=stats_data
             )
@@ -112,7 +113,9 @@ class SimulationRunner:
                 'x': entity.pos.x,
                 'y': entity.pos.y,
                 'width': entity.width,
-                'height': entity.height
+                'height': entity.height,
+                'vel_x': entity.vel.x if hasattr(entity, 'vel') else 0,
+                'vel_y': entity.vel.y if hasattr(entity, 'vel') else 0
             }
 
             if isinstance(entity, entities.Fish):
