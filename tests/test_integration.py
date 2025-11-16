@@ -4,7 +4,7 @@ import pygame
 
 from fishtank import FishTankSimulator
 from agents import Fish, Crab, Food, Plant, Castle
-from constants import NUM_SCHOOLING_FISH
+from core.constants import NUM_SCHOOLING_FISH
 
 
 class TestFullSimulation:

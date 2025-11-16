@@ -4,9 +4,9 @@ import pygame
 from pygame.math import Vector2
 
 from agents import Agent, Fish, Crab, Food, Plant, Castle
-from environment import Environment
+from core.environment import Environment
 from movement_strategy import SoloFishMovement, SchoolingFishMovement
-from constants import FISH_GROWTH_RATE, FOOD_SINK_ACCELERATION
+from core.constants import FISH_GROWTH_RATE, FOOD_SINK_ACCELERATION
 
 
 class TestAgent:

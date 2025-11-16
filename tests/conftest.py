@@ -36,7 +36,7 @@ def mock_image_loader():
 @pytest.fixture
 def pygame_env():
     """Provide a clean pygame environment for each test."""
-    from environment import Environment
+    from core.environment import Environment
 
     agents = pygame.sprite.Group()
     env = Environment(agents)
@@ -47,7 +47,7 @@ def pygame_env():
 def fish_tank_setup():
     """Setup a fish tank simulator without display."""
     from fishtank import FishTankSimulator
-    from environment import Environment
+    from core.environment import Environment
 
     simulator = FishTankSimulator()
     simulator.agents = pygame.sprite.Group()
