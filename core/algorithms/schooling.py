@@ -105,7 +105,7 @@ class LeaderFollower(BehaviorAlgorithm):
             # Find "leader" (fish with most energy)
             leader = max(allies, key=lambda f: f.energy)
             distance = (leader.pos - fish.pos).length()
-            if distance < self.parameters["max_follow_distance"]:
+            if 0 < distance < self.parameters["max_follow_distance"]:
                 direction = (leader.pos - fish.pos).normalize()
                 return direction.x * self.parameters["follow_strength"], direction.y * self.parameters["follow_strength"]
         return 0, 0
@@ -309,11 +309,15 @@ class BoidsBehavior(BehaviorAlgorithm):
         if not allies:
             # Alone - seek food or flee
             if in_danger and predator_distance < 150:
-                direction = (fish.pos - nearest_predator.pos).normalize()
-                return direction.x * 1.3, direction.y * 1.3
+                direction = (fish.pos - nearest_predator.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 1.3, direction.y * 1.3
             elif food_nearby:
-                direction = (nearest_food.pos - fish.pos).normalize()
-                return direction.x * 0.7, direction.y * 0.7
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 0.7, direction.y * 0.7
             return 0, 0
 
         # Filter to nearby allies for efficiency
@@ -372,16 +376,20 @@ class BoidsBehavior(BehaviorAlgorithm):
 
         # Add predator avoidance
         if in_danger and predator_distance < 150:
-            avoid_dir = (fish.pos - nearest_predator.pos).normalize()
-            threat_strength = (150 - predator_distance) / 150
-            vx += avoid_dir.x * threat_strength * 2.0
-            vy += avoid_dir.y * threat_strength * 2.0
+            avoid_dir = (fish.pos - nearest_predator.pos)
+            if avoid_dir.length() > 0:
+                avoid_dir = avoid_dir.normalize()
+                threat_strength = (150 - predator_distance) / 150
+                vx += avoid_dir.x * threat_strength * 2.0
+                vy += avoid_dir.y * threat_strength * 2.0
 
         # Add food attraction for whole school
         if food_nearby and food_distance < 80:
-            food_dir = (nearest_food.pos - fish.pos).normalize()
-            vx += food_dir.x * 0.5
-            vy += food_dir.y * 0.5
+            food_dir = (nearest_food.pos - fish.pos)
+            if food_dir.length() > 0:
+                food_dir = food_dir.normalize()
+                vx += food_dir.x * 0.5
+                vy += food_dir.y * 0.5
 
         # Normalize
         length = math.sqrt(vx*vx + vy*vy)
@@ -460,19 +468,23 @@ class DynamicScholer(BehaviorAlgorithm):
 
             # Add threat response
             if threat_level > 0.3 and nearest_predator:
-                avoid_dir = (fish.pos - nearest_predator.pos).normalize()
-                vx += avoid_dir.x * threat_level * 1.5
-                vy += avoid_dir.y * threat_level * 1.5
+                avoid_dir = (fish.pos - nearest_predator.pos)
+                if avoid_dir.length() > 0:
+                    avoid_dir = avoid_dir.normalize()
+                    vx += avoid_dir.x * threat_level * 1.5
+                    vy += avoid_dir.y * threat_level * 1.5
 
             # Add food seeking when safe and hungry (IMPROVED THRESHOLDS)
             # Seek food earlier (when < 80% energy) and with lower threat tolerance
             if threat_level < 0.4 and energy_ratio < 0.8 and nearest_food:
-                food_dir = (nearest_food.pos - fish.pos).normalize()
-                hunger = 1.0 - energy_ratio
-                # Increased food-seeking strength from 0.7 to 1.2
-                food_weight = 1.2 * hunger
-                vx += food_dir.x * food_weight
-                vy += food_dir.y * food_weight
+                food_dir = (nearest_food.pos - fish.pos)
+                if food_dir.length() > 0:
+                    food_dir = food_dir.normalize()
+                    hunger = 1.0 - energy_ratio
+                    # Increased food-seeking strength from 0.7 to 1.2
+                    food_weight = 1.2 * hunger
+                    vx += food_dir.x * food_weight
+                    vy += food_dir.y * food_weight
 
             # Normalize
             length = math.sqrt(vx*vx + vy*vy)
@@ -481,12 +493,16 @@ class DynamicScholer(BehaviorAlgorithm):
 
         # No allies - go solo (IMPROVED FOOD SEEKING)
         if threat_level > 0.5 and nearest_predator:
-            direction = (fish.pos - nearest_predator.pos).normalize()
-            return direction.x * 1.2, direction.y * 1.2
+            direction = (fish.pos - nearest_predator.pos)
+            if direction.length() > 0:
+                direction = direction.normalize()
+                return direction.x * 1.2, direction.y * 1.2
         elif energy_ratio < 0.75 and nearest_food:  # Seek food earlier (was 0.5, now 0.75)
-            direction = (nearest_food.pos - fish.pos).normalize()
-            hunger = 1.0 - energy_ratio
-            seek_speed = 0.8 + hunger * 0.4  # More aggressive when hungrier
-            return direction.x * seek_speed, direction.y * seek_speed
+            direction = (nearest_food.pos - fish.pos)
+            if direction.length() > 0:
+                direction = direction.normalize()
+                hunger = 1.0 - energy_ratio
+                seek_speed = 0.8 + hunger * 0.4  # More aggressive when hungrier
+                return direction.x * seek_speed, direction.y * seek_speed
 
         return 0, 0
