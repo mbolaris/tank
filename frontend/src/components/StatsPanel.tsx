@@ -84,6 +84,43 @@ export function StatsPanel({ stats }: StatsPanelProps) {
         </div>
       )}
 
+      {stats.poker_stats && stats.poker_stats.total_games > 0 && (
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Poker Stats</h3>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Games Played:</span>
+            <span style={styles.statValue}>{stats.poker_stats.total_games}</span>
+          </div>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>W/L/T:</span>
+            <span style={styles.statValue}>
+              {stats.poker_stats.total_wins}/{stats.poker_stats.total_losses}/{stats.poker_stats.total_ties}
+            </span>
+          </div>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Energy Won:</span>
+            <span style={styles.statValue}>{stats.poker_stats.total_energy_won.toFixed(1)}</span>
+          </div>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Energy Lost:</span>
+            <span style={styles.statValue}>{stats.poker_stats.total_energy_lost.toFixed(1)}</span>
+          </div>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Net Energy:</span>
+            <span style={{
+              ...styles.statValue,
+              color: stats.poker_stats.net_energy >= 0 ? '#4ade80' : '#f87171'
+            }}>
+              {stats.poker_stats.net_energy >= 0 ? '+' : ''}{stats.poker_stats.net_energy.toFixed(1)}
+            </span>
+          </div>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Best Hand:</span>
+            <span style={styles.statValue}>{stats.poker_stats.best_hand_name}</span>
+          </div>
+        </div>
+      )}
+
       <div style={styles.legend}>
         <h3 style={styles.legendTitle}>Species Legend</h3>
         <div style={styles.legendItems}>

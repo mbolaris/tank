@@ -32,6 +32,18 @@ export interface EntityData {
   plant_type?: number;
 }
 
+export interface PokerStatsData {
+  total_games: number;
+  total_wins: number;
+  total_losses: number;
+  total_ties: number;
+  total_energy_won: number;
+  total_energy_lost: number;
+  net_energy: number;
+  best_hand_rank: number;
+  best_hand_name: string;
+}
+
 export interface StatsData {
   frame: number;
   population: number;
@@ -44,6 +56,7 @@ export interface StatsData {
   fish_count: number;
   food_count: number;
   plant_count: number;
+  poker_stats: PokerStatsData;
 }
 
 export interface SimulationUpdate {
