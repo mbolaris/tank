@@ -5,12 +5,12 @@ from typing import Dict, Tuple
 # Avoid importing pygame during unit tests
 try:  # pragma: no cover - optional dependency
     import pygame
-except Exception:  # pragma: no cover - fallback when pygame is unavailable
+except ImportError:  # pragma: no cover - fallback when pygame is unavailable
     pygame = None
 
 try:  # pragma: no cover - optional dependency
     import fishtank
-except Exception:  # pragma: no cover - fallback when pygame is unavailable
+except ImportError:  # pragma: no cover - fallback when pygame is unavailable
     fishtank = None
 
 
@@ -20,6 +20,12 @@ class FishTankPZEnv:
     metadata = {"render_mode": ["human"]}
 
     def __init__(self):
+        """
+        Initialize the fish tank environment.
+
+        Raises:
+            ImportError: If fishtank or pygame are not available.
+        """
         if fishtank is None:
             raise ImportError("fishtank and pygame are required to use FishTankPZEnv")
         self.simulator = fishtank.FishTankSimulator()
@@ -44,10 +50,12 @@ class FishTankPZEnv:
         return observations, rewards, dones, infos
 
     def render(self):
+        """Render the current state of the environment to the display."""
         if pygame:
             self.simulator.render()
 
     def close(self):
+        """Clean up resources and close the environment."""
         if pygame:
             pygame.quit()
 
