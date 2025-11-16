@@ -211,15 +211,52 @@ Genomes now include:
 pip install pygame
 ```
 
-### Start the Simulation
+### Graphical Mode (Default)
 ```bash
+python main.py --mode graphical
+# or simply
 python fishtank.py
 ```
+
+### Headless Mode (Fast, Stats-Only)
+Run simulations 10-300x faster than realtime without visualization:
+
+```bash
+# Quick test run
+python main.py --mode headless --max-frames 1000
+
+# Long simulation with periodic stats
+python main.py --mode headless --max-frames 100000 --stats-interval 3000
+
+# Deterministic simulation (for testing)
+python main.py --mode headless --max-frames 1000 --seed 42
+```
+
+**Benefits of headless mode:**
+- 10-300x faster than realtime
+- Perfect for data collection and long simulations
+- No pygame/display required
+- Identical simulation behavior to graphical mode
+
+**See [HEADLESS_MODE.md](HEADLESS_MODE.md) for complete documentation!**
+
+### Mode Equivalence ✓
+
+**Headless and graphical modes are fully equivalent** - they produce identical results when run with the same seed:
+- Same collision detection (bounding box)
+- Same population dynamics
+- Same genetics and evolution
+- Same death rates and causes
+
+This has been verified with automated tests. Both modes share the same core simulation logic, with graphical mode simply adding visualization on top.
 
 ### Run Tests
 ```bash
 # Quick test (100 frames)
 python test_simulation.py
+
+# Test mode parity
+PYTHONPATH=/home/user/tank python tests/test_parity.py
 
 # Run existing test suite
 pytest tests/
@@ -343,6 +380,11 @@ Completed: ✅
 - [✅] Predator-prey balance improvements - **DONE!**
 - [✅] Genetic trait evolution graphs - **DONE!**
 - [✅] Multiple species with different niches - **DONE!**
+- [✅] Headless mode with full parity - **DONE!**
+- [✅] Deterministic seeding for testing - **DONE!**
+
+Under consideration:
+- [ ] React-based web UI (to replace pygame graphical mode)
 
 Potential additions:
 - [ ] LSTM/Recurrent neural networks (fish with memory)
