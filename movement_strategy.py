@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from agents import Fish
 
 from agents import Crab, Food, Fish
+from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
 
 # Constants
 CRAB_AVOIDANCE_DISTANCE = 200
@@ -34,7 +35,7 @@ class NeuralMovement(MovementStrategy):
         # Check if fish has a brain
         if sprite.genome.brain is None:
             # Fallback to simple random movement
-            sprite.add_random_velocity_change()
+            sprite.add_random_velocity_change(RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR)
             super().move(sprite)
             return
 
@@ -70,7 +71,7 @@ class AlgorithmicMovement(MovementStrategy):
         # Check if fish has a behavior algorithm
         if sprite.genome.behavior_algorithm is None:
             # Fallback to simple random movement
-            sprite.add_random_velocity_change()
+            sprite.add_random_velocity_change(RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR)
             super().move(sprite)
             return
 
@@ -101,7 +102,7 @@ class SoloFishMovement(MovementStrategy):
     """Movement strategy for a solo fish."""
     def move(self, sprite: 'Fish') -> None:
         """Move a solo fish."""
-        sprite.add_random_velocity_change()
+        sprite.add_random_velocity_change(RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR)
         sprite.avoid(sprite.environment.get_agents_of_type(Crab), CRAB_AVOIDANCE_DISTANCE)
         sprite.align_near(sprite.environment.get_agents_of_type(Food), FOOD_ALIGNMENT_DISTANCE)
         super().move(sprite)
@@ -111,7 +112,7 @@ class SchoolingFishMovement(MovementStrategy):
     def move(self, sprite: 'Fish') -> None:
         """Move a schooling fish."""
         sprite.align_near(self.get_same_type_sprites(sprite), SCHOOLING_FISH_ALIGNMENT_DISTANCE)
-        sprite.add_random_velocity_change()
+        sprite.add_random_velocity_change(RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR)
         sprite.avoid(self.get_different_type_sprites(sprite), SOLO_FISH_AVOIDANCE_DISTANCE)
         sprite.avoid(sprite.environment.get_agents_of_type(Crab), CRAB_AVOIDANCE_DISTANCE)
         sprite.align_near(sprite.environment.get_agents_of_type(Food), FOOD_ALIGNMENT_DISTANCE)
