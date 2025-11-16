@@ -42,7 +42,7 @@ The simulation now features **48 parametrizable behavior algorithms** that fish 
 - `TerritorialDefender` - Defend territory from intruders
 - ...and 42 more!
 
-**See [ALGORITHMIC_EVOLUTION.md](ALGORITHMIC_EVOLUTION.md) for complete documentation!**
+**See [ALGORITHMIC_EVOLUTION.md](docs/ALGORITHMIC_EVOLUTION.md) for complete documentation!**
 
 ### 🧠 **Neural Network Brains**
 Fish can now have **evolving neural network brains** that control their behavior:
@@ -238,7 +238,7 @@ python main.py --mode headless --max-frames 1000 --seed 42
 - No pygame/display required
 - Identical simulation behavior to graphical mode
 
-**See [HEADLESS_MODE.md](HEADLESS_MODE.md) for complete documentation!**
+**See [HEADLESS_MODE.md](docs/HEADLESS_MODE.md) for complete documentation!**
 
 ### Mode Equivalence ✓
 
