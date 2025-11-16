@@ -8,11 +8,16 @@ if TYPE_CHECKING:
 from agents import Crab, Food, Fish
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
 
-# Constants
+# Movement distance constants
 CRAB_AVOIDANCE_DISTANCE = 200
-FOOD_ALIGNMENT_DISTANCE = 0
+FOOD_ALIGNMENT_DISTANCE = 0  # Fish move to exact food position
 SCHOOLING_FISH_ALIGNMENT_DISTANCE = 25
 SOLO_FISH_AVOIDANCE_DISTANCE = 100
+
+# Movement smoothing constants (lower = smoother, higher = more responsive)
+NEURAL_MOVEMENT_SMOOTHING = 0.15  # Smooth movement for neural network control
+ALGORITHMIC_MOVEMENT_SMOOTHING = 0.2  # Slightly more responsive for algorithms
+ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.2  # Allow 20% speed variation
 
 
 def rects_collide(rect1: Tuple[float, float, float, float],
@@ -84,9 +89,8 @@ class NeuralMovement(MovementStrategy):
         target_vy = desired_vy * sprite.speed
 
         # Smoothly interpolate toward desired velocity (not instant turns)
-        smoothing = 0.15  # Lower = smoother, higher = more responsive
-        sprite.vel.x += (target_vx - sprite.vel.x) * smoothing
-        sprite.vel.y += (target_vy - sprite.vel.y) * smoothing
+        sprite.vel.x += (target_vx - sprite.vel.x) * NEURAL_MOVEMENT_SMOOTHING
+        sprite.vel.y += (target_vy - sprite.vel.y) * NEURAL_MOVEMENT_SMOOTHING
 
         # Normalize velocity to maintain consistent speed
         if sprite.vel.length() > 0:
@@ -116,16 +120,14 @@ class AlgorithmicMovement(MovementStrategy):
         target_vy = desired_vy * sprite.speed
 
         # Smoothly interpolate toward desired velocity
-        smoothing = 0.2  # Slightly more responsive than neural
-        sprite.vel.x += (target_vx - sprite.vel.x) * smoothing
-        sprite.vel.y += (target_vy - sprite.vel.y) * smoothing
+        sprite.vel.x += (target_vx - sprite.vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
+        sprite.vel.y += (target_vy - sprite.vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
 
         # Normalize velocity to maintain consistent speed
         vel_length = sprite.vel.length()
         if vel_length > 0:
             # Allow some variation in speed based on algorithm output
-            max_speed_mult = 1.2
-            target_speed = min(sprite.speed * max_speed_mult, vel_length)
+            target_speed = min(sprite.speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER, vel_length)
             sprite.vel = sprite.vel.normalize() * target_speed
 
         super().move(sprite)

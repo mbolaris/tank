@@ -3,7 +3,7 @@ from typing import Iterable, List, Optional, Type
 # Avoid importing pygame-dependent Agent during tests
 try:
     from agents import Agent
-except Exception:  # pragma: no cover - fallback for environments without pygame
+except ImportError:  # pragma: no cover - fallback for environments without pygame
     Agent = object
 
 class Environment:
@@ -46,32 +46,26 @@ class Environment:
         """
         return [agent for agent in self.agents if isinstance(agent, agent_class)]
     
-    def agents_to_avoid(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
+    def nearby_agents_by_type(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.
 
         Args:
             agent (Agent): The agent to consider.
             radius (int): The radius to consider.
-            agent_class (Type[Agent]): The class of the agents to avoid.
+            agent_class (Type[Agent]): The class of the agents to find.
 
         Returns:
-            List[Agent]: The agents within the radius.
+            List[Agent]: The agents of the specified type within the radius.
         """
         return [other for other in self.get_agents_of_type(agent_class)
                 if other != agent and (other.pos - agent.pos).length() <= radius]
+
+    # Backward compatibility aliases
+    def agents_to_avoid(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
+        """Deprecated: Use nearby_agents_by_type instead."""
+        return self.nearby_agents_by_type(agent, radius, agent_class)
 
     def agents_to_align_with(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
-        """
-        Return a list of agents of a given type within a certain radius of the given agent.
-
-        Args:
-            agent (Agent): The agent to consider.
-            radius (int): The radius to consider.
-            agent_class (Type[Agent]): The class of the agents to align with.
-
-        Returns:
-            List[Agent]: The agents within the radius.
-        """
-        return [other for other in self.get_agents_of_type(agent_class)
-                if other != agent and (other.pos - agent.pos).length() <= radius]
+        """Deprecated: Use nearby_agents_by_type instead."""
+        return self.nearby_agents_by_type(agent, radius, agent_class)
