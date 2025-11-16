@@ -36,9 +36,40 @@ export class Renderer {
   }
 
   clear(width: number, height: number) {
-    // Clear with ocean blue background (matching pygame)
-    this.ctx.fillStyle = '#1a4d6d';
+    // Create subtle ocean gradient
+    const gradient = this.ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, '#04233d');
+    gradient.addColorStop(0.45, '#0b4161');
+    gradient.addColorStop(1, '#0f202c');
+    this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, width, height);
+
+    // Soft light rays for depth
+    this.ctx.save();
+    this.ctx.globalAlpha = 0.12;
+    for (let i = 0; i < 3; i += 1) {
+      this.ctx.beginPath();
+      this.ctx.moveTo((width / 3) * i + 80, 0);
+      this.ctx.lineTo((width / 3) * i + 200, 0);
+      this.ctx.lineTo((width / 3) * i, height);
+      this.ctx.closePath();
+      this.ctx.fillStyle = '#3dd5ff';
+      this.ctx.fill();
+    }
+    this.ctx.restore();
+
+    // Draw seabed so plants have a home
+    const seabedHeight = Math.max(50, height * 0.12);
+    const seabedGradient = this.ctx.createLinearGradient(
+      0,
+      height - seabedHeight,
+      0,
+      height
+    );
+    seabedGradient.addColorStop(0, 'rgba(227, 188, 117, 0.2)');
+    seabedGradient.addColorStop(1, 'rgba(195, 161, 90, 0.35)');
+    this.ctx.fillStyle = seabedGradient;
+    this.ctx.fillRect(0, height - seabedHeight, width, seabedHeight);
   }
 
   renderEntity(entity: EntityData, elapsedTime: number) {
@@ -141,7 +172,12 @@ export class Renderer {
     const swayAngle = Math.sin(elapsedTime * swaySpeed) * swayRange;
 
     ctx.save();
-    ctx.translate(x + width / 2, y + height);
+    const canvasHeight = ctx.canvas.height;
+    const seabedOffset = Math.max(40, canvasHeight * 0.08);
+    const restingY = canvasHeight - seabedOffset;
+    // Allow slight offset so multiple plants feel organic
+    const swayOffset = Math.sin((x + y) * 0.01) * 6;
+    ctx.translate(x + width / 2 + swayOffset, restingY);
     ctx.rotate((swayAngle * Math.PI) / 180);
     ctx.drawImage(image, -width / 2, -height, width, height);
     ctx.restore();

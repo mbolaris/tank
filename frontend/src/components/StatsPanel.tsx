@@ -162,10 +162,12 @@ export function StatsPanel({ stats }: StatsPanelProps) {
 
 const styles = {
   container: {
-    padding: '20px',
-    backgroundColor: '#1e293b',
-    borderRadius: '8px',
+    padding: '24px',
+    background: 'linear-gradient(145deg, rgba(30,41,59,0.92), rgba(15,23,42,0.95))',
+    borderRadius: '20px',
     color: '#e2e8f0',
+    border: '1px solid rgba(148,163,184,0.18)',
+    boxShadow: '0 35px 55px rgba(2,6,23,0.65)',
   },
   title: {
     margin: '0 0 16px 0',
@@ -204,8 +206,9 @@ const styles = {
   legend: {
     marginTop: '24px',
     padding: '16px',
-    backgroundColor: '#0f172a',
-    borderRadius: '6px',
+    backgroundColor: 'rgba(15,23,42,0.85)',
+    borderRadius: '12px',
+    border: '1px solid rgba(148,163,184,0.1)',
   },
   legendTitle: {
     margin: '0 0 12px 0',

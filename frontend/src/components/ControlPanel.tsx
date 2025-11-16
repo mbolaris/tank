@@ -103,10 +103,12 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
 
 const styles = {
   container: {
-    padding: '20px',
-    backgroundColor: '#1e293b',
-    borderRadius: '8px',
+    padding: '24px',
+    background: 'linear-gradient(145deg, rgba(30,41,59,0.92), rgba(15,23,42,0.95))',
+    borderRadius: '20px',
     color: '#e2e8f0',
+    border: '1px solid rgba(148,163,184,0.18)',
+    boxShadow: '0 35px 55px rgba(2,6,23,0.65)',
   },
   title: {
     margin: '0 0 16px 0',
@@ -140,6 +142,7 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    boxShadow: '0 10px 25px rgba(15,23,42,0.45)',
   },
   buttonPrimary: {
     backgroundColor: '#3b82f6',
