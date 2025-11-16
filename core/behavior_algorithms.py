@@ -6,16 +6,9 @@ Each algorithm has tunable parameters that mutate during reproduction.
 
 import random
 import math
-import sys
-import os
 from abc import ABC, abstractmethod
 from typing import Tuple, Dict, Any, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
-
-# Add parent directory to path for imports
-_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _parent_dir not in sys.path:
-    sys.path.insert(0, _parent_dir)
 
 # Use pygame Vector2 if available, otherwise use pure Python implementation
 try:

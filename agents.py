@@ -20,7 +20,6 @@ from core.constants import (FILES, INIT_POS, SCREEN_WIDTH, SCREEN_HEIGHT, IMAGE_
                        RANDOM_VELOCITY_DIVISOR, FISH_GROWTH_RATE, PLANT_SWAY_RANGE,
                        PLANT_SWAY_SPEED, FOOD_SINK_ACCELERATION, FOOD_TYPES)
 import random
-from enum import Enum
 from core.genetics import Genome
 from core import entities as core_entities
 

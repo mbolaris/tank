@@ -8,6 +8,8 @@ import movement_strategy
 from core import environment
 from core.ecosystem import EcosystemManager
 from core.time_system import TimeSystem
+from core.genetics import Genome
+from core.behavior_algorithms import get_algorithm_index
 from evolution_viz import EvolutionVisualizer, SpeciesTracker
 
 class FishTankSimulator:
@@ -81,7 +83,6 @@ class FishTankSimulator:
             x = INIT_POS['school'][0] + random.randint(-80, 80)
             y = INIT_POS['school'][1] + random.randint(-50, 50)
             # Create genome WITH behavior algorithm but WITHOUT neural brain
-            from core.genetics import Genome
             genome = Genome.random(use_brain=False, use_algorithm=True)
             fish = agents.Fish(
                 self.environment,
@@ -101,7 +102,6 @@ class FishTankSimulator:
             x = INIT_POS['school'][0] + random.randint(-50, 50)
             y = INIT_POS['school'][1] + random.randint(-30, 30)
             # Neural fish should NOT have algorithmic behavior (use brain instead)
-            from core.genetics import Genome
             genome = Genome.random(use_brain=True, use_algorithm=False)
             fish = agents.Fish(
                 self.environment,
@@ -121,7 +121,6 @@ class FishTankSimulator:
             x = INIT_POS['school'][0] + random.randint(-50, 50)
             y = INIT_POS['school'][1] + random.randint(-30, 30)
             # Create genome without neural brain or algorithm (uses movement strategy only)
-            from core.genetics import Genome
             genome = Genome.random(use_brain=False, use_algorithm=False)
             fish = agents.Fish(
                 self.environment,
@@ -190,7 +189,6 @@ class FishTankSimulator:
                         # Get algorithm ID if fish has a behavior algorithm
                         algorithm_id = None
                         if sprite.genome.behavior_algorithm is not None:
-                            from core.behavior_algorithms import get_algorithm_index
                             algorithm_id = get_algorithm_index(sprite.genome.behavior_algorithm)
                         self.ecosystem.record_death(
                             sprite.fish_id,
@@ -274,7 +272,6 @@ class FishTankSimulator:
                                 # Get algorithm ID if fish has a behavior algorithm
                                 algorithm_id = None
                                 if fish.genome.behavior_algorithm is not None:
-                                    from core.behavior_algorithms import get_algorithm_index
                                     algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
                                 self.ecosystem.record_death(
                                     fish.fish_id,
@@ -375,7 +372,6 @@ class FishTankSimulator:
 
         # Display algorithm number if fish has a behavior algorithm
         if fish.genome.behavior_algorithm is not None:
-            from core.behavior_algorithms import get_algorithm_index
             algo_index = get_algorithm_index(fish.genome.behavior_algorithm)
 
             if algo_index >= 0:
