@@ -1,12 +1,22 @@
+"""Movement strategies for fish agents.
+
+This module provides different movement behaviors for fish:
+- NeuralMovement: Neural network-based decision making
+- AlgorithmicMovement: Parametrizable behavior algorithms
+- SoloFishMovement: Simple rule-based solo behavior
+- SchoolingFishMovement: Flocking behavior with schooling
+"""
+
+from typing import TYPE_CHECKING, List
+
 from pygame import Vector2
-import pygame
-from typing import List, TYPE_CHECKING, Tuple
+
+from agents import Crab, Fish, Food
+from core.collision_system import default_collision_detector
+from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
 
 if TYPE_CHECKING:
     from agents import Fish
-
-from agents import Crab, Food, Fish
-from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
 
 # Movement distance constants
 CRAB_AVOIDANCE_DISTANCE = 200
@@ -20,27 +30,6 @@ ALGORITHMIC_MOVEMENT_SMOOTHING = 0.2  # Slightly more responsive for algorithms
 ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.2  # Allow 20% speed variation
 
 
-def rects_collide(rect1: Tuple[float, float, float, float],
-                  rect2: Tuple[float, float, float, float]) -> bool:
-    """Check if two rectangles collide.
-
-    Args:
-        rect1: (x, y, width, height) tuple for first rectangle
-        rect2: (x, y, width, height) tuple for second rectangle
-
-    Returns:
-        True if rectangles overlap, False otherwise
-    """
-    x1, y1, w1, h1 = rect1
-    x2, y2, w2, h2 = rect2
-
-    # Check if rectangles overlap
-    return not (x1 + w1 < x2 or  # rect1 is left of rect2
-                x2 + w2 < x1 or  # rect2 is left of rect1
-                y1 + h1 < y2 or  # rect1 is above rect2
-                y2 + h2 < y1)    # rect2 is above rect1
-
-
 class MovementStrategy:
     """Base class for movement strategies."""
     def move(self, sprite: 'Fish') -> None:
@@ -48,19 +37,20 @@ class MovementStrategy:
         self.check_collision_with_food(sprite)
 
     def check_collision_with_food(self, sprite: 'Fish') -> None:
-        """Check if sprite collides with food and stop it if so."""
-        from core.entities import Food as FoodEntity
+        """Check if sprite collides with food and stop it if so.
 
-        # Get the entity's bounding box
-        sprite_rect = sprite.get_rect()
+        Args:
+            sprite: The fish sprite to check for collisions
+        """
+        # Get the sprite entity (unwrap if it's a sprite wrapper)
+        sprite_entity = sprite._entity if hasattr(sprite, '_entity') else sprite
 
         for food in sprite.environment.get_agents_of_type(Food):
             # Get the food entity (unwrap if it's a sprite wrapper)
             food_entity = food._entity if hasattr(food, '_entity') else food
-            food_rect = food_entity.get_rect()
 
-            # Use entity-based collision detection
-            if rects_collide(sprite_rect, food_rect):
+            # Use the collision detector for consistent collision detection
+            if default_collision_detector.collides(sprite_entity, food_entity):
                 sprite.vel = Vector2(0, 0)  # Set velocity to 0
 
 

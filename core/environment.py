@@ -1,3 +1,10 @@
+"""Environment module for spatial queries and agent management.
+
+This module provides the Environment class which manages spatial queries
+for agents in the simulation. It's designed to work with both pygame-based
+sprite agents and pure entity objects.
+"""
+
 from typing import Iterable, List, Optional, Type
 
 # Avoid importing pygame-dependent Agent during tests
@@ -5,6 +12,7 @@ try:
     from agents import Agent
 except ImportError:  # pragma: no cover - fallback for environments without pygame
     Agent = object
+
 
 class Environment:
     """

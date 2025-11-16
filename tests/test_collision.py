@@ -4,10 +4,10 @@ import pygame
 from pygame.math import Vector2
 
 from agents import Fish, Crab, Food
-from environment import Environment
+from core.environment import Environment
 from movement_strategy import SoloFishMovement
 from fishtank import FishTankSimulator
-from constants import SCREEN_HEIGHT
+from core.constants import SCREEN_HEIGHT
 
 
 class TestCollisionDetection:
