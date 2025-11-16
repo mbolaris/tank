@@ -49,6 +49,7 @@ class SimulationEngine:
         self.paused: bool = False
         self.auto_food_timer: int = 0
         self.start_time: float = time.time()
+        self.poker_events: List[Dict[str, Any]] = []  # Recent poker events
 
     def setup(self) -> None:
         """Setup the simulation."""
@@ -321,7 +322,9 @@ class SimulationEngine:
                     elif isinstance(other, entities.Fish):
                         # Fish-to-fish poker interaction
                         poker = PokerInteraction(fish, other)
-                        poker.play_poker()
+                        if poker.play_poker():
+                            # Track poker event
+                            self.add_poker_event(poker)
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food."""
@@ -365,6 +368,46 @@ class SimulationEngine:
                 # Attempt mating
                 if fish.try_mate(potential_mate):
                     break  # Found a mate, stop looking
+
+    def add_poker_event(self, poker: PokerInteraction) -> None:
+        """Add a poker event to the recent events list."""
+        if poker.result is None:
+            return
+
+        result = poker.result
+
+        # Create event message
+        if result.winner_id == -1:
+            # Tie
+            message = f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({result.hand1.description})"
+        else:
+            winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
+            loser_hand = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
+            message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_hand.description}! (+{result.energy_transferred:.1f} energy)"
+
+        # Create event data
+        event = {
+            'frame': self.frame_count,
+            'winner_id': result.winner_id,
+            'loser_id': result.loser_id,
+            'winner_hand': (result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2).description,
+            'loser_hand': (result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1).description,
+            'energy_transferred': result.energy_transferred,
+            'message': message
+        }
+
+        self.poker_events.append(event)
+
+        # Keep only last 10 events
+        if len(self.poker_events) > 10:
+            self.poker_events.pop(0)
+
+    def get_recent_poker_events(self, max_age_frames: int = 180) -> List[Dict[str, Any]]:
+        """Get recent poker events (within max_age_frames)."""
+        return [
+            event for event in self.poker_events
+            if self.frame_count - event['frame'] < max_age_frames
+        ]
 
     def get_stats(self) -> Dict[str, Any]:
         """Get current simulation statistics.

@@ -42,6 +42,7 @@ class FishTankSimulator:
         self.paused: bool = False
         self.show_stats_hud: bool = True  # Toggle for stats and health bars
         self.auto_food_timer: int = 0  # Timer for automatic food spawning
+        self.poker_notifications: List[dict] = []  # List of poker game notifications
 
     def setup_game(self) -> None:
         """Setup the game."""
@@ -247,6 +248,9 @@ class FishTankSimulator:
         # Handle reproduction (mate finding)
         self.handle_reproduction()
 
+        # Update poker notifications
+        self.update_poker_notifications()
+
         # Update ecosystem stats
         if self.ecosystem is not None:
             fish_list = [a for a in self.agents if isinstance(a, agents.Fish)]
@@ -289,7 +293,9 @@ class FishTankSimulator:
                     elif isinstance(collision_sprite, agents.Fish):
                         # Fish-to-fish poker interaction
                         poker = PokerInteraction(fish, collision_sprite)
-                        poker.play_poker()
+                        if poker.play_poker():
+                            # Add notification for successful poker game
+                            self.add_poker_notification(poker)
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food."""
@@ -322,6 +328,79 @@ class FishTankSimulator:
                 # Attempt mating
                 if fish.try_mate(potential_mate):
                     break  # Found a mate, stop looking
+
+    def add_poker_notification(self, poker: PokerInteraction) -> None:
+        """Add a notification for a poker game result."""
+        if poker.result is None:
+            return
+
+        # Create notification message
+        result = poker.result
+        if result.winner_id == -1:
+            # Tie
+            message = f"Poker: Fish #{result.loser_id} vs Fish #{result.winner_id} - TIE! ({result.hand1.description})"
+            color = (255, 255, 100)  # Yellow for tie
+        else:
+            # Winner
+            winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
+            loser_hand = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
+            message = f"Poker: Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_hand.description}! (+{result.energy_transferred:.1f} energy)"
+            color = (100, 255, 100)  # Green for wins
+
+        # Add to notification list with timestamp
+        notification = {
+            'message': message,
+            'color': color,
+            'frame': self.frame_count,
+            'duration': 180  # Show for 6 seconds at 30fps
+        }
+        self.poker_notifications.append(notification)
+
+        # Keep only last 5 notifications
+        if len(self.poker_notifications) > 5:
+            self.poker_notifications.pop(0)
+
+    def update_poker_notifications(self) -> None:
+        """Update poker notifications and remove expired ones."""
+        # Remove expired notifications
+        self.poker_notifications = [
+            notif for notif in self.poker_notifications
+            if self.frame_count - notif['frame'] < notif['duration']
+        ]
+
+    def draw_poker_notifications(self) -> None:
+        """Draw poker notifications on the screen."""
+        if self.screen is None or self.stats_font is None:
+            return
+
+        # Draw notifications in the bottom-right corner
+        y_offset = SCREEN_HEIGHT - 30
+        for notif in reversed(self.poker_notifications):  # Newest at bottom
+            # Calculate fade based on age
+            age = self.frame_count - notif['frame']
+            fade_start = notif['duration'] - 60  # Start fading 2 seconds before expiry
+            if age > fade_start:
+                alpha = int(255 * (notif['duration'] - age) / 60)
+            else:
+                alpha = 255
+
+            # Render text
+            text_surface = self.stats_font.render(notif['message'], True, notif['color'])
+
+            # Create surface with alpha
+            notification_surface = pygame.Surface((text_surface.get_width() + 20, text_surface.get_height() + 10))
+            notification_surface.set_alpha(min(alpha, 220))
+            notification_surface.fill((20, 20, 40))
+
+            # Position in bottom-right
+            x_pos = SCREEN_WIDTH - notification_surface.get_width() - 10
+            y_pos = y_offset - notification_surface.get_height()
+
+            # Draw background and text
+            self.screen.blit(notification_surface, (x_pos, y_pos))
+            self.screen.blit(text_surface, (x_pos + 10, y_pos + 5))
+
+            y_offset = y_pos - 5  # Move up for next notification
 
     def keep_sprite_on_screen(self, sprite: agents.Agent) -> None:
         """Keep a sprite fully within the bounds of the screen."""
@@ -483,6 +562,9 @@ class FishTankSimulator:
 
             # Draw stats panel
             self.draw_stats_panel()
+
+        # Draw poker notifications (always visible)
+        self.draw_poker_notifications()
 
         pygame.display.flip()
 
