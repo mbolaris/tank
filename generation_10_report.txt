@@ -1,0 +1,250 @@
+Simulation Report - Generation 10
+Total Frames: 19612
+Real Time: 178.2s
+
+================================================================================
+FINAL STATISTICS
+================================================================================
+
+total_population: 115
+current_generation: 10
+total_births: 905
+total_deaths: 236
+carrying_capacity: 100
+capacity_usage: 115%
+death_causes: {'predation': 1, 'starvation': 126, 'old_age': 109}
+generations_alive: 5
+poker_stats: {'total_games': 0, 'total_wins': 0, 'total_losses': 0, 'total_ties': 0, 'total_energy_won': 0.0, 'total_energy_lost': 0.0, 'net_energy': 0.0, 'best_hand_rank': 0, 'best_hand_name': 'High Card'}
+frame_count: 19612
+time_string: Night
+elapsed_real_time: 178.1607596874237
+simulation_speed: 3.6693452179402666
+fish_count: 114
+food_count: 2
+plant_count: 3
+
+================================================================================
+GENERATION BREAKDOWN
+================================================================================
+
+Generation 0:
+  Population: 0
+  Births: 7
+  Deaths: 7
+  Avg Age at Death: 5317.9 frames
+  Avg Speed: 0.95
+  Avg Size: 0.96
+  Avg Energy: 1.45
+
+Generation 1:
+  Population: 0
+  Births: 11
+  Deaths: 11
+  Avg Age at Death: 5725.9 frames
+  Avg Speed: 1.02
+  Avg Size: 0.98
+  Avg Energy: 1.31
+
+Generation 2:
+  Population: 0
+  Births: 42
+  Deaths: 41
+  Avg Age at Death: 5940.5 frames
+  Avg Speed: 1.07
+  Avg Size: 0.98
+  Avg Energy: 1.31
+
+Generation 3:
+  Population: 0
+  Births: 164
+  Deaths: 54
+  Avg Age at Death: 5625.7 frames
+  Avg Speed: 1.05
+  Avg Size: 1.00
+  Avg Energy: 1.09
+
+Generation 4:
+  Population: 0
+  Births: 175
+  Deaths: 25
+  Avg Age at Death: 4774.6 frames
+  Avg Speed: 1.04
+  Avg Size: 1.06
+  Avg Energy: 1.08
+
+Generation 5:
+  Population: 0
+  Births: 77
+  Deaths: 49
+  Avg Age at Death: 4291.6 frames
+  Avg Speed: 1.07
+  Avg Size: 1.03
+  Avg Energy: 1.04
+
+Generation 6:
+  Population: 24
+  Births: 130
+  Deaths: 41
+  Avg Age at Death: 4101.3 frames
+  Avg Speed: 1.06
+  Avg Size: 1.02
+  Avg Energy: 1.08
+
+Generation 7:
+  Population: 67
+  Births: 177
+  Deaths: 7
+  Avg Age at Death: 4348.6 frames
+  Avg Speed: 1.06
+  Avg Size: 1.02
+  Avg Energy: 1.07
+
+Generation 8:
+  Population: 20
+  Births: 114
+  Deaths: 1
+  Avg Age at Death: 2908.0 frames
+  Avg Speed: 1.06
+  Avg Size: 1.02
+  Avg Energy: 1.09
+
+Generation 9:
+  Population: 3
+  Births: 7
+  Deaths: 0
+  Avg Age at Death: 0.0 frames
+  Avg Speed: 1.07
+  Avg Size: 0.97
+  Avg Energy: 1.02
+
+Generation 10:
+  Population: 1
+  Births: 1
+  Deaths: 0
+  Avg Age at Death: 0.0 frames
+  Avg Speed: 1.00
+  Avg Size: 1.00
+  Avg Energy: 1.00
+
+
+================================================================================
+ALGORITHM PERFORMANCE REPORT
+================================================================================
+
+Total Simulation Time: 19612 frames
+Total Population Births: 905
+Total Population Deaths: 236
+Current Generation: 10
+
+--------------------------------------------------------------------------------
+TOP PERFORMING ALGORITHMS (by reproduction rate)
+--------------------------------------------------------------------------------
+
+#1 - LeaderFollower (ID: 24)
+  Births: 797
+  Deaths: 191
+  Current Population: 606
+  Reproductions: 801
+  Reproduction Rate: 100.50%
+  Survival Rate: 76.04%
+  Avg Lifespan: 5164.6 frames
+  Food Eaten: 834
+  Deaths - Starvation: 99, Old Age: 92, Predation: 0
+
+#2 - CornerSeeker (ID: 43)
+  Births: 77
+  Deaths: 29
+  Current Population: 48
+  Reproductions: 76
+  Reproduction Rate: 98.70%
+  Survival Rate: 62.34%
+  Avg Lifespan: 4100.1 frames
+  Food Eaten: 90
+  Deaths - Starvation: 19, Old Age: 10, Predation: 0
+
+#3 - SurfaceSkimmer (ID: 6)
+  Births: 24
+  Deaths: 9
+  Current Population: 15
+  Reproductions: 23
+  Reproduction Rate: 95.83%
+  Survival Rate: 62.50%
+  Avg Lifespan: 4422.9 frames
+  Food Eaten: 30
+  Deaths - Starvation: 6, Old Age: 3, Predation: 0
+
+--------------------------------------------------------------------------------
+TOP SURVIVING ALGORITHMS (by current survival rate)
+--------------------------------------------------------------------------------
+
+#1 - LeaderFollower (ID: 24)
+  Survival Rate: 76.04%
+  Current Population: 606
+  Avg Lifespan: 5164.6 frames
+
+#2 - SurfaceSkimmer (ID: 6)
+  Survival Rate: 62.50%
+  Current Population: 15
+  Avg Lifespan: 4422.9 frames
+
+#3 - CornerSeeker (ID: 43)
+  Survival Rate: 62.34%
+  Current Population: 48
+  Avg Lifespan: 4100.1 frames
+
+--------------------------------------------------------------------------------
+LONGEST-LIVED ALGORITHMS (by average lifespan)
+--------------------------------------------------------------------------------
+
+#1 - LeaderFollower (ID: 24)
+  Avg Lifespan: 5164.6 frames
+  Deaths: 191
+  Starvation Deaths: 99 (51.8%)
+
+#2 - SurfaceSkimmer (ID: 6)
+  Avg Lifespan: 4422.9 frames
+  Deaths: 9
+  Starvation Deaths: 6 (66.7%)
+
+#3 - CornerSeeker (ID: 43)
+  Avg Lifespan: 4100.1 frames
+  Deaths: 29
+  Starvation Deaths: 19 (65.5%)
+
+--------------------------------------------------------------------------------
+WORST PERFORMERS (highest starvation rate)
+--------------------------------------------------------------------------------
+
+#1 - SurfaceSkimmer (ID: 6)
+  Starvation Rate: 66.67%
+  Deaths: 9
+  Avg Lifespan: 4422.9 frames
+  Reproduction Rate: 95.83%
+
+#2 - CornerSeeker (ID: 43)
+  Starvation Rate: 65.52%
+  Deaths: 29
+  Avg Lifespan: 4100.1 frames
+  Reproduction Rate: 98.70%
+
+#3 - LeaderFollower (ID: 24)
+  Starvation Rate: 51.83%
+  Deaths: 191
+  Avg Lifespan: 5164.6 frames
+  Reproduction Rate: 100.50%
+
+--------------------------------------------------------------------------------
+RECOMMENDATIONS FOR NEXT GENERATION
+--------------------------------------------------------------------------------
+
+1. The most successful algorithm is 'LeaderFollower'
+   with a reproduction rate of 100.50%.
+
+2. The algorithm 'SurfaceSkimmer' has the highest starvation rate
+   at 66.67%, indicating poor food-seeking behavior.
+
+3. Overall starvation rate: 53.88%
+   RECOMMENDATION: High starvation indicates resource scarcity.
+   Focus on food-seeking and energy conservation algorithms.
+
+================================================================================
