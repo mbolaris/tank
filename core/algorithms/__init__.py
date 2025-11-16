@@ -89,6 +89,15 @@ from core.algorithms.territory import (
     NomadicWanderer,
 )
 
+# Import all poker interaction algorithms
+from core.algorithms.poker import (
+    PokerChallenger,
+    PokerDodger,
+    PokerGambler,
+    SelectivePoker,
+    PokerOpportunist,
+)
+
 
 # All available algorithms (in original order for compatibility)
 ALL_ALGORITHMS = [
@@ -149,6 +158,13 @@ ALL_ALGORITHMS = [
     RoutePatroller,
     BoundaryExplorer,
     NomadicWanderer,
+
+    # Poker interactions
+    PokerChallenger,
+    PokerDodger,
+    PokerGambler,
+    SelectivePoker,
+    PokerOpportunist,
 ]
 
 
@@ -272,6 +288,13 @@ __all__ = [
     'RoutePatroller',
     'BoundaryExplorer',
     'NomadicWanderer',
+
+    # Poker interactions
+    'PokerChallenger',
+    'PokerDodger',
+    'PokerGambler',
+    'SelectivePoker',
+    'PokerOpportunist',
 
     # Utilities
     'ALL_ALGORITHMS',

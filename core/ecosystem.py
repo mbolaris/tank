@@ -79,12 +79,47 @@ class GenerationStats:
 
 
 @dataclass
+class PokerStats:
+    """Poker game statistics for an algorithm.
+
+    Attributes:
+        algorithm_id: Unique identifier for the algorithm
+        total_games: Total poker games played
+        total_wins: Total games won
+        total_losses: Total games lost
+        total_ties: Total games tied
+        total_energy_won: Total energy gained from poker
+        total_energy_lost: Total energy lost from poker
+        best_hand_rank: Best hand rank achieved (0-9)
+        avg_hand_rank: Average hand rank
+    """
+    algorithm_id: int
+    total_games: int = 0
+    total_wins: int = 0
+    total_losses: int = 0
+    total_ties: int = 0
+    total_energy_won: float = 0.0
+    total_energy_lost: float = 0.0
+    best_hand_rank: int = 0
+    avg_hand_rank: float = 0.0
+    _total_hand_rank: float = field(default=0.0, repr=False)  # For averaging
+
+    def get_win_rate(self) -> float:
+        """Calculate win rate."""
+        return self.total_wins / self.total_games if self.total_games > 0 else 0.0
+
+    def get_net_energy(self) -> float:
+        """Calculate net energy from poker."""
+        return self.total_energy_won - self.total_energy_lost
+
+
+@dataclass
 class EcosystemEvent:
     """Represents an event in the ecosystem.
 
     Attributes:
         frame: Frame number when event occurred
-        event_type: Type of event ('birth', 'death', 'starvation', 'old_age', 'predation')
+        event_type: Type of event ('birth', 'death', 'starvation', 'old_age', 'predation', 'poker')
         fish_id: ID of the fish involved
         details: Additional details about the event
     """
@@ -137,6 +172,10 @@ class EcosystemManager:
         self.algorithm_stats: Dict[int, AlgorithmStats] = {}
         self._init_algorithm_stats()
 
+        # Poker statistics tracking
+        self.poker_stats: Dict[int, PokerStats] = {}
+        self._init_poker_stats()
+
         # Next available fish ID
         self.next_fish_id: int = 0
 
@@ -159,6 +198,11 @@ class EcosystemManager:
                     algorithm_id=i,
                     algorithm_name=f"Algorithm_{i}"
                 )
+
+    def _init_poker_stats(self) -> None:
+        """Initialize poker stats for all 53 algorithms (48 original + 5 poker)."""
+        for i in range(53):
+            self.poker_stats[i] = PokerStats(algorithm_id=i)
 
     def update(self, frame: int) -> None:
         """Update ecosystem state.
@@ -386,6 +430,69 @@ class EcosystemManager:
         """
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
+
+    def record_poker_outcome(self, winner_id: int, loser_id: int,
+                            winner_algo_id: Optional[int], loser_algo_id: Optional[int],
+                            amount: float, winner_hand: 'PokerHand', loser_hand: 'PokerHand') -> None:
+        """Record a poker game outcome.
+
+        Args:
+            winner_id: Fish ID of winner (-1 for tie)
+            loser_id: Fish ID of loser (-1 for tie)
+            winner_algo_id: Algorithm ID of winner (None if no algorithm)
+            loser_algo_id: Algorithm ID of loser (None if no algorithm)
+            amount: Amount of energy transferred
+            winner_hand: The winning poker hand
+            loser_hand: The losing poker hand
+        """
+        from core.poker_interaction import PokerHand
+
+        # Handle tie case
+        if winner_id == -1:
+            if winner_algo_id is not None and winner_algo_id in self.poker_stats:
+                self.poker_stats[winner_algo_id].total_games += 1
+                self.poker_stats[winner_algo_id].total_ties += 1
+                self.poker_stats[winner_algo_id]._total_hand_rank += winner_hand.rank_value
+                self.poker_stats[winner_algo_id].avg_hand_rank = (
+                    self.poker_stats[winner_algo_id]._total_hand_rank /
+                    self.poker_stats[winner_algo_id].total_games
+                )
+            if loser_algo_id is not None and loser_algo_id in self.poker_stats:
+                self.poker_stats[loser_algo_id].total_games += 1
+                self.poker_stats[loser_algo_id].total_ties += 1
+                self.poker_stats[loser_algo_id]._total_hand_rank += loser_hand.rank_value
+                self.poker_stats[loser_algo_id].avg_hand_rank = (
+                    self.poker_stats[loser_algo_id]._total_hand_rank /
+                    self.poker_stats[loser_algo_id].total_games
+                )
+            return
+
+        # Record winner stats
+        if winner_algo_id is not None and winner_algo_id in self.poker_stats:
+            stats = self.poker_stats[winner_algo_id]
+            stats.total_games += 1
+            stats.total_wins += 1
+            stats.total_energy_won += amount
+            stats.best_hand_rank = max(stats.best_hand_rank, winner_hand.rank_value)
+            stats._total_hand_rank += winner_hand.rank_value
+            stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+        # Record loser stats
+        if loser_algo_id is not None and loser_algo_id in self.poker_stats:
+            stats = self.poker_stats[loser_algo_id]
+            stats.total_games += 1
+            stats.total_losses += 1
+            stats.total_energy_lost += amount
+            stats._total_hand_rank += loser_hand.rank_value
+            stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+        # Log event
+        self.events.append(EcosystemEvent(
+            frame=self.frame_count,
+            event_type='poker',
+            fish_id=winner_id,
+            details=f"Won {amount:.1f} energy from fish {loser_id} ({winner_hand.description} vs {loser_hand.description})"
+        ))
 
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         """Generate a comprehensive performance report for all algorithms.

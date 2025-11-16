@@ -11,6 +11,7 @@ from core.time_system import TimeSystem
 from core.genetics import Genome
 from core.behavior_algorithms import get_algorithm_index
 from evolution_viz import EvolutionVisualizer, SpeciesTracker
+from core.fish_poker import PokerInteraction
 
 class FishTankSimulator:
     """A simulation of a fish tank with full ecosystem dynamics.
@@ -285,6 +286,10 @@ class FishTankSimulator:
                             fish.kill()
                     elif isinstance(collision_sprite, agents.Food):
                         fish.eat(collision_sprite)
+                    elif isinstance(collision_sprite, agents.Fish):
+                        # Fish-to-fish poker interaction
+                        poker = PokerInteraction(fish, collision_sprite)
+                        poker.play_poker()
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food."""

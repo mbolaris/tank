@@ -10,6 +10,7 @@ New structure:
 - core/algorithms/schooling.py - Social behaviors (10 algorithms)
 - core/algorithms/energy_management.py - Energy optimization (8 algorithms)
 - core/algorithms/territory.py - Spatial behaviors (8 algorithms)
+- core/algorithms/poker.py - Poker interaction behaviors (5 algorithms)
 """
 
 # Re-export everything from the algorithms package for backward compatibility
@@ -79,6 +80,13 @@ __all__ = [
     'RoutePatroller',
     'BoundaryExplorer',
     'NomadicWanderer',
+
+    # Poker interactions (5)
+    'PokerChallenger',
+    'PokerDodger',
+    'PokerGambler',
+    'SelectivePoker',
+    'PokerOpportunist',
 
     # Utilities
     'ALL_ALGORITHMS',

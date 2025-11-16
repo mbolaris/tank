@@ -261,6 +261,33 @@ ALGORITHM_PARAMETER_BOUNDS = {
         'zigzag_amplitude': (0.5, 1.2),
         'zigzag_frequency': (0.02, 0.08),
     },
+    # Poker interaction algorithms
+    'poker_challenger': {
+        'challenge_radius': (100.0, 250.0),
+        'challenge_speed': (0.8, 1.3),
+        'min_energy_to_challenge': (15.0, 30.0),
+    },
+    'poker_dodger': {
+        'avoidance_radius': (80.0, 150.0),
+        'avoidance_speed': (0.7, 1.1),
+        'food_priority': (0.6, 1.0),
+    },
+    'poker_gambler': {
+        'high_energy_threshold': (0.6, 0.9),
+        'challenge_speed': (1.0, 1.5),
+        'risk_tolerance': (0.3, 0.8),
+    },
+    'selective_poker': {
+        'min_energy_ratio': (0.4, 0.7),
+        'max_energy_ratio': (0.7, 0.95),
+        'challenge_speed': (0.6, 1.0),
+        'selectivity': (0.5, 0.9),
+    },
+    'poker_opportunist': {
+        'poker_weight': (0.3, 0.7),
+        'food_weight': (0.3, 0.7),
+        'opportunity_radius': (80.0, 150.0),
+    },
 }
 
 
