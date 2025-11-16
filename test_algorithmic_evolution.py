@@ -1,8 +1,8 @@
 """Test script for the algorithmic evolution system."""
 
 import random
-from genetics import Genome
-from behavior_algorithms import (
+from core.genetics import Genome
+from core.behavior_algorithms import (
     get_random_algorithm,
     inherit_algorithm_with_mutation,
     ALL_ALGORITHMS
