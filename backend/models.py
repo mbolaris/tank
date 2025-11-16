@@ -13,6 +13,10 @@ class EntityData(BaseModel):
     width: float
     height: float
 
+    # Velocity for animation
+    vel_x: Optional[float] = None
+    vel_y: Optional[float] = None
+
     # Fish-specific fields
     energy: Optional[float] = None
     species: Optional[str] = None  # 'solo', 'algorithmic', 'neural', 'schooling'
@@ -46,6 +50,7 @@ class SimulationUpdate(BaseModel):
     """Complete simulation state update."""
     type: str = "update"
     frame: int
+    elapsed_time: int
     entities: List[EntityData]
     stats: StatsData
 

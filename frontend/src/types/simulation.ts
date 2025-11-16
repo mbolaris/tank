@@ -10,6 +10,10 @@ export interface EntityData {
   width: number;
   height: number;
 
+  // Velocity for animation
+  vel_x?: number;
+  vel_y?: number;
+
   // Fish-specific
   energy?: number;
   species?: 'solo' | 'algorithmic' | 'neural' | 'schooling';
@@ -45,6 +49,7 @@ export interface StatsData {
 export interface SimulationUpdate {
   type: 'update';
   frame: number;
+  elapsed_time: number;
   entities: EntityData[];
   stats: StatsData;
 }
