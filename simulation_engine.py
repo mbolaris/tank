@@ -299,6 +299,9 @@ class SimulationEngine:
 
                 if self.entities_collide(fish, other):
                     if isinstance(other, entities.Crab):
+                        # Mark the predator encounter for death attribution
+                        fish.mark_predator_encounter()
+
                         # Crab can only kill if hunt cooldown is ready
                         if other.can_hunt():
                             # Record death from predation
