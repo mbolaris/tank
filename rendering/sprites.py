@@ -11,7 +11,7 @@ import os
 import math
 from typing import TYPE_CHECKING, List
 
-from image_loader import ImageLoader
+from rendering.image_loader import ImageLoader
 from core.constants import FILES, IMAGE_CHANGE_RATE, PLANT_SWAY_RANGE, PLANT_SWAY_SPEED
 
 if TYPE_CHECKING:

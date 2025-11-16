@@ -9,10 +9,7 @@ This module provides different movement behaviors for fish:
 
 from typing import TYPE_CHECKING, List
 
-try:
-    from pygame.math import Vector2
-except ImportError:
-    from core.entities import Vector2
+from core.math_utils import Vector2
 
 try:
     from agents import Crab, Fish, Food

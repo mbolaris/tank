@@ -1,17 +1,15 @@
 import random
 import pygame
 from typing import Optional, List
-from core.constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH, FILES, INIT_POS,
+from core.constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH,
                        AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED)
 import agents
-import movement_strategy
 from core import environment
 from core.ecosystem import EcosystemManager
 from core.time_system import TimeSystem
-from core.genetics import Genome
 from core.behavior_algorithms import get_algorithm_index
-from evolution_viz import EvolutionVisualizer, SpeciesTracker
 from core.fish_poker import PokerInteraction
+from agents_factory import create_initial_agents
 
 class FishTankSimulator:
     """A simulation of a fish tank with full ecosystem dynamics.
@@ -67,96 +65,9 @@ class FishTankSimulator:
         if self.environment is None or self.ecosystem is None:
             return
 
-        # Species 1: Solo fish with traditional AI (rule-based)
-        solo_fish = agents.Fish(
-            self.environment,
-            movement_strategy.SoloFishMovement(),
-            FILES['solo_fish'],
-            *INIT_POS['fish'],
-            3,
-            generation=0,
-            ecosystem=self.ecosystem
-        )
-
-        # Species 2: Algorithmic fish with parametrizable behavior algorithms (NEW!)
-        # These fish use the new algorithmic evolution system
-        algorithmic_fish = []
-        for i in range(2):  # Start with 2 algorithmic fish for sustainable population
-            x = INIT_POS['school'][0] + random.randint(-80, 80)
-            y = INIT_POS['school'][1] + random.randint(-50, 50)
-            # Create genome WITH behavior algorithm but WITHOUT neural brain
-            genome = Genome.random(use_brain=False, use_algorithm=True)
-            fish = agents.Fish(
-                self.environment,
-                movement_strategy.AlgorithmicMovement(),
-                FILES['schooling_fish'],
-                x, y,
-                4,
-                genome=genome,
-                generation=0,
-                ecosystem=self.ecosystem
-            )
-            algorithmic_fish.append(fish)
-
-        # Species 3: Schooling fish with neural network brains (learning AI)
-        neural_schooling_fish = []
-        for i in range(2):  # Fewer neural fish to start
-            x = INIT_POS['school'][0] + random.randint(-50, 50)
-            y = INIT_POS['school'][1] + random.randint(-30, 30)
-            # Neural fish should NOT have algorithmic behavior (use brain instead)
-            genome = Genome.random(use_brain=True, use_algorithm=False)
-            fish = agents.Fish(
-                self.environment,
-                movement_strategy.NeuralMovement(),
-                FILES['schooling_fish'],
-                x, y,
-                4,
-                genome=genome,
-                generation=0,
-                ecosystem=self.ecosystem
-            )
-            neural_schooling_fish.append(fish)
-
-        # Species 4: Traditional schooling fish (rule-based AI)
-        schooling_fish = []
-        for i in range(2):  # Also 2 traditional schooling fish
-            x = INIT_POS['school'][0] + random.randint(-50, 50)
-            y = INIT_POS['school'][1] + random.randint(-30, 30)
-            # Create genome without neural brain or algorithm (uses movement strategy only)
-            genome = Genome.random(use_brain=False, use_algorithm=False)
-            fish = agents.Fish(
-                self.environment,
-                movement_strategy.SchoolingFishMovement(),
-                FILES['schooling_fish'],
-                x, y,
-                4,
-                genome=genome,
-                generation=0,
-                ecosystem=self.ecosystem
-            )
-            schooling_fish.append(fish)
-
-        # Create plants
-        plant1 = agents.Plant(self.environment, 1)
-        plant2 = agents.Plant(self.environment, 2)
-        # Third plant manually positioned
-        plant3 = agents.Plant(self.environment, 1)
-        plant3.pos.x = INIT_POS['plant3'][0]
-        plant3.pos.y = INIT_POS['plant3'][1]
-        plant3.rect.topleft = (plant3.pos.x, plant3.pos.y)
-
-        # Add all agents
-        self.agents.add(
-            solo_fish,
-            *algorithmic_fish,  # NEW: Algorithmic evolution fish!
-            *neural_schooling_fish,  # Neural network fish
-            *schooling_fish,  # Traditional rule-based fish
-            agents.Crab(self.environment),  # Re-enabled with better balance!
-            plant1,
-            plant2,
-            plant3,
-            agents.Castle(self.environment),
-        )
+        # Use centralized factory function for initial population
+        population = create_initial_agents(self.environment, self.ecosystem)
+        self.agents.add(*population)
 
     def update(self) -> None:
         """Update the state of the simulation."""

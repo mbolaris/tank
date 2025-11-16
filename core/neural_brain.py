@@ -178,10 +178,7 @@ def get_brain_inputs(fish: 'Fish') -> List[float]:
     except ImportError:
         from core.entities import Food, Crab, Fish as FishClass
 
-    try:
-        from pygame.math import Vector2
-    except ImportError:
-        from core.entities import Vector2
+    from core.math_utils import Vector2
 
     # Initialize inputs
     inputs = [0.0] * 12

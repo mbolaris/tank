@@ -8,13 +8,14 @@ For new code, prefer importing from core.entities directly and using rendering.s
 for visualization.
 """
 
+import warnings
 import pygame
 from pygame.math import Vector2
 from pygame.surface import Surface
 import os
 import math
 from typing import List, TYPE_CHECKING, Optional
-from image_loader import ImageLoader
+from rendering.image_loader import ImageLoader
 from core.constants import (FILES, INIT_POS, SCREEN_WIDTH, SCREEN_HEIGHT, IMAGE_CHANGE_RATE,
                        AVOIDANCE_SPEED_CHANGE, ALIGNMENT_SPEED_CHANGE, RANDOM_MOVE_PROBABILITIES,
                        RANDOM_VELOCITY_DIVISOR, FISH_GROWTH_RATE, PLANT_SWAY_RANGE,
@@ -359,8 +360,17 @@ class Fish(Agent):
         return self._entity.eat(food_entity)
 
     def grow(self) -> None:
-        """Deprecated - now handled by life stage."""
-        pass
+        """Deprecated - now handled by life stage.
+
+        This method is deprecated and will be removed in a future version.
+        Growth is now automatically handled by the life stage system.
+        """
+        warnings.warn(
+            "Fish.grow() is deprecated and no longer necessary. "
+            "Growth is now handled automatically by the life stage system.",
+            DeprecationWarning,
+            stacklevel=2
+        )
 
 
 class Crab(Agent):

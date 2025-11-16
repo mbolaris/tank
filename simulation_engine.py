@@ -7,15 +7,14 @@ simulation without pygame or any visualization code.
 import random
 import time
 from typing import List, Optional, Dict, Any
-from core.constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, FILES, INIT_POS,
+from core.constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE,
                        AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED)
 from core import environment, entities
 from core.ecosystem import EcosystemManager
 from core.time_system import TimeSystem
-from core.genetics import Genome
 from core.behavior_algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
-import movement_strategy
+from core.entity_factory import create_initial_population
 
 
 class SimulationEngine:
@@ -64,96 +63,14 @@ class SimulationEngine:
         if self.environment is None or self.ecosystem is None:
             return
 
-        # Species 1: Solo fish with traditional AI (rule-based)
-        solo_fish = entities.Fish(
+        # Use centralized factory function for initial population
+        population = create_initial_population(
             self.environment,
-            movement_strategy.SoloFishMovement(),
-            FILES['solo_fish'][0],
-            *INIT_POS['fish'],
-            3,
-            generation=0,
-            ecosystem=self.ecosystem,
-            screen_width=SCREEN_WIDTH,
-            screen_height=SCREEN_HEIGHT
+            self.ecosystem,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT
         )
-
-        # Species 2: Algorithmic fish with parametrizable behavior algorithms
-        algorithmic_fish = []
-        for i in range(2):
-            x = INIT_POS['school'][0] + random.randint(-80, 80)
-            y = INIT_POS['school'][1] + random.randint(-50, 50)
-            genome = Genome.random(use_brain=False, use_algorithm=True)
-            fish = entities.Fish(
-                self.environment,
-                movement_strategy.AlgorithmicMovement(),
-                FILES['schooling_fish'][0],
-                x, y,
-                4,
-                genome=genome,
-                generation=0,
-                ecosystem=self.ecosystem,
-                screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT
-            )
-            algorithmic_fish.append(fish)
-
-        # Species 3: Schooling fish with neural network brains (learning AI)
-        neural_schooling_fish = []
-        for i in range(2):
-            x = INIT_POS['school'][0] + random.randint(-50, 50)
-            y = INIT_POS['school'][1] + random.randint(-30, 30)
-            genome = Genome.random(use_brain=True, use_algorithm=False)
-            fish = entities.Fish(
-                self.environment,
-                movement_strategy.NeuralMovement(),
-                FILES['schooling_fish'][0],
-                x, y,
-                4,
-                genome=genome,
-                generation=0,
-                ecosystem=self.ecosystem,
-                screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT
-            )
-            neural_schooling_fish.append(fish)
-
-        # Species 4: Traditional schooling fish (rule-based AI)
-        schooling_fish = []
-        for i in range(2):
-            x = INIT_POS['school'][0] + random.randint(-50, 50)
-            y = INIT_POS['school'][1] + random.randint(-30, 30)
-            genome = Genome.random(use_brain=False, use_algorithm=False)
-            fish = entities.Fish(
-                self.environment,
-                movement_strategy.SchoolingFishMovement(),
-                FILES['schooling_fish'][0],
-                x, y,
-                4,
-                genome=genome,
-                generation=0,
-                ecosystem=self.ecosystem,
-                screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT
-            )
-            schooling_fish.append(fish)
-
-        # Create plants
-        plant1 = entities.Plant(self.environment, 1, *INIT_POS['plant1'], SCREEN_WIDTH, SCREEN_HEIGHT)
-        plant2 = entities.Plant(self.environment, 2, *INIT_POS['plant2'], SCREEN_WIDTH, SCREEN_HEIGHT)
-        plant3 = entities.Plant(self.environment, 1, *INIT_POS['plant3'], SCREEN_WIDTH, SCREEN_HEIGHT)
-
-        # Add all entities
-        self.entities_list.extend([
-            solo_fish,
-            *algorithmic_fish,
-            *neural_schooling_fish,
-            *schooling_fish,
-            entities.Crab(self.environment, None, *INIT_POS['crab'], SCREEN_WIDTH, SCREEN_HEIGHT),
-            plant1,
-            plant2,
-            plant3,
-            entities.Castle(self.environment, *INIT_POS['castle'], SCREEN_WIDTH, SCREEN_HEIGHT),
-        ])
+        self.entities_list.extend(population)
 
     def update(self) -> None:
         """Update the state of the simulation."""

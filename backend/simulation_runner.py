@@ -1,20 +1,16 @@
 """Background simulation runner thread."""
 
-import sys
-import os
 import random
 import threading
 import time
 from typing import List, Optional, Dict, Any
 
-# Add parent directory to path to import simulation engine
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+# Use absolute imports assuming tank/ is in PYTHONPATH
 from simulation_engine import SimulationEngine
 from core import entities
 from core.behavior_algorithms import get_algorithm_index
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-from models import EntityData, StatsData, SimulationUpdate, PokerStatsData, PokerEventData
+from backend.models import EntityData, StatsData, SimulationUpdate, PokerStatsData, PokerEventData
 
 
 class SimulationRunner:
