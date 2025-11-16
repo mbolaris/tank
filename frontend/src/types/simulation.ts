@@ -51,7 +51,7 @@ export interface SimulationUpdate {
 
 export interface Command {
   command: 'add_food' | 'pause' | 'resume' | 'reset';
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface CommandAck {
