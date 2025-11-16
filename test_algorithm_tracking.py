@@ -1,7 +1,7 @@
 """Test script to verify algorithm performance tracking system."""
 
-from ecosystem import EcosystemManager, AlgorithmStats
-from behavior_algorithms import ALL_ALGORITHMS, get_algorithm_index
+from core.ecosystem import EcosystemManager, AlgorithmStats
+from core.behavior_algorithms import ALL_ALGORITHMS, get_algorithm_index
 
 def test_algorithm_stats():
     """Test the algorithm statistics tracking."""
