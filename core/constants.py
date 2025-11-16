@@ -96,7 +96,6 @@ FILES = {
     'schooling_fish': ['school.png'],
     'plant': ['plant1.png', 'plant2.png'],
     'castle': ['castle.png'],
-    'food': ['food1.png', 'food2.png'],  # Kept for backward compatibility
 }
 
 # The initial positions of the sprites in the game
