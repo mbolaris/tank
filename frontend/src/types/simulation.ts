@@ -32,6 +32,16 @@ export interface EntityData {
   plant_type?: number;
 }
 
+export interface PokerEventData {
+  frame: number;
+  winner_id: number;  // -1 for tie
+  loser_id: number;
+  winner_hand: string;
+  loser_hand: string;
+  energy_transferred: number;
+  message: string;
+}
+
 export interface PokerStatsData {
   total_games: number;
   total_wins: number;
@@ -65,6 +75,7 @@ export interface SimulationUpdate {
   elapsed_time: number;
   entities: EntityData[];
   stats: StatsData;
+  poker_events: PokerEventData[];
 }
 
 export interface Command {

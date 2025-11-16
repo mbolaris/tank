@@ -14,7 +14,7 @@ from simulation_engine import SimulationEngine
 from core import entities
 from core.behavior_algorithms import get_algorithm_index
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-from models import EntityData, StatsData, SimulationUpdate, PokerStatsData
+from models import EntityData, StatsData, SimulationUpdate, PokerStatsData, PokerEventData
 
 
 class SimulationRunner:
@@ -107,11 +107,26 @@ class SimulationRunner:
                 poker_stats=poker_stats_data
             )
 
+            # Get recent poker events
+            poker_events = []
+            recent_events = self.engine.get_recent_poker_events(max_age_frames=180)
+            for event in recent_events:
+                poker_events.append(PokerEventData(
+                    frame=event['frame'],
+                    winner_id=event['winner_id'],
+                    loser_id=event['loser_id'],
+                    winner_hand=event['winner_hand'],
+                    loser_hand=event['loser_hand'],
+                    energy_transferred=event['energy_transferred'],
+                    message=event['message']
+                ))
+
             return SimulationUpdate(
                 frame=self.engine.frame_count,
                 elapsed_time=self.engine.elapsed_time if hasattr(self.engine, 'elapsed_time') else self.engine.frame_count * 33,
                 entities=entities_data,
-                stats=stats_data
+                stats=stats_data,
+                poker_events=poker_events
             )
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntityData]:

@@ -31,6 +31,17 @@ class EntityData(BaseModel):
     plant_type: Optional[int] = None
 
 
+class PokerEventData(BaseModel):
+    """A single poker game event."""
+    frame: int
+    winner_id: int  # -1 for tie
+    loser_id: int
+    winner_hand: str
+    loser_hand: str
+    energy_transferred: float
+    message: str
+
+
 class PokerStatsData(BaseModel):
     """Poker game statistics."""
     total_games: int
@@ -67,6 +78,7 @@ class SimulationUpdate(BaseModel):
     elapsed_time: int
     entities: List[EntityData]
     stats: StatsData
+    poker_events: List[PokerEventData] = []
 
 
 class Command(BaseModel):

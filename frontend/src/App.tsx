@@ -6,6 +6,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
 import { StatsPanel } from './components/StatsPanel';
+import PokerEvents from './components/PokerEvents';
 import './App.css';
 
 function App() {
@@ -23,6 +24,10 @@ function App() {
       <main className="main">
         <div className="canvas-section">
           <Canvas state={state} width={800} height={600} />
+          <PokerEvents
+            events={state?.poker_events ?? []}
+            currentFrame={state?.frame ?? 0}
+          />
         </div>
 
         <div className="sidebar">
