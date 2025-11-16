@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from contextlib import asynccontextmanager
 from typing import Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +11,39 @@ from fastapi.responses import JSONResponse
 from simulation_runner import SimulationRunner
 from models import Command
 
-# Create FastAPI app
-app = FastAPI(title="Fish Tank Simulation API")
+# Global simulation runner
+simulation = SimulationRunner()
+
+# Connected WebSocket clients
+connected_clients: Set[WebSocket] = set()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown."""
+    # Startup
+    print("Starting simulation...")
+    simulation.start()
+    print("Simulation started!")
+
+    # Start broadcast task
+    broadcast_task = asyncio.create_task(broadcast_updates())
+
+    yield
+
+    # Shutdown
+    print("Stopping simulation...")
+    simulation.stop()
+    broadcast_task.cancel()
+    try:
+        await broadcast_task
+    except asyncio.CancelledError:
+        pass
+    print("Simulation stopped!")
+
+
+# Create FastAPI app with lifespan handler
+app = FastAPI(title="Fish Tank Simulation API", lifespan=lifespan)
 
 # Add CORS middleware
 app.add_middleware(
@@ -21,31 +53,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Global simulation runner
-simulation = SimulationRunner()
-
-# Connected WebSocket clients
-connected_clients: Set[WebSocket] = set()
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Start the simulation when the server starts."""
-    print("Starting simulation...")
-    simulation.start()
-    print("Simulation started!")
-
-    # Start broadcast task
-    asyncio.create_task(broadcast_updates())
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Stop the simulation when the server shuts down."""
-    print("Stopping simulation...")
-    simulation.stop()
-    print("Simulation stopped!")
 
 
 async def broadcast_updates():

@@ -212,5 +212,7 @@ class SimulationRunner:
             elif command == 'reset':
                 # Reset simulation
                 self.engine.entities_list.clear()
+                self.engine.frame_count = 0
                 self.engine.setup()
                 self.engine.paused = False
+                self.engine.start_time = time.time()
