@@ -231,6 +231,9 @@ class Fish(Agent):
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
     SHARP_TURN_ENERGY_COST = 0.05  # Increased from 0.03 - sharp turns are costly
 
+    # Predator encounter tracking
+    PREDATOR_ENCOUNTER_WINDOW = 150  # 5 seconds - recent conflict window for death attribution
+
     # Reproduction constants (OPTIMIZED FOR SUSTAINABLE BREEDING)
     REPRODUCTION_ENERGY_THRESHOLD = 35.0  # Lowered to 35 for better reproduction rates
     REPRODUCTION_COOLDOWN = 360  # 12 seconds (reduced from 15s to increase breeding opportunities)
@@ -274,6 +277,9 @@ class Fish(Agent):
         # Energy & metabolism
         self.max_energy: float = self.BASE_MAX_ENERGY * self.genome.max_energy
         self.energy: float = self.max_energy  # Start with full energy
+
+        # Predator tracking (for death attribution)
+        self.last_predator_encounter_age: int = -1000  # Age when last encountered a predator
 
         # Reproduction
         self.is_pregnant: bool = False
@@ -359,14 +365,27 @@ class Fish(Agent):
     def get_death_cause(self) -> str:
         """Get the cause of death.
 
-        Note: Fish that run out of energy are counted as predation deaths,
-        simulating being too weak to survive in a predator-filled environment.
+        Note: Fish that run out of energy after a recent predator encounter
+        (within PREDATOR_ENCOUNTER_WINDOW) count as predation deaths.
+        Otherwise, energy depletion counts as starvation.
         """
         if self.energy <= 0:
-            return 'predation'  # Energy depletion counts as predation
+            # Check if there was a recent predator encounter
+            if self.age - self.last_predator_encounter_age <= self.PREDATOR_ENCOUNTER_WINDOW:
+                return 'predation'  # Death after conflict
+            else:
+                return 'starvation'  # Death without recent conflict
         elif self.age >= self.max_age:
             return 'old_age'
         return 'unknown'
+
+    def mark_predator_encounter(self) -> None:
+        """Mark that this fish has encountered a predator.
+
+        This is used to determine death attribution - if the fish dies from
+        energy depletion shortly after this encounter, it counts as predation.
+        """
+        self.last_predator_encounter_age = self.age
 
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce."""
