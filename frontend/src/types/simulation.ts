@@ -22,7 +22,7 @@ export interface EntityData {
   };
 
   // Food-specific
-  food_type?: number;
+  food_type?: string;
 
   // Plant-specific
   plant_type?: number;

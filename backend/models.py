@@ -21,7 +21,7 @@ class EntityData(BaseModel):
     genome_data: Optional[Dict[str, Any]] = None
 
     # Food-specific fields
-    food_type: Optional[int] = None
+    food_type: Optional[str] = None
 
     # Plant-specific fields
     plant_type: Optional[int] = None
