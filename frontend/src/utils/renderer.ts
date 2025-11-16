@@ -18,7 +18,7 @@ const FOOD_TYPE_IMAGES: Record<string, string[]> = {
 };
 
 // Default food images for unknown types
-const DEFAULT_FOOD_IMAGES = ['food1.png', 'food2.png'];
+const DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 
 // Fish species image mappings
 const FISH_SPECIES_IMAGES: Record<string, string[]> = {

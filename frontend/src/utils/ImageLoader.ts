@@ -80,8 +80,6 @@ export class ImageLoader {
       'plant1.png',
       'plant2.png',
       'castle.png',
-      'food1.png',
-      'food2.png',
       'food_algae1.png',
       'food_algae2.png',
       'food_energy1.png',
