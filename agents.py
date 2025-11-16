@@ -192,8 +192,8 @@ class Fish(Agent):
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
     SHARP_TURN_ENERGY_COST = 0.03  # Reduced from 0.05 to reduce turn penalty
 
-    # Reproduction constants (IMPROVED FOR BETTER BREEDING)
-    REPRODUCTION_ENERGY_THRESHOLD = 45.0  # Lowered from 55 to enable more reproduction
+    # Reproduction constants (OPTIMIZED FOR SUSTAINABLE BREEDING)
+    REPRODUCTION_ENERGY_THRESHOLD = 35.0  # Lowered to 35 for better reproduction rates
     REPRODUCTION_COOLDOWN = 360  # 12 seconds (reduced from 15s to increase breeding opportunities)
     PREGNANCY_DURATION = 300  # 10 seconds
     MATING_DISTANCE = 60.0  # Increased from 50 to make mating easier
@@ -382,6 +382,13 @@ class Fish(Agent):
 
         # Energy cost for reproduction (reduced to prevent post-mating starvation)
         self.energy -= 10.0
+
+        # Record successful reproduction in ecosystem
+        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
+            from behavior_algorithms import get_algorithm_index
+            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            if algorithm_id >= 0:
+                self.ecosystem.record_reproduction(algorithm_id)
 
         return True
 

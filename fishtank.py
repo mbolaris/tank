@@ -54,7 +54,7 @@ class FishTankSimulator:
 
         # Initialize managers
         self.environment = environment.Environment(self.agents)
-        self.ecosystem = EcosystemManager(max_population=50)
+        self.ecosystem = EcosystemManager(max_population=100)  # Increased from 50 for natural growth
 
         self.create_initial_agents()
 
@@ -77,7 +77,7 @@ class FishTankSimulator:
         # Species 2: Algorithmic fish with parametrizable behavior algorithms (NEW!)
         # These fish use the new algorithmic evolution system
         algorithmic_fish = []
-        for i in range(5):  # Start with 5 algorithmic fish
+        for i in range(2):  # Start with 2 algorithmic fish for sustainable population
             x = INIT_POS['school'][0] + random.randint(-80, 80)
             y = INIT_POS['school'][1] + random.randint(-50, 50)
             # Create genome WITH behavior algorithm but WITHOUT neural brain
