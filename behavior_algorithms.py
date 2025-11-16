@@ -259,6 +259,10 @@ class BehaviorAlgorithm(ABC):
             mutation_strength: Magnitude of mutations
         """
         for key, current_value in list(self.parameters.items()):
+            # Skip non-numeric parameters (they shouldn't be mutated)
+            if not isinstance(current_value, (int, float)):
+                continue
+
             if random.random() >= mutation_rate:
                 continue
 
