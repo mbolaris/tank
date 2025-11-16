@@ -32,6 +32,9 @@ class PokerInteraction:
     # Default bet amount (can be overridden)
     DEFAULT_BET_AMOUNT = 5.0
 
+    # House cut percentage (taken from total pot)
+    HOUSE_CUT_PERCENTAGE = 0.05  # 5% house cut
+
     # Cooldown between poker games for the same fish (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
 
@@ -138,6 +141,17 @@ class PokerInteraction:
             self.hand1, self.hand2, bet_amount, bet_amount
         )
 
+        # Calculate house cut from total pot (only if there's a winner)
+        house_cut = 0.0
+        if winnings1 != 0 or winnings2 != 0:
+            total_pot = bet_amount * 2
+            house_cut = total_pot * self.HOUSE_CUT_PERCENTAGE
+            # Deduct house cut from winner's winnings
+            if winnings1 > 0:
+                winnings1 -= house_cut
+            elif winnings2 > 0:
+                winnings2 -= house_cut
+
         # Apply energy changes
         self.fish1.energy = max(0, self.fish1.energy + winnings1)
         self.fish2.energy = max(0, self.fish2.energy + winnings2)
@@ -150,11 +164,11 @@ class PokerInteraction:
         if winnings1 > 0:
             winner_id = self.fish1.fish_id
             loser_id = self.fish2.fish_id
-            energy_transferred = winnings1
+            energy_transferred = winnings1  # Already excludes house cut
         elif winnings2 > 0:
             winner_id = self.fish2.fish_id
             loser_id = self.fish1.fish_id
-            energy_transferred = winnings2
+            energy_transferred = winnings2  # Already excludes house cut
         else:
             # Tie - no energy transfer
             winner_id = -1
@@ -189,7 +203,8 @@ class PokerInteraction:
                 loser_algo_id=fish2_algo_id if winner_id == self.fish1.fish_id else fish1_algo_id,
                 amount=energy_transferred,
                 winner_hand=self.hand1 if winner_id == self.fish1.fish_id else self.hand2,
-                loser_hand=self.hand2 if winner_id == self.fish1.fish_id else self.hand1
+                loser_hand=self.hand2 if winner_id == self.fish1.fish_id else self.hand1,
+                house_cut=house_cut
             )
 
         return True

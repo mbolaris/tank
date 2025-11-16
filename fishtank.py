@@ -514,6 +514,7 @@ class FishTankSimulator:
                 lines.append(f"  Wins/Losses/Ties: {poker['total_wins']}/{poker['total_losses']}/{poker['total_ties']}")
                 lines.append(f"  Energy Won: {poker['total_energy_won']:.1f}")
                 lines.append(f"  Energy Lost: {poker['total_energy_lost']:.1f}")
+                lines.append(f"  House Cuts: {poker.get('total_house_cuts', 0):.1f}")
                 net_energy = poker['net_energy']
                 net_color = (100, 255, 100) if net_energy >= 0 else (255, 100, 100)
                 lines.append((f"  Net Energy: {net_energy:+.1f}", net_color))

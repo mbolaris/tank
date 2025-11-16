@@ -90,6 +90,7 @@ class PokerStats:
         total_ties: Total games tied
         total_energy_won: Total energy gained from poker
         total_energy_lost: Total energy lost from poker
+        total_house_cuts: Total energy taken by house
         best_hand_rank: Best hand rank achieved (0-9)
         avg_hand_rank: Average hand rank
     """
@@ -100,6 +101,7 @@ class PokerStats:
     total_ties: int = 0
     total_energy_won: float = 0.0
     total_energy_lost: float = 0.0
+    total_house_cuts: float = 0.0
     best_hand_rank: int = 0
     avg_hand_rank: float = 0.0
     _total_hand_rank: float = field(default=0.0, repr=False)  # For averaging
@@ -427,6 +429,7 @@ class EcosystemManager:
         total_ties = sum(s.total_ties for s in self.poker_stats.values())
         total_energy_won = sum(s.total_energy_won for s in self.poker_stats.values())
         total_energy_lost = sum(s.total_energy_lost for s in self.poker_stats.values())
+        total_house_cuts = sum(s.total_house_cuts for s in self.poker_stats.values())
 
         # Find best hand rank across all algorithms
         best_hand_rank = max((s.best_hand_rank for s in self.poker_stats.values()), default=0)
@@ -446,6 +449,7 @@ class EcosystemManager:
             'total_ties': total_ties,
             'total_energy_won': total_energy_won,
             'total_energy_lost': total_energy_lost,
+            'total_house_cuts': total_house_cuts,
             'net_energy': total_energy_won - total_energy_lost,
             'best_hand_rank': best_hand_rank,
             'best_hand_name': best_hand_name,
@@ -471,7 +475,8 @@ class EcosystemManager:
 
     def record_poker_outcome(self, winner_id: int, loser_id: int,
                             winner_algo_id: Optional[int], loser_algo_id: Optional[int],
-                            amount: float, winner_hand: 'PokerHand', loser_hand: 'PokerHand') -> None:
+                            amount: float, winner_hand: 'PokerHand', loser_hand: 'PokerHand',
+                            house_cut: float = 0.0) -> None:
         """Record a poker game outcome.
 
         Args:
@@ -479,9 +484,10 @@ class EcosystemManager:
             loser_id: Fish ID of loser (-1 for tie)
             winner_algo_id: Algorithm ID of winner (None if no algorithm)
             loser_algo_id: Algorithm ID of loser (None if no algorithm)
-            amount: Amount of energy transferred
+            amount: Amount of energy transferred (after house cut)
             winner_hand: The winning poker hand
             loser_hand: The losing poker hand
+            house_cut: Amount taken by house (default 0.0)
         """
         from core.poker_interaction import PokerHand
 
@@ -511,6 +517,7 @@ class EcosystemManager:
             stats.total_games += 1
             stats.total_wins += 1
             stats.total_energy_won += amount
+            stats.total_house_cuts += house_cut / 2  # Split house cut evenly between both players
             stats.best_hand_rank = max(stats.best_hand_rank, winner_hand.rank_value)
             stats._total_hand_rank += winner_hand.rank_value
             stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
@@ -521,6 +528,7 @@ class EcosystemManager:
             stats.total_games += 1
             stats.total_losses += 1
             stats.total_energy_lost += amount
+            stats.total_house_cuts += house_cut / 2  # Split house cut evenly between both players
             stats._total_hand_rank += loser_hand.rank_value
             stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
 

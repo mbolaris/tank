@@ -114,6 +114,10 @@ export function StatsPanel({ stats }: StatsPanelProps) {
                 <span style={styles.statValue}>{stats.poker_stats.total_energy_lost.toFixed(1)}</span>
               </div>
               <div style={styles.statRow}>
+                <span style={styles.statLabel}>House Cuts:</span>
+                <span style={styles.statValue}>{(stats.poker_stats.total_house_cuts || 0).toFixed(1)}</span>
+              </div>
+              <div style={styles.statRow}>
                 <span style={styles.statLabel}>Net Energy:</span>
                 <span style={{
                   ...styles.statValue,
