@@ -263,7 +263,7 @@ class FishTankSimulator:
         # Iterate over a copy to safely remove sprites during iteration
         for fish in list(self.agents.sprites()):
             if isinstance(fish, agents.Fish):
-                collisions = pygame.sprite.spritecollide(fish, self.agents, False, pygame.sprite.collide_mask)
+                collisions = pygame.sprite.spritecollide(fish, self.agents, False, pygame.sprite.collide_rect)
                 for collision_sprite in collisions:
                     if isinstance(collision_sprite, agents.Crab):
                         # Crab can only kill if hunt cooldown is ready
@@ -296,7 +296,7 @@ class FishTankSimulator:
         # Iterate over a copy to safely remove sprites during iteration
         for food in list(self.agents.sprites()):
             if isinstance(food, agents.Food):
-                collisions = pygame.sprite.spritecollide(food, self.agents, False, pygame.sprite.collide_mask)
+                collisions = pygame.sprite.spritecollide(food, self.agents, False, pygame.sprite.collide_rect)
                 for collision_sprite in collisions:
                     if isinstance(collision_sprite, agents.Fish):
                         food.get_eaten()

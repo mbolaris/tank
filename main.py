@@ -9,11 +9,20 @@ import argparse
 import sys
 
 
-def run_graphical():
-    """Run the simulation with graphical visualization."""
+def run_graphical(seed=None):
+    """Run the simulation with graphical visualization.
+
+    Args:
+        seed: Optional random seed for deterministic behavior
+    """
     try:
         import pygame
+        import random
         from fishtank import FishTankSimulator
+
+        if seed is not None:
+            random.seed(seed)
+            print(f"Using random seed: {seed}")
 
         pygame.init()
         game = FishTankSimulator()
@@ -27,14 +36,20 @@ def run_graphical():
         sys.exit(1)
 
 
-def run_headless(max_frames: int, stats_interval: int):
+def run_headless(max_frames: int, stats_interval: int, seed=None):
     """Run the simulation in headless mode (no visualization).
 
     Args:
         max_frames: Maximum number of frames to simulate
         stats_interval: Print stats every N frames
+        seed: Optional random seed for deterministic behavior
     """
+    import random
     from simulation_engine import SimulationEngine
+
+    if seed is not None:
+        random.seed(seed)
+        print(f"Using random seed: {seed}")
 
     engine = SimulationEngine(headless=True)
     engine.run_headless(max_frames=max_frames, stats_interval=stats_interval)
@@ -82,6 +97,13 @@ Examples:
         help='Print stats every N frames in headless mode (default: 300)'
     )
 
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=None,
+        help='Random seed for deterministic behavior (optional)'
+    )
+
     args = parser.parse_args()
 
     if args.mode == 'graphical':
@@ -92,12 +114,12 @@ Examples:
         print("Press SPACE to drop food")
         print("Press ESC to quit")
         print()
-        run_graphical()
+        run_graphical(seed=args.seed)
     else:
         print("Starting headless simulation...")
         print(f"Configuration: {args.max_frames} frames, stats every {args.stats_interval} frames")
         print()
-        run_headless(args.max_frames, args.stats_interval)
+        run_headless(args.max_frames, args.stats_interval, seed=args.seed)
 
 
 if __name__ == "__main__":
