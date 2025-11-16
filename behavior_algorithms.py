@@ -876,7 +876,7 @@ class PanicFlee(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -884,6 +884,16 @@ class PanicFlee(BehaviorAlgorithm):
             if distance < self.parameters["panic_distance"]:
                 direction = (fish.pos - nearest_predator.pos).normalize()
                 return direction.x * self.parameters["flee_speed"], direction.y * self.parameters["flee_speed"]
+
+        # Seek food when safe
+        energy_ratio = fish.energy / fish.max_energy
+        if energy_ratio < 0.7:
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 0.7, direction.y * 0.7
         return 0, 0
 
 
@@ -905,7 +915,7 @@ class StealthyAvoider(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -913,6 +923,16 @@ class StealthyAvoider(BehaviorAlgorithm):
             if distance < self.parameters["awareness_range"]:
                 direction = (fish.pos - nearest_predator.pos).normalize()
                 return direction.x * self.parameters["stealth_speed"], direction.y * self.parameters["stealth_speed"]
+
+        # Seek food when safe
+        energy_ratio = fish.energy / fish.max_energy
+        if energy_ratio < 0.7:
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 0.6, direction.y * 0.6
         return 0, 0
 
 
@@ -1037,11 +1057,21 @@ class VerticalEscaper(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
             return 0, self.parameters["escape_direction"] * self.parameters["escape_speed"]
+
+        # Seek food when safe
+        energy_ratio = fish.energy / fish.max_energy
+        if energy_ratio < 0.7:
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 0.6, direction.y * 0.6
         return 0, 0
 
 
@@ -1063,7 +1093,7 @@ class GroupDefender(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab, Fish as FishClass
+        from agents import Crab, Fish as FishClass, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 200:
@@ -1075,6 +1105,16 @@ class GroupDefender(BehaviorAlgorithm):
                 if direction.length() > 0:
                     direction = direction.normalize()
                     return direction.x * self.parameters["group_strength"], direction.y * self.parameters["group_strength"]
+
+        # Seek food when safe
+        energy_ratio = fish.energy / fish.max_energy
+        if energy_ratio < 0.7:
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 0.6, direction.y * 0.6
         return 0, 0
 
 
@@ -1097,7 +1137,7 @@ class SpiralEscape(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -1107,6 +1147,16 @@ class SpiralEscape(BehaviorAlgorithm):
             vx = escape_dir.x * math.cos(self.spiral_angle) - escape_dir.y * math.sin(self.spiral_angle)
             vy = escape_dir.x * math.sin(self.spiral_angle) + escape_dir.y * math.cos(self.spiral_angle)
             return vx, vy
+
+        # Seek food when safe
+        energy_ratio = fish.energy / fish.max_energy
+        if energy_ratio < 0.7:
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 0.6, direction.y * 0.6
         return 0, 0
 
 
@@ -1128,7 +1178,7 @@ class BorderHugger(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Food
         from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
         nearest_predator = self._find_nearest(fish, Crab)
@@ -1141,6 +1191,16 @@ class BorderHugger(BehaviorAlgorithm):
                 return -self.parameters["hug_speed"], 0
             else:  # right
                 return self.parameters["hug_speed"], 0
+
+        # Seek food when safe
+        energy_ratio = fish.energy / fish.max_energy
+        if energy_ratio < 0.7:
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    return direction.x * 0.6, direction.y * 0.6
         return 0, 0
 
 
@@ -1162,7 +1222,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-        from agents import Crab
+        from agents import Crab, Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -1173,6 +1233,21 @@ class PerpendicularEscape(BehaviorAlgorithm):
                 perp_x = -to_fish.y * self.parameters["direction_preference"]
                 perp_y = to_fish.x * self.parameters["direction_preference"]
                 return perp_x * self.parameters["escape_speed"], perp_y * self.parameters["escape_speed"]
+
+        # CRITICAL FIX: Seek food when not fleeing from predators
+        energy_ratio = fish.energy / fish.max_energy
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            food_distance = (nearest_food.pos - fish.pos).length()
+            # Seek food more aggressively when hungry
+            if energy_ratio < 0.7 or food_distance < 80:
+                direction = (nearest_food.pos - fish.pos)
+                if direction.length() > 0:
+                    direction = direction.normalize()
+                    # More aggressive seeking when very hungry
+                    seek_speed = 0.6 + (1.0 - energy_ratio) * 0.4
+                    return direction.x * seek_speed, direction.y * seek_speed
+
         return 0, 0
 
 
@@ -1673,13 +1748,13 @@ class DynamicScholer(BehaviorAlgorithm):
         # Check energy state
         energy_ratio = fish.energy / fish.max_energy
 
-        # Dynamic cohesion based on multiple factors
+        # Dynamic cohesion based on multiple factors (IMPROVED FOOD PRIORITY)
         if threat_level > 0.5:
             # High threat - tight schooling
             cohesion = self.parameters["danger_cohesion"]
-        elif energy_ratio < 0.4 and food_opportunity > 0.3:
-            # Hungry with food nearby - break formation to compete
-            cohesion = self.parameters["calm_cohesion"] * 0.5
+        elif energy_ratio < 0.6 and food_opportunity > 0.2:  # Earlier breaking (was 0.4/0.3)
+            # Hungry with food nearby - break formation to compete more aggressively
+            cohesion = self.parameters["calm_cohesion"] * 0.3  # More independent (was 0.5)
         elif energy_ratio > 0.8:
             # Well-fed and safe - loose exploration
             cohesion = self.parameters["calm_cohesion"] * 0.7
@@ -1705,25 +1780,30 @@ class DynamicScholer(BehaviorAlgorithm):
                 vx += avoid_dir.x * threat_level * 1.5
                 vy += avoid_dir.y * threat_level * 1.5
 
-            # Add food seeking when safe and hungry
-            if threat_level < 0.2 and energy_ratio < 0.6 and nearest_food:
+            # Add food seeking when safe and hungry (IMPROVED THRESHOLDS)
+            # Seek food earlier (when < 80% energy) and with lower threat tolerance
+            if threat_level < 0.4 and energy_ratio < 0.8 and nearest_food:
                 food_dir = (nearest_food.pos - fish.pos).normalize()
                 hunger = 1.0 - energy_ratio
-                vx += food_dir.x * hunger * 0.7
-                vy += food_dir.y * hunger * 0.7
+                # Increased food-seeking strength from 0.7 to 1.2
+                food_weight = 1.2 * hunger
+                vx += food_dir.x * food_weight
+                vy += food_dir.y * food_weight
 
             # Normalize
             length = math.sqrt(vx*vx + vy*vy)
             if length > 0:
                 return vx/length, vy/length
 
-        # No allies - go solo
+        # No allies - go solo (IMPROVED FOOD SEEKING)
         if threat_level > 0.5 and nearest_predator:
             direction = (fish.pos - nearest_predator.pos).normalize()
             return direction.x * 1.2, direction.y * 1.2
-        elif energy_ratio < 0.5 and nearest_food:
+        elif energy_ratio < 0.75 and nearest_food:  # Seek food earlier (was 0.5, now 0.75)
             direction = (nearest_food.pos - fish.pos).normalize()
-            return direction.x * 0.8, direction.y * 0.8
+            hunger = 1.0 - energy_ratio
+            seek_speed = 0.8 + hunger * 0.4  # More aggressive when hungrier
+            return direction.x * seek_speed, direction.y * seek_speed
 
         return 0, 0
 
