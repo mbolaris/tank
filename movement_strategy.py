@@ -1,6 +1,6 @@
 from pygame import Vector2
 import pygame
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from agents import Fish
@@ -14,6 +14,28 @@ FOOD_ALIGNMENT_DISTANCE = 0
 SCHOOLING_FISH_ALIGNMENT_DISTANCE = 25
 SOLO_FISH_AVOIDANCE_DISTANCE = 100
 
+
+def rects_collide(rect1: Tuple[float, float, float, float],
+                  rect2: Tuple[float, float, float, float]) -> bool:
+    """Check if two rectangles collide.
+
+    Args:
+        rect1: (x, y, width, height) tuple for first rectangle
+        rect2: (x, y, width, height) tuple for second rectangle
+
+    Returns:
+        True if rectangles overlap, False otherwise
+    """
+    x1, y1, w1, h1 = rect1
+    x2, y2, w2, h2 = rect2
+
+    # Check if rectangles overlap
+    return not (x1 + w1 < x2 or  # rect1 is left of rect2
+                x2 + w2 < x1 or  # rect2 is left of rect1
+                y1 + h1 < y2 or  # rect1 is above rect2
+                y2 + h2 < y1)    # rect2 is above rect1
+
+
 class MovementStrategy:
     """Base class for movement strategies."""
     def move(self, sprite: 'Fish') -> None:
@@ -22,8 +44,18 @@ class MovementStrategy:
 
     def check_collision_with_food(self, sprite: 'Fish') -> None:
         """Check if sprite collides with food and stop it if so."""
+        from core.entities import Food as FoodEntity
+
+        # Get the entity's bounding box
+        sprite_rect = sprite.get_rect()
+
         for food in sprite.environment.get_agents_of_type(Food):
-            if pygame.sprite.collide_rect(sprite, food):
+            # Get the food entity (unwrap if it's a sprite wrapper)
+            food_entity = food._entity if hasattr(food, '_entity') else food
+            food_rect = food_entity.get_rect()
+
+            # Use entity-based collision detection
+            if rects_collide(sprite_rect, food_rect):
                 sprite.vel = Vector2(0, 0)  # Set velocity to 0
 
 
