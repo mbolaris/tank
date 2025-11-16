@@ -226,6 +226,7 @@ class Fish(Agent):
     # Energy constants (DIFFICULTY INCREASED - survival is more challenging)
     BASE_MAX_ENERGY = 100.0
     ENERGY_FROM_FOOD = 40.0  # More energy from food
+    EXISTENCE_ENERGY_COST = 0.01  # Small cost just for being alive (not affected by genes)
     BASE_METABOLISM = 0.030  # Increased from 0.018 - fish burn energy faster
     MOVEMENT_ENERGY_COST = 0.015  # Increased from 0.008 - movement is expensive
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
@@ -338,7 +339,10 @@ class Fish(Agent):
         Args:
             time_modifier: Modifier for time-based effects (e.g., day/night)
         """
-        # Base metabolism
+        # Existence cost - flat rate for just being alive
+        total_cost = self.EXISTENCE_ENERGY_COST * time_modifier
+
+        # Base metabolism (affected by genes)
         metabolism = self.BASE_METABOLISM * self.genome.metabolism_rate * time_modifier
 
         # Additional cost for movement
@@ -346,13 +350,15 @@ class Fish(Agent):
             movement_cost = self.MOVEMENT_ENERGY_COST * self.vel.length() / self.speed
             metabolism += movement_cost
 
-        # Life stage modifiers
+        # Life stage modifiers (applied to metabolism, not existence cost)
         if self.life_stage == LifeStage.BABY:
             metabolism *= 0.7  # Babies need less energy
         elif self.life_stage == LifeStage.ELDER:
             metabolism *= 1.2  # Elders need more energy
 
-        self.energy = max(0, self.energy - metabolism)
+        # Total energy consumption
+        total_cost += metabolism
+        self.energy = max(0, self.energy - total_cost)
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy)."""
