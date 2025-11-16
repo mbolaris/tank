@@ -171,9 +171,16 @@ class PokerInteraction:
 
         # Record in ecosystem if available
         if self.fish1.ecosystem is not None and winner_id != -1:
-            # Get algorithm IDs if available
-            fish1_algo_id = getattr(self.fish1, 'algorithm_id', None)
-            fish2_algo_id = getattr(self.fish2, 'algorithm_id', None)
+            # Get algorithm IDs from fish genomes
+            fish1_algo_id = None
+            if self.fish1.genome.behavior_algorithm is not None:
+                from core.behavior_algorithms import get_algorithm_index
+                fish1_algo_id = get_algorithm_index(self.fish1.genome.behavior_algorithm)
+
+            fish2_algo_id = None
+            if self.fish2.genome.behavior_algorithm is not None:
+                from core.behavior_algorithms import get_algorithm_index
+                fish2_algo_id = get_algorithm_index(self.fish2.genome.behavior_algorithm)
 
             self.fish1.ecosystem.record_poker_outcome(
                 winner_id=winner_id,
