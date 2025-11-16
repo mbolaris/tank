@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from typing import Tuple, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from neural_brain import NeuralBrain
-    from behavior_algorithms import BehaviorAlgorithm
+    from core.neural_brain import NeuralBrain
+    from core.behavior_algorithms import BehaviorAlgorithm
 
 
 @dataclass
@@ -68,13 +68,13 @@ class Genome:
         # Import here to avoid circular dependency
         brain = None
         if use_brain:
-            from neural_brain import NeuralBrain
+            from core.neural_brain import NeuralBrain
             brain = NeuralBrain.random()
 
         # Create random behavior algorithm
         algorithm = None
         if use_algorithm:
-            from behavior_algorithms import get_random_algorithm
+            from core.behavior_algorithms import get_random_algorithm
             algorithm = get_random_algorithm()
 
         return cls(
@@ -121,13 +121,13 @@ class Genome:
         # Handle brain inheritance
         brain = None
         if parent1.brain is not None and parent2.brain is not None:
-            from neural_brain import NeuralBrain
+            from core.neural_brain import NeuralBrain
             brain = NeuralBrain.crossover(parent1.brain, parent2.brain,
                                          mutation_rate=mutation_rate,
                                          mutation_strength=mutation_strength)
         elif parent1.brain is not None or parent2.brain is not None:
             # If only one parent has a brain, randomly inherit it
-            from neural_brain import NeuralBrain
+            from core.neural_brain import NeuralBrain
             parent_brain = parent1.brain if parent1.brain is not None else parent2.brain
             if parent_brain and random.random() < 0.5:
                 brain = NeuralBrain.random()  # Create random brain for diversity
@@ -136,7 +136,7 @@ class Genome:
         algorithm = None
         if parent1.behavior_algorithm is not None:
             # Inherit from parent1 and mutate
-            from behavior_algorithms import inherit_algorithm_with_mutation
+            from core.behavior_algorithms import inherit_algorithm_with_mutation
             algorithm = inherit_algorithm_with_mutation(
                 parent1.behavior_algorithm,
                 mutation_rate=mutation_rate * 1.5,  # Slightly higher mutation for algorithms
@@ -144,7 +144,7 @@ class Genome:
             )
         elif parent2.behavior_algorithm is not None:
             # Inherit from parent2 and mutate
-            from behavior_algorithms import inherit_algorithm_with_mutation
+            from core.behavior_algorithms import inherit_algorithm_with_mutation
             algorithm = inherit_algorithm_with_mutation(
                 parent2.behavior_algorithm,
                 mutation_rate=mutation_rate * 1.5,
@@ -152,7 +152,7 @@ class Genome:
             )
         else:
             # No algorithm from either parent, create random
-            from behavior_algorithms import get_random_algorithm
+            from core.behavior_algorithms import get_random_algorithm
             algorithm = get_random_algorithm()
 
         return cls(
