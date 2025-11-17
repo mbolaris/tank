@@ -9,12 +9,7 @@ import warnings
 from typing import Iterable, List, Optional, Type, Set, Tuple
 from collections import defaultdict
 import math
-
-# Avoid importing pygame-dependent Agent during tests
-try:
-    from agents import Agent
-except ImportError:  # pragma: no cover - fallback for environments without pygame
-    Agent = object
+from core.entities import Agent
 
 
 class SpatialGrid:

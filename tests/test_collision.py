@@ -1,21 +1,20 @@
 """Tests for collision detection in the fish tank simulation."""
 import pytest
-import pygame
-from pygame.math import Vector2
 
-from agents import Fish, Crab, Food
+from core.entities import Fish, Crab, Food
 from core.environment import Environment
 from core.movement_strategy import SoloFishMovement
-from fishtank import FishTankSimulator
+from simulation_engine import SimulationEngine
 from core.constants import SCREEN_HEIGHT
+from core.math_utils import Vector2
 
 
 class TestCollisionDetection:
     """Test collision detection in the fish tank."""
 
-    def test_fish_dies_when_touching_crab(self, fish_tank_setup):
+    def test_fish_dies_when_touching_crab(self, simulation_engine):
         """Test that fish is removed when it collides with a crab."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
 
         fish = Fish(simulator.environment, SoloFishMovement(),
                    ['george1.png'], 100, 100, 3)
@@ -29,9 +28,9 @@ class TestCollisionDetection:
 
         simulator.handle_fish_collisions()
 
-    def test_food_removed_when_eaten_by_fish(self, fish_tank_setup):
+    def test_food_removed_when_eaten_by_fish(self, simulation_engine):
         """Test that food is removed when a fish eats it."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
 
         fish = Fish(simulator.environment, SoloFishMovement(),
                    ['george1.png'], 100, 100, 3)
@@ -43,9 +42,9 @@ class TestCollisionDetection:
 
         simulator.handle_food_collisions()
 
-    def test_iteration_safe_during_collision(self, fish_tank_setup):
+    def test_iteration_safe_during_collision(self, simulation_engine):
         """Test that removing sprites during iteration doesn't cause issues."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
 
         # Create multiple fish and crabs
         fish1 = Fish(simulator.environment, SoloFishMovement(),
@@ -67,9 +66,9 @@ class TestCollisionDetection:
 
         assert success, "Collision handling should not crash during iteration"
 
-    def test_multiple_collisions_handled(self, fish_tank_setup):
+    def test_multiple_collisions_handled(self, simulation_engine):
         """Test that multiple simultaneous collisions are all handled."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
 
         fish1 = Fish(simulator.environment, SoloFishMovement(),
                     ['george1.png'], 100, 100, 3)
@@ -88,9 +87,9 @@ class TestCollisionDetection:
 
         assert success
 
-    def test_food_falls_off_screen_removed(self, fish_tank_setup):
+    def test_food_falls_off_screen_removed(self, simulation_engine):
         """Test that food removal logic works for food at bottom of screen."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
 
         food = Food(simulator.environment, 100, 50)
         simulator.agents.add(food)
@@ -105,9 +104,9 @@ class TestCollisionDetection:
 
         assert food not in simulator.agents
 
-    def test_handle_collisions_called_safely(self, fish_tank_setup):
+    def test_handle_collisions_called_safely(self, simulation_engine):
         """Test that the main collision handler can be called repeatedly."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
 
         # Add various sprites
         fish = Fish(simulator.environment, SoloFishMovement(),

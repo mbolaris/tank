@@ -173,11 +173,7 @@ def get_brain_inputs(fish: 'Fish') -> List[float]:
     Returns:
         List of 12 normalized input values
     """
-    try:
-        from agents import Food, Crab, Fish as FishClass
-    except ImportError:
-        from core.entities import Food, Crab, Fish as FishClass
-
+    from core.entities import Food, Crab, Fish as FishClass
     from core.math_utils import Vector2
 
     # Initialize inputs

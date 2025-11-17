@@ -1,38 +1,36 @@
 """Main entry point for the fish tank simulation.
 
-This module provides command-line options to run the simulation in either:
-- Graphical mode (with pygame visualization)
-- Headless mode (stats-only, faster than realtime)
+This module provides command-line options to run the simulation:
+- Web mode (default): React UI with FastAPI backend
+- Headless mode: Stats-only, faster than realtime for testing
 """
 
 import argparse
 import sys
 
 
-def run_graphical(seed=None):
-    """Run the simulation with graphical visualization.
-
-    Args:
-        seed: Optional random seed for deterministic behavior
-    """
+def run_web_server():
+    """Run the web server with React UI backend."""
     try:
-        import pygame
-        import random
-        from fishtank import FishTankSimulator
+        import uvicorn
+        from backend.main import app
 
-        if seed is not None:
-            random.seed(seed)
-            print(f"Using random seed: {seed}")
+        print("=" * 60)
+        print("FISH TANK SIMULATION - WEB SERVER")
+        print("=" * 60)
+        print()
+        print("Starting FastAPI backend server...")
+        print("Open http://localhost:3000 in your browser")
+        print("API docs available at http://localhost:8000/docs")
+        print()
+        print("Press Ctrl+C to stop the server")
+        print("=" * 60)
+        print()
 
-        pygame.init()
-        game = FishTankSimulator()
-        try:
-            game.run()
-        finally:
-            pygame.quit()
+        uvicorn.run(app, host="0.0.0.0", port=8000)
     except ImportError as e:
-        print(f"Error: pygame is required for graphical mode: {e}")
-        print("Install pygame with: pip install pygame")
+        print(f"Error: Required dependencies not installed: {e}")
+        print("Install with: pip install -e .[backend]")
         sys.exit(1)
 
 
@@ -62,25 +60,24 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run with graphical interface
-  python main.py --mode graphical
+  # Run web server (default)
+  python main.py
 
-  # Run headless for 10000 frames, print stats every 500 frames
-  python main.py --mode headless --max-frames 10000 --stats-interval 500
+  # Run headless for testing/benchmarking
+  python main.py --headless --max-frames 10000 --stats-interval 500
 
   # Quick test run (headless, 1000 frames)
-  python main.py --mode headless --max-frames 1000
+  python main.py --headless --max-frames 1000
 
-  # Long simulation (headless, 100000 frames = ~55 min of sim time)
-  python main.py --mode headless --max-frames 100000 --stats-interval 3000
+  # Long simulation with seed for reproducibility
+  python main.py --headless --max-frames 100000 --seed 42
         """
     )
 
     parser.add_argument(
-        '--mode',
-        choices=['graphical', 'headless'],
-        default='graphical',
-        help='Simulation mode (default: graphical)'
+        '--headless',
+        action='store_true',
+        help='Run in headless mode (no UI, stats only)'
     )
 
     parser.add_argument(
@@ -106,20 +103,13 @@ Examples:
 
     args = parser.parse_args()
 
-    if args.mode == 'graphical':
-        print("Starting graphical simulation...")
-        print("Press H to toggle stats/health bars")
-        print("Press P to pause/resume")
-        print("Press R to generate algorithm performance report")
-        print("Press SPACE to drop food")
-        print("Press ESC to quit")
-        print()
-        run_graphical(seed=args.seed)
-    else:
+    if args.headless:
         print("Starting headless simulation...")
         print(f"Configuration: {args.max_frames} frames, stats every {args.stats_interval} frames")
         print()
         run_headless(args.max_frames, args.stats_interval, seed=args.seed)
+    else:
+        run_web_server()
 
 
 if __name__ == "__main__":

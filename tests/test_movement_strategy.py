@@ -1,10 +1,9 @@
 """Tests for movement strategies in the fish tank simulation."""
 import pytest
-import pygame
-from pygame.math import Vector2
 
-from agents import Fish, Crab, Food
+from core.entities import Fish, Crab, Food
 from core.environment import Environment
+from core.math_utils import Vector2
 from core.movement_strategy import (MovementStrategy, SoloFishMovement, SchoolingFishMovement,
                                 CRAB_AVOIDANCE_DISTANCE, SOLO_FISH_AVOIDANCE_DISTANCE,
                                 SCHOOLING_FISH_ALIGNMENT_DISTANCE)
@@ -13,9 +12,9 @@ from core.movement_strategy import (MovementStrategy, SoloFishMovement, Schoolin
 class TestMovementStrategy:
     """Test the base MovementStrategy class."""
 
-    def test_base_strategy_checks_food_collision(self, pygame_env):
+    def test_base_strategy_checks_food_collision(self, simulation_env):
         """Test that base strategy checks for food collisions."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = MovementStrategy()
         fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
         food = Food(env, 100, 100)
@@ -34,9 +33,9 @@ class TestMovementStrategy:
 class TestSoloFishMovement:
     """Test the SoloFishMovement strategy."""
 
-    def test_solo_fish_avoids_crabs(self, pygame_env):
+    def test_solo_fish_avoids_crabs(self, simulation_env):
         """Test that solo fish avoids crabs."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SoloFishMovement()
         fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
         crab = Crab(env)
@@ -50,9 +49,9 @@ class TestSoloFishMovement:
         # Fish should have avoidance velocity after encountering nearby crab
         assert fish.avoidance_velocity != initial_avoidance
 
-    def test_solo_fish_adds_random_movement(self, pygame_env):
+    def test_solo_fish_adds_random_movement(self, simulation_env):
         """Test that solo fish movement strategy works without crashing."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SoloFishMovement()
         fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
         agents.add(fish)
@@ -68,9 +67,9 @@ class TestSoloFishMovement:
 
         assert success
 
-    def test_solo_fish_movement_does_not_crash(self, pygame_env):
+    def test_solo_fish_movement_does_not_crash(self, simulation_env):
         """Test that solo fish movement strategy doesn't crash."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SoloFishMovement()
         fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
         agents.add(fish)
@@ -88,9 +87,9 @@ class TestSoloFishMovement:
 class TestSchoolingFishMovement:
     """Test the SchoolingFishMovement strategy."""
 
-    def test_schooling_fish_aligns_with_same_type(self, pygame_env):
+    def test_schooling_fish_aligns_with_same_type(self, simulation_env):
         """Test that schooling fish aligns with fish of the same type."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SchoolingFishMovement()
         fish1 = Fish(env, strategy, ['school.png'], 100, 100, 4)
         fish2 = Fish(env, strategy, ['school.png'], 150, 100, 4)
@@ -105,9 +104,9 @@ class TestSchoolingFishMovement:
 
         assert success
 
-    def test_schooling_fish_avoids_different_type(self, pygame_env):
+    def test_schooling_fish_avoids_different_type(self, simulation_env):
         """Test that schooling fish avoids fish of different types."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SchoolingFishMovement()
         school_fish = Fish(env, strategy, ['school.png'], 100, 100, 4)
         solo_fish = Fish(env, SoloFishMovement(), ['george1.png'], 120, 100, 3)
@@ -119,9 +118,9 @@ class TestSchoolingFishMovement:
         # Schooling fish should have some avoidance (or at least not crash)
         # The exact behavior depends on avoidance logic
 
-    def test_get_same_type_sprites(self, pygame_env):
+    def test_get_same_type_sprites(self, simulation_env):
         """Test that get_same_type_sprites returns only matching fish."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SchoolingFishMovement()
         fish1 = Fish(env, strategy, ['school.png'], 100, 100, 4)
         fish2 = Fish(env, strategy, ['school.png'], 150, 100, 4)
@@ -136,9 +135,9 @@ class TestSchoolingFishMovement:
         # fish1 will be in the list since get_agents_of_type returns all fish
         assert fish1 in same_type
 
-    def test_get_different_type_sprites(self, pygame_env):
+    def test_get_different_type_sprites(self, simulation_env):
         """Test that get_different_type_sprites returns only non-matching fish."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SchoolingFishMovement()
         fish1 = Fish(env, strategy, ['school.png'], 100, 100, 4)
         fish2 = Fish(env, strategy, ['school.png'], 150, 100, 4)
@@ -154,9 +153,9 @@ class TestSchoolingFishMovement:
         # fish2 might be in different_type due to mocked surfaces being different objects
         # This is acceptable for testing purposes
 
-    def test_schooling_behavior_over_time(self, pygame_env):
+    def test_schooling_behavior_over_time(self, simulation_env):
         """Test that schooling fish behave consistently over multiple updates."""
-        env, agents = pygame_env
+        env, agents = simulation_env
         strategy = SchoolingFishMovement()
 
         # Create a school of fish
