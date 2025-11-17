@@ -193,11 +193,11 @@ class Fish(Agent):
     # Energy constants (DIFFICULTY INCREASED - survival is more challenging)
     BASE_MAX_ENERGY = 100.0
     ENERGY_FROM_FOOD = 1.0  # Energy from food is determined by food type in constants.py
-    EXISTENCE_ENERGY_COST = 0.02  # Increased cost just for being alive
-    BASE_METABOLISM = 0.045  # Increased from 0.030 - fish burn energy faster
-    MOVEMENT_ENERGY_COST = 0.025  # Increased from 0.015 - movement is expensive
+    EXISTENCE_ENERGY_COST = 0.01  # Reduced for better survival and evolution
+    BASE_METABOLISM = 0.025  # Reduced from 0.045 to allow fish to maintain energy
+    MOVEMENT_ENERGY_COST = 0.015  # Reduced from 0.025 to make movement less punishing
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
-    SHARP_TURN_ENERGY_COST = 0.08  # Increased from 0.05 - sharp turns are costly
+    SHARP_TURN_ENERGY_COST = 0.05  # Reduced from 0.08 for less harsh turning cost
 
     # Predator encounter tracking
     PREDATOR_ENCOUNTER_WINDOW = 150  # 5 seconds - recent conflict window for death attribution
@@ -816,8 +816,8 @@ class Plant(Agent):
         current_food_count: Current number of food items from this plant
     """
 
-    BASE_FOOD_PRODUCTION_RATE = 120  # 4 seconds at 30fps - REDUCED production for harder survival
-    MAX_FOOD_CAPACITY = 10  # Maximum food items per plant - REDUCED for scarcity
+    BASE_FOOD_PRODUCTION_RATE = 75  # 2.5 seconds at 30fps - Increased for sustainable population
+    MAX_FOOD_CAPACITY = 15  # Maximum food items per plant - Increased for better food availability
     STATIONARY_FOOD_CHANCE = 0.35  # Increased from 0.25 to grow more stationary nectar
     STATIONARY_FOOD_TYPE = 'nectar'
 
