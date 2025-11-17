@@ -2,11 +2,16 @@
 
 import asyncio
 import json
+import sys
+from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+# Add parent directory to path so we can import from root tank/ directory
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from simulation_runner import SimulationRunner
 from models import Command
