@@ -1,18 +1,11 @@
-import math
+from pygame.math import Vector2
 
 from core.environment import Environment
 
-class Vec:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-    def __sub__(self, other):
-        return Vec(self.x - other.x, self.y - other.y)
-    def length(self):
-        return math.hypot(self.x, self.y)
 
 def make_agent(x, y):
-    return type('Dummy', (), {'pos': Vec(x, y)})()
+    return type('Dummy', (), {'pos': Vector2(x, y)})()
+
 
 def test_nearby_agents():
     a1 = make_agent(0, 0)

@@ -27,12 +27,7 @@ class TestCollisionDetection:
 
         assert fish in simulator.agents
 
-        # Handle collisions - this should remove the fish
-        # (Depending on pygame collision detection with mocked images)
         simulator.handle_fish_collisions()
-
-        # The test passes if it doesn't crash
-        # Actual collision detection depends on pygame's rect/mask collision
 
     def test_food_removed_when_eaten_by_fish(self, fish_tank_setup):
         """Test that food is removed when a fish eats it."""
@@ -44,13 +39,9 @@ class TestCollisionDetection:
 
         simulator.agents.add(fish, food)
 
-        initial_fish_size = fish.size
         assert food in simulator.agents
 
         simulator.handle_food_collisions()
-
-        # Test passes if it doesn't crash
-        # Actual collision depends on pygame collision detection
 
     def test_iteration_safe_during_collision(self, fish_tank_setup):
         """Test that removing sprites during iteration doesn't cause issues."""
@@ -67,8 +58,6 @@ class TestCollisionDetection:
 
         simulator.agents.add(fish1, fish2, crab1)
 
-        # Should not crash when killing sprites during iteration
-        # (This tests our bug fix for safe iteration)
         try:
             simulator.handle_fish_collisions()
             success = True
@@ -91,7 +80,6 @@ class TestCollisionDetection:
 
         simulator.agents.add(fish1, fish2, food1, food2)
 
-        # Should handle both collisions without crashing
         try:
             simulator.handle_food_collisions()
             success = True
@@ -107,19 +95,14 @@ class TestCollisionDetection:
         food = Food(simulator.environment, 100, 50)
         simulator.agents.add(food)
 
-        # Manually check the removal condition
-        # Food is removed when: sprite.rect.y >= SCREEN_HEIGHT - sprite.rect.height
-        food.rect.y = SCREEN_HEIGHT  # Position at bottom
+        food.rect.y = SCREEN_HEIGHT
 
         assert food in simulator.agents
 
-        # Manually call the update logic to test removal
-        # The update() method includes collision and removal logic
         for sprite in list(simulator.agents):
             if isinstance(sprite, Food) and sprite.rect.y >= SCREEN_HEIGHT - sprite.rect.height:
                 sprite.kill()
 
-        # Food should be removed
         assert food not in simulator.agents
 
     def test_handle_collisions_called_safely(self, fish_tank_setup):
@@ -134,7 +117,6 @@ class TestCollisionDetection:
 
         simulator.agents.add(fish, crab, food)
 
-        # Call collision handling multiple times
         try:
             for _ in range(10):
                 simulator.handle_collisions()
