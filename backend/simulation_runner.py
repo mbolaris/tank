@@ -165,7 +165,15 @@ class SimulationRunner:
                     genome_data = {
                         'speed': entity.genome.speed_modifier,
                         'size': entity.genome.size_modifier,
-                        'color_hue': entity.genome.color_hue
+                        'color_hue': entity.genome.color_hue,
+                        # Visual traits for parametric fish templates
+                        'template_id': entity.genome.template_id,
+                        'fin_size': entity.genome.fin_size,
+                        'tail_size': entity.genome.tail_size,
+                        'body_aspect': entity.genome.body_aspect,
+                        'eye_size': entity.genome.eye_size,
+                        'pattern_intensity': entity.genome.pattern_intensity,
+                        'pattern_type': entity.genome.pattern_type,
                     }
 
                 return EntityData(

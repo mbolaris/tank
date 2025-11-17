@@ -23,6 +23,14 @@ export interface EntityData {
     speed: number;
     size: number;
     color_hue: number;
+    // Visual traits for parametric fish templates
+    template_id: number;
+    fin_size: number;
+    tail_size: number;
+    body_aspect: number;
+    eye_size: number;
+    pattern_intensity: number;
+    pattern_type: number;
   };
 
   // Food-specific

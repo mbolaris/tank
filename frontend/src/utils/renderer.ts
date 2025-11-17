@@ -5,6 +5,7 @@
 
 import type { EntityData } from '../types/simulation';
 import { ImageLoader } from './ImageLoader';
+import { getFishPath, getEyePosition, type FishParams } from './fishTemplates';
 
 // Constants matching pygame version
 const IMAGE_CHANGE_RATE = 500; // milliseconds
@@ -213,9 +214,16 @@ export class Renderer {
 
   private renderFish(fish: EntityData, elapsedTime: number) {
     const { ctx } = this;
-    const { x, y, width, height, species = 'solo', vel_x = 1, genome_data } = fish;
+    const { x, y, width, height, vel_x = 1, genome_data } = fish;
 
-    // Get animation frames for this species
+    // Use SVG-based parametric fish rendering if genome_data is available
+    if (genome_data && genome_data.template_id !== undefined) {
+      this.renderSVGFish(fish, elapsedTime);
+      return;
+    }
+
+    // Fallback to old image-based rendering for backward compatibility
+    const species = fish.species || 'solo';
     const imageFiles = FISH_SPECIES_IMAGES[species] || FISH_SPECIES_IMAGES.solo;
     const imageIndex = this.getAnimationFrame(elapsedTime, imageFiles.length);
     const imageName = imageFiles[imageIndex];
@@ -223,48 +231,183 @@ export class Renderer {
 
     if (!image) return;
 
-    // Calculate scale based on genome
     const sizeModifier = genome_data?.size || 1.0;
     const scaledWidth = width * sizeModifier;
     const scaledHeight = height * sizeModifier;
-
-    // Flip image based on velocity direction
     const flipHorizontal = vel_x < 0;
 
-    // Draw soft shadow
     this.drawShadow(x + scaledWidth / 2, y + scaledHeight, scaledWidth * 0.8, scaledHeight * 0.3);
 
-    // Draw glow effect based on energy
     const energy = fish.energy !== undefined ? fish.energy : 100;
     if (energy > 70) {
       this.drawGlow(x + scaledWidth / 2, y + scaledHeight / 2, scaledWidth * 0.7, energy);
     }
 
     ctx.save();
-
-    // Apply color tint if genome data available
     if (genome_data?.color_hue !== undefined) {
-      // Draw image with color tinting
-      this.drawImageWithColorTint(
-        image,
-        x,
-        y,
-        scaledWidth,
-        scaledHeight,
-        flipHorizontal,
-        genome_data.color_hue
-      );
+      this.drawImageWithColorTint(image, x, y, scaledWidth, scaledHeight, flipHorizontal, genome_data.color_hue);
     } else {
-      // Draw image without tinting
       this.drawImage(image, x, y, scaledWidth, scaledHeight, flipHorizontal);
     }
+    ctx.restore();
+
+    if (fish.energy !== undefined) {
+      this.drawEnhancedEnergyBar(x, y - 12, scaledWidth, fish.energy);
+    }
+  }
+
+  private renderSVGFish(fish: EntityData, _elapsedTime: number) {
+    const { ctx } = this;
+    const { x, y, width, height, vel_x = 1, genome_data } = fish;
+
+    if (!genome_data) return;
+
+    // Prepare fish parameters
+    const fishParams: FishParams = {
+      fin_size: genome_data.fin_size || 1.0,
+      tail_size: genome_data.tail_size || 1.0,
+      body_aspect: genome_data.body_aspect || 1.0,
+      eye_size: genome_data.eye_size || 1.0,
+      pattern_intensity: genome_data.pattern_intensity || 0.5,
+      pattern_type: genome_data.pattern_type || 0,
+      color_hue: genome_data.color_hue || 0.5,
+      size: genome_data.size || 1.0,
+      template_id: genome_data.template_id || 0,
+    };
+
+    // Calculate fish dimensions
+    const baseSize = Math.max(width, height);
+    const sizeModifier = fishParams.size;
+    const scaledSize = baseSize * sizeModifier;
+
+    // Flip based on velocity direction
+    const flipHorizontal = vel_x < 0;
+
+    // Draw soft shadow
+    this.drawShadow(x + scaledSize / 2, y + scaledSize, scaledSize * 0.8, scaledSize * 0.3);
+
+    // Draw glow effect based on energy
+    const energy = fish.energy !== undefined ? fish.energy : 100;
+    if (energy > 70) {
+      this.drawGlow(x + scaledSize / 2, y + scaledSize / 2, scaledSize * 0.7, energy);
+    }
+
+    ctx.save();
+
+    // Position and flip
+    ctx.translate(x + scaledSize / 2, y + scaledSize / 2);
+    if (flipHorizontal) {
+      ctx.scale(-1, 1);
+    }
+    ctx.translate(-scaledSize / 2, -scaledSize / 2);
+
+    // Get base color from hue
+    const baseColor = this.hslToRgbString(fishParams.color_hue, 0.7, 0.6);
+    const patternColor = this.hslToRgbString(fishParams.color_hue, 0.8, 0.3);
+
+    // Get SVG path for the fish body
+    const fishPath = getFishPath(fishParams, scaledSize);
+
+    // Draw fish body
+    const path = new Path2D(fishPath);
+
+    // Fill with base color
+    ctx.fillStyle = baseColor;
+    ctx.fill(path);
+
+    // Stroke outline
+    ctx.strokeStyle = this.hslToRgbString(fishParams.color_hue, 0.8, 0.4);
+    ctx.lineWidth = 1.5;
+    ctx.stroke(path);
+
+    // Draw pattern if applicable
+    if (fishParams.pattern_intensity > 0.1) {
+      this.drawFishPattern(fishParams, scaledSize, patternColor);
+    }
+
+    // Draw eye
+    const eyePos = getEyePosition(fishParams, scaledSize);
+    const eyeRadius = 3 * fishParams.eye_size;
+
+    // Eye white
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(eyePos.x, eyePos.y, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye pupil
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(eyePos.x, eyePos.y, eyeRadius * 0.5, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
 
     // Draw enhanced energy bar
     if (fish.energy !== undefined) {
-      this.drawEnhancedEnergyBar(x, y - 12, scaledWidth, fish.energy);
+      this.drawEnhancedEnergyBar(x, y - 12, scaledSize, fish.energy);
     }
+  }
+
+  private drawFishPattern(params: FishParams, baseSize: number, color: string) {
+    const { ctx } = this;
+    const width = baseSize * params.body_aspect;
+    const height = baseSize;
+    const opacity = params.pattern_intensity * 0.4;
+
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+
+    switch (params.pattern_type) {
+      case 0: // Stripes
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.3, height * 0.2);
+        ctx.lineTo(width * 0.3, height * 0.8);
+        ctx.moveTo(width * 0.5, height * 0.2);
+        ctx.lineTo(width * 0.5, height * 0.8);
+        ctx.moveTo(width * 0.7, height * 0.2);
+        ctx.lineTo(width * 0.7, height * 0.8);
+        ctx.stroke();
+        break;
+
+      case 1: // Spots
+        [
+          { x: width * 0.4, y: height * 0.35 },
+          { x: width * 0.6, y: height * 0.4 },
+          { x: width * 0.5, y: height * 0.6 },
+          { x: width * 0.7, y: height * 0.65 },
+        ].forEach(spot => {
+          ctx.beginPath();
+          ctx.arc(spot.x, spot.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        break;
+
+      case 2: // Solid (darker overlay)
+        const path = new Path2D(getFishPath(params, baseSize));
+        ctx.globalAlpha = opacity * 0.5;
+        ctx.fill(path);
+        break;
+
+      case 3: // Gradient
+        const gradient = ctx.createLinearGradient(0, 0, width, 0);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        const gradPath = new Path2D(getFishPath(params, baseSize));
+        ctx.fill(gradPath);
+        break;
+    }
+
+    ctx.restore();
+  }
+
+  private hslToRgbString(h: number, s: number, l: number): string {
+    const rgb = this.hslToRgb(h, s, l);
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
   }
 
   private drawShadow(x: number, y: number, width: number, height: number) {
