@@ -182,19 +182,24 @@ class SimulationEngine(BaseSimulator):
         # Create event message
         if result.winner_id == -1:
             # Tie
-            message = f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({result.hand1.description})"
+            hand1_desc = result.hand1.description if result.hand1 is not None else "Unknown"
+            message = f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
         else:
             winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
             loser_hand = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
-            message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_hand.description}! (+{result.energy_transferred:.1f} energy)"
+            winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
+            message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.energy_transferred:.1f} energy)"
 
         # Create event data
+        winner_hand_obj = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
+        loser_hand_obj = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
+
         event = {
             'frame': self.frame_count,
             'winner_id': result.winner_id,
             'loser_id': result.loser_id,
-            'winner_hand': (result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2).description,
-            'loser_hand': (result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1).description,
+            'winner_hand': winner_hand_obj.description if winner_hand_obj is not None else "Unknown",
+            'loser_hand': loser_hand_obj.description if loser_hand_obj is not None else "Unknown",
             'energy_transferred': result.energy_transferred,
             'message': message
         }
@@ -305,3 +310,26 @@ class SimulationEngine(BaseSimulator):
             with open('algorithm_performance_report.txt', 'w') as f:
                 f.write(report)
             print("\nReport saved to: algorithm_performance_report.txt")
+
+
+class HeadlessSimulator(SimulationEngine):
+    """Wrapper class for CI/testing with simplified interface.
+
+    This class provides a simpler interface for headless testing,
+    accepting max_frames in the constructor and providing a simple run() method.
+    """
+
+    def __init__(self, max_frames: int = 100, stats_interval: int = 0) -> None:
+        """Initialize the headless simulator.
+
+        Args:
+            max_frames: Maximum number of frames to simulate
+            stats_interval: Print stats every N frames (0 = no stats during run)
+        """
+        super().__init__(headless=True)
+        self.max_frames = max_frames
+        self.stats_interval = stats_interval if stats_interval > 0 else max_frames + 1
+
+    def run(self) -> None:
+        """Run the simulation for the configured number of frames."""
+        self.run_headless(max_frames=self.max_frames, stats_interval=self.stats_interval)
