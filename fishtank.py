@@ -1,8 +1,14 @@
 import random
 import pygame
 from typing import Optional, List
-from core.constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH,
-                       AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED)
+from core.constants import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH,
+    AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED,
+    POKER_NOTIFICATION_DURATION, POKER_NOTIFICATION_MAX_COUNT,
+    POKER_TIE_COLOR, POKER_WIN_COLOR,
+    HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT,
+    HEALTH_CRITICAL_COLOR, HEALTH_LOW_COLOR, HEALTH_GOOD_COLOR
+)
 import agents
 from core import environment
 from core.ecosystem import EcosystemManager
@@ -92,26 +98,12 @@ class FishTankSimulator:
                 newborn = sprite.update(elapsed_time, time_modifier)
                 if newborn is not None and self.ecosystem is not None:
                     # Check carrying capacity
-                    fish_count = len([a for a in self.agents if isinstance(a, agents.Fish)])
-                    if self.ecosystem.can_reproduce(fish_count):
+                    if self.ecosystem.can_reproduce(self.get_fish_count()):
                         new_agents.append(newborn)
 
                 # Handle fish death
                 if sprite.is_dead():
-                    if self.ecosystem is not None:
-                        # Get algorithm ID if fish has a behavior algorithm
-                        algorithm_id = None
-                        if sprite.genome.behavior_algorithm is not None:
-                            algorithm_id = get_algorithm_index(sprite.genome.behavior_algorithm)
-                        self.ecosystem.record_death(
-                            sprite.fish_id,
-                            sprite.generation,
-                            sprite.age,
-                            sprite.get_death_cause(),
-                            sprite.genome,
-                            algorithm_id=algorithm_id
-                        )
-                    sprite.kill()
+                    self.record_fish_death(sprite)
 
             elif isinstance(sprite, agents.Plant):
                 # Plant update returns potential food
@@ -164,8 +156,7 @@ class FishTankSimulator:
 
         # Update ecosystem stats
         if self.ecosystem is not None:
-            fish_list = [a for a in self.agents if isinstance(a, agents.Fish)]
-            self.ecosystem.update_population_stats(fish_list)
+            self.ecosystem.update_population_stats(self.get_fish_list())
             self.ecosystem.update(self.frame_count)
 
     def handle_collisions(self) -> None:
@@ -183,22 +174,8 @@ class FishTankSimulator:
                     if isinstance(collision_sprite, agents.Crab):
                         # Crab can only kill if hunt cooldown is ready
                         if collision_sprite.can_hunt():
-                            # Record death from predation
-                            if self.ecosystem is not None:
-                                # Get algorithm ID if fish has a behavior algorithm
-                                algorithm_id = None
-                                if fish.genome.behavior_algorithm is not None:
-                                    algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
-                                self.ecosystem.record_death(
-                                    fish.fish_id,
-                                    fish.generation,
-                                    fish.age,
-                                    'predation',
-                                    fish.genome,
-                                    algorithm_id=algorithm_id
-                                )
                             collision_sprite.eat_fish(fish)
-                            fish.kill()
+                            self.record_fish_death(fish, 'predation')
                     elif isinstance(collision_sprite, agents.Food):
                         fish.eat(collision_sprite)
                     elif isinstance(collision_sprite, agents.Fish):
@@ -210,34 +187,10 @@ class FishTankSimulator:
 
                             # Check if either fish died from poker
                             if fish.is_dead():
-                                if self.ecosystem is not None:
-                                    algorithm_id = None
-                                    if fish.genome.behavior_algorithm is not None:
-                                        algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
-                                    self.ecosystem.record_death(
-                                        fish.fish_id,
-                                        fish.generation,
-                                        fish.age,
-                                        fish.get_death_cause(),
-                                        fish.genome,
-                                        algorithm_id=algorithm_id
-                                    )
-                                fish.kill()
+                                self.record_fish_death(fish)
 
                             if collision_sprite.is_dead():
-                                if self.ecosystem is not None:
-                                    algorithm_id = None
-                                    if collision_sprite.genome.behavior_algorithm is not None:
-                                        algorithm_id = get_algorithm_index(collision_sprite.genome.behavior_algorithm)
-                                    self.ecosystem.record_death(
-                                        collision_sprite.fish_id,
-                                        collision_sprite.generation,
-                                        collision_sprite.age,
-                                        collision_sprite.get_death_cause(),
-                                        collision_sprite.genome,
-                                        algorithm_id=algorithm_id
-                                    )
-                                collision_sprite.kill()
+                                self.record_fish_death(collision_sprite)
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food."""
@@ -255,7 +208,7 @@ class FishTankSimulator:
     def handle_reproduction(self) -> None:
         """Handle fish reproduction by finding mates."""
         # Get all fish
-        fish_list = [a for a in self.agents if isinstance(a, agents.Fish)]
+        fish_list = self.get_fish_list()
 
         # Try to mate fish that are ready
         for fish in fish_list:
@@ -281,25 +234,25 @@ class FishTankSimulator:
         if result.winner_id == -1:
             # Tie
             message = f"Poker: Fish #{result.loser_id} vs Fish #{result.winner_id} - TIE! ({result.hand1.description})"
-            color = (255, 255, 100)  # Yellow for tie
+            color = POKER_TIE_COLOR
         else:
             # Winner
             winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
             loser_hand = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
             message = f"Poker: Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_hand.description}! (+{result.energy_transferred:.1f} energy)"
-            color = (100, 255, 100)  # Green for wins
+            color = POKER_WIN_COLOR
 
         # Add to notification list with timestamp
         notification = {
             'message': message,
             'color': color,
             'frame': self.frame_count,
-            'duration': 180  # Show for 6 seconds at 30fps
+            'duration': POKER_NOTIFICATION_DURATION
         }
         self.poker_notifications.append(notification)
 
-        # Keep only last 5 notifications
-        if len(self.poker_notifications) > 5:
+        # Keep only last N notifications
+        if len(self.poker_notifications) > POKER_NOTIFICATION_MAX_COUNT:
             self.poker_notifications.pop(0)
 
     def update_poker_notifications(self) -> None:
@@ -344,6 +297,45 @@ class FishTankSimulator:
 
             y_offset = y_pos - 5  # Move up for next notification
 
+    def get_fish_list(self) -> List[agents.Fish]:
+        """Get all fish agents in the simulation.
+
+        Returns:
+            List of all Fish agents
+        """
+        return [a for a in self.agents if isinstance(a, agents.Fish)]
+
+    def get_fish_count(self) -> int:
+        """Get the count of fish in the simulation.
+
+        Returns:
+            Number of fish agents
+        """
+        return len(self.get_fish_list())
+
+    def record_fish_death(self, fish: agents.Fish, cause: Optional[str] = None) -> None:
+        """Record a fish death in the ecosystem and remove it from the simulation.
+
+        Args:
+            fish: The fish that died
+            cause: Optional death cause override (defaults to fish.get_death_cause())
+        """
+        if self.ecosystem is not None:
+            algorithm_id = None
+            if fish.genome.behavior_algorithm is not None:
+                algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+
+            death_cause = cause if cause is not None else fish.get_death_cause()
+            self.ecosystem.record_death(
+                fish.fish_id,
+                fish.generation,
+                fish.age,
+                death_cause,
+                fish.genome,
+                algorithm_id=algorithm_id
+            )
+        fish.kill()
+
     def keep_sprite_on_screen(self, sprite: agents.Agent) -> None:
         """Keep a sprite fully within the bounds of the screen."""
         if self.screen is not None:
@@ -373,28 +365,26 @@ class FishTankSimulator:
             return
 
         # Health bar dimensions
-        bar_width = 30
-        bar_height = 4
-        bar_x = fish.rect.centerx - bar_width // 2
+        bar_x = fish.rect.centerx - HEALTH_BAR_WIDTH // 2
         bar_y = fish.rect.top - 8
 
         # Background (empty bar)
-        pygame.draw.rect(self.screen, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height))
+        pygame.draw.rect(self.screen, (60, 60, 60), (bar_x, bar_y, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT))
 
         # Foreground (filled based on energy)
         energy_ratio = fish.energy / fish.max_energy
-        filled_width = int(bar_width * energy_ratio)
+        filled_width = int(HEALTH_BAR_WIDTH * energy_ratio)
 
         # Color based on energy level
         if energy_ratio > 0.6:
-            color = (50, 200, 50)  # Green
+            color = HEALTH_GOOD_COLOR
         elif energy_ratio > 0.3:
-            color = (200, 200, 50)  # Yellow
+            color = HEALTH_LOW_COLOR
         else:
-            color = (200, 50, 50)  # Red
+            color = HEALTH_CRITICAL_COLOR
 
         if filled_width > 0:
-            pygame.draw.rect(self.screen, color, (bar_x, bar_y, filled_width, bar_height))
+            pygame.draw.rect(self.screen, color, (bar_x, bar_y, filled_width, HEALTH_BAR_HEIGHT))
 
         # Display algorithm number if fish has a behavior algorithm
         if fish.genome.behavior_algorithm is not None:
@@ -408,7 +398,7 @@ class FishTankSimulator:
 
                 # Position text below the health bar, centered
                 text_x = fish.rect.centerx - text_surface.get_width() // 2
-                text_y = bar_y + bar_height + 1
+                text_y = bar_y + HEALTH_BAR_HEIGHT + 1
 
                 self.screen.blit(text_surface, (text_x, text_y))
 
