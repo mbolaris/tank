@@ -91,22 +91,23 @@ class UIRenderer:
 
                 self.screen.blit(text_surface, (text_x, text_y))
 
-    def draw_stats_panel(self, ecosystem: Any, time_system: Any, paused: bool) -> None:
+    def draw_stats_panel(self, ecosystem: Any, time_system: Any, paused: bool, entities: Optional[List[Any]] = None) -> None:
         """Draw statistics panel showing ecosystem data.
 
         Args:
             ecosystem: Ecosystem manager with statistics
             time_system: Time system for day/night cycle
             paused: Whether the simulation is paused
+            entities: Optional list of entities for energy calculation
         """
-        # Semi-transparent background (larger to fit poker stats)
-        panel_surface = pygame.Surface((280, 300))
+        # Semi-transparent background (larger to fit poker stats + energy stat)
+        panel_surface = pygame.Surface((280, 320))
         panel_surface.set_alpha(200)
         panel_surface.fill((20, 20, 40))
         self.screen.blit(panel_surface, (10, 10))
 
         # Get stats
-        stats = ecosystem.get_summary_stats()
+        stats = ecosystem.get_summary_stats(entities)
         time_str = time_system.get_time_string()
 
         # Render text lines
@@ -115,6 +116,7 @@ class UIRenderer:
             f"Time: {time_str}",
             f"Population: {stats['total_population']}/{ecosystem.max_population}",
             f"Generation: {stats['current_generation']}",
+            f"Total Energy: {stats.get('total_energy', 0):.1f}",
             f"Births: {stats['total_births']}",
             f"Deaths: {stats['total_deaths']}",
             f"Capacity: {stats['capacity_usage']}",
