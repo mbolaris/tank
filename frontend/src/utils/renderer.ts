@@ -145,7 +145,7 @@ export class Renderer {
     this.ctx.restore();
   }
 
-  private updateParticles(width: number, height: number, time: number) {
+  private updateParticles(width: number, height: number, _time: number) {
     for (const particle of this.particles) {
       // Float upward
       particle.y -= particle.speed;
@@ -500,27 +500,6 @@ export class Renderer {
     }
 
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-  }
-
-  private drawEnergyBar(x: number, y: number, width: number, energy: number) {
-    const { ctx } = this;
-    const barHeight = 4;
-    const barWidth = width;
-
-    // Background
-    ctx.fillStyle = '#333333';
-    ctx.fillRect(x, y, barWidth, barHeight);
-
-    // Energy bar
-    let color = '#4ade80'; // green
-    if (energy < 30) {
-      color = '#ef4444'; // red
-    } else if (energy < 60) {
-      color = '#fbbf24'; // yellow
-    }
-
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, (barWidth * energy) / 100, barHeight);
   }
 
   private drawEnhancedEnergyBar(x: number, y: number, width: number, energy: number) {
