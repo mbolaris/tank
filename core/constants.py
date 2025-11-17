@@ -108,3 +108,24 @@ INIT_POS = {
     'plant3': (500, 510),  # Add third plant
     'castle': (100, 500),
 }
+
+# UI Constants - Poker Notifications
+POKER_NOTIFICATION_DURATION = 180  # 6 seconds at 30fps
+POKER_NOTIFICATION_MAX_COUNT = 5
+POKER_TIE_COLOR = (255, 255, 100)
+POKER_WIN_COLOR = (100, 255, 100)
+
+# UI Constants - Health Bars
+HEALTH_BAR_WIDTH = 30
+HEALTH_BAR_HEIGHT = 4
+HEALTH_CRITICAL_COLOR = (200, 50, 50)  # Red (below 30%)
+HEALTH_LOW_COLOR = (200, 200, 50)      # Yellow (30-60%)
+HEALTH_GOOD_COLOR = (50, 200, 50)      # Green (above 60%)
+
+# Fish Energy and Metabolism Constants
+INITIAL_ENERGY_RATIO = 0.5  # Start with 50% energy
+BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
+ELDER_METABOLISM_MULTIPLIER = 1.2  # Elders need more energy
+
+# Energy Thresholds
+STARVATION_THRESHOLD = 15.0  # Below this, fish is starving (matches CRITICAL_ENERGY_THRESHOLD)

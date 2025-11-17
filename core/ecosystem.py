@@ -3,7 +3,7 @@
 This module manages population dynamics, statistics, and ecosystem health.
 """
 
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict
 import json
@@ -297,7 +297,10 @@ class EcosystemManager:
 
             # Update average age at death
             total_fish = stats.deaths
-            stats.avg_age = (stats.avg_age * (total_fish - 1) + age) / total_fish if total_fish > 0 else age
+            if total_fish > 0:
+                stats.avg_age = (stats.avg_age * (total_fish - 1) + age) / total_fish
+            else:
+                stats.avg_age = age
 
         # Track death causes
         self.death_causes[cause] += 1
@@ -353,9 +356,17 @@ class EcosystemManager:
 
             # Calculate averages
             if fishes:
-                stats.avg_speed = sum(f.genome.speed_modifier for f in fishes if hasattr(f, 'genome')) / len(fishes)
-                stats.avg_size = sum(f.genome.size_modifier for f in fishes if hasattr(f, 'genome')) / len(fishes)
-                stats.avg_energy = sum(f.genome.max_energy for f in fishes if hasattr(f, 'genome')) / len(fishes)
+                fishes_with_genome = [f for f in fishes if hasattr(f, 'genome')]
+                if fishes_with_genome:
+                    stats.avg_speed = (
+                        sum(f.genome.speed_modifier for f in fishes_with_genome) / len(fishes)
+                    )
+                    stats.avg_size = (
+                        sum(f.genome.size_modifier for f in fishes_with_genome) / len(fishes)
+                    )
+                    stats.avg_energy = (
+                        sum(f.genome.max_energy for f in fishes_with_genome) / len(fishes)
+                    )
 
     def _add_event(self, event: EcosystemEvent) -> None:
         """Add an event to the log, maintaining max size.
@@ -411,7 +422,10 @@ class EcosystemManager:
             'total_births': self.total_births,
             'total_deaths': self.total_deaths,
             'carrying_capacity': self.max_population,
-            'capacity_usage': f"{int(100 * total_pop / self.max_population)}%" if self.max_population > 0 else "0%",
+            'capacity_usage': (
+                f"{int(100 * total_pop / self.max_population)}%"
+                if self.max_population > 0 else "0%"
+            ),
             'death_causes': dict(self.death_causes),
             'generations_alive': len([g for g, s in self.generation_stats.items() if s.population > 0]),
             'poker_stats': poker_summary,
@@ -440,7 +454,10 @@ class EcosystemManager:
             "Straight", "Flush", "Full House", "Four of a Kind",
             "Straight Flush", "Royal Flush"
         ]
-        best_hand_name = hand_rank_names[best_hand_rank] if 0 <= best_hand_rank < len(hand_rank_names) else "Unknown"
+        if 0 <= best_hand_rank < len(hand_rank_names):
+            best_hand_name = hand_rank_names[best_hand_rank]
+        else:
+            best_hand_name = "Unknown"
 
         return {
             'total_games': total_games,
@@ -537,8 +554,214 @@ class EcosystemManager:
             frame=self.frame_count,
             event_type='poker',
             fish_id=winner_id,
-            details=f"Won {amount:.1f} energy from fish {loser_id} ({winner_hand.description} vs {loser_hand.description})"
+            details=(
+                f"Won {amount:.1f} energy from fish {loser_id} "
+                f"({winner_hand.description} vs {loser_hand.description})"
+            )
         ))
+
+    def _get_report_header(self) -> List[str]:
+        """Generate the report header section."""
+        return [
+            "=" * 80,
+            "ALGORITHM PERFORMANCE REPORT",
+            "=" * 80,
+            "",
+            f"Total Simulation Time: {self.frame_count} frames",
+            f"Total Population Births: {self.total_births}",
+            f"Total Population Deaths: {self.total_deaths}",
+            f"Current Generation: {self.current_generation}",
+            ""
+        ]
+
+    def _get_top_performers_section(
+        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+    ) -> List[str]:
+        """Generate top performing algorithms section."""
+        algorithms_sorted = sorted(
+            algorithms_with_data,
+            key=lambda x: x[1].get_reproduction_rate(),
+            reverse=True
+        )
+
+        lines = [
+            "-" * 80,
+            "TOP PERFORMING ALGORITHMS (by reproduction rate)",
+            "-" * 80,
+            ""
+        ]
+
+        for i, (algo_id, stats) in enumerate(algorithms_sorted[:10], 1):
+            lines.extend([
+                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                f"  Births: {stats.total_births}",
+                f"  Deaths: {stats.total_deaths}",
+                f"  Current Population: {stats.current_population}",
+                f"  Reproductions: {stats.total_reproductions}",
+                f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}",
+                f"  Survival Rate: {stats.get_survival_rate():.2%}",
+                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                f"  Food Eaten: {stats.total_food_eaten}",
+                f"  Deaths - Starvation: {stats.deaths_starvation}, "
+                f"Old Age: {stats.deaths_old_age}, Predation: {stats.deaths_predation}",
+                ""
+            ])
+
+        return lines
+
+    def _get_survival_section(
+        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+    ) -> List[str]:
+        """Generate top surviving algorithms section."""
+        algorithms_sorted = sorted(
+            algorithms_with_data,
+            key=lambda x: x[1].get_survival_rate(),
+            reverse=True
+        )
+
+        lines = [
+            "-" * 80,
+            "TOP SURVIVING ALGORITHMS (by current survival rate)",
+            "-" * 80,
+            ""
+        ]
+
+        for i, (algo_id, stats) in enumerate(algorithms_sorted[:10], 1):
+            lines.extend([
+                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                f"  Survival Rate: {stats.get_survival_rate():.2%}",
+                f"  Current Population: {stats.current_population}",
+                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                ""
+            ])
+
+        return lines
+
+    def _get_longevity_section(
+        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+    ) -> List[str]:
+        """Generate longest-lived algorithms section."""
+        algorithms_sorted = sorted(
+            algorithms_with_data,
+            key=lambda x: x[1].get_avg_lifespan(),
+            reverse=True
+        )
+
+        lines = [
+            "-" * 80,
+            "LONGEST-LIVED ALGORITHMS (by average lifespan)",
+            "-" * 80,
+            ""
+        ]
+
+        for i, (algo_id, stats) in enumerate(algorithms_sorted[:10], 1):
+            starvation_pct = (
+                stats.deaths_starvation / stats.total_deaths * 100
+                if stats.total_deaths > 0 else 0
+            )
+            lines.extend([
+                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                f"  Deaths: {stats.total_deaths}",
+                f"  Starvation Deaths: {stats.deaths_starvation} ({starvation_pct:.1f}%)",
+                ""
+            ])
+
+        return lines
+
+    def _get_worst_performers_section(self, min_sample_size: int) -> List[str]:
+        """Generate worst performing algorithms section."""
+        algorithms_with_deaths = [
+            (algo_id, stats) for algo_id, stats in self.algorithm_stats.items()
+            if stats.total_deaths >= min_sample_size
+        ]
+        algorithms_with_deaths.sort(
+            key=lambda x: (
+                x[1].deaths_starvation / x[1].total_deaths
+                if x[1].total_deaths > 0 else 0
+            ),
+            reverse=True
+        )
+
+        lines = [
+            "-" * 80,
+            "WORST PERFORMERS (highest starvation rate)",
+            "-" * 80,
+            ""
+        ]
+
+        for i, (algo_id, stats) in enumerate(algorithms_with_deaths[:10], 1):
+            starvation_rate = (
+                stats.deaths_starvation / stats.total_deaths
+                if stats.total_deaths > 0 else 0
+            )
+            lines.extend([
+                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                f"  Starvation Rate: {starvation_rate:.2%}",
+                f"  Deaths: {stats.total_deaths}",
+                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}",
+                ""
+            ])
+
+        return lines
+
+    def _get_recommendations_section(
+        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+    ) -> List[str]:
+        """Generate recommendations section based on performance data."""
+        lines = [
+            "-" * 80,
+            "RECOMMENDATIONS FOR NEXT GENERATION",
+            "-" * 80,
+            ""
+        ]
+
+        # Best performer recommendation
+        if algorithms_with_data:
+            best_algo_id, best_stats = algorithms_with_data[0]
+            lines.extend([
+                f"1. The most successful algorithm is '{best_stats.algorithm_name}'",
+                f"   with a reproduction rate of {best_stats.get_reproduction_rate():.2%}.",
+                ""
+            ])
+
+        # Worst performer warning
+        algorithms_by_starvation = sorted(
+            [(aid, s) for aid, s in self.algorithm_stats.items() if s.total_deaths > 0],
+            key=lambda x: (
+                x[1].deaths_starvation / x[1].total_deaths
+                if x[1].total_deaths > 0 else 0
+            ),
+            reverse=True
+        )
+
+        if algorithms_by_starvation:
+            worst_algo_id, worst_stats = algorithms_by_starvation[0]
+            starvation_rate = (
+                worst_stats.deaths_starvation / worst_stats.total_deaths
+                if worst_stats.total_deaths > 0 else 0
+            )
+            lines.extend([
+                f"2. The algorithm '{worst_stats.algorithm_name}' has the highest starvation rate",
+                f"   at {starvation_rate:.2%}, indicating poor food-seeking behavior.",
+                ""
+            ])
+
+        # Overall metrics
+        total_starvation = sum(s.deaths_starvation for s in self.algorithm_stats.values())
+        total_deaths_all = sum(s.total_deaths for s in self.algorithm_stats.values())
+        if total_deaths_all > 0:
+            overall_starvation_rate = total_starvation / total_deaths_all
+            lines.append(f"3. Overall starvation rate: {overall_starvation_rate:.2%}")
+            if overall_starvation_rate > 0.5:
+                lines.extend([
+                    "   RECOMMENDATION: High starvation indicates resource scarcity.",
+                    "   Focus on food-seeking and energy conservation algorithms."
+                ])
+            lines.append("")
+
+        return lines
 
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         """Generate a comprehensive performance report for all algorithms.
@@ -552,127 +775,26 @@ class EcosystemManager:
         Returns:
             Formatted text report with algorithm performance metrics
         """
-        report_lines = []
-        report_lines.append("=" * 80)
-        report_lines.append("ALGORITHM PERFORMANCE REPORT")
-        report_lines.append("=" * 80)
-        report_lines.append("")
-        report_lines.append(f"Total Simulation Time: {self.frame_count} frames")
-        report_lines.append(f"Total Population Births: {self.total_births}")
-        report_lines.append(f"Total Population Deaths: {self.total_deaths}")
-        report_lines.append(f"Current Generation: {self.current_generation}")
-        report_lines.append("")
-
-        # Sort algorithms by performance metrics
+        # Filter algorithms with sufficient data
         algorithms_with_data = [
             (algo_id, stats) for algo_id, stats in self.algorithm_stats.items()
             if stats.total_births >= min_sample_size
         ]
 
-        # Sort by reproduction rate (most successful first)
-        algorithms_with_data.sort(key=lambda x: x[1].get_reproduction_rate(), reverse=True)
-
-        report_lines.append("-" * 80)
-        report_lines.append("TOP PERFORMING ALGORITHMS (by reproduction rate)")
-        report_lines.append("-" * 80)
-        report_lines.append("")
-
-        for i, (algo_id, stats) in enumerate(algorithms_with_data[:10], 1):
-            report_lines.append(f"#{i} - {stats.algorithm_name} (ID: {algo_id})")
-            report_lines.append(f"  Births: {stats.total_births}")
-            report_lines.append(f"  Deaths: {stats.total_deaths}")
-            report_lines.append(f"  Current Population: {stats.current_population}")
-            report_lines.append(f"  Reproductions: {stats.total_reproductions}")
-            report_lines.append(f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}")
-            report_lines.append(f"  Survival Rate: {stats.get_survival_rate():.2%}")
-            report_lines.append(f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames")
-            report_lines.append(f"  Food Eaten: {stats.total_food_eaten}")
-            report_lines.append(f"  Deaths - Starvation: {stats.deaths_starvation}, Old Age: {stats.deaths_old_age}, Predation: {stats.deaths_predation}")
-            report_lines.append("")
-
-        # Sort by survival rate
-        algorithms_with_data.sort(key=lambda x: x[1].get_survival_rate(), reverse=True)
-
-        report_lines.append("-" * 80)
-        report_lines.append("TOP SURVIVING ALGORITHMS (by current survival rate)")
-        report_lines.append("-" * 80)
-        report_lines.append("")
-
-        for i, (algo_id, stats) in enumerate(algorithms_with_data[:10], 1):
-            report_lines.append(f"#{i} - {stats.algorithm_name} (ID: {algo_id})")
-            report_lines.append(f"  Survival Rate: {stats.get_survival_rate():.2%}")
-            report_lines.append(f"  Current Population: {stats.current_population}")
-            report_lines.append(f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames")
-            report_lines.append("")
-
-        # Sort by average lifespan
-        algorithms_with_data.sort(key=lambda x: x[1].get_avg_lifespan(), reverse=True)
-
-        report_lines.append("-" * 80)
-        report_lines.append("LONGEST-LIVED ALGORITHMS (by average lifespan)")
-        report_lines.append("-" * 80)
-        report_lines.append("")
-
-        for i, (algo_id, stats) in enumerate(algorithms_with_data[:10], 1):
-            report_lines.append(f"#{i} - {stats.algorithm_name} (ID: {algo_id})")
-            report_lines.append(f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames")
-            report_lines.append(f"  Deaths: {stats.total_deaths}")
-            report_lines.append(f"  Starvation Deaths: {stats.deaths_starvation} ({stats.deaths_starvation/stats.total_deaths*100 if stats.total_deaths > 0 else 0:.1f}%)")
-            report_lines.append("")
-
-        # Worst performers (highest starvation rate)
-        algorithms_with_deaths = [
-            (algo_id, stats) for algo_id, stats in self.algorithm_stats.items()
-            if stats.total_deaths >= min_sample_size
-        ]
-        algorithms_with_deaths.sort(
-            key=lambda x: x[1].deaths_starvation / x[1].total_deaths if x[1].total_deaths > 0 else 0,
+        # Sort by reproduction rate for recommendations
+        algorithms_with_data.sort(
+            key=lambda x: x[1].get_reproduction_rate(),
             reverse=True
         )
 
-        report_lines.append("-" * 80)
-        report_lines.append("WORST PERFORMERS (highest starvation rate)")
-        report_lines.append("-" * 80)
-        report_lines.append("")
-
-        for i, (algo_id, stats) in enumerate(algorithms_with_deaths[:10], 1):
-            starvation_rate = stats.deaths_starvation / stats.total_deaths if stats.total_deaths > 0 else 0
-            report_lines.append(f"#{i} - {stats.algorithm_name} (ID: {algo_id})")
-            report_lines.append(f"  Starvation Rate: {starvation_rate:.2%}")
-            report_lines.append(f"  Deaths: {stats.total_deaths}")
-            report_lines.append(f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames")
-            report_lines.append(f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}")
-            report_lines.append("")
-
-        report_lines.append("-" * 80)
-        report_lines.append("RECOMMENDATIONS FOR NEXT GENERATION")
-        report_lines.append("-" * 80)
-        report_lines.append("")
-
-        # Generate recommendations based on data
-        if algorithms_with_data:
-            best_algo_id, best_stats = algorithms_with_data[0]
-            report_lines.append(f"1. The most successful algorithm is '{best_stats.algorithm_name}'")
-            report_lines.append(f"   with a reproduction rate of {best_stats.get_reproduction_rate():.2%}.")
-            report_lines.append("")
-
-        if algorithms_with_deaths:
-            worst_algo_id, worst_stats = algorithms_with_deaths[0]
-            starvation_rate = worst_stats.deaths_starvation / worst_stats.total_deaths if worst_stats.total_deaths > 0 else 0
-            report_lines.append(f"2. The algorithm '{worst_stats.algorithm_name}' has the highest starvation rate")
-            report_lines.append(f"   at {starvation_rate:.2%}, indicating poor food-seeking behavior.")
-            report_lines.append("")
-
-        total_starvation = sum(stats.deaths_starvation for stats in self.algorithm_stats.values())
-        total_deaths_all = sum(stats.total_deaths for stats in self.algorithm_stats.values())
-        if total_deaths_all > 0:
-            overall_starvation_rate = total_starvation / total_deaths_all
-            report_lines.append(f"3. Overall starvation rate: {overall_starvation_rate:.2%}")
-            if overall_starvation_rate > 0.5:
-                report_lines.append("   RECOMMENDATION: High starvation indicates resource scarcity.")
-                report_lines.append("   Focus on food-seeking and energy conservation algorithms.")
-            report_lines.append("")
-
+        # Build report from sections
+        report_lines = []
+        report_lines.extend(self._get_report_header())
+        report_lines.extend(self._get_top_performers_section(algorithms_with_data))
+        report_lines.extend(self._get_survival_section(algorithms_with_data))
+        report_lines.extend(self._get_longevity_section(algorithms_with_data))
+        report_lines.extend(self._get_worst_performers_section(min_sample_size))
+        report_lines.extend(self._get_recommendations_section(algorithms_with_data))
         report_lines.append("=" * 80)
 
         return "\n".join(report_lines)

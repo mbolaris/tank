@@ -100,20 +100,7 @@ class SimulationEngine:
 
                 # Handle fish death
                 if entity.is_dead():
-                    if self.ecosystem is not None:
-                        # Get algorithm ID if fish has a behavior algorithm
-                        algorithm_id = None
-                        if entity.genome.behavior_algorithm is not None:
-                            algorithm_id = get_algorithm_index(entity.genome.behavior_algorithm)
-                        self.ecosystem.record_death(
-                            entity.fish_id,
-                            entity.generation,
-                            entity.age,
-                            entity.get_death_cause(),
-                            entity.genome,
-                            algorithm_id=algorithm_id
-                        )
-                    self.entities_list.remove(entity)
+                    self.record_fish_death(entity)
 
             elif isinstance(entity, entities.Plant):
                 # Plant update returns potential food
@@ -166,6 +153,30 @@ class SimulationEngine:
             fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
             self.ecosystem.update_population_stats(fish_list)
             self.ecosystem.update(self.frame_count)
+
+    def record_fish_death(self, fish: entities.Fish, cause: Optional[str] = None) -> None:
+        """Record a fish death in the ecosystem and remove it from the simulation.
+
+        Args:
+            fish: The fish that died
+            cause: Optional death cause override (defaults to fish.get_death_cause())
+        """
+        if self.ecosystem is not None:
+            algorithm_id = None
+            if fish.genome.behavior_algorithm is not None:
+                algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+
+            death_cause = cause if cause is not None else fish.get_death_cause()
+            self.ecosystem.record_death(
+                fish.fish_id,
+                fish.generation,
+                fish.age,
+                death_cause,
+                fish.genome,
+                algorithm_id=algorithm_id
+            )
+        if fish in self.entities_list:
+            self.entities_list.remove(fish)
 
     def keep_entity_on_screen(self, entity: entities.Agent) -> None:
         """Keep an entity fully within the bounds of the screen."""
@@ -221,21 +232,8 @@ class SimulationEngine:
 
                         # Crab can only kill if hunt cooldown is ready
                         if other.can_hunt():
-                            # Record death from predation
-                            if self.ecosystem is not None:
-                                algorithm_id = None
-                                if fish.genome.behavior_algorithm is not None:
-                                    algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
-                                self.ecosystem.record_death(
-                                    fish.fish_id,
-                                    fish.generation,
-                                    fish.age,
-                                    'predation',
-                                    fish.genome,
-                                    algorithm_id=algorithm_id
-                                )
                             other.eat_fish(fish)
-                            self.entities_list.remove(fish)
+                            self.record_fish_death(fish, 'predation')
                             break
                     elif isinstance(other, entities.Food):
                         fish.eat(other)
@@ -247,45 +245,16 @@ class SimulationEngine:
                             self.add_poker_event(poker)
 
                             # Check if either fish died from poker
-                            fish_to_remove = []
-
+                            fish_died = False
                             if fish.is_dead() and fish in self.entities_list:
-                                if self.ecosystem is not None:
-                                    algorithm_id = None
-                                    if fish.genome.behavior_algorithm is not None:
-                                        algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
-                                    self.ecosystem.record_death(
-                                        fish.fish_id,
-                                        fish.generation,
-                                        fish.age,
-                                        fish.get_death_cause(),
-                                        fish.genome,
-                                        algorithm_id=algorithm_id
-                                    )
-                                fish_to_remove.append(fish)
+                                self.record_fish_death(fish)
+                                fish_died = True
 
                             if other.is_dead() and other in self.entities_list:
-                                if self.ecosystem is not None:
-                                    algorithm_id = None
-                                    if other.genome.behavior_algorithm is not None:
-                                        algorithm_id = get_algorithm_index(other.genome.behavior_algorithm)
-                                    self.ecosystem.record_death(
-                                        other.fish_id,
-                                        other.generation,
-                                        other.age,
-                                        other.get_death_cause(),
-                                        other.genome,
-                                        algorithm_id=algorithm_id
-                                    )
-                                fish_to_remove.append(other)
-
-                            # Remove dead fish
-                            for dead_fish in fish_to_remove:
-                                if dead_fish in self.entities_list:
-                                    self.entities_list.remove(dead_fish)
+                                self.record_fish_death(other)
 
                             # Break if current fish died
-                            if fish in fish_to_remove:
+                            if fish_died:
                                 break
 
     def handle_food_collisions(self) -> None:

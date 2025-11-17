@@ -11,6 +11,10 @@ from enum import Enum
 
 # Use a simple Vector2 class or import from pygame.math (we'll create a pure version)
 from core.math_utils import Vector2
+from core.constants import (
+    INITIAL_ENERGY_RATIO, BABY_METABOLISM_MULTIPLIER,
+    ELDER_METABOLISM_MULTIPLIER, STARVATION_THRESHOLD
+)
 
 if TYPE_CHECKING:
     from core.environment import Environment
@@ -239,7 +243,7 @@ class Fish(Agent):
 
         # Energy & metabolism
         self.max_energy: float = self.BASE_MAX_ENERGY * self.genome.max_energy
-        self.energy: float = self.max_energy * 0.5  # Start with 50% energy - harder survival
+        self.energy: float = self.max_energy * INITIAL_ENERGY_RATIO  # Start with 50% energy - harder survival
 
         # Predator tracking (for death attribution)
         self.last_predator_encounter_age: int = -1000  # Age when last encountered a predator
@@ -326,9 +330,9 @@ class Fish(Agent):
 
         # Life stage modifiers (applied to metabolism, not existence cost)
         if self.life_stage == LifeStage.BABY:
-            metabolism *= 0.7  # Babies need less energy
+            metabolism *= BABY_METABOLISM_MULTIPLIER  # Babies need less energy
         elif self.life_stage == LifeStage.ELDER:
-            metabolism *= 1.2  # Elders need more energy
+            metabolism *= ELDER_METABOLISM_MULTIPLIER  # Elders need more energy
 
         # Total energy consumption
         total_cost += metabolism
@@ -336,7 +340,7 @@ class Fish(Agent):
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy)."""
-        return self.energy < 20.0
+        return self.energy < STARVATION_THRESHOLD
 
     def is_critical_energy(self) -> bool:
         """Check if fish is in critical energy state (emergency survival mode)."""
