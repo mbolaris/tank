@@ -50,13 +50,13 @@ class TerritorialDefender(BehaviorAlgorithm):
 
         if intruders:
             nearest = min(intruders, key=lambda f: (f.pos - fish.pos).length())
-            direction = (nearest.pos - fish.pos).normalize()
+            direction = self._safe_normalize(nearest.pos - fish.pos)
             return direction.x * self.parameters["aggression"], direction.y * self.parameters["aggression"]
 
         # Return to territory center
         direction = (self.territory_center - fish.pos)
         if direction.length() > self.parameters["territory_radius"]:
-            direction = direction.normalize()
+            direction = self._safe_normalize(direction)
             return direction.x * 0.5, direction.y * 0.5
 
         return 0, 0
@@ -88,14 +88,14 @@ class RandomExplorer(BehaviorAlgorithm):
 
         # Predator avoidance
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.2, direction.y * 1.2
 
         # Food opportunism
         if nearest_food:
             food_distance = (nearest_food.pos - fish.pos).length()
             if food_distance < 70:
-                direction = (nearest_food.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 1.0, direction.y * 1.0
 
         # Boundary avoidance - don't explore into walls
@@ -115,9 +115,7 @@ class RandomExplorer(BehaviorAlgorithm):
             # Bias new direction away from edges
             new_x = random.uniform(-1, 1) + avoid_x
             new_y = random.uniform(-1, 1) + avoid_y
-            self.current_direction = Vector2(new_x, new_y)
-            if self.current_direction.length() > 0:
-                self.current_direction = self.current_direction.normalize()
+            self.current_direction = self._safe_normalize(Vector2(new_x, new_y))
 
         # Sometimes explore toward unexplored areas (away from other fish)
         if random.random() < 0.1:
@@ -129,8 +127,7 @@ class RandomExplorer(BehaviorAlgorithm):
                     crowd_center = sum((f.pos for f in other_fish), Vector2()) / len(other_fish)
                     # Explore away from the crowd
                     away_from_crowd = (fish.pos - crowd_center)
-                    if away_from_crowd.length() > 0:
-                        self.current_direction = away_from_crowd.normalize()
+                    self.current_direction = self._safe_normalize(away_from_crowd)
 
         return self.current_direction.x * self.parameters["exploration_speed"], \
                self.current_direction.y * self.parameters["exploration_speed"]
@@ -198,11 +195,8 @@ class CornerSeeker(BehaviorAlgorithm):
         }
 
         target = corners[self.parameters["preferred_corner"]]
-        direction = (target - fish.pos)
-        if direction.length() > 0:
-            direction = direction.normalize()
-            return direction.x * self.parameters["approach_speed"], direction.y * self.parameters["approach_speed"]
-        return 0, 0
+        direction = self._safe_normalize(target - fish.pos)
+        return direction.x * self.parameters["approach_speed"], direction.y * self.parameters["approach_speed"]
 
 
 @dataclass
@@ -228,7 +222,7 @@ class CenterHugger(BehaviorAlgorithm):
         distance = (center - fish.pos).length()
 
         if distance > self.parameters["orbit_radius"]:
-            direction = (center - fish.pos).normalize()
+            direction = self._safe_normalize(center - fish.pos)
             return direction.x * self.parameters["return_strength"], direction.y * self.parameters["return_strength"]
         return 0, 0
 
@@ -280,12 +274,12 @@ class RoutePatroller(BehaviorAlgorithm):
 
         # Interrupt patrol for immediate threats
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 100:
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.3, direction.y * 1.3
 
         # Interrupt patrol for close food
         if nearest_food and (nearest_food.pos - fish.pos).length() < 60:
-            direction = (nearest_food.pos - fish.pos).normalize()
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * 0.9, direction.y * 0.9
 
         # Continue patrol
@@ -297,7 +291,7 @@ class RoutePatroller(BehaviorAlgorithm):
             # Look for food near this waypoint before moving on
             if nearest_food and (nearest_food.pos - target).length() < 100:
                 # Food near waypoint - pursue it
-                direction = (nearest_food.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * self.parameters["patrol_speed"], direction.y * self.parameters["patrol_speed"]
 
             # Move to next waypoint
@@ -305,18 +299,15 @@ class RoutePatroller(BehaviorAlgorithm):
             target = self.waypoints[self.current_waypoint_idx]
 
         # Move toward current waypoint
-        direction = (target - fish.pos)
-        if direction.length() > 0:
-            direction = direction.normalize()
+        direction = self._safe_normalize(target - fish.pos)
 
-            # Vary speed based on distance - slow down when approaching
-            speed_multiplier = 1.0
-            if distance < 80:
-                speed_multiplier = 0.7 + (distance / 80) * 0.3
+        # Vary speed based on distance - slow down when approaching
+        speed_multiplier = 1.0
+        if distance < 80:
+            speed_multiplier = 0.7 + (distance / 80) * 0.3
 
-            return direction.x * self.parameters["patrol_speed"] * speed_multiplier, \
-                   direction.y * self.parameters["patrol_speed"] * speed_multiplier
-        return 0, 0
+        return direction.x * self.parameters["patrol_speed"] * speed_multiplier, \
+               direction.y * self.parameters["patrol_speed"] * speed_multiplier
 
 
 @dataclass
@@ -340,12 +331,9 @@ class BoundaryExplorer(BehaviorAlgorithm):
 
         # Move toward edges
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-        direction = (fish.pos - center)
-        if direction.length() > 0:
-            direction = direction.normalize()
-            return direction.x * self.parameters["exploration_speed"] * self.parameters["edge_preference"], \
-                   direction.y * self.parameters["exploration_speed"] * self.parameters["edge_preference"]
-        return 0, 0
+        direction = self._safe_normalize(fish.pos - center)
+        return direction.x * self.parameters["exploration_speed"] * self.parameters["edge_preference"], \
+               direction.y * self.parameters["exploration_speed"] * self.parameters["edge_preference"]
 
 
 @dataclass
@@ -375,7 +363,7 @@ class NomadicWanderer(BehaviorAlgorithm):
         # Immediate threat response
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 110:
             # Flee but maintain nomadic unpredictability
-            base_escape = (fish.pos - nearest_predator.pos).normalize()
+            base_escape = self._safe_normalize(fish.pos - nearest_predator.pos)
             perp_x, perp_y = -base_escape.y, base_escape.x
             randomness = random.uniform(-0.4, 0.4)
             vx = base_escape.x * 1.0 + perp_x * randomness
@@ -387,7 +375,7 @@ class NomadicWanderer(BehaviorAlgorithm):
             food_distance = (nearest_food.pos - fish.pos).length()
             if food_distance < 50:
                 # Close food - grab it
-                direction = (nearest_food.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 1.0, direction.y * 1.0
 
         # Boundary awareness - avoid getting stuck in corners
@@ -397,7 +385,7 @@ class NomadicWanderer(BehaviorAlgorithm):
            fish.pos.y < edge_margin or fish.pos.y > SCREEN_HEIGHT - edge_margin:
             # Turn toward center
             center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-            to_center = (center - fish.pos).normalize()
+            to_center = self._safe_normalize(center - fish.pos)
             # Blend turn toward center with random wandering
             boundary_influence = 0.4
             self.wander_angle = math.atan2(to_center.y, to_center.x) + random.gauss(0, 0.3)
@@ -419,7 +407,7 @@ class NomadicWanderer(BehaviorAlgorithm):
         if energy_ratio < 0.4:
             # Lower energy = more purposeful toward food
             if nearest_food and (nearest_food.pos - fish.pos).length() < 150:
-                food_dir = (nearest_food.pos - fish.pos).normalize()
+                food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
                 # Blend wandering with food seeking
                 vx = vx * 0.4 + food_dir.x * 0.6
                 vy = vy * 0.4 + food_dir.y * 0.6

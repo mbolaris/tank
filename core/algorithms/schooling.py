@@ -45,10 +45,8 @@ class TightScholer(BehaviorAlgorithm):
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
         if allies:
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
-            direction = (center - fish.pos)
-            if direction.length() > 0:
-                direction = direction.normalize()
-                return direction.x * self.parameters["cohesion_strength"], direction.y * self.parameters["cohesion_strength"]
+            direction = self._safe_normalize(center - fish.pos)
+            return direction.x * self.parameters["cohesion_strength"], direction.y * self.parameters["cohesion_strength"]
         return 0, 0
 
 
@@ -76,7 +74,7 @@ class LooseScholer(BehaviorAlgorithm):
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
             distance = (center - fish.pos).length()
             if distance > self.parameters["max_distance"]:
-                direction = (center - fish.pos).normalize()
+                direction = self._safe_normalize(center - fish.pos)
                 return direction.x * self.parameters["cohesion_strength"], direction.y * self.parameters["cohesion_strength"]
         return 0, 0
 
@@ -106,7 +104,7 @@ class LeaderFollower(BehaviorAlgorithm):
             leader = max(allies, key=lambda f: f.energy)
             distance = (leader.pos - fish.pos).length()
             if 0 < distance < self.parameters["max_follow_distance"]:
-                direction = (leader.pos - fish.pos).normalize()
+                direction = self._safe_normalize(leader.pos - fish.pos)
                 return direction.x * self.parameters["follow_strength"], direction.y * self.parameters["follow_strength"]
         return 0, 0
 
@@ -136,7 +134,7 @@ class AlignmentMatcher(BehaviorAlgorithm):
         if allies:
             avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)
             if avg_vel.length() > 0:
-                avg_vel = avg_vel.normalize()
+                avg_vel = self._safe_normalize(avg_vel)
                 return avg_vel.x * self.parameters["alignment_strength"], avg_vel.y * self.parameters["alignment_strength"]
         return 0, 0
 
@@ -166,7 +164,7 @@ class SeparationSeeker(BehaviorAlgorithm):
         for ally in allies:
             distance = (ally.pos - fish.pos).length()
             if 0 < distance < self.parameters["min_distance"]:
-                direction = (fish.pos - ally.pos).normalize()
+                direction = self._safe_normalize(fish.pos - ally.pos)
                 strength = (self.parameters["min_distance"] - distance) / self.parameters["min_distance"]
                 vx += direction.x * strength * self.parameters["separation_strength"]
                 vy += direction.y * strength * self.parameters["separation_strength"]
@@ -198,10 +196,8 @@ class FrontRunner(BehaviorAlgorithm):
         if allies:
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
             # Move away from center to lead
-            direction = (fish.pos - center)
-            if direction.length() > 0:
-                direction = direction.normalize()
-                return direction.x * self.parameters["leadership_strength"], direction.y * self.parameters["leadership_strength"]
+            direction = self._safe_normalize(fish.pos - center)
+            return direction.x * self.parameters["leadership_strength"], direction.y * self.parameters["leadership_strength"]
 
         # If alone, just move forward
         return self.parameters["independence"], 0
@@ -234,12 +230,12 @@ class PerimeterGuard(BehaviorAlgorithm):
 
             if distance < self.parameters["orbit_radius"]:
                 # Move away from center
-                normalized = to_center.normalize()
+                normalized = self._safe_normalize(to_center)
                 direction = Vector2(-normalized.x, -normalized.y)
                 return direction.x * self.parameters["orbit_speed"], direction.y * self.parameters["orbit_speed"]
             elif distance > self.parameters["orbit_radius"] * 1.3:
                 # Move toward center
-                direction = to_center.normalize()
+                direction = self._safe_normalize(to_center)
                 return direction.x * self.parameters["orbit_speed"], direction.y * self.parameters["orbit_speed"]
         return 0, 0
 
@@ -270,7 +266,7 @@ class MirrorMover(BehaviorAlgorithm):
             nearest = min(allies, key=lambda f: (f.pos - fish.pos).length())
             # Copy their velocity
             if nearest.vel.length() > 0:
-                direction = nearest.vel.normalize()
+                direction = self._safe_normalize(nearest.vel)
                 return direction.x * self.parameters["mirror_strength"], direction.y * self.parameters["mirror_strength"]
         return 0, 0
 
@@ -310,15 +306,11 @@ class BoidsBehavior(BehaviorAlgorithm):
         if not allies:
             # Alone - seek food or flee
             if in_danger and predator_distance < 150:
-                direction = (fish.pos - nearest_predator.pos)
-                if direction.length() > 0:
-                    direction = direction.normalize()
-                    return direction.x * 1.3, direction.y * 1.3
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+                return direction.x * 1.3, direction.y * 1.3
             elif food_nearby:
-                direction = (nearest_food.pos - fish.pos)
-                if direction.length() > 0:
-                    direction = direction.normalize()
-                    return direction.x * 0.7, direction.y * 0.7
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x * 0.7, direction.y * 0.7
             return 0, 0
 
         # Filter to nearby allies for efficiency
@@ -332,7 +324,7 @@ class BoidsBehavior(BehaviorAlgorithm):
         for ally in nearby_allies:
             distance = (ally.pos - fish.pos).length()
             if 0 < distance < separation_distance:
-                direction = (fish.pos - ally.pos).normalize()
+                direction = self._safe_normalize(fish.pos - ally.pos)
                 # Stronger separation when very close
                 strength = (separation_distance - distance) / separation_distance
                 sep_x += direction.x * strength / max(distance, 1)
@@ -341,16 +333,12 @@ class BoidsBehavior(BehaviorAlgorithm):
         # Alignment - match velocity
         avg_vel = sum((f.vel for f in nearby_allies), Vector2()) / len(nearby_allies)
         if avg_vel.length() > 0:
-            avg_vel = avg_vel.normalize()
+            avg_vel = self._safe_normalize(avg_vel)
         align_x, align_y = avg_vel.x, avg_vel.y
 
         # Cohesion - move toward center
         center = sum((f.pos for f in nearby_allies), Vector2()) / len(nearby_allies)
-        coh_dir = (center - fish.pos)
-        if coh_dir.length() > 0:
-            coh_dir = coh_dir.normalize()
-        else:
-            coh_dir = Vector2()
+        coh_dir = self._safe_normalize(center - fish.pos)
 
         # Dynamic weight adjustment based on context
         sep_weight = self.parameters["separation_weight"]
@@ -377,20 +365,16 @@ class BoidsBehavior(BehaviorAlgorithm):
 
         # Add predator avoidance
         if in_danger and predator_distance < 150:
-            avoid_dir = (fish.pos - nearest_predator.pos)
-            if avoid_dir.length() > 0:
-                avoid_dir = avoid_dir.normalize()
-                threat_strength = (150 - predator_distance) / 150
-                vx += avoid_dir.x * threat_strength * 2.0
-                vy += avoid_dir.y * threat_strength * 2.0
+            avoid_dir = self._safe_normalize(fish.pos - nearest_predator.pos)
+            threat_strength = (150 - predator_distance) / 150
+            vx += avoid_dir.x * threat_strength * 2.0
+            vy += avoid_dir.y * threat_strength * 2.0
 
         # Add food attraction for whole school
         if food_nearby and food_distance < 80:
-            food_dir = (nearest_food.pos - fish.pos)
-            if food_dir.length() > 0:
-                food_dir = food_dir.normalize()
-                vx += food_dir.x * 0.5
-                vy += food_dir.y * 0.5
+            food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
+            vx += food_dir.x * 0.5
+            vy += food_dir.y * 0.5
 
         # Normalize
         length = math.sqrt(vx*vx + vy*vy)
@@ -459,33 +443,26 @@ class DynamicScholer(BehaviorAlgorithm):
         if allies:
             # Move toward school center
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
-            direction = (center - fish.pos)
+            direction = self._safe_normalize(center - fish.pos)
 
-            vx, vy = 0, 0
-            if direction.length() > 0:
-                direction = direction.normalize()
-                vx = direction.x * cohesion
-                vy = direction.y * cohesion
+            vx = direction.x * cohesion
+            vy = direction.y * cohesion
 
             # Add threat response
             if threat_level > 0.3 and nearest_predator:
-                avoid_dir = (fish.pos - nearest_predator.pos)
-                if avoid_dir.length() > 0:
-                    avoid_dir = avoid_dir.normalize()
-                    vx += avoid_dir.x * threat_level * 1.5
-                    vy += avoid_dir.y * threat_level * 1.5
+                avoid_dir = self._safe_normalize(fish.pos - nearest_predator.pos)
+                vx += avoid_dir.x * threat_level * 1.5
+                vy += avoid_dir.y * threat_level * 1.5
 
             # Add food seeking when safe and hungry (IMPROVED THRESHOLDS)
             # Seek food earlier (when < 80% energy) and with lower threat tolerance
             if threat_level < 0.4 and energy_ratio < 0.8 and nearest_food:
-                food_dir = (nearest_food.pos - fish.pos)
-                if food_dir.length() > 0:
-                    food_dir = food_dir.normalize()
-                    hunger = 1.0 - energy_ratio
-                    # Increased food-seeking strength from 0.7 to 1.2
-                    food_weight = 1.2 * hunger
-                    vx += food_dir.x * food_weight
-                    vy += food_dir.y * food_weight
+                food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
+                hunger = 1.0 - energy_ratio
+                # Increased food-seeking strength from 0.7 to 1.2
+                food_weight = 1.2 * hunger
+                vx += food_dir.x * food_weight
+                vy += food_dir.y * food_weight
 
             # Normalize
             length = math.sqrt(vx*vx + vy*vy)
@@ -494,16 +471,12 @@ class DynamicScholer(BehaviorAlgorithm):
 
         # No allies - go solo (IMPROVED FOOD SEEKING)
         if threat_level > 0.5 and nearest_predator:
-            direction = (fish.pos - nearest_predator.pos)
-            if direction.length() > 0:
-                direction = direction.normalize()
-                return direction.x * 1.2, direction.y * 1.2
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+            return direction.x * 1.2, direction.y * 1.2
         elif energy_ratio < 0.75 and nearest_food:  # Seek food earlier (was 0.5, now 0.75)
-            direction = (nearest_food.pos - fish.pos)
-            if direction.length() > 0:
-                direction = direction.normalize()
-                hunger = 1.0 - energy_ratio
-                seek_speed = 0.8 + hunger * 0.4  # More aggressive when hungrier
-                return direction.x * seek_speed, direction.y * seek_speed
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
+            hunger = 1.0 - energy_ratio
+            seek_speed = 0.8 + hunger * 0.4  # More aggressive when hungrier
+            return direction.x * seek_speed, direction.y * seek_speed
 
         return 0, 0

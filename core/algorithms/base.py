@@ -325,5 +325,21 @@ def _find_nearest(self, fish: 'Fish', agent_type) -> Optional[Any]:
     return min(agents, key=lambda a: (a.pos - fish.pos).length())
 
 
-# Inject helper method into base class
+def _safe_normalize(self, vector: Vector2) -> Vector2:
+    """Safely normalize a vector, returning zero vector if length is zero.
+
+    Args:
+        vector: The vector to normalize
+
+    Returns:
+        Normalized vector or Vector2(0, 0) if vector length is zero or near-zero
+    """
+    length = vector.length()
+    if length < 1e-6:  # Use small epsilon to handle floating point errors
+        return Vector2(0, 0)
+    return vector.normalize()
+
+
+# Inject helper methods into base class
 BehaviorAlgorithm._find_nearest = _find_nearest
+BehaviorAlgorithm._safe_normalize = _safe_normalize
