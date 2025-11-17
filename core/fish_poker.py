@@ -7,7 +7,7 @@ The outcome determines energy transfer between the fish.
 Updated to support multi-round betting and folding.
 """
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List, Tuple
 from dataclasses import dataclass
 from core.poker_interaction import PokerEngine, PokerHand, PokerGameState, BettingAction
 import random
@@ -27,6 +27,11 @@ class PokerResult:
     won_by_fold: bool  # True if winner won because opponent folded
     total_rounds: int  # Number of betting rounds completed
     final_pot: float  # Final pot size
+    button_position: int  # Which player had the button (1 or 2)
+    player1_folded: bool  # Did player 1 fold
+    player2_folded: bool  # Did player 2 fold
+    reached_showdown: bool  # Did game reach showdown
+    betting_history: List[Tuple[int, 'BettingAction', float]]  # Betting actions taken
 
 
 class PokerInteraction:
@@ -63,6 +68,13 @@ class PokerInteraction:
             fish1.poker_cooldown = 0
         if not hasattr(fish2, 'poker_cooldown'):
             fish2.poker_cooldown = 0
+
+        # Add button position tracking for positional play
+        # Button rotates between players in consecutive games
+        if not hasattr(fish1, 'last_button_position'):
+            fish1.last_button_position = 2  # Start with button position 2
+        if not hasattr(fish2, 'last_button_position'):
+            fish2.last_button_position = 2
 
     def can_play_poker(self) -> bool:
         """
@@ -143,13 +155,20 @@ class PokerInteraction:
         fish1_aggression = random.uniform(PokerEngine.AGGRESSION_LOW, PokerEngine.AGGRESSION_HIGH)
         fish2_aggression = random.uniform(PokerEngine.AGGRESSION_LOW, PokerEngine.AGGRESSION_HIGH)
 
-        # Simulate multi-round game
+        # Rotate button position for positional play
+        # Button alternates between 1 and 2
+        button_position = 2 if self.fish1.last_button_position == 1 else 1
+        self.fish1.last_button_position = button_position
+        self.fish2.last_button_position = button_position
+
+        # Simulate multi-round Texas Hold'em game with blinds and position
         game_state = PokerEngine.simulate_multi_round_game(
             initial_bet=bet_amount,
             player1_energy=self.fish1.energy,
             player2_energy=self.fish2.energy,
             player1_aggression=fish1_aggression,
-            player2_aggression=fish2_aggression
+            player2_aggression=fish2_aggression,
+            button_position=button_position
         )
 
         # Store hands
@@ -206,6 +225,9 @@ class PokerInteraction:
         # Count rounds played
         total_rounds = int(game_state.current_round) if game_state.current_round < 4 else 4
 
+        # Determine if game reached showdown
+        reached_showdown = not won_by_fold
+
         # Create result
         self.result = PokerResult(
             hand1=self.hand1,
@@ -215,7 +237,12 @@ class PokerInteraction:
             loser_id=loser_id,
             won_by_fold=won_by_fold,
             total_rounds=total_rounds,
-            final_pot=game_state.pot
+            final_pot=game_state.pot,
+            button_position=button_position,
+            player1_folded=game_state.player1_folded,
+            player2_folded=game_state.player2_folded,
+            reached_showdown=reached_showdown,
+            betting_history=game_state.betting_history
         )
 
         # Record in ecosystem if available (including ties)
@@ -231,6 +258,10 @@ class PokerInteraction:
                 from core.behavior_algorithms import get_algorithm_index
                 fish2_algo_id = get_algorithm_index(self.fish2.genome.behavior_algorithm)
 
+            # Determine which fish is player 1 and player 2 for stats
+            player1_algo_id = fish1_algo_id
+            player2_algo_id = fish2_algo_id
+
             self.fish1.ecosystem.record_poker_outcome(
                 winner_id=winner_id,
                 loser_id=loser_id,
@@ -239,7 +270,10 @@ class PokerInteraction:
                 amount=energy_transferred,
                 winner_hand=self.hand1 if winner_id == self.fish1.fish_id else self.hand2,
                 loser_hand=self.hand2 if winner_id == self.fish1.fish_id else self.hand1,
-                house_cut=house_cut
+                house_cut=house_cut,
+                result=self.result,
+                player1_algo_id=player1_algo_id,
+                player2_algo_id=player2_algo_id
             )
 
         return True
