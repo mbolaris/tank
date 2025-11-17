@@ -187,12 +187,12 @@ class Fish(Agent):
 
     # Energy constants (DIFFICULTY INCREASED - survival is more challenging)
     BASE_MAX_ENERGY = 100.0
-    ENERGY_FROM_FOOD = 40.0  # More energy from food
-    EXISTENCE_ENERGY_COST = 0.01  # Small cost just for being alive (not affected by genes)
-    BASE_METABOLISM = 0.030  # Increased from 0.018 - fish burn energy faster
-    MOVEMENT_ENERGY_COST = 0.015  # Increased from 0.008 - movement is expensive
+    ENERGY_FROM_FOOD = 1.0  # Energy from food is determined by food type in constants.py
+    EXISTENCE_ENERGY_COST = 0.02  # Increased cost just for being alive
+    BASE_METABOLISM = 0.045  # Increased from 0.030 - fish burn energy faster
+    MOVEMENT_ENERGY_COST = 0.025  # Increased from 0.015 - movement is expensive
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
-    SHARP_TURN_ENERGY_COST = 0.05  # Increased from 0.03 - sharp turns are costly
+    SHARP_TURN_ENERGY_COST = 0.08  # Increased from 0.05 - sharp turns are costly
 
     # Predator encounter tracking
     PREDATOR_ENCOUNTER_WINDOW = 150  # 5 seconds - recent conflict window for death attribution
@@ -239,7 +239,7 @@ class Fish(Agent):
 
         # Energy & metabolism
         self.max_energy: float = self.BASE_MAX_ENERGY * self.genome.max_energy
-        self.energy: float = self.max_energy  # Start with full energy
+        self.energy: float = self.max_energy * 0.5  # Start with 50% energy - harder survival
 
         # Predator tracking (for death attribution)
         self.last_predator_encounter_age: int = -1000  # Age when last encountered a predator
@@ -632,8 +632,8 @@ class Plant(Agent):
         current_food_count: Current number of food items from this plant
     """
 
-    BASE_FOOD_PRODUCTION_RATE = 60  # 2 seconds at 30fps (IMPROVED from 3s for better food supply)
-    MAX_FOOD_CAPACITY = 15  # Maximum food items per plant (INCREASED from 10 to support population)
+    BASE_FOOD_PRODUCTION_RATE = 120  # 4 seconds at 30fps - REDUCED production for harder survival
+    MAX_FOOD_CAPACITY = 10  # Maximum food items per plant - REDUCED for scarcity
     STATIONARY_FOOD_CHANCE = 0.35  # Increased from 0.25 to grow more stationary nectar
     STATIONARY_FOOD_TYPE = 'nectar'
 
