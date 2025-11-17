@@ -220,6 +220,61 @@ class EcosystemEvent:
     details: str = ""
 
 
+@dataclass
+class ReproductionStats:
+    """Statistics for reproduction dynamics.
+
+    Attributes:
+        total_reproductions: Total successful reproductions
+        total_mating_attempts: Total mating attempts (successful + failed)
+        total_failed_attempts: Total failed mating attempts
+        current_pregnant_fish: Current number of pregnant fish
+        total_offspring: Total offspring produced
+    """
+    total_reproductions: int = 0
+    total_mating_attempts: int = 0
+    total_failed_attempts: int = 0
+    current_pregnant_fish: int = 0
+    total_offspring: int = 0
+
+    def get_success_rate(self) -> float:
+        """Calculate mating success rate."""
+        return self.total_reproductions / self.total_mating_attempts if self.total_mating_attempts > 0 else 0.0
+
+    def get_offspring_per_reproduction(self) -> float:
+        """Calculate average offspring per reproduction."""
+        return self.total_offspring / self.total_reproductions if self.total_reproductions > 0 else 0.0
+
+
+@dataclass
+class GeneticDiversityStats:
+    """Statistics for genetic diversity in the population.
+
+    Attributes:
+        unique_algorithms: Number of unique behavior algorithms present
+        unique_species: Number of unique species present
+        color_variance: Variance in color hue (0-1)
+        trait_variances: Dict of trait name to variance
+        avg_genome_similarity: Average genetic similarity (0-1, optional)
+    """
+    unique_algorithms: int = 0
+    unique_species: int = 0
+    color_variance: float = 0.0
+    trait_variances: Dict[str, float] = field(default_factory=dict)
+    avg_genome_similarity: float = 0.0
+
+    def get_diversity_score(self) -> float:
+        """Calculate overall diversity score (0-1, higher is more diverse)."""
+        # Combine multiple diversity metrics
+        # More algorithms and species = better, higher variance = better
+        algo_score = min(self.unique_algorithms / 48.0, 1.0)  # 48 total algorithms
+        species_score = min(self.unique_species / 4.0, 1.0)  # 4 species
+        color_score = min(self.color_variance * 3.0, 1.0)  # Normalize variance
+
+        # Average the scores
+        return (algo_score + species_score + color_score) / 3.0
+
+
 class EcosystemManager:
     """Manages ecosystem dynamics and statistics.
 
@@ -266,6 +321,12 @@ class EcosystemManager:
         # Poker statistics tracking
         self.poker_stats: Dict[int, PokerStats] = {}
         self._init_poker_stats()
+
+        # Reproduction statistics tracking
+        self.reproduction_stats: ReproductionStats = ReproductionStats()
+
+        # Genetic diversity statistics tracking
+        self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
 
         # Next available fish ID
         self.next_fish_id: int = 0
@@ -457,6 +518,85 @@ class EcosystemManager:
                         sum(f.genome.max_energy for f in fishes_with_genome) / len(fishes)
                     )
 
+        # Update genetic diversity stats
+        self.update_genetic_diversity_stats(fish_list)
+
+        # Update pregnant fish count
+        pregnant_count = sum(1 for fish in fish_list if hasattr(fish, 'reproduction') and fish.reproduction.is_pregnant)
+        self.update_pregnant_count(pregnant_count)
+
+    def update_genetic_diversity_stats(self, fish_list: List['Fish']) -> None:
+        """Calculate and update genetic diversity statistics.
+
+        Args:
+            fish_list: List of all living fish
+        """
+        if not fish_list:
+            self.genetic_diversity_stats = GeneticDiversityStats()
+            return
+
+        # Import here to avoid circular dependency
+        try:
+            from core.algorithms import get_algorithm_index
+        except ImportError:
+            get_algorithm_index = None
+
+        # Count unique algorithms
+        algorithms = set()
+        species = set()
+        color_hues = []
+        speed_modifiers = []
+        size_modifiers = []
+        vision_ranges = []
+
+        for fish in fish_list:
+            # Count algorithms (using get_algorithm_index to get the index)
+            if hasattr(fish, 'genome') and hasattr(fish.genome, 'behavior_algorithm') and get_algorithm_index is not None:
+                algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
+                if algo_idx >= 0:
+                    algorithms.add(algo_idx)
+
+            # Count species
+            if hasattr(fish, 'species'):
+                species.add(fish.species)
+
+            # Collect trait values
+            if hasattr(fish, 'genome'):
+                if hasattr(fish.genome, 'color_hue'):
+                    color_hues.append(fish.genome.color_hue)
+                if hasattr(fish.genome, 'speed_modifier'):
+                    speed_modifiers.append(fish.genome.speed_modifier)
+                if hasattr(fish.genome, 'size_modifier'):
+                    size_modifiers.append(fish.genome.size_modifier)
+                if hasattr(fish.genome, 'vision_range'):
+                    vision_ranges.append(fish.genome.vision_range)
+
+        # Calculate variance for color (0-1 scale)
+        color_variance = 0.0
+        if len(color_hues) > 1:
+            mean_color = sum(color_hues) / len(color_hues)
+            color_variance = sum((h - mean_color) ** 2 for h in color_hues) / len(color_hues)
+
+        # Calculate trait variances
+        trait_variances = {}
+        if len(speed_modifiers) > 1:
+            mean_speed = sum(speed_modifiers) / len(speed_modifiers)
+            trait_variances['speed'] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / len(speed_modifiers)
+
+        if len(size_modifiers) > 1:
+            mean_size = sum(size_modifiers) / len(size_modifiers)
+            trait_variances['size'] = sum((s - mean_size) ** 2 for s in size_modifiers) / len(size_modifiers)
+
+        if len(vision_ranges) > 1:
+            mean_vision = sum(vision_ranges) / len(vision_ranges)
+            trait_variances['vision'] = sum((v - mean_vision) ** 2 for v in vision_ranges) / len(vision_ranges)
+
+        # Update diversity stats
+        self.genetic_diversity_stats.unique_algorithms = len(algorithms)
+        self.genetic_diversity_stats.unique_species = len(species)
+        self.genetic_diversity_stats.color_variance = color_variance
+        self.genetic_diversity_stats.trait_variances = trait_variances
+
     def _add_event(self, event: EcosystemEvent) -> None:
         """Add an event to the log, maintaining max size.
 
@@ -528,6 +668,8 @@ class EcosystemManager:
             'generations_alive': len([g for g, s in self.generation_stats.items() if s.population > 0]),
             'poker_stats': poker_summary,
             'total_energy': total_energy,
+            'reproduction_stats': self.get_reproduction_summary(),
+            'diversity_stats': self.get_diversity_summary(),
         }
 
     def get_poker_stats_summary(self) -> Dict[str, Any]:
@@ -635,6 +777,43 @@ class EcosystemManager:
             'postflop_folds': total_folds - total_preflop_folds,
         }
 
+    def get_reproduction_summary(self) -> Dict[str, Any]:
+        """Get summary reproduction statistics.
+
+        Returns:
+            Dictionary with reproduction metrics
+        """
+        return {
+            'total_reproductions': self.reproduction_stats.total_reproductions,
+            'total_mating_attempts': self.reproduction_stats.total_mating_attempts,
+            'total_failed_attempts': self.reproduction_stats.total_failed_attempts,
+            'success_rate': self.reproduction_stats.get_success_rate(),
+            'success_rate_pct': f"{self.reproduction_stats.get_success_rate():.1%}",
+            'current_pregnant_fish': self.reproduction_stats.current_pregnant_fish,
+            'total_offspring': self.reproduction_stats.total_offspring,
+            'offspring_per_reproduction': self.reproduction_stats.get_offspring_per_reproduction(),
+        }
+
+    def get_diversity_summary(self) -> Dict[str, Any]:
+        """Get summary genetic diversity statistics.
+
+        Returns:
+            Dictionary with diversity metrics
+        """
+        diversity_score = self.genetic_diversity_stats.get_diversity_score()
+        trait_vars = self.genetic_diversity_stats.trait_variances
+
+        return {
+            'unique_algorithms': self.genetic_diversity_stats.unique_algorithms,
+            'unique_species': self.genetic_diversity_stats.unique_species,
+            'color_variance': self.genetic_diversity_stats.color_variance,
+            'speed_variance': trait_vars.get('speed', 0.0),
+            'size_variance': trait_vars.get('size', 0.0),
+            'vision_variance': trait_vars.get('vision', 0.0),
+            'diversity_score': diversity_score,
+            'diversity_score_pct': f"{diversity_score:.1%}",
+        }
+
     def record_reproduction(self, algorithm_id: int) -> None:
         """Record a successful reproduction by a fish with the given algorithm.
 
@@ -643,6 +822,28 @@ class EcosystemManager:
         """
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_reproductions += 1
+
+        # Track overall reproduction stats
+        self.reproduction_stats.total_reproductions += 1
+        self.reproduction_stats.total_offspring += 1  # Assume 1 offspring per reproduction
+
+    def record_mating_attempt(self, success: bool) -> None:
+        """Record a mating attempt (successful or failed).
+
+        Args:
+            success: Whether the mating attempt was successful
+        """
+        self.reproduction_stats.total_mating_attempts += 1
+        if not success:
+            self.reproduction_stats.total_failed_attempts += 1
+
+    def update_pregnant_count(self, count: int) -> None:
+        """Update the count of currently pregnant fish.
+
+        Args:
+            count: Current number of pregnant fish
+        """
+        self.reproduction_stats.current_pregnant_fish = count
 
     def record_food_eaten(self, algorithm_id: int) -> None:
         """Record food consumption by a fish with the given algorithm.

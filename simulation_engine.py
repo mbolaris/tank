@@ -6,7 +6,7 @@ simulation without pygame or any visualization code.
 
 import time
 from typing import List, Optional, Dict, Any
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
+from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, FILES
 from core import environment, entities
 from core.ecosystem import EcosystemManager
 from core.time_system import TimeSystem
@@ -181,6 +181,76 @@ class SimulationEngine(BaseSimulator):
             self.ecosystem.update_population_stats(fish_list)
             self.ecosystem.update(self.frame_count)
 
+            # Auto-spawn fish if population drops below 3
+            if len(fish_list) < 3:
+                self.spawn_emergency_fish()
+
+    def spawn_emergency_fish(self) -> None:
+        """Spawn a new fish when population drops below critical threshold.
+
+        This emergency spawning helps maintain genetic diversity and
+        prevents population extinction.
+        """
+        if self.environment is None or self.ecosystem is None:
+            return
+
+        import random
+        from core.genetics import Genome
+        from core import movement_strategy
+        from core.algorithms import get_algorithm_index
+
+        # Get current fish to analyze diversity
+        fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
+
+        # If we have existing fish, try to spawn diverse genomes
+        # Otherwise, spawn completely random
+        if fish_list:
+            # Get existing algorithms (as indices)
+            existing_algorithms = set()
+            existing_species = set()
+            for fish in fish_list:
+                if hasattr(fish, 'genome') and hasattr(fish.genome, 'behavior_algorithm'):
+                    algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
+                    if algo_idx >= 0:
+                        existing_algorithms.add(algo_idx)
+                if hasattr(fish, 'species'):
+                    existing_species.add(fish.species)
+
+            # Create genome with an algorithm not currently in population (if possible)
+            # This helps maintain diversity
+            genome = Genome.random(use_algorithm=True)
+
+            # Try to pick a different algorithm than existing ones (up to 10 attempts)
+            for _ in range(10):
+                if hasattr(genome, 'behavior_algorithm'):
+                    algo_idx = get_algorithm_index(genome.behavior_algorithm)
+                    if algo_idx >= 0 and algo_idx not in existing_algorithms:
+                        break
+                genome = Genome.random(use_algorithm=True)
+        else:
+            # No existing fish, spawn completely random
+            genome = Genome.random(use_algorithm=True)
+
+        # Random spawn position (avoid edges)
+        x = random.randint(100, SCREEN_WIDTH - 100)
+        y = random.randint(100, SCREEN_HEIGHT - 100)
+
+        # Create the new fish
+        new_fish = entities.Fish(
+            self.environment,
+            movement_strategy.AlgorithmicMovement(),
+            FILES['schooling_fish'][0],
+            x, y,
+            4,
+            genome=genome,
+            generation=0,  # Reset generation for emergency spawns
+            ecosystem=self.ecosystem,
+            screen_width=SCREEN_WIDTH,
+            screen_height=SCREEN_HEIGHT
+        )
+
+        self.add_entity(new_fish)
+        print(f"[EMERGENCY SPAWN] Population critical! Spawned new fish at ({x}, {y})")
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Add a poker event to the recent events list."""
@@ -276,6 +346,31 @@ class SimulationEngine(BaseSimulator):
             print("Death Causes:")
             for cause, count in death_causes.items():
                 print(f"  {cause}: {count}")
+
+        # Reproduction stats
+        repro_stats = stats.get('reproduction_stats', {})
+        if repro_stats:
+            print("-" * 60)
+            print("Reproduction Stats:")
+            print(f"  Total Reproductions: {repro_stats.get('total_reproductions', 0)}")
+            print(f"  Mating Attempts: {repro_stats.get('total_mating_attempts', 0)}")
+            print(f"  Failed Attempts: {repro_stats.get('total_failed_attempts', 0)}")
+            print(f"  Success Rate: {repro_stats.get('success_rate_pct', 'N/A')}")
+            print(f"  Currently Pregnant: {repro_stats.get('current_pregnant_fish', 0)}")
+            print(f"  Total Offspring: {repro_stats.get('total_offspring', 0)}")
+
+        # Genetic diversity stats
+        diversity_stats = stats.get('diversity_stats', {})
+        if diversity_stats:
+            print("-" * 60)
+            print("Genetic Diversity:")
+            print(f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/48")
+            print(f"  Unique Species: {diversity_stats.get('unique_species', 0)}/4")
+            print(f"  Diversity Score: {diversity_stats.get('diversity_score_pct', 'N/A')}")
+            print(f"  Color Variance: {diversity_stats.get('color_variance', 0):.4f}")
+            print(f"  Speed Variance: {diversity_stats.get('speed_variance', 0):.4f}")
+            print(f"  Size Variance: {diversity_stats.get('size_variance', 0):.4f}")
+            print(f"  Vision Variance: {diversity_stats.get('vision_variance', 0):.4f}")
 
         print("=" * 60)
 
