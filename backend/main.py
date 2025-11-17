@@ -1,7 +1,6 @@
 """FastAPI backend for fish tank simulation."""
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -13,6 +12,7 @@ from fastapi.responses import JSONResponse
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from core.constants import FRAME_RATE
 from simulation_runner import SimulationRunner
 from models import Command
 
@@ -82,8 +82,8 @@ async def broadcast_updates():
             # Remove disconnected clients
             connected_clients.difference_update(disconnected)
 
-        # Wait for next frame (30 FPS)
-        await asyncio.sleep(1 / 30)
+        # Wait for next frame
+        await asyncio.sleep(1 / FRAME_RATE)
 
 
 @app.get("/")

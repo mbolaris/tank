@@ -3,13 +3,14 @@
 This module manages population dynamics, statistics, and ecosystem health.
 """
 
-from typing import Dict, List, Optional, TYPE_CHECKING, Tuple
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict
 import json
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.genetics import Genome
 
 
 @dataclass
@@ -363,7 +364,7 @@ class EcosystemManager:
         ))
 
     def record_death(self, fish_id: int, generation: int, age: int,
-                     cause: str = 'unknown', genome: Optional['genetics.Genome'] = None,
+                     cause: str = 'unknown', genome: Optional['Genome'] = None,
                      algorithm_id: Optional[int] = None) -> None:
         """Record a death event.
 
@@ -495,7 +496,7 @@ class EcosystemManager:
         """
         return sum(stats.population for stats in self.generation_stats.values())
 
-    def get_summary_stats(self, entities: Optional[List] = None) -> Dict[str, any]:
+    def get_summary_stats(self, entities: Optional[List] = None) -> Dict[str, Any]:
         """Get summary statistics for the ecosystem.
 
         Args:
@@ -529,7 +530,7 @@ class EcosystemManager:
             'total_energy': total_energy,
         }
 
-    def get_poker_stats_summary(self) -> Dict[str, any]:
+    def get_poker_stats_summary(self) -> Dict[str, Any]:
         """Get summary poker statistics across all algorithms.
 
         Returns:
