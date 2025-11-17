@@ -77,6 +77,70 @@ class Environment:
         return [other for other in self.get_agents_of_type(agent_class)
                 if other != agent and (other.pos - agent.pos).length() <= radius]
 
+    # Convenient entity filtering helpers for improved code clarity
+    def get_all_fish(self) -> List[Agent]:
+        """Get all fish agents in the environment.
+
+        Returns:
+            List[Agent]: All fish in the environment
+        """
+        from core.entities import Fish
+        return [agent for agent in self.agents if isinstance(agent, Fish)]
+
+    def get_all_food(self) -> List[Agent]:
+        """Get all food entities in the environment.
+
+        Returns:
+            List[Agent]: All food items in the environment
+        """
+        from core.entities import Food
+        return [agent for agent in self.agents if isinstance(agent, Food)]
+
+    def get_all_plants(self) -> List[Agent]:
+        """Get all plant entities in the environment.
+
+        Returns:
+            List[Agent]: All plants in the environment
+        """
+        from core.entities import Plant
+        return [agent for agent in self.agents if isinstance(agent, Plant)]
+
+    def get_all_crabs(self) -> List[Agent]:
+        """Get all crab (predator) entities in the environment.
+
+        Returns:
+            List[Agent]: All crabs in the environment
+        """
+        from core.entities import Crab
+        return [agent for agent in self.agents if isinstance(agent, Crab)]
+
+    def count_fish(self) -> int:
+        """Count the number of fish in the environment.
+
+        Returns:
+            int: Number of fish
+        """
+        return len(self.get_all_fish())
+
+    def count_food(self) -> int:
+        """Count the number of food items in the environment.
+
+        Returns:
+            int: Number of food items
+        """
+        return len(self.get_all_food())
+
+    def count_entities_by_type(self, agent_class: Type[Agent]) -> int:
+        """Count entities of a specific type in the environment.
+
+        Args:
+            agent_class: The class of entities to count
+
+        Returns:
+            int: Number of entities of the specified type
+        """
+        return len(self.get_agents_of_type(agent_class))
+
     # Backward compatibility aliases
     def agents_to_avoid(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
         """Deprecated: Use nearby_agents_by_type instead.

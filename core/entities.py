@@ -13,7 +13,8 @@ from enum import Enum
 from core.math_utils import Vector2
 from core.constants import (
     INITIAL_ENERGY_RATIO, BABY_METABOLISM_MULTIPLIER,
-    ELDER_METABOLISM_MULTIPLIER, STARVATION_THRESHOLD
+    ELDER_METABOLISM_MULTIPLIER, STARVATION_THRESHOLD,
+    CRITICAL_ENERGY_THRESHOLD, LOW_ENERGY_THRESHOLD, SAFE_ENERGY_THRESHOLD
 )
 
 if TYPE_CHECKING:
@@ -241,9 +242,14 @@ class Fish(Agent):
         self.max_age: int = int(self.BASE_MAX_AGE * self.genome.max_energy)  # Hardier fish live longer
         self.life_stage: LifeStage = LifeStage.BABY
 
-        # Energy & metabolism
-        self.max_energy: float = self.BASE_MAX_ENERGY * self.genome.max_energy
-        self.energy: float = self.max_energy * INITIAL_ENERGY_RATIO  # Start with 50% energy - harder survival
+        # Energy & metabolism - managed by EnergyComponent for better code organization
+        from core.fish.energy_component import EnergyComponent
+        max_energy = self.BASE_MAX_ENERGY * self.genome.max_energy
+        base_metabolism = self.BASE_METABOLISM * self.genome.metabolism_rate
+        self._energy_component = EnergyComponent(max_energy, base_metabolism, INITIAL_ENERGY_RATIO)
+
+        # Backward compatibility: expose energy and max_energy as properties
+        # This allows existing code to access fish.energy and fish.max_energy directly
 
         # Predator tracking (for death attribution)
         self.last_predator_encounter_age: int = -1000  # Age when last encountered a predator
@@ -268,11 +274,6 @@ class Fish(Agent):
             decay_rate=0.001,
             learning_rate=0.05
         )
-
-        # IMPROVEMENT: Critical energy thresholds for smarter decision-making
-        self.CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode
-        self.LOW_ENERGY_THRESHOLD = 30.0  # Need food soon
-        self.SAFE_ENERGY_THRESHOLD = 60.0  # Comfortable to explore/breed
 
         # ID tracking
         self.ecosystem: Optional['EcosystemManager'] = ecosystem
@@ -304,6 +305,22 @@ class Fish(Agent):
         self.last_direction: Optional[Vector2] = (self.vel.normalize()
                                                   if self.vel.length_squared() > 0 else None)
 
+    # Energy properties for backward compatibility
+    @property
+    def energy(self) -> float:
+        """Current energy level (read-only property delegating to EnergyComponent)."""
+        return self._energy_component.energy
+
+    @energy.setter
+    def energy(self, value: float) -> None:
+        """Set energy level (setter for backward compatibility)."""
+        self._energy_component.energy = value
+
+    @property
+    def max_energy(self) -> float:
+        """Maximum energy capacity (read-only property delegating to EnergyComponent)."""
+        return self._energy_component.max_energy
+
     def update_life_stage(self) -> None:
         """Update life stage based on age."""
         if self.age < self.BABY_AGE:
@@ -322,49 +339,62 @@ class Fish(Agent):
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
 
+        Delegates to EnergyComponent for cleaner code organization.
+
         Args:
             time_modifier: Modifier for time-based effects (e.g., day/night)
         """
-        # Existence cost - flat rate for just being alive
-        total_cost = self.EXISTENCE_ENERGY_COST * time_modifier
-
-        # Base metabolism (affected by genes)
-        metabolism = self.BASE_METABOLISM * self.genome.metabolism_rate * time_modifier
-
-        # Additional cost for movement
-        if self.vel.length() > 0:
-            movement_cost = self.MOVEMENT_ENERGY_COST * self.vel.length() / self.speed
-            metabolism += movement_cost
-
-        # Life stage modifiers (applied to metabolism, not existence cost)
-        if self.life_stage == LifeStage.BABY:
-            metabolism *= BABY_METABOLISM_MULTIPLIER  # Babies need less energy
-        elif self.life_stage == LifeStage.ELDER:
-            metabolism *= ELDER_METABOLISM_MULTIPLIER  # Elders need more energy
-
-        # Total energy consumption
-        total_cost += metabolism
-        self.energy = max(0, self.energy - total_cost)
+        self._energy_component.consume_energy(self.vel, self.speed, self.life_stage, time_modifier)
 
     def is_starving(self) -> bool:
-        """Check if fish is starving (low energy)."""
-        return self.energy < STARVATION_THRESHOLD
+        """Check if fish is starving (low energy).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is below starvation threshold
+        """
+        return self._energy_component.is_starving()
 
     def is_critical_energy(self) -> bool:
-        """Check if fish is in critical energy state (emergency survival mode)."""
-        return self.energy < self.CRITICAL_ENERGY_THRESHOLD
+        """Check if fish is in critical energy state (emergency survival mode).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is critically low
+        """
+        return self._energy_component.is_critical_energy()
 
     def is_low_energy(self) -> bool:
-        """Check if fish has low energy (should prioritize food)."""
-        return self.energy < self.LOW_ENERGY_THRESHOLD
+        """Check if fish has low energy (should prioritize food).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is low
+        """
+        return self._energy_component.is_low_energy()
 
     def is_safe_energy(self) -> bool:
-        """Check if fish has safe energy level (can explore/breed)."""
-        return self.energy >= self.SAFE_ENERGY_THRESHOLD
+        """Check if fish has safe energy level (can explore/breed).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is at a safe level
+        """
+        return self._energy_component.is_safe_energy()
 
     def get_energy_ratio(self) -> float:
-        """Get energy as a ratio of max energy (0.0-1.0)."""
-        return self.energy / self.max_energy if self.max_energy > 0 else 0.0
+        """Get energy as a ratio of max energy (0.0-1.0).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            float: Energy ratio between 0.0 and 1.0
+        """
+        return self._energy_component.get_energy_ratio()
 
     def remember_food_location(self, position: Vector2) -> None:
         """Remember a food location for future reference.
@@ -636,11 +666,13 @@ class Fish(Agent):
     def eat(self, food: 'Food') -> None:
         """Eat food and gain energy.
 
+        Delegates energy gain to EnergyComponent for cleaner code organization.
+
         Args:
             food: The food being eaten
         """
         energy_gained = food.get_energy_value()
-        self.energy = min(self.max_energy, self.energy + energy_gained)
+        self._energy_component.gain_energy(energy_gained)
 
         # NEW: Track food consumption in fitness
         self.genome.update_fitness(food_eaten=1)

@@ -127,5 +127,8 @@ INITIAL_ENERGY_RATIO = 0.5  # Start with 50% energy
 BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
 ELDER_METABOLISM_MULTIPLIER = 1.2  # Elders need more energy
 
-# Energy Thresholds
-STARVATION_THRESHOLD = 15.0  # Below this, fish is starving (matches CRITICAL_ENERGY_THRESHOLD)
+# Energy Thresholds (centralized for consistency across the codebase)
+STARVATION_THRESHOLD = 15.0  # Below this, fish dies from starvation
+CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode (same as starvation threshold)
+LOW_ENERGY_THRESHOLD = 30.0  # Fish should prioritize finding food
+SAFE_ENERGY_THRESHOLD = 60.0  # Comfortable energy level for exploration and breeding
