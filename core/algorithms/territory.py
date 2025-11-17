@@ -40,9 +40,9 @@ class TerritorialDefender(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
-
+        from core.math_utils import Vector2
         if self.territory_center is None:
-            self.territory_center = fish.pos.copy()
+            self.territory_center = Vector2(fish.pos.x, fish.pos.y)
 
         # Chase away intruders
         intruders = [f for f in fish.environment.get_agents_of_type(FishClass)
