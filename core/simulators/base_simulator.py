@@ -105,8 +105,69 @@ class BaseSimulator(ABC):
         self.handle_fish_collisions()
         self.handle_food_collisions()
 
+    def handle_fish_crab_collision(self, fish: 'Agent', crab: 'Agent') -> bool:
+        """Handle collision between a fish and a crab (predator).
+
+        Args:
+            fish: The fish entity
+            crab: The crab (predator) entity
+
+        Returns:
+            bool: True if the fish died from the collision, False otherwise
+        """
+        # Mark the predator encounter for death attribution
+        fish.mark_predator_encounter()
+
+        # Crab can only kill if hunt cooldown is ready
+        if crab.can_hunt():
+            crab.eat_fish(fish)
+            self.record_fish_death(fish, 'predation')
+            return True
+        return False
+
+    def handle_fish_food_collision(self, fish: 'Agent', food: 'Agent') -> None:
+        """Handle collision between a fish and food.
+
+        Args:
+            fish: The fish entity
+            food: The food entity
+        """
+        fish.eat(food)
+
+    def handle_fish_fish_collision(self, fish1: 'Agent', fish2: 'Agent') -> bool:
+        """Handle collision between two fish (poker interaction).
+
+        Args:
+            fish1: The first fish entity
+            fish2: The second fish entity
+
+        Returns:
+            bool: True if fish1 died from the collision, False otherwise
+        """
+        # Fish-to-fish poker interaction
+        poker = PokerInteraction(fish1, fish2)
+        if poker.play_poker():
+            # Handle poker result (can be overridden by subclasses)
+            self.handle_poker_result(poker)
+
+            # Check if either fish died from poker
+            fish1_died = False
+            if fish1.is_dead() and fish1 in self.get_all_entities():
+                self.record_fish_death(fish1)
+                fish1_died = True
+
+            if fish2.is_dead() and fish2 in self.get_all_entities():
+                self.record_fish_death(fish2)
+
+            return fish1_died
+        return False
+
     def handle_fish_collisions(self) -> None:
-        """Handle collisions involving fish."""
+        """Handle collisions involving fish.
+
+        This method iterates through all fish and checks for collisions with other entities.
+        Delegates specific collision handling to specialized methods for clarity.
+        """
         from core.entities import Fish, Food, Crab
 
         # Get all fish entities
@@ -124,35 +185,13 @@ class BaseSimulator(ABC):
 
                 if self.check_collision(fish, other):
                     if isinstance(other, Crab):
-                        # Mark the predator encounter for death attribution
-                        fish.mark_predator_encounter()
-
-                        # Crab can only kill if hunt cooldown is ready
-                        if other.can_hunt():
-                            other.eat_fish(fish)
-                            self.record_fish_death(fish, 'predation')
-                            break
+                        if self.handle_fish_crab_collision(fish, other):
+                            break  # Fish died, stop checking collisions for it
                     elif isinstance(other, Food):
-                        fish.eat(other)
+                        self.handle_fish_food_collision(fish, other)
                     elif isinstance(other, Fish):
-                        # Fish-to-fish poker interaction
-                        poker = PokerInteraction(fish, other)
-                        if poker.play_poker():
-                            # Handle poker result (can be overridden by subclasses)
-                            self.handle_poker_result(poker)
-
-                            # Check if either fish died from poker
-                            fish_died = False
-                            if fish.is_dead() and fish in self.get_all_entities():
-                                self.record_fish_death(fish)
-                                fish_died = True
-
-                            if other.is_dead() and other in self.get_all_entities():
-                                self.record_fish_death(other)
-
-                            # Break if current fish died
-                            if fish_died:
-                                break
+                        if self.handle_fish_fish_collision(fish, other):
+                            break  # Fish died, stop checking collisions for it
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food."""
