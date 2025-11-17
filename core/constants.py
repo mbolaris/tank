@@ -34,7 +34,7 @@ PLANT_SWAY_SPEED = 0.0005
 FOOD_SINK_ACCELERATION = 0.01
 
 # Automatic food spawning
-AUTO_FOOD_SPAWN_RATE = 60  # Spawn food every 2 seconds (60 frames at 30fps) - REDUCED for increased difficulty
+AUTO_FOOD_SPAWN_RATE = 120  # Spawn food every 4 seconds (120 frames at 30fps) - REDUCED for increased difficulty
 AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
 
 # Food type definitions with nutrient properties
@@ -42,7 +42,7 @@ FOOD_TYPES = {
     'algae': {
         'name': 'Algae Flake',
         'files': ['food_algae1.png', 'food_algae2.png'],
-        'energy': 30.0,  # Moderate energy - increased 50% for sustainability
+        'energy': 20.0,  # Low energy - basic food source
         'rarity': 0.35,  # 35% spawn rate
         'sink_multiplier': 0.8,  # Sinks slower (lighter)
         'stationary': False,
@@ -50,7 +50,7 @@ FOOD_TYPES = {
     'protein': {
         'name': 'Protein Flake',
         'files': ['food_protein1.png', 'food_protein2.png'],
-        'energy': 52.5,  # High energy - increased 50% for sustainability
+        'energy': 35.0,  # Good energy - valuable food
         'rarity': 0.25,  # 25% spawn rate
         'sink_multiplier': 1.2,  # Sinks faster (heavier)
         'stationary': False,
@@ -58,7 +58,7 @@ FOOD_TYPES = {
     'vitamin': {
         'name': 'Vitamin Flake',
         'files': ['food_vitamin1.png', 'food_vitamin2.png'],
-        'energy': 37.5,  # Moderate energy - increased 50% for sustainability
+        'energy': 25.0,  # Moderate energy
         'rarity': 0.20,  # 20% spawn rate
         'sink_multiplier': 0.9,  # Sinks slightly slower
         'stationary': False,
@@ -66,7 +66,7 @@ FOOD_TYPES = {
     'energy': {
         'name': 'Energy Flake',
         'files': ['food_energy1.png', 'food_energy2.png'],
-        'energy': 45.0,  # High energy - increased 50% for sustainability
+        'energy': 30.0,  # Good energy
         'rarity': 0.15,  # 15% spawn rate
         'sink_multiplier': 1.0,  # Normal sink rate
         'stationary': False,
@@ -74,7 +74,7 @@ FOOD_TYPES = {
     'rare': {
         'name': 'Rainbow Flake',
         'files': ['food_rare1.png', 'food_rare2.png'],
-        'energy': 75.0,  # Very high energy - increased 50% for sustainability
+        'energy': 50.0,  # High energy - rare treat
         'rarity': 0.05,  # 5% spawn rate (rare)
         'sink_multiplier': 1.1,  # Sinks bit faster
         'stationary': False,
@@ -82,7 +82,7 @@ FOOD_TYPES = {
     'nectar': {
         'name': 'Plant Nectar',
         'files': ['food_vitamin1.png', 'food_vitamin2.png'],
-        'energy': 60.0,  # Rewarding snack - increased 50% for sustainability
+        'energy': 40.0,  # Rewarding stationary food
         'rarity': 0.15,  # Used for plant-only spawn weighting
         'sink_multiplier': 0.0,  # Remains in place
         'stationary': True,
