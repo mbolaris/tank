@@ -67,6 +67,7 @@ export interface StatsData {
   fish_count: number;
   food_count: number;
   plant_count: number;
+  total_energy: number;
   poker_stats: PokerStatsData;
 }
 

@@ -100,6 +100,7 @@ class SimulationRunner:
                 fish_count=stats.get('fish_count', 0),
                 food_count=stats.get('food_count', 0),
                 plant_count=stats.get('plant_count', 0),
+                total_energy=stats.get('total_energy', 0.0),
                 poker_stats=poker_stats_data
             )
 

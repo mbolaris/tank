@@ -54,6 +54,10 @@ export function StatsPanel({ stats }: StatsPanelProps) {
           <span style={styles.statLabel}>Capacity:</span>
           <span style={styles.statValue}>{stats.capacity}</span>
         </div>
+        <div style={styles.statRow}>
+          <span style={styles.statLabel}>Total Energy:</span>
+          <span style={styles.statValue}>{stats.total_energy.toFixed(1)}</span>
+        </div>
       </div>
 
       <div style={styles.section}>
