@@ -4,20 +4,18 @@ This module provides a headless simulation engine that can run the fish tank
 simulation without pygame or any visualization code.
 """
 
-import random
 import time
 from typing import List, Optional, Dict, Any
-from core.constants import (SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE,
-                       AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED)
+from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
 from core import environment, entities
 from core.ecosystem import EcosystemManager
 from core.time_system import TimeSystem
-from core.behavior_algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
 from core.entity_factory import create_initial_population
+from core.simulators.base_simulator import BaseSimulator
 
 
-class SimulationEngine:
+class SimulationEngine(BaseSimulator):
     """A headless simulation engine for the fish tank ecosystem.
 
     This class runs the simulation without any visualization,
@@ -39,14 +37,11 @@ class SimulationEngine:
         Args:
             headless: If True, run without any pygame dependencies
         """
+        super().__init__()
         self.headless = headless
-        self.frame_count: int = 0
         self.entities_list: List[entities.Agent] = []
         self.environment: Optional[environment.Environment] = None
-        self.ecosystem: Optional[EcosystemManager] = None
         self.time_system: TimeSystem = TimeSystem()
-        self.paused: bool = False
-        self.auto_food_timer: int = 0
         self.start_time: float = time.time()
         self.poker_events: List[Dict[str, Any]] = []  # Recent poker events
 
@@ -71,6 +66,40 @@ class SimulationEngine:
             SCREEN_HEIGHT
         )
         self.entities_list.extend(population)
+
+    # Implement abstract methods from BaseSimulator
+    def get_all_entities(self) -> List[entities.Agent]:
+        """Get all entities in the simulation."""
+        return self.entities_list
+
+    def add_entity(self, entity: entities.Agent) -> None:
+        """Add an entity to the simulation."""
+        self.entities_list.append(entity)
+
+    def remove_entity(self, entity: entities.Agent) -> None:
+        """Remove an entity from the simulation."""
+        if entity in self.entities_list:
+            self.entities_list.remove(entity)
+
+    def check_collision(self, e1: entities.Agent, e2: entities.Agent) -> bool:
+        """Check if two entities collide using bounding box collision.
+
+        Args:
+            e1: First entity
+            e2: Second entity
+
+        Returns:
+            True if entities overlap
+        """
+        # Simple bounding box collision
+        return (e1.pos.x < e2.pos.x + e2.width and
+                e1.pos.x + e1.width > e2.pos.x and
+                e1.pos.y < e2.pos.y + e2.height and
+                e1.pos.y + e1.height > e2.pos.y)
+
+    def handle_poker_result(self, poker: PokerInteraction) -> None:
+        """Handle the result of a poker game by logging to events list."""
+        self.add_poker_event(poker)
 
     def update(self) -> None:
         """Update the state of the simulation."""
@@ -117,30 +146,15 @@ class SimulationEngine:
 
             # Remove food that fell off screen
             if isinstance(entity, entities.Food) and entity.pos.y >= SCREEN_HEIGHT - entity.height:
-                self.entities_list.remove(entity)
+                self.remove_entity(entity)
 
         # Add new entities
-        if new_entities:
-            self.entities_list.extend(new_entities)
+        for new_entity in new_entities:
+            self.add_entity(new_entity)
 
         # Automatic food spawning
-        if AUTO_FOOD_ENABLED and self.environment is not None:
-            self.auto_food_timer += 1
-            if self.auto_food_timer >= AUTO_FOOD_SPAWN_RATE:
-                self.auto_food_timer = 0
-                # Spawn food from the top at random x position
-                x = random.randint(0, SCREEN_WIDTH)
-                food = entities.Food(
-                    self.environment,
-                    x,
-                    0,
-                    source_plant=None,
-                    allow_stationary_types=False,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT
-                )
-                food.pos.y = 0
-                self.entities_list.append(food)
+        if self.environment is not None:
+            self.spawn_auto_food(self.environment)
 
         # Handle collisions
         self.handle_collisions()
@@ -154,151 +168,6 @@ class SimulationEngine:
             self.ecosystem.update_population_stats(fish_list)
             self.ecosystem.update(self.frame_count)
 
-    def record_fish_death(self, fish: entities.Fish, cause: Optional[str] = None) -> None:
-        """Record a fish death in the ecosystem and remove it from the simulation.
-
-        Args:
-            fish: The fish that died
-            cause: Optional death cause override (defaults to fish.get_death_cause())
-        """
-        if self.ecosystem is not None:
-            algorithm_id = None
-            if fish.genome.behavior_algorithm is not None:
-                algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
-
-            death_cause = cause if cause is not None else fish.get_death_cause()
-            self.ecosystem.record_death(
-                fish.fish_id,
-                fish.generation,
-                fish.age,
-                death_cause,
-                fish.genome,
-                algorithm_id=algorithm_id
-            )
-        if fish in self.entities_list:
-            self.entities_list.remove(fish)
-
-    def keep_entity_on_screen(self, entity: entities.Agent) -> None:
-        """Keep an entity fully within the bounds of the screen."""
-        # Clamp horizontally
-        if entity.pos.x < 0:
-            entity.pos.x = 0
-        elif entity.pos.x + entity.width > SCREEN_WIDTH:
-            entity.pos.x = SCREEN_WIDTH - entity.width
-
-        # Clamp vertically
-        if entity.pos.y < 0:
-            entity.pos.y = 0
-        elif entity.pos.y + entity.height > SCREEN_HEIGHT:
-            entity.pos.y = SCREEN_HEIGHT - entity.height
-
-    def handle_collisions(self) -> None:
-        """Handle collisions between entities using pure geometry."""
-        self.handle_fish_collisions()
-        self.handle_food_collisions()
-
-    def entities_collide(self, e1: entities.Agent, e2: entities.Agent) -> bool:
-        """Check if two entities collide using bounding box collision.
-
-        Args:
-            e1: First entity
-            e2: Second entity
-
-        Returns:
-            True if entities overlap
-        """
-        # Simple bounding box collision
-        return (e1.pos.x < e2.pos.x + e2.width and
-                e1.pos.x + e1.width > e2.pos.x and
-                e1.pos.y < e2.pos.y + e2.height and
-                e1.pos.y + e1.height > e2.pos.y)
-
-    def handle_fish_collisions(self) -> None:
-        """Handle collisions involving fish."""
-        fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
-
-        for fish in list(fish_list):
-            if fish not in self.entities_list:  # Fish may have been removed
-                continue
-
-            for other in self.entities_list:
-                if other == fish:
-                    continue
-
-                if self.entities_collide(fish, other):
-                    if isinstance(other, entities.Crab):
-                        # Mark the predator encounter for death attribution
-                        fish.mark_predator_encounter()
-
-                        # Crab can only kill if hunt cooldown is ready
-                        if other.can_hunt():
-                            other.eat_fish(fish)
-                            self.record_fish_death(fish, 'predation')
-                            break
-                    elif isinstance(other, entities.Food):
-                        fish.eat(other)
-                    elif isinstance(other, entities.Fish):
-                        # Fish-to-fish poker interaction
-                        poker = PokerInteraction(fish, other)
-                        if poker.play_poker():
-                            # Track poker event
-                            self.add_poker_event(poker)
-
-                            # Check if either fish died from poker
-                            fish_died = False
-                            if fish.is_dead() and fish in self.entities_list:
-                                self.record_fish_death(fish)
-                                fish_died = True
-
-                            if other.is_dead() and other in self.entities_list:
-                                self.record_fish_death(other)
-
-                            # Break if current fish died
-                            if fish_died:
-                                break
-
-    def handle_food_collisions(self) -> None:
-        """Handle collisions involving food."""
-        food_list = [e for e in self.entities_list if isinstance(e, entities.Food)]
-
-        for food in list(food_list):
-            if food not in self.entities_list:  # Food may have been eaten
-                continue
-
-            for other in self.entities_list:
-                if other == food:
-                    continue
-
-                if self.entities_collide(food, other):
-                    if isinstance(other, entities.Fish):
-                        food.get_eaten()
-                        if food in self.entities_list:
-                            self.entities_list.remove(food)
-                        break
-                    elif isinstance(other, entities.Crab):
-                        other.eat_food(food)
-                        food.get_eaten()
-                        if food in self.entities_list:
-                            self.entities_list.remove(food)
-                        break
-
-    def handle_reproduction(self) -> None:
-        """Handle fish reproduction by finding mates."""
-        fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
-
-        # Try to mate fish that are ready
-        for fish in fish_list:
-            if not fish.can_reproduce():
-                continue
-
-            # Look for nearby compatible mates
-            for potential_mate in fish_list:
-                if potential_mate == fish:
-                    continue
-
-                # Attempt mating
-                if fish.try_mate(potential_mate):
-                    break  # Found a mate, stop looking
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Add a poker event to the recent events list."""

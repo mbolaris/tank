@@ -1,0 +1,282 @@
+"""Base simulator class containing shared simulation logic.
+
+This module provides a base class for both graphical and headless simulators,
+eliminating code duplication and ensuring consistent simulation behavior.
+"""
+
+import random
+from abc import ABC, abstractmethod
+from typing import List, Optional, TYPE_CHECKING
+from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED
+from core.behavior_algorithms import get_algorithm_index
+from core.fish_poker import PokerInteraction
+
+# Type checking imports
+if TYPE_CHECKING:
+    from core.entities import Agent, Fish, Food, Plant, Crab
+    from core.ecosystem import EcosystemManager
+
+
+class BaseSimulator(ABC):
+    """Base class for simulation logic shared between graphical and headless modes.
+
+    This class contains all the common simulation logic that was previously
+    duplicated between FishTankSimulator and SimulationEngine.
+
+    Attributes:
+        frame_count: Total frames elapsed
+        paused: Whether simulation is paused
+        auto_food_timer: Timer for automatic food spawning
+        ecosystem: Ecosystem manager for population tracking
+    """
+
+    def __init__(self) -> None:
+        """Initialize base simulator state."""
+        self.frame_count: int = 0
+        self.paused: bool = False
+        self.auto_food_timer: int = 0
+        self.ecosystem: Optional['EcosystemManager'] = None
+
+    @abstractmethod
+    def get_all_entities(self) -> List['Agent']:
+        """Get all entities in the simulation.
+
+        Returns:
+            List of all entities
+        """
+        pass
+
+    @abstractmethod
+    def add_entity(self, entity: 'Agent') -> None:
+        """Add an entity to the simulation.
+
+        Args:
+            entity: Entity to add
+        """
+        pass
+
+    @abstractmethod
+    def remove_entity(self, entity: 'Agent') -> None:
+        """Remove an entity from the simulation.
+
+        Args:
+            entity: Entity to remove
+        """
+        pass
+
+    @abstractmethod
+    def check_collision(self, e1: 'Agent', e2: 'Agent') -> bool:
+        """Check if two entities collide.
+
+        Args:
+            e1: First entity
+            e2: Second entity
+
+        Returns:
+            True if entities collide
+        """
+        pass
+
+    def record_fish_death(self, fish: 'Fish', cause: Optional[str] = None) -> None:
+        """Record a fish death in the ecosystem and remove it from the simulation.
+
+        Args:
+            fish: The fish that died
+            cause: Optional death cause override (defaults to fish.get_death_cause())
+        """
+        if self.ecosystem is not None:
+            algorithm_id = None
+            if fish.genome.behavior_algorithm is not None:
+                algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+
+            death_cause = cause if cause is not None else fish.get_death_cause()
+            self.ecosystem.record_death(
+                fish.fish_id,
+                fish.generation,
+                fish.age,
+                death_cause,
+                fish.genome,
+                algorithm_id=algorithm_id
+            )
+        self.remove_entity(fish)
+
+    def handle_collisions(self) -> None:
+        """Handle collisions between entities."""
+        self.handle_fish_collisions()
+        self.handle_food_collisions()
+
+    def handle_fish_collisions(self) -> None:
+        """Handle collisions involving fish."""
+        from core.entities import Fish, Food, Crab
+
+        # Get all fish entities
+        all_entities = self.get_all_entities()
+        fish_list = [e for e in all_entities if isinstance(e, Fish)]
+
+        for fish in list(fish_list):
+            # Check if fish is still in simulation (may have been removed)
+            if fish not in self.get_all_entities():
+                continue
+
+            for other in list(self.get_all_entities()):
+                if other == fish:
+                    continue
+
+                if self.check_collision(fish, other):
+                    if isinstance(other, Crab):
+                        # Mark the predator encounter for death attribution
+                        fish.mark_predator_encounter()
+
+                        # Crab can only kill if hunt cooldown is ready
+                        if other.can_hunt():
+                            other.eat_fish(fish)
+                            self.record_fish_death(fish, 'predation')
+                            break
+                    elif isinstance(other, Food):
+                        fish.eat(other)
+                    elif isinstance(other, Fish):
+                        # Fish-to-fish poker interaction
+                        poker = PokerInteraction(fish, other)
+                        if poker.play_poker():
+                            # Handle poker result (can be overridden by subclasses)
+                            self.handle_poker_result(poker)
+
+                            # Check if either fish died from poker
+                            fish_died = False
+                            if fish.is_dead() and fish in self.get_all_entities():
+                                self.record_fish_death(fish)
+                                fish_died = True
+
+                            if other.is_dead() and other in self.get_all_entities():
+                                self.record_fish_death(other)
+
+                            # Break if current fish died
+                            if fish_died:
+                                break
+
+    def handle_food_collisions(self) -> None:
+        """Handle collisions involving food."""
+        from core.entities import Food, Fish, Crab
+
+        all_entities = self.get_all_entities()
+        food_list = [e for e in all_entities if isinstance(e, Food)]
+
+        for food in list(food_list):
+            # Check if food is still in simulation (may have been eaten)
+            if food not in self.get_all_entities():
+                continue
+
+            for other in list(self.get_all_entities()):
+                if other == food:
+                    continue
+
+                if self.check_collision(food, other):
+                    if isinstance(other, Fish):
+                        food.get_eaten()
+                        self.remove_entity(food)
+                        break
+                    elif isinstance(other, Crab):
+                        other.eat_food(food)
+                        food.get_eaten()
+                        self.remove_entity(food)
+                        break
+
+    def handle_reproduction(self) -> None:
+        """Handle fish reproduction by finding mates."""
+        from core.entities import Fish
+
+        fish_list = [e for e in self.get_all_entities() if isinstance(e, Fish)]
+
+        # Try to mate fish that are ready
+        for fish in fish_list:
+            if not fish.can_reproduce():
+                continue
+
+            # Look for nearby compatible mates
+            for potential_mate in fish_list:
+                if potential_mate == fish:
+                    continue
+
+                # Attempt mating
+                if fish.try_mate(potential_mate):
+                    break  # Found a mate, stop looking
+
+    def spawn_auto_food(self, environment: 'environment.Environment') -> None:
+        """Spawn automatic food if enabled.
+
+        Args:
+            environment: Environment instance for creating food
+        """
+        if not AUTO_FOOD_ENABLED:
+            return
+
+        from core import entities
+
+        self.auto_food_timer += 1
+        if self.auto_food_timer >= AUTO_FOOD_SPAWN_RATE:
+            self.auto_food_timer = 0
+            # Spawn food from the top at random x position
+            x = random.randint(0, SCREEN_WIDTH)
+            food = entities.Food(
+                environment,
+                x,
+                0,
+                source_plant=None,
+                allow_stationary_types=False,
+                screen_width=SCREEN_WIDTH,
+                screen_height=SCREEN_HEIGHT
+            )
+            # Ensure the food starts exactly at the top edge before falling
+            food.pos.y = 0
+            self.add_entity(food)
+
+    def keep_entity_on_screen(self, entity: 'Agent', screen_width: int = SCREEN_WIDTH,
+                             screen_height: int = SCREEN_HEIGHT) -> None:
+        """Keep an entity fully within the bounds of the screen.
+
+        Args:
+            entity: Entity to constrain
+            screen_width: Screen width (default from constants)
+            screen_height: Screen height (default from constants)
+        """
+        # Clamp horizontally
+        if entity.pos.x < 0:
+            entity.pos.x = 0
+        elif entity.pos.x + entity.width > screen_width:
+            entity.pos.x = screen_width - entity.width
+
+        # Clamp vertically
+        if entity.pos.y < 0:
+            entity.pos.y = 0
+        elif entity.pos.y + entity.height > screen_height:
+            entity.pos.y = screen_height - entity.height
+
+    def handle_poker_result(self, poker: PokerInteraction) -> None:
+        """Handle the result of a poker game.
+
+        This method can be overridden by subclasses to add custom behavior
+        (e.g., notifications in graphical mode, logging in headless mode).
+
+        Args:
+            poker: The poker interaction with result
+        """
+        # Default implementation does nothing
+        # Subclasses can override to add notifications, logging, etc.
+        pass
+
+    def get_fish_list(self) -> List['Fish']:
+        """Get all fish entities in the simulation.
+
+        Returns:
+            List of all Fish entities
+        """
+        from core.entities import Fish
+        return [e for e in self.get_all_entities() if isinstance(e, Fish)]
+
+    def get_fish_count(self) -> int:
+        """Get the count of fish in the simulation.
+
+        Returns:
+            Number of fish entities
+        """
+        return len(self.get_fish_list())
