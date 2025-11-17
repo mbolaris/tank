@@ -414,42 +414,42 @@ class DistanceKeeper(BehaviorAlgorithm):
             distance = (nearest_predator.pos - fish.pos).length()
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
 
-                energy_ratio = fish.energy / fish.max_energy
+            energy_ratio = fish.energy / fish.max_energy
 
-                # Adjust safe distance based on energy - stay farther when low energy (can't flee well)
-                effective_safe_distance = self.parameters["safe_distance"]
-                if energy_ratio < 0.3:
-                    effective_safe_distance *= 1.4  # Stay farther when weak
+            # Adjust safe distance based on energy - stay farther when low energy (can't flee well)
+            effective_safe_distance = self.parameters["safe_distance"]
+            if energy_ratio < 0.3:
+                effective_safe_distance *= 1.4  # Stay farther when weak
 
-                if distance < effective_safe_distance * 0.7:
-                    # Too close, flee urgently
-                    # Flee speed depends on energy
-                    flee_multiplier = max(0.6, energy_ratio)  # Slower when low energy (realistic)
-                    return direction.x * self.parameters["flee_speed"] * flee_multiplier, \
-                           direction.y * self.parameters["flee_speed"] * flee_multiplier
+            if distance < effective_safe_distance * 0.7:
+                # Too close, flee urgently
+                # Flee speed depends on energy
+                flee_multiplier = max(0.6, energy_ratio)  # Slower when low energy (realistic)
+                return direction.x * self.parameters["flee_speed"] * flee_multiplier, \
+                       direction.y * self.parameters["flee_speed"] * flee_multiplier
 
-                elif distance < effective_safe_distance:
-                    # In the danger zone, maintain distance
-                    # Strafe perpendicular while keeping distance
-                    perp_x, perp_y = -direction.y, direction.x
-                    if random.random() > 0.5:
-                        perp_x, perp_y = -perp_x, -perp_y
-                    return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], \
-                           (direction.y * 0.4 + perp_y * 0.6) * self.parameters["flee_speed"]
+            elif distance < effective_safe_distance:
+                # In the danger zone, maintain distance
+                # Strafe perpendicular while keeping distance
+                perp_x, perp_y = -direction.y, direction.x
+                if random.random() > 0.5:
+                    perp_x, perp_y = -perp_x, -perp_y
+                return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], \
+                       (direction.y * 0.4 + perp_y * 0.6) * self.parameters["flee_speed"]
 
-                elif distance > effective_safe_distance * 1.5:
-                    # Safe enough - can focus on food if hungry
-                    if energy_ratio < 0.6:
-                        nearest_food = self._find_nearest(fish, Food)
-                        if nearest_food and (nearest_food.pos - fish.pos).length() < 150:
-                            # Food nearby and relatively safe
-                            food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
-                            # Move toward food but keep an eye on predator
-                            return (food_dir.x * 0.7 + direction.x * 0.3) * 0.8, \
-                                   (food_dir.y * 0.7 + direction.y * 0.3) * 0.8
-                    # Otherwise just maintain awareness
-                    return direction.x * self.parameters["approach_speed"] * 0.3, \
-                           direction.y * self.parameters["approach_speed"] * 0.3
+            elif distance > effective_safe_distance * 1.5:
+                # Safe enough - can focus on food if hungry
+                if energy_ratio < 0.6:
+                    nearest_food = self._find_nearest(fish, Food)
+                    if nearest_food and (nearest_food.pos - fish.pos).length() < 150:
+                        # Food nearby and relatively safe
+                        food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
+                        # Move toward food but keep an eye on predator
+                        return (food_dir.x * 0.7 + direction.x * 0.3) * 0.8, \
+                               (food_dir.y * 0.7 + direction.y * 0.3) * 0.8
+                # Otherwise just maintain awareness
+                return direction.x * self.parameters["approach_speed"] * 0.3, \
+                       direction.y * self.parameters["approach_speed"] * 0.3
 
         # No predator - search for food
         nearest_food = self._find_nearest(fish, Food)
