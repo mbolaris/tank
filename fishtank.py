@@ -2,22 +2,20 @@ import random
 import pygame
 from typing import Optional, List
 from core.constants import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, NUM_SCHOOLING_FISH,
-    AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED,
+    SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE,
     POKER_NOTIFICATION_DURATION, POKER_NOTIFICATION_MAX_COUNT,
-    POKER_TIE_COLOR, POKER_WIN_COLOR,
-    HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT,
-    HEALTH_CRITICAL_COLOR, HEALTH_LOW_COLOR, HEALTH_GOOD_COLOR
+    POKER_TIE_COLOR, POKER_WIN_COLOR
 )
 import agents
 from core import environment
 from core.ecosystem import EcosystemManager
 from core.time_system import TimeSystem
-from core.behavior_algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
+from core.simulators.base_simulator import BaseSimulator
+from rendering.ui_renderer import UIRenderer
 from agents_factory import create_initial_agents
 
-class FishTankSimulator:
+class FishTankSimulator(BaseSimulator):
     """A simulation of a fish tank with full ecosystem dynamics.
 
     Attributes:
@@ -34,18 +32,16 @@ class FishTankSimulator:
 
     def __init__(self) -> None:
         """Initialize the simulation."""
+        super().__init__()
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.start_ticks: int = pygame.time.get_ticks()
-        self.frame_count: int = 0
         self.agents: pygame.sprite.Group = pygame.sprite.Group()
         self.screen: Optional[pygame.Surface] = None
         self.environment: Optional[environment.Environment] = None
-        self.ecosystem: Optional[EcosystemManager] = None
         self.time_system: TimeSystem = TimeSystem()
         self.stats_font: Optional[pygame.font.Font] = None
-        self.paused: bool = False
+        self.ui_renderer: Optional[UIRenderer] = None
         self.show_stats_hud: bool = True  # Toggle for stats and health bars
-        self.auto_food_timer: int = 0  # Timer for automatic food spawning
         self.poker_notifications: List[dict] = []  # List of poker game notifications
 
     def setup_game(self) -> None:
@@ -59,6 +55,9 @@ class FishTankSimulator:
 
         # Initialize font for stats
         self.stats_font = pygame.font.Font(None, 24)
+
+        # Initialize UI renderer
+        self.ui_renderer = UIRenderer(self.screen, self.stats_font)
 
         # Initialize managers
         self.environment = environment.Environment(self.agents)
@@ -74,6 +73,27 @@ class FishTankSimulator:
         # Use centralized factory function for initial population
         population = create_initial_agents(self.environment, self.ecosystem)
         self.agents.add(*population)
+
+    # Implement abstract methods from BaseSimulator
+    def get_all_entities(self) -> List[agents.Agent]:
+        """Get all entities in the simulation."""
+        return list(self.agents.sprites())
+
+    def add_entity(self, entity: agents.Agent) -> None:
+        """Add an entity to the simulation."""
+        self.agents.add(entity)
+
+    def remove_entity(self, entity: agents.Agent) -> None:
+        """Remove an entity from the simulation."""
+        entity.kill()
+
+    def check_collision(self, e1: agents.Agent, e2: agents.Agent) -> bool:
+        """Check if two entities collide using pygame collision detection."""
+        return pygame.sprite.collide_rect(e1, e2)
+
+    def handle_poker_result(self, poker: PokerInteraction) -> None:
+        """Handle the result of a poker game by adding a notification."""
+        self.add_poker_notification(poker)
 
     def update(self) -> None:
         """Update the state of the simulation."""
@@ -123,27 +143,16 @@ class FishTankSimulator:
                 sprite.kill()
 
         # Add new agents
-        if new_agents:
-            self.agents.add(*new_agents)
+        for new_agent in new_agents:
+            self.add_entity(new_agent)
 
         # Automatic food spawning
-        if AUTO_FOOD_ENABLED and self.environment is not None:
-            self.auto_food_timer += 1
-            if self.auto_food_timer >= AUTO_FOOD_SPAWN_RATE:
-                self.auto_food_timer = 0
-                # Spawn food from the top at random x position
-                x = random.randint(0, SCREEN_WIDTH)
-                food = agents.Food(
-                    self.environment,
-                    x,
-                    0,
-                    source_plant=None,
-                    allow_stationary_types=False
-                )
-                # Ensure the food starts exactly at the top edge before falling
-                food.pos.y = 0
-                food.rect.y = 0
-                self.agents.add(food)
+        if self.environment is not None:
+            self.spawn_auto_food(self.environment)
+            # Update pygame rect for the last spawned food
+            for sprite in self.agents:
+                if isinstance(sprite, agents.Food) and sprite.pos.y == 0:
+                    sprite.rect.y = 0
 
         # Handle collisions
         self.handle_collisions()
@@ -159,70 +168,10 @@ class FishTankSimulator:
             self.ecosystem.update_population_stats(self.get_fish_list())
             self.ecosystem.update(self.frame_count)
 
-    def handle_collisions(self) -> None:
-        """Handle collisions between sprites."""
-        self.handle_fish_collisions()
-        self.handle_food_collisions()
+        # Update UI renderer frame count
+        if self.ui_renderer is not None:
+            self.ui_renderer.set_frame_count(self.frame_count)
 
-    def handle_fish_collisions(self) -> None:
-        """Handle collisions involving fish."""
-        # Iterate over a copy to safely remove sprites during iteration
-        for fish in list(self.agents.sprites()):
-            if isinstance(fish, agents.Fish):
-                collisions = pygame.sprite.spritecollide(fish, self.agents, False, pygame.sprite.collide_rect)
-                for collision_sprite in collisions:
-                    if isinstance(collision_sprite, agents.Crab):
-                        # Crab can only kill if hunt cooldown is ready
-                        if collision_sprite.can_hunt():
-                            collision_sprite.eat_fish(fish)
-                            self.record_fish_death(fish, 'predation')
-                    elif isinstance(collision_sprite, agents.Food):
-                        fish.eat(collision_sprite)
-                    elif isinstance(collision_sprite, agents.Fish):
-                        # Fish-to-fish poker interaction
-                        poker = PokerInteraction(fish, collision_sprite)
-                        if poker.play_poker():
-                            # Add notification for successful poker game
-                            self.add_poker_notification(poker)
-
-                            # Check if either fish died from poker
-                            if fish.is_dead():
-                                self.record_fish_death(fish)
-
-                            if collision_sprite.is_dead():
-                                self.record_fish_death(collision_sprite)
-
-    def handle_food_collisions(self) -> None:
-        """Handle collisions involving food."""
-        # Iterate over a copy to safely remove sprites during iteration
-        for food in list(self.agents.sprites()):
-            if isinstance(food, agents.Food):
-                collisions = pygame.sprite.spritecollide(food, self.agents, False, pygame.sprite.collide_rect)
-                for collision_sprite in collisions:
-                    if isinstance(collision_sprite, agents.Fish):
-                        food.get_eaten()
-                    elif isinstance(collision_sprite, agents.Crab):
-                        collision_sprite.eat_food(food)
-                        food.get_eaten()
-
-    def handle_reproduction(self) -> None:
-        """Handle fish reproduction by finding mates."""
-        # Get all fish
-        fish_list = self.get_fish_list()
-
-        # Try to mate fish that are ready
-        for fish in fish_list:
-            if not fish.can_reproduce():
-                continue
-
-            # Look for nearby compatible mates
-            for potential_mate in fish_list:
-                if potential_mate == fish:
-                    continue
-
-                # Attempt mating
-                if fish.try_mate(potential_mate):
-                    break  # Found a mate, stop looking
 
     def add_poker_notification(self, poker: PokerInteraction) -> None:
         """Add a notification for a poker game result."""
@@ -263,209 +212,17 @@ class FishTankSimulator:
             if self.frame_count - notif['frame'] < notif['duration']
         ]
 
-    def draw_poker_notifications(self) -> None:
-        """Draw poker notifications on the screen."""
-        if self.screen is None or self.stats_font is None:
-            return
-
-        # Draw notifications in the bottom-right corner
-        y_offset = SCREEN_HEIGHT - 30
-        for notif in reversed(self.poker_notifications):  # Newest at bottom
-            # Calculate fade based on age
-            age = self.frame_count - notif['frame']
-            fade_start = notif['duration'] - 60  # Start fading 2 seconds before expiry
-            if age > fade_start:
-                alpha = int(255 * (notif['duration'] - age) / 60)
-            else:
-                alpha = 255
-
-            # Render text
-            text_surface = self.stats_font.render(notif['message'], True, notif['color'])
-
-            # Create surface with alpha
-            notification_surface = pygame.Surface((text_surface.get_width() + 20, text_surface.get_height() + 10))
-            notification_surface.set_alpha(min(alpha, 220))
-            notification_surface.fill((20, 20, 40))
-
-            # Position in bottom-right
-            x_pos = SCREEN_WIDTH - notification_surface.get_width() - 10
-            y_pos = y_offset - notification_surface.get_height()
-
-            # Draw background and text
-            self.screen.blit(notification_surface, (x_pos, y_pos))
-            self.screen.blit(text_surface, (x_pos + 10, y_pos + 5))
-
-            y_offset = y_pos - 5  # Move up for next notification
-
-    def get_fish_list(self) -> List[agents.Fish]:
-        """Get all fish agents in the simulation.
-
-        Returns:
-            List of all Fish agents
-        """
-        return [a for a in self.agents if isinstance(a, agents.Fish)]
-
-    def get_fish_count(self) -> int:
-        """Get the count of fish in the simulation.
-
-        Returns:
-            Number of fish agents
-        """
-        return len(self.get_fish_list())
-
-    def record_fish_death(self, fish: agents.Fish, cause: Optional[str] = None) -> None:
-        """Record a fish death in the ecosystem and remove it from the simulation.
-
-        Args:
-            fish: The fish that died
-            cause: Optional death cause override (defaults to fish.get_death_cause())
-        """
-        if self.ecosystem is not None:
-            algorithm_id = None
-            if fish.genome.behavior_algorithm is not None:
-                algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
-
-            death_cause = cause if cause is not None else fish.get_death_cause()
-            self.ecosystem.record_death(
-                fish.fish_id,
-                fish.generation,
-                fish.age,
-                death_cause,
-                fish.genome,
-                algorithm_id=algorithm_id
-            )
-        fish.kill()
-
     def keep_sprite_on_screen(self, sprite: agents.Agent) -> None:
-        """Keep a sprite fully within the bounds of the screen."""
-        if self.screen is not None:
-            # Clamp horizontally
-            if sprite.rect.left < 0:
-                sprite.rect.left = 0
-                sprite.pos.x = sprite.rect.left
-            elif sprite.rect.right > SCREEN_WIDTH:
-                sprite.rect.right = SCREEN_WIDTH
-                sprite.pos.x = sprite.rect.left
+        """Keep a sprite fully within the bounds of the screen.
 
-            # Clamp vertically
-            if sprite.rect.top < 0:
-                sprite.rect.top = 0
-                sprite.pos.y = sprite.rect.top
-            elif sprite.rect.bottom > SCREEN_HEIGHT:
-                sprite.rect.bottom = SCREEN_HEIGHT
-                sprite.pos.y = sprite.rect.top
-
-    def draw_health_bar(self, fish: agents.Fish) -> None:
-        """Draw health/energy bar above a fish.
-
-        Args:
-            fish: The fish to draw health bar for
+        This is a pygame-specific wrapper around the base class method.
         """
-        if self.screen is None:
-            return
-
-        # Health bar dimensions
-        bar_x = fish.rect.centerx - HEALTH_BAR_WIDTH // 2
-        bar_y = fish.rect.top - 8
-
-        # Background (empty bar)
-        pygame.draw.rect(self.screen, (60, 60, 60), (bar_x, bar_y, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT))
-
-        # Foreground (filled based on energy)
-        energy_ratio = fish.energy / fish.max_energy
-        filled_width = int(HEALTH_BAR_WIDTH * energy_ratio)
-
-        # Color based on energy level
-        if energy_ratio > 0.6:
-            color = HEALTH_GOOD_COLOR
-        elif energy_ratio > 0.3:
-            color = HEALTH_LOW_COLOR
-        else:
-            color = HEALTH_CRITICAL_COLOR
-
-        if filled_width > 0:
-            pygame.draw.rect(self.screen, color, (bar_x, bar_y, filled_width, HEALTH_BAR_HEIGHT))
-
-        # Display algorithm number if fish has a behavior algorithm
-        if fish.genome.behavior_algorithm is not None:
-            algo_index = get_algorithm_index(fish.genome.behavior_algorithm)
-
-            if algo_index >= 0:
-                # Create a small font for the algorithm number
-                small_font = pygame.font.Font(None, 16)
-                algo_text = f"#{algo_index}"
-                text_surface = small_font.render(algo_text, True, (200, 200, 200))
-
-                # Position text below the health bar, centered
-                text_x = fish.rect.centerx - text_surface.get_width() // 2
-                text_y = bar_y + HEALTH_BAR_HEIGHT + 1
-
-                self.screen.blit(text_surface, (text_x, text_y))
-
-    def draw_stats_panel(self) -> None:
-        """Draw statistics panel showing ecosystem data."""
-        if self.screen is None or self.stats_font is None or self.ecosystem is None:
-            return
-
-        # Semi-transparent background (larger to fit poker stats)
-        panel_surface = pygame.Surface((280, 300))
-        panel_surface.set_alpha(200)
-        panel_surface.fill((20, 20, 40))
-        self.screen.blit(panel_surface, (10, 10))
-
-        # Get stats
-        stats = self.ecosystem.get_summary_stats()
-        time_str = self.time_system.get_time_string()
-
-        # Render text lines
-        y_offset = 15
-        lines = [
-            f"Time: {time_str}",
-            f"Population: {stats['total_population']}/{self.ecosystem.max_population}",
-            f"Generation: {stats['current_generation']}",
-            f"Births: {stats['total_births']}",
-            f"Deaths: {stats['total_deaths']}",
-            f"Capacity: {stats['capacity_usage']}",
-        ]
-
-        # Add death causes
-        if stats['death_causes']:
-            lines.append("Death Causes:")
-            for cause, count in stats['death_causes'].items():
-                lines.append(f"  {cause}: {count}")
-
-        # Add poker stats (always show, even if no games played yet)
-        poker = stats.get('poker_stats', {})
-        if poker:
-            lines.append("")
-            lines.append("Poker Stats:")
-            if poker.get('total_games', 0) == 0:
-                lines.append(("  No poker games yet (need 10+ energy & collision)", (150, 150, 150)))
-            else:
-                lines.append(f"  Games: {poker['total_games']}")
-                lines.append(f"  Wins/Losses/Ties: {poker['total_wins']}/{poker['total_losses']}/{poker['total_ties']}")
-                lines.append(f"  Energy Won: {poker['total_energy_won']:.1f}")
-                lines.append(f"  Energy Lost: {poker['total_energy_lost']:.1f}")
-                lines.append(f"  House Cuts: {poker.get('total_house_cuts', 0):.1f}")
-                net_energy = poker['net_energy']
-                net_color = (100, 255, 100) if net_energy >= 0 else (255, 100, 100)
-                lines.append((f"  Net Energy: {net_energy:+.1f}", net_color))
-                lines.append(f"  Best Hand: {poker['best_hand_name']}")
-
-        for line in lines:
-            # Check if line is a tuple (text, color)
-            if isinstance(line, tuple):
-                text, color = line
-                text_surface = self.stats_font.render(text, True, color)
-            else:
-                text_surface = self.stats_font.render(line, True, (220, 220, 255))
-            self.screen.blit(text_surface, (20, y_offset))
-            y_offset += 22
-
-        # Show pause indicator
-        if self.paused:
-            pause_text = self.stats_font.render("PAUSED", True, (255, 200, 100))
-            self.screen.blit(pause_text, (SCREEN_WIDTH // 2 - 40, 10))
+        if self.screen is not None:
+            # Call base class method
+            self.keep_entity_on_screen(sprite)
+            # Update pygame rect to match position
+            sprite.rect.left = int(sprite.pos.x)
+            sprite.rect.top = int(sprite.pos.y)
 
     def render(self) -> None:
         """Render the current state of the simulation to the screen."""
@@ -487,17 +244,18 @@ class FishTankSimulator:
         self.agents.draw(self.screen)
 
         # Draw health bars and stats panel (if HUD is enabled)
-        if self.show_stats_hud:
+        if self.show_stats_hud and self.ui_renderer is not None and self.ecosystem is not None:
             # Draw health bars for fish
             for sprite in self.agents:
                 if isinstance(sprite, agents.Fish):
-                    self.draw_health_bar(sprite)
+                    self.ui_renderer.draw_health_bar(sprite)
 
             # Draw stats panel
-            self.draw_stats_panel()
+            self.ui_renderer.draw_stats_panel(self.ecosystem, self.time_system, self.paused)
 
         # Draw poker notifications (always visible)
-        self.draw_poker_notifications()
+        if self.ui_renderer is not None:
+            self.ui_renderer.draw_poker_notifications(self.poker_notifications)
 
         pygame.display.flip()
 
