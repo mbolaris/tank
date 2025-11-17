@@ -219,7 +219,7 @@ class PokerInteraction:
         )
 
         # Record in ecosystem if available
-        if self.fish1.ecosystem is not None and winner_id != -1:
+        if self.fish1.ecosystem is not None:
             # Get algorithm IDs from fish genomes
             fish1_algo_id = None
             if self.fish1.genome.behavior_algorithm is not None:
@@ -231,16 +231,31 @@ class PokerInteraction:
                 from core.behavior_algorithms import get_algorithm_index
                 fish2_algo_id = get_algorithm_index(self.fish2.genome.behavior_algorithm)
 
-            self.fish1.ecosystem.record_poker_outcome(
-                winner_id=winner_id,
-                loser_id=loser_id,
-                winner_algo_id=fish1_algo_id if winner_id == self.fish1.fish_id else fish2_algo_id,
-                loser_algo_id=fish2_algo_id if winner_id == self.fish1.fish_id else fish1_algo_id,
-                amount=energy_transferred,
-                winner_hand=self.hand1 if winner_id == self.fish1.fish_id else self.hand2,
-                loser_hand=self.hand2 if winner_id == self.fish1.fish_id else self.hand1,
-                house_cut=house_cut
-            )
+            # For ties, both players are treated as "winner" and "loser" for stats tracking
+            if winner_id == -1:
+                # Tie - use fish1 hand as winner_hand, fish2 hand as loser_hand
+                self.fish1.ecosystem.record_poker_outcome(
+                    winner_id=winner_id,
+                    loser_id=loser_id,
+                    winner_algo_id=fish1_algo_id,
+                    loser_algo_id=fish2_algo_id,
+                    amount=energy_transferred,
+                    winner_hand=self.hand1,
+                    loser_hand=self.hand2,
+                    house_cut=house_cut
+                )
+            else:
+                # Win/Loss - determine winner and loser
+                self.fish1.ecosystem.record_poker_outcome(
+                    winner_id=winner_id,
+                    loser_id=loser_id,
+                    winner_algo_id=fish1_algo_id if winner_id == self.fish1.fish_id else fish2_algo_id,
+                    loser_algo_id=fish2_algo_id if winner_id == self.fish1.fish_id else fish1_algo_id,
+                    amount=energy_transferred,
+                    winner_hand=self.hand1 if winner_id == self.fish1.fish_id else self.hand2,
+                    loser_hand=self.hand2 if winner_id == self.fish1.fish_id else self.hand1,
+                    house_cut=house_cut
+                )
 
         return True
 
