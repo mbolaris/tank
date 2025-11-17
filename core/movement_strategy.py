@@ -62,6 +62,24 @@ class NeuralMovement(MovementStrategy):
 
     def move(self, sprite: 'Fish') -> None:
         """Move using neural network decision making."""
+        # IMPROVEMENT: Emergency override - if critically low energy, force food seeking
+        if hasattr(sprite, 'is_critical_energy') and sprite.is_critical_energy():
+            nearest_food = None
+            min_distance = float('inf')
+            for food in sprite.environment.get_agents_of_type(Food):
+                dist = (food.pos - sprite.pos).length()
+                if dist < min_distance:
+                    min_distance = dist
+                    nearest_food = food
+
+            if nearest_food:
+                # Emergency food seeking - override brain
+                direction = (nearest_food.pos - sprite.pos).normalize()
+                sprite.vel.x = direction.x * sprite.speed * 1.2
+                sprite.vel.y = direction.y * sprite.speed * 1.2
+                super().move(sprite)
+                return
+
         # Check if fish has a brain
         if sprite.genome.brain is None:
             # Fallback to simple random movement

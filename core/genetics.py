@@ -93,7 +93,8 @@ class Genome:
 
     @classmethod
     def from_parents(cls, parent1: 'Genome', parent2: 'Genome',
-                     mutation_rate: float = 0.1, mutation_strength: float = 0.1) -> 'Genome':
+                     mutation_rate: float = 0.1, mutation_strength: float = 0.1,
+                     population_stress: float = 0.0) -> 'Genome':
         """Create offspring genome by mixing parent genes with mutations.
 
         Args:
@@ -101,18 +102,27 @@ class Genome:
             parent2: Second parent's genome
             mutation_rate: Probability of each gene mutating (0.0-1.0)
             mutation_strength: Magnitude of mutations (0.0-1.0)
+            population_stress: Population stress level (0.0-1.0) for adaptive mutations
 
         Returns:
             New genome combining parent traits with possible mutations
         """
+        # IMPROVEMENT: Adaptive mutation rates - increase when population is stressed
+        # This allows faster evolution when the population is struggling
+        adaptive_mutation_rate = mutation_rate * (1.0 + population_stress * 2.0)  # Up to 3x higher
+        adaptive_mutation_strength = mutation_strength * (1.0 + population_stress * 1.5)  # Up to 2.5x stronger
+
+        # Clamp to reasonable ranges
+        adaptive_mutation_rate = min(0.4, adaptive_mutation_rate)  # Max 40% mutation rate
+        adaptive_mutation_strength = min(0.25, adaptive_mutation_strength)  # Max 25% strength
         def inherit_trait(val1: float, val2: float, min_val: float, max_val: float) -> float:
             """Inherit a trait from parents with possible mutation."""
             # Average of parents (could also do random choice or weighted)
             inherited = (val1 + val2) / 2.0
 
-            # Apply mutation
-            if random.random() < mutation_rate:
-                mutation = random.gauss(0, mutation_strength)
+            # Apply mutation (using adaptive rates)
+            if random.random() < adaptive_mutation_rate:
+                mutation = random.gauss(0, adaptive_mutation_strength)
                 inherited += mutation
 
             # Clamp to valid range
@@ -123,8 +133,8 @@ class Genome:
         if parent1.brain is not None and parent2.brain is not None:
             from core.neural_brain import NeuralBrain
             brain = NeuralBrain.crossover(parent1.brain, parent2.brain,
-                                         mutation_rate=mutation_rate,
-                                         mutation_strength=mutation_strength)
+                                         mutation_rate=adaptive_mutation_rate,
+                                         mutation_strength=adaptive_mutation_strength)
         elif parent1.brain is not None or parent2.brain is not None:
             # If only one parent has a brain, randomly inherit it
             from core.neural_brain import NeuralBrain
@@ -135,20 +145,20 @@ class Genome:
         # Handle behavior algorithm inheritance (NEW!)
         algorithm = None
         if parent1.behavior_algorithm is not None:
-            # Inherit from parent1 and mutate
+            # Inherit from parent1 and mutate (using adaptive rates)
             from core.behavior_algorithms import inherit_algorithm_with_mutation
             algorithm = inherit_algorithm_with_mutation(
                 parent1.behavior_algorithm,
-                mutation_rate=mutation_rate * 1.5,  # Slightly higher mutation for algorithms
-                mutation_strength=mutation_strength * 1.5
+                mutation_rate=adaptive_mutation_rate * 1.5,  # Slightly higher mutation for algorithms
+                mutation_strength=adaptive_mutation_strength * 1.5
             )
         elif parent2.behavior_algorithm is not None:
-            # Inherit from parent2 and mutate
+            # Inherit from parent2 and mutate (using adaptive rates)
             from core.behavior_algorithms import inherit_algorithm_with_mutation
             algorithm = inherit_algorithm_with_mutation(
                 parent2.behavior_algorithm,
-                mutation_rate=mutation_rate * 1.5,
-                mutation_strength=mutation_strength * 1.5
+                mutation_rate=adaptive_mutation_rate * 1.5,
+                mutation_strength=adaptive_mutation_strength * 1.5
             )
         else:
             # No algorithm from either parent, create random

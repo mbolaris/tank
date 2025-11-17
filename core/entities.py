@@ -250,6 +250,18 @@ class Fish(Agent):
         self.reproduction_cooldown: int = 0
         self.mate_genome: Optional['Genome'] = None  # Store mate's genome for offspring
 
+        # IMPROVEMENT: Memory and learning system
+        self.food_memory: List[Tuple[Vector2, int]] = []  # (position, age_when_found) for food hotspots
+        self.last_food_found_age: int = -1000  # Age when last found food
+        self.successful_food_finds: int = 0  # Track learning success
+        self.MAX_FOOD_MEMORIES = 5  # Remember up to 5 good food locations
+        self.FOOD_MEMORY_DECAY = 600  # Forget food locations after 20 seconds
+
+        # IMPROVEMENT: Critical energy thresholds for smarter decision-making
+        self.CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode
+        self.LOW_ENERGY_THRESHOLD = 30.0  # Need food soon
+        self.SAFE_ENERGY_THRESHOLD = 60.0  # Comfortable to explore/breed
+
         # ID tracking
         self.ecosystem: Optional['EcosystemManager'] = ecosystem
         if fish_id is None and ecosystem is not None:
@@ -325,6 +337,58 @@ class Fish(Agent):
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy)."""
         return self.energy < 20.0
+
+    def is_critical_energy(self) -> bool:
+        """Check if fish is in critical energy state (emergency survival mode)."""
+        return self.energy < self.CRITICAL_ENERGY_THRESHOLD
+
+    def is_low_energy(self) -> bool:
+        """Check if fish has low energy (should prioritize food)."""
+        return self.energy < self.LOW_ENERGY_THRESHOLD
+
+    def is_safe_energy(self) -> bool:
+        """Check if fish has safe energy level (can explore/breed)."""
+        return self.energy >= self.SAFE_ENERGY_THRESHOLD
+
+    def get_energy_ratio(self) -> float:
+        """Get energy as a ratio of max energy (0.0-1.0)."""
+        return self.energy / self.max_energy if self.max_energy > 0 else 0.0
+
+    def remember_food_location(self, position: Vector2) -> None:
+        """Remember a food location for future reference.
+
+        Args:
+            position: Position where food was found
+        """
+        # Add to memory
+        self.food_memory.append((position, self.age))
+        self.last_food_found_age = self.age
+        self.successful_food_finds += 1
+
+        # Keep only recent memories (FIFO)
+        if len(self.food_memory) > self.MAX_FOOD_MEMORIES:
+            self.food_memory.pop(0)
+
+    def get_remembered_food_locations(self) -> List[Vector2]:
+        """Get list of remembered food locations (excluding expired memories).
+
+        Returns:
+            List of Vector2 positions where food was previously found
+        """
+        current_memories = []
+        for position, found_age in self.food_memory:
+            # Only keep memories that haven't decayed
+            if self.age - found_age < self.FOOD_MEMORY_DECAY:
+                current_memories.append(position)
+
+        return current_memories
+
+    def clean_old_memories(self) -> None:
+        """Remove expired food memories."""
+        self.food_memory = [
+            (pos, age) for pos, age in self.food_memory
+            if self.age - age < self.FOOD_MEMORY_DECAY
+        ]
 
     def is_dead(self) -> bool:
         """Check if fish should die."""
@@ -429,7 +493,28 @@ class Fish(Agent):
 
                 # Create offspring genome
                 if self.mate_genome is not None:
-                    offspring_genome = Genome.from_parents(self.genome, self.mate_genome)
+                    # IMPROVEMENT: Calculate population stress for adaptive mutations
+                    population_stress = 0.0
+                    if self.ecosystem is not None:
+                        # Stress increases when population is low or death rate is high
+                        fish_count = len([e for e in self.environment.agents if isinstance(e, Fish)])
+                        target_population = 15  # Desired stable population
+                        population_ratio = fish_count / target_population if target_population > 0 else 1.0
+
+                        # Stress is higher when population is below target (inverse relationship)
+                        if population_ratio < 1.0:
+                            population_stress = (1.0 - population_ratio) * 0.8  # 0-80% stress from low population
+
+                        # Add stress from recent death rate if available
+                        if hasattr(self.ecosystem, 'recent_death_rate'):
+                            death_rate_stress = min(0.4, self.ecosystem.recent_death_rate)  # Up to 40% stress
+                            population_stress = min(1.0, population_stress + death_rate_stress)
+
+                    offspring_genome = Genome.from_parents(
+                        self.genome,
+                        self.mate_genome,
+                        population_stress=population_stress
+                    )
                 else:
                     offspring_genome = Genome.random()
 
@@ -478,6 +563,10 @@ class Fish(Agent):
         self.age += 1
         self.update_life_stage()
 
+        # IMPROVEMENT: Clean old food memories every second
+        if self.age % 30 == 0:  # Every second at 30fps
+            self.clean_old_memories()
+
         # Poker cooldown
         if hasattr(self, 'poker_cooldown') and self.poker_cooldown > 0:
             self.poker_cooldown -= 1
@@ -509,6 +598,9 @@ class Fish(Agent):
         """
         energy_gained = food.get_energy_value()
         self.energy = min(self.max_energy, self.energy + energy_gained)
+
+        # IMPROVEMENT: Remember this food location for future reference
+        self.remember_food_location(food.pos)
 
         # Record food consumption for algorithm performance tracking
         if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
