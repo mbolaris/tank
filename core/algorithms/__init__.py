@@ -224,6 +224,94 @@ def inherit_algorithm_with_mutation(parent_algorithm: BehaviorAlgorithm,
     return offspring
 
 
+def crossover_algorithms(parent1_algorithm: BehaviorAlgorithm,
+                        parent2_algorithm: BehaviorAlgorithm,
+                        mutation_rate: float = 0.15,
+                        mutation_strength: float = 0.2,
+                        algorithm_switch_rate: float = 0.1) -> BehaviorAlgorithm:
+    """Create offspring algorithm by crossing over both parents' algorithms.
+
+    This function allows for:
+    1. Inheriting the algorithm TYPE from one parent
+    2. Blending PARAMETERS from both parents (if they have the same algorithm)
+    3. Randomly switching to the other parent's algorithm type
+    4. Mutation of parameters
+
+    Args:
+        parent1_algorithm: First parent's behavior algorithm
+        parent2_algorithm: Second parent's behavior algorithm
+        mutation_rate: Probability of each parameter mutating
+        mutation_strength: Magnitude of mutations
+        algorithm_switch_rate: Probability of switching to other parent's algorithm type
+
+    Returns:
+        New algorithm instance with blended/crossed-over parameters
+    """
+    # Determine which algorithm type to inherit
+    if parent1_algorithm is None and parent2_algorithm is None:
+        # Both parents have no algorithm, create random
+        return get_random_algorithm()
+    elif parent1_algorithm is None:
+        # Only parent2 has algorithm
+        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength)
+    elif parent2_algorithm is None:
+        # Only parent1 has algorithm
+        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength)
+
+    # Both parents have algorithms
+    same_type = type(parent1_algorithm) == type(parent2_algorithm)
+
+    # Decide which parent's algorithm type to use (or switch with small probability)
+    if random.random() < algorithm_switch_rate:
+        # Rare mutation: switch to a completely different algorithm
+        return get_random_algorithm()
+
+    if same_type:
+        # CASE 1: Both parents have same algorithm type
+        # Blend parameters from both parents
+        offspring = parent1_algorithm.__class__()
+
+        # For each parameter, blend from both parents
+        for param_key in parent1_algorithm.parameters:
+            if param_key in parent2_algorithm.parameters:
+                val1 = parent1_algorithm.parameters[param_key]
+                val2 = parent2_algorithm.parameters[param_key]
+
+                # Skip non-numeric parameters
+                if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
+                    offspring.parameters[param_key] = val1 if random.random() < 0.5 else val2
+                    continue
+
+                # Crossover: randomly blend from both parents
+                if random.random() < 0.5:
+                    # Averaging (Mendelian inheritance)
+                    offspring.parameters[param_key] = (val1 + val2) / 2.0
+                else:
+                    # Random selection (dominant gene)
+                    offspring.parameters[param_key] = val1 if random.random() < 0.5 else val2
+
+            elif param_key in parent1_algorithm.parameters:
+                # Only parent1 has this parameter
+                offspring.parameters[param_key] = parent1_algorithm.parameters[param_key]
+
+        # Add any parameters from parent2 that parent1 doesn't have
+        for param_key in parent2_algorithm.parameters:
+            if param_key not in offspring.parameters:
+                offspring.parameters[param_key] = parent2_algorithm.parameters[param_key]
+
+    else:
+        # CASE 2: Different algorithm types
+        # Choose one parent's algorithm type (50/50 chance)
+        chosen_parent = parent1_algorithm if random.random() < 0.5 else parent2_algorithm
+        offspring = chosen_parent.__class__()
+        offspring.parameters = chosen_parent.parameters.copy()
+
+    # Apply mutations to offspring parameters
+    offspring.mutate_parameters(mutation_rate, mutation_strength)
+
+    return offspring
+
+
 # Export all symbols
 __all__ = [
     # Base
@@ -302,4 +390,5 @@ __all__ = [
     'get_random_algorithm',
     'get_algorithm_by_id',
     'inherit_algorithm_with_mutation',
+    'crossover_algorithms',
 ]

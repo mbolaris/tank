@@ -34,7 +34,8 @@ class ReproductionComponent:
     REPRODUCTION_COOLDOWN = 240  # 8 seconds (reduced for better breeding)
     PREGNANCY_DURATION = 300  # 10 seconds
     MATING_DISTANCE = 60.0  # Maximum distance for mating
-    REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for mating
+    REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for initiating mating
+    ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby
     MIN_ACCEPTANCE_THRESHOLD = 0.3  # Minimum chance to accept mate (30%)
 
     def __init__(self):
@@ -156,7 +157,7 @@ class ReproductionComponent:
 
         return False
 
-    def give_birth(self, own_genome: 'Genome', population_stress: float = 0.0) -> 'Genome':
+    def give_birth(self, own_genome: 'Genome', population_stress: float = 0.0) -> tuple['Genome', float]:
         """Generate offspring genome from mating.
 
         Args:
@@ -164,7 +165,7 @@ class ReproductionComponent:
             population_stress: Environmental stress factor (0.0-1.0)
 
         Returns:
-            Genome: The offspring's genome
+            Tuple of (Genome, energy_for_baby): The offspring's genome and energy to transfer
         """
         from core.genetics import Genome
 
@@ -181,7 +182,9 @@ class ReproductionComponent:
         # Clear mate genome after birth
         self.mate_genome = None
 
-        return offspring_genome
+        # Calculate energy to transfer to baby (as a fraction, to be calculated by caller)
+        # The caller will compute: energy_to_transfer = parent.energy * ENERGY_TRANSFER_TO_BABY
+        return offspring_genome, self.ENERGY_TRANSFER_TO_BABY
 
     def reset_pregnancy(self) -> None:
         """Reset pregnancy state (e.g., due to starvation or death)."""
