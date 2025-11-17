@@ -93,6 +93,19 @@ class PokerStats:
         total_house_cuts: Total energy taken by house
         best_hand_rank: Best hand rank achieved (0-9)
         avg_hand_rank: Average hand rank
+        folds: Number of times folded
+        won_at_showdown: Number of wins at showdown (vs fold)
+        won_by_fold: Number of wins because opponent folded
+        showdown_count: Number of times reached showdown
+        button_wins: Wins when on the button
+        button_games: Games played on the button
+        off_button_wins: Wins when not on the button
+        off_button_games: Games played off the button
+        preflop_folds: Folds during pre-flop
+        postflop_folds: Folds after seeing flop
+        avg_pot_size: Average pot size
+        total_raises: Total number of raises made
+        total_calls: Total number of calls made
     """
     algorithm_id: int
     total_games: int = 0
@@ -106,13 +119,49 @@ class PokerStats:
     avg_hand_rank: float = 0.0
     _total_hand_rank: float = field(default=0.0, repr=False)  # For averaging
 
+    # New detailed stats
+    folds: int = 0
+    won_at_showdown: int = 0
+    won_by_fold: int = 0
+    showdown_count: int = 0
+    button_wins: int = 0
+    button_games: int = 0
+    off_button_wins: int = 0
+    off_button_games: int = 0
+    preflop_folds: int = 0
+    postflop_folds: int = 0
+    avg_pot_size: float = 0.0
+    _total_pot_size: float = field(default=0.0, repr=False)
+    total_raises: int = 0
+    total_calls: int = 0
+
     def get_win_rate(self) -> float:
-        """Calculate win rate."""
+        """Calculate overall win rate."""
         return self.total_wins / self.total_games if self.total_games > 0 else 0.0
 
     def get_net_energy(self) -> float:
         """Calculate net energy from poker."""
         return self.total_energy_won - self.total_energy_lost - self.total_house_cuts
+
+    def get_showdown_win_rate(self) -> float:
+        """Calculate win rate at showdown."""
+        return self.won_at_showdown / self.showdown_count if self.showdown_count > 0 else 0.0
+
+    def get_fold_rate(self) -> float:
+        """Calculate percentage of games folded."""
+        return self.folds / self.total_games if self.total_games > 0 else 0.0
+
+    def get_button_win_rate(self) -> float:
+        """Calculate win rate when on the button."""
+        return self.button_wins / self.button_games if self.button_games > 0 else 0.0
+
+    def get_off_button_win_rate(self) -> float:
+        """Calculate win rate when off the button."""
+        return self.off_button_wins / self.off_button_games if self.off_button_games > 0 else 0.0
+
+    def get_aggression_factor(self) -> float:
+        """Calculate aggression factor (raises / calls)."""
+        return self.total_raises / self.total_calls if self.total_calls > 0 else 0.0
 
 
 @dataclass
@@ -454,6 +503,10 @@ class EcosystemManager:
         total_energy_won = sum(s.total_energy_won for s in self.poker_stats.values())
         total_energy_lost = sum(s.total_energy_lost for s in self.poker_stats.values())
         total_house_cuts = sum(s.total_house_cuts for s in self.poker_stats.values())
+        total_folds = sum(s.folds for s in self.poker_stats.values())
+        total_showdowns = sum(s.showdown_count for s in self.poker_stats.values())
+        total_won_at_showdown = sum(s.won_at_showdown for s in self.poker_stats.values())
+        total_won_by_fold = sum(s.won_by_fold for s in self.poker_stats.values())
 
         # Find best hand rank across all algorithms
         best_hand_rank = max((s.best_hand_rank for s in self.poker_stats.values()), default=0)
@@ -469,6 +522,10 @@ class EcosystemManager:
         else:
             best_hand_name = "Unknown"
 
+        # Calculate aggregate stats
+        avg_fold_rate = (total_folds / total_games) if total_games > 0 else 0.0
+        showdown_win_rate = (total_won_at_showdown / total_showdowns) if total_showdowns > 0 else 0.0
+
         return {
             'total_games': total_games,
             'total_wins': total_wins,
@@ -480,6 +537,12 @@ class EcosystemManager:
             'net_energy': total_energy_won - total_energy_lost - total_house_cuts,
             'best_hand_rank': best_hand_rank,
             'best_hand_name': best_hand_name,
+            'total_folds': total_folds,
+            'avg_fold_rate': f"{avg_fold_rate:.1%}",
+            'total_showdowns': total_showdowns,
+            'showdown_win_rate': f"{showdown_win_rate:.1%}",
+            'won_by_fold': total_won_by_fold,
+            'won_at_showdown': total_won_at_showdown,
         }
 
     def record_reproduction(self, algorithm_id: int) -> None:
@@ -503,8 +566,10 @@ class EcosystemManager:
     def record_poker_outcome(self, winner_id: int, loser_id: int,
                             winner_algo_id: Optional[int], loser_algo_id: Optional[int],
                             amount: float, winner_hand: 'PokerHand', loser_hand: 'PokerHand',
-                            house_cut: float = 0.0) -> None:
-        """Record a poker game outcome.
+                            house_cut: float = 0.0, result: Optional['PokerResult'] = None,
+                            player1_algo_id: Optional[int] = None,
+                            player2_algo_id: Optional[int] = None) -> None:
+        """Record a poker game outcome with detailed statistics.
 
         Args:
             winner_id: Fish ID of winner (-1 for tie)
@@ -515,8 +580,11 @@ class EcosystemManager:
             winner_hand: The winning poker hand
             loser_hand: The losing poker hand
             house_cut: Amount taken by house (default 0.0)
+            result: Optional PokerResult with detailed game information
+            player1_algo_id: Algorithm ID of player 1
+            player2_algo_id: Algorithm ID of player 2
         """
-        from core.poker_interaction import PokerHand
+        from core.poker_interaction import PokerHand, BettingAction
 
         # Handle tie case
         if winner_id == -1:
@@ -549,6 +617,46 @@ class EcosystemManager:
             stats._total_hand_rank += winner_hand.rank_value
             stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
 
+            # Track detailed stats if result available
+            if result is not None:
+                # Update pot size average
+                stats._total_pot_size += result.final_pot
+                stats.avg_pot_size = stats._total_pot_size / stats.total_games
+
+                # Track win by fold vs showdown
+                if result.won_by_fold:
+                    stats.won_by_fold += 1
+                else:
+                    stats.won_at_showdown += 1
+                    stats.showdown_count += 1
+
+                # Track positional stats (winner perspective)
+                winner_on_button = (
+                    (winner_id == result.winner_id and result.button_position == 1) or
+                    (winner_id != result.winner_id and result.button_position == 2)
+                )
+                if winner_algo_id == player1_algo_id:
+                    winner_on_button = result.button_position == 1
+                else:
+                    winner_on_button = result.button_position == 2
+
+                if winner_on_button:
+                    stats.button_games += 1
+                    stats.button_wins += 1
+                else:
+                    stats.off_button_games += 1
+                    stats.off_button_wins += 1
+
+                # Count betting actions for aggression factor
+                for player, action, _ in result.betting_history:
+                    # Determine if this action was by the winner
+                    if (player == 1 and winner_algo_id == player1_algo_id) or \
+                       (player == 2 and winner_algo_id == player2_algo_id):
+                        if action == BettingAction.RAISE:
+                            stats.total_raises += 1
+                        elif action == BettingAction.CALL:
+                            stats.total_calls += 1
+
         # Record loser stats
         if loser_algo_id is not None and loser_algo_id in self.poker_stats:
             stats = self.poker_stats[loser_algo_id]
@@ -558,6 +666,48 @@ class EcosystemManager:
             stats.total_house_cuts += house_cut / 2  # Split house cut evenly between both players
             stats._total_hand_rank += loser_hand.rank_value
             stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+            # Track detailed stats if result available
+            if result is not None:
+                # Update pot size average
+                stats._total_pot_size += result.final_pot
+                stats.avg_pot_size = stats._total_pot_size / stats.total_games
+
+                # Track fold stats
+                loser_folded = (
+                    (loser_algo_id == player1_algo_id and result.player1_folded) or
+                    (loser_algo_id == player2_algo_id and result.player2_folded)
+                )
+                if loser_folded:
+                    stats.folds += 1
+                    # Track pre-flop vs post-flop folds
+                    if result.total_rounds == 0:
+                        stats.preflop_folds += 1
+                    else:
+                        stats.postflop_folds += 1
+                else:
+                    # Lost at showdown
+                    stats.showdown_count += 1
+
+                # Track positional stats (loser perspective)
+                loser_on_button = (
+                    (loser_algo_id == player1_algo_id and result.button_position == 1) or
+                    (loser_algo_id == player2_algo_id and result.button_position == 2)
+                )
+                if loser_on_button:
+                    stats.button_games += 1
+                else:
+                    stats.off_button_games += 1
+
+                # Count betting actions for aggression factor
+                for player, action, _ in result.betting_history:
+                    # Determine if this action was by the loser
+                    if (player == 1 and loser_algo_id == player1_algo_id) or \
+                       (player == 2 and loser_algo_id == player2_algo_id):
+                        if action == BettingAction.RAISE:
+                            stats.total_raises += 1
+                        elif action == BettingAction.CALL:
+                            stats.total_calls += 1
 
         # Log event
         self.events.append(EcosystemEvent(

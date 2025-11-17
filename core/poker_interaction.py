@@ -1,17 +1,93 @@
 """
 Poker game engine for fish interactions.
 
-This module implements a simplified Texas Hold'em poker system for determining
+This module implements an authentic Texas Hold'em poker system for determining
 outcomes of fish-to-fish encounters. When two fish collide, they play a hand
 of poker to determine energy transfer.
 
-Updated to support multiple betting rounds and folding.
+Features:
+- Real 52-card deck with shuffling
+- Community cards (flop, turn, river)
+- Proper hand evaluation with kicker support
+- Small blind/big blind system
+- Position-based play (button rotation)
+- Multiple betting rounds with folding
 """
 
 import random
-from dataclasses import dataclass
-from typing import Tuple, Optional, List
+from dataclasses import dataclass, field
+from typing import Tuple, Optional, List, Set
 from enum import IntEnum
+from collections import Counter
+
+
+class Suit(IntEnum):
+    """Card suits."""
+    CLUBS = 0
+    DIAMONDS = 1
+    HEARTS = 2
+    SPADES = 3
+
+
+class Rank(IntEnum):
+    """Card ranks (2-14, where 14 is Ace)."""
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
+    SIX = 6
+    SEVEN = 7
+    EIGHT = 8
+    NINE = 9
+    TEN = 10
+    JACK = 11
+    QUEEN = 12
+    KING = 13
+    ACE = 14
+
+
+@dataclass(frozen=True)
+class Card:
+    """Represents a single playing card."""
+    rank: Rank
+    suit: Suit
+
+    def __str__(self) -> str:
+        rank_names = {2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
+                     9: '9', 10: 'T', 11: 'J', 12: 'Q', 13: 'K', 14: 'A'}
+        suit_names = {0: '♣', 1: '♦', 2: '♥', 3: '♠'}
+        return f"{rank_names[self.rank]}{suit_names[self.suit]}"
+
+    def __lt__(self, other: 'Card') -> bool:
+        return self.rank < other.rank
+
+
+class Deck:
+    """52-card deck for Texas Hold'em."""
+
+    def __init__(self):
+        """Initialize and shuffle a standard 52-card deck."""
+        self.cards: List[Card] = []
+        self.reset()
+
+    def reset(self):
+        """Reset and shuffle the deck."""
+        self.cards = [Card(Rank(r), Suit(s))
+                     for r in range(2, 15)
+                     for s in range(4)]
+        random.shuffle(self.cards)
+
+    def deal(self, count: int = 1) -> List[Card]:
+        """Deal cards from the deck."""
+        if count > len(self.cards):
+            raise ValueError("Not enough cards in deck")
+        dealt = self.cards[:count]
+        self.cards = self.cards[count:]
+        return dealt
+
+    def deal_one(self) -> Card:
+        """Deal a single card."""
+        return self.deal(1)[0]
 
 
 class HandRank(IntEnum):
@@ -47,14 +123,41 @@ class BettingAction(IntEnum):
 
 @dataclass
 class PokerHand:
-    """Represents a poker hand and its rank."""
+    """Represents a poker hand and its rank with kickers."""
     hand_type: str
     rank_value: HandRank
     description: str
+    cards: List[Card] = field(default_factory=list)  # The 5 cards that make up the hand
+    primary_ranks: List[int] = field(default_factory=list)  # Main ranks (e.g., pair ranks)
+    kickers: List[int] = field(default_factory=list)  # Kicker ranks for tie-breaking
 
     def beats(self, other: 'PokerHand') -> bool:
-        """Check if this hand beats another hand."""
-        return self.rank_value > other.rank_value
+        """Check if this hand beats another hand, including kicker comparison."""
+        if self.rank_value != other.rank_value:
+            return self.rank_value > other.rank_value
+
+        # Same rank - compare primary ranks
+        for my_rank, their_rank in zip(self.primary_ranks, other.primary_ranks):
+            if my_rank != their_rank:
+                return my_rank > their_rank
+
+        # Same primary ranks - compare kickers
+        for my_kicker, their_kicker in zip(self.kickers, other.kickers):
+            if my_kicker != their_kicker:
+                return my_kicker > their_kicker
+
+        # Completely tied
+        return False
+
+    def ties(self, other: 'PokerHand') -> bool:
+        """Check if this hand ties with another hand."""
+        if self.rank_value != other.rank_value:
+            return False
+        if self.primary_ranks != other.primary_ranks:
+            return False
+        if self.kickers != other.kickers:
+            return False
+        return True
 
     def __str__(self) -> str:
         return f"{self.description} (rank {self.rank_value})"
@@ -62,7 +165,7 @@ class PokerHand:
 
 @dataclass
 class PokerGameState:
-    """Tracks the state of a multi-round poker game."""
+    """Tracks the state of a multi-round Texas Hold'em poker game."""
     current_round: BettingRound
     pot: float
     player1_total_bet: float
@@ -71,11 +174,18 @@ class PokerGameState:
     player2_current_bet: float  # Bet in current round
     player1_folded: bool
     player2_folded: bool
-    player1_hand: Optional[PokerHand]
-    player2_hand: Optional[PokerHand]
+    player1_hole_cards: List[Card]  # Player 1's 2 hole cards
+    player2_hole_cards: List[Card]  # Player 2's 2 hole cards
+    community_cards: List[Card]  # Community cards (0 pre-flop, 3 after flop, 4 after turn, 5 after river)
+    player1_hand: Optional[PokerHand]  # Best 5-card hand (evaluated at showdown)
+    player2_hand: Optional[PokerHand]  # Best 5-card hand (evaluated at showdown)
     betting_history: List[Tuple[int, BettingAction, float]]  # (player, action, amount)
+    button_position: int  # Which player is on the button (1 or 2)
+    small_blind: float
+    big_blind: float
+    deck: Deck
 
-    def __init__(self):
+    def __init__(self, small_blind: float = 2.5, big_blind: float = 5.0, button_position: int = 1):
         self.current_round = BettingRound.PRE_FLOP
         self.pot = 0.0
         self.player1_total_bet = 0.0
@@ -84,9 +194,16 @@ class PokerGameState:
         self.player2_current_bet = 0.0
         self.player1_folded = False
         self.player2_folded = False
+        self.player1_hole_cards = []
+        self.player2_hole_cards = []
+        self.community_cards = []
         self.player1_hand = None
         self.player2_hand = None
         self.betting_history = []
+        self.button_position = button_position
+        self.small_blind = small_blind
+        self.big_blind = big_blind
+        self.deck = Deck()
 
     def add_to_pot(self, amount: float):
         """Add money to the pot."""
@@ -102,10 +219,39 @@ class PokerGameState:
             self.player2_total_bet += amount
         self.add_to_pot(amount)
 
+    def deal_cards(self):
+        """Deal hole cards to both players."""
+        self.player1_hole_cards = self.deck.deal(2)
+        self.player2_hole_cards = self.deck.deal(2)
+
+    def deal_flop(self):
+        """Deal the flop (3 community cards)."""
+        self.deck.deal(1)  # Burn card
+        self.community_cards.extend(self.deck.deal(3))
+
+    def deal_turn(self):
+        """Deal the turn (4th community card)."""
+        self.deck.deal(1)  # Burn card
+        self.community_cards.append(self.deck.deal_one())
+
+    def deal_river(self):
+        """Deal the river (5th community card)."""
+        self.deck.deal(1)  # Burn card
+        self.community_cards.append(self.deck.deal_one())
+
     def advance_round(self):
-        """Move to the next betting round."""
+        """Move to the next betting round and deal appropriate community cards."""
         if self.current_round < BettingRound.SHOWDOWN:
             self.current_round = BettingRound(self.current_round + 1)
+
+            # Deal community cards based on new round
+            if self.current_round == BettingRound.FLOP:
+                self.deal_flop()
+            elif self.current_round == BettingRound.TURN:
+                self.deal_turn()
+            elif self.current_round == BettingRound.RIVER:
+                self.deal_river()
+
             # Reset current round bets
             self.player1_current_bet = 0.0
             self.player2_current_bet = 0.0
@@ -127,22 +273,7 @@ class PokerGameState:
 
 
 class PokerEngine:
-    """Core poker game logic for fish interactions."""
-
-    # Probability distribution for poker hands (approximating Texas Hold'em)
-    # Format: (cumulative_probability, HandRank, description_template)
-    HAND_PROBABILITIES = [
-        (0.501, HandRank.HIGH_CARD, "High Card"),
-        (0.924, HandRank.PAIR, "Pair"),
-        (0.971, HandRank.TWO_PAIR, "Two Pair"),
-        (0.993, HandRank.THREE_OF_KIND, "Three of a Kind"),
-        (0.997, HandRank.STRAIGHT, "Straight"),
-        (0.9985, HandRank.FLUSH, "Flush"),
-        (0.9997, HandRank.FULL_HOUSE, "Full House"),
-        (0.99994, HandRank.FOUR_OF_KIND, "Four of a Kind"),
-        (0.999985, HandRank.STRAIGHT_FLUSH, "Straight Flush"),
-        (1.0, HandRank.ROYAL_FLUSH, "Royal Flush"),
-    ]
+    """Core poker game logic for fish interactions with authentic Texas Hold'em."""
 
     # Aggression factors for betting decisions
     # Higher values = more aggressive (more likely to raise/call)
@@ -151,28 +282,191 @@ class PokerEngine:
     AGGRESSION_HIGH = 0.9
 
     @staticmethod
-    def generate_hand() -> PokerHand:
+    def evaluate_hand(hole_cards: List[Card], community_cards: List[Card]) -> PokerHand:
         """
-        Generate a random poker hand using realistic probabilities.
+        Evaluate the best 5-card poker hand from hole cards and community cards.
+
+        Args:
+            hole_cards: Player's 2 hole cards
+            community_cards: 0-5 community cards
 
         Returns:
-            PokerHand with appropriate rank and description
+            PokerHand with rank, description, and kickers
         """
-        roll = random.random()
+        # Combine all available cards
+        all_cards = hole_cards + community_cards
 
-        for prob, rank, description in PokerEngine.HAND_PROBABILITIES:
-            if roll < prob:
+        if len(all_cards) < 5:
+            # Not enough cards yet - return high card from what we have
+            sorted_cards = sorted(all_cards, key=lambda c: c.rank, reverse=True)
+            return PokerHand(
+                hand_type="high_card",
+                rank_value=HandRank.HIGH_CARD,
+                description=f"High Card {PokerEngine._rank_name(sorted_cards[0].rank)}",
+                cards=sorted_cards[:5] if len(sorted_cards) >= 5 else sorted_cards,
+                primary_ranks=[sorted_cards[0].rank] if sorted_cards else [],
+                kickers=[c.rank for c in sorted_cards[1:5]] if len(sorted_cards) > 1 else []
+            )
+
+        # Find best 5-card combination
+        from itertools import combinations
+        best_hand = None
+
+        for five_cards in combinations(all_cards, 5):
+            hand = PokerEngine._evaluate_five_cards(list(five_cards))
+            if best_hand is None or hand.beats(best_hand):
+                best_hand = hand
+
+        return best_hand
+
+    @staticmethod
+    def _rank_name(rank: int) -> str:
+        """Get the name of a rank."""
+        names = {2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
+                9: '9', 10: 'Ten', 11: 'Jack', 12: 'Queen', 13: 'King', 14: 'Ace'}
+        return names.get(rank, str(rank))
+
+    @staticmethod
+    def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
+        """Evaluate exactly 5 cards and return the poker hand."""
+        sorted_cards = sorted(cards, key=lambda c: c.rank, reverse=True)
+        ranks = [c.rank for c in sorted_cards]
+        suits = [c.suit for c in sorted_cards]
+
+        rank_counts = Counter(ranks)
+        rank_count_list = rank_counts.most_common()
+
+        # Check for flush
+        is_flush = len(set(suits)) == 1
+
+        # Check for straight (including A-2-3-4-5)
+        is_straight = False
+        straight_high = 0
+        if ranks == list(range(ranks[0], ranks[0] - 5, -1)):
+            is_straight = True
+            straight_high = ranks[0]
+        elif ranks == [14, 5, 4, 3, 2]:  # Ace-low straight (wheel)
+            is_straight = True
+            straight_high = 5
+
+        # Evaluate hand type
+        if is_straight and is_flush:
+            if straight_high == 14:
                 return PokerHand(
-                    hand_type=rank.name.lower(),
-                    rank_value=rank,
-                    description=description
+                    hand_type="royal_flush",
+                    rank_value=HandRank.ROYAL_FLUSH,
+                    description="Royal Flush",
+                    cards=sorted_cards,
+                    primary_ranks=[14],
+                    kickers=[]
+                )
+            else:
+                return PokerHand(
+                    hand_type="straight_flush",
+                    rank_value=HandRank.STRAIGHT_FLUSH,
+                    description=f"Straight Flush, {PokerEngine._rank_name(straight_high)} high",
+                    cards=sorted_cards,
+                    primary_ranks=[straight_high],
+                    kickers=[]
                 )
 
-        # Fallback (should never reach here)
+        if rank_count_list[0][1] == 4:
+            # Four of a kind
+            quad_rank = rank_count_list[0][0]
+            kicker = rank_count_list[1][0]
+            return PokerHand(
+                hand_type="four_of_kind",
+                rank_value=HandRank.FOUR_OF_KIND,
+                description=f"Four {PokerEngine._rank_name(quad_rank)}s",
+                cards=sorted_cards,
+                primary_ranks=[quad_rank],
+                kickers=[kicker]
+            )
+
+        if rank_count_list[0][1] == 3 and rank_count_list[1][1] == 2:
+            # Full house
+            trips_rank = rank_count_list[0][0]
+            pair_rank = rank_count_list[1][0]
+            return PokerHand(
+                hand_type="full_house",
+                rank_value=HandRank.FULL_HOUSE,
+                description=f"Full House, {PokerEngine._rank_name(trips_rank)}s over {PokerEngine._rank_name(pair_rank)}s",
+                cards=sorted_cards,
+                primary_ranks=[trips_rank, pair_rank],
+                kickers=[]
+            )
+
+        if is_flush:
+            return PokerHand(
+                hand_type="flush",
+                rank_value=HandRank.FLUSH,
+                description=f"Flush, {PokerEngine._rank_name(ranks[0])} high",
+                cards=sorted_cards,
+                primary_ranks=[],
+                kickers=ranks
+            )
+
+        if is_straight:
+            return PokerHand(
+                hand_type="straight",
+                rank_value=HandRank.STRAIGHT,
+                description=f"Straight, {PokerEngine._rank_name(straight_high)} high",
+                cards=sorted_cards,
+                primary_ranks=[straight_high],
+                kickers=[]
+            )
+
+        if rank_count_list[0][1] == 3:
+            # Three of a kind
+            trips_rank = rank_count_list[0][0]
+            kickers_list = [rank_count_list[1][0], rank_count_list[2][0]]
+            kickers_list.sort(reverse=True)
+            return PokerHand(
+                hand_type="three_of_kind",
+                rank_value=HandRank.THREE_OF_KIND,
+                description=f"Three {PokerEngine._rank_name(trips_rank)}s",
+                cards=sorted_cards,
+                primary_ranks=[trips_rank],
+                kickers=kickers_list
+            )
+
+        if rank_count_list[0][1] == 2 and rank_count_list[1][1] == 2:
+            # Two pair
+            pair1 = rank_count_list[0][0]
+            pair2 = rank_count_list[1][0]
+            pairs = sorted([pair1, pair2], reverse=True)
+            kicker = rank_count_list[2][0]
+            return PokerHand(
+                hand_type="two_pair",
+                rank_value=HandRank.TWO_PAIR,
+                description=f"Two Pair, {PokerEngine._rank_name(pairs[0])}s and {PokerEngine._rank_name(pairs[1])}s",
+                cards=sorted_cards,
+                primary_ranks=pairs,
+                kickers=[kicker]
+            )
+
+        if rank_count_list[0][1] == 2:
+            # One pair
+            pair_rank = rank_count_list[0][0]
+            kickers_list = [rank_count_list[1][0], rank_count_list[2][0], rank_count_list[3][0]]
+            kickers_list.sort(reverse=True)
+            return PokerHand(
+                hand_type="pair",
+                rank_value=HandRank.PAIR,
+                description=f"Pair of {PokerEngine._rank_name(pair_rank)}s",
+                cards=sorted_cards,
+                primary_ranks=[pair_rank],
+                kickers=kickers_list
+            )
+
+        # High card
         return PokerHand(
             hand_type="high_card",
             rank_value=HandRank.HIGH_CARD,
-            description="High Card"
+            description=f"High Card {PokerEngine._rank_name(ranks[0])}",
+            cards=sorted_cards,
+            primary_ranks=[],
+            kickers=ranks
         )
 
     @staticmethod
@@ -276,40 +570,61 @@ class PokerEngine:
         player1_energy: float,
         player2_energy: float,
         player1_aggression: float = AGGRESSION_MEDIUM,
-        player2_aggression: float = AGGRESSION_MEDIUM
+        player2_aggression: float = AGGRESSION_MEDIUM,
+        button_position: int = 1
     ) -> PokerGameState:
         """
-        Simulate a complete multi-round poker game with folding.
+        Simulate a complete multi-round Texas Hold'em poker game with blinds.
 
         Args:
-            initial_bet: Starting bet amount (ante)
+            initial_bet: Base bet amount (used to calculate blinds)
             player1_energy: Player 1's available energy
             player2_energy: Player 2's available energy
             player1_aggression: Player 1's aggression factor
             player2_aggression: Player 2's aggression factor
+            button_position: Which player has the button (1 or 2)
 
         Returns:
             PokerGameState with final game results
         """
-        game_state = PokerGameState()
+        # Calculate blinds from initial bet
+        big_blind = initial_bet
+        small_blind = initial_bet / 2
 
-        # Generate hands at the start
-        game_state.player1_hand = PokerEngine.generate_hand()
-        game_state.player2_hand = PokerEngine.generate_hand()
+        # Ensure blinds don't exceed available energy
+        big_blind = min(big_blind, player1_energy, player2_energy)
+        small_blind = min(small_blind, player1_energy, player2_energy, big_blind / 2)
 
-        # Place initial antes
-        ante = min(initial_bet, player1_energy, player2_energy)
-        game_state.player_bet(1, ante)
-        game_state.player_bet(2, ante)
-        player1_remaining = player1_energy - ante
-        player2_remaining = player2_energy - ante
+        game_state = PokerGameState(small_blind=small_blind, big_blind=big_blind, button_position=button_position)
+
+        # Deal hole cards
+        game_state.deal_cards()
+
+        # Post blinds
+        # In heads-up, button posts small blind, other player posts big blind
+        if button_position == 1:
+            small_blind_player = 1
+            big_blind_player = 2
+        else:
+            small_blind_player = 2
+            big_blind_player = 1
+
+        game_state.player_bet(small_blind_player, small_blind)
+        game_state.player_bet(big_blind_player, big_blind)
+
+        if small_blind_player == 1:
+            player1_remaining = player1_energy - small_blind
+            player2_remaining = player2_energy - big_blind
+        else:
+            player1_remaining = player1_energy - big_blind
+            player2_remaining = player2_energy - small_blind
 
         # Play through betting rounds
         for round_num in range(4):  # Pre-flop, Flop, Turn, River
             if game_state.get_winner_by_fold() is not None:
                 break
 
-            # Reset current round bets for new round
+            # Advance round and deal community cards
             if round_num > 0:
                 game_state.advance_round()
 
@@ -318,19 +633,23 @@ class PokerEngine:
             max_actions_per_round = 10  # Prevent infinite loops
             actions_this_round = 0
 
-            # Start with player 1
-            current_player = 1
+            # In heads-up pre-flop, button (small blind) acts first
+            # Post-flop, button acts last (so non-button acts first)
+            if round_num == 0:  # Pre-flop
+                current_player = button_position
+            else:  # Post-flop
+                current_player = 2 if button_position == 1 else 1
 
             while actions_this_round < max_actions_per_round:
-                # Determine which player is acting
+                # Evaluate current hand strength based on available cards
                 if current_player == 1:
-                    hand = game_state.player1_hand
+                    hand = PokerEngine.evaluate_hand(game_state.player1_hole_cards, game_state.community_cards)
                     current_bet = game_state.player1_current_bet
                     opponent_bet = game_state.player2_current_bet
                     remaining_energy = player1_remaining
                     aggression = player1_aggression
                 else:
-                    hand = game_state.player2_hand
+                    hand = PokerEngine.evaluate_hand(game_state.player2_hole_cards, game_state.community_cards)
                     current_bet = game_state.player2_current_bet
                     opponent_bet = game_state.player1_current_bet
                     remaining_energy = player2_remaining
@@ -391,8 +710,21 @@ class PokerEngine:
                 # Switch to other player
                 current_player = 2 if current_player == 1 else 1
 
-        # Game is over - determine final result
+        # Game is over - evaluate final hands at showdown
         game_state.current_round = BettingRound.SHOWDOWN
+
+        # Evaluate best hands using all 7 cards (2 hole + 5 community)
+        if not game_state.player1_folded:
+            game_state.player1_hand = PokerEngine.evaluate_hand(
+                game_state.player1_hole_cards,
+                game_state.community_cards
+            )
+        if not game_state.player2_folded:
+            game_state.player2_hand = PokerEngine.evaluate_hand(
+                game_state.player2_hole_cards,
+                game_state.community_cards
+            )
+
         return game_state
 
     @staticmethod
@@ -403,7 +735,7 @@ class PokerEngine:
         bet2_amount: float
     ) -> Tuple[float, float]:
         """
-        Resolve a poker bet between two hands.
+        Resolve a poker bet between two hands with proper kicker comparison.
 
         Args:
             hand1: First player's hand
@@ -415,7 +747,7 @@ class PokerEngine:
             Tuple of (player1_winnings, player2_winnings)
             This is a zero-sum game, so winnings sum to 0
         """
-        # Determine winner
+        # Determine winner using proper hand comparison including kickers
         if hand1.beats(hand2):
             # Player 1 wins, takes both bets
             return (bet2_amount, -bet2_amount)
@@ -423,56 +755,81 @@ class PokerEngine:
             # Player 2 wins, takes both bets
             return (-bet1_amount, bet1_amount)
         else:
-            # Tie - no money changes hands
+            # Tie (same rank and kickers) - no money changes hands
             return (0.0, 0.0)
 
     @staticmethod
-    def simulate_game(bet_amount: float = 10.0) -> Tuple[PokerHand, PokerHand, float, float]:
+    def simulate_game(bet_amount: float = 10.0, player1_energy: float = 100.0,
+                     player2_energy: float = 100.0) -> PokerGameState:
         """
-        Simulate a complete poker game between two players.
+        Simulate a complete Texas Hold'em poker game between two players.
 
         Args:
-            bet_amount: Amount each player bets (assumes equal bets)
+            bet_amount: Base bet amount (for blinds)
+            player1_energy: Player 1's available energy
+            player2_energy: Player 2's available energy
 
         Returns:
-            Tuple of (hand1, hand2, player1_winnings, player2_winnings)
+            PokerGameState with complete game results
         """
-        hand1 = PokerEngine.generate_hand()
-        hand2 = PokerEngine.generate_hand()
-        winnings1, winnings2 = PokerEngine.resolve_bet(
-            hand1, hand2, bet_amount, bet_amount
+        return PokerEngine.simulate_multi_round_game(
+            initial_bet=bet_amount,
+            player1_energy=player1_energy,
+            player2_energy=player2_energy
         )
-        return hand1, hand2, winnings1, winnings2
 
 
 # Example usage and testing
 if __name__ == "__main__":
-    print("Poker Engine Test")
-    print("=" * 50)
+    print("Texas Hold'em Poker Engine Test")
+    print("=" * 80)
 
-    # Test hand generation distribution
-    print("\nGenerating 1000 hands to test distribution:")
-    hand_counts = {rank: 0 for rank in HandRank}
-    for _ in range(1000):
-        hand = PokerEngine.generate_hand()
-        hand_counts[hand.rank_value] += 1
+    # Test hand evaluation
+    print("\nTest 1: Hand Evaluation")
+    print("-" * 80)
 
-    for rank in HandRank:
-        count = hand_counts[rank]
-        print(f"{rank.name:20s}: {count:4d} ({count/10:.1f}%)")
+    # Create test hands
+    deck = Deck()
+    hole_cards = deck.deal(2)
+    community_cards = deck.deal(5)
 
-    # Test a few games
-    print("\n" + "=" * 50)
-    print("Simulating 5 poker games:")
-    print("=" * 50)
+    print(f"Hole cards: {' '.join(str(c) for c in hole_cards)}")
+    print(f"Community cards: {' '.join(str(c) for c in community_cards)}")
+
+    hand = PokerEngine.evaluate_hand(hole_cards, community_cards)
+    print(f"Best hand: {hand}")
+    print(f"Hand cards: {' '.join(str(c) for c in hand.cards)}")
+
+    # Test a few complete games
+    print("\n" + "=" * 80)
+    print("Simulating 5 complete Texas Hold'em games:")
+    print("=" * 80)
+
     for i in range(5):
-        hand1, hand2, win1, win2 = PokerEngine.simulate_game(bet_amount=10.0)
+        game = PokerEngine.simulate_game(bet_amount=10.0, player1_energy=100.0, player2_energy=100.0)
+
         print(f"\nGame {i+1}:")
-        print(f"  Player 1: {hand1}")
-        print(f"  Player 2: {hand2}")
-        if win1 > 0:
-            print(f"  Winner: Player 1 (+{win1} energy)")
-        elif win2 > 0:
-            print(f"  Winner: Player 2 (+{win2} energy)")
+        print(f"  Button: Player {game.button_position}")
+        print(f"  Blinds: {game.small_blind}/{game.big_blind}")
+
+        if game.player1_hole_cards:
+            print(f"  Player 1 hole cards: {' '.join(str(c) for c in game.player1_hole_cards)}")
+        if game.player2_hole_cards:
+            print(f"  Player 2 hole cards: {' '.join(str(c) for c in game.player2_hole_cards)}")
+
+        if game.community_cards:
+            print(f"  Community cards: {' '.join(str(c) for c in game.community_cards)}")
+
+        winner = game.get_winner_by_fold()
+        if winner:
+            print(f"  Result: Player {winner} wins by fold (pot: {game.pot:.1f})")
         else:
-            print(f"  Result: Tie (no energy transfer)")
+            print(f"  Player 1 hand: {game.player1_hand}")
+            print(f"  Player 2 hand: {game.player2_hand}")
+
+            if game.player1_hand.beats(game.player2_hand):
+                print(f"  Winner: Player 1 (pot: {game.pot:.1f})")
+            elif game.player2_hand.beats(game.player1_hand):
+                print(f"  Winner: Player 2 (pot: {game.pot:.1f})")
+            else:
+                print(f"  Result: Tie - pot split (pot: {game.pot:.1f})")
