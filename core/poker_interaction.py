@@ -4,11 +4,13 @@ Poker game engine for fish interactions.
 This module implements a simplified Texas Hold'em poker system for determining
 outcomes of fish-to-fish encounters. When two fish collide, they play a hand
 of poker to determine energy transfer.
+
+Updated to support multiple betting rounds and folding.
 """
 
 import random
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Optional, List
 from enum import IntEnum
 
 
@@ -26,6 +28,23 @@ class HandRank(IntEnum):
     ROYAL_FLUSH = 9
 
 
+class BettingRound(IntEnum):
+    """Betting rounds in Texas Hold'em."""
+    PRE_FLOP = 0
+    FLOP = 1
+    TURN = 2
+    RIVER = 3
+    SHOWDOWN = 4
+
+
+class BettingAction(IntEnum):
+    """Possible betting actions."""
+    FOLD = 0
+    CHECK = 1
+    CALL = 2
+    RAISE = 3
+
+
 @dataclass
 class PokerHand:
     """Represents a poker hand and its rank."""
@@ -39,6 +58,72 @@ class PokerHand:
 
     def __str__(self) -> str:
         return f"{self.description} (rank {self.rank_value})"
+
+
+@dataclass
+class PokerGameState:
+    """Tracks the state of a multi-round poker game."""
+    current_round: BettingRound
+    pot: float
+    player1_total_bet: float
+    player2_total_bet: float
+    player1_current_bet: float  # Bet in current round
+    player2_current_bet: float  # Bet in current round
+    player1_folded: bool
+    player2_folded: bool
+    player1_hand: Optional[PokerHand]
+    player2_hand: Optional[PokerHand]
+    betting_history: List[Tuple[int, BettingAction, float]]  # (player, action, amount)
+
+    def __init__(self):
+        self.current_round = BettingRound.PRE_FLOP
+        self.pot = 0.0
+        self.player1_total_bet = 0.0
+        self.player2_total_bet = 0.0
+        self.player1_current_bet = 0.0
+        self.player2_current_bet = 0.0
+        self.player1_folded = False
+        self.player2_folded = False
+        self.player1_hand = None
+        self.player2_hand = None
+        self.betting_history = []
+
+    def add_to_pot(self, amount: float):
+        """Add money to the pot."""
+        self.pot += amount
+
+    def player_bet(self, player: int, amount: float):
+        """Record a player's bet."""
+        if player == 1:
+            self.player1_current_bet += amount
+            self.player1_total_bet += amount
+        else:
+            self.player2_current_bet += amount
+            self.player2_total_bet += amount
+        self.add_to_pot(amount)
+
+    def advance_round(self):
+        """Move to the next betting round."""
+        if self.current_round < BettingRound.SHOWDOWN:
+            self.current_round = BettingRound(self.current_round + 1)
+            # Reset current round bets
+            self.player1_current_bet = 0.0
+            self.player2_current_bet = 0.0
+
+    def is_betting_complete(self) -> bool:
+        """Check if betting is complete for current round."""
+        # Betting is complete if bets are equal and both players have acted
+        return (self.player1_current_bet == self.player2_current_bet and
+                len([h for h in self.betting_history
+                     if h[0] in [1, 2]]) >= 2)
+
+    def get_winner_by_fold(self) -> Optional[int]:
+        """Return winner if someone folded, None otherwise."""
+        if self.player1_folded:
+            return 2
+        elif self.player2_folded:
+            return 1
+        return None
 
 
 class PokerEngine:
@@ -58,6 +143,12 @@ class PokerEngine:
         (0.999985, HandRank.STRAIGHT_FLUSH, "Straight Flush"),
         (1.0, HandRank.ROYAL_FLUSH, "Royal Flush"),
     ]
+
+    # Aggression factors for betting decisions
+    # Higher values = more aggressive (more likely to raise/call)
+    AGGRESSION_LOW = 0.3
+    AGGRESSION_MEDIUM = 0.6
+    AGGRESSION_HIGH = 0.9
 
     @staticmethod
     def generate_hand() -> PokerHand:
@@ -83,6 +174,226 @@ class PokerEngine:
             rank_value=HandRank.HIGH_CARD,
             description="High Card"
         )
+
+    @staticmethod
+    def decide_action(
+        hand: PokerHand,
+        current_bet: float,
+        opponent_bet: float,
+        pot: float,
+        player_energy: float,
+        aggression: float = AGGRESSION_MEDIUM
+    ) -> Tuple[BettingAction, float]:
+        """
+        Decide what action to take based on hand strength and game state.
+
+        Args:
+            hand: Player's poker hand
+            current_bet: Player's current bet this round
+            opponent_bet: Opponent's current bet this round
+            pot: Current pot size
+            player_energy: Player's available energy
+            aggression: Aggression factor (0-1, higher = more aggressive)
+
+        Returns:
+            Tuple of (action, bet_amount)
+        """
+        # Calculate how much needs to be called
+        call_amount = opponent_bet - current_bet
+
+        # Can't bet more than available energy
+        if call_amount > player_energy:
+            # Must fold if can't afford to call
+            return (BettingAction.FOLD, 0.0)
+
+        # Determine hand strength category
+        hand_strength = hand.rank_value
+
+        # Strong hands (flush or better)
+        if hand_strength >= HandRank.FLUSH:
+            if call_amount == 0:
+                # No bet to call - raise most of the time
+                if random.random() < 0.8:
+                    raise_amount = min(pot * 0.5, player_energy * 0.3)
+                    return (BettingAction.RAISE, raise_amount)
+                else:
+                    return (BettingAction.CHECK, 0.0)
+            else:
+                # There's a bet - call or raise
+                if random.random() < aggression:
+                    # Raise
+                    raise_amount = min(call_amount * 2, player_energy * 0.4)
+                    return (BettingAction.RAISE, raise_amount)
+                else:
+                    # Call
+                    return (BettingAction.CALL, call_amount)
+
+        # Medium hands (pair through straight)
+        elif hand_strength >= HandRank.PAIR:
+            if call_amount == 0:
+                # No bet - check or small raise
+                if random.random() < aggression * 0.6:
+                    raise_amount = min(pot * 0.3, player_energy * 0.2)
+                    return (BettingAction.RAISE, raise_amount)
+                else:
+                    return (BettingAction.CHECK, 0.0)
+            else:
+                # There's a bet - fold, call, or raise based on bet size and aggression
+                pot_odds = call_amount / (pot + call_amount) if pot > 0 else 1.0
+
+                # More likely to fold if bet is large relative to pot
+                if pot_odds > 0.5 and random.random() > aggression:
+                    return (BettingAction.FOLD, 0.0)
+                elif random.random() < aggression * 0.4:
+                    # Sometimes raise with medium hands
+                    raise_amount = min(call_amount * 1.5, player_energy * 0.25)
+                    return (BettingAction.RAISE, raise_amount)
+                else:
+                    # Usually call
+                    return (BettingAction.CALL, call_amount)
+
+        # Weak hands (high card)
+        else:
+            if call_amount == 0:
+                # No bet - usually check, rarely bluff
+                if random.random() < aggression * 0.2:
+                    # Bluff
+                    raise_amount = min(pot * 0.4, player_energy * 0.15)
+                    return (BettingAction.RAISE, raise_amount)
+                else:
+                    return (BettingAction.CHECK, 0.0)
+            else:
+                # There's a bet - usually fold, rarely bluff call
+                if random.random() < aggression * 0.15:
+                    # Bluff call
+                    return (BettingAction.CALL, call_amount)
+                else:
+                    return (BettingAction.FOLD, 0.0)
+
+    @staticmethod
+    def simulate_multi_round_game(
+        initial_bet: float,
+        player1_energy: float,
+        player2_energy: float,
+        player1_aggression: float = AGGRESSION_MEDIUM,
+        player2_aggression: float = AGGRESSION_MEDIUM
+    ) -> PokerGameState:
+        """
+        Simulate a complete multi-round poker game with folding.
+
+        Args:
+            initial_bet: Starting bet amount (ante)
+            player1_energy: Player 1's available energy
+            player2_energy: Player 2's available energy
+            player1_aggression: Player 1's aggression factor
+            player2_aggression: Player 2's aggression factor
+
+        Returns:
+            PokerGameState with final game results
+        """
+        game_state = PokerGameState()
+
+        # Generate hands at the start
+        game_state.player1_hand = PokerEngine.generate_hand()
+        game_state.player2_hand = PokerEngine.generate_hand()
+
+        # Place initial antes
+        ante = min(initial_bet, player1_energy, player2_energy)
+        game_state.player_bet(1, ante)
+        game_state.player_bet(2, ante)
+        player1_remaining = player1_energy - ante
+        player2_remaining = player2_energy - ante
+
+        # Play through betting rounds
+        for round_num in range(4):  # Pre-flop, Flop, Turn, River
+            if game_state.get_winner_by_fold() is not None:
+                break
+
+            # Reset current round bets for new round
+            if round_num > 0:
+                game_state.advance_round()
+
+            # Simulate betting for this round
+            # Players alternate actions until both have matched bets or someone folds
+            max_actions_per_round = 10  # Prevent infinite loops
+            actions_this_round = 0
+
+            # Start with player 1
+            current_player = 1
+
+            while actions_this_round < max_actions_per_round:
+                # Determine which player is acting
+                if current_player == 1:
+                    hand = game_state.player1_hand
+                    current_bet = game_state.player1_current_bet
+                    opponent_bet = game_state.player2_current_bet
+                    remaining_energy = player1_remaining
+                    aggression = player1_aggression
+                else:
+                    hand = game_state.player2_hand
+                    current_bet = game_state.player2_current_bet
+                    opponent_bet = game_state.player1_current_bet
+                    remaining_energy = player2_remaining
+                    aggression = player2_aggression
+
+                # Decide action
+                action, bet_amount = PokerEngine.decide_action(
+                    hand=hand,
+                    current_bet=current_bet,
+                    opponent_bet=opponent_bet,
+                    pot=game_state.pot,
+                    player_energy=remaining_energy,
+                    aggression=aggression
+                )
+
+                # Record action
+                game_state.betting_history.append((current_player, action, bet_amount))
+
+                # Process action
+                if action == BettingAction.FOLD:
+                    if current_player == 1:
+                        game_state.player1_folded = True
+                    else:
+                        game_state.player2_folded = True
+                    break
+
+                elif action == BettingAction.CHECK:
+                    # Check - no bet
+                    pass
+
+                elif action == BettingAction.CALL:
+                    # Call - match opponent's bet
+                    game_state.player_bet(current_player, bet_amount)
+                    if current_player == 1:
+                        player1_remaining -= bet_amount
+                    else:
+                        player2_remaining -= bet_amount
+
+                elif action == BettingAction.RAISE:
+                    # Raise - increase bet
+                    # First call to match, then add raise amount
+                    call_amount = opponent_bet - current_bet
+                    total_bet = call_amount + bet_amount
+                    game_state.player_bet(current_player, total_bet)
+                    if current_player == 1:
+                        player1_remaining -= total_bet
+                    else:
+                        player2_remaining -= total_bet
+
+                actions_this_round += 1
+
+                # Check if betting is complete for this round
+                # Complete if both players have equal bets and at least one has acted
+                if (game_state.player1_current_bet == game_state.player2_current_bet and
+                    actions_this_round >= 2):
+                    break
+
+                # Switch to other player
+                current_player = 2 if current_player == 1 else 1
+
+        # Game is over - determine final result
+        game_state.current_round = BettingRound.SHOWDOWN
+        return game_state
 
     @staticmethod
     def resolve_bet(

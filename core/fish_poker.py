@@ -3,11 +3,14 @@ Fish poker interaction system.
 
 This module handles poker games between two fish when they collide.
 The outcome determines energy transfer between the fish.
+
+Updated to support multi-round betting and folding.
 """
 
 from typing import Optional, TYPE_CHECKING
 from dataclasses import dataclass
-from core.poker_interaction import PokerEngine, PokerHand
+from core.poker_interaction import PokerEngine, PokerHand, PokerGameState, BettingAction
+import random
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -21,6 +24,9 @@ class PokerResult:
     energy_transferred: float
     winner_id: int
     loser_id: int
+    won_by_fold: bool  # True if winner won because opponent folded
+    total_rounds: int  # Number of betting rounds completed
+    final_pot: float  # Final pot size
 
 
 class PokerInteraction:
@@ -113,7 +119,7 @@ class PokerInteraction:
 
     def play_poker(self, bet_amount: Optional[float] = None) -> bool:
         """
-        Play a single poker game between the two fish.
+        Play a multi-round poker game between the two fish with folding.
 
         Args:
             bet_amount: Amount to wager (uses calculated amount if None)
@@ -132,55 +138,84 @@ class PokerInteraction:
             # Ensure bet doesn't exceed what fish can afford
             bet_amount = self.calculate_bet_amount(bet_amount)
 
-        # Generate hands
-        self.hand1 = PokerEngine.generate_hand()
-        self.hand2 = PokerEngine.generate_hand()
+        # Determine aggression levels for each fish based on their behavior
+        # Use random aggression for now, could be tied to fish genome later
+        fish1_aggression = random.uniform(PokerEngine.AGGRESSION_LOW, PokerEngine.AGGRESSION_HIGH)
+        fish2_aggression = random.uniform(PokerEngine.AGGRESSION_LOW, PokerEngine.AGGRESSION_HIGH)
 
-        # Resolve bet
-        winnings1, winnings2 = PokerEngine.resolve_bet(
-            self.hand1, self.hand2, bet_amount, bet_amount
+        # Simulate multi-round game
+        game_state = PokerEngine.simulate_multi_round_game(
+            initial_bet=bet_amount,
+            player1_energy=self.fish1.energy,
+            player2_energy=self.fish2.energy,
+            player1_aggression=fish1_aggression,
+            player2_aggression=fish2_aggression
         )
 
-        # Calculate house cut from total pot (only if there's a winner)
-        house_cut = 0.0
-        if winnings1 != 0 or winnings2 != 0:
-            total_pot = bet_amount * 2
-            house_cut = total_pot * self.HOUSE_CUT_PERCENTAGE
-            # Deduct house cut from winner's winnings
-            if winnings1 > 0:
-                winnings1 -= house_cut
-            elif winnings2 > 0:
-                winnings2 -= house_cut
+        # Store hands
+        self.hand1 = game_state.player1_hand
+        self.hand2 = game_state.player2_hand
 
-        # Apply energy changes
-        self.fish1.energy = max(0, self.fish1.energy + winnings1)
-        self.fish2.energy = max(0, self.fish2.energy + winnings2)
+        # Determine winner
+        winner_by_fold = game_state.get_winner_by_fold()
+        won_by_fold = winner_by_fold is not None
+
+        if won_by_fold:
+            # Someone folded
+            winner_id = self.fish1.fish_id if winner_by_fold == 1 else self.fish2.fish_id
+            loser_id = self.fish2.fish_id if winner_by_fold == 1 else self.fish1.fish_id
+        else:
+            # Compare hands at showdown
+            if self.hand1.beats(self.hand2):
+                winner_id = self.fish1.fish_id
+                loser_id = self.fish2.fish_id
+            elif self.hand2.beats(self.hand1):
+                winner_id = self.fish2.fish_id
+                loser_id = self.fish1.fish_id
+            else:
+                # Tie - return bets to players
+                winner_id = -1
+                loser_id = -1
+
+        # Calculate energy transfer
+        house_cut = 0.0
+        if winner_id != -1:
+            # Winner takes pot minus house cut
+            house_cut = game_state.pot * self.HOUSE_CUT_PERCENTAGE
+            energy_transferred = game_state.pot - house_cut
+
+            # Apply energy changes
+            if winner_id == self.fish1.fish_id:
+                # Fish 1 wins
+                self.fish1.energy = max(0, self.fish1.energy - game_state.player1_total_bet + energy_transferred)
+                self.fish2.energy = max(0, self.fish2.energy - game_state.player2_total_bet)
+            else:
+                # Fish 2 wins
+                self.fish1.energy = max(0, self.fish1.energy - game_state.player1_total_bet)
+                self.fish2.energy = max(0, self.fish2.energy - game_state.player2_total_bet + energy_transferred)
+        else:
+            # Tie - return bets
+            energy_transferred = 0.0
+            self.fish1.energy = max(0, self.fish1.energy - game_state.player1_total_bet + game_state.player1_total_bet)
+            self.fish2.energy = max(0, self.fish2.energy - game_state.player2_total_bet + game_state.player2_total_bet)
 
         # Set cooldowns
         self.fish1.poker_cooldown = self.POKER_COOLDOWN
         self.fish2.poker_cooldown = self.POKER_COOLDOWN
 
-        # Determine winner and create result
-        if winnings1 > 0:
-            winner_id = self.fish1.fish_id
-            loser_id = self.fish2.fish_id
-            energy_transferred = winnings1  # Already excludes house cut
-        elif winnings2 > 0:
-            winner_id = self.fish2.fish_id
-            loser_id = self.fish1.fish_id
-            energy_transferred = winnings2  # Already excludes house cut
-        else:
-            # Tie - no energy transfer
-            winner_id = -1
-            loser_id = -1
-            energy_transferred = 0.0
+        # Count rounds played
+        total_rounds = int(game_state.current_round) if game_state.current_round < 4 else 4
 
+        # Create result
         self.result = PokerResult(
             hand1=self.hand1,
             hand2=self.hand2,
             energy_transferred=abs(energy_transferred),
             winner_id=winner_id,
-            loser_id=loser_id
+            loser_id=loser_id,
+            won_by_fold=won_by_fold,
+            total_rounds=total_rounds,
+            final_pot=game_state.pot
         )
 
         # Record in ecosystem if available
@@ -219,8 +254,11 @@ class PokerInteraction:
         if self.result is None:
             return "No poker game has been played"
 
+        round_names = ["Pre-flop", "Flop", "Turn", "River", "Showdown"]
+        rounds_text = f"after {round_names[self.result.total_rounds]}" if self.result.total_rounds < 4 else "at Showdown"
+
         if self.result.winner_id == -1:
-            return (f"Tie! Fish {self.fish1.fish_id} had {self.result.hand1.description}, "
+            return (f"Tie {rounds_text}! Fish {self.fish1.fish_id} had {self.result.hand1.description}, "
                    f"Fish {self.fish2.fish_id} had {self.result.hand2.description}")
 
         winner_fish = self.fish1 if self.result.winner_id == self.fish1.fish_id else self.fish2
@@ -228,8 +266,12 @@ class PokerInteraction:
         winner_hand = self.result.hand1 if self.result.winner_id == self.fish1.fish_id else self.result.hand2
         loser_hand = self.result.hand2 if self.result.winner_id == self.fish1.fish_id else self.result.hand1
 
-        return (f"Fish {winner_fish.fish_id} wins {self.result.energy_transferred:.1f} energy! "
-               f"({winner_hand.description} beats {loser_hand.description})")
+        if self.result.won_by_fold:
+            return (f"Fish {winner_fish.fish_id} wins {self.result.energy_transferred:.1f} energy {rounds_text}! "
+                   f"Fish {loser_fish.fish_id} folded ({loser_hand.description})")
+        else:
+            return (f"Fish {winner_fish.fish_id} wins {self.result.energy_transferred:.1f} energy {rounds_text}! "
+                   f"({winner_hand.description} beats {loser_hand.description})")
 
 
 # Helper function for easy integration
