@@ -687,8 +687,10 @@ class Plant(Agent):
         """
         self.current_food_count += 1
 
-        if random.random() < self.STATIONARY_FOOD_CHANCE:
-            # Grow nectar that clings to the top of the plant
+        roll = random.random()
+
+        if roll < self.STATIONARY_FOOD_CHANCE:
+            # Grow nectar that clings to the top of the plant (35% chance)
             food = Food(
                 self.environment,
                 self.pos.x + self.width / 2,  # Center of plant
@@ -702,13 +704,20 @@ class Plant(Agent):
             anchor_y = self.pos.y - food.height
             food.pos.update(anchor_x, anchor_y)
             return food
+        elif roll < self.STATIONARY_FOOD_CHANCE + 0.325:
+            # Spawn floating food near plant (32.5% chance)
+            food_x = self.pos.x + random.uniform(-20, 20)
+            food_y = self.pos.y - 30  # Just above plant
 
-        # Spawn traditional floating food from top of tank with random x position
-        food_x = self.pos.x + random.uniform(-50, 50)  # Some variation around plant x position
-        food_y = 0  # Spawn at top of tank
+            return Food(self.environment, food_x, food_y, source_plant=self,
+                       screen_width=self.screen_width, screen_height=self.screen_height)
+        else:
+            # Spawn floating food from top of tank (32.5% chance)
+            food_x = self.pos.x + random.uniform(-50, 50)  # Wider variation for top drops
+            food_y = 0  # Top of tank
 
-        return Food(self.environment, food_x, food_y, source_plant=self,
-                   screen_width=self.screen_width, screen_height=self.screen_height)
+            return Food(self.environment, food_x, food_y, source_plant=self,
+                       screen_width=self.screen_width, screen_height=self.screen_height)
 
     def notify_food_eaten(self) -> None:
         """Notify plant that one of its food items was eaten."""
