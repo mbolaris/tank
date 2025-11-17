@@ -6,7 +6,9 @@ sprite agents and pure entity objects.
 """
 
 import warnings
-from typing import Iterable, List, Optional, Type
+from typing import Iterable, List, Optional, Type, Set, Tuple
+from collections import defaultdict
+import math
 
 # Avoid importing pygame-dependent Agent during tests
 try:
@@ -15,19 +17,154 @@ except ImportError:  # pragma: no cover - fallback for environments without pyga
     Agent = object
 
 
+class SpatialGrid:
+    """
+    Spatial partitioning grid for efficient proximity queries.
+
+    Divides the environment into a grid of cells. Each cell contains agents
+    that are located within that cell's bounds. This allows O(1) lookup of
+    which cells to check for proximity queries, drastically reducing the
+    number of distance calculations needed.
+    """
+
+    def __init__(self, width: int, height: int, cell_size: int = 150):
+        """
+        Initialize the spatial grid.
+
+        Args:
+            width: Width of the environment in pixels
+            height: Height of the environment in pixels
+            cell_size: Size of each grid cell in pixels (default 150)
+        """
+        self.width = width
+        self.height = height
+        self.cell_size = cell_size
+        self.cols = math.ceil(width / cell_size)
+        self.rows = math.ceil(height / cell_size)
+
+        # Grid storage: dict of (col, row) -> set of agents
+        self.grid: dict[Tuple[int, int], Set[Agent]] = defaultdict(set)
+
+        # Agent to cell mapping for quick updates
+        self.agent_cells: dict[Agent, Tuple[int, int]] = {}
+
+    def _get_cell(self, x: float, y: float) -> Tuple[int, int]:
+        """Get the grid cell coordinates for a position."""
+        col = max(0, min(self.cols - 1, int(x / self.cell_size)))
+        row = max(0, min(self.rows - 1, int(y / self.cell_size)))
+        return (col, row)
+
+    def add_agent(self, agent: Agent):
+        """Add an agent to the spatial grid."""
+        if not hasattr(agent, 'pos'):
+            return
+
+        cell = self._get_cell(agent.pos.x, agent.pos.y)
+        self.grid[cell].add(agent)
+        self.agent_cells[agent] = cell
+
+    def remove_agent(self, agent: Agent):
+        """Remove an agent from the spatial grid."""
+        if agent in self.agent_cells:
+            cell = self.agent_cells[agent]
+            self.grid[cell].discard(agent)
+            del self.agent_cells[agent]
+
+    def update_agent(self, agent: Agent):
+        """Update an agent's position in the grid (call when agent moves)."""
+        if not hasattr(agent, 'pos'):
+            return
+
+        new_cell = self._get_cell(agent.pos.x, agent.pos.y)
+        old_cell = self.agent_cells.get(agent)
+
+        # Only update if the agent changed cells
+        if old_cell != new_cell:
+            if old_cell is not None:
+                self.grid[old_cell].discard(agent)
+            self.grid[new_cell].add(agent)
+            self.agent_cells[agent] = new_cell
+
+    def get_cells_in_radius(self, x: float, y: float, radius: float) -> List[Tuple[int, int]]:
+        """Get all grid cells that intersect with a circular radius."""
+        cells = []
+
+        # Calculate the range of cells to check
+        min_col = max(0, int((x - radius) / self.cell_size))
+        max_col = min(self.cols - 1, int((x + radius) / self.cell_size))
+        min_row = max(0, int((y - radius) / self.cell_size))
+        max_row = min(self.rows - 1, int((y + radius) / self.cell_size))
+
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cells.append((col, row))
+
+        return cells
+
+    def query_radius(self, agent: Agent, radius: float) -> List[Agent]:
+        """
+        Get all agents within a radius of the given agent.
+
+        This is much faster than checking all agents, as it only checks
+        agents in nearby grid cells.
+        """
+        if not hasattr(agent, 'pos'):
+            return []
+
+        candidates = []
+        cells = self.get_cells_in_radius(agent.pos.x, agent.pos.y, radius)
+
+        # Collect all agents from relevant cells
+        for cell in cells:
+            candidates.extend(self.grid[cell])
+
+        # Filter by actual distance and exclude the querying agent
+        radius_sq = radius * radius
+        return [other for other in candidates
+                if other != agent and
+                (other.pos.x - agent.pos.x) ** 2 + (other.pos.y - agent.pos.y) ** 2 <= radius_sq]
+
+    def clear(self):
+        """Clear all agents from the grid."""
+        self.grid.clear()
+        self.agent_cells.clear()
+
+    def rebuild(self, agents: Iterable[Agent]):
+        """Rebuild the entire grid from scratch."""
+        self.clear()
+        for agent in agents:
+            self.add_agent(agent)
+
+
 class Environment:
     """
     The environment in which the agents operate.
     This class provides methods to interact with and query the state of the environment.
     """
-    def __init__(self, agents: Optional[Iterable[Agent]] = None):
+    def __init__(self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600):
         """
         Initialize the environment.
 
         Args:
             agents (Iterable[Agent], optional): A collection of agents. Defaults to None.
+            width (int): Width of the environment in pixels. Defaults to 800.
+            height (int): Height of the environment in pixels. Defaults to 600.
         """
         self.agents = agents
+        self.width = width
+        self.height = height
+
+        # Initialize spatial grid for fast proximity queries
+        self.spatial_grid = SpatialGrid(width, height, cell_size=150)
+
+        # Build initial spatial grid if agents are provided
+        if agents:
+            self.spatial_grid.rebuild(agents)
+
+        # Query cache to avoid redundant searches within the same frame
+        # Cache is cleared when rebuild_spatial_grid() is called
+        self._query_cache: dict[Tuple, List[Agent]] = {}
+        self._type_cache: dict[Type[Agent], List[Agent]] = {}
 
         # NEW: Initialize communication system for fish
         from core.fish_communication import FishCommunicationSystem
@@ -36,9 +173,24 @@ class Environment:
             decay_rate=0.05
         )
 
+    def rebuild_spatial_grid(self):
+        """Rebuild the spatial grid from scratch. Call when agents are added/removed."""
+        if self.agents:
+            self.spatial_grid.rebuild(self.agents)
+        # Clear query caches when grid is rebuilt (new frame)
+        self._query_cache.clear()
+        self._type_cache.clear()
+
+    def update_agent_position(self, agent: Agent):
+        """Update an agent's position in the spatial grid. Call when agent moves."""
+        self.spatial_grid.update_agent(agent)
+
     def nearby_agents(self, agent: Agent, radius: int) -> List[Agent]:
         """
         Return a list of agents within a certain radius of the given agent.
+
+        Uses spatial grid partitioning for O(k) performance instead of O(n),
+        where k is the number of agents in nearby cells.
 
         Args:
             agent (Agent): The agent to consider.
@@ -47,12 +199,14 @@ class Environment:
         Returns:
             List[Agent]: The agents within the radius.
         """
-        return [other for other in self.agents 
-                if other != agent and (other.pos - agent.pos).length() <= radius]
+        # Use spatial grid for fast lookup
+        return self.spatial_grid.query_radius(agent, radius)
 
     def get_agents_of_type(self, agent_class: Type[Agent]) -> List[Agent]:
         """
         Get all agents of the given class.
+
+        Uses caching to avoid re-filtering on repeated calls within the same frame.
 
         Args:
             agent_class (Type[Agent]): The class of the agents to consider.
@@ -60,11 +214,21 @@ class Environment:
         Returns:
             List[Agent]: The agents of the given class.
         """
-        return [agent for agent in self.agents if isinstance(agent, agent_class)]
+        # Check cache first
+        if agent_class in self._type_cache:
+            return self._type_cache[agent_class]
+
+        # Compute and cache result
+        result = [agent for agent in self.agents if isinstance(agent, agent_class)]
+        self._type_cache[agent_class] = result
+        return result
     
     def nearby_agents_by_type(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.
+
+        Uses spatial grid partitioning for O(k) performance instead of O(n),
+        where k is the number of agents in nearby cells.
 
         Args:
             agent (Agent): The agent to consider.
@@ -74,8 +238,9 @@ class Environment:
         Returns:
             List[Agent]: The agents of the specified type within the radius.
         """
-        return [other for other in self.get_agents_of_type(agent_class)
-                if other != agent and (other.pos - agent.pos).length() <= radius]
+        # Use spatial grid for fast lookup, then filter by type
+        nearby = self.spatial_grid.query_radius(agent, radius)
+        return [other for other in nearby if isinstance(other, agent_class)]
 
     # Convenient entity filtering helpers for improved code clarity
     def get_all_fish(self) -> List[Agent]:

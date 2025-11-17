@@ -48,7 +48,7 @@ class SimulationEngine(BaseSimulator):
     def setup(self) -> None:
         """Setup the simulation."""
         # Initialize managers
-        self.environment = environment.Environment(self.entities_list)
+        self.environment = environment.Environment(self.entities_list, SCREEN_WIDTH, SCREEN_HEIGHT)
         self.ecosystem = EcosystemManager(max_population=100)
 
         self.create_initial_entities()
@@ -156,7 +156,10 @@ class SimulationEngine(BaseSimulator):
         if self.environment is not None:
             self.spawn_auto_food(self.environment)
 
-        # Handle collisions
+        # Update spatial grid after all entity movements
+        self.update_spatial_grid()
+
+        # Handle collisions (uses spatial grid for efficiency)
         self.handle_collisions()
 
         # Handle reproduction (mate finding)
