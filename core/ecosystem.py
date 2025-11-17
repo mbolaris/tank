@@ -714,13 +714,15 @@ class EcosystemManager:
                             stats.total_calls += 1
 
         # Log event
+        winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
+        loser_desc = loser_hand.description if loser_hand is not None else "Unknown"
         self.events.append(EcosystemEvent(
             frame=self.frame_count,
             event_type='poker',
             fish_id=winner_id,
             details=(
                 f"Won {amount:.1f} energy from fish {loser_id} "
-                f"({winner_hand.description} vs {loser_hand.description})"
+                f"({winner_desc} vs {loser_desc})"
             )
         ))
 
