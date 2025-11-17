@@ -208,6 +208,37 @@ class FishTankSimulator:
                             # Add notification for successful poker game
                             self.add_poker_notification(poker)
 
+                            # Check if either fish died from poker
+                            if fish.is_dead():
+                                if self.ecosystem is not None:
+                                    algorithm_id = None
+                                    if fish.genome.behavior_algorithm is not None:
+                                        algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+                                    self.ecosystem.record_death(
+                                        fish.fish_id,
+                                        fish.generation,
+                                        fish.age,
+                                        fish.get_death_cause(),
+                                        fish.genome,
+                                        algorithm_id=algorithm_id
+                                    )
+                                fish.kill()
+
+                            if collision_sprite.is_dead():
+                                if self.ecosystem is not None:
+                                    algorithm_id = None
+                                    if collision_sprite.genome.behavior_algorithm is not None:
+                                        algorithm_id = get_algorithm_index(collision_sprite.genome.behavior_algorithm)
+                                    self.ecosystem.record_death(
+                                        collision_sprite.fish_id,
+                                        collision_sprite.generation,
+                                        collision_sprite.age,
+                                        collision_sprite.get_death_cause(),
+                                        collision_sprite.genome,
+                                        algorithm_id=algorithm_id
+                                    )
+                                collision_sprite.kill()
+
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food."""
         # Iterate over a copy to safely remove sprites during iteration

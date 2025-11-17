@@ -246,6 +246,48 @@ class SimulationEngine:
                             # Track poker event
                             self.add_poker_event(poker)
 
+                            # Check if either fish died from poker
+                            fish_to_remove = []
+
+                            if fish.is_dead() and fish in self.entities_list:
+                                if self.ecosystem is not None:
+                                    algorithm_id = None
+                                    if fish.genome.behavior_algorithm is not None:
+                                        algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+                                    self.ecosystem.record_death(
+                                        fish.fish_id,
+                                        fish.generation,
+                                        fish.age,
+                                        fish.get_death_cause(),
+                                        fish.genome,
+                                        algorithm_id=algorithm_id
+                                    )
+                                fish_to_remove.append(fish)
+
+                            if other.is_dead() and other in self.entities_list:
+                                if self.ecosystem is not None:
+                                    algorithm_id = None
+                                    if other.genome.behavior_algorithm is not None:
+                                        algorithm_id = get_algorithm_index(other.genome.behavior_algorithm)
+                                    self.ecosystem.record_death(
+                                        other.fish_id,
+                                        other.generation,
+                                        other.age,
+                                        other.get_death_cause(),
+                                        other.genome,
+                                        algorithm_id=algorithm_id
+                                    )
+                                fish_to_remove.append(other)
+
+                            # Remove dead fish
+                            for dead_fish in fish_to_remove:
+                                if dead_fish in self.entities_list:
+                                    self.entities_list.remove(dead_fish)
+
+                            # Break if current fish died
+                            if fish in fish_to_remove:
+                                break
+
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food."""
         food_list = [e for e in self.entities_list if isinstance(e, entities.Food)]
