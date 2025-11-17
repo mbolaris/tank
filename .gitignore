@@ -57,8 +57,10 @@ htmlcov/
 dmypy.json
 .pytype/
 
-# Generated reports
+# Generated reports and simulation output
 algorithm_performance_report.txt
+simulation_output*.txt
+final_test.txt
 *.log
 
 # Frontend build artifacts
