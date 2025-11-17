@@ -109,10 +109,7 @@ class SimulationEngine(BaseSimulator):
             # Add offspring to population
             offspring = poker.result.offspring
             self.add_entity(offspring)
-
-            # Register with ecosystem if available
-            if self.ecosystem is not None:
-                self.ecosystem.register_fish(offspring)
+            # Note: Birth is automatically recorded by Fish.__init__ when ecosystem is provided
 
     def update(self) -> None:
         """Update the state of the simulation."""
