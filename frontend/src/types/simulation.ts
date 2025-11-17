@@ -61,6 +61,27 @@ export interface PokerStatsData {
   best_hand_rank: number;
   best_hand_name: string;
   total_house_cuts?: number;
+  // Advanced metrics for evaluating poker skill
+  win_rate?: number;
+  win_rate_pct?: string;
+  roi?: number;
+  vpip?: number;
+  vpip_pct?: string;
+  bluff_success_rate?: number;
+  bluff_success_pct?: string;
+  button_win_rate?: number;
+  button_win_rate_pct?: string;
+  off_button_win_rate?: number;
+  off_button_win_rate_pct?: string;
+  positional_advantage?: number;
+  positional_advantage_pct?: string;
+  aggression_factor?: number;
+  avg_hand_rank?: number;
+  total_folds?: number;
+  preflop_folds?: number;
+  postflop_folds?: number;
+  showdown_win_rate?: string;
+  avg_fold_rate?: string;
 }
 
 export interface StatsData {

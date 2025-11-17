@@ -99,40 +99,110 @@ export function StatsPanel({ stats }: StatsPanelProps) {
             </div>
           ) : (
             <>
-              <div style={styles.statRow}>
-                <span style={styles.statLabel}>Games Played:</span>
-                <span style={styles.statValue}>{stats.poker_stats.total_games}</span>
+              {/* Basic Stats */}
+              <div style={{marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(148,163,184,0.2)'}}>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Games Played:</span>
+                  <span style={styles.statValue}>{stats.poker_stats.total_games}</span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>W/L/T:</span>
+                  <span style={styles.statValue}>
+                    {stats.poker_stats.total_wins}/{stats.poker_stats.total_losses}/{stats.poker_stats.total_ties}
+                  </span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Net Energy:</span>
+                  <span style={{
+                    ...styles.statValue,
+                    color: stats.poker_stats.net_energy >= 0 ? '#4ade80' : '#f87171',
+                    fontWeight: 600
+                  }}>
+                    {stats.poker_stats.net_energy >= 0 ? '+' : ''}{stats.poker_stats.net_energy.toFixed(1)}
+                  </span>
+                </div>
               </div>
-              <div style={styles.statRow}>
-                <span style={styles.statLabel}>W/L/T:</span>
-                <span style={styles.statValue}>
-                  {stats.poker_stats.total_wins}/{stats.poker_stats.total_losses}/{stats.poker_stats.total_ties}
-                </span>
+
+              {/* Performance Metrics */}
+              <div style={{marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(148,163,184,0.2)'}}>
+                <div style={{...styles.statLabel, fontSize: '11px', opacity: 0.8, marginBottom: '4px'}}>Performance</div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Win Rate:</span>
+                  <span style={{
+                    ...styles.statValue,
+                    color: (stats.poker_stats.win_rate || 0) > 0.5 ? '#4ade80' : '#94a3b8'
+                  }}>
+                    {stats.poker_stats.win_rate_pct || '0.0%'}
+                  </span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>ROI (per game):</span>
+                  <span style={{
+                    ...styles.statValue,
+                    color: (stats.poker_stats.roi || 0) >= 0 ? '#4ade80' : '#f87171'
+                  }}>
+                    {stats.poker_stats.roi !== undefined ? (stats.poker_stats.roi >= 0 ? '+' : '') + stats.poker_stats.roi.toFixed(2) : '0.00'}
+                  </span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Showdown Win Rate:</span>
+                  <span style={styles.statValue}>{stats.poker_stats.showdown_win_rate || '0.0%'}</span>
+                </div>
               </div>
-              <div style={styles.statRow}>
-                <span style={styles.statLabel}>Energy Won:</span>
-                <span style={styles.statValue}>{stats.poker_stats.total_energy_won.toFixed(1)}</span>
+
+              {/* Playing Style */}
+              <div style={{marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid rgba(148,163,184,0.2)'}}>
+                <div style={{...styles.statLabel, fontSize: '11px', opacity: 0.8, marginBottom: '4px'}}>Playing Style</div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>VPIP:</span>
+                  <span style={styles.statValue} title="Voluntarily Put money In Pot - how often agents play hands">
+                    {stats.poker_stats.vpip_pct || '0.0%'}
+                  </span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Aggression Factor:</span>
+                  <span style={styles.statValue} title="Raises per call - higher = more aggressive">
+                    {stats.poker_stats.aggression_factor !== undefined ? stats.poker_stats.aggression_factor.toFixed(2) : '0.00'}
+                  </span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Fold Rate:</span>
+                  <span style={styles.statValue}>{stats.poker_stats.avg_fold_rate || '0.0%'}</span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Avg Hand Rank:</span>
+                  <span style={styles.statValue}>
+                    {stats.poker_stats.avg_hand_rank !== undefined ? stats.poker_stats.avg_hand_rank.toFixed(2) : '0.00'}
+                  </span>
+                </div>
               </div>
-              <div style={styles.statRow}>
-                <span style={styles.statLabel}>Energy Lost:</span>
-                <span style={styles.statValue}>{stats.poker_stats.total_energy_lost.toFixed(1)}</span>
-              </div>
-              <div style={styles.statRow}>
-                <span style={styles.statLabel}>House Cuts:</span>
-                <span style={styles.statValue}>{(stats.poker_stats.total_house_cuts || 0).toFixed(1)}</span>
-              </div>
-              <div style={styles.statRow}>
-                <span style={styles.statLabel}>Net Energy:</span>
-                <span style={{
-                  ...styles.statValue,
-                  color: stats.poker_stats.net_energy >= 0 ? '#4ade80' : '#f87171'
-                }}>
-                  {stats.poker_stats.net_energy >= 0 ? '+' : ''}{stats.poker_stats.net_energy.toFixed(1)}
-                </span>
-              </div>
-              <div style={styles.statRow}>
-                <span style={styles.statLabel}>Best Hand:</span>
-                <span style={styles.statValue}>{stats.poker_stats.best_hand_name}</span>
+
+              {/* Advanced Metrics */}
+              <div style={{marginBottom: '8px'}}>
+                <div style={{...styles.statLabel, fontSize: '11px', opacity: 0.8, marginBottom: '4px'}}>Advanced</div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Bluff Success:</span>
+                  <span style={styles.statValue}>{stats.poker_stats.bluff_success_pct || '0.0%'}</span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Positional Edge:</span>
+                  <span style={{
+                    ...styles.statValue,
+                    color: (stats.poker_stats.positional_advantage || 0) > 0 ? '#4ade80' : '#94a3b8'
+                  }} title="Button win rate - off-button win rate">
+                    {stats.poker_stats.positional_advantage_pct || '0.0%'}
+                  </span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Preflop/Postflop Folds:</span>
+                  <span style={styles.statValue}>
+                    {stats.poker_stats.preflop_folds || 0}/{stats.poker_stats.postflop_folds || 0}
+                  </span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Best Hand:</span>
+                  <span style={styles.statValue}>{stats.poker_stats.best_hand_name}</span>
+                </div>
               </div>
             </>
           )}
