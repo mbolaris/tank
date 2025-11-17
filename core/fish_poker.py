@@ -218,8 +218,8 @@ class PokerInteraction:
             final_pot=game_state.pot
         )
 
-        # Record in ecosystem if available
-        if self.fish1.ecosystem is not None and winner_id != -1:
+        # Record in ecosystem if available (including ties)
+        if self.fish1.ecosystem is not None:
             # Get algorithm IDs from fish genomes
             fish1_algo_id = None
             if self.fish1.genome.behavior_algorithm is not None:

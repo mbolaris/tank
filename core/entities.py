@@ -14,7 +14,8 @@ from core.math_utils import Vector2
 from core.constants import (
     INITIAL_ENERGY_RATIO, BABY_METABOLISM_MULTIPLIER,
     ELDER_METABOLISM_MULTIPLIER, STARVATION_THRESHOLD,
-    CRITICAL_ENERGY_THRESHOLD, LOW_ENERGY_THRESHOLD, SAFE_ENERGY_THRESHOLD
+    CRITICAL_ENERGY_THRESHOLD, LOW_ENERGY_THRESHOLD, SAFE_ENERGY_THRESHOLD,
+    FISH_TOP_MARGIN
 )
 
 if TYPE_CHECKING:
@@ -634,6 +635,24 @@ class Fish(Agent):
         )
 
         return baby
+
+    def handle_screen_edges(self) -> None:
+        """Handle the fish hitting the edge of the screen with top margin for energy bar visibility."""
+        # Horizontal boundaries - reverse velocity and clamp position
+        if self.pos.x < 0:
+            self.pos.x = 0
+            self.vel.x = abs(self.vel.x)  # Bounce right
+        elif self.pos.x + self.width > self.screen_width:
+            self.pos.x = self.screen_width - self.width
+            self.vel.x = -abs(self.vel.x)  # Bounce left
+
+        # Vertical boundaries with top margin for energy bar visibility
+        if self.pos.y < FISH_TOP_MARGIN:
+            self.pos.y = FISH_TOP_MARGIN
+            self.vel.y = abs(self.vel.y)  # Bounce down
+        elif self.pos.y + self.height > self.screen_height:
+            self.pos.y = self.screen_height - self.height
+            self.vel.y = -abs(self.vel.y)  # Bounce up
 
     def update(self, elapsed_time: int, time_modifier: float = 1.0) -> Optional['Fish']:
         """Update the fish state.
