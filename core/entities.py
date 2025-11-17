@@ -254,11 +254,11 @@ class Fish(Agent):
         # Predator tracking (for death attribution)
         self.last_predator_encounter_age: int = -1000  # Age when last encountered a predator
 
-        # Reproduction
-        self.is_pregnant: bool = False
-        self.pregnancy_timer: int = 0
-        self.reproduction_cooldown: int = 0
-        self.mate_genome: Optional['Genome'] = None  # Store mate's genome for offspring
+        # Reproduction - managed by ReproductionComponent for better code organization
+        from core.fish.reproduction_component import ReproductionComponent
+        self._reproduction_component = ReproductionComponent()
+
+        # Backward compatibility: expose reproduction attributes as properties
 
         # IMPROVEMENT: Memory and learning system (legacy - kept for compatibility)
         self.food_memory: List[Tuple[Vector2, int]] = []  # (position, age_when_found) for food hotspots
@@ -320,6 +320,47 @@ class Fish(Agent):
     def max_energy(self) -> float:
         """Maximum energy capacity (read-only property delegating to EnergyComponent)."""
         return self._energy_component.max_energy
+
+    # Reproduction properties for backward compatibility
+    @property
+    def is_pregnant(self) -> bool:
+        """Whether fish is currently pregnant (delegating to ReproductionComponent)."""
+        return self._reproduction_component.is_pregnant
+
+    @is_pregnant.setter
+    def is_pregnant(self, value: bool) -> None:
+        """Set pregnancy state (setter for backward compatibility)."""
+        self._reproduction_component.is_pregnant = value
+
+    @property
+    def pregnancy_timer(self) -> int:
+        """Frames until birth (delegating to ReproductionComponent)."""
+        return self._reproduction_component.pregnancy_timer
+
+    @pregnancy_timer.setter
+    def pregnancy_timer(self, value: int) -> None:
+        """Set pregnancy timer (setter for backward compatibility)."""
+        self._reproduction_component.pregnancy_timer = value
+
+    @property
+    def reproduction_cooldown(self) -> int:
+        """Frames until can reproduce again (delegating to ReproductionComponent)."""
+        return self._reproduction_component.reproduction_cooldown
+
+    @reproduction_cooldown.setter
+    def reproduction_cooldown(self, value: int) -> None:
+        """Set reproduction cooldown (setter for backward compatibility)."""
+        self._reproduction_component.reproduction_cooldown = value
+
+    @property
+    def mate_genome(self) -> Optional['Genome']:
+        """Mate's genome stored for offspring (delegating to ReproductionComponent)."""
+        return self._reproduction_component.mate_genome
+
+    @mate_genome.setter
+    def mate_genome(self, value: Optional['Genome']) -> None:
+        """Set mate genome (setter for backward compatibility)."""
+        self._reproduction_component.mate_genome = value
 
     def update_life_stage(self) -> None:
         """Update life stage based on age."""
@@ -462,16 +503,19 @@ class Fish(Agent):
         self.last_predator_encounter_age = self.age
 
     def can_reproduce(self) -> bool:
-        """Check if fish can reproduce."""
-        return (
-            self.life_stage == LifeStage.ADULT and
-            self.energy >= self.REPRODUCTION_ENERGY_THRESHOLD and
-            self.reproduction_cooldown <= 0 and
-            not self.is_pregnant
-        )
+        """Check if fish can reproduce.
+
+        Delegates to ReproductionComponent.
+
+        Returns:
+            bool: True if fish can reproduce
+        """
+        return self._reproduction_component.can_reproduce(self.life_stage, self.energy)
 
     def try_mate(self, other: 'Fish') -> bool:
         """Attempt to mate with another fish.
+
+        Delegates to ReproductionComponent for cleaner code organization.
 
         Args:
             other: Potential mate
@@ -486,39 +530,25 @@ class Fish(Agent):
         if self.species != other.species:
             return False
 
-        # Check distance
+        # Calculate distance to mate
         distance = (self.pos - other.pos).length()
-        if distance > self.MATING_DISTANCE:
+
+        # Attempt mating through reproduction component
+        mating_successful = self._reproduction_component.attempt_mating(
+            self.genome, other.genome,
+            self.energy, self.max_energy,
+            other.energy, other.max_energy,
+            distance
+        )
+
+        if not mating_successful:
             return False
-
-        # NEW: Calculate mate compatibility (sexual selection)
-        # Higher compatibility means more likely to mate
-        compatibility = self.genome.calculate_mate_compatibility(other.genome)
-
-        # Add energy consideration to compatibility (prefer mates with good energy)
-        energy_bonus = (other.energy / other.max_energy) * 0.2
-        total_compatibility = min(compatibility + energy_bonus, 1.0)
-
-        # Mate selection: use compatibility as probability threshold
-        # Higher compatibility = higher chance of accepting mate
-        # Minimum 30% chance to ensure population doesn't get stuck
-        acceptance_threshold = max(0.3, total_compatibility)
-
-        if random.random() > acceptance_threshold:
-            # Mate rejected based on preferences
-            return False
-
-        # Success! Start pregnancy
-        self.is_pregnant = True
-        self.pregnancy_timer = self.PREGNANCY_DURATION
-        self.mate_genome = other.genome
-        self.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
 
         # Other fish also goes on cooldown
-        other.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
+        other.reproduction_cooldown = self._reproduction_component.REPRODUCTION_COOLDOWN
 
         # Energy cost for reproduction (reduced to prevent post-mating starvation)
-        self.energy -= 10.0
+        self.energy -= self._reproduction_component.REPRODUCTION_ENERGY_COST
 
         # Record successful reproduction in ecosystem
         if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
@@ -532,79 +562,63 @@ class Fish(Agent):
     def update_reproduction(self) -> Optional['Fish']:
         """Update reproduction state and potentially give birth.
 
+        Delegates state updates to ReproductionComponent for cleaner code organization.
+
         Returns:
             Newborn fish if birth occurred, None otherwise
         """
-        # Import here to avoid circular dependency
-        from core.genetics import Genome
+        # Update reproduction state (cooldown and pregnancy timer)
+        should_give_birth = self._reproduction_component.update_state()
 
-        # Update cooldown
-        if self.reproduction_cooldown > 0:
-            self.reproduction_cooldown -= 1
+        if not should_give_birth:
+            return None
 
-        # Update pregnancy
-        if self.is_pregnant:
-            self.pregnancy_timer -= 1
+        # Calculate population stress for adaptive mutations
+        population_stress = 0.0
+        if self.ecosystem is not None:
+            # Stress increases when population is low or death rate is high
+            fish_count = len([e for e in self.environment.agents if isinstance(e, Fish)])
+            target_population = 15  # Desired stable population
+            population_ratio = fish_count / target_population if target_population > 0 else 1.0
 
-            if self.pregnancy_timer <= 0:
-                # Give birth!
-                self.is_pregnant = False
+            # Stress is higher when population is below target (inverse relationship)
+            if population_ratio < 1.0:
+                population_stress = (1.0 - population_ratio) * 0.8  # 0-80% stress from low population
 
-                # Create offspring genome
-                if self.mate_genome is not None:
-                    # IMPROVEMENT: Calculate population stress for adaptive mutations
-                    population_stress = 0.0
-                    if self.ecosystem is not None:
-                        # Stress increases when population is low or death rate is high
-                        fish_count = len([e for e in self.environment.agents if isinstance(e, Fish)])
-                        target_population = 15  # Desired stable population
-                        population_ratio = fish_count / target_population if target_population > 0 else 1.0
+            # Add stress from recent death rate if available
+            if hasattr(self.ecosystem, 'recent_death_rate'):
+                death_rate_stress = min(0.4, self.ecosystem.recent_death_rate)  # Up to 40% stress
+                population_stress = min(1.0, population_stress + death_rate_stress)
 
-                        # Stress is higher when population is below target (inverse relationship)
-                        if population_ratio < 1.0:
-                            population_stress = (1.0 - population_ratio) * 0.8  # 0-80% stress from low population
+        # Generate offspring genome using reproduction component
+        offspring_genome = self._reproduction_component.give_birth(self.genome, population_stress)
 
-                        # Add stress from recent death rate if available
-                        if hasattr(self.ecosystem, 'recent_death_rate'):
-                            death_rate_stress = min(0.4, self.ecosystem.recent_death_rate)  # Up to 40% stress
-                            population_stress = min(1.0, population_stress + death_rate_stress)
+        # Create offspring near parent
+        offset_x = random.uniform(-30, 30)
+        offset_y = random.uniform(-30, 30)
+        baby_x = self.pos.x + offset_x
+        baby_y = self.pos.y + offset_y
 
-                    offspring_genome = Genome.from_parents(
-                        self.genome,
-                        self.mate_genome,
-                        population_stress=population_stress
-                    )
-                else:
-                    offspring_genome = Genome.random()
+        # Clamp to screen
+        baby_x = max(0, min(self.screen_width - 50, baby_x))
+        baby_y = max(0, min(self.screen_height - 50, baby_y))
 
-                # Create offspring near parent
-                offset_x = random.uniform(-30, 30)
-                offset_y = random.uniform(-30, 30)
-                baby_x = self.pos.x + offset_x
-                baby_y = self.pos.y + offset_y
+        # Create baby fish
+        baby = Fish(
+            environment=self.environment,
+            movement_strategy=self.movement_strategy.__class__(),  # Same strategy type
+            species=self.species,  # Same species
+            x=baby_x,
+            y=baby_y,
+            speed=self.speed / self.genome.speed_modifier,  # Base speed
+            genome=offspring_genome,
+            generation=self.generation + 1,
+            ecosystem=self.ecosystem,
+            screen_width=self.screen_width,
+            screen_height=self.screen_height
+        )
 
-                # Clamp to screen
-                baby_x = max(0, min(self.screen_width - 50, baby_x))
-                baby_y = max(0, min(self.screen_height - 50, baby_y))
-
-                # Create baby fish
-                baby = Fish(
-                    environment=self.environment,
-                    movement_strategy=self.movement_strategy.__class__(),  # Same strategy type
-                    species=self.species,  # Same species
-                    x=baby_x,
-                    y=baby_y,
-                    speed=self.speed / self.genome.speed_modifier,  # Base speed
-                    genome=offspring_genome,
-                    generation=self.generation + 1,
-                    ecosystem=self.ecosystem,
-                    screen_width=self.screen_width,
-                    screen_height=self.screen_height
-                )
-
-                return baby
-
-        return None
+        return baby
 
     def update(self, elapsed_time: int, time_modifier: float = 1.0) -> Optional['Fish']:
         """Update the fish state.
