@@ -146,7 +146,7 @@ class EcosystemManager:
         generation_stats: Statistics per generation
     """
 
-    def __init__(self, max_population: int = 50):
+    def __init__(self, max_population: int = 75):
         """Initialize the ecosystem manager.
 
         Args:

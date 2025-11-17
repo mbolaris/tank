@@ -34,7 +34,7 @@ PLANT_SWAY_SPEED = 0.0005
 FOOD_SINK_ACCELERATION = 0.01
 
 # Automatic food spawning
-AUTO_FOOD_SPAWN_RATE = 120  # Spawn food every 4 seconds (120 frames at 30fps) - REDUCED for increased difficulty
+AUTO_FOOD_SPAWN_RATE = 90  # Spawn food every 3 seconds (90 frames at 30fps) - Increased for better fish survival
 AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
 
 # Food type definitions with nutrient properties

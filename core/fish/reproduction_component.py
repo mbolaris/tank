@@ -30,8 +30,8 @@ class ReproductionComponent:
     """
 
     # Reproduction constants
-    REPRODUCTION_ENERGY_THRESHOLD = 35.0  # Minimum energy to reproduce
-    REPRODUCTION_COOLDOWN = 360  # 12 seconds (reduced for better breeding)
+    REPRODUCTION_ENERGY_THRESHOLD = 25.0  # Minimum energy to reproduce (reduced for more breeding)
+    REPRODUCTION_COOLDOWN = 240  # 8 seconds (reduced for better breeding)
     PREGNANCY_DURATION = 300  # 10 seconds
     MATING_DISTANCE = 60.0  # Maximum distance for mating
     REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for mating
