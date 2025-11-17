@@ -288,8 +288,17 @@ class BaseSimulator(ABC):
 
         from core import entities
 
+        # Calculate total energy across all fish
+        all_entities = self.get_all_entities()
+        total_energy = sum(e.energy for e in all_entities if isinstance(e, entities.Fish))
+
+        # Double food drop rate (halve spawn interval) when total energy is low
+        spawn_rate = AUTO_FOOD_SPAWN_RATE
+        if total_energy < 2000:
+            spawn_rate = AUTO_FOOD_SPAWN_RATE // 2  # Double the drop rate by halving the interval
+
         self.auto_food_timer += 1
-        if self.auto_food_timer >= AUTO_FOOD_SPAWN_RATE:
+        if self.auto_food_timer >= spawn_rate:
             self.auto_food_timer = 0
             # Spawn food from the top at random x position
             x = random.randint(0, SCREEN_WIDTH)
