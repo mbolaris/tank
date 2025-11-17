@@ -31,6 +31,7 @@ class EnergyConserver(BehaviorAlgorithm):
             parameters={
                 "activity_threshold": random.uniform(0.4, 0.7),
                 "rest_speed": random.uniform(0.1, 0.3),
+                "exploration_rate": random.uniform(0.0, 0.4),  # 0 = no exploration, 0.4 = moderate wandering
             }
         )
 
@@ -80,7 +81,15 @@ class EnergyConserver(BehaviorAlgorithm):
                 speed_mult = self.parameters["rest_speed"] * (1.0 + (1.0 - min(food_distance / 50, 1.0)) * 0.5)
                 return direction.x * speed_mult, direction.y * speed_mult
 
-        # Rest mode - minimal movement
+        # Rest mode - gentle exploration based on exploration_rate parameter
+        exploration_rate = self.parameters["exploration_rate"]
+        if exploration_rate > 0:
+            # Gentle wandering to explore for food when idle
+            t = time.time() * 0.2  # Slow time factor for gentle movement
+            vx = math.cos(t + id(fish) * 0.1) * exploration_rate
+            vy = math.sin(t * 0.7 + id(fish) * 0.1) * exploration_rate * 0.5
+            return vx, vy
+
         return 0, 0
 
 
@@ -176,6 +185,7 @@ class OpportunisticRester(BehaviorAlgorithm):
             parameters={
                 "safe_radius": random.uniform(100, 200),
                 "active_speed": random.uniform(0.5, 0.9),
+                "idle_wander_speed": random.uniform(0.0, 0.3),  # 0 = stay still, 0.3 = gentle wandering
             }
         )
 
@@ -194,6 +204,16 @@ class OpportunisticRester(BehaviorAlgorithm):
 
         if has_nearby_food or has_nearby_threat:
             return self.parameters["active_speed"], 0
+
+        # Idle wandering when no stimuli detected
+        idle_speed = self.parameters["idle_wander_speed"]
+        if idle_speed > 0:
+            # Gentle random wandering to explore environment
+            t = time.time() * 0.15  # Very slow wandering
+            vx = math.cos(t + id(fish) * 0.05) * idle_speed
+            vy = math.sin(t * 0.6 + id(fish) * 0.05) * idle_speed * 0.4
+            return vx, vy
+
         return 0, 0
 
 

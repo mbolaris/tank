@@ -121,11 +121,35 @@ def create_initial_population(
     plant2 = entities.Plant(env, 2, *INIT_POS['plant2'], screen_width, screen_height)
     plant3 = entities.Plant(env, 1, *INIT_POS['plant3'], screen_width, screen_height)
 
+    # Create initial food items to prevent startup pause
+    # Spawn 8 food items at various locations so fish have immediate targets
+    initial_food = []
+    food_positions = [
+        (screen_width * 0.25, screen_height * 0.3),  # Upper left area
+        (screen_width * 0.5, screen_height * 0.25),   # Upper middle
+        (screen_width * 0.75, screen_height * 0.35),  # Upper right area
+        (screen_width * 0.2, screen_height * 0.5),    # Middle left
+        (screen_width * 0.6, screen_height * 0.45),   # Middle right
+        (screen_width * 0.3, screen_height * 0.65),   # Lower left
+        (screen_width * 0.7, screen_height * 0.6),    # Lower right
+        (screen_width * 0.5, screen_height * 0.55),   # Lower middle
+    ]
+    for x, y in food_positions:
+        food = entities.Food(
+            env, x, y,
+            source_plant=None,
+            food_type=None,  # Random type
+            allow_stationary_types=False,  # No stationary food at startup
+            screen_width=screen_width,
+            screen_height=screen_height
+        )
+        initial_food.append(food)
+
     # Create crab and castle
     crab = entities.Crab(env, None, *INIT_POS['crab'], screen_width, screen_height)
     castle = entities.Castle(env, *INIT_POS['castle'], screen_width, screen_height)
 
     # Add all non-fish entities
-    population.extend([plant1, plant2, plant3, crab, castle])
+    population.extend([plant1, plant2, plant3] + initial_food + [crab, castle])
 
     return population
