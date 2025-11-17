@@ -112,7 +112,7 @@ class PokerStats:
 
     def get_net_energy(self) -> float:
         """Calculate net energy from poker."""
-        return self.total_energy_won - self.total_energy_lost
+        return self.total_energy_won - self.total_energy_lost - self.total_house_cuts
 
 
 @dataclass
@@ -477,7 +477,7 @@ class EcosystemManager:
             'total_energy_won': total_energy_won,
             'total_energy_lost': total_energy_lost,
             'total_house_cuts': total_house_cuts,
-            'net_energy': total_energy_won - total_energy_lost,
+            'net_energy': total_energy_won - total_energy_lost - total_house_cuts,
             'best_hand_rank': best_hand_rank,
             'best_hand_name': best_hand_name,
         }
