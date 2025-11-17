@@ -57,10 +57,29 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
         flee_threshold = 45 if is_critical else (80 if is_low else 120)
 
         if predator_distance < flee_threshold:
-            # Flee from predator
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            # NEW: Use predictive avoidance
+            if hasattr(nearest_predator, 'vel'):
+                from core.predictive_movement import get_avoidance_direction
+                direction = get_avoidance_direction(
+                    fish.pos, fish.vel, nearest_predator.pos, nearest_predator.vel, 1.0
+                )
+            else:
+                # Fallback to simple flee
+                direction = (fish.pos - nearest_predator.pos).normalize()
+
             # IMPROVEMENT: Conserve energy when fleeing in critical state
             flee_speed = 1.1 if is_critical else 1.3
+
+            # NEW: Remember danger zone
+            if hasattr(fish, 'memory_system'):
+                from core.fish_memory import MemoryType
+                fish.memory_system.add_memory(
+                    MemoryType.DANGER_ZONE,
+                    nearest_predator.pos,
+                    strength=1.0,
+                    metadata={'predator_type': type(nearest_predator).__name__}
+                )
+
             return direction.x * flee_speed, direction.y * flee_speed
 
         nearest_food = self._find_nearest(fish, Food)
@@ -68,9 +87,6 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
             distance = (nearest_food.pos - fish.pos).length()
 
             # IMPROVEMENT: Smarter chase distance calculation
-            # Critical: chase anything visible
-            # Low: chase moderately far
-            # Normal: only chase if efficient
             if is_critical:
                 max_chase_distance = 400  # Chase far when desperate
             elif is_low:
@@ -79,7 +95,21 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                 max_chase_distance = 150 + (energy_ratio * 150)  # Conservative when safe
 
             if distance < max_chase_distance:
-                direction = (nearest_food.pos - fish.pos).normalize()
+                # NEW: Use predictive interception for moving food
+                if hasattr(nearest_food, 'vel') and nearest_food.vel.length() > 0.1:
+                    from core.predictive_movement import predict_intercept_point
+                    intercept_point, _ = predict_intercept_point(
+                        fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
+                    )
+                    if intercept_point:
+                        target_pos = intercept_point
+                    else:
+                        target_pos = nearest_food.pos
+                else:
+                    target_pos = nearest_food.pos
+
+                direction = (target_pos - fish.pos).normalize()
+
                 # IMPROVEMENT: Speed based on urgency and distance
                 base_speed = self.parameters["speed_multiplier"]
 
@@ -90,14 +120,24 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                 urgency_boost = 0.3 if is_critical else (0.15 if is_low else 0)
 
                 speed = base_speed * (1.0 + proximity_boost + urgency_boost)
+
+                # NEW: Remember successful food locations
+                if hasattr(fish, 'memory_system') and distance < 50:
+                    from core.fish_memory import MemoryType
+                    fish.memory_system.add_memory(
+                        MemoryType.FOOD_LOCATION,
+                        nearest_food.pos,
+                        strength=0.8
+                    )
+
                 return direction.x * speed, direction.y * speed
 
-        # IMPROVEMENT: Use memory if no food found and critically low
-        if is_critical and hasattr(fish, 'get_remembered_food_locations'):
-            remembered = fish.get_remembered_food_locations()
-            if remembered:
-                target = min(remembered, key=lambda pos: (pos - fish.pos).length())
-                direction = (target - fish.pos).normalize()
+        # NEW: Use enhanced memory system if no food found
+        if (is_critical or is_low) and hasattr(fish, 'memory_system'):
+            from core.fish_memory import MemoryType
+            best_food_memory = fish.memory_system.get_best_memory(MemoryType.FOOD_LOCATION)
+            if best_food_memory:
+                direction = (best_food_memory.location - fish.pos).normalize()
                 return direction.x * 0.9, direction.y * 0.9
 
         return 0, 0
@@ -595,15 +635,51 @@ class CooperativeForager(BehaviorAlgorithm):
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 95:
+            # NEW: Broadcast danger signal
+            if hasattr(fish.environment, 'communication_system'):
+                from core.fish_communication import SignalType
+                fish.environment.communication_system.broadcast_signal(
+                    SignalType.DANGER_WARNING,
+                    fish.pos,
+                    target_location=nearest_predator.pos,
+                    strength=1.0,
+                    urgency=1.0
+                )
+
             direction = (fish.pos - nearest_predator.pos).normalize()
             return direction.x * 1.3, direction.y * 1.3
 
         # Look for food directly first
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food and (nearest_food.pos - fish.pos).length() < 80:
+            # NEW: Broadcast food found signal (if social)
+            if hasattr(fish.environment, 'communication_system') and fish.genome.social_tendency > 0.5:
+                from core.fish_communication import SignalType
+                fish.environment.communication_system.broadcast_signal(
+                    SignalType.FOOD_FOUND,
+                    fish.pos,
+                    target_location=nearest_food.pos,
+                    strength=fish.genome.social_tendency,  # More social = stronger signal
+                    urgency=0.7
+                )
+
             # Food is close, go for it directly
             direction = (nearest_food.pos - fish.pos).normalize()
             return direction.x * 1.1, direction.y * 1.1
+
+        # NEW: Listen for food signals from communication system
+        best_signal_target = None
+        if hasattr(fish.environment, 'communication_system'):
+            from core.fish_communication import SignalType
+            food_signals = fish.environment.communication_system.get_nearby_signals(
+                fish.pos, signal_type=SignalType.FOOD_FOUND
+            )
+
+            if food_signals:
+                # Find best signal
+                best_signal = max(food_signals, key=lambda s: s.strength * s.urgency)
+                if best_signal.target_location:
+                    best_signal_target = best_signal.target_location
 
         # Check if any nearby fish are near food (social learning)
         foods = fish.environment.get_agents_of_type(Food)
@@ -636,6 +712,13 @@ class CooperativeForager(BehaviorAlgorithm):
                     if score > best_score:
                         best_score = score
                         best_target = other_fish.pos
+
+        # NEW: Prefer signal target if it's good
+        if best_signal_target:
+            signal_dist = (best_signal_target - fish.pos).length()
+            if signal_dist < 250:  # Within reasonable range
+                best_target = best_signal_target
+                best_score = max(best_score, 50)  # Give it decent priority
 
         if best_target:
             direction = (best_target - fish.pos)
