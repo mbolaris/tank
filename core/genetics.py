@@ -35,6 +35,13 @@ class Genome:
         aggression: Territorial/competitive behavior (0.0-1.0)
         social_tendency: Preference for schooling (0.0-1.0)
         color_hue: Color variation for visual diversity (0.0-1.0)
+        template_id: Fish body template selection (0-5, inherited)
+        fin_size: Size of dorsal and pectoral fins (0.6-1.4)
+        tail_size: Size and spread of tail fin (0.6-1.4)
+        body_aspect: Body width-to-height ratio/roundness (0.7-1.3)
+        eye_size: Eye size relative to body (0.7-1.3)
+        pattern_intensity: Visibility of patterns/stripes (0.0-1.0)
+        pattern_type: Pattern style: 0=stripes, 1=spots, 2=solid, 3=gradient
         brain: Neural network brain (optional, can be None for simple AI)
         behavior_algorithm: Parametrizable behavior algorithm (NEW!)
         fitness_score: Accumulated fitness over lifetime (0.0+)
@@ -59,6 +66,15 @@ class Genome:
 
     # Visual traits
     color_hue: float = 0.5
+
+    # NEW: Advanced visual traits for parametric fish templates
+    template_id: int = 0  # Which fish body template to use (0-5)
+    fin_size: float = 1.0  # Size of fins (0.6-1.4)
+    tail_size: float = 1.0  # Size of tail fin (0.6-1.4)
+    body_aspect: float = 1.0  # Body width-to-height ratio (0.7-1.3)
+    eye_size: float = 1.0  # Eye size relative to body (0.7-1.3)
+    pattern_intensity: float = 0.5  # Pattern visibility (0.0-1.0)
+    pattern_type: int = 0  # Pattern style: 0=stripes, 1=spots, 2=solid, 3=gradient
 
     # Neural brain (optional)
     brain: Optional['NeuralBrain'] = None
@@ -116,6 +132,14 @@ class Genome:
             aggression=random.uniform(0.0, 1.0),
             social_tendency=random.uniform(0.0, 1.0),
             color_hue=random.random(),
+            # Visual traits for parametric fish templates
+            template_id=random.randint(0, 5),
+            fin_size=random.uniform(0.6, 1.4),
+            tail_size=random.uniform(0.6, 1.4),
+            body_aspect=random.uniform(0.7, 1.3),
+            eye_size=random.uniform(0.7, 1.3),
+            pattern_intensity=random.random(),
+            pattern_type=random.randint(0, 3),
             brain=brain,
             behavior_algorithm=algorithm,
         )
@@ -317,6 +341,18 @@ class Genome:
                 if abs(avg_val) > 0.01:  # Only keep significant modifiers
                     epigenetic[modifier_key] = avg_val * 0.5
 
+        # Inherit template_id with possible mutation (discrete choice)
+        inherited_template = parent1.template_id if random.random() < 0.5 else parent2.template_id
+        if random.random() < adaptive_mutation_rate:
+            # Mutation: randomly shift template ±1
+            inherited_template = max(0, min(5, inherited_template + random.choice([-1, 0, 1])))
+
+        # Inherit pattern_type with possible mutation (discrete choice)
+        inherited_pattern = parent1.pattern_type if random.random() < 0.5 else parent2.pattern_type
+        if random.random() < adaptive_mutation_rate:
+            # Mutation: randomly shift pattern ±1
+            inherited_pattern = max(0, min(3, inherited_pattern + random.choice([-1, 0, 1])))
+
         return cls(
             speed_modifier=speed,
             size_modifier=inherit_trait(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3, size_dominant),
@@ -327,6 +363,14 @@ class Genome:
             aggression=inherit_trait(parent1.aggression, parent2.aggression, 0.0, 1.0),
             social_tendency=inherit_trait(parent1.social_tendency, parent2.social_tendency, 0.0, 1.0),
             color_hue=inherit_trait(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
+            # NEW: Visual trait inheritance for parametric fish templates
+            template_id=inherited_template,
+            fin_size=inherit_trait(parent1.fin_size, parent2.fin_size, 0.6, 1.4),
+            tail_size=inherit_trait(parent1.tail_size, parent2.tail_size, 0.6, 1.4),
+            body_aspect=inherit_trait(parent1.body_aspect, parent2.body_aspect, 0.7, 1.3),
+            eye_size=inherit_trait(parent1.eye_size, parent2.eye_size, 0.7, 1.3),
+            pattern_intensity=inherit_trait(parent1.pattern_intensity, parent2.pattern_intensity, 0.0, 1.0),
+            pattern_type=inherited_pattern,
             brain=brain,
             behavior_algorithm=algorithm,
             fitness_score=0.0,  # New offspring starts with 0 fitness
