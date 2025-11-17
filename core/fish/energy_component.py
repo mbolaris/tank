@@ -40,7 +40,7 @@ class EnergyComponent:
     """
 
     # Energy consumption constants (reduced for sustainable evolution)
-    EXISTENCE_ENERGY_COST = 0.01  # Cost just for being alive per frame (reduced for better survival)
+    EXISTENCE_ENERGY_COST = 0.02  # Cost just for being alive per frame
     MOVEMENT_ENERGY_COST = 0.015  # Movement-based energy consumption multiplier (reduced)
     SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns (reduced from 0.08)
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
