@@ -68,6 +68,7 @@ class StatsData(BaseModel):
     fish_count: int
     food_count: int
     plant_count: int
+    total_energy: float
     poker_stats: PokerStatsData
 
 
