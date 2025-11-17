@@ -10,7 +10,7 @@ from core import entities, environment
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, FILES, INIT_POS
 from core.ecosystem import EcosystemManager
 from core.genetics import Genome
-import movement_strategy
+from core import movement_strategy
 
 
 def create_initial_population(
@@ -18,7 +18,7 @@ def create_initial_population(
     ecosystem: EcosystemManager,
     screen_width: int = SCREEN_WIDTH,
     screen_height: int = SCREEN_HEIGHT
-) -> List[entities.Entity]:
+) -> List[entities.Agent]:
     """Create initial population for simulation.
 
     Creates a diverse starting population with multiple species:

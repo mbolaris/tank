@@ -26,7 +26,7 @@ from core import entities as core_entities
 
 if TYPE_CHECKING:
     from core.environment import Environment
-    from movement_strategy import MovementStrategy
+    from core.movement_strategy import MovementStrategy
     from core.ecosystem import EcosystemManager
 
 

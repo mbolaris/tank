@@ -19,7 +19,6 @@ export function useWebSocket() {
       const ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
       };
 
@@ -29,8 +28,6 @@ export function useWebSocket() {
 
           if (data.type === 'update') {
             setState(data as SimulationUpdate);
-          } else if (data.type === 'ack') {
-            console.log('Command acknowledged:', data);
           } else if (data.type === 'error') {
             console.error('Server error:', data.message);
           }
@@ -44,13 +41,11 @@ export function useWebSocket() {
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
         setIsConnected(false);
         wsRef.current = null;
 
         // Attempt to reconnect after 3 seconds
         reconnectTimeoutRef.current = window.setTimeout(() => {
-          console.log('Attempting to reconnect...');
           if (connectRef.current) {
             connectRef.current();
           }

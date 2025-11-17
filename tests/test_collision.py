@@ -5,7 +5,7 @@ from pygame.math import Vector2
 
 from agents import Fish, Crab, Food
 from core.environment import Environment
-from movement_strategy import SoloFishMovement
+from core.movement_strategy import SoloFishMovement
 from fishtank import FishTankSimulator
 from core.constants import SCREEN_HEIGHT
 
