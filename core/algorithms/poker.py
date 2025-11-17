@@ -40,7 +40,7 @@ class PokerChallenger(BehaviorAlgorithm):
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
             # Flee from predator
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.2, direction.y * 1.2
 
         # Only seek poker if we have enough energy
@@ -48,7 +48,7 @@ class PokerChallenger(BehaviorAlgorithm):
             # Low energy - seek food instead
             nearest_food = self._find_nearest(fish, Food)
             if nearest_food:
-                direction = (nearest_food.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.8, direction.y * 0.8
             return 0, 0
 
@@ -63,7 +63,7 @@ class PokerChallenger(BehaviorAlgorithm):
 
             if distance < self.parameters["challenge_radius"]:
                 # Move toward the fish for poker
-                direction = (nearest_fish.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                 speed = self.parameters["challenge_speed"]
                 return direction.x * speed, direction.y * speed
 
@@ -93,7 +93,7 @@ class PokerDodger(BehaviorAlgorithm):
         # First check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.2, direction.y * 1.2
 
         # Check for nearby fish to avoid
@@ -108,7 +108,7 @@ class PokerDodger(BehaviorAlgorithm):
             distance = (other.pos - fish.pos).length()
             if distance < self.parameters["avoidance_radius"] and distance > 0:
                 # Avoid this fish
-                avoid_dir = (fish.pos - other.pos).normalize()
+                avoid_dir = self._safe_normalize(fish.pos - other.pos)
                 # Stronger avoidance for closer fish
                 strength = (self.parameters["avoidance_radius"] - distance) / self.parameters["avoidance_radius"]
                 avoidance_vector = avoidance_vector + (avoid_dir * strength)
@@ -116,15 +116,15 @@ class PokerDodger(BehaviorAlgorithm):
 
         # If fish are nearby, move away from them
         if fish_nearby > 0:
-            avoidance_vector = avoidance_vector.normalize()
+            avoidance_vector = self._safe_normalize(avoidance_vector)
             speed = self.parameters["avoidance_speed"]
 
             # Still seek food while avoiding
             nearest_food = self._find_nearest(fish, Food)
             if nearest_food and (nearest_food.pos - fish.pos).length() < 200:
-                food_dir = (nearest_food.pos - fish.pos).normalize()
+                food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
                 # Blend avoidance with food seeking
-                final_dir = (avoidance_vector * 0.7 + food_dir * 0.3).normalize()
+                final_dir = self._safe_normalize(avoidance_vector * 0.7 + food_dir * 0.3)
                 return final_dir.x * speed, final_dir.y * speed
 
             return avoidance_vector.x * speed, avoidance_vector.y * speed
@@ -132,7 +132,7 @@ class PokerDodger(BehaviorAlgorithm):
         # No fish nearby - focus on food
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
-            direction = (nearest_food.pos - fish.pos).normalize()
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * self.parameters["food_priority"], direction.y * self.parameters["food_priority"]
 
         return 0, 0
@@ -160,7 +160,7 @@ class PokerGambler(BehaviorAlgorithm):
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.2, direction.y * 1.2
 
         energy_ratio = fish.energy / fish.max_energy
@@ -173,7 +173,7 @@ class PokerGambler(BehaviorAlgorithm):
 
             if other_fish:
                 nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
-                direction = (nearest_fish.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                 speed = self.parameters["challenge_speed"]
                 return direction.x * speed, direction.y * speed
 
@@ -185,13 +185,13 @@ class PokerGambler(BehaviorAlgorithm):
                 other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
                 if other_fish:
                     nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
-                    direction = (nearest_fish.pos - fish.pos).normalize()
+                    direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                     return direction.x * 0.8, direction.y * 0.8
 
         # Low energy - focus on food
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
-            direction = (nearest_food.pos - fish.pos).normalize()
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x, direction.y
 
         return 0, 0
@@ -220,7 +220,7 @@ class SelectivePoker(BehaviorAlgorithm):
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.2, direction.y * 1.2
 
         energy_ratio = fish.energy / fish.max_energy
@@ -241,14 +241,14 @@ class SelectivePoker(BehaviorAlgorithm):
 
                     # Only challenge if reasonably close
                     if distance < 150:
-                        direction = (nearest_fish.pos - fish.pos).normalize()
+                        direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                         speed = self.parameters["challenge_speed"]
                         return direction.x * speed, direction.y * speed
 
         # Default to food seeking
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
-            direction = (nearest_food.pos - fish.pos).normalize()
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * 0.9, direction.y * 0.9
 
         return 0, 0
@@ -276,7 +276,7 @@ class PokerOpportunist(BehaviorAlgorithm):
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.2, direction.y * 1.2
 
         # Look for both food and fish opportunities
@@ -291,14 +291,14 @@ class PokerOpportunist(BehaviorAlgorithm):
         if nearest_food:
             food_dist = (nearest_food.pos - fish.pos).length()
             if food_dist > 0:
-                food_vector = (nearest_food.pos - fish.pos).normalize()
+                food_vector = self._safe_normalize(nearest_food.pos - fish.pos)
 
         # Calculate poker attraction (nearest fish)
         if other_fish:
             nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
             poker_dist = (nearest_fish.pos - fish.pos).length()
             if poker_dist < self.parameters["opportunity_radius"] and poker_dist > 0:
-                poker_vector = (nearest_fish.pos - fish.pos).normalize()
+                poker_vector = self._safe_normalize(nearest_fish.pos - fish.pos)
 
         # Blend the two behaviors based on weights and energy
         energy_ratio = fish.energy / fish.max_energy
@@ -315,7 +315,7 @@ class PokerOpportunist(BehaviorAlgorithm):
         # Combine vectors
         final_vector = (food_vector * food_weight + poker_vector * poker_weight)
         if final_vector.length() > 0:
-            final_vector = final_vector.normalize()
+            final_vector = self._safe_normalize(final_vector)
             return final_vector.x, final_vector.y
 
         return 0, 0

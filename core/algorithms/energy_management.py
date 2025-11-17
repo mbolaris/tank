@@ -57,13 +57,13 @@ class EnergyConserver(BehaviorAlgorithm):
                 food_distance = (nearest_food.pos - fish.pos).length()
                 # Must pursue food aggressively when critical
                 if food_distance < 200 or predator_distance > 60:
-                    direction = (nearest_food.pos - fish.pos).normalize()
+                    direction = self._safe_normalize(nearest_food.pos - fish.pos)
                     return direction.x * 1.1, direction.y * 1.1
 
         # Flee if predator is very close
         if predator_distance < 80:
             # Must flee even if conserving energy
-            direction = (fish.pos - nearest_predator.pos).normalize()
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             # IMPROVEMENT: Smarter flee speed based on energy
             flee_speed = 0.9 if is_critical else (1.0 + energy_ratio * 0.4)
             return direction.x * flee_speed, direction.y * flee_speed
@@ -76,7 +76,7 @@ class EnergyConserver(BehaviorAlgorithm):
             max_pursuit_distance = 80 if is_low else 40
 
             if food_distance < max_pursuit_distance or energy_ratio < 0.25:
-                direction = (nearest_food.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 # IMPROVEMENT: Faster when food is close to save energy overall
                 speed_mult = self.parameters["rest_speed"] * (1.0 + (1.0 - min(food_distance / 50, 1.0)) * 0.5)
                 return direction.x * speed_mult, direction.y * speed_mult
@@ -158,11 +158,11 @@ class BurstSwimmer(BehaviorAlgorithm):
             # Directed burst movement
             if predator_nearby:
                 # Burst away from predator
-                direction = (fish.pos - nearest_predator.pos).normalize()
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * self.parameters["burst_speed"], direction.y * self.parameters["burst_speed"]
             elif food_nearby:
                 # Burst toward food
-                direction = (nearest_food.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * self.parameters["burst_speed"], direction.y * self.parameters["burst_speed"]
             else:
                 # Exploration burst - vary direction
@@ -246,7 +246,7 @@ class EnergyBalancer(BehaviorAlgorithm):
 
         # Critical energy: must seek food aggressively
         if is_critical and nearest_food:
-            direction = (nearest_food.pos - fish.pos).normalize()
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * 1.4, direction.y * 1.4
 
         # Low energy: prioritize food but conserve energy
@@ -255,7 +255,7 @@ class EnergyBalancer(BehaviorAlgorithm):
                 distance = (nearest_food.pos - fish.pos).length()
                 # Only pursue if reasonably close
                 if distance < 150:
-                    direction = (nearest_food.pos - fish.pos).normalize()
+                    direction = self._safe_normalize(nearest_food.pos - fish.pos)
                     return direction.x * 0.9, direction.y * 0.9
             # Otherwise minimize activity
             return 0.1, 0
@@ -330,7 +330,7 @@ class StarvationPreventer(BehaviorAlgorithm):
                 if remembered:
                     # Go to closest remembered location
                     target = min(remembered, key=lambda pos: (pos - fish.pos).length())
-                    direction = (target - fish.pos).normalize()
+                    direction = self._safe_normalize(target - fish.pos)
                     return direction.x * 1.3, direction.y * 1.3
 
             if nearest_food:
@@ -338,13 +338,13 @@ class StarvationPreventer(BehaviorAlgorithm):
                 nearest_predator = self._find_nearest(fish, Crab)
                 if nearest_predator and (nearest_predator.pos - fish.pos).length() < 40:
                     # Quick evasion but keep trying for food
-                    avoid_dir = (fish.pos - nearest_predator.pos).normalize()
-                    food_dir = (nearest_food.pos - fish.pos).normalize()
+                    avoid_dir = self._safe_normalize(fish.pos - nearest_predator.pos)
+                    food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
                     # Blend: 60% avoid, 40% toward food
-                    direction = (avoid_dir * 0.6 + food_dir * 0.4).normalize()
+                    direction = self._safe_normalize(avoid_dir * 0.6 + food_dir * 0.4)
                     return direction.x * 1.5, direction.y * 1.5
                 else:
-                    direction = (nearest_food.pos - fish.pos).normalize()
+                    direction = self._safe_normalize(nearest_food.pos - fish.pos)
                     return direction.x * self.parameters["urgency_multiplier"] * 1.2, direction.y * self.parameters["urgency_multiplier"] * 1.2
 
         elif is_low or energy_ratio < self.parameters["critical_threshold"]:
@@ -354,10 +354,10 @@ class StarvationPreventer(BehaviorAlgorithm):
                 nearest_predator = self._find_nearest(fish, Crab)
                 # Flee if predator is close
                 if nearest_predator and (nearest_predator.pos - fish.pos).length() < 70:
-                    direction = (fish.pos - nearest_predator.pos).normalize()
+                    direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                     return direction.x * 1.3, direction.y * 1.3
                 else:
-                    direction = (nearest_food.pos - fish.pos).normalize()
+                    direction = self._safe_normalize(nearest_food.pos - fish.pos)
                     return direction.x * self.parameters["urgency_multiplier"], direction.y * self.parameters["urgency_multiplier"]
 
         return 0, 0
@@ -433,7 +433,7 @@ class AdaptivePacer(BehaviorAlgorithm):
                 # Reduce if low energy
                 if energy_ratio < 0.3:
                     escape_speed *= 0.7
-                direction = (fish.pos - nearest_predator.pos).normalize()
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * escape_speed, direction.y * escape_speed
 
         # Food seeking with adaptive pacing
@@ -449,7 +449,7 @@ class AdaptivePacer(BehaviorAlgorithm):
                 if food_distance < 80:
                     pursuit_speed *= 1.3
 
-                direction = (nearest_food.pos - fish.pos).normalize()
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 vx = direction.x * pursuit_speed
                 vy = direction.y * pursuit_speed
 
@@ -460,7 +460,7 @@ class AdaptivePacer(BehaviorAlgorithm):
             if allies:
                 avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)
                 if avg_vel.length() > 0:
-                    avg_vel_normalized = avg_vel.normalize()
+                    avg_vel_normalized = self._safe_normalize(avg_vel)
                     # Match their pace but adjusted by our energy
                     social_pace = base_speed * 0.8
                     vx = avg_vel_normalized.x * social_pace
