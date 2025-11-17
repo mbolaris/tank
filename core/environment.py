@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover - fallback for environments without pyga
 
 class Environment:
     """
-    The environment in which the agents operate. 
+    The environment in which the agents operate.
     This class provides methods to interact with and query the state of the environment.
     """
     def __init__(self, agents: Optional[Iterable[Agent]] = None):
@@ -28,6 +28,13 @@ class Environment:
             agents (Iterable[Agent], optional): A collection of agents. Defaults to None.
         """
         self.agents = agents
+
+        # NEW: Initialize communication system for fish
+        from core.fish_communication import FishCommunicationSystem
+        self.communication_system = FishCommunicationSystem(
+            max_signals=50,
+            decay_rate=0.05
+        )
 
     def nearby_agents(self, agent: Agent, radius: int) -> List[Agent]:
         """

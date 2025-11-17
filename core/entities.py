@@ -254,12 +254,20 @@ class Fish(Agent):
         self.reproduction_cooldown: int = 0
         self.mate_genome: Optional['Genome'] = None  # Store mate's genome for offspring
 
-        # IMPROVEMENT: Memory and learning system
+        # IMPROVEMENT: Memory and learning system (legacy - kept for compatibility)
         self.food_memory: List[Tuple[Vector2, int]] = []  # (position, age_when_found) for food hotspots
         self.last_food_found_age: int = -1000  # Age when last found food
         self.successful_food_finds: int = 0  # Track learning success
         self.MAX_FOOD_MEMORIES = 5  # Remember up to 5 good food locations
         self.FOOD_MEMORY_DECAY = 600  # Forget food locations after 20 seconds
+
+        # NEW: Enhanced memory system
+        from core.fish_memory import FishMemorySystem
+        self.memory_system = FishMemorySystem(
+            max_memories_per_type=10,
+            decay_rate=0.001,
+            learning_rate=0.05
+        )
 
         # IMPROVEMENT: Critical energy thresholds for smarter decision-making
         self.CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode
@@ -453,6 +461,23 @@ class Fish(Agent):
         if distance > self.MATING_DISTANCE:
             return False
 
+        # NEW: Calculate mate compatibility (sexual selection)
+        # Higher compatibility means more likely to mate
+        compatibility = self.genome.calculate_mate_compatibility(other.genome)
+
+        # Add energy consideration to compatibility (prefer mates with good energy)
+        energy_bonus = (other.energy / other.max_energy) * 0.2
+        total_compatibility = min(compatibility + energy_bonus, 1.0)
+
+        # Mate selection: use compatibility as probability threshold
+        # Higher compatibility = higher chance of accepting mate
+        # Minimum 30% chance to ensure population doesn't get stuck
+        acceptance_threshold = max(0.3, total_compatibility)
+
+        if random.random() > acceptance_threshold:
+            # Mate rejected based on preferences
+            return False
+
         # Success! Start pregnancy
         self.is_pregnant = True
         self.pregnancy_timer = self.PREGNANCY_DURATION
@@ -567,6 +592,16 @@ class Fish(Agent):
         self.age += 1
         self.update_life_stage()
 
+        # NEW: Update fitness for survival
+        energy_ratio = self.energy / self.max_energy
+        self.genome.update_fitness(
+            survived_frames=1,
+            energy_ratio=energy_ratio
+        )
+
+        # NEW: Update enhanced memory system
+        self.memory_system.update(self.age)
+
         # IMPROVEMENT: Clean old food memories every second
         if self.age % 30 == 0:  # Every second at 30fps
             self.clean_old_memories()
@@ -592,6 +627,10 @@ class Fish(Agent):
         # Reproduction
         newborn = self.update_reproduction()
 
+        # NEW: Track reproduction in fitness
+        if newborn is not None:
+            self.genome.update_fitness(reproductions=1)
+
         return newborn
 
     def eat(self, food: 'Food') -> None:
@@ -602,6 +641,9 @@ class Fish(Agent):
         """
         energy_gained = food.get_energy_value()
         self.energy = min(self.max_energy, self.energy + energy_gained)
+
+        # NEW: Track food consumption in fitness
+        self.genome.update_fitness(food_eaten=1)
 
         # IMPROVEMENT: Remember this food location for future reference
         self.remember_food_location(food.pos)

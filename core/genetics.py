@@ -5,12 +5,20 @@ mutations, and evolutionary dynamics.
 """
 
 import random
-from dataclasses import dataclass
-from typing import Tuple, Optional, TYPE_CHECKING
+from dataclasses import dataclass, field
+from typing import Tuple, Optional, TYPE_CHECKING, Dict, List
+from enum import Enum
 
 if TYPE_CHECKING:
     from core.neural_brain import NeuralBrain
     from core.behavior_algorithms import BehaviorAlgorithm
+
+
+class GeneticCrossoverMode(Enum):
+    """Different modes for genetic crossover during reproduction."""
+    AVERAGING = "averaging"  # Simple average of parent traits
+    RECOMBINATION = "recombination"  # Gene recombination (more realistic)
+    DOMINANT_RECESSIVE = "dominant_recessive"  # Some genes are dominant
 
 
 @dataclass
@@ -29,6 +37,10 @@ class Genome:
         color_hue: Color variation for visual diversity (0.0-1.0)
         brain: Neural network brain (optional, can be None for simple AI)
         behavior_algorithm: Parametrizable behavior algorithm (NEW!)
+        fitness_score: Accumulated fitness over lifetime (0.0+)
+        learned_behaviors: Behavioral improvements from experience
+        epigenetic_modifiers: Environmental effects on gene expression
+        mate_preferences: Preferences for mate selection
     """
 
     # Performance traits
@@ -53,6 +65,23 @@ class Genome:
 
     # Behavior algorithm (NEW: algorithmic evolution system)
     behavior_algorithm: Optional['BehaviorAlgorithm'] = None
+
+    # Fitness tracking (NEW: for selection pressure)
+    fitness_score: float = field(default=0.0)
+
+    # Learned behaviors (NEW: improve within lifetime)
+    learned_behaviors: Dict[str, float] = field(default_factory=dict)
+
+    # Epigenetic modifiers (NEW: environmental effects)
+    epigenetic_modifiers: Dict[str, float] = field(default_factory=dict)
+
+    # Mate preferences (NEW: sexual selection)
+    mate_preferences: Dict[str, float] = field(default_factory=lambda: {
+        'prefer_high_fitness': 0.5,
+        'prefer_similar_size': 0.5,
+        'prefer_different_color': 0.5,
+        'prefer_high_energy': 0.5,
+    })
 
     @classmethod
     def random(cls, use_brain: bool = True, use_algorithm: bool = True) -> 'Genome':
@@ -91,10 +120,62 @@ class Genome:
             behavior_algorithm=algorithm,
         )
 
+    def update_fitness(self, food_eaten: int = 0, survived_frames: int = 0,
+                      reproductions: int = 0, energy_ratio: float = 0.0):
+        """Update fitness score based on life events.
+
+        Args:
+            food_eaten: Number of food items consumed
+            survived_frames: Frames survived this update
+            reproductions: Number of successful reproductions
+            energy_ratio: Current energy / max energy ratio
+        """
+        # Fitness components
+        self.fitness_score += food_eaten * 2.0  # Eating is valuable
+        self.fitness_score += survived_frames * 0.01  # Survival matters
+        self.fitness_score += reproductions * 50.0  # Reproduction is highly valuable
+        self.fitness_score += energy_ratio * 0.1  # Maintaining energy is good
+
+    def calculate_mate_compatibility(self, other: 'Genome') -> float:
+        """Calculate compatibility score with potential mate (0.0-1.0).
+
+        Args:
+            other: Potential mate's genome
+
+        Returns:
+            Compatibility score (higher is better)
+        """
+        compatibility = 0.0
+
+        # Fitness preference
+        if other.fitness_score > self.fitness_score:
+            compatibility += self.mate_preferences.get('prefer_high_fitness', 0.5) * 0.3
+
+        # Size similarity preference
+        size_diff = abs(self.size_modifier - other.size_modifier)
+        size_score = 1.0 - min(size_diff / 0.6, 1.0)  # 0.6 is max diff
+        compatibility += self.mate_preferences.get('prefer_similar_size', 0.5) * size_score * 0.2
+
+        # Color diversity preference
+        color_diff = abs(self.color_hue - other.color_hue)
+        color_score = min(color_diff / 0.5, 1.0)  # Prefer different colors
+        compatibility += self.mate_preferences.get('prefer_different_color', 0.5) * color_score * 0.2
+
+        # General genetic diversity (trait variance)
+        trait_variance = (
+            abs(self.speed_modifier - other.speed_modifier) +
+            abs(self.metabolism_rate - other.metabolism_rate) +
+            abs(self.vision_range - other.vision_range)
+        ) / 3.0
+        compatibility += min(trait_variance / 0.3, 1.0) * 0.3
+
+        return min(compatibility, 1.0)
+
     @classmethod
     def from_parents(cls, parent1: 'Genome', parent2: 'Genome',
                      mutation_rate: float = 0.1, mutation_strength: float = 0.1,
-                     population_stress: float = 0.0) -> 'Genome':
+                     population_stress: float = 0.0,
+                     crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION) -> 'Genome':
         """Create offspring genome by mixing parent genes with mutations.
 
         Args:
@@ -103,6 +184,7 @@ class Genome:
             mutation_rate: Probability of each gene mutating (0.0-1.0)
             mutation_strength: Magnitude of mutations (0.0-1.0)
             population_stress: Population stress level (0.0-1.0) for adaptive mutations
+            crossover_mode: Method for combining parent genes
 
         Returns:
             New genome combining parent traits with possible mutations
@@ -115,10 +197,46 @@ class Genome:
         # Clamp to reasonable ranges
         adaptive_mutation_rate = min(0.4, adaptive_mutation_rate)  # Max 40% mutation rate
         adaptive_mutation_strength = min(0.25, adaptive_mutation_strength)  # Max 25% strength
-        def inherit_trait(val1: float, val2: float, min_val: float, max_val: float) -> float:
-            """Inherit a trait from parents with possible mutation."""
-            # Average of parents (could also do random choice or weighted)
-            inherited = (val1 + val2) / 2.0
+
+        def inherit_trait(val1: float, val2: float, min_val: float, max_val: float,
+                         dominant_gene: Optional[int] = None) -> float:
+            """Inherit a trait from parents with possible mutation.
+
+            Args:
+                val1: Parent 1 trait value
+                val2: Parent 2 trait value
+                min_val: Minimum allowed value
+                max_val: Maximum allowed value
+                dominant_gene: If set (0 or 1), that parent's gene is dominant
+
+            Returns:
+                Inherited trait value
+            """
+            # Choose inheritance method based on crossover mode
+            if crossover_mode == GeneticCrossoverMode.AVERAGING:
+                # Original method: average of parents
+                inherited = (val1 + val2) / 2.0
+
+            elif crossover_mode == GeneticCrossoverMode.RECOMBINATION:
+                # Gene recombination: randomly choose from each parent
+                inherited = val1 if random.random() < 0.5 else val2
+                # Add some blending
+                inherited = inherited * 0.7 + ((val1 + val2) / 2.0) * 0.3
+
+            elif crossover_mode == GeneticCrossoverMode.DOMINANT_RECESSIVE:
+                # Dominant/recessive genes
+                if dominant_gene is not None:
+                    # Dominant gene takes precedence
+                    dominant_val = val1 if dominant_gene == 0 else val2
+                    recessive_val = val2 if dominant_gene == 0 else val1
+                    # 75% dominant, 25% recessive expression
+                    inherited = dominant_val * 0.75 + recessive_val * 0.25
+                else:
+                    # No dominance, use random selection
+                    inherited = val1 if random.random() < 0.5 else val2
+            else:
+                # Default to averaging
+                inherited = (val1 + val2) / 2.0
 
             # Apply mutation (using adaptive rates)
             if random.random() < adaptive_mutation_rate:
@@ -165,11 +283,45 @@ class Genome:
             from core.behavior_algorithms import get_random_algorithm
             algorithm = get_random_algorithm()
 
+        # Determine dominant genes randomly (for DOMINANT_RECESSIVE mode)
+        speed_dominant = 0 if random.random() < 0.5 else 1
+        size_dominant = 0 if random.random() < 0.5 else 1
+        metabolism_dominant = 0 if random.random() < 0.5 else 1
+
+        # NEW: Trait linkage - speed and metabolism are linked
+        # Higher speed should correlate with higher metabolism
+        speed = inherit_trait(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5, speed_dominant)
+
+        # Metabolism is influenced by speed (linked traits)
+        base_metabolism = inherit_trait(parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3, metabolism_dominant)
+        # Link: faster fish tend to have higher metabolism
+        metabolism_link_factor = (speed - 1.0) * 0.2  # -0.1 to +0.1 adjustment
+        metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
+
+        # NEW: Inherit mate preferences with slight variation
+        mate_prefs = {}
+        for pref_key in parent1.mate_preferences:
+            p1_val = parent1.mate_preferences.get(pref_key, 0.5)
+            p2_val = parent2.mate_preferences.get(pref_key, 0.5)
+            mate_prefs[pref_key] = inherit_trait(p1_val, p2_val, 0.0, 1.0)
+
+        # NEW: Epigenetic modifiers (environmental effects passed to offspring)
+        epigenetic = {}
+        if parent1.epigenetic_modifiers or parent2.epigenetic_modifiers:
+            # Inherit some epigenetic modifications (with 50% retention rate)
+            for modifier_key in set(list(parent1.epigenetic_modifiers.keys()) + list(parent2.epigenetic_modifiers.keys())):
+                p1_val = parent1.epigenetic_modifiers.get(modifier_key, 0.0)
+                p2_val = parent2.epigenetic_modifiers.get(modifier_key, 0.0)
+                avg_val = (p1_val + p2_val) / 2.0
+                # Epigenetic effects decay by 50% each generation
+                if abs(avg_val) > 0.01:  # Only keep significant modifiers
+                    epigenetic[modifier_key] = avg_val * 0.5
+
         return cls(
-            speed_modifier=inherit_trait(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5),
-            size_modifier=inherit_trait(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
+            speed_modifier=speed,
+            size_modifier=inherit_trait(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3, size_dominant),
             vision_range=inherit_trait(parent1.vision_range, parent2.vision_range, 0.7, 1.3),
-            metabolism_rate=inherit_trait(parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3),
+            metabolism_rate=metabolism,  # Linked to speed
             max_energy=inherit_trait(parent1.max_energy, parent2.max_energy, 0.7, 1.5),
             fertility=inherit_trait(parent1.fertility, parent2.fertility, 0.6, 1.4),
             aggression=inherit_trait(parent1.aggression, parent2.aggression, 0.0, 1.0),
@@ -177,6 +329,10 @@ class Genome:
             color_hue=inherit_trait(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
             brain=brain,
             behavior_algorithm=algorithm,
+            fitness_score=0.0,  # New offspring starts with 0 fitness
+            learned_behaviors={},  # Start with no learned behaviors
+            epigenetic_modifiers=epigenetic,  # Inherit epigenetic effects
+            mate_preferences=mate_prefs,  # Inherit mate preferences
         )
 
     def get_color_tint(self) -> Tuple[int, int, int]:
