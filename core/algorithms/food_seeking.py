@@ -171,6 +171,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         # Check for predators - even urgent fish should avoid immediate danger
         nearest_predator = self._find_nearest(fish, Crab)
         predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
+        predator_nearby = predator_distance < 100  # Define predator proximity threshold
 
         # IMPROVEMENT: Critical energy mode - must find food NOW
         if is_critical:
