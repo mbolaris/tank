@@ -1,4 +1,5 @@
 import React from 'react';
+import './PokerEvents.css';
 
 interface PokerEvent {
   frame: number;
@@ -16,60 +17,37 @@ interface PokerEventsProps {
 }
 
 const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
-  if (events.length === 0) {
-    return null;
-  }
-
-  const styles = {
-    container: {
-      position: 'fixed' as const,
-      bottom: '20px',
-      right: '20px',
-      width: '400px',
-      maxHeight: '250px',
-      overflowY: 'auto' as const,
-      pointerEvents: 'none' as const,
-      zIndex: 1000,
-    },
-    event: (age: number) => ({
-      backgroundColor: 'rgba(20, 20, 40, 0.9)',
-      padding: '8px 12px',
-      marginBottom: '5px',
-      borderRadius: '4px',
-      fontSize: '13px',
-      color: age > 120 ? `rgba(200, 255, 150, ${Math.max(0.3, 1 - (age - 120) / 60)})` : 'rgb(200, 255, 150)',
-      transition: 'opacity 0.5s',
-      border: '1px solid rgba(100, 255, 100, 0.3)',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-    }),
-    tieEvent: (age: number) => ({
-      backgroundColor: 'rgba(20, 20, 40, 0.9)',
-      padding: '8px 12px',
-      marginBottom: '5px',
-      borderRadius: '4px',
-      fontSize: '13px',
-      color: age > 120 ? `rgba(255, 255, 100, ${Math.max(0.3, 1 - (age - 120) / 60)})` : 'rgb(255, 255, 100)',
-      transition: 'opacity 0.5s',
-      border: '1px solid rgba(255, 255, 100, 0.3)',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-    }),
-  };
-
   return (
-    <div style={styles.container}>
-      {events.slice().reverse().map((event, index) => {
-        const age = currentFrame - event.frame;
-        const isTie = event.winner_id === -1;
-        return (
-          <div
-            key={`${event.frame}-${index}`}
-            style={isTie ? styles.tieEvent(age) : styles.event(age)}
-          >
-            {event.message}
-          </div>
-        );
-      })}
-    </div>
+    <section className="poker-events" aria-label="Recent poker activity">
+      <div className="poker-events__header">
+        <h2>Poker Activity</h2>
+        <span>Latest clashes between fish</span>
+      </div>
+      {events.length === 0 ? (
+        <p className="poker-events__empty">No poker activity yet.</p>
+      ) : (
+        <div className="poker-events__list">
+          {events
+            .slice()
+            .reverse()
+            .map((event, index) => {
+              const age = currentFrame - event.frame;
+              const isTie = event.winner_id === -1;
+              const fading = Math.max(0.35, 1 - Math.max(0, age - 90) / 90);
+
+              return (
+                <div
+                  key={`${event.frame}-${index}`}
+                  className={`poker-events__item ${isTie ? 'tie' : ''}`}
+                  style={{ opacity: fading }}
+                >
+                  {event.message}
+                </div>
+              );
+            })}
+        </div>
+      )}
+    </section>
   );
 };
 
