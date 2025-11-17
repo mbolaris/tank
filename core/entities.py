@@ -889,13 +889,13 @@ class Crab(Agent):
         self.consume_energy()
 
         # Hunt for food (prefers food over fish now - less aggressive)
-        food_sprites = self.environment.agents_to_align_with(self, 100, Food)  # Increased radius for food seeking
+        food_sprites = self.environment.nearby_agents_by_type(self, 100, Food)  # Increased radius for food seeking
         if food_sprites:
             self.align_near(food_sprites, 1)
         else:
             # Only hunt fish if no food available and can hunt
             if self.can_hunt() and self.energy < self.max_energy * 0.7:  # Only hunt when hungry
-                fish_sprites = self.environment.agents_to_align_with(self, 80, Fish)  # Reduced hunting radius
+                fish_sprites = self.environment.nearby_agents_by_type(self, 80, Fish)  # Reduced hunting radius
                 if fish_sprites:
                     # Move toward nearest fish slowly
                     self.align_near(fish_sprites, 1)

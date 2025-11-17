@@ -5,8 +5,7 @@ for agents in the simulation. It's designed to work with both pygame-based
 sprite agents and pure entity objects.
 """
 
-import warnings
-from typing import Iterable, List, Optional, Type, Set, Tuple
+from typing import Iterable, List, Optional, Type, Set, Tuple, Dict
 from collections import defaultdict
 import math
 from core.entities import Agent
@@ -38,10 +37,10 @@ class SpatialGrid:
         self.rows = math.ceil(height / cell_size)
 
         # Grid storage: dict of (col, row) -> set of agents
-        self.grid: dict[Tuple[int, int], Set[Agent]] = defaultdict(set)
+        self.grid: Dict[Tuple[int, int], Set[Agent]] = defaultdict(set)
 
         # Agent to cell mapping for quick updates
-        self.agent_cells: dict[Agent, Tuple[int, int]] = {}
+        self.agent_cells: Dict[Agent, Tuple[int, int]] = {}
 
     def _get_cell(self, x: float, y: float) -> Tuple[int, int]:
         """Get the grid cell coordinates for a position."""
@@ -300,30 +299,3 @@ class Environment:
             int: Number of entities of the specified type
         """
         return len(self.get_agents_of_type(agent_class))
-
-    # Backward compatibility aliases
-    def agents_to_avoid(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
-        """Deprecated: Use nearby_agents_by_type instead.
-
-        This method is deprecated and will be removed in a future version.
-        Use nearby_agents_by_type() instead.
-        """
-        warnings.warn(
-            "agents_to_avoid() is deprecated. Use nearby_agents_by_type() instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        return self.nearby_agents_by_type(agent, radius, agent_class)
-
-    def agents_to_align_with(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
-        """Deprecated: Use nearby_agents_by_type instead.
-
-        This method is deprecated and will be removed in a future version.
-        Use nearby_agents_by_type() instead.
-        """
-        warnings.warn(
-            "agents_to_align_with() is deprecated. Use nearby_agents_by_type() instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        return self.nearby_agents_by_type(agent, radius, agent_class)
