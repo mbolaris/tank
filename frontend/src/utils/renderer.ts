@@ -22,13 +22,8 @@ const FOOD_TYPE_IMAGES: Record<string, string[]> = {
 // Default food images for unknown types
 const DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 
-// Fish species image mappings
-const FISH_SPECIES_IMAGES: Record<string, string[]> = {
-  solo: ['george1.png', 'george2.png'],
-  algorithmic: ['george1.png', 'george2.png'],
-  neural: ['george1.png', 'george2.png'],
-  schooling: ['school.png'],
-};
+// Default fish images for fallback rendering
+const DEFAULT_FISH_IMAGES = ['george1.png', 'george2.png'];
 
 // Particle system for ambient water effects
 interface Particle {
@@ -222,11 +217,9 @@ export class Renderer {
       return;
     }
 
-    // Fallback to old image-based rendering for backward compatibility
-    const species = fish.species || 'solo';
-    const imageFiles = FISH_SPECIES_IMAGES[species] || FISH_SPECIES_IMAGES.solo;
-    const imageIndex = this.getAnimationFrame(elapsedTime, imageFiles.length);
-    const imageName = imageFiles[imageIndex];
+    // Fallback to image-based rendering for backward compatibility
+    const imageIndex = this.getAnimationFrame(elapsedTime, DEFAULT_FISH_IMAGES.length);
+    const imageName = DEFAULT_FISH_IMAGES[imageIndex];
     const image = ImageLoader.getCachedImage(imageName);
 
     if (!image) return;

@@ -208,28 +208,6 @@ export function StatsPanel({ stats }: StatsPanelProps) {
           )}
         </div>
       )}
-
-      <div style={styles.legend}>
-        <h3 style={styles.legendTitle}>Species Legend</h3>
-        <div style={styles.legendItems}>
-          <div style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, backgroundColor: '#4ecdc4' }} />
-            <span>Neural AI</span>
-          </div>
-          <div style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, backgroundColor: '#ffe66d' }} />
-            <span>Algorithmic</span>
-          </div>
-          <div style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, backgroundColor: '#a8dadc' }} />
-            <span>Schooling</span>
-          </div>
-          <div style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, backgroundColor: '#ff6b6b' }} />
-            <span>Solo</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -276,33 +254,5 @@ const styles = {
   statValue: {
     fontWeight: 600,
     color: '#e2e8f0',
-  },
-  legend: {
-    marginTop: '24px',
-    padding: '16px',
-    backgroundColor: 'rgba(15,23,42,0.85)',
-    borderRadius: '12px',
-    border: '1px solid rgba(148,163,184,0.1)',
-  },
-  legendTitle: {
-    margin: '0 0 12px 0',
-    fontSize: '14px',
-    fontWeight: 500,
-  },
-  legendItems: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-  },
-  legendItem: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '13px',
-  },
-  legendDot: {
-    width: '12px',
-    height: '12px',
-    borderRadius: '50%',
-    marginRight: '8px',
   },
 };

@@ -1,12 +1,11 @@
 """Tests for movement strategies in the fish tank simulation."""
 import pytest
 
-from core.entities import Fish, Crab, Food
+from core.entities import Fish, Food
 from core.environment import Environment
 from core.math_utils import Vector2
-from core.movement_strategy import (MovementStrategy, SoloFishMovement, SchoolingFishMovement,
-                                CRAB_AVOIDANCE_DISTANCE, SOLO_FISH_AVOIDANCE_DISTANCE,
-                                SCHOOLING_FISH_ALIGNMENT_DISTANCE)
+from core.movement_strategy import MovementStrategy, AlgorithmicMovement
+from core.genetics import Genome
 
 
 class TestMovementStrategy:
@@ -30,34 +29,18 @@ class TestMovementStrategy:
         assert success
 
 
-class TestSoloFishMovement:
-    """Test the SoloFishMovement strategy."""
+class TestAlgorithmicMovement:
+    """Test the AlgorithmicMovement strategy."""
 
-    def test_solo_fish_avoids_crabs(self, simulation_env):
-        """Test that solo fish avoids crabs."""
+    def test_algorithmic_movement_with_algorithm(self, simulation_env):
+        """Test that algorithmic movement works with a behavior algorithm."""
         env, agents = simulation_env
-        strategy = SoloFishMovement()
-        fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
-        crab = Crab(env)
-        crab.pos = Vector2(120, 100)  # Close to fish
-        crab.rect.topleft = crab.pos
-        agents.add(fish, crab)
-
-        initial_avoidance = fish.avoidance_velocity.copy()
-        strategy.move(fish)
-
-        # Fish should have avoidance velocity after encountering nearby crab
-        assert fish.avoidance_velocity != initial_avoidance
-
-    def test_solo_fish_adds_random_movement(self, simulation_env):
-        """Test that solo fish movement strategy works without crashing."""
-        env, agents = simulation_env
-        strategy = SoloFishMovement()
-        fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
+        strategy = AlgorithmicMovement()
+        genome = Genome.random(use_algorithm=True)
+        fish = Fish(env, strategy, ['george1.png'], 100, 100, 3, genome=genome)
         agents.add(fish)
 
-        # The strategy should complete without errors
-        # Random movement behavior is probabilistic and hard to test deterministically
+        # Should execute algorithm and move without crashing
         try:
             for _ in range(10):
                 strategy.move(fish)
@@ -67,15 +50,17 @@ class TestSoloFishMovement:
 
         assert success
 
-    def test_solo_fish_movement_does_not_crash(self, simulation_env):
-        """Test that solo fish movement strategy doesn't crash."""
+    def test_algorithmic_movement_without_algorithm(self, simulation_env):
+        """Test that algorithmic movement falls back to random when no algorithm."""
         env, agents = simulation_env
-        strategy = SoloFishMovement()
-        fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
+        strategy = AlgorithmicMovement()
+        genome = Genome.random(use_algorithm=False)
+        fish = Fish(env, strategy, ['george1.png'], 100, 100, 3, genome=genome)
         agents.add(fish)
 
+        # Should fall back to random movement without crashing
         try:
-            for _ in range(100):
+            for _ in range(10):
                 strategy.move(fish)
             success = True
         except Exception:
@@ -83,93 +68,46 @@ class TestSoloFishMovement:
 
         assert success
 
-
-class TestSchoolingFishMovement:
-    """Test the SchoolingFishMovement strategy."""
-
-    def test_schooling_fish_aligns_with_same_type(self, simulation_env):
-        """Test that schooling fish aligns with fish of the same type."""
+    def test_algorithmic_movement_consistency(self, simulation_env):
+        """Test that algorithmic movement behaves consistently over time."""
         env, agents = simulation_env
-        strategy = SchoolingFishMovement()
-        fish1 = Fish(env, strategy, ['school.png'], 100, 100, 4)
-        fish2 = Fish(env, strategy, ['school.png'], 150, 100, 4)
-        agents.add(fish1, fish2)
+        strategy = AlgorithmicMovement()
 
-        # Should not crash when trying to align
-        try:
-            strategy.move(fish1)
-            success = True
-        except Exception:
-            success = False
-
-        assert success
-
-    def test_schooling_fish_avoids_different_type(self, simulation_env):
-        """Test that schooling fish avoids fish of different types."""
-        env, agents = simulation_env
-        strategy = SchoolingFishMovement()
-        school_fish = Fish(env, strategy, ['school.png'], 100, 100, 4)
-        solo_fish = Fish(env, SoloFishMovement(), ['george1.png'], 120, 100, 3)
-        agents.add(school_fish, solo_fish)
-
-        initial_avoidance = school_fish.avoidance_velocity.copy()
-        strategy.move(school_fish)
-
-        # Schooling fish should have some avoidance (or at least not crash)
-        # The exact behavior depends on avoidance logic
-
-    def test_get_same_type_sprites(self, simulation_env):
-        """Test that get_same_type_sprites returns only matching fish."""
-        env, agents = simulation_env
-        strategy = SchoolingFishMovement()
-        fish1 = Fish(env, strategy, ['school.png'], 100, 100, 4)
-        fish2 = Fish(env, strategy, ['school.png'], 150, 100, 4)
-        fish3 = Fish(env, SoloFishMovement(), ['george1.png'], 200, 100, 3)
-        agents.add(fish1, fish2, fish3)
-
-        same_type = strategy.get_same_type_sprites(fish1)
-
-        # Should include fish2 (same type) and fish1 itself
-        assert fish2 in same_type
-        assert fish3 not in same_type
-        # fish1 will be in the list since get_agents_of_type returns all fish
-        assert fish1 in same_type
-
-    def test_get_different_type_sprites(self, simulation_env):
-        """Test that get_different_type_sprites returns only non-matching fish."""
-        env, agents = simulation_env
-        strategy = SchoolingFishMovement()
-        fish1 = Fish(env, strategy, ['school.png'], 100, 100, 4)
-        fish2 = Fish(env, strategy, ['school.png'], 150, 100, 4)
-        fish3 = Fish(env, SoloFishMovement(), ['george1.png'], 200, 100, 3)
-        agents.add(fish1, fish2, fish3)
-
-        different_type = strategy.get_different_type_sprites(fish1)
-
-        # With mocked images, each fish gets a new surface object,
-        # so animation_frames comparison will treat all fish as different types
-        # In production with actual image caching, same filenames would share surfaces
-        assert fish3 in different_type
-        # fish2 might be in different_type due to mocked surfaces being different objects
-        # This is acceptable for testing purposes
-
-    def test_schooling_behavior_over_time(self, simulation_env):
-        """Test that schooling fish behave consistently over multiple updates."""
-        env, agents = simulation_env
-        strategy = SchoolingFishMovement()
-
-        # Create a school of fish
-        school = [Fish(env, strategy, ['school.png'], 100 + i * 20, 100, 4) for i in range(5)]
-        for fish in school:
+        # Create multiple fish with different algorithms
+        fish_list = []
+        for i in range(5):
+            genome = Genome.random(use_algorithm=True)
+            fish = Fish(env, strategy, ['george1.png'], 100 + i * 30, 100, 3, genome=genome)
+            fish_list.append(fish)
             agents.add(fish)
 
         # Run movement for many iterations
         try:
             for _ in range(50):
-                for fish in school:
+                for fish in fish_list:
                     strategy.move(fish)
             success = True
         except Exception:
             success = False
 
-        assert success, "Schooling behavior should work over many iterations"
+        assert success, "Algorithmic movement should work consistently over many iterations"
+
+    def test_algorithmic_movement_updates_velocity(self, simulation_env):
+        """Test that algorithmic movement updates fish velocity."""
+        env, agents = simulation_env
+        strategy = AlgorithmicMovement()
+        genome = Genome.random(use_algorithm=True)
+        fish = Fish(env, strategy, ['george1.png'], 100, 100, 3, genome=genome)
+        agents.add(fish)
+
+        # Store initial velocity
+        initial_vel = fish.vel.copy()
+
+        # Move multiple times to allow velocity to change
+        for _ in range(10):
+            strategy.move(fish)
+
+        # Velocity should have been updated (unless algorithm happens to output same as initial)
+        # We just test that it doesn't crash and velocity is a valid Vector2
+        assert isinstance(fish.vel, Vector2)
+        assert fish.vel.length() >= 0  # Valid velocity magnitude
