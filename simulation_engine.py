@@ -98,8 +98,21 @@ class SimulationEngine(BaseSimulator):
                 e1.pos.y + e1.height > e2.pos.y)
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
-        """Handle the result of a poker game by logging to events list."""
+        """Handle the result of a poker game by logging to events list.
+
+        Also handles post-poker reproduction if it occurred.
+        """
         self.add_poker_event(poker)
+
+        # Handle post-poker reproduction if it occurred
+        if poker.result is not None and poker.result.reproduction_occurred and poker.result.offspring is not None:
+            # Add offspring to population
+            offspring = poker.result.offspring
+            self.add_entity(offspring)
+
+            # Register with ecosystem if available
+            if self.ecosystem is not None:
+                self.ecosystem.register_fish(offspring)
 
     def update(self) -> None:
         """Update the state of the simulation."""

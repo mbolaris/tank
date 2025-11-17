@@ -26,6 +26,7 @@ from core.algorithms import (
     get_algorithm_by_id,
     inherit_algorithm_with_mutation,
     crossover_algorithms,
+    crossover_algorithms_weighted,
     # Food seeking (12)
     GreedyFoodSeeker,
     EnergyAwareFoodSeeker,

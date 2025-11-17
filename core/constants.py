@@ -135,3 +135,10 @@ STARVATION_THRESHOLD = 15.0  # Below this, fish dies from starvation
 CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode (same as starvation threshold)
 LOW_ENERGY_THRESHOLD = 30.0  # Fish should prioritize finding food
 SAFE_ENERGY_THRESHOLD = 60.0  # Comfortable energy level for exploration and breeding
+
+# Post-Poker Reproduction Constants
+POST_POKER_REPRODUCTION_ENERGY_THRESHOLD = 40.0  # Minimum energy to offer reproduction after poker
+POST_POKER_REPRODUCTION_WINNER_PROB = 0.4  # Probability winner offers reproduction (40%)
+POST_POKER_REPRODUCTION_LOSER_PROB = 0.2  # Probability loser offers reproduction (20%)
+POST_POKER_CROSSOVER_WINNER_WEIGHT = 0.6  # Winner contributes 60% of DNA, loser 40%
+POST_POKER_MATING_DISTANCE = 80  # Maximum distance for post-poker mating (pixels)

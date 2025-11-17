@@ -312,6 +312,86 @@ def crossover_algorithms(parent1_algorithm: BehaviorAlgorithm,
     return offspring
 
 
+def crossover_algorithms_weighted(parent1_algorithm: BehaviorAlgorithm,
+                                  parent2_algorithm: BehaviorAlgorithm,
+                                  parent1_weight: float = 0.5,
+                                  mutation_rate: float = 0.15,
+                                  mutation_strength: float = 0.2,
+                                  algorithm_switch_rate: float = 0.1) -> BehaviorAlgorithm:
+    """Create offspring algorithm with weighted contributions from parents.
+
+    This allows for unequal genetic contributions, useful when one parent
+    has proven superior fitness (e.g., poker winner).
+
+    Args:
+        parent1_algorithm: First parent's behavior algorithm
+        parent2_algorithm: Second parent's behavior algorithm
+        parent1_weight: How much parent1 contributes (0.0-1.0)
+        mutation_rate: Probability of each parameter mutating
+        mutation_strength: Magnitude of mutations
+        algorithm_switch_rate: Probability of switching to random algorithm
+
+    Returns:
+        New algorithm instance with weighted blended parameters
+    """
+    # Clamp weight to valid range
+    parent1_weight = max(0.0, min(1.0, parent1_weight))
+    parent2_weight = 1.0 - parent1_weight
+
+    # Determine which algorithm type to inherit
+    if parent1_algorithm is None and parent2_algorithm is None:
+        return get_random_algorithm()
+    elif parent1_algorithm is None:
+        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength)
+    elif parent2_algorithm is None:
+        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength)
+
+    # Both parents have algorithms
+    same_type = type(parent1_algorithm) == type(parent2_algorithm)
+
+    # Weighted decision: switch to random algorithm with small probability
+    if random.random() < algorithm_switch_rate:
+        return get_random_algorithm()
+
+    if same_type:
+        # CASE 1: Both parents have same algorithm type
+        # Blend parameters using weights
+        offspring = parent1_algorithm.__class__()
+
+        for param_key in parent1_algorithm.parameters:
+            if param_key in parent2_algorithm.parameters:
+                val1 = parent1_algorithm.parameters[param_key]
+                val2 = parent2_algorithm.parameters[param_key]
+
+                # Skip non-numeric parameters
+                if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
+                    offspring.parameters[param_key] = val1 if random.random() < parent1_weight else val2
+                    continue
+
+                # Weighted average based on parent contributions
+                offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
+
+            elif param_key in parent1_algorithm.parameters:
+                offspring.parameters[param_key] = parent1_algorithm.parameters[param_key]
+
+        # Add parameters from parent2 that parent1 doesn't have
+        for param_key in parent2_algorithm.parameters:
+            if param_key not in offspring.parameters:
+                offspring.parameters[param_key] = parent2_algorithm.parameters[param_key]
+
+    else:
+        # CASE 2: Different algorithm types
+        # Choose based on weight (parent1_weight probability of choosing parent1)
+        chosen_parent = parent1_algorithm if random.random() < parent1_weight else parent2_algorithm
+        offspring = chosen_parent.__class__()
+        offspring.parameters = chosen_parent.parameters.copy()
+
+    # Apply mutations to offspring parameters
+    offspring.mutate_parameters(mutation_rate, mutation_strength)
+
+    return offspring
+
+
 # Export all symbols
 __all__ = [
     # Base
@@ -391,4 +471,5 @@ __all__ = [
     'get_algorithm_by_id',
     'inherit_algorithm_with_mutation',
     'crossover_algorithms',
+    'crossover_algorithms_weighted',
 ]

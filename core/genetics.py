@@ -183,6 +183,133 @@ class Genome:
         return min(compatibility, 1.0)
 
     @classmethod
+    def from_parents_weighted(cls, parent1: 'Genome', parent2: 'Genome',
+                            parent1_weight: float = 0.5,
+                            mutation_rate: float = 0.1, mutation_strength: float = 0.1,
+                            population_stress: float = 0.0) -> 'Genome':
+        """Create offspring genome with weighted contributions from parents.
+
+        This method allows for unequal genetic contributions, useful for scenarios
+        where one parent has proven superior fitness (e.g., poker winner).
+
+        Args:
+            parent1: First parent's genome
+            parent2: Second parent's genome
+            parent1_weight: How much parent1 contributes (0.0-1.0), parent2 gets (1.0-parent1_weight)
+            mutation_rate: Probability of each gene mutating (0.0-1.0)
+            mutation_strength: Magnitude of mutations (0.0-1.0)
+            population_stress: Population stress level (0.0-1.0) for adaptive mutations
+
+        Returns:
+            New genome with weighted parent contributions plus mutations
+        """
+        # Clamp weight to valid range
+        parent1_weight = max(0.0, min(1.0, parent1_weight))
+        parent2_weight = 1.0 - parent1_weight
+
+        # Adaptive mutation rates based on population stress
+        adaptive_mutation_rate = mutation_rate * (1.0 + population_stress * 2.0)
+        adaptive_mutation_strength = mutation_strength * (1.0 + population_stress * 1.5)
+        adaptive_mutation_rate = min(0.4, adaptive_mutation_rate)
+        adaptive_mutation_strength = min(0.25, adaptive_mutation_strength)
+
+        def weighted_inherit(val1: float, val2: float, min_val: float, max_val: float) -> float:
+            """Inherit trait using weighted average plus mutation.
+
+            Args:
+                val1: Parent 1 trait value
+                val2: Parent 2 trait value
+                min_val: Minimum allowed value
+                max_val: Maximum allowed value
+
+            Returns:
+                Weighted inherited trait value
+            """
+            # Weighted average based on parent contributions
+            inherited = val1 * parent1_weight + val2 * parent2_weight
+
+            # Apply mutation
+            if random.random() < adaptive_mutation_rate:
+                mutation = random.gauss(0, adaptive_mutation_strength)
+                inherited += mutation
+
+            # Clamp to valid range
+            return max(min_val, min(max_val, inherited))
+
+        # Handle behavior algorithm with weighted crossover
+        algorithm = None
+        if parent1.behavior_algorithm is not None or parent2.behavior_algorithm is not None:
+            from core.behavior_algorithms import crossover_algorithms_weighted
+            algorithm = crossover_algorithms_weighted(
+                parent1.behavior_algorithm,
+                parent2.behavior_algorithm,
+                parent1_weight=parent1_weight,
+                mutation_rate=adaptive_mutation_rate * 1.5,
+                mutation_strength=adaptive_mutation_strength * 1.5,
+                algorithm_switch_rate=0.03  # 3% chance of random algorithm
+            )
+        else:
+            from core.behavior_algorithms import get_random_algorithm
+            algorithm = get_random_algorithm()
+
+        # Weighted inheritance for template_id (discrete choice biased by weight)
+        inherited_template = parent1.template_id if random.random() < parent1_weight else parent2.template_id
+        if random.random() < adaptive_mutation_rate:
+            inherited_template = max(0, min(5, inherited_template + random.choice([-1, 0, 1])))
+
+        # Weighted inheritance for pattern_type (discrete choice biased by weight)
+        inherited_pattern = parent1.pattern_type if random.random() < parent1_weight else parent2.pattern_type
+        if random.random() < adaptive_mutation_rate:
+            inherited_pattern = max(0, min(3, inherited_pattern + random.choice([-1, 0, 1])))
+
+        # Linked traits: speed influences metabolism
+        speed = weighted_inherit(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5)
+        base_metabolism = weighted_inherit(parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3)
+        metabolism_link_factor = (speed - 1.0) * 0.2
+        metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
+
+        # Weighted mate preferences
+        mate_prefs = {}
+        for pref_key in parent1.mate_preferences:
+            p1_val = parent1.mate_preferences.get(pref_key, 0.5)
+            p2_val = parent2.mate_preferences.get(pref_key, 0.5)
+            mate_prefs[pref_key] = weighted_inherit(p1_val, p2_val, 0.0, 1.0)
+
+        # Weighted epigenetic modifiers
+        epigenetic = {}
+        if parent1.epigenetic_modifiers or parent2.epigenetic_modifiers:
+            for modifier_key in set(list(parent1.epigenetic_modifiers.keys()) + list(parent2.epigenetic_modifiers.keys())):
+                p1_val = parent1.epigenetic_modifiers.get(modifier_key, 0.0)
+                p2_val = parent2.epigenetic_modifiers.get(modifier_key, 0.0)
+                weighted_val = p1_val * parent1_weight + p2_val * parent2_weight
+                if abs(weighted_val) > 0.01:
+                    epigenetic[modifier_key] = weighted_val * 0.5  # Decay by 50%
+
+        return cls(
+            speed_modifier=speed,
+            size_modifier=weighted_inherit(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
+            vision_range=weighted_inherit(parent1.vision_range, parent2.vision_range, 0.7, 1.3),
+            metabolism_rate=metabolism,
+            max_energy=weighted_inherit(parent1.max_energy, parent2.max_energy, 0.7, 1.5),
+            fertility=weighted_inherit(parent1.fertility, parent2.fertility, 0.6, 1.4),
+            aggression=weighted_inherit(parent1.aggression, parent2.aggression, 0.0, 1.0),
+            social_tendency=weighted_inherit(parent1.social_tendency, parent2.social_tendency, 0.0, 1.0),
+            color_hue=weighted_inherit(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
+            template_id=inherited_template,
+            fin_size=weighted_inherit(parent1.fin_size, parent2.fin_size, 0.6, 1.4),
+            tail_size=weighted_inherit(parent1.tail_size, parent2.tail_size, 0.6, 1.4),
+            body_aspect=weighted_inherit(parent1.body_aspect, parent2.body_aspect, 0.7, 1.3),
+            eye_size=weighted_inherit(parent1.eye_size, parent2.eye_size, 0.7, 1.3),
+            pattern_intensity=weighted_inherit(parent1.pattern_intensity, parent2.pattern_intensity, 0.0, 1.0),
+            pattern_type=inherited_pattern,
+            behavior_algorithm=algorithm,
+            fitness_score=0.0,
+            learned_behaviors={},
+            epigenetic_modifiers=epigenetic,
+            mate_preferences=mate_prefs,
+        )
+
+    @classmethod
     def from_parents(cls, parent1: 'Genome', parent2: 'Genome',
                      mutation_rate: float = 0.1, mutation_strength: float = 0.1,
                      population_stress: float = 0.0,
