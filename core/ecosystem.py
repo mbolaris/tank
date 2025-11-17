@@ -407,14 +407,23 @@ class EcosystemManager:
         """
         return sum(stats.population for stats in self.generation_stats.values())
 
-    def get_summary_stats(self) -> Dict[str, any]:
+    def get_summary_stats(self, entities: Optional[List] = None) -> Dict[str, any]:
         """Get summary statistics for the ecosystem.
+
+        Args:
+            entities: Optional list of entities to calculate total energy from
 
         Returns:
             Dictionary with key ecosystem metrics
         """
         total_pop = self.get_total_population()
         poker_summary = self.get_poker_stats_summary()
+
+        # Calculate total energy if entities provided
+        total_energy = 0.0
+        if entities is not None:
+            from core.entities import Fish
+            total_energy = sum(e.energy for e in entities if isinstance(e, Fish))
 
         return {
             'total_population': total_pop,
@@ -429,6 +438,7 @@ class EcosystemManager:
             'death_causes': dict(self.death_causes),
             'generations_alive': len([g for g, s in self.generation_stats.items() if s.population > 0]),
             'poker_stats': poker_summary,
+            'total_energy': total_energy,
         }
 
     def get_poker_stats_summary(self) -> Dict[str, any]:

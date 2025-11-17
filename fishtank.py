@@ -251,7 +251,7 @@ class FishTankSimulator(BaseSimulator):
                     self.ui_renderer.draw_health_bar(sprite)
 
             # Draw stats panel
-            self.ui_renderer.draw_stats_panel(self.ecosystem, self.time_system, self.paused)
+            self.ui_renderer.draw_stats_panel(self.ecosystem, self.time_system, self.paused, self.get_all_entities())
 
         # Draw poker notifications (always visible)
         if self.ui_renderer is not None:
@@ -334,7 +334,7 @@ class FishTankSimulator(BaseSimulator):
             print("\n" + "=" * 60)
             print("SIMULATION ENDED - Final Statistics")
             print("=" * 60)
-            stats = self.ecosystem.get_summary_stats()
+            stats = self.ecosystem.get_summary_stats(self.get_all_entities())
             for key, value in stats.items():
                 print(f"  {key}: {value}")
             print("=" * 60)

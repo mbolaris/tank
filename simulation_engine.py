@@ -218,7 +218,7 @@ class SimulationEngine(BaseSimulator):
         if self.ecosystem is None:
             return {}
 
-        stats = self.ecosystem.get_summary_stats()
+        stats = self.ecosystem.get_summary_stats(self.get_all_entities())
         stats['frame_count'] = self.frame_count
         stats['time_string'] = self.time_system.get_time_string()
         stats['elapsed_real_time'] = time.time() - self.start_time
