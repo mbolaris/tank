@@ -60,7 +60,7 @@ class FishTankSimulator(BaseSimulator):
         self.ui_renderer = UIRenderer(self.screen, self.stats_font)
 
         # Initialize managers
-        self.environment = environment.Environment(self.agents)
+        self.environment = environment.Environment(self.agents, SCREEN_WIDTH, SCREEN_HEIGHT)
         self.ecosystem = EcosystemManager(max_population=100)  # Increased from 50 for natural growth
 
         self.create_initial_agents()
@@ -154,7 +154,10 @@ class FishTankSimulator(BaseSimulator):
                 if isinstance(sprite, agents.Food) and sprite.pos.y == 0:
                     sprite.rect.y = 0
 
-        # Handle collisions
+        # Update spatial grid after all entity movements
+        self.update_spatial_grid()
+
+        # Handle collisions (uses spatial grid for efficiency)
         self.handle_collisions()
 
         # Handle reproduction (mate finding)

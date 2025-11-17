@@ -36,6 +36,7 @@ class BaseSimulator(ABC):
         self.paused: bool = False
         self.auto_food_timer: int = 0
         self.ecosystem: Optional['EcosystemManager'] = None
+        self.environment: Optional['environment.Environment'] = None
 
     @abstractmethod
     def get_all_entities(self) -> List['Agent']:
@@ -99,6 +100,11 @@ class BaseSimulator(ABC):
                 algorithm_id=algorithm_id
             )
         self.remove_entity(fish)
+
+    def update_spatial_grid(self) -> None:
+        """Update the spatial grid with current entity positions."""
+        if self.environment is not None:
+            self.environment.rebuild_spatial_grid()
 
     def handle_collisions(self) -> None:
         """Handle collisions between entities."""
@@ -165,8 +171,8 @@ class BaseSimulator(ABC):
     def handle_fish_collisions(self) -> None:
         """Handle collisions involving fish.
 
-        This method iterates through all fish and checks for collisions with other entities.
-        Delegates specific collision handling to specialized methods for clarity.
+        Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k)
+        where k is the number of nearby entities (typically much smaller than n).
         """
         from core.entities import Fish, Food, Crab
 
@@ -179,7 +185,16 @@ class BaseSimulator(ABC):
             if fish not in self.get_all_entities():
                 continue
 
-            for other in list(self.get_all_entities()):
+            # Use spatial grid to get nearby entities (within collision range)
+            # Typical fish size is ~30-50px, use generous radius for broad phase
+            nearby_entities = []
+            if self.environment is not None:
+                nearby_entities = self.environment.nearby_agents(fish, radius=100)
+            else:
+                # Fallback to checking all entities if no environment
+                nearby_entities = [e for e in self.get_all_entities() if e != fish]
+
+            for other in list(nearby_entities):
                 if other == fish:
                     continue
 
@@ -194,7 +209,10 @@ class BaseSimulator(ABC):
                             break  # Fish died, stop checking collisions for it
 
     def handle_food_collisions(self) -> None:
-        """Handle collisions involving food."""
+        """Handle collisions involving food.
+
+        Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k).
+        """
         from core.entities import Food, Fish, Crab
 
         all_entities = self.get_all_entities()
@@ -205,7 +223,15 @@ class BaseSimulator(ABC):
             if food not in self.get_all_entities():
                 continue
 
-            for other in list(self.get_all_entities()):
+            # Use spatial grid for nearby entity lookup
+            nearby_entities = []
+            if self.environment is not None:
+                nearby_entities = self.environment.nearby_agents(food, radius=100)
+            else:
+                # Fallback to checking all entities if no environment
+                nearby_entities = [e for e in self.get_all_entities() if e != food]
+
+            for other in list(nearby_entities):
                 if other == food:
                     continue
 
@@ -221,7 +247,10 @@ class BaseSimulator(ABC):
                         break
 
     def handle_reproduction(self) -> None:
-        """Handle fish reproduction by finding mates."""
+        """Handle fish reproduction by finding mates.
+
+        Uses spatial queries to only check nearby fish for mating compatibility.
+        """
         from core.entities import Fish
 
         fish_list = [e for e in self.get_all_entities() if isinstance(e, Fish)]
@@ -231,8 +260,16 @@ class BaseSimulator(ABC):
             if not fish.can_reproduce():
                 continue
 
+            # Use spatial grid to find nearby fish (mating typically happens at close range)
+            nearby_fish = []
+            if self.environment is not None:
+                nearby_fish = self.environment.nearby_agents_by_type(fish, radius=150, agent_class=Fish)
+            else:
+                # Fallback to checking all fish if no environment
+                nearby_fish = [f for f in fish_list if f != fish]
+
             # Look for nearby compatible mates
-            for potential_mate in fish_list:
+            for potential_mate in nearby_fish:
                 if potential_mate == fish:
                     continue
 

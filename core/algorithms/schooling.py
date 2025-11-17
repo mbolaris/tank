@@ -234,7 +234,8 @@ class PerimeterGuard(BehaviorAlgorithm):
 
             if distance < self.parameters["orbit_radius"]:
                 # Move away from center
-                direction = -to_center.normalize()
+                normalized = to_center.normalize()
+                direction = Vector2(-normalized.x, -normalized.y)
                 return direction.x * self.parameters["orbit_speed"], direction.y * self.parameters["orbit_speed"]
             elif distance > self.parameters["orbit_radius"] * 1.3:
                 # Move toward center
