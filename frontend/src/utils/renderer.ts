@@ -307,8 +307,16 @@ export class Renderer {
 
     if (!image) return;
 
+    // Make food images smaller (0.7x scale)
+    const foodScale = 0.7;
+    const scaledWidth = width * foodScale;
+    const scaledHeight = height * foodScale;
+    // Center the smaller food at original position
+    const offsetX = (width - scaledWidth) / 2;
+    const offsetY = (height - scaledHeight) / 2;
+
     // Draw subtle shadow
-    this.drawShadow(x + width / 2, y + height, width * 0.6, height * 0.2);
+    this.drawShadow(x + width / 2, y + height, scaledWidth * 0.6, scaledHeight * 0.2);
 
     // Add subtle glow to food
     this.ctx.save();
@@ -319,18 +327,18 @@ export class Renderer {
       0,
       x + width / 2,
       y + height / 2,
-      width * 0.6
+      scaledWidth * 0.6
     );
     gradient.addColorStop(0, '#ffeb3b');
     gradient.addColorStop(1, 'rgba(255, 235, 59, 0)');
     this.ctx.fillStyle = gradient;
     this.ctx.beginPath();
-    this.ctx.arc(x + width / 2, y + height / 2, width * 0.6, 0, Math.PI * 2);
+    this.ctx.arc(x + width / 2, y + height / 2, scaledWidth * 0.6, 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.restore();
 
     // Food images don't flip
-    this.drawImage(image, x, y, width, height, false);
+    this.drawImage(image, x + offsetX, y + offsetY, scaledWidth, scaledHeight, false);
   }
 
   private renderPlant(plant: EntityData, elapsedTime: number) {
@@ -343,6 +351,11 @@ export class Renderer {
 
     if (!image) return;
 
+    // Make plant images 50% larger (1.5x scale)
+    const plantScale = 1.5;
+    const scaledWidth = width * plantScale;
+    const scaledHeight = height * plantScale;
+
     // Apply swaying effect
     const swayRange = 5; // degrees
     const swaySpeed = 0.0005;
@@ -354,9 +367,9 @@ export class Renderer {
     const restingY = canvasHeight - seabedOffset;
     // Allow slight offset so multiple plants feel organic
     const swayOffset = Math.sin((x + y) * 0.01) * 6;
-    ctx.translate(x + width / 2 + swayOffset, restingY);
+    ctx.translate(x + scaledWidth / 2 + swayOffset, restingY);
     ctx.rotate((swayAngle * Math.PI) / 180);
-    ctx.drawImage(image, -width / 2, -height, width, height);
+    ctx.drawImage(image, -scaledWidth / 2, -scaledHeight, scaledWidth, scaledHeight);
     ctx.restore();
   }
 
