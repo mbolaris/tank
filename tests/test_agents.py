@@ -4,7 +4,7 @@ import pytest
 from core.entities import Agent, Fish, Crab, Food, Plant, Castle
 from core.environment import Environment
 from core.math_utils import Vector2
-from core.movement_strategy import SoloFishMovement, SchoolingFishMovement
+from core.movement_strategy import AlgorithmicMovement
 from core.constants import FISH_GROWTH_RATE, FOOD_SINK_ACCELERATION
 
 
@@ -113,7 +113,7 @@ class TestFish:
     def test_fish_initialization(self, simulation_env):
         """Test that fish initializes correctly."""
         env, _ = simulation_env
-        strategy = SoloFishMovement()
+        strategy = AlgorithmicMovement()
         fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
 
         assert fish.size == 1
@@ -122,7 +122,7 @@ class TestFish:
     def test_fish_grows_when_eating(self, simulation_env):
         """Test that fish grows when it eats food."""
         env, _ = simulation_env
-        strategy = SoloFishMovement()
+        strategy = AlgorithmicMovement()
         fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
         food = Food(env, 110, 110)
 
@@ -134,7 +134,7 @@ class TestFish:
     def test_fish_movement_strategy_called(self, simulation_env):
         """Test that fish calls its movement strategy on update."""
         env, agents = simulation_env
-        strategy = SoloFishMovement()
+        strategy = AlgorithmicMovement()
         fish = Fish(env, strategy, ['george1.png'], 100, 100, 3)
         agents.add(fish)
 

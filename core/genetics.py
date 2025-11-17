@@ -10,7 +10,6 @@ from typing import Tuple, Optional, TYPE_CHECKING, Dict, List
 from enum import Enum
 
 if TYPE_CHECKING:
-    from core.neural_brain import NeuralBrain
     from core.behavior_algorithms import BehaviorAlgorithm
 
 
@@ -42,8 +41,7 @@ class Genome:
         eye_size: Eye size relative to body (0.7-1.3)
         pattern_intensity: Visibility of patterns/stripes (0.0-1.0)
         pattern_type: Pattern style: 0=stripes, 1=spots, 2=solid, 3=gradient
-        brain: Neural network brain (optional, can be None for simple AI)
-        behavior_algorithm: Parametrizable behavior algorithm (NEW!)
+        behavior_algorithm: Parametrizable behavior algorithm for movement decisions
         fitness_score: Accumulated fitness over lifetime (0.0+)
         learned_behaviors: Behavioral improvements from experience
         epigenetic_modifiers: Environmental effects on gene expression
@@ -76,10 +74,7 @@ class Genome:
     pattern_intensity: float = 0.5  # Pattern visibility (0.0-1.0)
     pattern_type: int = 0  # Pattern style: 0=stripes, 1=spots, 2=solid, 3=gradient
 
-    # Neural brain (optional)
-    brain: Optional['NeuralBrain'] = None
-
-    # Behavior algorithm (NEW: algorithmic evolution system)
+    # Behavior algorithm (algorithmic evolution system)
     behavior_algorithm: Optional['BehaviorAlgorithm'] = None
 
     # Fitness tracking (NEW: for selection pressure)
@@ -100,22 +95,15 @@ class Genome:
     })
 
     @classmethod
-    def random(cls, use_brain: bool = True, use_algorithm: bool = True) -> 'Genome':
+    def random(cls, use_algorithm: bool = True) -> 'Genome':
         """Create a random genome with traits within normal ranges.
 
         Args:
-            use_brain: Whether to include a neural network brain
             use_algorithm: Whether to include a behavior algorithm
 
         Returns:
             New random genome
         """
-        # Import here to avoid circular dependency
-        brain = None
-        if use_brain:
-            from core.neural_brain import NeuralBrain
-            brain = NeuralBrain.random()
-
         # Create random behavior algorithm
         algorithm = None
         if use_algorithm:
@@ -140,7 +128,6 @@ class Genome:
             eye_size=random.uniform(0.7, 1.3),
             pattern_intensity=random.random(),
             pattern_type=random.randint(0, 3),
-            brain=brain,
             behavior_algorithm=algorithm,
         )
 
@@ -270,20 +257,6 @@ class Genome:
             # Clamp to valid range
             return max(min_val, min(max_val, inherited))
 
-        # Handle brain inheritance
-        brain = None
-        if parent1.brain is not None and parent2.brain is not None:
-            from core.neural_brain import NeuralBrain
-            brain = NeuralBrain.crossover(parent1.brain, parent2.brain,
-                                         mutation_rate=adaptive_mutation_rate,
-                                         mutation_strength=adaptive_mutation_strength)
-        elif parent1.brain is not None or parent2.brain is not None:
-            # If only one parent has a brain, randomly inherit it
-            from core.neural_brain import NeuralBrain
-            parent_brain = parent1.brain if parent1.brain is not None else parent2.brain
-            if parent_brain and random.random() < 0.5:
-                brain = NeuralBrain.random()  # Create random brain for diversity
-
         # Handle behavior algorithm inheritance with CROSSOVER from BOTH parents!
         algorithm = None
         if parent1.behavior_algorithm is not None or parent2.behavior_algorithm is not None:
@@ -365,7 +338,6 @@ class Genome:
             eye_size=inherit_trait(parent1.eye_size, parent2.eye_size, 0.7, 1.3),
             pattern_intensity=inherit_trait(parent1.pattern_intensity, parent2.pattern_intensity, 0.0, 1.0),
             pattern_type=inherited_pattern,
-            brain=brain,
             behavior_algorithm=algorithm,
             fitness_score=0.0,  # New offspring starts with 0 fitness
             learned_behaviors={},  # Start with no learned behaviors

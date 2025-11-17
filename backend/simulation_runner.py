@@ -168,19 +168,6 @@ class SimulationRunner:
             }
 
             if isinstance(entity, entities.Fish):
-                # Get species name from movement strategy
-                species = 'unknown'
-                if hasattr(entity, 'movement_strategy'):
-                    strategy_name = entity.movement_strategy.__class__.__name__
-                    if 'Solo' in strategy_name:
-                        species = 'solo'
-                    elif 'Algorithmic' in strategy_name:
-                        species = 'algorithmic'
-                    elif 'Neural' in strategy_name:
-                        species = 'neural'
-                    elif 'Schooling' in strategy_name:
-                        species = 'schooling'
-
                 genome_data = None
                 if hasattr(entity, 'genome'):
                     genome_data = {
@@ -200,7 +187,6 @@ class SimulationRunner:
                 return EntityData(
                     type='fish',
                     energy=entity.energy,
-                    species=species,
                     generation=entity.generation if hasattr(entity, 'generation') else 0,
                     age=entity.age if hasattr(entity, 'age') else 0,
                     genome_data=genome_data,

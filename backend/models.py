@@ -19,7 +19,6 @@ class EntityData(BaseModel):
 
     # Fish-specific fields
     energy: Optional[float] = None
-    species: Optional[str] = None  # 'solo', 'algorithmic', 'neural', 'schooling'
     generation: Optional[int] = None
     age: Optional[int] = None
     genome_data: Optional[Dict[str, Any]] = None
