@@ -703,9 +703,9 @@ class Plant(Agent):
             food.pos.update(anchor_x, anchor_y)
             return food
 
-        # Spawn traditional floating food near plant with slight randomization
-        food_x = self.pos.x + random.uniform(-20, 20)
-        food_y = self.pos.y - 30  # Spawn above plant
+        # Spawn traditional floating food from top of tank with random x position
+        food_x = self.pos.x + random.uniform(-50, 50)  # Some variation around plant x position
+        food_y = 0  # Spawn at top of tank
 
         return Food(self.environment, food_x, food_y, source_plant=self,
                    screen_width=self.screen_width, screen_height=self.screen_height)
