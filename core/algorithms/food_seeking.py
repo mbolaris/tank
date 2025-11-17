@@ -44,25 +44,62 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
 
-        # Check for predators first - don't chase food if predator is too close
+        # IMPROVEMENT: Use new critical energy methods for smarter decisions
+        is_critical = fish.is_critical_energy()
+        is_low = fish.is_low_energy()
+        energy_ratio = fish.get_energy_ratio()
+
+        # Check for predators first - but adjust caution based on energy
         nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
-            # Flee from predator instead
+        predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
+
+        # IMPROVEMENT: Adaptive flee threshold based on energy state
+        flee_threshold = 45 if is_critical else (80 if is_low else 120)
+
+        if predator_distance < flee_threshold:
+            # Flee from predator
             direction = (fish.pos - nearest_predator.pos).normalize()
-            return direction.x * 1.2, direction.y * 1.2
+            # IMPROVEMENT: Conserve energy when fleeing in critical state
+            flee_speed = 1.1 if is_critical else 1.3
+            return direction.x * flee_speed, direction.y * flee_speed
 
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
-            # Consider energy efficiency - don't chase food that's too far if energy is medium
-            energy_ratio = fish.energy / fish.max_energy
-            max_chase_distance = 150 + (energy_ratio * 200)  # Chase further when high energy
+
+            # IMPROVEMENT: Smarter chase distance calculation
+            # Critical: chase anything visible
+            # Low: chase moderately far
+            # Normal: only chase if efficient
+            if is_critical:
+                max_chase_distance = 400  # Chase far when desperate
+            elif is_low:
+                max_chase_distance = 250  # Moderate chase when low
+            else:
+                max_chase_distance = 150 + (energy_ratio * 150)  # Conservative when safe
 
             if distance < max_chase_distance:
                 direction = (nearest_food.pos - fish.pos).normalize()
+                # IMPROVEMENT: Speed based on urgency and distance
+                base_speed = self.parameters["speed_multiplier"]
+
                 # Speed up when closer to food
-                speed_boost = 1.0 + (1.0 - min(distance / 100, 1.0)) * 0.5
-                return direction.x * self.parameters["speed_multiplier"] * speed_boost, direction.y * self.parameters["speed_multiplier"] * speed_boost
+                proximity_boost = (1.0 - min(distance / 100, 1.0)) * 0.5
+
+                # Urgency boost when low/critical energy
+                urgency_boost = 0.3 if is_critical else (0.15 if is_low else 0)
+
+                speed = base_speed * (1.0 + proximity_boost + urgency_boost)
+                return direction.x * speed, direction.y * speed
+
+        # IMPROVEMENT: Use memory if no food found and critically low
+        if is_critical and hasattr(fish, 'get_remembered_food_locations'):
+            remembered = fish.get_remembered_food_locations()
+            if remembered:
+                target = min(remembered, key=lambda pos: (pos - fish.pos).length())
+                direction = (target - fish.pos).normalize()
+                return direction.x * 0.9, direction.y * 0.9
+
         return 0, 0
 
 
@@ -86,14 +123,17 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
 
-        energy_ratio = fish.energy / fish.max_energy
+        # IMPROVEMENT: Use new critical energy methods
+        is_critical = fish.is_critical_energy()
+        is_low = fish.is_low_energy()
+        energy_ratio = fish.get_energy_ratio()
 
         # Check for predators - even urgent fish should avoid immediate danger
         nearest_predator = self._find_nearest(fish, Crab)
-        predator_nearby = nearest_predator and (nearest_predator.pos - fish.pos).length() < 100
+        predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
 
-        # In critical energy state, take calculated risks
-        if energy_ratio < 0.15:
+        # IMPROVEMENT: Critical energy mode - must find food NOW
+        if is_critical:
             # Desperate - must eat even with some predator risk
             nearest_food = self._find_nearest(fish, Food)
             if nearest_food:
@@ -174,17 +214,28 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
 
-        # Check predators first
+        # IMPROVEMENT: Use new critical energy methods for smarter decisions
+        is_critical = fish.is_critical_energy()
+        is_low = fish.is_low_energy()
+        energy_ratio = fish.get_energy_ratio()
+
+        # Check predators first - but be less cautious when critically low energy
         nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 90:
+        predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
+
+        # In critical energy, only flee if predator is very close
+        flee_threshold = 50 if is_critical else (70 if is_low else 90)
+        if nearest_predator and predator_distance < flee_threshold:
             direction = (fish.pos - nearest_predator.pos).normalize()
-            return direction.x * 1.4, direction.y * 1.4
+            flee_speed = 1.2 if is_critical else 1.4  # Conserve energy even when fleeing
+            return direction.x * flee_speed, direction.y * flee_speed
 
         foods = fish.environment.get_agents_of_type(Food)
         best_food = None
         best_score = -float('inf')
 
-        energy_ratio = fish.energy / fish.max_energy
+        # IMPROVEMENT: Also consider remembered food locations if no food visible
+        remembered_locations = fish.get_remembered_food_locations() if hasattr(fish, 'get_remembered_food_locations') else []
 
         for food in foods:
             distance = (food.pos - fish.pos).length()
@@ -194,26 +245,54 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
             danger_score = 0
             if nearest_predator:
                 predator_food_dist = (nearest_predator.pos - food.pos).length()
-                if predator_food_dist < 100:
-                    danger_score = 100 - predator_food_dist  # Higher danger when predator is closer to food
+                if predator_food_dist < 120:
+                    danger_score = (120 - predator_food_dist) / 1.2  # Scale to 0-100
+
+            # IMPROVEMENT: Smarter danger weighting based on energy state
+            # Critical energy: mostly ignore danger (0.1 weight)
+            # Low energy: some caution (0.4 weight)
+            # Normal energy: high caution (0.8 weight)
+            if is_critical:
+                danger_weight = 0.1
+            elif is_low:
+                danger_weight = 0.4
+            else:
+                danger_weight = 0.7
+
+            # IMPROVEMENT: Increase quality weight when low energy
+            quality_weight = self.parameters["quality_weight"] * (1.5 if is_low else 1.0)
+            distance_weight = self.parameters["distance_weight"] * (1.3 if is_critical else 1.0)
 
             # Calculate value: high quality, close distance, low danger
-            # When desperate (low energy), ignore danger more
-            danger_weight = 0.3 if energy_ratio < 0.3 else 0.8
-            score = (quality * self.parameters["quality_weight"]
-                    - distance * self.parameters["distance_weight"]
+            score = (quality * quality_weight
+                    - distance * distance_weight
                     - danger_score * danger_weight)
+
+            # IMPROVEMENT: Bonus for food that's closer than predator
+            if nearest_predator and distance < predator_distance * 0.7:
+                score += 20  # Bonus for food we can likely get before predator
 
             if score > best_score:
                 best_score = score
                 best_food = food
 
-        if best_food and best_score > -50:  # Don't pursue if score is terrible
+        # IMPROVEMENT: Lower threshold for pursuing food when critically low
+        min_score_threshold = -80 if is_critical else (-60 if is_low else -50)
+
+        if best_food and best_score > min_score_threshold:
             distance_to_food = (best_food.pos - fish.pos).length()
             direction = (best_food.pos - fish.pos).normalize()
-            # Move faster when food is close
-            speed = 0.8 + min(50 / max(distance_to_food, 1), 0.6)
+            # IMPROVEMENT: Speed based on urgency and distance
+            base_speed = 1.1 if is_critical else 0.9
+            speed = base_speed + min(50 / max(distance_to_food, 1), 0.5)
             return direction.x * speed, direction.y * speed
+
+        # IMPROVEMENT: If no good food found but have memories and critically low, go to memory
+        if is_critical and remembered_locations:
+            closest_memory = min(remembered_locations, key=lambda pos: (pos - fish.pos).length())
+            direction = (closest_memory - fish.pos).normalize()
+            return direction.x * 0.8, direction.y * 0.8
+
         return 0, 0
 
 
