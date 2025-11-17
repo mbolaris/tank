@@ -591,19 +591,21 @@ class EcosystemManager:
             if winner_algo_id is not None and winner_algo_id in self.poker_stats:
                 self.poker_stats[winner_algo_id].total_games += 1
                 self.poker_stats[winner_algo_id].total_ties += 1
-                self.poker_stats[winner_algo_id]._total_hand_rank += winner_hand.rank_value
-                self.poker_stats[winner_algo_id].avg_hand_rank = (
-                    self.poker_stats[winner_algo_id]._total_hand_rank /
-                    self.poker_stats[winner_algo_id].total_games
-                )
+                if winner_hand is not None:
+                    self.poker_stats[winner_algo_id]._total_hand_rank += winner_hand.rank_value
+                    self.poker_stats[winner_algo_id].avg_hand_rank = (
+                        self.poker_stats[winner_algo_id]._total_hand_rank /
+                        self.poker_stats[winner_algo_id].total_games
+                    )
             if loser_algo_id is not None and loser_algo_id in self.poker_stats:
                 self.poker_stats[loser_algo_id].total_games += 1
                 self.poker_stats[loser_algo_id].total_ties += 1
-                self.poker_stats[loser_algo_id]._total_hand_rank += loser_hand.rank_value
-                self.poker_stats[loser_algo_id].avg_hand_rank = (
-                    self.poker_stats[loser_algo_id]._total_hand_rank /
-                    self.poker_stats[loser_algo_id].total_games
-                )
+                if loser_hand is not None:
+                    self.poker_stats[loser_algo_id]._total_hand_rank += loser_hand.rank_value
+                    self.poker_stats[loser_algo_id].avg_hand_rank = (
+                        self.poker_stats[loser_algo_id]._total_hand_rank /
+                        self.poker_stats[loser_algo_id].total_games
+                    )
             return
 
         # Record winner stats
@@ -613,9 +615,10 @@ class EcosystemManager:
             stats.total_wins += 1
             stats.total_energy_won += amount
             stats.total_house_cuts += house_cut / 2  # Split house cut evenly between both players
-            stats.best_hand_rank = max(stats.best_hand_rank, winner_hand.rank_value)
-            stats._total_hand_rank += winner_hand.rank_value
-            stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+            if winner_hand is not None:
+                stats.best_hand_rank = max(stats.best_hand_rank, winner_hand.rank_value)
+                stats._total_hand_rank += winner_hand.rank_value
+                stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
 
             # Track detailed stats if result available
             if result is not None:
@@ -664,8 +667,9 @@ class EcosystemManager:
             stats.total_losses += 1
             stats.total_energy_lost += amount
             stats.total_house_cuts += house_cut / 2  # Split house cut evenly between both players
-            stats._total_hand_rank += loser_hand.rank_value
-            stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+            if loser_hand is not None:
+                stats._total_hand_rank += loser_hand.rank_value
+                stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
 
             # Track detailed stats if result available
             if result is not None:
