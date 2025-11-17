@@ -520,6 +520,71 @@ class Fish(Agent):
         """
         return self._reproduction_component.can_reproduce(self.life_stage, self.energy)
 
+    def should_offer_post_poker_reproduction(self, opponent: 'Fish', is_winner: bool,
+                                            energy_gained: float = 0.0) -> bool:
+        """Decide whether to offer reproduction after a poker game.
+
+        This implements voluntary sexual reproduction where fish can choose to
+        reproduce with poker opponents based on multiple factors.
+
+        Args:
+            opponent: The fish we just played poker with
+            is_winner: True if this fish won the poker game
+            energy_gained: Energy won/lost in poker (positive for winners)
+
+        Returns:
+            bool: True if fish wants to offer reproduction
+        """
+        from core.constants import (
+            POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
+            POST_POKER_REPRODUCTION_WINNER_PROB,
+            POST_POKER_REPRODUCTION_LOSER_PROB,
+        )
+
+        # Must have enough energy
+        if self.energy < POST_POKER_REPRODUCTION_ENERGY_THRESHOLD:
+            return False
+
+        # Can't reproduce if pregnant or on cooldown
+        if self.is_pregnant or self.reproduction_cooldown > 0:
+            return False
+
+        # Must be adult
+        if self.life_stage.value < LifeStage.ADULT.value:
+            return False
+
+        # Must be same species
+        if self.species != opponent.species:
+            return False
+
+        # Calculate opponent's fitness appeal
+        opponent_fitness = 0.0
+        if opponent.genome is not None:
+            # Consider opponent's fitness score
+            opponent_fitness += min(opponent.genome.fitness_score / 100.0, 1.0) * 0.3
+
+            # Consider opponent's energy level (healthy mates are attractive)
+            energy_ratio = opponent.energy / opponent.max_energy if opponent.max_energy > 0 else 0
+            opponent_fitness += energy_ratio * 0.2
+
+            # Consider genetic compatibility
+            if self.genome is not None:
+                compatibility = self.genome.calculate_mate_compatibility(opponent.genome)
+                opponent_fitness += compatibility * 0.3
+
+            # Winners are more attractive (they proved their fitness)
+            if not is_winner:  # If we lost, opponent won
+                opponent_fitness += 0.2
+
+        # Base probability depends on whether we won or lost
+        base_prob = POST_POKER_REPRODUCTION_WINNER_PROB if is_winner else POST_POKER_REPRODUCTION_LOSER_PROB
+
+        # Modify probability based on opponent's fitness
+        final_prob = base_prob * (0.5 + opponent_fitness)
+
+        # Random decision
+        return random.random() < final_prob
+
     def try_mate(self, other: 'Fish') -> bool:
         """Attempt to mate with another fish.
 

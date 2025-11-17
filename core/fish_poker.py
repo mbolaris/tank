@@ -32,6 +32,8 @@ class PokerResult:
     player2_folded: bool  # Did player 2 fold
     reached_showdown: bool  # Did game reach showdown
     betting_history: List[Tuple[int, 'BettingAction', float]]  # Betting actions taken
+    reproduction_occurred: bool = False  # True if fish reproduced after poker
+    offspring: Optional['Fish'] = None  # The baby fish created (if reproduction occurred)
 
 
 class PokerInteraction:
@@ -128,6 +130,136 @@ class PokerInteraction:
         max_bet_fish1 = self.fish1.energy * 0.2
         max_bet_fish2 = self.fish2.energy * 0.2
         return min(base_bet, max_bet_fish1, max_bet_fish2)
+
+    def try_post_poker_reproduction(self, winner_fish: 'Fish', loser_fish: 'Fish',
+                                   energy_transferred: float) -> Optional['Fish']:
+        """Attempt voluntary sexual reproduction after poker game.
+
+        This is the core of the post-poker evolution system. Both fish can decide
+        whether to reproduce based on their energy, fitness, and opponent's traits.
+
+        Args:
+            winner_fish: The fish that won the poker game
+            loser_fish: The fish that lost the poker game
+            energy_transferred: Energy won in the poker game
+
+        Returns:
+            Baby fish if reproduction occurred, None otherwise
+        """
+        from core.constants import (
+            POST_POKER_CROSSOVER_WINNER_WEIGHT,
+            POST_POKER_MATING_DISTANCE,
+        )
+        from core.genetics import Genome
+
+        # Check distance (fish must still be close enough)
+        distance = (winner_fish.pos - loser_fish.pos).length()
+        if distance > POST_POKER_MATING_DISTANCE:
+            return None
+
+        # Check if winner wants to reproduce
+        winner_wants = winner_fish.should_offer_post_poker_reproduction(
+            loser_fish, is_winner=True, energy_gained=energy_transferred
+        )
+
+        # Check if loser wants to reproduce
+        loser_wants = loser_fish.should_offer_post_poker_reproduction(
+            winner_fish, is_winner=False, energy_gained=-energy_transferred
+        )
+
+        # Both must agree to reproduce
+        if not (winner_wants and loser_wants):
+            return None
+
+        # Calculate population stress for adaptive mutations
+        population_stress = 0.0
+        if winner_fish.ecosystem is not None:
+            from core.entities import Fish
+            fish_count = len([e for e in winner_fish.environment.agents if isinstance(e, Fish)])
+            target_population = 15
+            population_ratio = fish_count / target_population if target_population > 0 else 1.0
+
+            if population_ratio < 1.0:
+                population_stress = (1.0 - population_ratio) * 0.8
+
+            if hasattr(winner_fish.ecosystem, 'recent_death_rate'):
+                death_rate_stress = min(0.4, winner_fish.ecosystem.recent_death_rate)
+                population_stress = min(1.0, population_stress + death_rate_stress)
+
+        # Create offspring genome using WEIGHTED crossover (winner contributes more DNA)
+        offspring_genome = Genome.from_parents_weighted(
+            parent1=winner_fish.genome,
+            parent2=loser_fish.genome,
+            parent1_weight=POST_POKER_CROSSOVER_WINNER_WEIGHT,  # Winner contributes 60%
+            mutation_rate=0.1,
+            mutation_strength=0.1,
+            population_stress=population_stress
+        )
+
+        # Energy transfer for baby (both parents contribute)
+        winner_energy_contribution = 0.15  # Winner gives 15% of energy
+        loser_energy_contribution = 0.15   # Loser gives 15% of energy
+
+        winner_energy_transfer = winner_fish.energy * winner_energy_contribution
+        loser_energy_transfer = loser_fish.energy * loser_energy_contribution
+        total_baby_energy = winner_energy_transfer + loser_energy_transfer
+
+        # Parents pay the energy cost
+        winner_fish.energy -= winner_energy_transfer
+        loser_fish.energy -= loser_energy_transfer
+
+        # Set reproduction cooldown for both parents
+        winner_fish.reproduction_cooldown = winner_fish.REPRODUCTION_COOLDOWN
+        loser_fish.reproduction_cooldown = loser_fish.REPRODUCTION_COOLDOWN
+
+        # Both parents become pregnant (simulate gestation)
+        # In this case we'll just create the baby immediately
+        # (Could make one parent pregnant for realism, but immediate birth is simpler)
+
+        # Create baby position (between parents)
+        baby_x = (winner_fish.pos.x + loser_fish.pos.x) / 2.0
+        baby_y = (winner_fish.pos.y + loser_fish.pos.y) / 2.0
+
+        # Add some randomness
+        baby_x += random.uniform(-20, 20)
+        baby_y += random.uniform(-20, 20)
+
+        # Clamp to screen
+        baby_x = max(0, min(winner_fish.screen_width - 50, baby_x))
+        baby_y = max(0, min(winner_fish.screen_height - 50, baby_y))
+
+        # Create baby fish with combined energy from both parents
+        from core.entities import Fish
+        baby = Fish(
+            environment=winner_fish.environment,
+            movement_strategy=winner_fish.movement_strategy.__class__(),
+            species=winner_fish.species,
+            x=baby_x,
+            y=baby_y,
+            speed=winner_fish.speed / winner_fish.genome.speed_modifier,  # Base speed
+            genome=offspring_genome,
+            generation=max(winner_fish.generation, loser_fish.generation) + 1,
+            ecosystem=winner_fish.ecosystem,
+            screen_width=winner_fish.screen_width,
+            screen_height=winner_fish.screen_height,
+            initial_energy=total_baby_energy
+        )
+
+        # Record reproduction in ecosystem for both parents
+        if winner_fish.ecosystem is not None:
+            from core.behavior_algorithms import get_algorithm_index
+
+            if winner_fish.genome.behavior_algorithm is not None:
+                winner_algo_id = get_algorithm_index(winner_fish.genome.behavior_algorithm)
+                if winner_algo_id >= 0:
+                    winner_fish.ecosystem.record_reproduction(winner_algo_id)
+
+            if loser_fish.genome.behavior_algorithm is not None:
+                loser_algo_id = get_algorithm_index(loser_fish.genome.behavior_algorithm)
+                if loser_algo_id >= 0:
+                    loser_fish.ecosystem.record_reproduction(loser_algo_id)
+
+        return baby
 
     def play_poker(self, bet_amount: Optional[float] = None) -> bool:
         """
@@ -228,6 +360,20 @@ class PokerInteraction:
         # Determine if game reached showdown
         reached_showdown = not won_by_fold
 
+        # Try post-poker reproduction (voluntary sexual reproduction)
+        offspring = None
+        reproduction_occurred = False
+        if winner_id != -1:  # Only if there was a winner (not a tie)
+            winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
+            loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
+
+            offspring = self.try_post_poker_reproduction(
+                winner_fish=winner_fish,
+                loser_fish=loser_fish,
+                energy_transferred=energy_transferred
+            )
+            reproduction_occurred = offspring is not None
+
         # Create result
         self.result = PokerResult(
             hand1=self.hand1,
@@ -242,7 +388,9 @@ class PokerInteraction:
             player1_folded=game_state.player1_folded,
             player2_folded=game_state.player2_folded,
             reached_showdown=reached_showdown,
-            betting_history=game_state.betting_history
+            betting_history=game_state.betting_history,
+            reproduction_occurred=reproduction_occurred,
+            offspring=offspring
         )
 
         # Record in ecosystem if available (including ties)
