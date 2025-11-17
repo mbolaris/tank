@@ -1,0 +1,30 @@
+Starting headless simulation...
+Configuration: 20000 frames, stats every 500 frames
+
+============================================================
+HEADLESS FISH TANK SIMULATION
+============================================================
+Running for 20000 frames (666.7 seconds of sim time)
+Stats will be printed every 500 frames
+============================================================
+Traceback (most recent call last):
+  File "/home/user/tank/main.py", line 126, in <module>
+    main()
+  File "/home/user/tank/main.py", line 122, in main
+    run_headless(args.max_frames, args.stats_interval, seed=args.seed)
+  File "/home/user/tank/main.py", line 55, in run_headless
+    engine.run_headless(max_frames=max_frames, stats_interval=stats_interval)
+  File "/home/user/tank/simulation_engine.py", line 281, in run_headless
+    self.update()
+  File "/home/user/tank/simulation_engine.py", line 123, in update
+    newborn = entity.update(self.frame_count, time_modifier)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/tank/core/entities.py", line 664, in update
+    self.movement_strategy.move(self)
+  File "/home/user/tank/core/movement_strategy.py", line 126, in move
+    desired_vx, desired_vy = sprite.genome.behavior_algorithm.execute(sprite)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/tank/core/algorithms/food_seeking.py", line 398, in execute
+    self.patrol_center = fish.pos.copy()
+                         ^^^^^^^^^^^^^
+AttributeError: 'Vector2' object has no attribute 'copy'

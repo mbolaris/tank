@@ -395,7 +395,7 @@ class PatrolFeeder(BehaviorAlgorithm):
 
         # Otherwise patrol
         if self.patrol_center is None:
-            self.patrol_center = fish.pos.copy()
+            self.patrol_center = Vector2(fish.pos.x, fish.pos.y)
 
         self.patrol_angle += 0.05
         target_x = self.patrol_center.x + math.cos(self.patrol_angle) * self.parameters["patrol_radius"]
@@ -598,7 +598,7 @@ class FoodMemorySeeker(BehaviorAlgorithm):
         if nearest_food:
             # Remember this location
             if len(self.food_memory_locations) < 5:
-                self.food_memory_locations.append(nearest_food.pos.copy())
+                self.food_memory_locations.append(Vector2(nearest_food.pos.x, nearest_food.pos.y))
             direction = (nearest_food.pos - fish.pos).normalize()
             return direction.x, direction.y
 
