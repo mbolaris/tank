@@ -1,4 +1,4 @@
-from pygame.math import Vector2
+from core.math_utils import Vector2
 
 from core.environment import Environment
 

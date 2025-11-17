@@ -4,6 +4,7 @@ This module provides functions to help fish predict where moving targets
 will be and intercept them more effectively.
 """
 
+import math
 from typing import Optional, Tuple
 from core.math_utils import Vector2
 
@@ -171,7 +172,6 @@ def calculate_pursuit_angle(
     dot = fish_heading.dot(to_target)
     det = fish_heading.x * to_target.y - fish_heading.y * to_target.x
 
-    import math
     angle = math.atan2(det, dot)
 
     return angle
@@ -197,7 +197,6 @@ def is_target_ahead(
     to_target = (target_pos - fish_pos).normalize()
     dot = fish_heading.dot(to_target)
 
-    import math
     # dot = cos(angle), so angle = acos(dot)
     # Check if angle is within FOV
     return dot > math.cos(fov_angle / 2)

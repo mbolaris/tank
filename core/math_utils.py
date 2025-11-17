@@ -48,6 +48,10 @@ except ImportError:
             self.x = float(x)
             self.y = float(y)
 
+        def copy(self):
+            """Return a copy of this vector."""
+            return Vector2(self.x, self.y)
+
         def __repr__(self):
             return f"Vector2({self.x}, {self.y})"
 
