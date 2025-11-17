@@ -66,7 +66,7 @@ class TestFullSimulation:
         simulator.environment.agents = simulator.agents
 
         # Create a simple scenario with one fish and one crab
-        from movement_strategy import SoloFishMovement
+        from core.movement_strategy import SoloFishMovement
         fish = Fish(simulator.environment, SoloFishMovement(), ['george1.png'], 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos.x = 500  # Far from fish initially
@@ -128,7 +128,7 @@ class TestFullSimulation:
         simulator = fish_tank_setup
         simulator.environment.agents = simulator.agents
 
-        from movement_strategy import SoloFishMovement, SchoolingFishMovement
+        from core.movement_strategy import SoloFishMovement, SchoolingFishMovement
 
         # Test 1: Fish avoidance bug fix - fish should maintain avoidance when crab stays close
         fish = Fish(simulator.environment, SoloFishMovement(), ['george1.png'], 100, 100, 3)

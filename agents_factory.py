@@ -12,7 +12,7 @@ from core.constants import FILES, INIT_POS
 from core.ecosystem import EcosystemManager
 from core.genetics import Genome
 import agents
-import movement_strategy
+from core import movement_strategy
 
 
 def create_initial_agents(

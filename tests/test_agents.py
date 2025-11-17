@@ -5,7 +5,7 @@ from pygame.math import Vector2
 
 from agents import Agent, Fish, Crab, Food, Plant, Castle
 from core.environment import Environment
-from movement_strategy import SoloFishMovement, SchoolingFishMovement
+from core.movement_strategy import SoloFishMovement, SchoolingFishMovement
 from core.constants import FISH_GROWTH_RATE, FOOD_SINK_ACCELERATION
 
 
