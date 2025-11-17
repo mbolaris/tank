@@ -122,6 +122,9 @@ HEALTH_CRITICAL_COLOR = (200, 50, 50)  # Red (below 30%)
 HEALTH_LOW_COLOR = (200, 200, 50)      # Yellow (30-60%)
 HEALTH_GOOD_COLOR = (50, 200, 50)      # Green (above 60%)
 
+# Fish movement constraints
+FISH_TOP_MARGIN = 20  # Minimum pixels from top to keep energy bar visible
+
 # Fish Energy and Metabolism Constants
 INITIAL_ENERGY_RATIO = 0.5  # Start with 50% energy
 BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
