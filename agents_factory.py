@@ -53,7 +53,7 @@ def create_initial_agents(
 
     # Species 2: Algorithmic fish with parametrizable behavior algorithms
     # These fish use the new algorithmic evolution system
-    for i in range(2):  # Start with 2 algorithmic fish for sustainable population
+    for _ in range(2):  # Start with 2 algorithmic fish for sustainable population
         x = INIT_POS['school'][0] + random.randint(-80, 80)
         y = INIT_POS['school'][1] + random.randint(-50, 50)
         # Create genome WITH behavior algorithm but WITHOUT neural brain
@@ -71,7 +71,7 @@ def create_initial_agents(
         population.append(fish)
 
     # Species 3: Schooling fish with neural network brains (learning AI)
-    for i in range(2):  # Fewer neural fish to start
+    for _ in range(2):  # Fewer neural fish to start
         x = INIT_POS['school'][0] + random.randint(-50, 50)
         y = INIT_POS['school'][1] + random.randint(-30, 30)
         # Neural fish should NOT have algorithmic behavior (use brain instead)
@@ -89,7 +89,7 @@ def create_initial_agents(
         population.append(fish)
 
     # Species 4: Traditional schooling fish (rule-based AI)
-    for i in range(2):  # Also 2 traditional schooling fish
+    for _ in range(2):  # Also 2 traditional schooling fish
         x = INIT_POS['school'][0] + random.randint(-50, 50)
         y = INIT_POS['school'][1] + random.randint(-30, 30)
         # Create genome without neural brain or algorithm (uses movement strategy only)
