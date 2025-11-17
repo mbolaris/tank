@@ -163,6 +163,45 @@ class PokerStats:
         """Calculate aggression factor (raises / calls)."""
         return self.total_raises / self.total_calls if self.total_calls > 0 else 0.0
 
+    def get_roi(self) -> float:
+        """Calculate return on investment (net energy per game)."""
+        return self.get_net_energy() / self.total_games if self.total_games > 0 else 0.0
+
+    def get_vpip(self) -> float:
+        """Calculate VPIP (Voluntarily Put money In Pot) percentage.
+
+        VPIP measures how often a player plays a hand (doesn't fold pre-flop).
+        Higher VPIP = looser play, Lower VPIP = tighter play.
+        """
+        return (self.total_games - self.preflop_folds) / self.total_games if self.total_games > 0 else 0.0
+
+    def get_bluff_success_rate(self) -> float:
+        """Calculate bluff success rate (wins by fold / total folds by opponent).
+
+        This estimates how often the player successfully bluffs opponents into folding.
+        """
+        total_fold_opportunities = self.won_by_fold + self.folds
+        return self.won_by_fold / total_fold_opportunities if total_fold_opportunities > 0 else 0.0
+
+    def get_positional_advantage(self) -> float:
+        """Calculate positional advantage (button win rate - off-button win rate).
+
+        Positive values indicate better performance on the button (as expected).
+        Larger positive values suggest good exploitation of position.
+        """
+        return self.get_button_win_rate() - self.get_off_button_win_rate()
+
+    def get_showdown_percentage(self) -> float:
+        """Calculate percentage of games that went to showdown."""
+        return self.showdown_count / self.total_games if self.total_games > 0 else 0.0
+
+    def get_postflop_fold_rate(self) -> float:
+        """Calculate percentage of folds that occurred post-flop.
+
+        Higher values suggest better pre-flop selection but weaker post-flop play.
+        """
+        return self.postflop_folds / self.folds if self.folds > 0 else 0.0
+
 
 @dataclass
 class EcosystemEvent:
@@ -525,6 +564,38 @@ class EcosystemManager:
         # Calculate aggregate stats
         avg_fold_rate = (total_folds / total_games) if total_games > 0 else 0.0
         showdown_win_rate = (total_won_at_showdown / total_showdowns) if total_showdowns > 0 else 0.0
+        net_energy = total_energy_won - total_energy_lost - total_house_cuts
+
+        # Advanced metrics
+        win_rate = (total_wins / total_games) if total_games > 0 else 0.0
+        roi = (net_energy / total_games) if total_games > 0 else 0.0
+
+        # VPIP calculation (aggregate across all algorithms)
+        total_preflop_folds = sum(s.preflop_folds for s in self.poker_stats.values())
+        vpip = ((total_games - total_preflop_folds) / total_games) if total_games > 0 else 0.0
+
+        # Bluff success rate
+        total_fold_opportunities = total_won_by_fold + total_folds
+        bluff_success_rate = (total_won_by_fold / total_fold_opportunities) if total_fold_opportunities > 0 else 0.0
+
+        # Positional stats
+        total_button_wins = sum(s.button_wins for s in self.poker_stats.values())
+        total_button_games = sum(s.button_games for s in self.poker_stats.values())
+        total_off_button_wins = sum(s.off_button_wins for s in self.poker_stats.values())
+        total_off_button_games = sum(s.off_button_games for s in self.poker_stats.values())
+        button_win_rate = (total_button_wins / total_button_games) if total_button_games > 0 else 0.0
+        off_button_win_rate = (total_off_button_wins / total_off_button_games) if total_off_button_games > 0 else 0.0
+        positional_advantage = button_win_rate - off_button_win_rate
+
+        # Aggression factor
+        total_raises = sum(s.total_raises for s in self.poker_stats.values())
+        total_calls = sum(s.total_calls for s in self.poker_stats.values())
+        aggression_factor = (total_raises / total_calls) if total_calls > 0 else 0.0
+
+        # Average hand rank
+        avg_hand_rank = sum(s.avg_hand_rank for s in self.poker_stats.values() if s.total_games > 0)
+        num_active_algorithms = len([s for s in self.poker_stats.values() if s.total_games > 0])
+        avg_hand_rank = (avg_hand_rank / num_active_algorithms) if num_active_algorithms > 0 else 0.0
 
         return {
             'total_games': total_games,
@@ -534,7 +605,7 @@ class EcosystemManager:
             'total_energy_won': total_energy_won,
             'total_energy_lost': total_energy_lost,
             'total_house_cuts': total_house_cuts,
-            'net_energy': total_energy_won - total_energy_lost - total_house_cuts,
+            'net_energy': net_energy,
             'best_hand_rank': best_hand_rank,
             'best_hand_name': best_hand_name,
             'total_folds': total_folds,
@@ -543,6 +614,24 @@ class EcosystemManager:
             'showdown_win_rate': f"{showdown_win_rate:.1%}",
             'won_by_fold': total_won_by_fold,
             'won_at_showdown': total_won_at_showdown,
+            # Advanced metrics for evaluating poker skill improvement
+            'win_rate': win_rate,
+            'win_rate_pct': f"{win_rate:.1%}",
+            'roi': roi,
+            'vpip': vpip,
+            'vpip_pct': f"{vpip:.1%}",
+            'bluff_success_rate': bluff_success_rate,
+            'bluff_success_pct': f"{bluff_success_rate:.1%}",
+            'button_win_rate': button_win_rate,
+            'button_win_rate_pct': f"{button_win_rate:.1%}",
+            'off_button_win_rate': off_button_win_rate,
+            'off_button_win_rate_pct': f"{off_button_win_rate:.1%}",
+            'positional_advantage': positional_advantage,
+            'positional_advantage_pct': f"{positional_advantage:.1%}",
+            'aggression_factor': aggression_factor,
+            'avg_hand_rank': avg_hand_rank,
+            'preflop_folds': total_preflop_folds,
+            'postflop_folds': total_folds - total_preflop_folds,
         }
 
     def record_reproduction(self, algorithm_id: int) -> None:

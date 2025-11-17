@@ -53,6 +53,27 @@ class PokerStatsData(BaseModel):
     net_energy: float
     best_hand_rank: int
     best_hand_name: str
+    # Advanced metrics for evaluating poker skill
+    win_rate: float = 0.0
+    win_rate_pct: str = "0.0%"
+    roi: float = 0.0
+    vpip: float = 0.0
+    vpip_pct: str = "0.0%"
+    bluff_success_rate: float = 0.0
+    bluff_success_pct: str = "0.0%"
+    button_win_rate: float = 0.0
+    button_win_rate_pct: str = "0.0%"
+    off_button_win_rate: float = 0.0
+    off_button_win_rate_pct: str = "0.0%"
+    positional_advantage: float = 0.0
+    positional_advantage_pct: str = "0.0%"
+    aggression_factor: float = 0.0
+    avg_hand_rank: float = 0.0
+    total_folds: int = 0
+    preflop_folds: int = 0
+    postflop_folds: int = 0
+    showdown_win_rate: str = "0.0%"
+    avg_fold_rate: str = "0.0%"
 
 
 class StatsData(BaseModel):

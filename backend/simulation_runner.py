@@ -85,7 +85,28 @@ class SimulationRunner:
                 total_energy_lost=poker_stats_dict.get('total_energy_lost', 0.0),
                 net_energy=poker_stats_dict.get('net_energy', 0.0),
                 best_hand_rank=poker_stats_dict.get('best_hand_rank', 0),
-                best_hand_name=poker_stats_dict.get('best_hand_name', 'None')
+                best_hand_name=poker_stats_dict.get('best_hand_name', 'None'),
+                # Advanced metrics
+                win_rate=poker_stats_dict.get('win_rate', 0.0),
+                win_rate_pct=poker_stats_dict.get('win_rate_pct', '0.0%'),
+                roi=poker_stats_dict.get('roi', 0.0),
+                vpip=poker_stats_dict.get('vpip', 0.0),
+                vpip_pct=poker_stats_dict.get('vpip_pct', '0.0%'),
+                bluff_success_rate=poker_stats_dict.get('bluff_success_rate', 0.0),
+                bluff_success_pct=poker_stats_dict.get('bluff_success_pct', '0.0%'),
+                button_win_rate=poker_stats_dict.get('button_win_rate', 0.0),
+                button_win_rate_pct=poker_stats_dict.get('button_win_rate_pct', '0.0%'),
+                off_button_win_rate=poker_stats_dict.get('off_button_win_rate', 0.0),
+                off_button_win_rate_pct=poker_stats_dict.get('off_button_win_rate_pct', '0.0%'),
+                positional_advantage=poker_stats_dict.get('positional_advantage', 0.0),
+                positional_advantage_pct=poker_stats_dict.get('positional_advantage_pct', '0.0%'),
+                aggression_factor=poker_stats_dict.get('aggression_factor', 0.0),
+                avg_hand_rank=poker_stats_dict.get('avg_hand_rank', 0.0),
+                total_folds=poker_stats_dict.get('total_folds', 0),
+                preflop_folds=poker_stats_dict.get('preflop_folds', 0),
+                postflop_folds=poker_stats_dict.get('postflop_folds', 0),
+                showdown_win_rate=poker_stats_dict.get('showdown_win_rate', '0.0%'),
+                avg_fold_rate=poker_stats_dict.get('avg_fold_rate', '0.0%'),
             )
 
             stats_data = StatsData(
