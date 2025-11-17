@@ -9,7 +9,7 @@ from collections import defaultdict
 import json
 
 if TYPE_CHECKING:
-    from agents import Fish
+    from core.entities import Fish
 
 
 @dataclass

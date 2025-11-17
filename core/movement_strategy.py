@@ -10,16 +10,12 @@ This module provides different movement behaviors for fish:
 from typing import TYPE_CHECKING, List
 
 from core.math_utils import Vector2
-
-try:
-    from agents import Crab, Fish, Food
-except ImportError:
-    from core.entities import Crab, Fish, Food
+from core.entities import Crab, Fish, Food
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
 
 if TYPE_CHECKING:
-    from agents import Fish
+    from core.entities import Fish
 
 # Movement distance constants
 CRAB_AVOIDANCE_DISTANCE = 200

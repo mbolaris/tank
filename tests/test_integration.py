@@ -1,18 +1,17 @@
 """Integration tests for the full fish tank simulation."""
 import pytest
-import pygame
 
-from fishtank import FishTankSimulator
-from agents import Fish, Crab, Food, Plant, Castle
+from simulation_engine import SimulationEngine
+from core.entities import Fish, Crab, Food, Plant, Castle
 from core.constants import NUM_SCHOOLING_FISH
 
 
 class TestFullSimulation:
     """Integration tests that run the complete simulation."""
 
-    def test_simulation_runs_without_crashing(self, fish_tank_setup):
+    def test_simulation_runs_without_crashing(self, simulation_engine):
         """Test that the simulation can run for multiple frames without errors."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
 
         # Setup the environment with all agents
         simulator.environment.agents = simulator.agents
@@ -35,9 +34,9 @@ class TestFullSimulation:
 
         assert success, "Simulation should run for 100 frames without crashing"
 
-    def test_simulation_with_food_drops(self, fish_tank_setup):
+    def test_simulation_with_food_drops(self, simulation_engine):
         """Test that the simulation handles food drops correctly."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
         simulator.environment.agents = simulator.agents
         simulator.create_initial_agents()
 
@@ -60,9 +59,9 @@ class TestFullSimulation:
 
         assert success, "Simulation with food should run without crashing"
 
-    def test_simulation_handles_fish_crab_interactions(self, fish_tank_setup):
+    def test_simulation_handles_fish_crab_interactions(self, simulation_engine):
         """Test that fish-crab collision handling works over time."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
         simulator.environment.agents = simulator.agents
 
         # Create a simple scenario with one fish and one crab
@@ -86,9 +85,9 @@ class TestFullSimulation:
 
         assert success, "Fish-crab interactions should work without errors"
 
-    def test_simulation_state_consistency(self, fish_tank_setup):
+    def test_simulation_state_consistency(self, simulation_engine):
         """Test that simulation maintains consistent state over time."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
         simulator.environment.agents = simulator.agents
         simulator.create_initial_agents()
 
@@ -107,9 +106,9 @@ class TestFullSimulation:
         assert len(castles) == 1, "Castle should remain in the simulation"
         assert len(crabs) == 1, "Crab should remain in the simulation"
 
-    def test_simulation_with_rapid_updates(self, fish_tank_setup):
+    def test_simulation_with_rapid_updates(self, simulation_engine):
         """Test simulation stability with rapid updates."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
         simulator.environment.agents = simulator.agents
         simulator.create_initial_agents()
 
@@ -123,9 +122,9 @@ class TestFullSimulation:
 
         assert success, "Simulation should handle rapid updates without issues"
 
-    def test_bug_fixes_verified(self, fish_tank_setup):
+    def test_bug_fixes_verified(self, simulation_engine):
         """Verify that our critical bug fixes are working."""
-        simulator = fish_tank_setup
+        simulator = simulation_engine
         simulator.environment.agents = simulator.agents
 
         from core.movement_strategy import SoloFishMovement, SchoolingFishMovement
