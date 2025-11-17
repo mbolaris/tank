@@ -19,6 +19,13 @@ from core.algorithms import (
     BehaviorAlgorithm,
     ALGORITHM_PARAMETER_BOUNDS,
     Vector2,
+    # Utilities
+    ALL_ALGORITHMS,
+    get_algorithm_index,
+    get_random_algorithm,
+    get_algorithm_by_id,
+    inherit_algorithm_with_mutation,
+    crossover_algorithms,
     # Food seeking (12)
     GreedyFoodSeeker,
     EnergyAwareFoodSeeker,
@@ -78,12 +85,6 @@ from core.algorithms import (
     PokerGambler,
     SelectivePoker,
     PokerOpportunist,
-    # Utilities
-    ALL_ALGORITHMS,
-    get_algorithm_index,
-    get_random_algorithm,
-    get_algorithm_by_id,
-    inherit_algorithm_with_mutation,
 )
 
 # Explicitly list what's exported to maintain compatibility
@@ -164,4 +165,5 @@ __all__ = [
     'get_random_algorithm',
     'get_algorithm_by_id',
     'inherit_algorithm_with_mutation',
+    'crossover_algorithms',
 ]

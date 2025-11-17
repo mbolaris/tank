@@ -284,23 +284,17 @@ class Genome:
             if parent_brain and random.random() < 0.5:
                 brain = NeuralBrain.random()  # Create random brain for diversity
 
-        # Handle behavior algorithm inheritance (NEW!)
+        # Handle behavior algorithm inheritance with CROSSOVER from BOTH parents!
         algorithm = None
-        if parent1.behavior_algorithm is not None:
-            # Inherit from parent1 and mutate (using adaptive rates)
-            from core.behavior_algorithms import inherit_algorithm_with_mutation
-            algorithm = inherit_algorithm_with_mutation(
+        if parent1.behavior_algorithm is not None or parent2.behavior_algorithm is not None:
+            # Crossover algorithms from both parents (or inherit if only one has it)
+            from core.behavior_algorithms import crossover_algorithms
+            algorithm = crossover_algorithms(
                 parent1.behavior_algorithm,
-                mutation_rate=adaptive_mutation_rate * 1.5,  # Slightly higher mutation for algorithms
-                mutation_strength=adaptive_mutation_strength * 1.5
-            )
-        elif parent2.behavior_algorithm is not None:
-            # Inherit from parent2 and mutate (using adaptive rates)
-            from core.behavior_algorithms import inherit_algorithm_with_mutation
-            algorithm = inherit_algorithm_with_mutation(
                 parent2.behavior_algorithm,
-                mutation_rate=adaptive_mutation_rate * 1.5,
-                mutation_strength=adaptive_mutation_strength * 1.5
+                mutation_rate=adaptive_mutation_rate * 1.5,  # Slightly higher mutation for algorithms
+                mutation_strength=adaptive_mutation_strength * 1.5,
+                algorithm_switch_rate=0.05  # 5% chance of random algorithm mutation
             )
         else:
             # No algorithm from either parent, create random

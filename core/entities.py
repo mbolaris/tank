@@ -212,7 +212,8 @@ class Fish(Agent):
                  species: str, x: float, y: float, speed: float,
                  genome: Optional['Genome'] = None, generation: int = 0,
                  fish_id: Optional[int] = None, ecosystem: Optional['EcosystemManager'] = None,
-                 screen_width: int = 800, screen_height: int = 600) -> None:
+                 screen_width: int = 800, screen_height: int = 600,
+                 initial_energy: Optional[float] = None) -> None:
         """Initialize a fish with genetics and life systems.
 
         Args:
@@ -228,6 +229,7 @@ class Fish(Agent):
             ecosystem: Ecosystem manager for tracking
             screen_width: Width of simulation area
             screen_height: Height of simulation area
+            initial_energy: Override initial energy (for reproduction energy transfer)
         """
         # Import here to avoid circular dependency
         from core.genetics import Genome
@@ -246,7 +248,12 @@ class Fish(Agent):
         from core.fish.energy_component import EnergyComponent
         max_energy = self.BASE_MAX_ENERGY * self.genome.max_energy
         base_metabolism = self.BASE_METABOLISM * self.genome.metabolism_rate
-        self._energy_component = EnergyComponent(max_energy, base_metabolism, INITIAL_ENERGY_RATIO)
+        # Use custom initial energy if provided (for reproduction), otherwise use default ratio
+        if initial_energy is not None:
+            self._energy_component = EnergyComponent(max_energy, base_metabolism, initial_energy_ratio=0.0)
+            self._energy_component.energy = initial_energy
+        else:
+            self._energy_component = EnergyComponent(max_energy, base_metabolism, INITIAL_ENERGY_RATIO)
 
         # Backward compatibility: expose energy and max_energy as properties
         # This allows existing code to access fish.energy and fish.max_energy directly
@@ -591,7 +598,13 @@ class Fish(Agent):
                 population_stress = min(1.0, population_stress + death_rate_stress)
 
         # Generate offspring genome using reproduction component
-        offspring_genome = self._reproduction_component.give_birth(self.genome, population_stress)
+        offspring_genome, energy_transfer_fraction = self._reproduction_component.give_birth(
+            self.genome, population_stress
+        )
+
+        # Calculate energy to transfer to baby (parent loses this energy)
+        energy_to_transfer = self.energy * energy_transfer_fraction
+        self.energy -= energy_to_transfer  # Parent pays the energy cost
 
         # Create offspring near parent
         offset_x = random.uniform(-30, 30)
@@ -603,7 +616,8 @@ class Fish(Agent):
         baby_x = max(0, min(self.screen_width - 50, baby_x))
         baby_y = max(0, min(self.screen_height - 50, baby_y))
 
-        # Create baby fish
+        # Create baby fish with transferred energy
+        # Baby gets ONLY the energy transferred from parent (no free energy!)
         baby = Fish(
             environment=self.environment,
             movement_strategy=self.movement_strategy.__class__(),  # Same strategy type
@@ -615,7 +629,8 @@ class Fish(Agent):
             generation=self.generation + 1,
             ecosystem=self.ecosystem,
             screen_width=self.screen_width,
-            screen_height=self.screen_height
+            screen_height=self.screen_height,
+            initial_energy=energy_to_transfer  # Baby gets only transferred energy
         )
 
         return baby
