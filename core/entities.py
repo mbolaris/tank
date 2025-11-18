@@ -15,7 +15,16 @@ from core.constants import (
     INITIAL_ENERGY_RATIO, BABY_METABOLISM_MULTIPLIER,
     ELDER_METABOLISM_MULTIPLIER, STARVATION_THRESHOLD,
     CRITICAL_ENERGY_THRESHOLD, LOW_ENERGY_THRESHOLD, SAFE_ENERGY_THRESHOLD,
-    FISH_TOP_MARGIN
+    FISH_TOP_MARGIN,
+    LIFE_STAGE_BABY_MAX, LIFE_STAGE_JUVENILE_MAX, LIFE_STAGE_YOUNG_ADULT_MAX,
+    LIFE_STAGE_ADULT_MAX, LIFE_STAGE_MATURE_MAX,
+    ENERGY_MAX_DEFAULT, ENERGY_IDLE_CONSUMPTION, ENERGY_LOW_MULTIPLIER,
+    ENERGY_MODERATE_MULTIPLIER, ENERGY_HIGH_MULTIPLIER, ENERGY_MATE_SEARCH_COST,
+    ENERGY_MOVEMENT_BASE_COST, REPRODUCTION_MIN_ENERGY, REPRODUCTION_COOLDOWN,
+    REPRODUCTION_GESTATION, REPRODUCTION_ENERGY_COST,
+    CRAB_INITIAL_ENERGY, CRAB_ATTACK_ENERGY_TRANSFER, CRAB_ATTACK_DAMAGE,
+    CRAB_IDLE_CONSUMPTION, CRAB_ATTACK_COOLDOWN,
+    PLANT_FOOD_PRODUCTION_INTERVAL, PLANT_FOOD_PRODUCTION_ENERGY, PLANT_PRODUCTION_CHANCE
 )
 
 if TYPE_CHECKING:
@@ -184,29 +193,29 @@ class Fish(Agent):
         species: Fish species identifier
     """
 
-    # Class-level constants for life cycle
-    BABY_AGE = 300  # 10 seconds at 30fps
-    JUVENILE_AGE = 900  # 30 seconds
-    ADULT_AGE = 1800  # 1 minute
-    ELDER_AGE = 3600  # 2 minutes
-    BASE_MAX_AGE = 5400  # 3 minutes base lifespan
+    # Class-level constants for life cycle (using centralized constants)
+    BABY_AGE = LIFE_STAGE_BABY_MAX
+    JUVENILE_AGE = LIFE_STAGE_JUVENILE_MAX
+    ADULT_AGE = LIFE_STAGE_YOUNG_ADULT_MAX
+    ELDER_AGE = LIFE_STAGE_ADULT_MAX
+    BASE_MAX_AGE = LIFE_STAGE_MATURE_MAX
 
-    # Energy constants (DIFFICULTY INCREASED - survival is more challenging)
-    BASE_MAX_ENERGY = 100.0
+    # Energy constants (using centralized constants)
+    BASE_MAX_ENERGY = ENERGY_MAX_DEFAULT
     ENERGY_FROM_FOOD = 1.0  # Energy from food is determined by food type in constants.py
-    EXISTENCE_ENERGY_COST = 0.01  # Reduced for better survival and evolution
-    BASE_METABOLISM = 0.025  # Reduced from 0.045 to allow fish to maintain energy
-    MOVEMENT_ENERGY_COST = 0.015  # Reduced from 0.025 to make movement less punishing
-    SHARP_TURN_DOT_THRESHOLD = -0.85  # Threshold for detecting near-180 degree turns
-    SHARP_TURN_ENERGY_COST = 0.05  # Reduced from 0.08 for less harsh turning cost
+    EXISTENCE_ENERGY_COST = ENERGY_LOW_MULTIPLIER
+    BASE_METABOLISM = ENERGY_MODERATE_MULTIPLIER
+    MOVEMENT_ENERGY_COST = ENERGY_HIGH_MULTIPLIER
+    SHARP_TURN_DOT_THRESHOLD = ENERGY_MATE_SEARCH_COST
+    SHARP_TURN_ENERGY_COST = ENERGY_MOVEMENT_BASE_COST
 
     # Predator encounter tracking
     PREDATOR_ENCOUNTER_WINDOW = 150  # 5 seconds - recent conflict window for death attribution
 
-    # Reproduction constants (OPTIMIZED FOR SUSTAINABLE BREEDING)
-    REPRODUCTION_ENERGY_THRESHOLD = 35.0  # Lowered to 35 for better reproduction rates
-    REPRODUCTION_COOLDOWN = 360  # 12 seconds (reduced from 15s to increase breeding opportunities)
-    PREGNANCY_DURATION = 300  # 10 seconds
+    # Reproduction constants (using centralized constants)
+    REPRODUCTION_ENERGY_THRESHOLD = REPRODUCTION_MIN_ENERGY
+    REPRODUCTION_COOLDOWN = REPRODUCTION_COOLDOWN
+    PREGNANCY_DURATION = REPRODUCTION_GESTATION
     MATING_DISTANCE = 60.0  # Increased from 50 to make mating easier
 
     def __init__(self, environment: 'Environment', movement_strategy: 'MovementStrategy',
@@ -825,11 +834,11 @@ class Crab(Agent):
         hunt_cooldown: Frames until can hunt again
     """
 
-    BASE_MAX_ENERGY = 150.0
-    ENERGY_FROM_FISH = 60.0  # Substantial energy from catching fish
-    ENERGY_FROM_FOOD = 20.0
-    BASE_METABOLISM = 0.01  # Slower metabolism than fish
-    HUNT_COOLDOWN = 120  # 4 seconds between kills - more aggressive predation
+    BASE_MAX_ENERGY = CRAB_INITIAL_ENERGY
+    ENERGY_FROM_FISH = CRAB_ATTACK_ENERGY_TRANSFER
+    ENERGY_FROM_FOOD = CRAB_ATTACK_DAMAGE
+    BASE_METABOLISM = CRAB_IDLE_CONSUMPTION
+    HUNT_COOLDOWN = CRAB_ATTACK_COOLDOWN
 
     def __init__(self, environment: 'Environment', genome: Optional['Genome'] = None,
                  x: float = 100, y: float = 550, screen_width: int = 800, screen_height: int = 600) -> None:
@@ -915,9 +924,9 @@ class Plant(Agent):
         current_food_count: Current number of food items from this plant
     """
 
-    BASE_FOOD_PRODUCTION_RATE = 75  # 2.5 seconds at 30fps - Increased for sustainable population
-    MAX_FOOD_CAPACITY = 15  # Maximum food items per plant - Increased for better food availability
-    STATIONARY_FOOD_CHANCE = 0.35  # Increased from 0.25 to grow more stationary nectar
+    BASE_FOOD_PRODUCTION_RATE = PLANT_FOOD_PRODUCTION_INTERVAL
+    MAX_FOOD_CAPACITY = PLANT_FOOD_PRODUCTION_ENERGY
+    STATIONARY_FOOD_CHANCE = PLANT_PRODUCTION_CHANCE
     STATIONARY_FOOD_TYPE = 'nectar'
 
     def __init__(self, environment: 'Environment', plant_type: int,

@@ -4,6 +4,7 @@ This module provides a headless simulation engine that can run the fish tank
 simulation without pygame or any visualization code.
 """
 
+import logging
 import time
 from typing import List, Optional, Dict, Any
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, FILES
@@ -13,6 +14,8 @@ from core.time_system import TimeSystem
 from core.fish_poker import PokerInteraction
 from core.entity_factory import create_initial_population
 from core.simulators.base_simulator import BaseSimulator
+
+logger = logging.getLogger(__name__)
 
 
 class SimulationEngine(BaseSimulator):
@@ -250,7 +253,7 @@ class SimulationEngine(BaseSimulator):
         )
 
         self.add_entity(new_fish)
-        print(f"[EMERGENCY SPAWN] Population critical! Spawned new fish at ({x}, {y})")
+        logger.info("Population critical! Spawned emergency fish at (%d, %d)", x, y)
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Add a poker event to the recent events list."""

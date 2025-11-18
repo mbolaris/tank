@@ -8,6 +8,10 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import json
 
+from core.constants import (
+    TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT, MAX_ECOSYSTEM_EVENTS
+)
+
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.genetics import Genome
@@ -267,8 +271,8 @@ class GeneticDiversityStats:
         """Calculate overall diversity score (0-1, higher is more diverse)."""
         # Combine multiple diversity metrics
         # More algorithms and species = better, higher variance = better
-        algo_score = min(self.unique_algorithms / 48.0, 1.0)  # 48 total algorithms
-        species_score = min(self.unique_species / 4.0, 1.0)  # 4 species
+        algo_score = min(self.unique_algorithms / float(TOTAL_ALGORITHM_COUNT), 1.0)
+        species_score = min(self.unique_species / float(TOTAL_SPECIES_COUNT), 1.0)
         color_score = min(self.color_variance * 3.0, 1.0)  # Normalize variance
 
         # Average the scores
@@ -304,7 +308,7 @@ class EcosystemManager:
 
         # Event logging
         self.events: List[EcosystemEvent] = []
-        self.max_events: int = 1000  # Keep last 1000 events
+        self.max_events: int = MAX_ECOSYSTEM_EVENTS
 
         # Statistics tracking
         self.generation_stats: Dict[int, GenerationStats] = {
@@ -314,7 +318,7 @@ class EcosystemManager:
         # Death cause tracking
         self.death_causes: Dict[str, int] = defaultdict(int)
 
-        # Algorithm performance tracking (48 algorithms, indexed 0-47)
+        # Algorithm performance tracking
         self.algorithm_stats: Dict[int, AlgorithmStats] = {}
         self._init_algorithm_stats()
 
@@ -332,7 +336,7 @@ class EcosystemManager:
         self.next_fish_id: int = 0
 
     def _init_algorithm_stats(self) -> None:
-        """Initialize algorithm stats for all 48 algorithms."""
+        """Initialize algorithm stats for all algorithms."""
         # Import here to avoid circular dependency
         try:
             from core.behavior_algorithms import ALL_ALGORITHMS
@@ -345,15 +349,16 @@ class EcosystemManager:
                 )
         except ImportError:
             # If behavior_algorithms not available, just initialize empty
-            for i in range(48):
+            for i in range(TOTAL_ALGORITHM_COUNT):
                 self.algorithm_stats[i] = AlgorithmStats(
                     algorithm_id=i,
                     algorithm_name=f"Algorithm_{i}"
                 )
 
     def _init_poker_stats(self) -> None:
-        """Initialize poker stats for all 53 algorithms (48 original + 5 poker)."""
-        for i in range(53):
+        """Initialize poker stats for all algorithms including poker variants."""
+        # 48 base algorithms + 5 poker-specific = 53 total
+        for i in range(TOTAL_ALGORITHM_COUNT + 5):
             self.poker_stats[i] = PokerStats(algorithm_id=i)
 
     def update(self, frame: int) -> None:
