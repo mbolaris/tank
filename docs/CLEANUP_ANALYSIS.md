@@ -4,37 +4,41 @@
 
 The tank codebase has undergone good architectural separation (simulation vs rendering) but contains several areas for cleanup and consolidation:
 
-- 2 duplicate factory functions (~260 LOC combined)
-- 1 unused rendering module 
+- ~~2 duplicate factory functions (~260 LOC combined)~~ ✓ RESOLVED (agents_factory.py removed)
+- ~~1 unused rendering module~~ ✓ RESOLVED (rendering/sprites.py removed)
 - Significant code duplication between graphical and headless modes (~1000 LOC similar logic)
-- Duplicate image assets across directories
+- ~~Duplicate image assets across directories~~ ✓ RESOLVED (/images/ removed, favicon updated)
 - Documentation redundancy
 - Minor cleanup opportunities (debug logs, unused assets)
 
 **Estimated cleanup impact:** ~500-1500 LOC reduction, improved maintainability
+**Completed cleanup:** ~440 LOC removed, ~48 KB assets eliminated
 
 ---
 
-## 1. DUPLICATE FACTORY FUNCTIONS ⚠️ HIGH PRIORITY
+## 1. DUPLICATE FACTORY FUNCTIONS ✓ COMPLETED
 
-### Current State
-Two nearly identical factory functions create initial populations:
+### Status: RESOLVED
 
-**File 1:** `/home/user/tank/agents_factory.py` (125 LOC)
-- Creates pygame sprite agents
+**Action Taken:** Removed `agents_factory.py`, consolidated on `core/entity_factory.py`
+
+**Previous State:**
+Two nearly identical factory functions created initial populations:
+
+**File 1:** `/home/user/tank/agents_factory.py` (125 LOC) - REMOVED
+- Created pygame sprite agents
 - Used by: `fishtank.py` (graphical mode)
 - Function: `create_initial_agents()`
 
-**File 2:** `/home/user/tank/core/entity_factory.py` (131 LOC)
+**File 2:** `/home/user/tank/core/entity_factory.py` (131 LOC) - KEPT
 - Creates pure entities without pygame
 - Used by: `simulation_engine.py` (headless mode) and `backend/simulation_runner.py`
 - Function: `create_initial_population()`
 
-### Issues
-- 95% code duplication with only minor differences (pygame species/filenames vs core entities)
-- Same population composition
-- Same positioning logic
-- Separate maintenance burden
+**Impact:**
+- Eliminated ~125 LOC of duplicate code
+- Single source of truth for entity creation
+- Reduced maintenance burden
 
 ### Example Differences
 ```python
@@ -76,47 +80,32 @@ solo_fish = entities.Fish(
 
 ---
 
-## 2. UNUSED RENDERING MODULE ⚠️ MEDIUM PRIORITY
+## 2. UNUSED RENDERING MODULE ✓ COMPLETED
 
-### Current State
-**File:** `/home/user/tank/rendering/sprites.py` (180+ LOC)
+### Status: RESOLVED
 
-Provides sprite adapters:
+**Action Taken:** Removed entire `rendering/` directory
+
+**Previous State:**
+**File:** `/home/user/tank/rendering/sprites.py` (180+ LOC) - REMOVED
+
+Provided sprite adapters (no longer needed):
 - `AgentSprite` - Base sprite wrapper
 - `FishSprite` - Fish rendering with color tint
 - `CrabSprite` - Crab rendering
-- `PlantSprite` - Plant rendering  
+- `PlantSprite` - Plant rendering
 - `CastleSprite` - Castle rendering
 - `FoodSprite` - Food rendering
 
-### Issues
-- **NOT IMPORTED ANYWHERE** - Zero usage in codebase
-- Functionality already provided by `agents.py` backward compatibility layer
-- Duplicate implementation of sprite wrapping logic
+**Issues Resolved:**
+- Eliminated ~180+ LOC of unused code
+- Removed duplicate sprite wrapping logic
+- Simplified codebase structure
 
-### Search Results
-```bash
-grep -r "from rendering.sprites\|from rendering import\|import rendering" /home/user/tank --include="*.py"
-# Result: No matches (except rendering/__init__.py which is empty)
-```
-
-### Current Implementation
-The production code uses `agents.py` classes which already inherit from `pygame.sprite.Sprite`:
-- `agents.Fish(pygame.sprite.Sprite)` 
-- `agents.Plant(pygame.sprite.Sprite)`
-- `agents.Crab(pygame.sprite.Sprite)`
-- Etc.
-
-### Recommendation
-**DELETE** `/home/user/tank/rendering/sprites.py`
-- Remove the entire file and `rendering/` directory
-- All sprite functionality is already in `agents.py`
-- If future sprite separation is needed, rebuild properly at that time
-
-### Files to Remove
-- `/home/user/tank/rendering/sprites.py`
-- `/home/user/tank/rendering/__init__.py`
-- `/home/user/tank/rendering/image_loader.py` (if not used)
+**Impact:**
+- Removed `/home/user/tank/rendering/` directory entirely
+- All pygame rendering functionality has been removed (project is now web-only)
+- Cleaner architecture with single rendering approach (web frontend)
 
 ---
 
@@ -218,46 +207,22 @@ Option B: Unify on `core.entities` model
 
 ---
 
-## 4. DUPLICATE IMAGE ASSETS ⚠️ MEDIUM PRIORITY
+## 4. DUPLICATE IMAGE ASSETS ✓ COMPLETED
 
-### Current State
-Same image files stored in two locations:
+### Status: RESOLVED
 
-**Location 1:** `/home/user/tank/images/` (18 files, ~48 KB)
-- Used by: Pygame graphical mode (agents.py, rendering code)
-- Files: castle.png, crab1.png, crab2.png, food_*.png (8 types, 2 each), george*.png, plant*.png, school.png
+**Action Taken:** Removed duplicate `/home/user/tank/images/` directory
 
-**Location 2:** `/home/user/tank/frontend/public/images/` (18 files, ~48 KB)
-- Used by: Frontend React/Canvas rendering
-- Exact duplicates
+**Details:**
+- Kept: `/frontend/public/images/` as the single source of truth
+- Removed: `/home/user/tank/images/` (18 duplicate files, ~48 KB)
+- Verified: No pygame code references remain (pygame modules have been removed)
+- Updated: `frontend/index.html` favicon now uses `/images/george1.png` instead of `/vite.svg`
 
-### Issues
-- Disk space duplication (~48 KB each)
-- Maintenance burden - updates needed in both places
-- Package size duplication if deployed as single bundle
-- Inconsistency if assets diverge between modes
-
-### Files Involved
-All 18 image files (duplicated in both locations):
-- castle.png
-- crab1.png, crab2.png
-- food_algae1.png, food_algae2.png
-- food_energy1.png, food_energy2.png
-- food_protein1.png, food_protein2.png
-- food_rare1.png, food_rare2.png
-- food_vitamin1.png, food_vitamin2.png
-- george1.png, george2.png
-- plant1.png, plant2.png
-- school.png
-
-### Recommendation
-**Keep frontend images, remove backend duplication:**
-- Keep: `/frontend/public/images/` (primary)
-- Remove: `/home/user/tank/images/` 
-- Update pygame code to reference frontend path (if available)
-- OR create symbolic link from `/images/` to `/frontend/public/images/`
-
-**Alternative:** Keep original for backward compatibility, document in README
+**Impact:**
+- Eliminated ~48 KB of duplicate assets
+- Removed maintenance burden of keeping two directories in sync
+- Simplified asset management
 
 ---
 
