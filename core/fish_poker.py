@@ -126,7 +126,7 @@ class PokerInteraction:
         The bet is capped at the minimum of:
         - base_bet amount
         - size-adjusted percentage of either fish's current energy
-        - Larger fish can bet more (20% at size 0.5, 30% at size 1.0)
+        - Larger fish can bet more (15% at size 0.35, 25% at size 1.0, 30% at size 1.3)
 
         Args:
             base_bet: Base bet amount
@@ -135,9 +135,10 @@ class PokerInteraction:
             Actual bet amount to use
         """
         # Larger fish can bet a higher percentage of their energy
-        # Size 0.5: 20%, Size 1.0: 30%
-        fish1_bet_percentage = 0.2 + (self.fish1.size - 0.5) * 0.2
-        fish2_bet_percentage = 0.2 + (self.fish2.size - 0.5) * 0.2
+        # Size 0.35: 15%, Size 1.0: 25%, Size 1.3: 30%
+        # Formula: 15% + (size - 0.35) * 15.8% gives range of 15-30%
+        fish1_bet_percentage = 0.15 + (self.fish1.size - 0.35) * 0.158
+        fish2_bet_percentage = 0.15 + (self.fish2.size - 0.35) * 0.158
 
         max_bet_fish1 = self.fish1.energy * fish1_bet_percentage
         max_bet_fish2 = self.fish2.energy * fish2_bet_percentage
@@ -357,8 +358,9 @@ class PokerInteraction:
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
 
             # Winner takes pot minus house cut
-            # Larger fish get lower house cut (5% at size 0.5, 4% at size 1.0)
-            size_adjusted_cut = max(0.03, self.HOUSE_CUT_PERCENTAGE - (winner_fish.size - 0.5) * 0.02)
+            # Larger fish get lower house cut: Size 0.35: 6%, Size 1.0: 4.5%, Size 1.3: 4%
+            # Formula: 6% - (size - 0.35) * 2.1% gives range of 6-4%
+            size_adjusted_cut = max(0.03, 0.06 - (winner_fish.size - 0.35) * 0.021)
             house_cut = game_state.pot * size_adjusted_cut
             energy_transferred = game_state.pot - house_cut
 

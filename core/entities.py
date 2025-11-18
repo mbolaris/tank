@@ -354,7 +354,7 @@ class Fish(Agent):
         from core.fish.lifecycle_component import LifecycleComponent
 
         max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.max_energy)  # Hardier fish live longer
-        self._lifecycle_component = LifecycleComponent(max_age)
+        self._lifecycle_component = LifecycleComponent(max_age, self.genome.size_modifier)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization
         from core.fish.energy_component import EnergyComponent
