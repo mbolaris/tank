@@ -548,6 +548,60 @@ class PokerInteraction:
             offspring=offspring,
         )
 
+        # Record individual fish poker statistics
+        if winner_id == -1:
+            # Tie - both fish record tie
+            fish1_on_button = button_position == 1
+            fish2_on_button = button_position == 2
+            if self.hand1 is not None:
+                self.fish1.poker_stats.record_tie(
+                    hand_rank=self.hand1.rank_value, on_button=fish1_on_button
+                )
+            if self.hand2 is not None:
+                self.fish2.poker_stats.record_tie(
+                    hand_rank=self.hand2.rank_value, on_button=fish2_on_button
+                )
+        else:
+            # Someone won
+            winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
+            loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
+            winner_hand = (
+                self.hand1 if winner_id == self.fish1.fish_id else self.hand2
+            )
+            loser_hand = (
+                self.hand2 if winner_id == self.fish1.fish_id else self.hand1
+            )
+
+            # Determine button positions
+            winner_on_button = (
+                button_position == 1 if winner_id == self.fish1.fish_id else button_position == 2
+            )
+            loser_on_button = not winner_on_button
+
+            # Record winner stats
+            if winner_hand is not None:
+                winner_fish.poker_stats.record_win(
+                    energy_won=winner_actual_gain,
+                    house_cut=house_cut,
+                    hand_rank=winner_hand.rank_value,
+                    won_at_showdown=reached_showdown,
+                    on_button=winner_on_button,
+                )
+
+            # Record loser stats
+            if loser_hand is not None:
+                loser_fish.poker_stats.record_loss(
+                    energy_lost=energy_transferred,
+                    hand_rank=loser_hand.rank_value,
+                    folded=(
+                        game_state.player1_folded
+                        if loser_id == self.fish1.fish_id
+                        else game_state.player2_folded
+                    ),
+                    reached_showdown=reached_showdown,
+                    on_button=loser_on_button,
+                )
+
         # Record in ecosystem if available (including ties)
         if self.fish1.ecosystem is not None:
             # Get algorithm IDs from fish genomes

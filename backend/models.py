@@ -44,6 +44,31 @@ class PokerEventData(BaseModel):
     message: str
 
 
+class PokerLeaderboardEntry(BaseModel):
+    """A single entry in the poker leaderboard."""
+
+    rank: int
+    fish_id: int
+    generation: int
+    algorithm: str
+    energy: float
+    age: int
+    total_games: int
+    wins: int
+    losses: int
+    ties: int
+    win_rate: float  # Percentage (0-100)
+    net_energy: float
+    roi: float
+    current_streak: int
+    best_streak: int
+    best_hand: str
+    best_hand_rank: int
+    showdown_win_rate: float  # Percentage (0-100)
+    fold_rate: float  # Percentage (0-100)
+    positional_advantage: float  # Percentage (0-100)
+
+
 class PokerStatsData(BaseModel):
     """Poker game statistics."""
 
@@ -106,6 +131,7 @@ class SimulationUpdate(BaseModel):
     entities: List[EntityData]
     stats: StatsData
     poker_events: List[PokerEventData] = []
+    poker_leaderboard: List[PokerLeaderboardEntry] = []
 
 
 class Command(BaseModel):

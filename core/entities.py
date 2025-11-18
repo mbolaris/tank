@@ -392,6 +392,11 @@ class Fish(Agent):
 
         self.poker_strategy = PokerStrategyEngine(self)
 
+        # NEW: Individual poker statistics tracking (for leaderboards)
+        from core.fish.poker_stats_component import FishPokerStats
+
+        self.poker_stats = FishPokerStats()
+
         # ID tracking
         self.ecosystem: Optional[EcosystemManager] = ecosystem
         if fish_id is None and ecosystem is not None:
