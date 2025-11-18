@@ -233,7 +233,7 @@ class SimulationRunner:
         """Handle a command from the client.
 
         Args:
-            command: Command type ('add_food', 'pause', 'resume', 'reset')
+            command: Command type ('add_food', 'spawn_fish', 'pause', 'resume', 'reset')
             data: Optional command data
         """
         with self.lock:
@@ -251,6 +251,34 @@ class SimulationRunner:
                 )
                 food.pos.y = 0
                 self.engine.entities_list.append(food)
+
+            elif command == 'spawn_fish':
+                # Spawn a new fish at random position
+                from core.genetics import Genome
+                from core import movement_strategy
+                from core.constants import FILES
+
+                # Random spawn position (avoid edges)
+                SPAWN_MARGIN = 50
+                x = random.randint(SPAWN_MARGIN, SCREEN_WIDTH - SPAWN_MARGIN)
+                y = random.randint(SPAWN_MARGIN, SCREEN_HEIGHT - SPAWN_MARGIN)
+
+                # Create new fish with random genome
+                genome = Genome.random(use_algorithm=True)
+                new_fish = entities.Fish(
+                    self.engine.environment,
+                    movement_strategy.AlgorithmicMovement(),
+                    FILES['schooling_fish'][0],
+                    x, y,
+                    4,  # Base speed
+                    genome=genome,
+                    generation=0,
+                    ecosystem=self.engine.ecosystem,
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT
+                )
+                self.engine.add_entity(new_fish)
+                logger.info("Spawned new fish at (%d, %d)", x, y)
 
             elif command == 'pause':
                 self.engine.paused = True
