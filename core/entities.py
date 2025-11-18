@@ -956,18 +956,48 @@ class Plant(Agent):
     def should_produce_food(self, time_modifier: float = 1.0) -> bool:
         """Check if plant should produce food.
 
+        Dynamically adjusts production chance based on ecosystem energy levels:
+        - Higher production when total energy is low (fish are starving)
+        - Lower production when total energy or population is high
+
         Args:
             time_modifier: Modifier based on day/night (produce more during day)
 
         Returns:
             True if food should be produced
         """
+        from core.constants import (
+            AUTO_FOOD_LOW_ENERGY_THRESHOLD, AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
+            AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2, AUTO_FOOD_HIGH_POP_THRESHOLD_1,
+            AUTO_FOOD_HIGH_POP_THRESHOLD_2
+        )
+
         # Update timer
         self.food_production_timer -= time_modifier
 
         if self.food_production_timer <= 0 and self.current_food_count < self.MAX_FOOD_CAPACITY:
             self.food_production_timer = self.food_production_rate
-            return True
+
+            # Calculate ecosystem metrics for dynamic production
+            fish_list = self.environment.get_agents_of_type(Fish)
+            fish_count = len(fish_list)
+            total_energy = sum(fish.energy for fish in fish_list)
+
+            # Adjust production chance based on ecosystem state
+            production_chance = self.STATIONARY_FOOD_CHANCE
+
+            # Increase production when energy is critically low
+            if total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
+                production_chance = min(0.6, self.STATIONARY_FOOD_CHANCE * 1.5)  # +50% chance
+            # Decrease production when energy or population is very high
+            elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2:
+                production_chance = self.STATIONARY_FOOD_CHANCE * 0.3  # 70% reduction
+            # Moderate decrease when energy or population is high
+            elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1:
+                production_chance = self.STATIONARY_FOOD_CHANCE * 0.6  # 40% reduction
+
+            # Roll for production with adjusted chance
+            return random.random() < production_chance
 
         return False
 
