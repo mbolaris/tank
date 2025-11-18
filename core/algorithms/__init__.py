@@ -179,6 +179,23 @@ def get_algorithm_index(algorithm: BehaviorAlgorithm) -> int:
         return -1
 
 
+def get_algorithm_name(algorithm_index: int) -> str:
+    """Get the human-readable name of an algorithm from its index.
+
+    Args:
+        algorithm_index: Index (0-47) of the algorithm
+
+    Returns:
+        Algorithm name (e.g., "greedy_food_seeker") or "Unknown"
+    """
+    if 0 <= algorithm_index < len(ALL_ALGORITHMS):
+        algorithm_class = ALL_ALGORITHMS[algorithm_index]
+        # Create a temporary instance to get its algorithm_id
+        instance = algorithm_class()
+        return instance.algorithm_id
+    return "Unknown"
+
+
 def get_random_algorithm() -> BehaviorAlgorithm:
     """Get a random behavior algorithm instance."""
     algorithm_class = random.choice(ALL_ALGORITHMS)
@@ -461,6 +478,7 @@ __all__ = [
     # Utilities
     "ALL_ALGORITHMS",
     "get_algorithm_index",
+    "get_algorithm_name",
     "get_random_algorithm",
     "get_algorithm_by_id",
     "inherit_algorithm_with_mutation",

@@ -39,13 +39,14 @@ def run_web_server():
         sys.exit(1)
 
 
-def run_headless(max_frames: int, stats_interval: int, seed=None):
+def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=None):
     """Run the simulation in headless mode (no visualization).
 
     Args:
         max_frames: Maximum number of frames to simulate
         stats_interval: Print stats every N frames
         seed: Optional random seed for deterministic behavior
+        export_stats: Optional filename to export JSON stats for LLM analysis
     """
     import random
     from simulation_engine import SimulationEngine
@@ -55,7 +56,7 @@ def run_headless(max_frames: int, stats_interval: int, seed=None):
         logger.info("Using random seed: %d", seed)
 
     engine = SimulationEngine(headless=True)
-    engine.run_headless(max_frames=max_frames, stats_interval=stats_interval)
+    engine.run_headless(max_frames=max_frames, stats_interval=stats_interval, export_json=export_stats)
 
 
 def main():
@@ -74,8 +75,11 @@ Examples:
   # Quick test run (headless, 1000 frames)
   python main.py --headless --max-frames 1000
 
+  # Export stats for LLM analysis and behavior improvement
+  python main.py --headless --max-frames 10000 --export-stats results.json
+
   # Long simulation with seed for reproducibility
-  python main.py --headless --max-frames 100000 --seed 42
+  python main.py --headless --max-frames 100000 --seed 42 --export-stats evolution_run.json
         """
     )
 
@@ -106,13 +110,23 @@ Examples:
         help='Random seed for deterministic behavior (optional)'
     )
 
+    parser.add_argument(
+        '--export-stats',
+        type=str,
+        default=None,
+        metavar='FILENAME',
+        help='Export comprehensive stats to JSON file for LLM analysis (e.g., results.json)'
+    )
+
     args = parser.parse_args()
 
     if args.headless:
         logger.info("Starting headless simulation...")
         logger.info("Configuration: %d frames, stats every %d frames", args.max_frames, args.stats_interval)
+        if args.export_stats:
+            logger.info("Stats will be exported to: %s", args.export_stats)
         logger.info("")
-        run_headless(args.max_frames, args.stats_interval, seed=args.seed)
+        run_headless(args.max_frames, args.stats_interval, seed=args.seed, export_stats=args.export_stats)
     else:
         run_web_server()
 
