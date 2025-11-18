@@ -4,7 +4,7 @@ from core.environment import Environment
 
 
 def make_agent(x, y):
-    return type('Dummy', (), {'pos': Vector2(x, y)})()
+    return type("Dummy", (), {"pos": Vector2(x, y)})()
 
 
 def test_nearby_agents():

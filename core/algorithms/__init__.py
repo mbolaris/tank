@@ -114,7 +114,6 @@ ALL_ALGORITHMS = [
     CircularHunter,
     FoodMemorySeeker,
     CooperativeForager,
-
     # Predator avoidance
     PanicFlee,
     StealthyAvoider,
@@ -126,7 +125,6 @@ ALL_ALGORITHMS = [
     BorderHugger,
     PerpendicularEscape,
     DistanceKeeper,
-
     # Schooling/social
     TightSchooler,
     LooseSchooler,
@@ -138,7 +136,6 @@ ALL_ALGORITHMS = [
     MirrorMover,
     BoidsBehavior,
     DynamicSchooler,
-
     # Energy management
     EnergyConserver,
     BurstSwimmer,
@@ -148,7 +145,6 @@ ALL_ALGORITHMS = [
     StarvationPreventer,
     MetabolicOptimizer,
     AdaptivePacer,
-
     # Territory/exploration
     TerritorialDefender,
     RandomExplorer,
@@ -158,7 +154,6 @@ ALL_ALGORITHMS = [
     RoutePatroller,
     BoundaryExplorer,
     NomadicWanderer,
-
     # Poker interactions
     PokerChallenger,
     PokerDodger,
@@ -199,9 +194,9 @@ def get_algorithm_by_id(algorithm_id: str) -> Optional[BehaviorAlgorithm]:
     return None
 
 
-def inherit_algorithm_with_mutation(parent_algorithm: BehaviorAlgorithm,
-                                   mutation_rate: float = 0.15,
-                                   mutation_strength: float = 0.2) -> BehaviorAlgorithm:
+def inherit_algorithm_with_mutation(
+    parent_algorithm: BehaviorAlgorithm, mutation_rate: float = 0.15, mutation_strength: float = 0.2
+) -> BehaviorAlgorithm:
     """Create offspring algorithm by copying parent and mutating parameters.
 
     Args:
@@ -224,11 +219,13 @@ def inherit_algorithm_with_mutation(parent_algorithm: BehaviorAlgorithm,
     return offspring
 
 
-def crossover_algorithms(parent1_algorithm: BehaviorAlgorithm,
-                        parent2_algorithm: BehaviorAlgorithm,
-                        mutation_rate: float = 0.15,
-                        mutation_strength: float = 0.2,
-                        algorithm_switch_rate: float = 0.1) -> BehaviorAlgorithm:
+def crossover_algorithms(
+    parent1_algorithm: BehaviorAlgorithm,
+    parent2_algorithm: BehaviorAlgorithm,
+    mutation_rate: float = 0.15,
+    mutation_strength: float = 0.2,
+    algorithm_switch_rate: float = 0.1,
+) -> BehaviorAlgorithm:
     """Create offspring algorithm by crossing over both parents' algorithms.
 
     This function allows for:
@@ -312,12 +309,14 @@ def crossover_algorithms(parent1_algorithm: BehaviorAlgorithm,
     return offspring
 
 
-def crossover_algorithms_weighted(parent1_algorithm: BehaviorAlgorithm,
-                                  parent2_algorithm: BehaviorAlgorithm,
-                                  parent1_weight: float = 0.5,
-                                  mutation_rate: float = 0.15,
-                                  mutation_strength: float = 0.2,
-                                  algorithm_switch_rate: float = 0.1) -> BehaviorAlgorithm:
+def crossover_algorithms_weighted(
+    parent1_algorithm: BehaviorAlgorithm,
+    parent2_algorithm: BehaviorAlgorithm,
+    parent1_weight: float = 0.5,
+    mutation_rate: float = 0.15,
+    mutation_strength: float = 0.2,
+    algorithm_switch_rate: float = 0.1,
+) -> BehaviorAlgorithm:
     """Create offspring algorithm with weighted contributions from parents.
 
     This allows for unequal genetic contributions, useful when one parent
@@ -365,7 +364,9 @@ def crossover_algorithms_weighted(parent1_algorithm: BehaviorAlgorithm,
 
                 # Skip non-numeric parameters
                 if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
-                    offspring.parameters[param_key] = val1 if random.random() < parent1_weight else val2
+                    offspring.parameters[param_key] = (
+                        val1 if random.random() < parent1_weight else val2
+                    )
                     continue
 
                 # Weighted average based on parent contributions
@@ -395,81 +396,74 @@ def crossover_algorithms_weighted(parent1_algorithm: BehaviorAlgorithm,
 # Export all symbols
 __all__ = [
     # Base
-    'BehaviorAlgorithm',
-    'ALGORITHM_PARAMETER_BOUNDS',
-    'Vector2',
-
+    "BehaviorAlgorithm",
+    "ALGORITHM_PARAMETER_BOUNDS",
+    "Vector2",
     # Food seeking
-    'GreedyFoodSeeker',
-    'EnergyAwareFoodSeeker',
-    'OpportunisticFeeder',
-    'FoodQualityOptimizer',
-    'AmbushFeeder',
-    'PatrolFeeder',
-    'SurfaceSkimmer',
-    'BottomFeeder',
-    'ZigZagForager',
-    'CircularHunter',
-    'FoodMemorySeeker',
-    'CooperativeForager',
-
+    "GreedyFoodSeeker",
+    "EnergyAwareFoodSeeker",
+    "OpportunisticFeeder",
+    "FoodQualityOptimizer",
+    "AmbushFeeder",
+    "PatrolFeeder",
+    "SurfaceSkimmer",
+    "BottomFeeder",
+    "ZigZagForager",
+    "CircularHunter",
+    "FoodMemorySeeker",
+    "CooperativeForager",
     # Predator avoidance
-    'PanicFlee',
-    'StealthyAvoider',
-    'FreezeResponse',
-    'ErraticEvader',
-    'VerticalEscaper',
-    'GroupDefender',
-    'SpiralEscape',
-    'BorderHugger',
-    'PerpendicularEscape',
-    'DistanceKeeper',
-
+    "PanicFlee",
+    "StealthyAvoider",
+    "FreezeResponse",
+    "ErraticEvader",
+    "VerticalEscaper",
+    "GroupDefender",
+    "SpiralEscape",
+    "BorderHugger",
+    "PerpendicularEscape",
+    "DistanceKeeper",
     # Schooling
-    'TightSchooler',
-    'LooseSchooler',
-    'LeaderFollower',
-    'AlignmentMatcher',
-    'SeparationSeeker',
-    'FrontRunner',
-    'PerimeterGuard',
-    'MirrorMover',
-    'BoidsBehavior',
-    'DynamicSchooler',
-
+    "TightSchooler",
+    "LooseSchooler",
+    "LeaderFollower",
+    "AlignmentMatcher",
+    "SeparationSeeker",
+    "FrontRunner",
+    "PerimeterGuard",
+    "MirrorMover",
+    "BoidsBehavior",
+    "DynamicSchooler",
     # Energy management
-    'EnergyConserver',
-    'BurstSwimmer',
-    'OpportunisticRester',
-    'EnergyBalancer',
-    'SustainableCruiser',
-    'StarvationPreventer',
-    'MetabolicOptimizer',
-    'AdaptivePacer',
-
+    "EnergyConserver",
+    "BurstSwimmer",
+    "OpportunisticRester",
+    "EnergyBalancer",
+    "SustainableCruiser",
+    "StarvationPreventer",
+    "MetabolicOptimizer",
+    "AdaptivePacer",
     # Territory/exploration
-    'TerritorialDefender',
-    'RandomExplorer',
-    'WallFollower',
-    'CornerSeeker',
-    'CenterHugger',
-    'RoutePatroller',
-    'BoundaryExplorer',
-    'NomadicWanderer',
-
+    "TerritorialDefender",
+    "RandomExplorer",
+    "WallFollower",
+    "CornerSeeker",
+    "CenterHugger",
+    "RoutePatroller",
+    "BoundaryExplorer",
+    "NomadicWanderer",
     # Poker interactions
-    'PokerChallenger',
-    'PokerDodger',
-    'PokerGambler',
-    'SelectivePoker',
-    'PokerOpportunist',
-
+    "PokerChallenger",
+    "PokerDodger",
+    "PokerGambler",
+    "SelectivePoker",
+    "PokerOpportunist",
     # Utilities
-    'ALL_ALGORITHMS',
-    'get_algorithm_index',
-    'get_random_algorithm',
-    'get_algorithm_by_id',
-    'inherit_algorithm_with_mutation',
-    'crossover_algorithms',
-    'crossover_algorithms_weighted',
+    "ALL_ALGORITHMS",
+    "get_algorithm_index",
+    "get_random_algorithm",
+    "get_algorithm_by_id",
+    "inherit_algorithm_with_mutation",
+    "crossover_algorithms",
+    "crossover_algorithms_weighted",
 ]

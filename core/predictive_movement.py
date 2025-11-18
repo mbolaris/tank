@@ -12,15 +12,12 @@ from core.constants import (
     MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT,
     MOVEMENT_SLOW_SPEED_MULTIPLIER,
     MOVEMENT_FOV_ANGLE,
-    MOVEMENT_DISTANCE_EPSILON
+    MOVEMENT_DISTANCE_EPSILON,
 )
 
 
 def predict_intercept_point(
-    fish_pos: Vector2,
-    fish_speed: float,
-    target_pos: Vector2,
-    target_vel: Vector2
+    fish_pos: Vector2, fish_speed: float, target_pos: Vector2, target_vel: Vector2
 ) -> Tuple[Optional[Vector2], float]:
     """Predict where to move to intercept a moving target.
 
@@ -66,7 +63,7 @@ def predict_intercept_point(
         return predicted_pos, prediction_time
 
     # Two solutions - we want the smaller positive one
-    sqrt_discriminant = discriminant ** 0.5
+    sqrt_discriminant = discriminant**0.5
 
     if abs(a) < 0.001:  # Near zero, use linear approximation
         if abs(b) > 0.001:
@@ -116,7 +113,7 @@ def get_avoidance_direction(
     fish_vel: Vector2,
     threat_pos: Vector2,
     threat_vel: Vector2,
-    prediction_time: float = 1.0
+    prediction_time: float = 1.0,
 ) -> Vector2:
     """Calculate direction to avoid a predicted threat.
 
@@ -153,17 +150,15 @@ def get_avoidance_direction(
         perpendicular = Vector2(-escape_dir.y, escape_dir.x)
 
         # Blend direct escape with perpendicular movement
-        escape_dir = (escape_dir * MOVEMENT_ESCAPE_DIRECT_WEIGHT +
-                      perpendicular * MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT).normalize()
+        escape_dir = (
+            escape_dir * MOVEMENT_ESCAPE_DIRECT_WEIGHT
+            + perpendicular * MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT
+        ).normalize()
 
     return escape_dir
 
 
-def calculate_pursuit_angle(
-    fish_pos: Vector2,
-    fish_heading: Vector2,
-    target_pos: Vector2
-) -> float:
+def calculate_pursuit_angle(fish_pos: Vector2, fish_heading: Vector2, target_pos: Vector2) -> float:
     """Calculate angle to turn to pursue target.
 
     Args:
@@ -189,7 +184,7 @@ def is_target_ahead(
     fish_pos: Vector2,
     fish_heading: Vector2,
     target_pos: Vector2,
-    fov_angle: float = MOVEMENT_FOV_ANGLE  # ~90 degrees in radians
+    fov_angle: float = MOVEMENT_FOV_ANGLE,  # ~90 degrees in radians
 ) -> bool:
     """Check if target is in front of fish within field of view.
 
@@ -211,10 +206,7 @@ def is_target_ahead(
 
 
 def calculate_smooth_approach(
-    fish_pos: Vector2,
-    target_pos: Vector2,
-    approach_distance: float,
-    slowdown_distance: float
+    fish_pos: Vector2, target_pos: Vector2, approach_distance: float, slowdown_distance: float
 ) -> Tuple[Vector2, float]:
     """Calculate smooth approach to target with slowdown.
 
@@ -243,7 +235,9 @@ def calculate_smooth_approach(
     elif distance < slowdown_distance:
         # Slow down as approaching
         progress = (distance - approach_distance) / (slowdown_distance - approach_distance)
-        speed_mult = MOVEMENT_SLOW_SPEED_MULTIPLIER + progress * (1.0 - MOVEMENT_SLOW_SPEED_MULTIPLIER)
+        speed_mult = MOVEMENT_SLOW_SPEED_MULTIPLIER + progress * (
+            1.0 - MOVEMENT_SLOW_SPEED_MULTIPLIER
+        )
     else:
         # Far away - full speed
         speed_mult = 1.0
@@ -252,10 +246,7 @@ def calculate_smooth_approach(
 
 
 def calculate_circling_movement(
-    fish_pos: Vector2,
-    target_pos: Vector2,
-    circle_radius: float,
-    clockwise: bool = True
+    fish_pos: Vector2, target_pos: Vector2, circle_radius: float, clockwise: bool = True
 ) -> Vector2:
     """Calculate movement to circle around a target.
 

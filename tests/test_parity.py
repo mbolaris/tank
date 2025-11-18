@@ -2,6 +2,7 @@
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
@@ -70,24 +71,28 @@ def test_simulation_determinism():
     differences = []
 
     # Compare population
-    if stats1['total_population'] != stats2['total_population']:
-        differences.append(f"Population: {stats1['total_population']} vs {stats2['total_population']}")
+    if stats1["total_population"] != stats2["total_population"]:
+        differences.append(
+            f"Population: {stats1['total_population']} vs {stats2['total_population']}"
+        )
 
     # Compare generation
-    if stats1['current_generation'] != stats2['current_generation']:
-        differences.append(f"Generation: {stats1['current_generation']} vs {stats2['current_generation']}")
+    if stats1["current_generation"] != stats2["current_generation"]:
+        differences.append(
+            f"Generation: {stats1['current_generation']} vs {stats2['current_generation']}"
+        )
 
     # Compare births
-    if stats1['total_births'] != stats2['total_births']:
+    if stats1["total_births"] != stats2["total_births"]:
         differences.append(f"Births: {stats1['total_births']} vs {stats2['total_births']}")
 
     # Compare deaths
-    if stats1['total_deaths'] != stats2['total_deaths']:
+    if stats1["total_deaths"] != stats2["total_deaths"]:
         differences.append(f"Deaths: {stats1['total_deaths']} vs {stats2['total_deaths']}")
 
     # Compare death causes
-    causes1 = stats1['death_causes']
-    causes2 = stats2['death_causes']
+    causes1 = stats1["death_causes"]
+    causes2 = stats2["death_causes"]
 
     all_causes = set(causes1.keys()) | set(causes2.keys())
     for cause in all_causes:

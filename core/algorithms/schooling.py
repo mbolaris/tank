@@ -33,20 +33,27 @@ class TightSchooler(BehaviorAlgorithm):
             parameters={
                 "cohesion_strength": random.uniform(0.7, 1.2),
                 "preferred_distance": random.uniform(20, 50),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and f.species == fish.species
+        ]
         if allies:
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
             direction = self._safe_normalize(center - fish.pos)
-            return direction.x * self.parameters["cohesion_strength"], direction.y * self.parameters["cohesion_strength"]
+            return (
+                direction.x * self.parameters["cohesion_strength"],
+                direction.y * self.parameters["cohesion_strength"],
+            )
         return 0, 0
 
 
@@ -60,22 +67,29 @@ class LooseSchooler(BehaviorAlgorithm):
             parameters={
                 "cohesion_strength": random.uniform(0.3, 0.6),
                 "max_distance": random.uniform(100, 200),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and f.species == fish.species
+        ]
         if allies:
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
             distance = (center - fish.pos).length()
             if distance > self.parameters["max_distance"]:
                 direction = self._safe_normalize(center - fish.pos)
-                return direction.x * self.parameters["cohesion_strength"], direction.y * self.parameters["cohesion_strength"]
+                return (
+                    direction.x * self.parameters["cohesion_strength"],
+                    direction.y * self.parameters["cohesion_strength"],
+                )
         return 0, 0
 
 
@@ -89,23 +103,30 @@ class LeaderFollower(BehaviorAlgorithm):
             parameters={
                 "follow_strength": random.uniform(0.6, 1.0),
                 "max_follow_distance": random.uniform(80, 150),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and f.species == fish.species
+        ]
         if allies:
             # Find "leader" (fish with most energy)
             leader = max(allies, key=lambda f: f.energy)
             distance = (leader.pos - fish.pos).length()
             if 0 < distance < self.parameters["max_follow_distance"]:
                 direction = self._safe_normalize(leader.pos - fish.pos)
-                return direction.x * self.parameters["follow_strength"], direction.y * self.parameters["follow_strength"]
+                return (
+                    direction.x * self.parameters["follow_strength"],
+                    direction.y * self.parameters["follow_strength"],
+                )
         return 0, 0
 
 
@@ -119,23 +140,31 @@ class AlignmentMatcher(BehaviorAlgorithm):
             parameters={
                 "alignment_strength": random.uniform(0.5, 1.0),
                 "alignment_radius": random.uniform(60, 120),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass)
-                 if f != fish and f.species == fish.species and (f.pos - fish.pos).length() < self.parameters["alignment_radius"]]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish
+            and f.species == fish.species
+            and (f.pos - fish.pos).length() < self.parameters["alignment_radius"]
+        ]
 
         if allies:
             avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)
             if avg_vel.length() > 0:
                 avg_vel = self._safe_normalize(avg_vel)
-                return avg_vel.x * self.parameters["alignment_strength"], avg_vel.y * self.parameters["alignment_strength"]
+                return (
+                    avg_vel.x * self.parameters["alignment_strength"],
+                    avg_vel.y * self.parameters["alignment_strength"],
+                )
         return 0, 0
 
 
@@ -149,14 +178,14 @@ class SeparationSeeker(BehaviorAlgorithm):
             parameters={
                 "min_distance": random.uniform(30, 70),
                 "separation_strength": random.uniform(0.5, 1.0),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish]
 
@@ -165,7 +194,9 @@ class SeparationSeeker(BehaviorAlgorithm):
             distance = (ally.pos - fish.pos).length()
             if 0 < distance < self.parameters["min_distance"]:
                 direction = self._safe_normalize(fish.pos - ally.pos)
-                strength = (self.parameters["min_distance"] - distance) / self.parameters["min_distance"]
+                strength = (self.parameters["min_distance"] - distance) / self.parameters[
+                    "min_distance"
+                ]
                 vx += direction.x * strength * self.parameters["separation_strength"]
                 vy += direction.y * strength * self.parameters["separation_strength"]
 
@@ -182,22 +213,29 @@ class FrontRunner(BehaviorAlgorithm):
             parameters={
                 "leadership_strength": random.uniform(0.7, 1.2),
                 "independence": random.uniform(0.5, 0.9),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Move in a consistent direction
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and f.species == fish.species
+        ]
         if allies:
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
             # Move away from center to lead
             direction = self._safe_normalize(fish.pos - center)
-            return direction.x * self.parameters["leadership_strength"], direction.y * self.parameters["leadership_strength"]
+            return (
+                direction.x * self.parameters["leadership_strength"],
+                direction.y * self.parameters["leadership_strength"],
+            )
 
         # If alone, just move forward
         return self.parameters["independence"], 0
@@ -213,30 +251,40 @@ class PerimeterGuard(BehaviorAlgorithm):
             parameters={
                 "orbit_radius": random.uniform(70, 130),
                 "orbit_speed": random.uniform(0.5, 0.9),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and f.species == fish.species
+        ]
         if allies:
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
-            to_center = (center - fish.pos)
+            to_center = center - fish.pos
             distance = to_center.length()
 
             if distance < self.parameters["orbit_radius"]:
                 # Move away from center
                 normalized = self._safe_normalize(to_center)
                 direction = Vector2(-normalized.x, -normalized.y)
-                return direction.x * self.parameters["orbit_speed"], direction.y * self.parameters["orbit_speed"]
+                return (
+                    direction.x * self.parameters["orbit_speed"],
+                    direction.y * self.parameters["orbit_speed"],
+                )
             elif distance > self.parameters["orbit_radius"] * 1.3:
                 # Move toward center
                 direction = self._safe_normalize(to_center)
-                return direction.x * self.parameters["orbit_speed"], direction.y * self.parameters["orbit_speed"]
+                return (
+                    direction.x * self.parameters["orbit_speed"],
+                    direction.y * self.parameters["orbit_speed"],
+                )
         return 0, 0
 
 
@@ -250,24 +298,30 @@ class MirrorMover(BehaviorAlgorithm):
             parameters={
                 "mirror_strength": random.uniform(0.6, 1.0),
                 "mirror_distance": random.uniform(50, 100),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass)
-                 if f != fish and (f.pos - fish.pos).length() < self.parameters["mirror_distance"]]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and (f.pos - fish.pos).length() < self.parameters["mirror_distance"]
+        ]
 
         if allies:
             nearest = min(allies, key=lambda f: (f.pos - fish.pos).length())
             # Copy their velocity
             if nearest.vel.length() > 0:
                 direction = self._safe_normalize(nearest.vel)
-                return direction.x * self.parameters["mirror_strength"], direction.y * self.parameters["mirror_strength"]
+                return (
+                    direction.x * self.parameters["mirror_strength"],
+                    direction.y * self.parameters["mirror_strength"],
+                )
         return 0, 0
 
 
@@ -282,25 +336,31 @@ class BoidsBehavior(BehaviorAlgorithm):
                 "separation_weight": random.uniform(0.3, 0.7),
                 "alignment_weight": random.uniform(0.3, 0.7),
                 "cohesion_weight": random.uniform(0.3, 0.7),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and f.species == fish.species
+        ]
 
         # Check for predators - school tightens when threatened
         nearest_predator = self._find_nearest(fish, Crab)
-        predator_distance = nearest_predator and (nearest_predator.pos - fish.pos).length() or float('inf')
+        predator_distance = (
+            nearest_predator and (nearest_predator.pos - fish.pos).length() or float("inf")
+        )
         in_danger = predator_distance < 200
 
         # Check for food opportunities
         nearest_food = self._find_nearest(fish, Food)
-        food_distance = nearest_food and (nearest_food.pos - fish.pos).length() or float('inf')
+        food_distance = nearest_food and (nearest_food.pos - fish.pos).length() or float("inf")
         food_nearby = food_distance < 100
 
         if not allies:
@@ -356,12 +416,8 @@ class BoidsBehavior(BehaviorAlgorithm):
             coh_weight *= 0.7
 
         # Combine forces
-        vx = (sep_x * sep_weight +
-              align_x * align_weight +
-              coh_dir.x * coh_weight)
-        vy = (sep_y * sep_weight +
-              align_y * align_weight +
-              coh_dir.y * coh_weight)
+        vx = sep_x * sep_weight + align_x * align_weight + coh_dir.x * coh_weight
+        vy = sep_y * sep_weight + align_y * align_weight + coh_dir.y * coh_weight
 
         # Add predator avoidance
         if in_danger and predator_distance < 150:
@@ -377,9 +433,9 @@ class BoidsBehavior(BehaviorAlgorithm):
             vy += food_dir.y * 0.5
 
         # Normalize
-        length = math.sqrt(vx*vx + vy*vy)
+        length = math.sqrt(vx * vx + vy * vy)
         if length > 0:
-            return vx/length, vy/length
+            return vx / length, vy / length
         return 0, 0
 
 
@@ -394,14 +450,14 @@ class DynamicSchooler(BehaviorAlgorithm):
                 "danger_cohesion": random.uniform(0.8, 1.2),
                 "calm_cohesion": random.uniform(0.3, 0.6),
                 "danger_threshold": random.uniform(150, 250),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Check for danger with graded threat levels
         predators = fish.environment.get_agents_of_type(Crab)
@@ -439,7 +495,11 @@ class DynamicSchooler(BehaviorAlgorithm):
             # Normal conditions - moderate cohesion
             cohesion = self.parameters["calm_cohesion"]
 
-        allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish and f.species == fish.species]
+        allies = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish and f.species == fish.species
+        ]
         if allies:
             # Move toward school center
             center = sum((f.pos for f in allies), Vector2()) / len(allies)
@@ -465,9 +525,9 @@ class DynamicSchooler(BehaviorAlgorithm):
                 vy += food_dir.y * food_weight
 
             # Normalize
-            length = math.sqrt(vx*vx + vy*vy)
+            length = math.sqrt(vx * vx + vy * vy)
             if length > 0:
-                return vx/length, vy/length
+                return vx / length, vy / length
 
         # No allies - go solo (IMPROVED FOOD SEEKING)
         if threat_level > 0.5 and nearest_predator:

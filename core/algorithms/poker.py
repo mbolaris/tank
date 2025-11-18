@@ -28,14 +28,14 @@ class PokerChallenger(BehaviorAlgorithm):
                 "challenge_radius": random.uniform(100.0, 250.0),
                 "challenge_speed": random.uniform(0.8, 1.3),
                 "min_energy_to_challenge": random.uniform(15.0, 30.0),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # First check for predators - survival comes first
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
@@ -82,14 +82,14 @@ class PokerDodger(BehaviorAlgorithm):
                 "avoidance_radius": random.uniform(80.0, 150.0),
                 "avoidance_speed": random.uniform(0.7, 1.1),
                 "food_priority": random.uniform(0.6, 1.0),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # First check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
@@ -110,7 +110,9 @@ class PokerDodger(BehaviorAlgorithm):
                 # Avoid this fish
                 avoid_dir = self._safe_normalize(fish.pos - other.pos)
                 # Stronger avoidance for closer fish
-                strength = (self.parameters["avoidance_radius"] - distance) / self.parameters["avoidance_radius"]
+                strength = (self.parameters["avoidance_radius"] - distance) / self.parameters[
+                    "avoidance_radius"
+                ]
                 avoidance_vector = avoidance_vector + (avoid_dir * strength)
                 fish_nearby += 1
 
@@ -133,7 +135,10 @@ class PokerDodger(BehaviorAlgorithm):
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
-            return direction.x * self.parameters["food_priority"], direction.y * self.parameters["food_priority"]
+            return (
+                direction.x * self.parameters["food_priority"],
+                direction.y * self.parameters["food_priority"],
+            )
 
         return 0, 0
 
@@ -149,14 +154,14 @@ class PokerGambler(BehaviorAlgorithm):
                 "high_energy_threshold": random.uniform(0.6, 0.9),
                 "challenge_speed": random.uniform(1.0, 1.5),
                 "risk_tolerance": random.uniform(0.3, 0.8),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
@@ -209,14 +214,14 @@ class SelectivePoker(BehaviorAlgorithm):
                 "max_energy_ratio": random.uniform(0.7, 0.95),
                 "challenge_speed": random.uniform(0.6, 1.0),
                 "selectivity": random.uniform(0.5, 0.9),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
@@ -226,8 +231,7 @@ class SelectivePoker(BehaviorAlgorithm):
         energy_ratio = fish.energy / fish.max_energy
 
         # Only seek poker in the "sweet spot" energy range
-        if (self.parameters["min_energy_ratio"] < energy_ratio <
-            self.parameters["max_energy_ratio"]):
+        if self.parameters["min_energy_ratio"] < energy_ratio < self.parameters["max_energy_ratio"]:
 
             # Be selective - only challenge sometimes
             if random.random() < self.parameters["selectivity"]:
@@ -265,14 +269,14 @@ class PokerOpportunist(BehaviorAlgorithm):
                 "poker_weight": random.uniform(0.3, 0.7),
                 "food_weight": random.uniform(0.3, 0.7),
                 "opportunity_radius": random.uniform(80.0, 150.0),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
@@ -313,7 +317,7 @@ class PokerOpportunist(BehaviorAlgorithm):
             poker_weight = self.parameters["poker_weight"]
 
         # Combine vectors
-        final_vector = (food_vector * food_weight + poker_vector * poker_weight)
+        final_vector = food_vector * food_weight + poker_vector * poker_weight
         if final_vector.length() > 0:
             final_vector = self._safe_normalize(final_vector)
             return final_vector.x, final_vector.y

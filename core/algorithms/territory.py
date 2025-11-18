@@ -31,7 +31,7 @@ class TerritorialDefender(BehaviorAlgorithm):
             parameters={
                 "territory_radius": random.uniform(80, 150),
                 "aggression": random.uniform(0.5, 1.0),
-            }
+            },
         )
         self.territory_center = None
 
@@ -39,22 +39,30 @@ class TerritorialDefender(BehaviorAlgorithm):
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         from core.math_utils import Vector2
+
         if self.territory_center is None:
             self.territory_center = Vector2(fish.pos.x, fish.pos.y)
 
         # Chase away intruders
-        intruders = [f for f in fish.environment.get_agents_of_type(FishClass)
-                    if f != fish and (f.pos - self.territory_center).length() < self.parameters["territory_radius"]]
+        intruders = [
+            f
+            for f in fish.environment.get_agents_of_type(FishClass)
+            if f != fish
+            and (f.pos - self.territory_center).length() < self.parameters["territory_radius"]
+        ]
 
         if intruders:
             nearest = min(intruders, key=lambda f: (f.pos - fish.pos).length())
             direction = self._safe_normalize(nearest.pos - fish.pos)
-            return direction.x * self.parameters["aggression"], direction.y * self.parameters["aggression"]
+            return (
+                direction.x * self.parameters["aggression"],
+                direction.y * self.parameters["aggression"],
+            )
 
         # Return to territory center
-        direction = (self.territory_center - fish.pos)
+        direction = self.territory_center - fish.pos
         if direction.length() > self.parameters["territory_radius"]:
             direction = self._safe_normalize(direction)
             return direction.x * 0.5, direction.y * 0.5
@@ -72,7 +80,7 @@ class RandomExplorer(BehaviorAlgorithm):
             parameters={
                 "change_frequency": random.uniform(0.02, 0.08),
                 "exploration_speed": random.uniform(0.5, 0.9),
-            }
+            },
         )
         self.current_direction = Vector2(random.uniform(-1, 1), random.uniform(-1, 1)).normalize()
 
@@ -80,7 +88,7 @@ class RandomExplorer(BehaviorAlgorithm):
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Check for important stimuli
         nearest_predator = self._find_nearest(fish, Crab)
@@ -126,11 +134,13 @@ class RandomExplorer(BehaviorAlgorithm):
                 if other_fish:
                     crowd_center = sum((f.pos for f in other_fish), Vector2()) / len(other_fish)
                     # Explore away from the crowd
-                    away_from_crowd = (fish.pos - crowd_center)
+                    away_from_crowd = fish.pos - crowd_center
                     self.current_direction = self._safe_normalize(away_from_crowd)
 
-        return self.current_direction.x * self.parameters["exploration_speed"], \
-               self.current_direction.y * self.parameters["exploration_speed"]
+        return (
+            self.current_direction.x * self.parameters["exploration_speed"],
+            self.current_direction.y * self.parameters["exploration_speed"],
+        )
 
 
 @dataclass
@@ -143,14 +153,14 @@ class WallFollower(BehaviorAlgorithm):
             parameters={
                 "wall_distance": random.uniform(20, 60),
                 "follow_speed": random.uniform(0.5, 0.8),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Find nearest wall
         dist_to_left = fish.pos.x
@@ -175,28 +185,33 @@ class CornerSeeker(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="corner_seeker",
             parameters={
-                "preferred_corner": random.choice(['top_left', 'top_right', 'bottom_left', 'bottom_right']),
+                "preferred_corner": random.choice(
+                    ["top_left", "top_right", "bottom_left", "bottom_right"]
+                ),
                 "approach_speed": random.uniform(0.4, 0.7),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Determine corner position
         corners = {
-            'top_left': Vector2(50, 50),
-            'top_right': Vector2(SCREEN_WIDTH - 50, 50),
-            'bottom_left': Vector2(50, SCREEN_HEIGHT - 50),
-            'bottom_right': Vector2(SCREEN_WIDTH - 50, SCREEN_HEIGHT - 50),
+            "top_left": Vector2(50, 50),
+            "top_right": Vector2(SCREEN_WIDTH - 50, 50),
+            "bottom_left": Vector2(50, SCREEN_HEIGHT - 50),
+            "bottom_right": Vector2(SCREEN_WIDTH - 50, SCREEN_HEIGHT - 50),
         }
 
         target = corners[self.parameters["preferred_corner"]]
         direction = self._safe_normalize(target - fish.pos)
-        return direction.x * self.parameters["approach_speed"], direction.y * self.parameters["approach_speed"]
+        return (
+            direction.x * self.parameters["approach_speed"],
+            direction.y * self.parameters["approach_speed"],
+        )
 
 
 @dataclass
@@ -209,21 +224,24 @@ class CenterHugger(BehaviorAlgorithm):
             parameters={
                 "orbit_radius": random.uniform(50, 120),
                 "return_strength": random.uniform(0.5, 0.9),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         distance = (center - fish.pos).length()
 
         if distance > self.parameters["orbit_radius"]:
             direction = self._safe_normalize(center - fish.pos)
-            return direction.x * self.parameters["return_strength"], direction.y * self.parameters["return_strength"]
+            return (
+                direction.x * self.parameters["return_strength"],
+                direction.y * self.parameters["return_strength"],
+            )
         return 0, 0
 
 
@@ -237,7 +255,7 @@ class RoutePatroller(BehaviorAlgorithm):
             parameters={
                 "patrol_speed": random.uniform(0.5, 0.8),
                 "waypoint_threshold": random.uniform(30, 60),
-            }
+            },
         )
         self.waypoints: List[Vector2] = []
         self.current_waypoint_idx = 0
@@ -247,7 +265,7 @@ class RoutePatroller(BehaviorAlgorithm):
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         if not self.initialized:
             # Create strategic waypoints - cover different areas of tank
@@ -292,7 +310,10 @@ class RoutePatroller(BehaviorAlgorithm):
             if nearest_food and (nearest_food.pos - target).length() < 100:
                 # Food near waypoint - pursue it
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
-                return direction.x * self.parameters["patrol_speed"], direction.y * self.parameters["patrol_speed"]
+                return (
+                    direction.x * self.parameters["patrol_speed"],
+                    direction.y * self.parameters["patrol_speed"],
+                )
 
             # Move to next waypoint
             self.current_waypoint_idx = (self.current_waypoint_idx + 1) % len(self.waypoints)
@@ -306,8 +327,10 @@ class RoutePatroller(BehaviorAlgorithm):
         if distance < 80:
             speed_multiplier = 0.7 + (distance / 80) * 0.3
 
-        return direction.x * self.parameters["patrol_speed"] * speed_multiplier, \
-               direction.y * self.parameters["patrol_speed"] * speed_multiplier
+        return (
+            direction.x * self.parameters["patrol_speed"] * speed_multiplier,
+            direction.y * self.parameters["patrol_speed"] * speed_multiplier,
+        )
 
 
 @dataclass
@@ -320,20 +343,22 @@ class BoundaryExplorer(BehaviorAlgorithm):
             parameters={
                 "edge_preference": random.uniform(0.6, 1.0),
                 "exploration_speed": random.uniform(0.5, 0.8),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Move toward edges
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         direction = self._safe_normalize(fish.pos - center)
-        return direction.x * self.parameters["exploration_speed"] * self.parameters["edge_preference"], \
-               direction.y * self.parameters["exploration_speed"] * self.parameters["edge_preference"]
+        return (
+            direction.x * self.parameters["exploration_speed"] * self.parameters["edge_preference"],
+            direction.y * self.parameters["exploration_speed"] * self.parameters["edge_preference"],
+        )
 
 
 @dataclass
@@ -346,7 +371,7 @@ class NomadicWanderer(BehaviorAlgorithm):
             parameters={
                 "wander_strength": random.uniform(0.5, 0.9),
                 "direction_change_rate": random.uniform(0.01, 0.05),
-            }
+            },
         )
         self.wander_angle = random.uniform(0, 2 * math.pi)
 
@@ -354,7 +379,7 @@ class NomadicWanderer(BehaviorAlgorithm):
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Check for threats and opportunities
         nearest_predator = self._find_nearest(fish, Crab)
@@ -381,8 +406,12 @@ class NomadicWanderer(BehaviorAlgorithm):
         # Boundary awareness - avoid getting stuck in corners
         edge_margin = 70
         boundary_influence = 0
-        if fish.pos.x < edge_margin or fish.pos.x > SCREEN_WIDTH - edge_margin or \
-           fish.pos.y < edge_margin or fish.pos.y > SCREEN_HEIGHT - edge_margin:
+        if (
+            fish.pos.x < edge_margin
+            or fish.pos.x > SCREEN_WIDTH - edge_margin
+            or fish.pos.y < edge_margin
+            or fish.pos.y > SCREEN_HEIGHT - edge_margin
+        ):
             # Turn toward center
             center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
             to_center = self._safe_normalize(center - fish.pos)

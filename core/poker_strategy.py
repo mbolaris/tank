@@ -21,16 +21,18 @@ if TYPE_CHECKING:
 
 class HandStrength(Enum):
     """Categories of poker hand strength."""
+
     PREMIUM = "premium"  # AA, KK, QQ, AK
-    STRONG = "strong"    # JJ, TT, AQ, AJ
-    MEDIUM = "medium"    # 99-66, KQ, KJ
-    WEAK = "weak"        # 55-22, suited connectors
-    TRASH = "trash"      # Random low cards
+    STRONG = "strong"  # JJ, TT, AQ, AJ
+    MEDIUM = "medium"  # 99-66, KQ, KJ
+    WEAK = "weak"  # 55-22, suited connectors
+    TRASH = "trash"  # Random low cards
 
 
 @dataclass
 class OpponentModel:
     """Model of an opponent's playing tendencies."""
+
     fish_id: int
     games_played: int = 0
     hands_won: int = 0
@@ -45,8 +47,9 @@ class OpponentModel:
     bluff_frequency: float = 0.0  # Estimated bluff rate
     last_seen_frame: int = 0
 
-    def update_from_game(self, won: bool, folded: bool, raised: bool, called: bool,
-                        aggression: float, frame: int) -> None:
+    def update_from_game(
+        self, won: bool, folded: bool, raised: bool, called: bool, aggression: float, frame: int
+    ) -> None:
         """Update model based on observed behavior.
 
         Args:
@@ -72,8 +75,8 @@ class OpponentModel:
 
         # Update running average of aggression
         self.avg_aggression = (
-            (self.avg_aggression * (self.games_played - 1) + aggression) / self.games_played
-        )
+            self.avg_aggression * (self.games_played - 1) + aggression
+        ) / self.games_played
 
         # Classify playing style
         if self.games_played >= 5:  # Need at least 5 games for classification
@@ -126,15 +129,15 @@ class PokerStrategyEngine:
 
     # Hand selection ranges by position
     BUTTON_RANGE_PREMIUM = 0.15  # Play top 15% of hands from button
-    BUTTON_RANGE_TIGHT = 0.10    # Play top 10% when tight
-    OFF_BUTTON_RANGE = 0.08      # Play top 8% off button
+    BUTTON_RANGE_TIGHT = 0.10  # Play top 10% when tight
+    OFF_BUTTON_RANGE = 0.08  # Play top 8% off button
 
     # Aggression modifiers
     POSITION_AGGRESSION_BONUS = 0.15  # +15% aggression on button
-    OPPONENT_TIGHT_MODIFIER = 0.2     # +20% aggression vs tight players
+    OPPONENT_TIGHT_MODIFIER = 0.2  # +20% aggression vs tight players
     OPPONENT_AGGRESSIVE_MODIFIER = -0.1  # -10% aggression vs aggressive players
 
-    def __init__(self, fish: 'Fish'):
+    def __init__(self, fish: "Fish"):
         """Initialize the poker strategy engine.
 
         Args:
@@ -147,8 +150,8 @@ class PokerStrategyEngine:
 
         # Hand selection preferences (learned over time)
         self.hand_selection_tightness = 0.5  # 0=loose, 1=tight
-        self.positional_awareness = 0.5      # 0=ignore position, 1=strict position play
-        self.bluff_frequency = 0.2           # Base bluff frequency
+        self.positional_awareness = 0.5  # 0=ignore position, 1=strict position play
+        self.bluff_frequency = 0.2  # Base bluff frequency
 
     def get_opponent_model(self, opponent_id: int) -> OpponentModel:
         """Get or create opponent model.
@@ -163,9 +166,16 @@ class PokerStrategyEngine:
             self.opponent_models[opponent_id] = OpponentModel(fish_id=opponent_id)
         return self.opponent_models[opponent_id]
 
-    def update_opponent_model(self, opponent_id: int, won: bool, folded: bool,
-                             raised: bool, called: bool, aggression: float,
-                             frame: int) -> None:
+    def update_opponent_model(
+        self,
+        opponent_id: int,
+        won: bool,
+        folded: bool,
+        raised: bool,
+        called: bool,
+        aggression: float,
+        frame: int,
+    ) -> None:
         """Update our model of an opponent's playing style.
 
         Args:
@@ -197,8 +207,21 @@ class PokerStrategyEngine:
         rank2, suit2 = hole_cards[1]
 
         # Rank values (2-14, where A=14)
-        rank_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
-                      '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
+        rank_values = {
+            "2": 2,
+            "3": 3,
+            "4": 4,
+            "5": 5,
+            "6": 6,
+            "7": 7,
+            "8": 8,
+            "9": 9,
+            "T": 10,
+            "J": 11,
+            "Q": 12,
+            "K": 13,
+            "A": 14,
+        }
         val1 = rank_values.get(rank1, 0)
         val2 = rank_values.get(rank2, 0)
 
@@ -241,8 +264,12 @@ class PokerStrategyEngine:
         # Trash (random low cards)
         return 0.20 + (high_card / 14.0) * 0.15  # 0.20-0.35 based on high card
 
-    def should_play_hand(self, hole_cards: List[Tuple[str, str]], position_on_button: bool,
-                        opponent_id: Optional[int] = None) -> bool:
+    def should_play_hand(
+        self,
+        hole_cards: List[Tuple[str, str]],
+        position_on_button: bool,
+        opponent_id: Optional[int] = None,
+    ) -> bool:
         """Decide whether to play this starting hand.
 
         Args:
@@ -267,7 +294,7 @@ class PokerStrategyEngine:
             hand_range = self.OFF_BUTTON_RANGE
 
         # Adjust based on hand selection tightness (learned behavior)
-        hand_range *= (1.0 + (0.5 - self.hand_selection_tightness) * 0.3)
+        hand_range *= 1.0 + (0.5 - self.hand_selection_tightness) * 0.3
 
         # Adjust based on opponent model
         if opponent_id is not None:
@@ -284,9 +311,13 @@ class PokerStrategyEngine:
         threshold = 1.0 - hand_range
         return hand_strength >= threshold
 
-    def calculate_adjusted_aggression(self, base_aggression: float, position_on_button: bool,
-                                     opponent_id: Optional[int] = None,
-                                     hand_strength: float = 0.5) -> float:
+    def calculate_adjusted_aggression(
+        self,
+        base_aggression: float,
+        position_on_button: bool,
+        opponent_id: Optional[int] = None,
+        hand_strength: float = 0.5,
+    ) -> float:
         """Calculate aggression level adjusted for position and opponent.
 
         Args:
@@ -324,8 +355,13 @@ class PokerStrategyEngine:
         # Clamp to valid range
         return max(0.3, min(0.9, adjusted))
 
-    def should_bluff(self, position_on_button: bool, opponent_id: Optional[int] = None,
-                    pot_size: float = 0.0, hand_strength: float = 0.0) -> bool:
+    def should_bluff(
+        self,
+        position_on_button: bool,
+        opponent_id: Optional[int] = None,
+        pot_size: float = 0.0,
+        hand_strength: float = 0.0,
+    ) -> bool:
         """Decide whether to bluff in this situation.
 
         Args:
@@ -364,9 +400,14 @@ class PokerStrategyEngine:
         # Random decision
         return random.random() < bluff_chance
 
-    def learn_from_poker_outcome(self, won: bool, hand_strength: float,
-                                 position_on_button: bool, bluffed: bool,
-                                 opponent_id: Optional[int] = None) -> None:
+    def learn_from_poker_outcome(
+        self,
+        won: bool,
+        hand_strength: float,
+        position_on_button: bool,
+        bluffed: bool,
+        opponent_id: Optional[int] = None,
+    ) -> None:
         """Update strategy based on poker game outcome.
 
         Args:
@@ -390,7 +431,9 @@ class PokerStrategyEngine:
 
             if hand_strength < 0.4:
                 # Won with weak hand - loosen hand selection
-                self.hand_selection_tightness = max(0.0, self.hand_selection_tightness - learning_rate)
+                self.hand_selection_tightness = max(
+                    0.0, self.hand_selection_tightness - learning_rate
+                )
         else:
             # Loss - adjust strategy
             if bluffed:
@@ -399,7 +442,9 @@ class PokerStrategyEngine:
 
             if hand_strength < 0.5:
                 # Lost with weak hand - tighten hand selection
-                self.hand_selection_tightness = min(1.0, self.hand_selection_tightness + learning_rate * 0.5)
+                self.hand_selection_tightness = min(
+                    1.0, self.hand_selection_tightness + learning_rate * 0.5
+                )
 
     def get_strategy_summary(self) -> Dict[str, Any]:
         """Get summary of current poker strategy.
@@ -408,11 +453,13 @@ class PokerStrategyEngine:
             Dictionary with strategy parameters
         """
         return {
-            'hand_selection_tightness': self.hand_selection_tightness,
-            'positional_awareness': self.positional_awareness,
-            'bluff_frequency': self.bluff_frequency,
-            'opponents_tracked': len(self.opponent_models),
-            'opponents_modeled': sum(1 for m in self.opponent_models.values() if m.games_played >= 5),
+            "hand_selection_tightness": self.hand_selection_tightness,
+            "positional_awareness": self.positional_awareness,
+            "bluff_frequency": self.bluff_frequency,
+            "opponents_tracked": len(self.opponent_models),
+            "opponents_modeled": sum(
+                1 for m in self.opponent_models.values() if m.games_played >= 5
+            ),
         }
 
     def get_opponent_summary(self, opponent_id: int) -> Dict[str, Any]:
@@ -429,9 +476,9 @@ class PokerStrategyEngine:
 
         model = self.opponent_models[opponent_id]
         return {
-            'games_played': model.games_played,
-            'win_rate': model.get_win_rate(),
-            'style': model.get_style_description(),
-            'avg_aggression': model.avg_aggression,
-            'bluff_frequency': model.bluff_frequency,
+            "games_played": model.games_played,
+            "win_rate": model.get_win_rate(),
+            "style": model.get_style_description(),
+            "avg_aggression": model.avg_aggression,
+            "bluff_frequency": model.bluff_frequency,
         }

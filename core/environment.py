@@ -50,7 +50,7 @@ class SpatialGrid:
 
     def add_agent(self, agent: Agent):
         """Add an agent to the spatial grid."""
-        if not hasattr(agent, 'pos'):
+        if not hasattr(agent, "pos"):
             return
 
         cell = self._get_cell(agent.pos.x, agent.pos.y)
@@ -66,7 +66,7 @@ class SpatialGrid:
 
     def update_agent(self, agent: Agent):
         """Update an agent's position in the grid (call when agent moves)."""
-        if not hasattr(agent, 'pos'):
+        if not hasattr(agent, "pos"):
             return
 
         new_cell = self._get_cell(agent.pos.x, agent.pos.y)
@@ -102,7 +102,7 @@ class SpatialGrid:
         This is much faster than checking all agents, as it only checks
         agents in nearby grid cells.
         """
-        if not hasattr(agent, 'pos'):
+        if not hasattr(agent, "pos"):
             return []
 
         candidates = []
@@ -114,9 +114,12 @@ class SpatialGrid:
 
         # Filter by actual distance and exclude the querying agent
         radius_sq = radius * radius
-        return [other for other in candidates
-                if other != agent and
-                (other.pos.x - agent.pos.x) ** 2 + (other.pos.y - agent.pos.y) ** 2 <= radius_sq]
+        return [
+            other
+            for other in candidates
+            if other != agent
+            and (other.pos.x - agent.pos.x) ** 2 + (other.pos.y - agent.pos.y) ** 2 <= radius_sq
+        ]
 
     def clear(self):
         """Clear all agents from the grid."""
@@ -135,7 +138,10 @@ class Environment:
     The environment in which the agents operate.
     This class provides methods to interact with and query the state of the environment.
     """
-    def __init__(self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600):
+
+    def __init__(
+        self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600
+    ):
         """
         Initialize the environment.
 
@@ -162,10 +168,8 @@ class Environment:
 
         # NEW: Initialize communication system for fish
         from core.fish_communication import FishCommunicationSystem
-        self.communication_system = FishCommunicationSystem(
-            max_signals=50,
-            decay_rate=0.05
-        )
+
+        self.communication_system = FishCommunicationSystem(max_signals=50, decay_rate=0.05)
 
     def rebuild_spatial_grid(self):
         """Rebuild the spatial grid from scratch. Call when agents are added/removed."""
@@ -216,8 +220,10 @@ class Environment:
         result = [agent for agent in self.agents if isinstance(agent, agent_class)]
         self._type_cache[agent_class] = result
         return result
-    
-    def nearby_agents_by_type(self, agent: Agent, radius: int, agent_class: Type[Agent]) -> List[Agent]:
+
+    def nearby_agents_by_type(
+        self, agent: Agent, radius: int, agent_class: Type[Agent]
+    ) -> List[Agent]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.
 
@@ -244,6 +250,7 @@ class Environment:
             List[Agent]: All fish in the environment
         """
         from core.entities import Fish
+
         return [agent for agent in self.agents if isinstance(agent, Fish)]
 
     def get_all_food(self) -> List[Agent]:
@@ -253,6 +260,7 @@ class Environment:
             List[Agent]: All food items in the environment
         """
         from core.entities import Food
+
         return [agent for agent in self.agents if isinstance(agent, Food)]
 
     def get_all_plants(self) -> List[Agent]:
@@ -262,6 +270,7 @@ class Environment:
             List[Agent]: All plants in the environment
         """
         from core.entities import Plant
+
         return [agent for agent in self.agents if isinstance(agent, Plant)]
 
     def get_all_crabs(self) -> List[Agent]:
@@ -271,6 +280,7 @@ class Environment:
             List[Agent]: All crabs in the environment
         """
         from core.entities import Crab
+
         return [agent for agent in self.agents if isinstance(agent, Crab)]
 
     def count_fish(self) -> int:

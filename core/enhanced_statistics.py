@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 @dataclass
 class TimeSeriesSnapshot:
     """A snapshot of ecosystem state at a specific frame."""
+
     frame: int
     population: int
     avg_fitness: float
@@ -40,6 +41,7 @@ class TimeSeriesSnapshot:
 @dataclass
 class TraitCorrelation:
     """Correlation between a trait and fitness."""
+
     trait_name: str
     correlation: float  # -1.0 to +1.0
     sample_size: int
@@ -49,6 +51,7 @@ class TraitCorrelation:
 @dataclass
 class ExtinctionEvent:
     """Records when an algorithm goes extinct."""
+
     algorithm_id: int
     algorithm_name: str
     extinction_frame: int
@@ -61,6 +64,7 @@ class ExtinctionEvent:
 @dataclass
 class EvolutionaryRate:
     """Measures how fast traits are evolving."""
+
     trait_name: str
     rate_of_change: float  # Units per generation
     variance_change: float  # Change in population variance
@@ -70,6 +74,7 @@ class EvolutionaryRate:
 @dataclass
 class EnergyEfficiencyMetrics:
     """Metrics for energy usage efficiency."""
+
     total_energy_consumed: float
     total_energy_from_food: float
     total_offspring_produced: int
@@ -110,12 +115,12 @@ class EnhancedStatisticsTracker:
 
         # Evolutionary rates (trait_name -> historical values)
         self.trait_history: Dict[str, deque] = {
-            'speed': deque(maxlen=100),
-            'size': deque(maxlen=100),
-            'metabolism': deque(maxlen=100),
-            'vision': deque(maxlen=100),
-            'aggression': deque(maxlen=100),
-            'social_tendency': deque(maxlen=100),
+            "speed": deque(maxlen=100),
+            "size": deque(maxlen=100),
+            "metabolism": deque(maxlen=100),
+            "vision": deque(maxlen=100),
+            "aggression": deque(maxlen=100),
+            "social_tendency": deque(maxlen=100),
         }
 
         # Energy efficiency tracking
@@ -125,15 +130,20 @@ class EnhancedStatisticsTracker:
             total_offspring_produced=0,
             energy_per_offspring=0.0,
             food_to_offspring_ratio=0.0,
-            avg_energy_waste=0.0
+            avg_energy_waste=0.0,
         )
 
         # Death energy tracking (for waste calculation)
         self.total_death_energy_loss: float = 0.0
         self.total_deaths_tracked: int = 0
 
-    def record_frame_snapshot(self, frame: int, fish_list: List['Fish'],
-                             births_this_frame: int = 0, deaths_this_frame: int = 0) -> None:
+    def record_frame_snapshot(
+        self,
+        frame: int,
+        fish_list: List["Fish"],
+        births_this_frame: int = 0,
+        deaths_this_frame: int = 0,
+    ) -> None:
         """Record a snapshot of the current state for time series analysis.
 
         Args:
@@ -156,6 +166,7 @@ class EnhancedStatisticsTracker:
 
         # Count unique algorithms
         from core.algorithms import get_algorithm_index
+
         algorithms = set()
         for f in fish_list:
             if f.genome.behavior_algorithm is not None:
@@ -167,8 +178,12 @@ class EnhancedStatisticsTracker:
         unique_algorithms = len(algorithms)
 
         # Calculate diversity (simple variance-based measure)
-        speed_variance = sum((f.genome.speed_modifier - avg_speed) ** 2 for f in fish_list) / population
-        size_variance = sum((f.genome.size_modifier - avg_size) ** 2 for f in fish_list) / population
+        speed_variance = (
+            sum((f.genome.speed_modifier - avg_speed) ** 2 for f in fish_list) / population
+        )
+        size_variance = (
+            sum((f.genome.size_modifier - avg_size) ** 2 for f in fish_list) / population
+        )
         diversity_score = min(1.0, (speed_variance + size_variance) / 2.0 * 5.0)  # Normalize
 
         # Birth/death rates (per frame)
@@ -188,17 +203,17 @@ class EnhancedStatisticsTracker:
             diversity_score=diversity_score,
             total_energy=total_energy,
             birth_rate=birth_rate,
-            death_rate=death_rate
+            death_rate=death_rate,
         )
 
         self.time_series.append(snapshot)
 
         # Update trait history for evolutionary rate calculation
-        self.trait_history['speed'].append(avg_speed)
-        self.trait_history['size'].append(avg_size)
-        self.trait_history['metabolism'].append(avg_metabolism)
+        self.trait_history["speed"].append(avg_speed)
+        self.trait_history["size"].append(avg_size)
+        self.trait_history["metabolism"].append(avg_metabolism)
 
-    def record_trait_fitness_sample(self, genome: 'Genome') -> None:
+    def record_trait_fitness_sample(self, genome: "Genome") -> None:
         """Record a trait-fitness data point for correlation analysis.
 
         Args:
@@ -207,20 +222,22 @@ class EnhancedStatisticsTracker:
         fitness = genome.fitness_score
 
         # Record various traits
-        self.trait_fitness_data['speed'].append((genome.speed_modifier, fitness))
-        self.trait_fitness_data['size'].append((genome.size_modifier, fitness))
-        self.trait_fitness_data['metabolism'].append((genome.metabolism_rate, fitness))
-        self.trait_fitness_data['vision'].append((genome.vision_range, fitness))
-        self.trait_fitness_data['aggression'].append((genome.aggression, fitness))
-        self.trait_fitness_data['social_tendency'].append((genome.social_tendency, fitness))
-        self.trait_fitness_data['max_energy'].append((genome.max_energy, fitness))
+        self.trait_fitness_data["speed"].append((genome.speed_modifier, fitness))
+        self.trait_fitness_data["size"].append((genome.size_modifier, fitness))
+        self.trait_fitness_data["metabolism"].append((genome.metabolism_rate, fitness))
+        self.trait_fitness_data["vision"].append((genome.vision_range, fitness))
+        self.trait_fitness_data["aggression"].append((genome.aggression, fitness))
+        self.trait_fitness_data["social_tendency"].append((genome.social_tendency, fitness))
+        self.trait_fitness_data["max_energy"].append((genome.max_energy, fitness))
 
         # Limit sample size to prevent memory bloat
         max_samples = 500
         for trait_name in self.trait_fitness_data:
             if len(self.trait_fitness_data[trait_name]) > max_samples:
                 # Keep most recent samples
-                self.trait_fitness_data[trait_name] = self.trait_fitness_data[trait_name][-max_samples:]
+                self.trait_fitness_data[trait_name] = self.trait_fitness_data[trait_name][
+                    -max_samples:
+                ]
 
     def calculate_trait_correlations(self) -> List[TraitCorrelation]:
         """Calculate correlations between traits and fitness.
@@ -243,8 +260,9 @@ class EnhancedStatisticsTracker:
             mean_trait = sum(trait_values) / n
             mean_fitness = sum(fitness_values) / n
 
-            numerator = sum((t - mean_trait) * (f - mean_fitness)
-                          for t, f in zip(trait_values, fitness_values))
+            numerator = sum(
+                (t - mean_trait) * (f - mean_fitness) for t, f in zip(trait_values, fitness_values)
+            )
 
             trait_variance = sum((t - mean_trait) ** 2 for t in trait_values)
             fitness_variance = sum((f - mean_fitness) ** 2 for f in fitness_values)
@@ -258,25 +276,26 @@ class EnhancedStatisticsTracker:
 
             # Calculate p-value (simplified t-test)
             if abs(correlation) > 0.01:
-                t_stat = correlation * math.sqrt((n - 2) / (1 - correlation ** 2))
+                t_stat = correlation * math.sqrt((n - 2) / (1 - correlation**2))
                 # Simplified p-value estimate
                 p_value = max(0.001, 1.0 / (1.0 + abs(t_stat)))
             else:
                 p_value = 1.0
 
-            correlations.append(TraitCorrelation(
-                trait_name=trait_name,
-                correlation=correlation,
-                sample_size=n,
-                p_value=p_value
-            ))
+            correlations.append(
+                TraitCorrelation(
+                    trait_name=trait_name, correlation=correlation, sample_size=n, p_value=p_value
+                )
+            )
 
         # Sort by absolute correlation strength
         correlations.sort(key=lambda x: abs(x.correlation), reverse=True)
 
         return correlations
 
-    def check_for_extinctions(self, frame: int, ecosystem: 'EcosystemManager') -> List[ExtinctionEvent]:
+    def check_for_extinctions(
+        self, frame: int, ecosystem: "EcosystemManager"
+    ) -> List[ExtinctionEvent]:
         """Check if any algorithms have gone extinct.
 
         An algorithm is considered extinct if:
@@ -312,13 +331,13 @@ class EnhancedStatisticsTracker:
                         predation_rate = stats.deaths_predation / stats.total_deaths
 
                         if starvation_rate > 0.6:
-                            cause = 'starvation'
+                            cause = "starvation"
                         elif predation_rate > 0.3:
-                            cause = 'predation'
+                            cause = "predation"
                         else:
-                            cause = 'outcompeted'
+                            cause = "outcompeted"
                     else:
-                        cause = 'unknown'
+                        cause = "unknown"
 
                     extinction = ExtinctionEvent(
                         algorithm_id=algo_id,
@@ -327,7 +346,7 @@ class EnhancedStatisticsTracker:
                         total_births=stats.total_births,
                         total_deaths=stats.total_deaths,
                         avg_lifespan=stats.get_avg_lifespan(),
-                        extinction_cause=cause
+                        extinction_cause=cause,
                     )
 
                     self.extinct_algorithms.append(extinction)
@@ -366,12 +385,16 @@ class EnhancedStatisticsTracker:
                 slope = numerator / denominator
 
             # Calculate variance change
-            first_half = values[:n//2]
-            second_half = values[n//2:]
+            first_half = values[: n // 2]
+            second_half = values[n // 2 :]
 
             if len(first_half) > 1 and len(second_half) > 1:
-                var1 = sum((v - sum(first_half)/len(first_half)) ** 2 for v in first_half) / len(first_half)
-                var2 = sum((v - sum(second_half)/len(second_half)) ** 2 for v in second_half) / len(second_half)
+                var1 = sum((v - sum(first_half) / len(first_half)) ** 2 for v in first_half) / len(
+                    first_half
+                )
+                var2 = sum(
+                    (v - sum(second_half) / len(second_half)) ** 2 for v in second_half
+                ) / len(second_half)
                 variance_change = var2 - var1
             else:
                 variance_change = 0.0
@@ -380,12 +403,14 @@ class EnhancedStatisticsTracker:
             max_slope = 0.01  # Typical maximum slope
             directional_selection = max(-1.0, min(1.0, slope / max_slope))
 
-            rates.append(EvolutionaryRate(
-                trait_name=trait_name,
-                rate_of_change=slope,
-                variance_change=variance_change,
-                directional_selection=directional_selection
-            ))
+            rates.append(
+                EvolutionaryRate(
+                    trait_name=trait_name,
+                    rate_of_change=slope,
+                    variance_change=variance_change,
+                    directional_selection=directional_selection,
+                )
+            )
 
         return rates
 
@@ -416,14 +441,14 @@ class EnhancedStatisticsTracker:
         # Update metrics
         if self.energy_efficiency.total_offspring_produced > 0:
             self.energy_efficiency.energy_per_offspring = (
-                self.energy_efficiency.total_energy_consumed /
-                self.energy_efficiency.total_offspring_produced
+                self.energy_efficiency.total_energy_consumed
+                / self.energy_efficiency.total_offspring_produced
             )
 
         if self.energy_efficiency.total_energy_from_food > 0:
             self.energy_efficiency.food_to_offspring_ratio = (
-                self.energy_efficiency.total_offspring_produced /
-                (self.energy_efficiency.total_energy_from_food / 10.0)  # Normalize by food items
+                self.energy_efficiency.total_offspring_produced
+                / (self.energy_efficiency.total_energy_from_food / 10.0)  # Normalize by food items
             )
 
     def record_death_energy_loss(self, remaining_energy: float) -> None:
@@ -463,14 +488,18 @@ class EnhancedStatisticsTracker:
         diversity_values = [s.diversity_score for s in recent_data]
 
         return {
-            'avg_population': sum(populations) / len(populations),
-            'population_trend': populations[-1] - populations[0] if len(populations) > 1 else 0,
-            'avg_fitness': sum(fitness_values) / len(fitness_values),
-            'fitness_trend': fitness_values[-1] - fitness_values[0] if len(fitness_values) > 1 else 0,
-            'avg_diversity': sum(diversity_values) / len(diversity_values),
-            'diversity_trend': diversity_values[-1] - diversity_values[0] if len(diversity_values) > 1 else 0,
-            'total_births': sum(s.birth_rate for s in recent_data),
-            'total_deaths': sum(s.death_rate for s in recent_data),
+            "avg_population": sum(populations) / len(populations),
+            "population_trend": populations[-1] - populations[0] if len(populations) > 1 else 0,
+            "avg_fitness": sum(fitness_values) / len(fitness_values),
+            "fitness_trend": (
+                fitness_values[-1] - fitness_values[0] if len(fitness_values) > 1 else 0
+            ),
+            "avg_diversity": sum(diversity_values) / len(diversity_values),
+            "diversity_trend": (
+                diversity_values[-1] - diversity_values[0] if len(diversity_values) > 1 else 0
+            ),
+            "total_births": sum(s.birth_rate for s in recent_data),
+            "total_deaths": sum(s.death_rate for s in recent_data),
         }
 
     def get_full_report(self) -> Dict[str, Any]:
@@ -480,41 +509,41 @@ class EnhancedStatisticsTracker:
             Dictionary with all enhanced statistics
         """
         return {
-            'time_series_summary': self.get_time_series_summary(),
-            'trait_correlations': [
+            "time_series_summary": self.get_time_series_summary(),
+            "trait_correlations": [
                 {
-                    'trait': tc.trait_name,
-                    'correlation': tc.correlation,
-                    'sample_size': tc.sample_size,
-                    'p_value': tc.p_value
+                    "trait": tc.trait_name,
+                    "correlation": tc.correlation,
+                    "sample_size": tc.sample_size,
+                    "p_value": tc.p_value,
                 }
                 for tc in self.calculate_trait_correlations()
             ],
-            'extinctions': [
+            "extinctions": [
                 {
-                    'algorithm_name': e.algorithm_name,
-                    'extinction_frame': e.extinction_frame,
-                    'total_births': e.total_births,
-                    'avg_lifespan': e.avg_lifespan,
-                    'cause': e.extinction_cause
+                    "algorithm_name": e.algorithm_name,
+                    "extinction_frame": e.extinction_frame,
+                    "total_births": e.total_births,
+                    "avg_lifespan": e.avg_lifespan,
+                    "cause": e.extinction_cause,
                 }
                 for e in self.extinct_algorithms
             ],
-            'evolutionary_rates': [
+            "evolutionary_rates": [
                 {
-                    'trait': er.trait_name,
-                    'rate_of_change': er.rate_of_change,
-                    'variance_change': er.variance_change,
-                    'directional_selection': er.directional_selection
+                    "trait": er.trait_name,
+                    "rate_of_change": er.rate_of_change,
+                    "variance_change": er.variance_change,
+                    "directional_selection": er.directional_selection,
                 }
                 for er in self.calculate_evolutionary_rates()
             ],
-            'energy_efficiency': {
-                'total_energy_consumed': self.energy_efficiency.total_energy_consumed,
-                'total_energy_from_food': self.energy_efficiency.total_energy_from_food,
-                'total_offspring': self.energy_efficiency.total_offspring_produced,
-                'energy_per_offspring': self.energy_efficiency.energy_per_offspring,
-                'food_to_offspring_ratio': self.energy_efficiency.food_to_offspring_ratio,
-                'avg_energy_waste': self.energy_efficiency.avg_energy_waste,
-            }
+            "energy_efficiency": {
+                "total_energy_consumed": self.energy_efficiency.total_energy_consumed,
+                "total_energy_from_food": self.energy_efficiency.total_energy_from_food,
+                "total_offspring": self.energy_efficiency.total_offspring_produced,
+                "energy_per_offspring": self.energy_efficiency.energy_per_offspring,
+                "food_to_offspring_ratio": self.energy_efficiency.food_to_offspring_ratio,
+                "avg_energy_waste": self.energy_efficiency.avg_energy_waste,
+            },
         }
