@@ -1,11 +1,13 @@
 """Data models for WebSocket communication."""
 
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
 
 
 class EntityData(BaseModel):
     """Represents an entity in the simulation."""
+
     id: int
     type: str  # 'fish', 'food', 'plant', 'crab', 'castle'
     x: float
@@ -32,6 +34,7 @@ class EntityData(BaseModel):
 
 class PokerEventData(BaseModel):
     """A single poker game event."""
+
     frame: int
     winner_id: int  # -1 for tie
     loser_id: int
@@ -41,8 +44,34 @@ class PokerEventData(BaseModel):
     message: str
 
 
+class PokerLeaderboardEntry(BaseModel):
+    """A single entry in the poker leaderboard."""
+
+    rank: int
+    fish_id: int
+    generation: int
+    algorithm: str
+    energy: float
+    age: int
+    total_games: int
+    wins: int
+    losses: int
+    ties: int
+    win_rate: float  # Percentage (0-100)
+    net_energy: float
+    roi: float
+    current_streak: int
+    best_streak: int
+    best_hand: str
+    best_hand_rank: int
+    showdown_win_rate: float  # Percentage (0-100)
+    fold_rate: float  # Percentage (0-100)
+    positional_advantage: float  # Percentage (0-100)
+
+
 class PokerStatsData(BaseModel):
     """Poker game statistics."""
+
     total_games: int
     total_wins: int
     total_losses: int
@@ -77,6 +106,7 @@ class PokerStatsData(BaseModel):
 
 class StatsData(BaseModel):
     """Ecosystem statistics."""
+
     frame: int
     population: int
     generation: int
@@ -94,15 +124,18 @@ class StatsData(BaseModel):
 
 class SimulationUpdate(BaseModel):
     """Complete simulation state update."""
+
     type: str = "update"
     frame: int
     elapsed_time: int
     entities: List[EntityData]
     stats: StatsData
     poker_events: List[PokerEventData] = []
+    poker_leaderboard: List[PokerLeaderboardEntry] = []
 
 
 class Command(BaseModel):
     """Command from client to server."""
-    command: str  # 'add_food', 'pause', 'resume', 'reset'
+
+    command: str  # 'add_food', 'spawn_fish', 'pause', 'resume', 'reset'
     data: Optional[Dict[str, Any]] = None

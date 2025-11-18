@@ -13,14 +13,15 @@ This module contains 10 algorithms focused on avoiding and escaping from predato
 - DistanceKeeper: Maintain safe distance from predators
 """
 
-import random
 import math
-from typing import Tuple
+import random
 from dataclasses import dataclass
+from typing import Tuple
 
-from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-from core.entities import Food, Crab, Fish as FishClass
+from core.algorithms.base import BehaviorAlgorithm
+from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.entities import Crab, Food
+from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -33,18 +34,23 @@ class PanicFlee(BehaviorAlgorithm):
             parameters={
                 "flee_speed": random.uniform(1.2, 1.8),
                 "panic_distance": random.uniform(100, 200),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        predator, distance, escape_dir = self._get_predator_threat(fish, self.parameters["panic_distance"])
+        predator, distance, escape_dir = self._get_predator_threat(
+            fish, self.parameters["panic_distance"]
+        )
         if predator:
-            return escape_dir.x * self.parameters["flee_speed"], escape_dir.y * self.parameters["flee_speed"]
+            return (
+                escape_dir.x * self.parameters["flee_speed"],
+                escape_dir.y * self.parameters["flee_speed"],
+            )
 
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
@@ -66,25 +72,30 @@ class StealthyAvoider(BehaviorAlgorithm):
             parameters={
                 "stealth_speed": random.uniform(0.3, 0.6),
                 "awareness_range": random.uniform(150, 250),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        predator, distance, escape_dir = self._get_predator_threat(fish, self.parameters["awareness_range"])
+        predator, distance, escape_dir = self._get_predator_threat(
+            fish, self.parameters["awareness_range"]
+        )
         if predator:
-            return escape_dir.x * self.parameters["stealth_speed"], escape_dir.y * self.parameters["stealth_speed"]
+            return (
+                escape_dir.x * self.parameters["stealth_speed"],
+                escape_dir.y * self.parameters["stealth_speed"],
+            )
 
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < 0.7:
             nearest_food = self._find_nearest(fish, Food)
             if nearest_food:
-                direction = (nearest_food.pos - fish.pos)
+                direction = nearest_food.pos - fish.pos
                 if direction.length() > 0:
                     direction = direction.normalize()
                     return direction.x * 0.6, direction.y * 0.6
@@ -101,7 +112,7 @@ class FreezeResponse(BehaviorAlgorithm):
             parameters={
                 "freeze_distance": random.uniform(80, 150),
                 "resume_distance": random.uniform(200, 300),
-            }
+            },
         )
         self.is_frozen = False
 
@@ -109,7 +120,7 @@ class FreezeResponse(BehaviorAlgorithm):
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -136,14 +147,14 @@ class ErraticEvader(BehaviorAlgorithm):
                 "evasion_speed": random.uniform(0.8, 1.3),
                 "randomness": random.uniform(0.5, 1.0),
                 "threat_range": random.uniform(100, 180),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -163,7 +174,9 @@ class ErraticEvader(BehaviorAlgorithm):
                 vy = away_dir.y * 0.6 + perp_y * random.uniform(-randomness, randomness)
 
                 # Adjust speed based on proximity - panic more when closer
-                proximity_multiplier = 1.0 + (1.0 - min(distance / self.parameters["threat_range"], 1.0)) * 0.8
+                proximity_multiplier = (
+                    1.0 + (1.0 - min(distance / self.parameters["threat_range"], 1.0)) * 0.8
+                )
 
                 # Try to stay away from edges when fleeing (avoid getting cornered)
                 edge_margin = 80
@@ -178,7 +191,9 @@ class ErraticEvader(BehaviorAlgorithm):
 
                 # Sometimes join nearby fish for group defense
                 if random.random() < 0.2:
-                    allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish]
+                    allies = [
+                        f for f in fish.environment.get_agents_of_type(FishClass) if f != fish
+                    ]
                     if allies:
                         nearest_ally = min(allies, key=lambda f: (f.pos - fish.pos).length())
                         if (nearest_ally.pos - fish.pos).length() < 100:
@@ -186,8 +201,10 @@ class ErraticEvader(BehaviorAlgorithm):
                             vx += ally_dir.x * 0.3
                             vy += ally_dir.y * 0.3
 
-                return vx * self.parameters["evasion_speed"] * proximity_multiplier, \
-                       vy * self.parameters["evasion_speed"] * proximity_multiplier
+                return (
+                    vx * self.parameters["evasion_speed"] * proximity_multiplier,
+                    vy * self.parameters["evasion_speed"] * proximity_multiplier,
+                )
         return 0, 0
 
 
@@ -201,14 +218,14 @@ class VerticalEscaper(BehaviorAlgorithm):
             parameters={
                 "escape_direction": random.choice([-1, 1]),  # -1 for up, 1 for down
                 "escape_speed": random.uniform(1.0, 1.5),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -234,14 +251,14 @@ class GroupDefender(BehaviorAlgorithm):
             parameters={
                 "group_strength": random.uniform(0.6, 1.0),
                 "min_group_distance": random.uniform(30, 80),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 200:
@@ -250,7 +267,10 @@ class GroupDefender(BehaviorAlgorithm):
             if allies:
                 nearest_ally = min(allies, key=lambda f: (f.pos - fish.pos).length())
                 direction = self._safe_normalize(nearest_ally.pos - fish.pos)
-                return direction.x * self.parameters["group_strength"], direction.y * self.parameters["group_strength"]
+                return (
+                    direction.x * self.parameters["group_strength"],
+                    direction.y * self.parameters["group_strength"],
+                )
 
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
@@ -272,7 +292,7 @@ class SpiralEscape(BehaviorAlgorithm):
             parameters={
                 "spiral_rate": random.uniform(0.1, 0.3),
                 "spiral_radius": random.uniform(20, 60),
-            }
+            },
         )
         self.spiral_angle = 0
 
@@ -280,15 +300,19 @@ class SpiralEscape(BehaviorAlgorithm):
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
             self.spiral_angle += self.parameters["spiral_rate"]
             escape_dir = self._safe_normalize(fish.pos - nearest_predator.pos)
             # Rotate the escape direction
-            vx = escape_dir.x * math.cos(self.spiral_angle) - escape_dir.y * math.sin(self.spiral_angle)
-            vy = escape_dir.x * math.sin(self.spiral_angle) + escape_dir.y * math.cos(self.spiral_angle)
+            vx = escape_dir.x * math.cos(self.spiral_angle) - escape_dir.y * math.sin(
+                self.spiral_angle
+            )
+            vy = escape_dir.x * math.sin(self.spiral_angle) + escape_dir.y * math.cos(
+                self.spiral_angle
+            )
             return vx, vy
 
         # Seek food when safe
@@ -309,24 +333,24 @@ class BorderHugger(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="border_hugger",
             parameters={
-                "border_preference": random.choice(['top', 'bottom', 'left', 'right']),
+                "border_preference": random.choice(["top", "bottom", "left", "right"]),
                 "hug_speed": random.uniform(0.7, 1.1),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 180:
-            if self.parameters["border_preference"] == 'top':
+            if self.parameters["border_preference"] == "top":
                 return 0, -self.parameters["hug_speed"]
-            elif self.parameters["border_preference"] == 'bottom':
+            elif self.parameters["border_preference"] == "bottom":
                 return 0, self.parameters["hug_speed"]
-            elif self.parameters["border_preference"] == 'left':
+            elif self.parameters["border_preference"] == "left":
                 return -self.parameters["hug_speed"], 0
             else:  # right
                 return self.parameters["hug_speed"], 0
@@ -351,14 +375,14 @@ class PerpendicularEscape(BehaviorAlgorithm):
             parameters={
                 "escape_speed": random.uniform(1.0, 1.4),
                 "direction_preference": random.choice([-1, 1]),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -366,7 +390,10 @@ class PerpendicularEscape(BehaviorAlgorithm):
             # Perpendicular vector
             perp_x = -to_fish.y * self.parameters["direction_preference"]
             perp_y = to_fish.x * self.parameters["direction_preference"]
-            return perp_x * self.parameters["escape_speed"], perp_y * self.parameters["escape_speed"]
+            return (
+                perp_x * self.parameters["escape_speed"],
+                perp_y * self.parameters["escape_speed"],
+            )
 
         # CRITICAL FIX: Seek food when not fleeing from predators
         energy_ratio = fish.energy / fish.max_energy
@@ -394,14 +421,14 @@ class DistanceKeeper(BehaviorAlgorithm):
                 "safe_distance": random.uniform(120, 200),
                 "approach_speed": random.uniform(0.3, 0.6),
                 "flee_speed": random.uniform(0.8, 1.2),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -419,8 +446,10 @@ class DistanceKeeper(BehaviorAlgorithm):
                 # Too close, flee urgently
                 # Flee speed depends on energy
                 flee_multiplier = max(0.6, energy_ratio)  # Slower when low energy (realistic)
-                return direction.x * self.parameters["flee_speed"] * flee_multiplier, \
-                       direction.y * self.parameters["flee_speed"] * flee_multiplier
+                return (
+                    direction.x * self.parameters["flee_speed"] * flee_multiplier,
+                    direction.y * self.parameters["flee_speed"] * flee_multiplier,
+                )
 
             elif distance < effective_safe_distance:
                 # In the danger zone, maintain distance
@@ -428,8 +457,9 @@ class DistanceKeeper(BehaviorAlgorithm):
                 perp_x, perp_y = -direction.y, direction.x
                 if random.random() > 0.5:
                     perp_x, perp_y = -perp_x, -perp_y
-                return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], \
-                       (direction.y * 0.4 + perp_y * 0.6) * self.parameters["flee_speed"]
+                return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], (
+                    direction.y * 0.4 + perp_y * 0.6
+                ) * self.parameters["flee_speed"]
 
             elif distance > effective_safe_distance * 1.5:
                 # Safe enough - can focus on food if hungry
@@ -439,11 +469,14 @@ class DistanceKeeper(BehaviorAlgorithm):
                         # Food nearby and relatively safe
                         food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
                         # Move toward food but keep an eye on predator
-                        return (food_dir.x * 0.7 + direction.x * 0.3) * 0.8, \
-                               (food_dir.y * 0.7 + direction.y * 0.3) * 0.8
+                        return (food_dir.x * 0.7 + direction.x * 0.3) * 0.8, (
+                            food_dir.y * 0.7 + direction.y * 0.3
+                        ) * 0.8
                 # Otherwise just maintain awareness
-                return direction.x * self.parameters["approach_speed"] * 0.3, \
-                       direction.y * self.parameters["approach_speed"] * 0.3
+                return (
+                    direction.x * self.parameters["approach_speed"] * 0.3,
+                    direction.y * self.parameters["approach_speed"] * 0.3,
+                )
 
         # No predator - search for food
         nearest_food = self._find_nearest(fish, Food)

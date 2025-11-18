@@ -1,11 +1,12 @@
 """Quick test to verify the simulation runs without errors."""
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from simulation_engine import SimulationEngine
 from core import entities
+from simulation_engine import SimulationEngine
 
 
 def test_simulation():
@@ -25,16 +26,18 @@ def test_simulation():
             food_count = len([e for e in sim.entities_list if isinstance(e, entities.Food)])
             if sim.ecosystem:
                 stats = sim.ecosystem.get_summary_stats(sim.entities_list)
-                print(f"Frame {frame:4d}: {fish_count:2d} fish, {food_count:2d} food | "
-                      f"Gen {stats['current_generation']}, "
-                      f"Births: {stats['total_births']}, Deaths: {stats['total_deaths']}")
+                print(
+                    f"Frame {frame:4d}: {fish_count:2d} fish, {food_count:2d} food | "
+                    f"Gen {stats['current_generation']}, "
+                    f"Births: {stats['total_births']}, Deaths: {stats['total_deaths']}"
+                )
 
     print("\nTest completed successfully!")
 
     # Print final stats
     if sim.ecosystem:
         stats = sim.ecosystem.get_summary_stats(sim.entities_list)
-        print(f"\nFinal stats:")
+        print("\nFinal stats:")
         print(f"  Population: {stats['total_population']}")
         print(f"  Births: {stats['total_births']}")
         print(f"  Deaths: {stats['total_deaths']}")

@@ -9,8 +9,8 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from core.genetics import Genome
     from core.entities import LifeStage
+    from core.genetics import Genome
 
 
 class ReproductionComponent:
@@ -43,9 +43,9 @@ class ReproductionComponent:
         self.is_pregnant: bool = False
         self.pregnancy_timer: int = 0
         self.reproduction_cooldown: int = 0
-        self.mate_genome: Optional['Genome'] = None
+        self.mate_genome: Optional[Genome] = None
 
-    def can_reproduce(self, life_stage: 'LifeStage', energy: float) -> bool:
+    def can_reproduce(self, life_stage: "LifeStage", energy: float) -> bool:
         """Check if fish can reproduce.
 
         Args:
@@ -58,15 +58,21 @@ class ReproductionComponent:
         from core.entities import LifeStage
 
         return (
-            life_stage == LifeStage.ADULT and
-            energy >= self.REPRODUCTION_ENERGY_THRESHOLD and
-            self.reproduction_cooldown <= 0 and
-            not self.is_pregnant
+            life_stage == LifeStage.ADULT
+            and energy >= self.REPRODUCTION_ENERGY_THRESHOLD
+            and self.reproduction_cooldown <= 0
+            and not self.is_pregnant
         )
 
-    def calculate_mate_compatibility(self, own_genome: 'Genome', mate_genome: 'Genome',
-                                    own_energy: float, own_max_energy: float,
-                                    mate_energy: float, mate_max_energy: float) -> float:
+    def calculate_mate_compatibility(
+        self,
+        own_genome: "Genome",
+        mate_genome: "Genome",
+        own_energy: float,
+        own_max_energy: float,
+        mate_energy: float,
+        mate_max_energy: float,
+    ) -> float:
         """Calculate compatibility with a potential mate.
 
         Args:
@@ -90,10 +96,16 @@ class ReproductionComponent:
 
         return total_compatibility
 
-    def attempt_mating(self, own_genome: 'Genome', mate_genome: 'Genome',
-                      own_energy: float, own_max_energy: float,
-                      mate_energy: float, mate_max_energy: float,
-                      distance: float) -> bool:
+    def attempt_mating(
+        self,
+        own_genome: "Genome",
+        mate_genome: "Genome",
+        own_energy: float,
+        own_max_energy: float,
+        mate_energy: float,
+        mate_max_energy: float,
+        distance: float,
+    ) -> bool:
         """Attempt to mate with another fish.
 
         Args:
@@ -114,9 +126,7 @@ class ReproductionComponent:
 
         # Calculate mate compatibility (sexual selection)
         total_compatibility = self.calculate_mate_compatibility(
-            own_genome, mate_genome,
-            own_energy, own_max_energy,
-            mate_energy, mate_max_energy
+            own_genome, mate_genome, own_energy, own_max_energy, mate_energy, mate_max_energy
         )
 
         # Mate selection: use compatibility as probability threshold
@@ -157,7 +167,9 @@ class ReproductionComponent:
 
         return False
 
-    def give_birth(self, own_genome: 'Genome', population_stress: float = 0.0) -> tuple['Genome', float]:
+    def give_birth(
+        self, own_genome: "Genome", population_stress: float = 0.0
+    ) -> tuple["Genome", float]:
         """Generate offspring genome from mating.
 
         Args:
@@ -171,9 +183,7 @@ class ReproductionComponent:
 
         if self.mate_genome is not None:
             offspring_genome = Genome.from_parents(
-                own_genome,
-                self.mate_genome,
-                population_stress=population_stress
+                own_genome, self.mate_genome, population_stress=population_stress
             )
         else:
             # Fallback: random genome if no mate stored

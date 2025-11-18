@@ -63,6 +63,11 @@
   color: #fef9c3;
 }
 
+.poker-events__energy-loss {
+  color: #ff4444;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .poker-events {
     padding: 16px;

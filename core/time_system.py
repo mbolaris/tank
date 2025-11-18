@@ -3,8 +3,8 @@
 This module provides time-of-day tracking and related effects.
 """
 
-from typing import Tuple
 import math
+from typing import Tuple
 
 
 class TimeSystem:

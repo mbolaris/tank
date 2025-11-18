@@ -2,30 +2,29 @@
 
 ## Executive Summary
 
-Tank is an advanced artificial life (ALife) ecosystem simulation featuring 48 parametrizable behavior algorithms, neural network brains, genetics, evolution, and emergent population dynamics.
+Tank is an advanced artificial life (ALife) ecosystem simulation featuring parametrizable behavior algorithms, genetics, evolution, and emergent population dynamics.
 
 **Tech Stack:**
 - **Backend**: Python with FastAPI + WebSocket
 - **Frontend**: React 19 + TypeScript + Vite
-- **Simulation**: Pure Python core with optional Pygame visualization
+- **Simulation**: Pure Python core with no UI dependencies
 
 **Code Statistics:**
 - ~6,400 lines of Python simulation logic
-- 61% pure simulation code (no pygame dependencies)
-- 48 behavior algorithms across 8 files
-- Dual execution modes: graphical (pygame) and headless
+- 100% pure simulation code (no visualization dependencies in core)
+- 12+ behavior algorithms across multiple files
+- Dual execution modes: web UI and headless
 
 ## Project Structure
 
 ```
 tank/
-├── core/                          # Pure Python simulation (NO pygame)
-│   ├── entities.py               # Fish, Plant, Crab, Food entities
+├── core/                          # Pure Python simulation (no UI dependencies)
+│   ├── entities.py               # Fish, Plant, Food entities
 │   ├── ecosystem.py              # Population tracking & statistics
 │   ├── genetics.py               # Genome, mutation, crossover
-│   ├── neural_brain.py           # Neural network AI
 │   ├── behavior_algorithms.py   # Algorithm registry
-│   ├── algorithms/               # 48 behavior implementations
+│   ├── algorithms/               # 12+ behavior implementations
 │   │   ├── base.py
 │   │   ├── food_seeking.py
 │   │   ├── predator_avoidance.py
@@ -34,6 +33,8 @@ tank/
 │   │   └── territory.py
 │   ├── environment.py            # Spatial queries
 │   ├── time_system.py            # Day/night cycles
+│   ├── collision_system.py       # Collision detection
+│   ├── simulators/               # Base simulator classes
 │   └── constants.py              # Configuration
 │
 ├── backend/                       # FastAPI WebSocket server
@@ -49,12 +50,6 @@ tank/
 │   │   └── utils/                # renderer.ts
 │   └── package.json
 │
-├── rendering/                     # Pygame sprite adapters
-│   └── sprites.py                # Wrapper sprites for entities
-│
-├── agents.py                      # Legacy pygame wrapper (backward compat)
-├── movement_strategy.py          # Movement behavior strategies
-├── fishtank.py                   # Pygame graphical mode entry point
 ├── simulation_engine.py          # Headless simulation runner
 └── main.py                        # Main entry point
 ```
@@ -63,46 +58,44 @@ tank/
 
 ### 1. Pure Simulation Core (core/)
 
-**Design Goal:** Zero pygame dependencies, fully testable
+**Design Goal:** Zero UI dependencies, fully testable
 
-- **entities.py** (867 LOC): Fish, Plant, Crab, Food, Castle classes
+- **entities.py**: Fish, Plant, Food classes
   - Life cycle management
   - Energy consumption
   - Reproduction logic
   - Age progression
 
-- **genetics.py** (201 LOC): Genetic system
+- **genetics.py**: Genetic system
   - Genome with 7 traits (speed, size, vision, metabolism, fertility, color, lifespan)
   - Mutation with configurable rates
   - Sexual reproduction via crossover
-  - Brain/algorithm inheritance
+  - Algorithm inheritance
 
-- **behavior_algorithms.py** + **algorithms/*** (3,400+ LOC):
-  - 48 parametrizable behavior algorithms
-  - Categories: Food Seeking (12), Predator Avoidance (10), Schooling (10), Energy Management (8), Territory (8)
+- **behavior_algorithms.py** + **algorithms/**:
+  - 12+ parametrizable behavior algorithms
+  - Categories: Food Seeking, Predator Avoidance, Schooling, Energy Management, Territory
   - Each algorithm has tunable parameters that can mutate
   - Performance tracking per algorithm
 
-- **neural_brain.py** (250 LOC): Simple 2-layer neural network
-
-- **ecosystem.py** (678 LOC): Population tracking
+- **ecosystem.py**: Population tracking
   - Per-algorithm statistics
   - Generation statistics
   - Death cause tracking
   - Poker interaction stats
   - Event logging
 
-### 2. Rendering Layer (rendering/)
+- **environment.py**: Spatial queries
+  - Spatial grid for efficient proximity queries
+  - Neighbor finding
+  - Food/mate detection
 
-**Design Goal:** Adapt pure entities to pygame sprites
+- **collision_system.py**: Collision detection
+  - Bounding box (AABB) collision detection
+  - Pure Python implementation
+  - Deterministic results
 
-- **sprites.py**: AgentSprite, FishSprite, CrabSprite, PlantSprite, FoodSprite
-  - Wraps core entities
-  - Handles animation frames
-  - Applies genetic visual traits (color tinting, scaling)
-  - Syncs entity state to visual representation
-
-### 3. Web Backend (backend/)
+### 2. Web Backend (backend/)
 
 **Design Goal:** Real-time web UI via WebSocket
 
@@ -110,7 +103,7 @@ tank/
 - **simulation_runner.py**: Background thread running headless simulation
 - **models.py**: Pydantic models for state serialization
 
-### 4. Web Frontend (frontend/)
+### 3. Web Frontend (frontend/)
 
 **Design Goal:** Modern React-based visualization
 
@@ -121,106 +114,103 @@ tank/
 
 ## Execution Modes
 
-### Graphical Mode (Pygame)
+### Web Mode (Default)
 
-Entry: `fishtank.py`
+Entry: `main.py` (default mode)
+
+```bash
+python main.py
+```
 
 ```
-pygame.init()
+Backend (FastAPI)
   ↓
-FishTankSimulator
-  ├─ setup_game()
+SimulationEngine
+  ├─ setup()
   │   ├─ Create environment
-  │   ├─ Create initial agents (fish, plants, crab)
-  │   └─ Initialize pygame display
+  │   ├─ Create initial population
+  │   └─ Initialize ecosystem manager
   │
-  └─ run() - Main game loop
-      ├─ handle_events() - User input (SPACE: spawn food, P: pause, H: toggle HUD)
-      ├─ update() - Simulation tick
-      │   ├─ Update time system (day/night)
-      │   ├─ Update all agents
-      │   ├─ Handle collisions
-      │   ├─ Handle reproduction
-      │   └─ Update ecosystem stats
-      │
-      ├─ render() - Draw to screen
-      │   ├─ Fill background
-      │   ├─ Apply day/night tint
-      │   ├─ Draw all sprites
-      │   ├─ Draw health bars (if HUD enabled)
-      │   └─ Draw stats panel
-      │
-      └─ clock.tick(30) - Cap at 30 FPS
+  └─ update() - Simulation tick (called continuously)
+      ├─ Update time system (day/night)
+      ├─ Update all entities
+      ├─ Handle collisions
+      ├─ Handle reproduction
+      ├─ Update ecosystem stats
+      └─ Send state via WebSocket
+            ↓
+React Frontend (Canvas)
+  ├─ Render fish, plants, food
+  ├─ Display stats panel
+  └─ Handle user interactions
 ```
 
 ### Headless Mode
 
-Entry: `simulation_engine.py`
+Entry: `main.py --headless`
+
+```bash
+python main.py --headless --max-frames 10000
+```
 
 - No rendering overhead
 - Runs simulation-only logic
-- Used by web backend
-- Ideal for batch experiments
-
-### Web Mode
-
-Entry: `backend/main.py` + `frontend/`
-
-- Backend runs headless simulation
-- State serialized to JSON via WebSocket
-- Frontend renders on HTML canvas
-- Modern React UI with controls
+- Stats printed to console
+- 10-300x faster than realtime
+- Ideal for batch experiments and testing
 
 ## Key Algorithms
 
-### 48 Behavior Algorithms
+### Behavior Algorithms
 
-**Food Seeking (12 algorithms):**
+**Food Seeking:**
 1. GreedyFoodSeeker - Always move toward nearest food
 2. EnergyAwareFoodSeeker - Seek food only when energy is low
 3. OpportunisticFeeder - Balance exploration and exploitation
-4. FoodQualityOptimizer - Prefer high-value food
-5. AmbushFeeder - Wait for food to come close
-6. PatrolFeeder - Follow patrol routes
-7. SurfaceSkimmer - Stay near surface
-8. BottomFeeder - Stay near bottom
-9. ZigZagForager - Search in zigzag pattern
-10. CircularHunter - Circle while searching
-11. FoodMemorySeeker - Remember food locations
-12. CooperativeForager - Share food information
+4. And more...
 
-**Predator Avoidance (10 algorithms):**
-13-22. Various escape strategies (panic, stealth, freeze, spiral, etc.)
+**Predator Avoidance:**
+- PanicEscape - Flee from threats
+- StealthAvoidance - Subtle evasion
+- FreezeResponse - Stop when threatened
+- And more...
 
-**Schooling/Social (10 algorithms):**
-23-32. Flocking behaviors (alignment, cohesion, separation, etc.)
+**Schooling/Social:**
+- Boid-based flocking behaviors
+- Alignment, cohesion, separation
+- Leader following
+- And more...
 
-**Energy Management (8 algorithms):**
-33-40. Energy conservation strategies (burst swimming, resting, balancing, etc.)
+**Energy Management:**
+- Burst swimming
+- Resting strategies
+- Energy balancing
+- And more...
 
-**Territory/Exploration (8 algorithms):**
-41-48. Movement patterns (territorial, random, wall following, etc.)
+**Territory/Exploration:**
+- Territorial behavior
+- Random wandering
+- Wall following
+- And more...
 
 ### Movement Strategies
 
-- **NeuralMovement**: Neural network controls velocity
 - **AlgorithmicMovement**: Behavior algorithm controls velocity
-- **SoloFishMovement**: Hand-coded rule-based AI
-- **SchoolingFishMovement**: Boids-like flocking
+- **ConstantVelocityMovement**: Simple linear movement
+- **StaticMovement**: No movement (plants)
 
 ## Statistics Tracked
 
 ### Per Fish
 - ID, generation, age
 - Energy (current/max)
-- Life stage (Baby/Juvenile/Adult/Elder)
-- Genome (all 7 traits + brain/algorithm)
+- Genome (all 7 traits + algorithm)
 - Position, velocity
 - Size (affected by nutrition)
 
 ### Per Algorithm
 - Total births/deaths
-- Deaths by cause (starvation, old age, predation)
+- Deaths by cause (starvation, old age)
 - Current population
 - Average lifespan
 - Survival rate
@@ -239,34 +229,78 @@ Entry: `backend/main.py` + `frontend/`
 - Total births/deaths
 - Current generation
 - Death causes histogram
-- Event log (last 1000 events)
+- Event log (recent events)
 
-## Separation of Concerns Status
+## Design Patterns
 
-### ✓ Already Separated
+### Template Method Pattern
+`BaseSimulator` defines the simulation algorithm skeleton:
+- `handle_collisions()`: Collision detection and response
+- `handle_reproduction()`: Mating and offspring creation
+- `spawn_auto_food()`: Automatic food generation
+- Subclasses implement specific methods like `check_collision()`
+
+### Strategy Pattern
+Different movement strategies for entities:
+- `AlgorithmicMovement`: Uses genetic algorithm for behavior
+- `ConstantVelocityMovement`: Simple linear movement
+- `StaticMovement`: No movement (plants)
+
+### Component-Based Architecture
+Fish behavior is modular:
+- Energy system
+- Reproduction system
+- Memory system
+- Movement system
+
+## Separation of Concerns
+
+### ✓ Fully Separated
 - Pure entity logic in `core/entities.py`
 - Pure genetics in `core/genetics.py`
 - Pure ecosystem tracking in `core/ecosystem.py`
-- All 48 algorithms are pure Python
-- Neural brain is mostly pure
+- All algorithms are pure Python
 - Time system is pure
-- Sprite adapters in `rendering/sprites.py`
+- Collision system is pure
+- Environment system is pure
+- Simulation core has zero UI dependencies
 
-### ⚠ Remaining Coupling
-- **agents.py**: Backward compatibility wrapper (wraps core entities with pygame sprites)
-- **movement_strategy.py**: Uses `pygame.sprite.collide_rect()`
-- **fishtank.py**: Game loop mixes simulation and rendering
+### Architecture Benefits
+1. **Testability**: Pure Python simulation can be tested independently
+2. **Performance**: Headless mode runs much faster
+3. **Flexibility**: Can add new visualization layers easily
+4. **Maintainability**: Clear separation of concerns
 
-### Future Improvements
-1. Complete migration away from `agents.py` wrapper
-2. Abstract collision detection (remove pygame dependency from movement)
-3. Further separate game loop from rendering logic
-4. Add more comprehensive tests for pure simulation
+## Key Features
+
+### Genetic Evolution
+- Fish inherit traits from parents with mutation
+- 12+ behavior algorithms compete for survival
+- Natural selection based on survival and reproduction
+- Genetic diversity tracking
+
+### Energy System
+- Fish consume energy over time
+- Gain energy from eating food
+- Poker games transfer energy between fish
+- Death when energy reaches zero
+
+### Reproduction System
+- Fish must find compatible mates
+- Cooldown periods prevent overpopulation
+- Offspring inherit mixed parental traits
+- Population cap management
+
+### Poker System
+- Fish "play poker" when they collide
+- Winner gains energy from loser
+- Hand rankings determine outcomes
+- 5% house cut on energy transfers
 
 ## References
 
-- Main README: See `README.md`
+- Main README: See `../README.md`
 - Deployment: See `DEPLOYMENT_GUIDE.md`
 - Algorithmic Evolution: See `ALGORITHMIC_EVOLUTION.md`
 - Headless Mode: See `HEADLESS_MODE.md`
-- Separation Guide: See `SEPARATION_GUIDE.md`
+- Cleanup Analysis: See `CLEANUP_ANALYSIS.md` (historical)

@@ -8,8 +8,8 @@ This module enables fish to signal information to nearby fish, including:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, TYPE_CHECKING
 from enum import Enum
+from typing import TYPE_CHECKING, List, Optional
 
 from core.math_utils import Vector2
 
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 class SignalType(Enum):
     """Types of signals fish can send."""
+
     DANGER_WARNING = "danger_warning"  # Predator nearby
     FOOD_FOUND = "food_found"  # Found food source
     MATING_CALL = "mating_call"  # Looking for mate
@@ -40,6 +41,7 @@ class Signal:
         timestamp: When signal was created
         metadata: Additional information
     """
+
     signal_type: SignalType
     sender_pos: Vector2
     target_location: Optional[Vector2] = None
@@ -87,10 +89,15 @@ class FishCommunicationSystem:
         self.decay_rate = decay_rate
         self.current_frame = 0
 
-    def broadcast_signal(self, signal_type: SignalType, sender_pos: Vector2,
-                        target_location: Optional[Vector2] = None,
-                        strength: float = 1.0, urgency: float = 0.5,
-                        metadata: Optional[dict] = None):
+    def broadcast_signal(
+        self,
+        signal_type: SignalType,
+        sender_pos: Vector2,
+        target_location: Optional[Vector2] = None,
+        strength: float = 1.0,
+        urgency: float = 0.5,
+        metadata: Optional[dict] = None,
+    ):
         """Broadcast a signal.
 
         Args:
@@ -108,7 +115,7 @@ class FishCommunicationSystem:
             strength=strength,
             urgency=urgency,
             timestamp=self.current_frame,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         self.active_signals.append(signal)
@@ -117,10 +124,14 @@ class FishCommunicationSystem:
         if len(self.active_signals) > self.max_signals:
             # Remove oldest/weakest signals
             self.active_signals.sort(key=lambda s: (s.strength, -s.timestamp))
-            self.active_signals = self.active_signals[-self.max_signals:]
+            self.active_signals = self.active_signals[-self.max_signals :]
 
-    def get_nearby_signals(self, position: Vector2, signal_type: Optional[SignalType] = None,
-                          max_distance: Optional[float] = None) -> List[Signal]:
+    def get_nearby_signals(
+        self,
+        position: Vector2,
+        signal_type: Optional[SignalType] = None,
+        max_distance: Optional[float] = None,
+    ) -> List[Signal]:
         """Get signals near a position.
 
         Args:
@@ -149,8 +160,9 @@ class FishCommunicationSystem:
         nearby.sort(key=lambda s: (s.sender_pos - position).length())
         return nearby
 
-    def get_strongest_signal(self, position: Vector2,
-                            signal_type: Optional[SignalType] = None) -> Optional[Signal]:
+    def get_strongest_signal(
+        self, position: Vector2, signal_type: Optional[SignalType] = None
+    ) -> Optional[Signal]:
         """Get strongest signal near a position.
 
         Args:
@@ -194,10 +206,7 @@ class FishCommunicationSystem:
             signal_type: Type to clear, or None to clear all
         """
         if signal_type:
-            self.active_signals = [
-                s for s in self.active_signals
-                if s.signal_type != signal_type
-            ]
+            self.active_signals = [s for s in self.active_signals if s.signal_type != signal_type]
         else:
             self.active_signals = []
 
@@ -215,7 +224,7 @@ class FishCommunicationSystem:
         return len(self.active_signals)
 
 
-def fish_should_respond_to_signal(fish: 'Fish', signal: Signal) -> bool:
+def fish_should_respond_to_signal(fish: "Fish", signal: Signal) -> bool:
     """Determine if a fish should respond to a signal.
 
     Args:

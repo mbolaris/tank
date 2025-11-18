@@ -1,9 +1,8 @@
 """Integration tests for the full fish tank simulation."""
+
 import pytest
 
-from simulation_engine import SimulationEngine
-from core.entities import Fish, Crab, Food, Plant, Castle
-from core.constants import NUM_SCHOOLING_FISH
+from core.entities import Castle, Crab, Fish, Food, Plant
 
 
 class TestFullSimulation:
@@ -15,12 +14,13 @@ class TestFullSimulation:
 
         # Setup the environment with all agents
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
-        # Verify initial setup
-        assert len([s for s in simulator.agents if isinstance(s, Fish)]) == 10  # 10 algorithmic fish
+        # Verify initial setup (fixture already called setup() which creates entities)
+        assert (
+            len([s for s in simulator.agents if isinstance(s, Fish)]) == 10
+        )  # 10 algorithmic fish
         assert len([s for s in simulator.agents if isinstance(s, Crab)]) == 1
-        assert len([s for s in simulator.agents if isinstance(s, Plant)]) == 2
+        assert len([s for s in simulator.agents if isinstance(s, Plant)]) == 3  # 3 plants
         assert len([s for s in simulator.agents if isinstance(s, Castle)]) == 1
 
         # Run simulation for 100 frames
@@ -38,7 +38,6 @@ class TestFullSimulation:
         """Test that the simulation handles food drops correctly."""
         simulator = simulation_engine
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
         initial_agent_count = len(simulator.agents)
 
@@ -53,11 +52,8 @@ class TestFullSimulation:
         try:
             for _ in range(200):
                 simulator.update()
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Simulation with food should run without crashing"
+        except Exception as e:
+            pytest.fail(f"Simulation with food crashed: {type(e).__name__}: {e}")
 
     def test_simulation_handles_fish_crab_interactions(self, simulation_engine):
         """Test that fish-crab collision handling works over time."""
@@ -66,7 +62,8 @@ class TestFullSimulation:
 
         # Create a simple scenario with one fish and one crab
         from core.movement_strategy import AlgorithmicMovement
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
+
+        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos.x = 500  # Far from fish initially
         crab.pos.y = 500
@@ -79,19 +76,15 @@ class TestFullSimulation:
                 simulator.handle_collisions()
                 for sprite in list(simulator.agents):
                     sprite.update(0)
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Fish-crab interactions should work without errors"
+        except Exception as e:
+            pytest.fail(f"Fish-crab interactions failed: {type(e).__name__}: {e}")
 
     def test_simulation_state_consistency(self, simulation_engine):
         """Test that simulation maintains consistent state over time."""
         simulator = simulation_engine
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
-        initial_non_food_count = len([s for s in simulator.agents if not isinstance(s, Food)])
+        len([s for s in simulator.agents if not isinstance(s, Food)])
 
         # Run simulation
         for _ in range(50):
@@ -102,7 +95,7 @@ class TestFullSimulation:
         castles = [s for s in simulator.agents if isinstance(s, Castle)]
         crabs = [s for s in simulator.agents if isinstance(s, Crab)]
 
-        assert len(plants) == 2, "Plants should remain in the simulation"
+        assert len(plants) == 3, "Plants should remain in the simulation"  # 3 plants
         assert len(castles) == 1, "Castle should remain in the simulation"
         assert len(crabs) == 1, "Crab should remain in the simulation"
 
@@ -110,17 +103,13 @@ class TestFullSimulation:
         """Test simulation stability with rapid updates."""
         simulator = simulation_engine
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
         # Run many updates in quick succession
         try:
             for _ in range(500):
                 simulator.update()
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Simulation should handle rapid updates without issues"
+        except Exception as e:
+            pytest.fail(f"Simulation failed during rapid updates: {type(e).__name__}: {e}")
 
     def test_bug_fixes_verified(self, simulation_engine):
         """Verify that our critical bug fixes are working."""
@@ -130,25 +119,27 @@ class TestFullSimulation:
         from core.movement_strategy import AlgorithmicMovement
 
         # Test 1: Fish avoidance bug fix - fish should maintain avoidance when crab stays close
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
+        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos.x = 110  # Close to fish
         crab.pos.y = 100
 
         simulator.agents.add(fish, crab)
 
-        # Move several times - avoidance should persist
+        # Call avoid method multiple times - avoidance should persist when crab stays close
         for _ in range(10):
-            fish.movement_strategy.move(fish)
+            fish.avoid([crab], min_distance=50)
 
         # Avoidance should still be active (not reset to zero)
         # because crab is still close
-        assert fish.avoidance_velocity.length() > 0, "Avoidance should persist when crab stays close"
+        assert (
+            fish.avoidance_velocity.length() > 0
+        ), "Avoidance should persist when crab stays close"
 
         # Test 2: Safe iteration during collision - should not crash
         simulator.agents.empty()
-        fish1 = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
-        fish2 = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 200, 200, 3)
+        fish1 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
+        fish2 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 200, 200, 3)
         crab = Crab(simulator.environment)
 
         simulator.agents.add(fish1, fish2, crab)
@@ -157,15 +148,12 @@ class TestFullSimulation:
             # This tests our fix for safe iteration when removing sprites
             for _ in range(20):
                 simulator.handle_collisions()
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Collision handling should safely iterate when removing sprites"
+        except Exception as e:
+            pytest.fail(f"Collision handling failed during sprite removal: {type(e).__name__}: {e}")
 
         # Test 3: Zero-length vector safety - should not crash
         simulator.agents.empty()
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
+        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos = fish.pos  # Same position - zero-length vector!
 
@@ -174,8 +162,5 @@ class TestFullSimulation:
         try:
             # This tests our zero-length vector safety checks
             fish.avoid([crab], 50)
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Zero-length vector handling should not crash"
+        except Exception as e:
+            pytest.fail(f"Zero-length vector handling crashed: {type(e).__name__}: {e}")

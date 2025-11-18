@@ -6,16 +6,17 @@ Separating energy logic into its own component improves code organization and te
 """
 
 from typing import TYPE_CHECKING
-from core.math_utils import Vector2
+
 from core.constants import (
-    INITIAL_ENERGY_RATIO,
     BABY_METABOLISM_MULTIPLIER,
-    ELDER_METABOLISM_MULTIPLIER,
-    STARVATION_THRESHOLD,
     CRITICAL_ENERGY_THRESHOLD,
+    ELDER_METABOLISM_MULTIPLIER,
+    INITIAL_ENERGY_RATIO,
     LOW_ENERGY_THRESHOLD,
-    SAFE_ENERGY_THRESHOLD
+    SAFE_ENERGY_THRESHOLD,
+    STARVATION_THRESHOLD,
 )
+from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.entities import LifeStage
@@ -45,8 +46,12 @@ class EnergyComponent:
     SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns (reduced from 0.08)
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
-    def __init__(self, max_energy: float, base_metabolism: float,
-                 initial_energy_ratio: float = INITIAL_ENERGY_RATIO):
+    def __init__(
+        self,
+        max_energy: float,
+        base_metabolism: float,
+        initial_energy_ratio: float = INITIAL_ENERGY_RATIO,
+    ):
         """Initialize the energy component.
 
         Args:
@@ -58,32 +63,40 @@ class EnergyComponent:
         self.base_metabolism = base_metabolism
         self.energy = max_energy * initial_energy_ratio
 
-    def consume_energy(self, velocity: Vector2, speed: float, life_stage: 'LifeStage',
-                      time_modifier: float = 1.0) -> None:
+    def consume_energy(
+        self,
+        velocity: Vector2,
+        speed: float,
+        life_stage: "LifeStage",
+        time_modifier: float = 1.0,
+        size: float = 1.0,
+    ) -> None:
         """Consume energy based on metabolism and activity.
 
         Energy consumption includes:
         - Existence cost: Fixed cost for being alive
         - Metabolic cost: Base metabolism adjusted by genetics and life stage
         - Movement cost: Based on current velocity and speed
+        - Size scaling: Larger fish consume more energy
 
         Args:
             velocity: Current velocity vector of the fish
             speed: Maximum speed of the fish
             life_stage: Current life stage (affects metabolism)
             time_modifier: Time-based modifier (e.g., for day/night cycles)
+            size: Body size multiplier (0.5 for baby, 1.0 for adult)
         """
         from core.entities import LifeStage
 
-        # Existence cost - flat rate for just being alive
-        total_cost = self.EXISTENCE_ENERGY_COST * time_modifier
+        # Existence cost - scales with body size (larger fish need more energy to exist)
+        total_cost = self.EXISTENCE_ENERGY_COST * time_modifier * size
 
         # Base metabolism (affected by genes and life stage)
         metabolism = self.base_metabolism * time_modifier
 
-        # Additional cost for movement
+        # Additional cost for movement - scales with body size (larger fish use more energy to move)
         if velocity.length() > 0:
-            movement_cost = self.MOVEMENT_ENERGY_COST * velocity.length() / speed
+            movement_cost = self.MOVEMENT_ENERGY_COST * velocity.length() / speed * size
             metabolism += movement_cost
 
         # Apply life stage modifiers to metabolism (not existence cost)

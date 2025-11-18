@@ -1,11 +1,13 @@
 """FastAPI backend for fish tank simulation."""
 
 import asyncio
+import json
 import logging
 import sys
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from contextlib import asynccontextmanager
 from typing import Set
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,9 +17,10 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.constants import FRAME_RATE
-from simulation_runner import SimulationRunner
 from models import Command
+from simulation_runner import SimulationRunner
+
+from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
 # Global simulation runner
 simulation = SimulationRunner()
@@ -43,10 +46,8 @@ async def lifespan(app: FastAPI):
     logger.info("Stopping simulation...")
     simulation.stop()
     broadcast_task.cancel()
-    try:
+    with suppress(asyncio.CancelledError):
         await broadcast_task
-    except asyncio.CancelledError:
-        pass
     logger.info("Simulation stopped!")
 
 
@@ -92,26 +93,27 @@ async def broadcast_updates():
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return JSONResponse({
-        "message": "Fish Tank Simulation API",
-        "version": "1.0.0",
-        "endpoints": {
-            "websocket": "/ws",
-            "health": "/health"
+    return JSONResponse(
+        {
+            "message": "Fish Tank Simulation API",
+            "version": "1.0.0",
+            "endpoints": {"websocket": "/ws", "health": "/health"},
         }
-    })
+    )
 
 
 @app.get("/health")
 async def health():
     """Health check endpoint."""
     stats = simulation.get_state()
-    return JSONResponse({
-        "status": "healthy",
-        "simulation_running": simulation.running,
-        "frame": stats.frame,
-        "population": stats.stats.population
-    })
+    return JSONResponse(
+        {
+            "status": "healthy",
+            "simulation_running": simulation.running,
+            "frame": stats.frame,
+            "population": stats.stats.population,
+        }
+    )
 
 
 @app.websocket("/ws")
@@ -136,18 +138,13 @@ async def websocket_endpoint(websocket: WebSocket):
                 simulation.handle_command(command.command, command.data)
 
                 # Send acknowledgment
-                await websocket.send_json({
-                    "type": "ack",
-                    "command": command.command,
-                    "status": "success"
-                })
+                await websocket.send_json(
+                    {"type": "ack", "command": command.command, "status": "success"}
+                )
 
             except Exception as e:
                 # Send error response
-                await websocket.send_json({
-                    "type": "error",
-                    "message": str(e)
-                })
+                await websocket.send_json({"type": "error", "message": str(e)})
 
     except WebSocketDisconnect:
         logger.info(f"Client disconnected. Total clients: {len(connected_clients) - 1}")
@@ -157,4 +154,5 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT)

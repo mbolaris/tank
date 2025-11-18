@@ -1,20 +1,19 @@
 # 🐠 Artificial Life Fish Tank Simulation
 
-An advanced artificial life ecosystem simulation featuring **48 parametrizable behavior algorithms**, **neural network brains**, genetics, evolution, energy systems, and emergent population dynamics with a **React-based web UI**.
+An advanced artificial life ecosystem simulation featuring **48 parametrizable behavior algorithms**, genetics, evolution, energy systems, and emergent population dynamics with a **React-based web UI**.
 
 ## 🎯 Overview
 
-This is a **cutting-edge ALife simulation** with a modern web interface that demonstrates complex ecosystem behaviors, **algorithmic evolution**, **neuroevolution**, and competitive dynamics. Fish can evolve with different AI systems including parametrizable algorithms, neural networks, or rule-based behavior. The simulation features:
+This is a **cutting-edge ALife simulation** with a modern web interface that demonstrates complex ecosystem behaviors through **algorithmic evolution** and competitive dynamics. Fish evolve diverse survival strategies through genetic algorithms, with each fish inheriting and mutating behavior algorithms across generations. The simulation features:
 
-- 🧬 **ALGORITHMIC EVOLUTION** - 48 unique parametrizable behavior strategies!
-- 🧠 **Neural Network Brains** - Fish with evolving AI that learn survival strategies
+- 🧬 **ALGORITHMIC EVOLUTION** - 48 unique parametrizable behavior strategies that evolve!
 - 🦀 **Balanced Predator-Prey** - Crabs hunt fish with realistic hunting mechanics
-- 🐠 **Multiple Competing Species** - Algorithmic vs Neural vs Rule-based AI
-- 🧬 **Genetic Evolution** - Traits, algorithms, AND brains evolve across generations
+- 🔬 **Genetic Evolution** - Traits and algorithms evolve across generations
 - 🌐 **Modern Web UI** - React-based interface with real-time visualization
-- 📊 **Live Statistics** - Watch population dynamics and genetics evolve
+- 📊 **Live Statistics & LLM Export** - Track evolution and export data for AI analysis
 - 🌍 **Rich Ecosystem** - Day/night cycles, living plants, population dynamics
 - 🎴 **Poker Minigame** - Fish can play poker against each other for energy!
+- ⚡ **Headless Mode** - Run 10-300x faster for data collection and testing
 
 ## 🌟 **Key Features**
 
@@ -44,15 +43,6 @@ The simulation features **48 parametrizable behavior algorithms** that fish can 
 - `TerritorialDefender` - Defend territory from intruders
 - ...and 42 more!
 
-### 🧠 **Neural Network Brains**
-Fish can have **evolving neural network brains** that control their behavior:
-
-- **Architecture**: 12 inputs → 8 hidden neurons → 2 outputs (velocity X/Y)
-- **Inputs**: Distance/angle to food, allies, predators, energy level, speed, life stage
-- **Outputs**: Desired swimming direction
-- **Evolution**: Neural weights inherit from parents with mutation
-- **Learning**: Better brains survive and reproduce, improving over generations
-
 ### 🎴 **Fish Poker Minigame**
 Fish can play poker against each other for energy rewards!
 
@@ -62,15 +52,14 @@ Fish can play poker against each other for energy rewards!
 - **Live Events**: See poker games happen in real-time in the UI
 - **Statistics**: Track total games, wins/losses, best hands
 
-### 🐠 **Multiple Competing Species**
-The ecosystem supports **4 different AI approaches** competing for resources:
+### 🧬 **Pure Algorithmic Evolution**
+The ecosystem focuses on **algorithmic evolution** with all fish competing using parametrizable behavior algorithms:
 
-1. **Algorithmic Fish** - 48 different parametrizable behavior algorithms
-2. **Neural Schooling Fish** - AI-controlled with evolving neural network brains
-3. **Traditional Schooling Fish** - Rule-based flocking behavior
-4. **Solo Fish** - Rule-based AI, traditional behavior
-
-**Competition**: All species compete for the same food, creating evolutionary pressure for better strategies!
+- **48 Different Algorithms** across 5 categories (food seeking, predator avoidance, schooling, energy management, territory)
+- **Parameter Tuning**: Each algorithm has parameters that mutate during reproduction
+- **Natural Selection**: Better algorithms survive and reproduce, spreading through the population
+- **High Interpretability**: Unlike black-box neural networks, algorithm behaviors are clear and analyzable
+- **Competition**: All fish compete for the same resources, creating evolutionary pressure for optimal strategies
 
 ### 🌐 **Modern Web UI**
 Built with **React + FastAPI + WebSocket**:
@@ -123,6 +112,9 @@ python main.py --headless --max-frames 100000 --stats-interval 3000
 
 # Deterministic simulation (for testing)
 python main.py --headless --max-frames 1000 --seed 42
+
+# Export comprehensive stats for LLM analysis
+python main.py --headless --max-frames 10000 --export-stats results.json
 ```
 
 **Benefits of headless mode:**
@@ -130,12 +122,14 @@ python main.py --headless --max-frames 1000 --seed 42
 - Perfect for data collection and long simulations
 - No display required
 - Identical simulation behavior to web UI
+- **LLM-friendly stats export**: Export comprehensive JSON data including algorithm performance, evolution trends, and population dynamics for AI-assisted analysis
 
 ## 📁 Project Structure
 
 ```
 tank/
 ├── main.py                  # Entry point (web server or headless)
+├── tank_world.py            # TankWorld wrapper with config & RNG management
 ├── simulation_engine.py     # Core headless simulation engine
 ├── backend/                 # FastAPI backend
 │   ├── main.py             # WebSocket server
@@ -148,20 +142,33 @@ tank/
 │   │   └── utils/          # Rendering utilities
 │   └── package.json
 ├── core/                   # Shared simulation logic
-│   ├── entities.py         # Fish, Plant, Food, Crab, Castle
+│   ├── entities.py         # Fish, Plant, Food, Crab entities
 │   ├── genetics.py         # Genome system & inheritance
-│   ├── neural_brain.py     # Neural network brain system
 │   ├── ecosystem.py        # Population tracking & statistics
+│   ├── enhanced_statistics.py # Comprehensive stats for LLM export
 │   ├── time_system.py      # Day/night cycle management
-│   ├── environment.py      # Spatial queries
-│   ├── movement_strategy.py # Fish movement behaviors
+│   ├── environment.py      # Spatial queries & collision detection
+│   ├── movement_strategy.py # AlgorithmicMovement implementation
 │   ├── fish_poker.py       # Poker minigame system
-│   ├── behavior_algorithms.py # 48 parametrizable algorithms
+│   ├── algorithms/         # Behavior algorithm library
+│   │   ├── food_seeking.py # 12 food-seeking algorithms
+│   │   ├── predator_avoidance.py # 10 predator avoidance algorithms
+│   │   ├── schooling.py    # 10 schooling algorithms
+│   │   ├── energy_management.py # 8 energy management algorithms
+│   │   └── territory.py    # 8 territory/exploration algorithms
 │   └── constants.py        # Configuration parameters
 ├── tests/                  # Test suite
 │   ├── test_simulation.py  # Integration test
 │   ├── test_parity.py      # Determinism test
 │   └── ...
+├── docs/                   # Additional documentation
+│   ├── ARCHITECTURE.md     # Architecture details
+│   ├── ALGORITHMIC_EVOLUTION.md # Algorithm evolution guide
+│   ├── DEPLOYMENT_GUIDE.md # Deployment instructions
+│   └── HEADLESS_MODE.md    # Headless mode documentation
+├── BEHAVIOR_DEVELOPMENT_GUIDE.md # Guide for creating behaviors
+├── EVOLUTION_EXAMPLE.md    # Example evolution scenarios
+├── QUICK_REFERENCE.md      # Quick command reference
 └── README.md               # This file
 ```
 
@@ -216,11 +223,12 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Generation transitions**: Continuous evolution across generations
 - **Energy flow**: Plants → Food → Fish → Predators
 
-### Neuroevolution in Action
-- **Neural fish**: Learn to avoid predators over generations
-- **Trait selection**: Better brains = more offspring
-- **Competitive dynamics**: Neural vs traditional AI competing
-- **Emergent strategies**: Fish discover optimal foraging patterns
+### Algorithmic Evolution in Action
+- **Algorithm diversity**: Population develops mix of strategies over time
+- **Trait selection**: Better algorithms = more offspring
+- **Parameter optimization**: Algorithm parameters fine-tune through mutation
+- **Emergent strategies**: Fish discover optimal foraging and survival patterns
+- **Performance tracking**: Stats export shows which algorithms dominate
 
 ### Poker Economy
 - **Energy redistribution**: Poker transfers energy between fish
@@ -236,27 +244,23 @@ MAX_FOOD_CAPACITY = 8  # per plant
 ## 🧬 Genetics & Evolution
 
 ### Heritable Traits
-- Speed modifier (swimming speed)
-- Size modifier (visual size)
-- Vision range (detection radius)
-- Metabolism rate (energy consumption)
-- Max energy (stamina and lifespan)
-- Fertility (reproduction rate)
-- Visual traits (body shape, fin size, tail size, pattern)
-- Behavior algorithm (48 choices)
-- Neural network brain (optional)
+- **Physical traits**: Speed, size, vision range, metabolism, max energy, fertility
+- **Visual traits**: Body shape, fin size, tail size, color pattern
+- **Behavior algorithm**: One of 48 parametrizable algorithms (inherited from parent)
+- **Algorithm parameters**: Tunable values that control algorithm behavior
 
 ### Mutation
-- Small random variations during reproduction
-- Parameter tuning for algorithms
-- Weight mutations for neural networks
-- Visual trait variations
+- **Trait mutations**: Small random variations in physical traits during reproduction
+- **Parameter tuning**: Algorithm parameters mutate slightly to explore nearby strategies
+- **Algorithm switching**: Rare mutations can change to a completely different algorithm
+- **Visual variations**: Color and shape traits evolve independently
 
 ### Natural Selection
-- Fish with better-adapted genetics survive longer
-- Better algorithms and brains reproduce more
-- Weak strategies are selected out
-- Population evolves over generations
+- **Survival pressure**: Fish with better-adapted genetics survive longer
+- **Reproductive success**: Better algorithms reproduce more, spreading through population
+- **Competition**: Limited food creates selection pressure for efficient foraging
+- **Generational evolution**: Population average fitness improves over time
+- **Algorithm diversity**: Multiple successful strategies can coexist
 
 ## 🧪 Testing
 
@@ -276,61 +280,73 @@ python tests/test_parity.py
 This simulation demonstrates:
 - **Genetics & Heredity**: Mendelian inheritance with mutations
 - **Natural Selection**: Survival of the fittest in action
-- **Neuroevolution**: Evolving neural networks through natural selection
-- **Competitive Coevolution**: Multiple species competing for resources
+- **Algorithmic Evolution**: Genetic algorithms with parametrizable behaviors
 - **Predator-Prey Dynamics**: Balanced hunting and evasion
 - **Population Dynamics**: Carrying capacity, birth/death rates
-- **Energy Flow**: Producers (plants) → Consumers (fish)
+- **Energy Flow**: Producers (plants) → Consumers (fish) → Predators
 - **Emergent Behavior**: Complex ecosystem from simple rules
-- **Artificial Intelligence**: Neural networks vs rule-based AI
-- **Evolutionary Computation**: Genetic algorithms with neural networks
+- **Evolutionary Computation**: Parameter optimization through natural selection
 - **Game Theory**: Poker interactions and strategic play
+- **Interpretable AI**: Clear, debuggable algorithm behaviors vs black-box approaches
+- **Data Science**: LLM-friendly stat exports for AI-assisted analysis
 
-## 🔬 Future Enhancements
+## 🔬 Recent Improvements & Future Enhancements
 
-Completed: ✅
-- [✅] Neural network fish brains (learning)
+Recently Completed: ✅
+- [✅] 48 parametrizable behavior algorithms
+- [✅] TankWorld class for clean simulation management
+- [✅] LLM-friendly JSON stats export
+- [✅] Comprehensive behavior evolution tracking
 - [✅] Predator-prey balance improvements
-- [✅] Multiple species with different niches
-- [✅] Headless mode with full parity
-- [✅] Deterministic seeding for testing
+- [✅] Headless mode (10-300x faster)
+- [✅] Deterministic seeding for reproducibility
 - [✅] React-based web UI
 - [✅] Fish poker minigame
+- [✅] Removed pygame dependencies (pure Python core)
 
-Potential additions:
-- [ ] LSTM/Recurrent neural networks (fish with memory)
+Potential Future Additions:
+- [ ] Neural network option (as alternative to algorithmic evolution)
 - [ ] Save/load ecosystem states
 - [ ] Replay system to watch evolution over time
 - [ ] More predator species (different hunting strategies)
-- [ ] Seasonal variations
-- [ ] Water quality parameters
+- [ ] Seasonal variations and environmental events
+- [ ] Water quality parameters affecting survival
 - [ ] Disease/parasites system
-- [ ] Territorial behavior implementation
-- [ ] Sexual dimorphism (male/female)
-- [ ] Multi-agent reinforcement learning
-- [ ] Graph neural networks for social interactions
+- [ ] Enhanced territorial behavior
+- [ ] Sexual dimorphism (male/female traits)
 - [ ] Real-time evolution graphs in UI
-- [ ] Downloadable simulation data/stats
+- [ ] Downloadable simulation data CSV export
+- [ ] Multi-threaded population simulation
+- [ ] Cloud-based long-term evolution experiments
 
 ## 🏗️ Architecture
 
 The simulation uses a clean architecture with separation of concerns:
 
+- **TankWorld** (`tank_world.py`): Simulation wrapper
+  - Clean interface for configuration management
+  - Random number generator (RNG) management for deterministic behavior
+  - Unified API for both headless and web modes
+  - Wraps SimulationEngine with easy-to-use controls
+
 - **Core Logic** (`core/`): Pure Python simulation engine
-  - No UI dependencies
-  - Fully testable
+  - No UI dependencies (pygame removed)
+  - Fully testable and reproducible
   - Used by both web and headless modes
+  - Algorithm-based evolution system
 
 - **Backend** (`backend/`): FastAPI WebSocket server
   - Runs simulation in background thread
   - Broadcasts state at 30 FPS via WebSocket
-  - Handles commands (add food, pause, reset)
+  - Handles commands (add food, pause, reset, spawn fish)
+  - REST API for state queries
 
 - **Frontend** (`frontend/`): React + TypeScript
   - HTML5 Canvas rendering
   - Parametric SVG fish templates
   - Real-time stats and controls
   - Responsive design
+  - WebSocket connection for live updates
 
 ## 📜 License
 
@@ -339,16 +355,26 @@ This project is open source. Feel free to modify and extend!
 ## 🙏 Credits
 
 Built with:
-- **React**: Frontend framework
-- **FastAPI**: Backend API framework
-- **Python 3.8+**: Core language
-- **TypeScript**: Frontend type safety
-- **HTML5 Canvas**: Real-time rendering
-- **WebSocket**: Real-time communication
+- **Python 3.8+**: Core simulation language
+- **React + TypeScript**: Frontend framework with type safety
+- **FastAPI**: Modern backend API framework
+- **NumPy**: Numerical computations
+- **HTML5 Canvas**: Real-time visualization
+- **WebSocket**: Real-time client-server communication
+- **Uvicorn**: High-performance ASGI server
 - **Love for ALife**: Inspired by Conway's Life, Tierra, and evolutionary algorithms
+
+## 📚 Additional Resources
+
+For more information:
+- **Architecture details**: See `docs/ARCHITECTURE.md`
+- **Algorithmic evolution**: See `docs/ALGORITHMIC_EVOLUTION.md`
+- **Behavior development**: See `BEHAVIOR_DEVELOPMENT_GUIDE.md`
+- **Evolution examples**: See `EVOLUTION_EXAMPLE.md`
+- **Quick reference**: See `QUICK_REFERENCE.md`
+- **Deployment guide**: See `docs/DEPLOYMENT_GUIDE.md`
+- **Headless mode**: See `docs/HEADLESS_MODE.md`
 
 ---
 
-**Enjoy watching life evolve! 🌊🐠✨**
-
-For more information, visit the `docs/` directory (if available) or explore the codebase!
+**Enjoy watching algorithmic life evolve! 🌊🐠✨🧬**

@@ -6,18 +6,17 @@ Separating lifecycle logic into its own component improves code organization and
 """
 
 from typing import TYPE_CHECKING
+
 from core.constants import (
+    FISH_ADULT_SIZE,
+    FISH_BABY_SIZE,
+    LIFE_STAGE_ADULT_MAX,
     LIFE_STAGE_BABY_MAX,
     LIFE_STAGE_JUVENILE_MAX,
-    LIFE_STAGE_YOUNG_ADULT_MAX,
-    LIFE_STAGE_ADULT_MAX,
-    LIFE_STAGE_MATURE_MAX,
-    FISH_BABY_SIZE,
-    FISH_ADULT_SIZE
 )
 
 if TYPE_CHECKING:
-    from core.entities import LifeStage
+    pass
 
 
 class LifecycleComponent:
@@ -26,29 +25,33 @@ class LifecycleComponent:
     This component encapsulates all lifecycle-related logic for a fish, including:
     - Age tracking and incrementing
     - Life stage transitions based on age
-    - Size calculations based on life stage
+    - Size calculations based on life stage and genetics
     - Maximum age/lifespan management
 
     Attributes:
         age: Current age in frames
         max_age: Maximum lifespan in frames
         life_stage: Current life stage (BABY, JUVENILE, ADULT, ELDER)
-        size: Current visual size multiplier
+        size: Current visual size multiplier (combines age and genetic factors)
+        genetic_size_modifier: Genetic body size trait (0.7-1.3)
     """
 
-    def __init__(self, max_age: int):
+    def __init__(self, max_age: int, genetic_size_modifier: float = 1.0):
         """Initialize the lifecycle component.
 
         Args:
             max_age: Maximum lifespan in frames (affected by genetics)
+            genetic_size_modifier: Genetic body size multiplier (0.7-1.3)
         """
         self.age: int = 0
         self.max_age: int = max_age
+        self.genetic_size_modifier: float = genetic_size_modifier
 
         # Import here to avoid circular dependency
         from core.entities import LifeStage
-        self.life_stage: 'LifeStage' = LifeStage.BABY
-        self.size: float = FISH_BABY_SIZE
+
+        self.life_stage: LifeStage = LifeStage.BABY
+        self.size: float = FISH_BABY_SIZE * genetic_size_modifier
 
     def increment_age(self) -> None:
         """Increment age by one frame and update life stage."""
@@ -56,22 +59,28 @@ class LifecycleComponent:
         self.update_life_stage()
 
     def update_life_stage(self) -> None:
-        """Update life stage and size based on current age."""
+        """Update life stage and size based on current age and genetics."""
         from core.entities import LifeStage
 
+        # Calculate base size from age/life stage
         if self.age < LIFE_STAGE_BABY_MAX:
             self.life_stage = LifeStage.BABY
             # Grow from 0.5 to 1.0 as baby ages
-            self.size = FISH_BABY_SIZE + (FISH_ADULT_SIZE - FISH_BABY_SIZE) * (self.age / LIFE_STAGE_BABY_MAX)
+            base_size = FISH_BABY_SIZE + (FISH_ADULT_SIZE - FISH_BABY_SIZE) * (
+                self.age / LIFE_STAGE_BABY_MAX
+            )
         elif self.age < LIFE_STAGE_JUVENILE_MAX:
             self.life_stage = LifeStage.JUVENILE
-            self.size = FISH_ADULT_SIZE
+            base_size = FISH_ADULT_SIZE
         elif self.age < LIFE_STAGE_ADULT_MAX:
             self.life_stage = LifeStage.ADULT
-            self.size = FISH_ADULT_SIZE
+            base_size = FISH_ADULT_SIZE
         else:
             self.life_stage = LifeStage.ELDER
-            self.size = FISH_ADULT_SIZE
+            base_size = FISH_ADULT_SIZE
+
+        # Apply genetic size modifier to get final size
+        self.size = base_size * self.genetic_size_modifier
 
     def is_baby(self) -> bool:
         """Check if fish is in baby stage.
@@ -80,6 +89,7 @@ class LifecycleComponent:
             bool: True if in BABY life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.BABY
 
     def is_juvenile(self) -> bool:
@@ -89,6 +99,7 @@ class LifecycleComponent:
             bool: True if in JUVENILE life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.JUVENILE
 
     def is_adult(self) -> bool:
@@ -98,6 +109,7 @@ class LifecycleComponent:
             bool: True if in ADULT life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.ADULT
 
     def is_elder(self) -> bool:
@@ -107,6 +119,7 @@ class LifecycleComponent:
             bool: True if in ELDER life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.ELDER
 
     def is_dying_of_old_age(self) -> bool:

@@ -7,7 +7,7 @@ import type { EntityData } from '../types/simulation';
 import { ImageLoader } from './ImageLoader';
 import { getFishPath, getEyePosition, type FishParams } from './fishTemplates';
 
-// Constants matching pygame version
+// Animation constants
 const IMAGE_CHANGE_RATE = 500; // milliseconds
 
 // Food type image mappings (matching core/constants.py)
@@ -767,7 +767,7 @@ export class Renderer {
     }
 
     // Apply color tint using multiply blend mode
-    // Convert HSL color to RGB (matching pygame's color tint)
+    // Convert HSL color to RGB for genetic color trait
     const tintColor = this.hslToRgb(colorHue / 360, 0.7, 0.6);
     tempCtx.globalCompositeOperation = 'multiply';
     tempCtx.fillStyle = `rgb(${tintColor[0]}, ${tintColor[1]}, ${tintColor[2]})`;

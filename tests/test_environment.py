@@ -1,10 +1,9 @@
-from core.math_utils import Vector2
-
 from core.environment import Environment
+from core.math_utils import Vector2
 
 
 def make_agent(x, y):
-    return type('Dummy', (), {'pos': Vector2(x, y)})()
+    return type("Dummy", (), {"pos": Vector2(x, y)})()
 
 
 def test_nearby_agents():

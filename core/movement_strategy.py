@@ -6,10 +6,10 @@ This module provides movement behaviors for fish:
 
 from typing import TYPE_CHECKING
 
-from core.math_utils import Vector2
-from core.entities import Food
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
+from core.entities import Food
+from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -21,22 +21,23 @@ ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.2  # Allow 20% speed variation
 
 class MovementStrategy:
     """Base class for movement strategies."""
-    def move(self, sprite: 'Fish') -> None:
+
+    def move(self, sprite: "Fish") -> None:
         """Move a sprite according to the strategy."""
         self.check_collision_with_food(sprite)
 
-    def check_collision_with_food(self, sprite: 'Fish') -> None:
+    def check_collision_with_food(self, sprite: "Fish") -> None:
         """Check if sprite collides with food and stop it if so.
 
         Args:
             sprite: The fish sprite to check for collisions
         """
         # Get the sprite entity (unwrap if it's a sprite wrapper)
-        sprite_entity = sprite._entity if hasattr(sprite, '_entity') else sprite
+        sprite_entity = sprite._entity if hasattr(sprite, "_entity") else sprite
 
         for food in sprite.environment.get_agents_of_type(Food):
             # Get the food entity (unwrap if it's a sprite wrapper)
-            food_entity = food._entity if hasattr(food, '_entity') else food
+            food_entity = food._entity if hasattr(food, "_entity") else food
 
             # Use the collision detector for consistent collision detection
             if default_collision_detector.collides(sprite_entity, food_entity):
@@ -46,7 +47,7 @@ class MovementStrategy:
 class AlgorithmicMovement(MovementStrategy):
     """Movement strategy controlled by a behavior algorithm (NEW!)."""
 
-    def move(self, sprite: 'Fish') -> None:
+    def move(self, sprite: "Fish") -> None:
         """Move using the fish's behavior algorithm."""
         # Check if fish has a behavior algorithm
         if sprite.genome.behavior_algorithm is None:

@@ -1,6 +1,6 @@
-# Screen dimensions in pixels
-SCREEN_WIDTH = 1000
-SCREEN_HEIGHT = 750
+# Screen dimensions in pixels (must match Canvas size in frontend)
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
 # The frame rate for the game loop, in frames per second
 FRAME_RATE = 30
@@ -44,82 +44,85 @@ AUTO_FOOD_SPAWN_RATE = 90  # Spawn food every 3 seconds (90 frames at 30fps) - B
 AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
 
 # Dynamic food spawn scaling based on population and energy
-AUTO_FOOD_LOW_ENERGY_THRESHOLD = 2000  # Double spawn rate below this total energy
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4000  # Reduce spawn rate above this total energy
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6000  # Further reduce spawn rate above this total energy
+AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = (
+    1500  # Quadruple spawn rate below this total energy (critical)
+)
+AUTO_FOOD_LOW_ENERGY_THRESHOLD = 3500  # Triple spawn rate below this total energy
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500  # Reduce spawn rate above this total energy
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500  # Further reduce spawn rate above this total energy
 AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 15  # Reduce spawn rate above this fish count
 AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 20  # Further reduce spawn rate above this fish count
 
 # Food type definitions with nutrient properties
 FOOD_TYPES = {
-    'algae': {
-        'name': 'Algae Flake',
-        'files': ['food_algae1.png', 'food_algae2.png'],
-        'energy': 30.0,  # Low energy - basic food source (increased 50%)
-        'rarity': 0.35,  # 35% spawn rate
-        'sink_multiplier': 0.8,  # Sinks slower (lighter)
-        'stationary': False,
+    "algae": {
+        "name": "Algae Flake",
+        "files": ["food_algae1.png", "food_algae2.png"],
+        "energy": 45.0,  # Low energy - basic food source
+        "rarity": 0.35,  # 35% spawn rate
+        "sink_multiplier": 0.8,  # Sinks slower (lighter)
+        "stationary": False,
     },
-    'protein': {
-        'name': 'Protein Flake',
-        'files': ['food_protein1.png', 'food_protein2.png'],
-        'energy': 50.0,  # Good energy - valuable food (increased 50%)
-        'rarity': 0.25,  # 25% spawn rate
-        'sink_multiplier': 1.2,  # Sinks faster (heavier)
-        'stationary': False,
+    "protein": {
+        "name": "Protein Flake",
+        "files": ["food_protein1.png", "food_protein2.png"],
+        "energy": 75.0,  # Good energy - valuable food
+        "rarity": 0.25,  # 25% spawn rate
+        "sink_multiplier": 1.2,  # Sinks faster (heavier)
+        "stationary": False,
     },
-    'vitamin': {
-        'name': 'Vitamin Flake',
-        'files': ['food_vitamin1.png', 'food_vitamin2.png'],
-        'energy': 40.0,  # Moderate energy (increased 50%)
-        'rarity': 0.20,  # 20% spawn rate
-        'sink_multiplier': 0.9,  # Sinks slightly slower
-        'stationary': False,
+    "vitamin": {
+        "name": "Vitamin Flake",
+        "files": ["food_vitamin1.png", "food_vitamin2.png"],
+        "energy": 60.0,  # Moderate energy
+        "rarity": 0.20,  # 20% spawn rate
+        "sink_multiplier": 0.9,  # Sinks slightly slower
+        "stationary": False,
     },
-    'energy': {
-        'name': 'Energy Flake',
-        'files': ['food_energy1.png', 'food_energy2.png'],
-        'energy': 45.0,  # Good energy (increased 50%)
-        'rarity': 0.15,  # 15% spawn rate
-        'sink_multiplier': 1.0,  # Normal sink rate
-        'stationary': False,
+    "energy": {
+        "name": "Energy Flake",
+        "files": ["food_energy1.png", "food_energy2.png"],
+        "energy": 70.0,  # Good energy
+        "rarity": 0.15,  # 15% spawn rate
+        "sink_multiplier": 1.0,  # Normal sink rate
+        "stationary": False,
     },
-    'rare': {
-        'name': 'Rainbow Flake',
-        'files': ['food_rare1.png', 'food_rare2.png'],
-        'energy': 75.0,  # High energy - rare treat (increased 50%)
-        'rarity': 0.05,  # 5% spawn rate (rare)
-        'sink_multiplier': 1.1,  # Sinks bit faster
-        'stationary': False,
+    "rare": {
+        "name": "Rainbow Flake",
+        "files": ["food_rare1.png", "food_rare2.png"],
+        "energy": 115.0,  # High energy - rare treat
+        "rarity": 0.05,  # 5% spawn rate (rare)
+        "sink_multiplier": 1.1,  # Sinks bit faster
+        "stationary": False,
     },
-    'nectar': {
-        'name': 'Plant Nectar',
-        'files': ['food_vitamin1.png', 'food_vitamin2.png'],
-        'energy': 60.0,  # Rewarding stationary food (increased 50%)
-        'rarity': 0.15,  # Used for plant-only spawn weighting
-        'sink_multiplier': 0.0,  # Remains in place
-        'stationary': True,
+    "nectar": {
+        "name": "Plant Nectar",
+        "files": ["food_vitamin1.png", "food_vitamin2.png"],
+        "energy": 90.0,  # Rewarding stationary food
+        "rarity": 0.15,  # Used for plant-only spawn weighting
+        "sink_multiplier": 0.0,  # Remains in place
+        "stationary": True,
     },
 }
 
 # Filenames for the animation frames of each type of sprite
 FILES = {
-    'solo_fish': ['george1.png', 'george2.png'],
-    'crab': ['crab1.png', 'crab2.png'],
-    'schooling_fish': ['school.png'],
-    'plant': ['plant1.png', 'plant2.png'],
-    'castle': ['castle.png'],
+    "solo_fish": ["george1.png", "george2.png"],
+    "crab": ["crab1.png", "crab2.png"],
+    "schooling_fish": ["school.png"],
+    "plant": ["plant1.png", "plant2.png"],
+    "castle": ["castle.png"],
 }
 
 # The initial positions of the sprites in the game
 INIT_POS = {
-    'fish': (275, 80),
-    'crab': (250, 542),
-    'school': (300, 200),
-    'plant1': (250, 510),
-    'plant2': (10, 510),
-    'plant3': (500, 510),  # Add third plant
-    'castle': (100, 500),
+    "fish": (275, 80),
+    "crab": (250, 542),
+    "school": (300, 200),
+    "plant1": (250, 510),
+    "plant2": (10, 510),
+    "plant3": (500, 510),  # Add third plant
+    "castle": (100, 500),
 }
 
 # UI Constants - Poker Notifications
@@ -132,8 +135,8 @@ POKER_WIN_COLOR = (100, 255, 100)
 HEALTH_BAR_WIDTH = 30
 HEALTH_BAR_HEIGHT = 4
 HEALTH_CRITICAL_COLOR = (200, 50, 50)  # Red (below 30%)
-HEALTH_LOW_COLOR = (200, 200, 50)      # Yellow (30-60%)
-HEALTH_GOOD_COLOR = (50, 200, 50)      # Green (above 60%)
+HEALTH_LOW_COLOR = (200, 200, 50)  # Yellow (30-60%)
+HEALTH_GOOD_COLOR = (50, 200, 50)  # Green (above 60%)
 
 # Fish movement constraints
 FISH_TOP_MARGIN = 20  # Minimum pixels from top to keep energy bar visible
@@ -196,6 +199,8 @@ FISH_BABY_SIZE = 0.5  # Size multiplier for baby fish
 FISH_ADULT_SIZE = 1.0  # Size multiplier for adult fish
 FISH_BASE_WIDTH = 50  # Base width for fish sprite
 FISH_BASE_HEIGHT = 50  # Base height for fish sprite
+FISH_TEMPLATE_COUNT = 6  # Number of parametric fish templates (0-5)
+FISH_PATTERN_COUNT = 4  # Number of pattern types (0-3)
 
 # Crab Constants
 CRAB_INITIAL_ENERGY = 150.0  # Starting energy for crabs
@@ -213,6 +218,8 @@ PLANT_PRODUCTION_CHANCE = 0.35  # 35% chance to produce food each interval
 TOTAL_ALGORITHM_COUNT = 48  # Total number of behavior algorithms available
 TOTAL_SPECIES_COUNT = 4  # Total number of fish species
 MAX_ECOSYSTEM_EVENTS = 1000  # Maximum events to track in ecosystem history
+MAX_POPULATION = 100  # Maximum population capacity for ecosystem
+CRITICAL_POPULATION_THRESHOLD = 3  # Minimum population before emergency spawning
 
 # Predator Avoidance Constants (for algorithms)
 FLEE_THRESHOLD_CRITICAL = 45  # Flee distance when energy is critical
@@ -233,9 +240,16 @@ POKER_AGGRESSION_LOW = 0.3  # Low aggression factor
 POKER_AGGRESSION_MEDIUM = 0.6  # Medium aggression factor
 POKER_AGGRESSION_HIGH = 0.9  # High aggression factor
 
+# Poker Game Mechanics
+POKER_MAX_ACTIONS_PER_ROUND = 10  # Maximum betting actions per round (prevents infinite loops)
+
 # Spawning Constants
 MAX_DIVERSITY_SPAWN_ATTEMPTS = 10  # Maximum attempts to spawn diverse fish
 SPAWN_MARGIN_PIXELS = 100  # Margin from screen edges for spawning
+
+# Spatial Query Constants (for collision detection and mating)
+COLLISION_QUERY_RADIUS = 100  # Radius for nearby entity queries during collision detection (pixels)
+MATING_QUERY_RADIUS = 150  # Radius for finding potential mates (pixels)
 
 # Poker Event Tracking
 MAX_POKER_EVENTS = 10  # Maximum number of recent poker events to keep

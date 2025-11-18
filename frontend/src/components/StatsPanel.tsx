@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import type { StatsData } from '../types/simulation';
+import { colors, commonStyles } from '../styles/theme';
 
 interface StatsPanelProps {
   stats: StatsData | null;
@@ -13,6 +14,22 @@ interface CollapsibleSectionProps {
   title: string;
   children: React.ReactNode;
   defaultExpanded?: boolean;
+}
+
+/**
+ * Get color for total energy based on food spawning thresholds
+ * Matches the dynamic food spawning system in core/constants.py
+ */
+function getEnergyColor(totalEnergy: number): string {
+  if (totalEnergy < 2000) {
+    return '#ef4444'; // Red - Critical/Starvation (double food spawn)
+  } else if (totalEnergy < 4000) {
+    return '#4ade80'; // Green - Normal (normal food spawn)
+  } else if (totalEnergy < 6000) {
+    return '#fbbf24'; // Yellow - High (reduced food spawn)
+  } else {
+    return '#fb923c'; // Orange - Very High (very reduced food spawn)
+  }
 }
 
 function CollapsibleSection({ title, children, defaultExpanded = true }: CollapsibleSectionProps) {
@@ -64,7 +81,9 @@ export function StatsPanel({ stats }: StatsPanelProps) {
           </div>
           <div style={styles.summaryItem}>
             <div style={styles.summaryLabel}>Energy</div>
-            <div style={styles.summaryValue}>{stats.total_energy.toFixed(0)}</div>
+            <div style={{...styles.summaryValue, color: getEnergyColor(stats.total_energy)}}>
+              {stats.total_energy.toFixed(0)}
+            </div>
           </div>
           <div style={styles.summaryItem}>
             <div style={styles.summaryLabel}>Frame</div>
@@ -92,7 +111,9 @@ export function StatsPanel({ stats }: StatsPanelProps) {
           </div>
           <div style={styles.statRow}>
             <span style={styles.statLabel}>Total Energy:</span>
-            <span style={styles.statValue}>{stats.total_energy.toFixed(1)}</span>
+            <span style={{...styles.statValue, color: getEnergyColor(stats.total_energy)}}>
+              {stats.total_energy.toFixed(1)}
+            </span>
           </div>
         </div>
       </CollapsibleSection>
@@ -288,29 +309,18 @@ export function StatsPanel({ stats }: StatsPanelProps) {
 }
 
 const styles = {
-  container: {
-    padding: '24px',
-    background: 'linear-gradient(145deg, rgba(30,41,59,0.92), rgba(15,23,42,0.95))',
-    borderRadius: '20px',
-    color: '#e2e8f0',
-    border: '1px solid rgba(148,163,184,0.18)',
-    boxShadow: '0 35px 55px rgba(2,6,23,0.65)',
-  },
-  title: {
-    margin: '0 0 16px 0',
-    fontSize: '20px',
-    fontWeight: 600,
-  },
+  container: commonStyles.panelContainer,
+  title: commonStyles.panelTitle,
   noData: {
     fontSize: '14px',
-    color: '#94a3b8',
+    color: colors.textSecondary,
   },
   summaryCard: {
-    background: 'rgba(51,65,85,0.4)',
+    background: colors.bgSecondary,
     borderRadius: '12px',
     padding: '16px',
     marginBottom: '20px',
-    border: '1px solid rgba(148,163,184,0.1)',
+    border: `1px solid ${colors.borderSecondary}`,
   },
   summaryGrid: {
     display: 'grid',
@@ -322,7 +332,7 @@ const styles = {
   },
   summaryLabel: {
     fontSize: '11px',
-    color: '#94a3b8',
+    color: colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
     marginBottom: '6px',
@@ -330,7 +340,7 @@ const styles = {
   summaryValue: {
     fontSize: '24px',
     fontWeight: 700,
-    color: '#e2e8f0',
+    color: colors.textPrimary,
   },
   section: {
     marginBottom: '16px',
@@ -339,7 +349,7 @@ const styles = {
     margin: '0 0 10px 0',
     fontSize: '13px',
     fontWeight: 600,
-    color: '#94a3b8',
+    color: colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
     display: 'flex',
@@ -358,16 +368,16 @@ const styles = {
     fontSize: '13px',
     background: 'rgba(51,65,85,0.2)',
     borderRadius: '6px',
-    border: '1px solid rgba(148,163,184,0.08)',
+    border: `1px solid ${colors.borderTertiary}`,
   },
   statLabel: {
-    color: '#cbd5e1',
+    color: colors.textTertiary,
     fontSize: '13px',
     whiteSpace: 'nowrap' as const,
   },
   statValue: {
     fontWeight: 600,
-    color: '#e2e8f0',
+    color: colors.textPrimary,
     fontSize: '13px',
     whiteSpace: 'nowrap' as const,
   },
@@ -378,7 +388,7 @@ const styles = {
   },
   subsectionLabel: {
     fontSize: '11px',
-    color: '#94a3b8',
+    color: colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.5px',
     marginBottom: '8px',

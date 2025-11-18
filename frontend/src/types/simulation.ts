@@ -50,6 +50,29 @@ export interface PokerEventData {
   message: string;
 }
 
+export interface PokerLeaderboardEntry {
+  rank: number;
+  fish_id: number;
+  generation: number;
+  algorithm: string;
+  energy: number;
+  age: number;
+  total_games: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  win_rate: number;  // Percentage (0-100)
+  net_energy: number;
+  roi: number;
+  current_streak: number;
+  best_streak: number;
+  best_hand: string;
+  best_hand_rank: number;
+  showdown_win_rate: number;  // Percentage (0-100)
+  fold_rate: number;  // Percentage (0-100)
+  positional_advantage: number;  // Percentage (0-100)
+}
+
 export interface PokerStatsData {
   total_games: number;
   total_wins: number;
@@ -107,10 +130,11 @@ export interface SimulationUpdate {
   entities: EntityData[];
   stats: StatsData;
   poker_events: PokerEventData[];
+  poker_leaderboard: PokerLeaderboardEntry[];
 }
 
 export interface Command {
-  command: 'add_food' | 'pause' | 'resume' | 'reset';
+  command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset';
   data?: Record<string, unknown>;
 }
 
