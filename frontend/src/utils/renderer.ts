@@ -492,21 +492,108 @@ export class Renderer {
     const scaledWidth = width * plantScale;
     const scaledHeight = height * plantScale;
 
-    // Apply swaying effect
-    const swayRange = 5; // degrees
-    const swaySpeed = 0.0005;
-    const swayAngle = Math.sin(elapsedTime * swaySpeed) * swayRange;
-
     ctx.save();
     const canvasHeight = ctx.canvas.height;
     const seabedOffset = Math.max(40, canvasHeight * 0.08);
     const restingY = canvasHeight - seabedOffset;
-    // Allow slight offset so multiple plants feel organic
-    const swayOffset = Math.sin((x + y) * 0.01) * 6;
-    ctx.translate(x + scaledWidth / 2 + swayOffset, restingY);
+
+    // Enhanced multi-frequency swaying for organic motion
+    const plantSeed = x + y; // Unique seed per plant
+    const primarySway = Math.sin(elapsedTime * 0.0005 + plantSeed * 0.01) * 6;
+    const secondarySway = Math.sin(elapsedTime * 0.0012 + plantSeed * 0.02) * 3;
+    const tertiarySway = Math.sin(elapsedTime * 0.0008 + plantSeed * 0.015) * 2;
+    const swayAngle = primarySway + secondarySway + tertiarySway;
+
+    // Horizontal sway offset for more natural movement
+    const swayOffset = Math.sin(elapsedTime * 0.0006 + plantSeed * 0.01) * 8;
+
+    // Position setup
+    const centerX = x + scaledWidth / 2 + swayOffset;
+    const centerY = restingY;
+
+    // Draw shadow for depth
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = 'rgba(0, 20, 40, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(
+      centerX,
+      restingY + 5,
+      scaledWidth * 0.4,
+      scaledHeight * 0.1,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+
+    // Add subtle glow effect
+    const glowIntensity = 0.15 + Math.sin(elapsedTime * 0.001 + plantSeed) * 0.05;
+    ctx.shadowColor = plant_type === 1 ? 'rgba(100, 200, 150, 0.4)' : 'rgba(150, 100, 200, 0.4)';
+    ctx.shadowBlur = 15 * glowIntensity;
+
+    // Apply color tinting based on shimmer
+    const shimmer = 1.0 + Math.sin(elapsedTime * 0.0015 + plantSeed * 0.03) * 0.08;
+    ctx.filter = `brightness(${shimmer}) saturate(1.1)`;
+
+    // Apply transformation and draw plant
+    ctx.translate(centerX, centerY);
     ctx.rotate((swayAngle * Math.PI) / 180);
     ctx.drawImage(image, -scaledWidth / 2, -scaledHeight, scaledWidth, scaledHeight);
+
     ctx.restore();
+
+    // Draw occasional bubbles rising from plants
+    this.renderPlantBubbles(plant, elapsedTime, centerX, restingY - scaledHeight * 0.7);
+  }
+
+  private renderPlantBubbles(plant: EntityData, elapsedTime: number, x: number, y: number) {
+    const { ctx } = this;
+    const plantSeed = (plant.x || 0) + (plant.y || 0);
+
+    // Each plant produces 2-3 bubbles at different intervals
+    for (let i = 0; i < 3; i++) {
+      const bubblePhase = (elapsedTime * 0.0008 + plantSeed * 0.1 + i * 2.1) % 6.28; // 0 to 2π
+      const bubbleActive = bubblePhase < 4.0; // Bubble exists for part of cycle
+
+      if (!bubbleActive) continue;
+
+      // Bubble rises and drifts
+      const riseProgress = bubblePhase / 4.0;
+      const bubbleY = y - riseProgress * 80;
+      const bubbleX = x + Math.sin(bubblePhase * 3 + i) * 15;
+      const bubbleSize = (2 + i * 0.5) * (1 - riseProgress * 0.3); // Shrink slightly as it rises
+
+      // Fade out as bubble rises
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - riseProgress);
+
+      // Draw bubble
+      const gradient = ctx.createRadialGradient(
+        bubbleX - bubbleSize * 0.3,
+        bubbleY - bubbleSize * 0.3,
+        0,
+        bubbleX,
+        bubbleY,
+        bubbleSize
+      );
+      gradient.addColorStop(0, 'rgba(200, 240, 255, 0.6)');
+      gradient.addColorStop(0.5, 'rgba(150, 220, 255, 0.3)');
+      gradient.addColorStop(1, 'rgba(100, 200, 255, 0.1)');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(bubbleX, bubbleY, bubbleSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Add bubble highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.beginPath();
+      ctx.arc(bubbleX - bubbleSize * 0.3, bubbleY - bubbleSize * 0.3, bubbleSize * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
   }
 
   private renderCrab(crab: EntityData, elapsedTime: number) {
