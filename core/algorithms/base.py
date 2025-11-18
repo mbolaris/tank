@@ -340,6 +340,38 @@ def _safe_normalize(self, vector: Vector2) -> Vector2:
     return vector.normalize()
 
 
+def _get_predator_threat(self, fish: 'Fish', max_distance: float = float('inf')) -> Tuple[Optional[Any], float, Vector2]:
+    """Get information about the nearest predator threat.
+
+    This helper method consolidates the common pattern of finding the nearest
+    predator, calculating distance, and computing escape direction.
+
+    Args:
+        fish: The fish to check for threats
+        max_distance: Maximum distance to consider a threat (default: infinite)
+
+    Returns:
+        Tuple of (predator, distance, escape_direction) where:
+        - predator: Nearest predator agent or None if none found/in range
+        - distance: Distance to predator or infinity if none
+        - escape_direction: Normalized vector pointing away from predator or (0,0)
+    """
+    from core.entities import Crab
+
+    nearest_predator = self._find_nearest(fish, Crab)
+    if not nearest_predator:
+        return None, float('inf'), Vector2(0, 0)
+
+    distance = (nearest_predator.pos - fish.pos).length()
+
+    if distance > max_distance:
+        return None, float('inf'), Vector2(0, 0)
+
+    escape_direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+    return nearest_predator, distance, escape_direction
+
+
 # Inject helper methods into base class
 BehaviorAlgorithm._find_nearest = _find_nearest
 BehaviorAlgorithm._safe_normalize = _safe_normalize
+BehaviorAlgorithm._get_predator_threat = _get_predator_threat

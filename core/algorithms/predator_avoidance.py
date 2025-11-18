@@ -42,12 +42,9 @@ class PanicFlee(BehaviorAlgorithm):
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
 
-        nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator:
-            distance = (nearest_predator.pos - fish.pos).length()
-            if distance < self.parameters["panic_distance"]:
-                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
-                return direction.x * self.parameters["flee_speed"], direction.y * self.parameters["flee_speed"]
+        predator, distance, escape_dir = self._get_predator_threat(fish, self.parameters["panic_distance"])
+        if predator:
+            return escape_dir.x * self.parameters["flee_speed"], escape_dir.y * self.parameters["flee_speed"]
 
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
@@ -78,12 +75,9 @@ class StealthyAvoider(BehaviorAlgorithm):
 
     def execute(self, fish: 'Fish') -> Tuple[float, float]:
 
-        nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator:
-            distance = (nearest_predator.pos - fish.pos).length()
-            if distance < self.parameters["awareness_range"]:
-                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
-                return direction.x * self.parameters["stealth_speed"], direction.y * self.parameters["stealth_speed"]
+        predator, distance, escape_dir = self._get_predator_threat(fish, self.parameters["awareness_range"])
+        if predator:
+            return escape_dir.x * self.parameters["stealth_speed"], escape_dir.y * self.parameters["stealth_speed"]
 
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
