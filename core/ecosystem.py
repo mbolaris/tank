@@ -321,6 +321,12 @@ class EcosystemManager:
         # Genetic diversity statistics tracking
         self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
 
+        # NEW: Enhanced statistics tracker (time series, correlations, extinctions, etc.)
+        from core.enhanced_statistics import EnhancedStatisticsTracker
+        self.enhanced_stats: EnhancedStatisticsTracker = EnhancedStatisticsTracker(
+            max_history_length=1000
+        )
+
         # Next available fish ID
         self.next_fish_id: int = 0
 
@@ -357,6 +363,9 @@ class EcosystemManager:
             frame: Current frame number
         """
         self.frame_count = frame
+
+        # NEW: Check for algorithm extinctions
+        self.enhanced_stats.check_for_extinctions(frame, self)
 
     def get_next_fish_id(self) -> int:
         """Get the next unique fish ID.
@@ -407,6 +416,9 @@ class EcosystemManager:
             self.algorithm_stats[algorithm_id].total_births += 1
             self.algorithm_stats[algorithm_id].current_population += 1
 
+        # NEW: Record offspring birth for energy efficiency tracking
+        self.enhanced_stats.record_offspring_birth(energy_cost=0.0)
+
         # Log event
         details = f"Parents: {parent_ids}" if parent_ids else "Initial spawn"
         if algorithm_id is not None:
@@ -420,7 +432,7 @@ class EcosystemManager:
 
     def record_death(self, fish_id: int, generation: int, age: int,
                      cause: str = 'unknown', genome: Optional['Genome'] = None,
-                     algorithm_id: Optional[int] = None) -> None:
+                     algorithm_id: Optional[int] = None, remaining_energy: float = 0.0) -> None:
         """Record a death event.
 
         Args:
@@ -430,6 +442,7 @@ class EcosystemManager:
             cause: Cause of death ('starvation', 'old_age', 'predation', 'unknown')
             genome: Optional genome for statistics
             algorithm_id: Optional algorithm ID (0-47)
+            remaining_energy: Energy the fish had when it died (for waste tracking)
         """
         self.total_deaths += 1
 
@@ -463,6 +476,13 @@ class EcosystemManager:
                 algo_stats.deaths_old_age += 1
             elif cause == 'predation':
                 algo_stats.deaths_predation += 1
+
+        # NEW: Record trait-fitness correlation sample (before death)
+        if genome is not None:
+            self.enhanced_stats.record_trait_fitness_sample(genome)
+
+        # NEW: Record energy waste from death
+        self.enhanced_stats.record_death_energy_loss(remaining_energy)
 
         # Log event
         details = f"Age: {age}, Generation: {generation}"
@@ -518,6 +538,16 @@ class EcosystemManager:
         # Update pregnant fish count
         pregnant_count = sum(1 for fish in fish_list if hasattr(fish, 'reproduction') and fish.reproduction.is_pregnant)
         self.update_pregnant_count(pregnant_count)
+
+        # NEW: Record time series snapshot for enhanced statistics
+        # (Record every 10 frames to reduce overhead)
+        if self.frame_count % 10 == 0:
+            self.enhanced_stats.record_frame_snapshot(
+                frame=self.frame_count,
+                fish_list=fish_list,
+                births_this_frame=0,  # Will be updated separately
+                deaths_this_frame=0
+            )
 
     def update_genetic_diversity_stats(self, fish_list: List['Fish']) -> None:
         """Calculate and update genetic diversity statistics.
@@ -808,6 +838,14 @@ class EcosystemManager:
             'diversity_score_pct': f"{diversity_score:.1%}",
         }
 
+    def get_enhanced_stats_summary(self) -> Dict[str, Any]:
+        """Get comprehensive enhanced statistics report.
+
+        Returns:
+            Dictionary with all enhanced statistics
+        """
+        return self.enhanced_stats.get_full_report()
+
     def record_reproduction(self, algorithm_id: int) -> None:
         """Record a successful reproduction by a fish with the given algorithm.
 
@@ -839,14 +877,18 @@ class EcosystemManager:
         """
         self.reproduction_stats.current_pregnant_fish = count
 
-    def record_food_eaten(self, algorithm_id: int) -> None:
+    def record_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
         """Record food consumption by a fish with the given algorithm.
 
         Args:
             algorithm_id: Algorithm ID (0-47) of the fish that ate
+            energy_gained: Energy gained from food
         """
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
+
+        # NEW: Track energy from food for efficiency metrics
+        self.enhanced_stats.record_energy_from_food(energy_gained)
 
     def record_poker_outcome(self, winner_id: int, loser_id: int,
                             winner_algo_id: Optional[int], loser_algo_id: Optional[int],
