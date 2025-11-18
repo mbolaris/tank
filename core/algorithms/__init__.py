@@ -53,8 +53,8 @@ from core.algorithms.predator_avoidance import (
 
 # Import all schooling algorithms
 from core.algorithms.schooling import (
-    TightScholer,
-    LooseScholer,
+    TightSchooler,
+    LooseSchooler,
     LeaderFollower,
     AlignmentMatcher,
     SeparationSeeker,
@@ -62,7 +62,7 @@ from core.algorithms.schooling import (
     PerimeterGuard,
     MirrorMover,
     BoidsBehavior,
-    DynamicScholer,
+    DynamicSchooler,
 )
 
 # Import all energy management algorithms
@@ -128,8 +128,8 @@ ALL_ALGORITHMS = [
     DistanceKeeper,
 
     # Schooling/social
-    TightScholer,
-    LooseScholer,
+    TightSchooler,
+    LooseSchooler,
     LeaderFollower,
     AlignmentMatcher,
     SeparationSeeker,
@@ -137,7 +137,7 @@ ALL_ALGORITHMS = [
     PerimeterGuard,
     MirrorMover,
     BoidsBehavior,
-    DynamicScholer,
+    DynamicSchooler,
 
     # Energy management
     EnergyConserver,
@@ -426,8 +426,8 @@ __all__ = [
     'DistanceKeeper',
 
     # Schooling
-    'TightScholer',
-    'LooseScholer',
+    'TightSchooler',
+    'LooseSchooler',
     'LeaderFollower',
     'AlignmentMatcher',
     'SeparationSeeker',
@@ -435,7 +435,7 @@ __all__ = [
     'PerimeterGuard',
     'MirrorMover',
     'BoidsBehavior',
-    'DynamicScholer',
+    'DynamicSchooler',
 
     # Energy management
     'EnergyConserver',

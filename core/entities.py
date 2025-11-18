@@ -28,7 +28,8 @@ from core.constants import (
     FISH_BABY_SIZE, FISH_ADULT_SIZE, FISH_BASE_WIDTH, FISH_BASE_HEIGHT,
     CRAB_INITIAL_ENERGY, CRAB_ATTACK_ENERGY_TRANSFER, CRAB_ATTACK_DAMAGE,
     CRAB_IDLE_CONSUMPTION, CRAB_ATTACK_COOLDOWN,
-    PLANT_FOOD_PRODUCTION_INTERVAL, PLANT_FOOD_PRODUCTION_ENERGY, PLANT_PRODUCTION_CHANCE
+    PLANT_FOOD_PRODUCTION_INTERVAL, PLANT_FOOD_PRODUCTION_ENERGY, PLANT_PRODUCTION_CHANCE,
+    FRAME_RATE, TARGET_POPULATION, DEFAULT_AGENT_SIZE
 )
 
 if TYPE_CHECKING:
@@ -70,8 +71,8 @@ class Agent:
         self.screen_height: int = screen_height
 
         # Bounding box for collision detection (will be updated by size)
-        self.width: float = 50.0  # Default size
-        self.height: float = 50.0
+        self.width: float = DEFAULT_AGENT_SIZE  # Default size
+        self.height: float = DEFAULT_AGENT_SIZE
 
     def get_rect(self) -> Tuple[float, float, float, float]:
         """Get bounding rectangle (x, y, width, height) for collision detection."""
@@ -197,31 +198,6 @@ class Fish(Agent):
         species: Fish species identifier
     """
 
-    # Class-level constants for life cycle (using centralized constants)
-    BABY_AGE = LIFE_STAGE_BABY_MAX
-    JUVENILE_AGE = LIFE_STAGE_JUVENILE_MAX
-    ADULT_AGE = LIFE_STAGE_YOUNG_ADULT_MAX
-    ELDER_AGE = LIFE_STAGE_ADULT_MAX
-    BASE_MAX_AGE = LIFE_STAGE_MATURE_MAX
-
-    # Energy constants (using centralized constants)
-    BASE_MAX_ENERGY = ENERGY_MAX_DEFAULT
-    ENERGY_FROM_FOOD = 1.0  # Energy from food is determined by food type in constants.py
-    EXISTENCE_ENERGY_COST = ENERGY_LOW_MULTIPLIER
-    BASE_METABOLISM = ENERGY_MODERATE_MULTIPLIER
-    MOVEMENT_ENERGY_COST = ENERGY_HIGH_MULTIPLIER
-    SHARP_TURN_DOT_THRESHOLD = ENERGY_MATE_SEARCH_COST
-    SHARP_TURN_ENERGY_COST = ENERGY_MOVEMENT_BASE_COST
-
-    # Reproduction constants (using centralized constants)
-    REPRODUCTION_ENERGY_THRESHOLD = REPRODUCTION_MIN_ENERGY
-    REPRODUCTION_COOLDOWN = REPRODUCTION_COOLDOWN
-    PREGNANCY_DURATION = REPRODUCTION_GESTATION
-    MATING_DISTANCE = MATING_DISTANCE
-
-    # Predator tracking constant (using centralized constant)
-    PREDATOR_ENCOUNTER_WINDOW = PREDATOR_ENCOUNTER_WINDOW
-
     def __init__(self, environment: 'Environment', movement_strategy: 'MovementStrategy',
                  species: str, x: float, y: float, speed: float,
                  genome: Optional['Genome'] = None, generation: int = 0,
@@ -255,13 +231,13 @@ class Fish(Agent):
 
         # Life cycle - managed by LifecycleComponent for better code organization
         from core.fish.lifecycle_component import LifecycleComponent
-        max_age = int(self.BASE_MAX_AGE * self.genome.max_energy)  # Hardier fish live longer
+        max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.max_energy)  # Hardier fish live longer
         self._lifecycle_component = LifecycleComponent(max_age)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization
         from core.fish.energy_component import EnergyComponent
-        max_energy = self.BASE_MAX_ENERGY * self.genome.max_energy
-        base_metabolism = self.BASE_METABOLISM * self.genome.metabolism_rate
+        max_energy = ENERGY_MAX_DEFAULT * self.genome.max_energy
+        base_metabolism = ENERGY_MODERATE_MULTIPLIER * self.genome.metabolism_rate
         # Use custom initial energy if provided (for reproduction), otherwise use default ratio
         if initial_energy is not None:
             self._energy_component = EnergyComponent(max_energy, base_metabolism, initial_energy_ratio=0.0)
@@ -674,7 +650,7 @@ class Fish(Agent):
         if self.ecosystem is not None:
             # Stress increases when population is low or death rate is high
             fish_count = len([e for e in self.environment.agents if isinstance(e, Fish)])
-            target_population = 15  # Desired stable population
+            target_population = TARGET_POPULATION  # Desired stable population
             population_ratio = fish_count / target_population if target_population > 0 else 1.0
 
             # Stress is higher when population is below target (inverse relationship)
@@ -768,7 +744,7 @@ class Fish(Agent):
         self.memory_system.update(self.age)
 
         # IMPROVEMENT: Clean old food memories every second
-        if self.age % 30 == 0:  # Every second at 30fps
+        if self.age % FRAME_RATE == 0:  # Every second
             self.clean_old_memories()
 
         # Poker cooldown
@@ -831,8 +807,8 @@ class Fish(Agent):
         new_direction = self.vel.normalize()
 
         if (previous_direction is not None and
-                previous_direction.dot(new_direction) <= self.SHARP_TURN_DOT_THRESHOLD):
-            self.energy = max(0, self.energy - self.SHARP_TURN_ENERGY_COST)
+                previous_direction.dot(new_direction) <= ENERGY_MATE_SEARCH_COST):
+            self.energy = max(0, self.energy - ENERGY_MOVEMENT_BASE_COST)
 
         self.last_direction = new_direction
 
@@ -846,12 +822,6 @@ class Crab(Agent):
         max_energy: Maximum energy capacity
         hunt_cooldown: Frames until can hunt again
     """
-
-    BASE_MAX_ENERGY = CRAB_INITIAL_ENERGY
-    ENERGY_FROM_FISH = CRAB_ATTACK_ENERGY_TRANSFER
-    ENERGY_FROM_FOOD = CRAB_ATTACK_DAMAGE
-    BASE_METABOLISM = CRAB_IDLE_CONSUMPTION
-    HUNT_COOLDOWN = CRAB_ATTACK_COOLDOWN
 
     def __init__(self, environment: 'Environment', genome: Optional['Genome'] = None,
                  x: float = 100, y: float = 550, screen_width: int = 800, screen_height: int = 600) -> None:
@@ -876,7 +846,7 @@ class Crab(Agent):
         super().__init__(environment, x, y, speed, screen_width, screen_height)
 
         # Energy system
-        self.max_energy: float = self.BASE_MAX_ENERGY * self.genome.max_energy
+        self.max_energy: float = CRAB_INITIAL_ENERGY * self.genome.max_energy
         self.energy: float = self.max_energy
 
         # Hunting mechanics
@@ -888,13 +858,13 @@ class Crab(Agent):
 
     def consume_energy(self) -> None:
         """Consume energy based on metabolism."""
-        metabolism = self.BASE_METABOLISM * self.genome.metabolism_rate
+        metabolism = CRAB_IDLE_CONSUMPTION * self.genome.metabolism_rate
         self.energy = max(0, self.energy - metabolism)
 
     def eat_fish(self, fish: Fish) -> None:
         """Eat a fish and gain energy."""
-        self.energy = min(self.max_energy, self.energy + self.ENERGY_FROM_FISH)
-        self.hunt_cooldown = self.HUNT_COOLDOWN
+        self.energy = min(self.max_energy, self.energy + CRAB_ATTACK_ENERGY_TRANSFER)
+        self.hunt_cooldown = CRAB_ATTACK_COOLDOWN
 
     def eat_food(self, food: 'Food') -> None:
         """Eat food and gain energy."""
@@ -937,11 +907,6 @@ class Plant(Agent):
         current_food_count: Current number of food items from this plant
     """
 
-    BASE_FOOD_PRODUCTION_RATE = PLANT_FOOD_PRODUCTION_INTERVAL
-    MAX_FOOD_CAPACITY = PLANT_FOOD_PRODUCTION_ENERGY
-    STATIONARY_FOOD_CHANCE = PLANT_PRODUCTION_CHANCE
-    STATIONARY_FOOD_TYPE = 'nectar'
-
     def __init__(self, environment: 'Environment', plant_type: int,
                  x: float = 100, y: float = 400, screen_width: int = 800, screen_height: int = 600) -> None:
         """Initialize a plant.
@@ -958,8 +923,8 @@ class Plant(Agent):
         self.plant_type: int = plant_type
 
         # Food production
-        self.food_production_timer: int = self.BASE_FOOD_PRODUCTION_RATE
-        self.food_production_rate: int = self.BASE_FOOD_PRODUCTION_RATE
+        self.food_production_timer: int = PLANT_FOOD_PRODUCTION_INTERVAL
+        self.food_production_rate: int = PLANT_FOOD_PRODUCTION_INTERVAL
         self.current_food_count: int = 0
 
     def update_position(self) -> None:
@@ -988,7 +953,7 @@ class Plant(Agent):
         # Update timer
         self.food_production_timer -= time_modifier
 
-        if self.food_production_timer <= 0 and self.current_food_count < self.MAX_FOOD_CAPACITY:
+        if self.food_production_timer <= 0 and self.current_food_count < PLANT_FOOD_PRODUCTION_ENERGY:
             self.food_production_timer = self.food_production_rate
 
             # Calculate ecosystem metrics for dynamic production
@@ -997,17 +962,17 @@ class Plant(Agent):
             total_energy = sum(fish.energy for fish in fish_list)
 
             # Adjust production chance based on ecosystem state
-            production_chance = self.STATIONARY_FOOD_CHANCE
+            production_chance = PLANT_PRODUCTION_CHANCE
 
             # Increase production when energy is critically low
             if total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
-                production_chance = min(0.6, self.STATIONARY_FOOD_CHANCE * 1.5)  # +50% chance
+                production_chance = min(0.6, PLANT_PRODUCTION_CHANCE * 1.5)  # +50% chance
             # Decrease production when energy or population is very high
             elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2:
-                production_chance = self.STATIONARY_FOOD_CHANCE * 0.3  # 70% reduction
+                production_chance = PLANT_PRODUCTION_CHANCE * 0.3  # 70% reduction
             # Moderate decrease when energy or population is high
             elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1:
-                production_chance = self.STATIONARY_FOOD_CHANCE * 0.6  # 40% reduction
+                production_chance = PLANT_PRODUCTION_CHANCE * 0.6  # 40% reduction
 
             # Roll for production with adjusted chance
             return random.random() < production_chance
@@ -1022,14 +987,14 @@ class Plant(Agent):
         """
         self.current_food_count += 1
 
-        if random.random() < self.STATIONARY_FOOD_CHANCE:
+        if random.random() < PLANT_PRODUCTION_CHANCE:
             # Grow nectar that clings to the top of the plant
             food = Food(
                 self.environment,
                 self.pos.x + self.width / 2,  # Center of plant
                 self.pos.y,  # Top of plant
                 source_plant=self,
-                food_type=self.STATIONARY_FOOD_TYPE,
+                food_type='nectar',
                 screen_width=self.screen_width,
                 screen_height=self.screen_height
             )

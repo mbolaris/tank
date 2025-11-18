@@ -8,6 +8,12 @@ FRAME_RATE = 30
 # The number of schooling fish to create at the start of the game
 NUM_SCHOOLING_FISH = 10  # Increased to create resource competition
 
+# Target stable population for ecosystem balance
+TARGET_POPULATION = 15
+
+# Default agent size (width and height in pixels)
+DEFAULT_AGENT_SIZE = 50.0
+
 # The rate at which the sprite images change, in milliseconds
 IMAGE_CHANGE_RATE = 500  # change this to your preference
 

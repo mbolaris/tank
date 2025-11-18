@@ -39,7 +39,7 @@ The simulation features **48 parametrizable behavior algorithms** that fish can 
 - `GreedyFoodSeeker` - Always move toward nearest food
 - `AmbushFeeder` - Wait for food to come close
 - `PanicFlee` - Escape from predators at maximum speed
-- `TightScholer` - Stay very close to school members
+- `TightSchooler` - Stay very close to school members
 - `BurstSwimmer` - Alternate between bursts and rest
 - `TerritorialDefender` - Defend territory from intruders
 - ...and 42 more!

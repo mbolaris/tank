@@ -1,8 +1,8 @@
 """Schooling and social behavior algorithms.
 
 This module contains 10 algorithms focused on group behavior and social interactions:
-- TightScholer: Stay very close to school members
-- LooseScholer: Maintain loose association with school
+- TightSchooler: Stay very close to school members
+- LooseSchooler: Maintain loose association with school
 - LeaderFollower: Follow the fastest/strongest fish
 - AlignmentMatcher: Match velocity with nearby fish
 - SeparationSeeker: Avoid crowding neighbors
@@ -10,7 +10,7 @@ This module contains 10 algorithms focused on group behavior and social interact
 - PerimeterGuard: Stay on the outside of the school
 - MirrorMover: Mirror the movements of nearby fish
 - BoidsBehavior: Classic boids algorithm (separation, alignment, cohesion)
-- DynamicScholer: Switch between tight and loose schooling based on conditions
+- DynamicSchooler: Switch between tight and loose schooling based on conditions
 """
 
 import random
@@ -24,7 +24,7 @@ from core.entities import Food, Crab, Fish as FishClass
 
 
 @dataclass
-class TightScholer(BehaviorAlgorithm):
+class TightSchooler(BehaviorAlgorithm):
     """Stay very close to school members."""
 
     def __init__(self):
@@ -51,7 +51,7 @@ class TightScholer(BehaviorAlgorithm):
 
 
 @dataclass
-class LooseScholer(BehaviorAlgorithm):
+class LooseSchooler(BehaviorAlgorithm):
     """Maintain loose association with school."""
 
     def __init__(self):
@@ -384,7 +384,7 @@ class BoidsBehavior(BehaviorAlgorithm):
 
 
 @dataclass
-class DynamicScholer(BehaviorAlgorithm):
+class DynamicSchooler(BehaviorAlgorithm):
     """Switch between tight and loose schooling based on conditions."""
 
     def __init__(self):
