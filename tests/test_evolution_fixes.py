@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, '/home/user/tank')
 
 from core.genetics import Genome
-from core.behavior_algorithms import (
+from core.algorithms import (
     GreedyFoodSeeker, EnergyAwareFoodSeeker, crossover_algorithms
 )
 

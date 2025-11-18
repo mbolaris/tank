@@ -172,6 +172,24 @@ REPRODUCTION_MIN_ENERGY = 35.0  # Minimum energy to initiate reproduction
 REPRODUCTION_COOLDOWN = 360  # Frames between reproduction attempts (12 seconds)
 REPRODUCTION_GESTATION = 300  # Frames for pregnancy (10 seconds)
 REPRODUCTION_ENERGY_COST = 60.0  # Energy cost to give birth
+MATING_DISTANCE = 60.0  # Maximum distance for mating (pixels)
+
+# Fish Memory and Learning Constants
+FISH_MAX_FOOD_MEMORIES = 5  # Remember up to 5 good food locations
+FISH_FOOD_MEMORY_DECAY = 600  # Forget food locations after 20 seconds (600 frames)
+FISH_MEMORY_MAX_PER_TYPE = 10  # Max memories per type in enhanced memory system
+FISH_MEMORY_DECAY_RATE = 0.001  # Memory decay rate for enhanced system
+FISH_MEMORY_LEARNING_RATE = 0.05  # Learning rate for memory system
+FISH_LAST_EVENT_INITIAL_AGE = -1000  # Initial age value for tracking last events
+
+# Fish Combat and Predator Tracking
+PREDATOR_ENCOUNTER_WINDOW = 150  # Frames (5 seconds) - recent conflict window for death attribution
+
+# Fish Visual Constants
+FISH_BABY_SIZE = 0.5  # Size multiplier for baby fish
+FISH_ADULT_SIZE = 1.0  # Size multiplier for adult fish
+FISH_BASE_WIDTH = 50  # Base width for fish sprite
+FISH_BASE_HEIGHT = 50  # Base height for fish sprite
 
 # Crab Constants
 CRAB_INITIAL_ENERGY = 150.0  # Starting energy for crabs
@@ -196,6 +214,13 @@ FLEE_THRESHOLD_LOW = 80  # Flee distance when energy is low
 FLEE_THRESHOLD_NORMAL = 120  # Flee distance when energy is normal
 FLEE_SPEED_CRITICAL = 1.1  # Flee speed when energy is critical
 FLEE_SPEED_NORMAL = 1.3  # Flee speed when energy is normal
+
+# Movement Calculation Constants
+MOVEMENT_ESCAPE_DIRECT_WEIGHT = 0.7  # Weight of direct escape direction
+MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT = 0.3  # Weight of perpendicular escape component
+MOVEMENT_SLOW_SPEED_MULTIPLIER = 0.3  # Speed when too close or backing away
+MOVEMENT_FOV_ANGLE = 1.57  # Field of view angle in radians (~90 degrees)
+MOVEMENT_DISTANCE_EPSILON = 0.01  # Minimum distance threshold for movement calculations
 
 # Poker Aggression Factors
 POKER_AGGRESSION_LOW = 0.3  # Low aggression factor

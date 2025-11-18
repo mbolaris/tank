@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Any
 # Use absolute imports assuming tank/ is in PYTHONPATH
 from simulation_engine import SimulationEngine
 from core import entities
-from core.behavior_algorithms import get_algorithm_index
+from core.algorithms import get_algorithm_index
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
 from backend.models import EntityData, StatsData, SimulationUpdate, PokerStatsData, PokerEventData
 

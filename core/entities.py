@@ -21,7 +21,11 @@ from core.constants import (
     ENERGY_MAX_DEFAULT, ENERGY_IDLE_CONSUMPTION, ENERGY_LOW_MULTIPLIER,
     ENERGY_MODERATE_MULTIPLIER, ENERGY_HIGH_MULTIPLIER, ENERGY_MATE_SEARCH_COST,
     ENERGY_MOVEMENT_BASE_COST, REPRODUCTION_MIN_ENERGY, REPRODUCTION_COOLDOWN,
-    REPRODUCTION_GESTATION, REPRODUCTION_ENERGY_COST,
+    REPRODUCTION_GESTATION, REPRODUCTION_ENERGY_COST, MATING_DISTANCE,
+    FISH_MAX_FOOD_MEMORIES, FISH_FOOD_MEMORY_DECAY, FISH_MEMORY_MAX_PER_TYPE,
+    FISH_MEMORY_DECAY_RATE, FISH_MEMORY_LEARNING_RATE, FISH_LAST_EVENT_INITIAL_AGE,
+    PREDATOR_ENCOUNTER_WINDOW,
+    FISH_BABY_SIZE, FISH_ADULT_SIZE, FISH_BASE_WIDTH, FISH_BASE_HEIGHT,
     CRAB_INITIAL_ENERGY, CRAB_ATTACK_ENERGY_TRANSFER, CRAB_ATTACK_DAMAGE,
     CRAB_IDLE_CONSUMPTION, CRAB_ATTACK_COOLDOWN,
     PLANT_FOOD_PRODUCTION_INTERVAL, PLANT_FOOD_PRODUCTION_ENERGY, PLANT_PRODUCTION_CHANCE
@@ -209,14 +213,11 @@ class Fish(Agent):
     SHARP_TURN_DOT_THRESHOLD = ENERGY_MATE_SEARCH_COST
     SHARP_TURN_ENERGY_COST = ENERGY_MOVEMENT_BASE_COST
 
-    # Predator encounter tracking
-    PREDATOR_ENCOUNTER_WINDOW = 150  # 5 seconds - recent conflict window for death attribution
-
     # Reproduction constants (using centralized constants)
     REPRODUCTION_ENERGY_THRESHOLD = REPRODUCTION_MIN_ENERGY
     REPRODUCTION_COOLDOWN = REPRODUCTION_COOLDOWN
     PREGNANCY_DURATION = REPRODUCTION_GESTATION
-    MATING_DISTANCE = 60.0  # Increased from 50 to make mating easier
+    MATING_DISTANCE = MATING_DISTANCE
 
     def __init__(self, environment: 'Environment', movement_strategy: 'MovementStrategy',
                  species: str, x: float, y: float, speed: float,
@@ -249,10 +250,10 @@ class Fish(Agent):
         self.generation: int = generation
         self.species: str = species
 
-        # Life cycle
-        self.age: int = 0
-        self.max_age: int = int(self.BASE_MAX_AGE * self.genome.max_energy)  # Hardier fish live longer
-        self.life_stage: LifeStage = LifeStage.BABY
+        # Life cycle - managed by LifecycleComponent for better code organization
+        from core.fish.lifecycle_component import LifecycleComponent
+        max_age = int(self.BASE_MAX_AGE * self.genome.max_energy)  # Hardier fish live longer
+        self._lifecycle_component = LifecycleComponent(max_age)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization
         from core.fish.energy_component import EnergyComponent
@@ -269,7 +270,7 @@ class Fish(Agent):
         # This allows existing code to access fish.energy and fish.max_energy directly
 
         # Predator tracking (for death attribution)
-        self.last_predator_encounter_age: int = -1000  # Age when last encountered a predator
+        self.last_predator_encounter_age: int = FISH_LAST_EVENT_INITIAL_AGE
 
         # Reproduction - managed by ReproductionComponent for better code organization
         from core.fish.reproduction_component import ReproductionComponent
@@ -279,17 +280,17 @@ class Fish(Agent):
 
         # IMPROVEMENT: Memory and learning system (legacy - kept for compatibility)
         self.food_memory: List[Tuple[Vector2, int]] = []  # (position, age_when_found) for food hotspots
-        self.last_food_found_age: int = -1000  # Age when last found food
+        self.last_food_found_age: int = FISH_LAST_EVENT_INITIAL_AGE
         self.successful_food_finds: int = 0  # Track learning success
-        self.MAX_FOOD_MEMORIES = 5  # Remember up to 5 good food locations
-        self.FOOD_MEMORY_DECAY = 600  # Forget food locations after 20 seconds
+        self.MAX_FOOD_MEMORIES = FISH_MAX_FOOD_MEMORIES
+        self.FOOD_MEMORY_DECAY = FISH_FOOD_MEMORY_DECAY
 
         # NEW: Enhanced memory system
         from core.fish_memory import FishMemorySystem
         self.memory_system = FishMemorySystem(
-            max_memories_per_type=10,
-            decay_rate=0.001,
-            learning_rate=0.05
+            max_memories_per_type=FISH_MEMORY_MAX_PER_TYPE,
+            decay_rate=FISH_MEMORY_DECAY_RATE,
+            learning_rate=FISH_MEMORY_LEARNING_RATE
         )
 
         # ID tracking
@@ -300,9 +301,9 @@ class Fish(Agent):
             self.fish_id: int = fish_id if fish_id is not None else 0
 
         # Visual attributes (for rendering, but stored in entity)
-        self.size: float = 0.5 if self.life_stage == LifeStage.BABY else 1.0
-        self.base_width: int = 50  # Will be updated by sprite adapter
-        self.base_height: int = 50
+        # Size is now managed by lifecycle component, but keep reference for rendering
+        self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
+        self.base_height: int = FISH_BASE_HEIGHT
         self.movement_strategy: 'MovementStrategy' = movement_strategy
 
         # Apply genetic modifiers to speed
@@ -315,7 +316,7 @@ class Fish(Agent):
             # Get algorithm ID if fish has a behavior algorithm
             algorithm_id = None
             if self.genome.behavior_algorithm is not None:
-                from core.behavior_algorithms import get_algorithm_index
+                from core.algorithms import get_algorithm_index
                 algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
             ecosystem.record_birth(self.fish_id, self.generation, algorithm_id=algorithm_id)
 
@@ -379,20 +380,30 @@ class Fish(Agent):
         """Set mate genome (setter for backward compatibility)."""
         self._reproduction_component.mate_genome = value
 
+    # Lifecycle properties for backward compatibility
+    @property
+    def age(self) -> int:
+        """Current age in frames (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.age
+
+    @property
+    def max_age(self) -> int:
+        """Maximum age/lifespan (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.max_age
+
+    @property
+    def life_stage(self) -> LifeStage:
+        """Current life stage (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.life_stage
+
+    @property
+    def size(self) -> float:
+        """Current size multiplier (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.size
+
     def update_life_stage(self) -> None:
-        """Update life stage based on age."""
-        if self.age < self.BABY_AGE:
-            self.life_stage = LifeStage.BABY
-            self.size = 0.5 + 0.5 * (self.age / self.BABY_AGE)  # Grow from 0.5 to 1.0
-        elif self.age < self.JUVENILE_AGE:
-            self.life_stage = LifeStage.JUVENILE
-            self.size = 1.0
-        elif self.age < self.ELDER_AGE:
-            self.life_stage = LifeStage.ADULT
-            self.size = 1.0
-        else:
-            self.life_stage = LifeStage.ELDER
-            self.size = 1.0
+        """Update life stage based on age (delegates to LifecycleComponent)."""
+        self._lifecycle_component.update_life_stage()
 
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
@@ -740,9 +751,8 @@ class Fish(Agent):
         """
         super().update(elapsed_time)
 
-        # Age
-        self.age += 1
-        self.update_life_stage()
+        # Age - managed by LifecycleComponent
+        self._lifecycle_component.increment_age()
 
         # NEW: Update fitness for survival
         energy_ratio = self.energy / self.max_energy

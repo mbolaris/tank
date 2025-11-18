@@ -252,7 +252,7 @@ class PokerInteraction:
 
         # Record reproduction in ecosystem for both parents
         if winner_fish.ecosystem is not None:
-            from core.behavior_algorithms import get_algorithm_index
+            from core.algorithms import get_algorithm_index
 
             if winner_fish.genome.behavior_algorithm is not None:
                 winner_algo_id = get_algorithm_index(winner_fish.genome.behavior_algorithm)
@@ -407,12 +407,12 @@ class PokerInteraction:
             # Get algorithm IDs from fish genomes
             fish1_algo_id = None
             if self.fish1.genome.behavior_algorithm is not None:
-                from core.behavior_algorithms import get_algorithm_index
+                from core.algorithms import get_algorithm_index
                 fish1_algo_id = get_algorithm_index(self.fish1.genome.behavior_algorithm)
 
             fish2_algo_id = None
             if self.fish2.genome.behavior_algorithm is not None:
-                from core.behavior_algorithms import get_algorithm_index
+                from core.algorithms import get_algorithm_index
                 fish2_algo_id = get_algorithm_index(self.fish2.genome.behavior_algorithm)
 
             # Determine which fish is player 1 and player 2 for stats

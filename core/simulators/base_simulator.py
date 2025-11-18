@@ -13,7 +13,7 @@ from core.constants import (
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2, AUTO_FOOD_HIGH_POP_THRESHOLD_1,
     AUTO_FOOD_HIGH_POP_THRESHOLD_2
 )
-from core.behavior_algorithms import get_algorithm_index
+from core.algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
 
 # Type checking imports
