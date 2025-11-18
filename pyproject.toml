@@ -17,7 +17,7 @@ requires-python = ">=3.8"
 authors = [
     {name = "Tank Team"}
 ]
-keywords = ["simulation", "artificial-life", "evolution", "neural-networks", "ecosystem"]
+keywords = ["simulation", "artificial-life", "evolution", "algorithms", "ecosystem", "genetic-algorithms"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",

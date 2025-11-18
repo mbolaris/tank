@@ -6,6 +6,7 @@ position-aware play, and improved decision making based on actual poker theory.
 """
 
 from typing import List, Tuple
+
 from core.poker_interaction import Card, Rank
 
 
@@ -161,44 +162,44 @@ def get_action_recommendation(
     # Premium hands (>0.75): Almost always raise/call
     if hand_strength >= 0.75:
         if is_preflop or position_on_button:
-            return ('raise', 1.0 + aggression * 0.5)
+            return ("raise", 1.0 + aggression * 0.5)
         else:
-            return ('call', 0.0)
+            return ("call", 0.0)
 
     # Strong hands (0.60-0.75): Raise or call depending on aggression
     elif hand_strength >= 0.60:
         if aggression > 0.5 or position_on_button:
-            return ('raise', 0.7 + aggression * 0.4)
+            return ("raise", 0.7 + aggression * 0.4)
         else:
-            return ('call', 0.0)
+            return ("call", 0.0)
 
     # Medium hands (0.40-0.60): Play based on pot odds and position
     elif hand_strength >= 0.40:
         if hand_strength > pot_odds:
             # Hand is strong enough for pot odds
             if position_on_button and aggression > 0.6:
-                return ('raise', 0.5 + aggression * 0.3)
+                return ("raise", 0.5 + aggression * 0.3)
             else:
-                return ('call', 0.0)
+                return ("call", 0.0)
         else:
             # Not getting right pot odds
             if position_on_button and aggression > 0.7:
-                return ('raise', 0.4 + aggression * 0.2)  # Bluff
+                return ("raise", 0.4 + aggression * 0.2)  # Bluff
             else:
-                return ('fold', 0.0)
+                return ("fold", 0.0)
 
     # Marginal hands (0.25-0.40): Mostly fold, sometimes play in position
     elif hand_strength >= 0.25:
         if position_on_button and aggression > 0.7 and pot_odds < 0.25:
-            return ('call', 0.0)  # Speculative call in position
+            return ("call", 0.0)  # Speculative call in position
         elif aggression > 0.8:
-            return ('raise', 0.3 + aggression * 0.2)  # Aggressive bluff
+            return ("raise", 0.3 + aggression * 0.2)  # Aggressive bluff
         else:
-            return ('fold', 0.0)
+            return ("fold", 0.0)
 
     # Weak hands (<0.25): Usually fold, very rarely bluff
     else:
         if aggression > 0.9 and position_on_button and pot_odds < 0.15:
-            return ('raise', 0.3)  # Pure bluff with high aggression
+            return ("raise", 0.3)  # Pure bluff with high aggression
         else:
-            return ('fold', 0.0)
+            return ("fold", 0.0)

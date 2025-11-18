@@ -565,12 +565,8 @@ class PokerInteraction:
             # Someone won
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
             loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
-            winner_hand = (
-                self.hand1 if winner_id == self.fish1.fish_id else self.hand2
-            )
-            loser_hand = (
-                self.hand2 if winner_id == self.fish1.fish_id else self.hand1
-            )
+            winner_hand = self.hand1 if winner_id == self.fish1.fish_id else self.hand2
+            loser_hand = self.hand2 if winner_id == self.fish1.fish_id else self.hand1
 
             # Determine button positions
             winner_on_button = (
