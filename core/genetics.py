@@ -285,7 +285,8 @@ class Genome:
                 if abs(weighted_val) > 0.01:
                     epigenetic[modifier_key] = weighted_val * 0.5  # Decay by 50%
 
-        return cls(
+        # Create offspring genome
+        offspring = cls(
             speed_modifier=speed,
             size_modifier=weighted_inherit(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
             vision_range=weighted_inherit(parent1.vision_range, parent2.vision_range, 0.7, 1.3),
@@ -308,6 +309,12 @@ class Genome:
             epigenetic_modifiers=epigenetic,
             mate_preferences=mate_prefs,
         )
+
+        # NEW: Cultural inheritance of learned behaviors
+        from core.behavioral_learning import BehavioralLearningSystem
+        BehavioralLearningSystem.inherit_learned_behaviors(parent1, parent2, offspring)
+
+        return offspring
 
     @classmethod
     def from_parents(cls, parent1: 'Genome', parent2: 'Genome',
@@ -447,7 +454,7 @@ class Genome:
             # Mutation: randomly shift pattern ±1
             inherited_pattern = max(0, min(3, inherited_pattern + random.choice([-1, 0, 1])))
 
-        return cls(
+        offspring = cls(
             speed_modifier=speed,
             size_modifier=inherit_trait(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3, size_dominant),
             vision_range=inherit_trait(parent1.vision_range, parent2.vision_range, 0.7, 1.3),
@@ -471,6 +478,12 @@ class Genome:
             epigenetic_modifiers=epigenetic,  # Inherit epigenetic effects
             mate_preferences=mate_prefs,  # Inherit mate preferences
         )
+
+        # NEW: Cultural inheritance of learned behaviors
+        from core.behavioral_learning import BehavioralLearningSystem
+        BehavioralLearningSystem.inherit_learned_behaviors(parent1, parent2, offspring)
+
+        return offspring
 
     def get_color_tint(self) -> Tuple[int, int, int]:
         """Get RGB color tint based on genome.

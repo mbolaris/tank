@@ -272,6 +272,14 @@ class Fish(Agent):
             learning_rate=FISH_MEMORY_LEARNING_RATE
         )
 
+        # NEW: Behavioral learning system (learn from experience within lifetime)
+        from core.behavioral_learning import BehavioralLearningSystem
+        self.learning_system = BehavioralLearningSystem(self.genome)
+
+        # NEW: Poker strategy engine (advanced poker decision-making)
+        from core.poker_strategy import PokerStrategyEngine
+        self.poker_strategy = PokerStrategyEngine(self)
+
         # ID tracking
         self.ecosystem: Optional['EcosystemManager'] = ecosystem
         if fish_id is None and ecosystem is not None:
@@ -501,13 +509,27 @@ class Fish(Agent):
             return 'old_age'
         return 'unknown'
 
-    def mark_predator_encounter(self) -> None:
+    def mark_predator_encounter(self, escaped: bool = False, damage_taken: float = 0.0) -> None:
         """Mark that this fish has encountered a predator.
 
         This is used to determine death attribution - if the fish dies from
         energy depletion shortly after this encounter, it counts as predation.
+
+        Args:
+            escaped: Whether the fish successfully escaped
+            damage_taken: Amount of damage/energy lost
         """
         self.last_predator_encounter_age = self.age
+
+        # NEW: Learn from predator encounter
+        from core.behavioral_learning import LearningEvent, LearningType
+        predator_event = LearningEvent(
+            learning_type=LearningType.PREDATOR_AVOIDANCE,
+            success=escaped,
+            reward=max(0.0, 1.0 - damage_taken / 10.0),  # Higher reward if less damage
+            context={'damage': damage_taken}
+        )
+        self.learning_system.learn_from_event(predator_event)
 
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce.
@@ -743,6 +765,9 @@ class Fish(Agent):
         # NEW: Update enhanced memory system
         self.memory_system.update(self.age)
 
+        # NEW: Apply learning decay (learned behaviors fade without reinforcement)
+        self.learning_system.apply_decay()
+
         # IMPROVEMENT: Clean old food memories every second
         if self.age % FRAME_RATE == 0:  # Every second
             self.clean_old_memories()
@@ -790,6 +815,16 @@ class Fish(Agent):
 
         # IMPROVEMENT: Remember this food location for future reference
         self.remember_food_location(food.pos)
+
+        # NEW: Learn from successful food finding
+        from core.behavioral_learning import LearningEvent, LearningType
+        food_event = LearningEvent(
+            learning_type=LearningType.FOOD_FINDING,
+            success=True,
+            reward=energy_gained / 10.0,  # Normalize reward
+            context={}
+        )
+        self.learning_system.learn_from_event(food_event)
 
         # Record food consumption for algorithm performance tracking
         if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
