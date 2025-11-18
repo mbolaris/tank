@@ -77,21 +77,26 @@ class BehavioralLearningSystem:
         self.learning_rate = learning_rate
         self.decay_rate = decay_rate
 
-        # Initialize learned_behaviors if empty
-        if not self.genome.learned_behaviors:
-            self.genome.learned_behaviors = {
-                'food_finding_efficiency': 0.0,  # -0.3 to +0.3 adjustment
-                'predator_escape_skill': 0.0,
-                'poker_hand_selection': 0.0,
-                'poker_positional_awareness': 0.0,
-                'poker_aggression_tuning': 0.0,
-                'energy_conservation': 0.0,
-                'spatial_memory_strength': 0.0,
-                'successful_food_finds': 0.0,  # Counter
-                'successful_predator_escapes': 0.0,  # Counter
-                'poker_games_won': 0.0,  # Counter
-                'poker_games_lost': 0.0,  # Counter
-            }
+        # Initialize learned_behaviors - ensure all required keys exist
+        # This handles both empty dicts and partially populated ones from inheritance
+        required_keys = {
+            'food_finding_efficiency': 0.0,  # -0.3 to +0.3 adjustment
+            'predator_escape_skill': 0.0,
+            'poker_hand_selection': 0.0,
+            'poker_positional_awareness': 0.0,
+            'poker_aggression_tuning': 0.0,
+            'energy_conservation': 0.0,
+            'spatial_memory_strength': 0.0,
+            'successful_food_finds': 0.0,  # Counter
+            'successful_predator_escapes': 0.0,  # Counter
+            'poker_games_won': 0.0,  # Counter
+            'poker_games_lost': 0.0,  # Counter
+        }
+
+        # Add any missing keys while preserving existing values
+        for key, default_value in required_keys.items():
+            if key not in self.genome.learned_behaviors:
+                self.genome.learned_behaviors[key] = default_value
 
     def learn_from_event(self, event: LearningEvent) -> None:
         """Process a learning event and update learned behaviors.
