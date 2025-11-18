@@ -1,6 +1,7 @@
 """FastAPI backend for fish tank simulation."""
 
 import asyncio
+import json
 import logging
 import sys
 from pathlib import Path
