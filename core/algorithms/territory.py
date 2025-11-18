@@ -11,14 +11,15 @@ This module contains 8 algorithms focused on spatial behavior and exploration:
 - NomadicWanderer: Wander continuously without a home base
 """
 
-import random
 import math
-from typing import Tuple, List
+import random
 from dataclasses import dataclass
+from typing import List, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-from core.entities import Food, Crab, Fish as FishClass
+from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.entities import Crab, Food
+from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -171,7 +172,7 @@ class WallFollower(BehaviorAlgorithm):
         min_dist = min(dist_to_left, dist_to_right, dist_to_top, dist_to_bottom)
 
         # Move parallel to nearest wall
-        if min_dist == dist_to_left or min_dist == dist_to_right:
+        if min_dist in (dist_to_left, dist_to_right):
             return 0, self.parameters["follow_speed"]
         else:
             return self.parameters["follow_speed"], 0
@@ -405,7 +406,6 @@ class NomadicWanderer(BehaviorAlgorithm):
 
         # Boundary awareness - avoid getting stuck in corners
         edge_margin = 70
-        boundary_influence = 0
         if (
             fish.pos.x < edge_margin
             or fish.pos.x > SCREEN_WIDTH - edge_margin
@@ -416,7 +416,6 @@ class NomadicWanderer(BehaviorAlgorithm):
             center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
             to_center = self._safe_normalize(center - fish.pos)
             # Blend turn toward center with random wandering
-            boundary_influence = 0.4
             self.wander_angle = math.atan2(to_center.y, to_center.x) + random.gauss(0, 0.3)
 
         # Gradually change direction with smooth random walk

@@ -4,68 +4,47 @@ This module contains the core simulation logic for all entities in the fish tank
 No pygame-specific code is included - all rendering is handled separately.
 """
 
-from typing import List, TYPE_CHECKING, Optional, Tuple
 import random
-import math
 from enum import Enum
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+from core.constants import (
+    CRAB_ATTACK_COOLDOWN,
+    CRAB_ATTACK_ENERGY_TRANSFER,
+    CRAB_IDLE_CONSUMPTION,
+    CRAB_INITIAL_ENERGY,
+    DEFAULT_AGENT_SIZE,
+    ENERGY_MATE_SEARCH_COST,
+    ENERGY_MAX_DEFAULT,
+    ENERGY_MODERATE_MULTIPLIER,
+    ENERGY_MOVEMENT_BASE_COST,
+    FISH_BASE_HEIGHT,
+    FISH_BASE_WIDTH,
+    FISH_FOOD_MEMORY_DECAY,
+    FISH_LAST_EVENT_INITIAL_AGE,
+    FISH_MAX_FOOD_MEMORIES,
+    FISH_MEMORY_DECAY_RATE,
+    FISH_MEMORY_LEARNING_RATE,
+    FISH_MEMORY_MAX_PER_TYPE,
+    FISH_TOP_MARGIN,
+    FRAME_RATE,
+    INITIAL_ENERGY_RATIO,
+    LIFE_STAGE_MATURE_MAX,
+    PLANT_FOOD_PRODUCTION_ENERGY,
+    PLANT_FOOD_PRODUCTION_INTERVAL,
+    PLANT_PRODUCTION_CHANCE,
+    PREDATOR_ENCOUNTER_WINDOW,
+    TARGET_POPULATION,
+)
 
 # Use a simple Vector2 class or import from pygame.math (we'll create a pure version)
 from core.math_utils import Vector2
-from core.constants import (
-    INITIAL_ENERGY_RATIO,
-    BABY_METABOLISM_MULTIPLIER,
-    ELDER_METABOLISM_MULTIPLIER,
-    STARVATION_THRESHOLD,
-    CRITICAL_ENERGY_THRESHOLD,
-    LOW_ENERGY_THRESHOLD,
-    SAFE_ENERGY_THRESHOLD,
-    FISH_TOP_MARGIN,
-    LIFE_STAGE_BABY_MAX,
-    LIFE_STAGE_JUVENILE_MAX,
-    LIFE_STAGE_YOUNG_ADULT_MAX,
-    LIFE_STAGE_ADULT_MAX,
-    LIFE_STAGE_MATURE_MAX,
-    ENERGY_MAX_DEFAULT,
-    ENERGY_IDLE_CONSUMPTION,
-    ENERGY_LOW_MULTIPLIER,
-    ENERGY_MODERATE_MULTIPLIER,
-    ENERGY_HIGH_MULTIPLIER,
-    ENERGY_MATE_SEARCH_COST,
-    ENERGY_MOVEMENT_BASE_COST,
-    REPRODUCTION_MIN_ENERGY,
-    REPRODUCTION_COOLDOWN,
-    REPRODUCTION_GESTATION,
-    REPRODUCTION_ENERGY_COST,
-    MATING_DISTANCE,
-    FISH_MAX_FOOD_MEMORIES,
-    FISH_FOOD_MEMORY_DECAY,
-    FISH_MEMORY_MAX_PER_TYPE,
-    FISH_MEMORY_DECAY_RATE,
-    FISH_MEMORY_LEARNING_RATE,
-    FISH_LAST_EVENT_INITIAL_AGE,
-    PREDATOR_ENCOUNTER_WINDOW,
-    FISH_BABY_SIZE,
-    FISH_ADULT_SIZE,
-    FISH_BASE_WIDTH,
-    FISH_BASE_HEIGHT,
-    CRAB_INITIAL_ENERGY,
-    CRAB_ATTACK_ENERGY_TRANSFER,
-    CRAB_ATTACK_DAMAGE,
-    CRAB_IDLE_CONSUMPTION,
-    CRAB_ATTACK_COOLDOWN,
-    PLANT_FOOD_PRODUCTION_INTERVAL,
-    PLANT_FOOD_PRODUCTION_ENERGY,
-    PLANT_PRODUCTION_CHANCE,
-    FRAME_RATE,
-    TARGET_POPULATION,
-    DEFAULT_AGENT_SIZE,
-)
 
 if TYPE_CHECKING:
-    from core.environment import Environment
-    from core.movement_strategy import MovementStrategy
     from core.ecosystem import EcosystemManager
+    from core.environment import Environment
     from core.genetics import Genome
+    from core.movement_strategy import MovementStrategy
 
 
 class LifeStage(Enum):
@@ -152,7 +131,7 @@ class Agent:
         self.vel: Vector2 = Vector2(speed, 0)
         self.pos: Vector2 = Vector2(x, y)
         self.avoidance_velocity: Vector2 = Vector2(0, 0)
-        self.environment: "Environment" = environment
+        self.environment: Environment = environment
         self.screen_width: int = screen_width
         self.screen_height: int = screen_height
 
@@ -286,7 +265,7 @@ class Agent:
     def kill(self) -> None:
         """Remove this agent from all groups (pygame compatibility)."""
         for group in self._groups[:]:  # Copy list to avoid modification during iteration
-            if hasattr(group, 'remove'):
+            if hasattr(group, "remove"):
                 group.remove(self)
         self._groups.clear()
 
@@ -346,7 +325,7 @@ class Fish(Agent):
         from core.genetics import Genome
 
         # Genetics
-        self.genome: "Genome" = genome if genome is not None else Genome.random()
+        self.genome: Genome = genome if genome is not None else Genome.random()
         self.generation: int = generation
         self.species: str = species
 
@@ -414,7 +393,7 @@ class Fish(Agent):
         self.poker_strategy = PokerStrategyEngine(self)
 
         # ID tracking
-        self.ecosystem: Optional["EcosystemManager"] = ecosystem
+        self.ecosystem: Optional[EcosystemManager] = ecosystem
         if fish_id is None and ecosystem is not None:
             self.fish_id: int = ecosystem.get_next_fish_id()
         else:
@@ -424,7 +403,7 @@ class Fish(Agent):
         # Size is now managed by lifecycle component, but keep reference for rendering
         self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
         self.base_height: int = FISH_BASE_HEIGHT
-        self.movement_strategy: "MovementStrategy" = movement_strategy
+        self.movement_strategy: MovementStrategy = movement_strategy
 
         # Apply genetic modifiers to speed
         modified_speed = speed * self.genome.speed_modifier
@@ -535,7 +514,9 @@ class Fish(Agent):
         Args:
             time_modifier: Modifier for time-based effects (e.g., day/night)
         """
-        self._energy_component.consume_energy(self.vel, self.speed, self.life_stage, time_modifier, self.size)
+        self._energy_component.consume_energy(
+            self.vel, self.speed, self.life_stage, time_modifier, self.size
+        )
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy).
@@ -694,8 +675,8 @@ class Fish(Agent):
         """
         from core.constants import (
             POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
-            POST_POKER_REPRODUCTION_WINNER_PROB,
             POST_POKER_REPRODUCTION_LOSER_PROB,
+            POST_POKER_REPRODUCTION_WINNER_PROB,
         )
 
         # Must have enough energy
@@ -1026,7 +1007,7 @@ class Crab(Agent):
         from core.genetics import Genome
 
         # Crabs are slower and less aggressive now
-        self.genome: "Genome" = genome if genome is not None else Genome.random()
+        self.genome: Genome = genome if genome is not None else Genome.random()
         base_speed = 1.5  # Much slower than before (was 2)
         speed = base_speed * self.genome.speed_modifier
 
@@ -1143,11 +1124,11 @@ class Plant(Agent):
             True if food should be produced
         """
         from core.constants import (
-            AUTO_FOOD_LOW_ENERGY_THRESHOLD,
             AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
             AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
             AUTO_FOOD_HIGH_POP_THRESHOLD_1,
             AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+            AUTO_FOOD_LOW_ENERGY_THRESHOLD,
         )
 
         # Update timer
@@ -1322,7 +1303,7 @@ class Food(Agent):
         self.is_stationary: bool = self.food_properties.get("stationary", False)
 
         super().__init__(environment, x, y, 0, screen_width, screen_height)
-        self.source_plant: Optional["Plant"] = source_plant
+        self.source_plant: Optional[Plant] = source_plant
 
     @staticmethod
     def _select_random_food_type(include_stationary: bool = True) -> str:
@@ -1356,6 +1337,7 @@ class Food(Agent):
         if self.is_stationary:
             return
         from core.constants import FOOD_SINK_ACCELERATION
+
         sink_rate = FOOD_SINK_ACCELERATION * self.food_properties["sink_multiplier"]
         self.vel.y += sink_rate
 

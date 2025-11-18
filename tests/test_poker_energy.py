@@ -2,12 +2,13 @@
 """Test poker energy transfer to ensure loser loses energy and winner gains less."""
 
 import sys
+
 sys.path.insert(0, "/home/user/tank")
 
-from core.fish_poker import PokerInteraction
-from core.entities import Fish
-from core.genetics import Genome
 from core.algorithms import GreedyFoodSeeker
+from core.entities import Fish
+from core.fish_poker import PokerInteraction
+from core.genetics import Genome
 from core.movement_strategy import AlgorithmicMovement
 
 
@@ -42,7 +43,7 @@ def test_poker_energy_transfer():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy_fish1
+        initial_energy=initial_energy_fish1,
     )
 
     fish2 = Fish(
@@ -58,12 +59,16 @@ def test_poker_energy_transfer():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy_fish2
+        initial_energy=initial_energy_fish2,
     )
 
-    print(f"\nInitial State:")
-    print(f"  Fish 1 (ID={fish1.fish_id}): {initial_energy_fish1:.2f} energy, size={fish1.size:.3f}")
-    print(f"  Fish 2 (ID={fish2.fish_id}): {initial_energy_fish2:.2f} energy, size={fish2.size:.3f}")
+    print("\nInitial State:")
+    print(
+        f"  Fish 1 (ID={fish1.fish_id}): {initial_energy_fish1:.2f} energy, size={fish1.size:.3f}"
+    )
+    print(
+        f"  Fish 2 (ID={fish2.fish_id}): {initial_energy_fish2:.2f} energy, size={fish2.size:.3f}"
+    )
     print(f"  Total energy: {initial_energy_fish1 + initial_energy_fish2:.2f}")
 
     # Play poker
@@ -80,7 +85,7 @@ def test_poker_energy_transfer():
     total_final = final_energy_fish1 + final_energy_fish2
     total_initial = initial_energy_fish1 + initial_energy_fish2
 
-    print(f"\nFinal State:")
+    print("\nFinal State:")
     print(f"  Fish 1 (ID={fish1.fish_id}): {final_energy_fish1:.2f} energy")
     print(f"  Fish 2 (ID={fish2.fish_id}): {final_energy_fish2:.2f} energy")
     print(f"  Total energy: {total_final:.2f}")
@@ -90,7 +95,7 @@ def test_poker_energy_transfer():
     delta_fish2 = final_energy_fish2 - initial_energy_fish2
     total_delta = total_final - total_initial
 
-    print(f"\nEnergy Changes:")
+    print("\nEnergy Changes:")
     print(f"  Fish 1: {delta_fish1:+.2f}")
     print(f"  Fish 2: {delta_fish2:+.2f}")
     print(f"  Total change: {total_delta:.2f}")
@@ -100,77 +105,81 @@ def test_poker_energy_transfer():
         winner_delta = delta_fish1
         loser_delta = delta_fish2
         winner_name = "Fish 1"
-        loser_name = "Fish 2"
     elif poker.result.winner_id == fish2.fish_id:
         winner_delta = delta_fish2
         loser_delta = delta_fish1
         winner_name = "Fish 2"
-        loser_name = "Fish 1"
     else:
         # Tie
-        print(f"\nResult: TIE")
-        print(f"  Both fish should have same energy as before")
+        print("\nResult: TIE")
+        print("  Both fish should have same energy as before")
         assert abs(delta_fish1) < 0.01, f"Fish 1 energy changed on tie: {delta_fish1}"
         assert abs(delta_fish2) < 0.01, f"Fish 2 energy changed on tie: {delta_fish2}"
-        print(f"\n✓ Tie handled correctly!")
+        print("\n✓ Tie handled correctly!")
         return True
 
     print(f"\nResult: {winner_name} WINS")
-    print(f"  Winner's hand: {poker.result.hand1 if poker.result.winner_id == fish1.fish_id else poker.result.hand2}")
-    print(f"  Loser's hand: {poker.result.hand2 if poker.result.winner_id == fish1.fish_id else poker.result.hand1}")
+    print(
+        f"  Winner's hand: {poker.result.hand1 if poker.result.winner_id == fish1.fish_id else poker.result.hand2}"
+    )
+    print(
+        f"  Loser's hand: {poker.result.hand2 if poker.result.winner_id == fish1.fish_id else poker.result.hand1}"
+    )
     print(f"  Energy transferred (reported): {poker.result.energy_transferred:.2f}")
     print(f"  Final pot: {poker.result.final_pot:.2f}")
 
-    print(f"\nEnergy Analysis:")
+    print("\nEnergy Analysis:")
     print(f"  Winner gained: {winner_delta:+.2f}")
     print(f"  Loser lost: {loser_delta:+.2f}")
     print(f"  House cut (calculated): {total_delta:.2f}")
 
     # Key assertions
     print(f"\n{'='*80}")
-    print(f"ASSERTIONS:")
+    print("ASSERTIONS:")
     print(f"{'='*80}")
 
     # 1. Loser should have lost energy
-    print(f"\n1. Loser should have LOST energy:")
+    print("\n1. Loser should have LOST energy:")
     print(f"   Loser's delta: {loser_delta:.2f}")
     assert loser_delta < -0.01, f"❌ FAIL: Loser did not lose energy! Delta: {loser_delta}"
     print(f"   ✓ PASS: Loser lost {abs(loser_delta):.2f} energy")
 
     # 2. Winner should have gained energy
-    print(f"\n2. Winner should have GAINED energy:")
+    print("\n2. Winner should have GAINED energy:")
     print(f"   Winner's delta: {winner_delta:.2f}")
     assert winner_delta > 0.01, f"❌ FAIL: Winner did not gain energy! Delta: {winner_delta}"
     print(f"   ✓ PASS: Winner gained {winner_delta:.2f} energy")
 
     # 3. Winner should gain LESS than loser lost (due to house cut)
-    print(f"\n3. Winner should gain LESS than loser lost (house cut):")
+    print("\n3. Winner should gain LESS than loser lost (house cut):")
     print(f"   Winner gained: {winner_delta:.2f}")
     print(f"   Loser lost: {abs(loser_delta):.2f}")
     print(f"   Difference: {abs(loser_delta) - winner_delta:.2f}")
 
     if abs(winner_delta + loser_delta) < 0.01:
-        print(f"   ❌ FAIL: Winner gained EXACTLY what loser lost!")
-        print(f"   This means energy is conserved, but it shouldn't be!")
-        print(f"   There should be a house cut that removes energy from the system.")
+        print("   ❌ FAIL: Winner gained EXACTLY what loser lost!")
+        print("   This means energy is conserved, but it shouldn't be!")
+        print("   There should be a house cut that removes energy from the system.")
         return False
     else:
         house_cut = abs(total_delta)
         house_cut_percentage = (house_cut / abs(loser_delta) * 100) if abs(loser_delta) > 0 else 0
-        print(f"   ✓ PASS: House cut of {house_cut:.2f} energy ({house_cut_percentage:.1f}% of loser's loss)")
+        print(
+            f"   ✓ PASS: House cut of {house_cut:.2f} energy ({house_cut_percentage:.1f}% of loser's loss)"
+        )
 
     # 4. Total energy should decrease (house cut)
-    print(f"\n4. Total energy should DECREASE (house cut removes energy):")
+    print("\n4. Total energy should DECREASE (house cut removes energy):")
     print(f"   Initial total: {total_initial:.2f}")
     print(f"   Final total: {total_final:.2f}")
     print(f"   Decrease: {abs(total_delta):.2f}")
-    assert total_delta < -0.01, f"❌ FAIL: Total energy did not decrease!"
-    print(f"   ✓ PASS: Energy was removed from system via house cut")
+    assert total_delta < -0.01, "❌ FAIL: Total energy did not decrease!"
+    print("   ✓ PASS: Energy was removed from system via house cut")
 
     print(f"\n{'='*80}")
-    print(f"✓ ALL POKER ENERGY TRANSFER TESTS PASSED!")
+    print("✓ ALL POKER ENERGY TRANSFER TESTS PASSED!")
     print(f"{'='*80}")
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  • Loser lost: {abs(loser_delta):.2f} energy")
     print(f"  • Winner gained: {winner_delta:.2f} energy")
     print(f"  • House took: {abs(total_delta):.2f} energy")
@@ -204,11 +213,11 @@ def test_multiple_poker_games():
             speed=2.0,
             genome=genome1,
             generation=1,
-            fish_id=i*2+1,
+            fish_id=i * 2 + 1,
             ecosystem=None,
             screen_width=800,
             screen_height=600,
-            initial_energy=initial_energy
+            initial_energy=initial_energy,
         )
 
         fish2 = Fish(
@@ -220,18 +229,18 @@ def test_multiple_poker_games():
             speed=2.0,
             genome=genome2,
             generation=1,
-            fish_id=i*2+2,
+            fish_id=i * 2 + 2,
             ecosystem=None,
             screen_width=800,
             screen_height=600,
-            initial_energy=initial_energy
+            initial_energy=initial_energy,
         )
 
         poker = PokerInteraction(fish1, fish2)
         success = poker.play_poker()
 
         if not success:
-            print(f"  Game failed")
+            print("  Game failed")
             continue
 
         total_initial = initial_energy * 2
@@ -239,21 +248,33 @@ def test_multiple_poker_games():
         total_delta = total_final - total_initial
 
         if poker.result.winner_id != -1:
-            winner_delta = fish1.energy - initial_energy if poker.result.winner_id == fish1.fish_id else fish2.energy - initial_energy
-            loser_delta = fish2.energy - initial_energy if poker.result.winner_id == fish1.fish_id else fish1.energy - initial_energy
+            winner_delta = (
+                fish1.energy - initial_energy
+                if poker.result.winner_id == fish1.fish_id
+                else fish2.energy - initial_energy
+            )
+            loser_delta = (
+                fish2.energy - initial_energy
+                if poker.result.winner_id == fish1.fish_id
+                else fish1.energy - initial_energy
+            )
 
-            print(f"  Winner gained: {winner_delta:+.2f}, Loser lost: {loser_delta:+.2f}, House cut: {abs(total_delta):.2f}")
-            print(f"  Pot: {poker.result.final_pot:.2f}, Reported transfer: {poker.result.energy_transferred:.2f}")
+            print(
+                f"  Winner gained: {winner_delta:+.2f}, Loser lost: {loser_delta:+.2f}, House cut: {abs(total_delta):.2f}"
+            )
+            print(
+                f"  Pot: {poker.result.final_pot:.2f}, Reported transfer: {poker.result.energy_transferred:.2f}"
+            )
 
             # Check that winner != loser
             if abs(winner_delta + loser_delta) < 0.01:
-                print(f"  ❌ FAIL: Winner gained exactly what loser lost!")
+                print("  ❌ FAIL: Winner gained exactly what loser lost!")
                 results.append(False)
             else:
-                print(f"  ✓ PASS: House cut working")
+                print("  ✓ PASS: House cut working")
                 results.append(True)
         else:
-            print(f"  Tie")
+            print("  Tie")
             results.append(True)
 
     print(f"\n{'='*80}")
@@ -262,10 +283,10 @@ def test_multiple_poker_games():
     print(f"Results: {successful}/{total} games had proper energy transfer")
 
     if successful == total:
-        print(f"✓ ALL GAMES PASSED!")
+        print("✓ ALL GAMES PASSED!")
         return True
     else:
-        print(f"❌ SOME GAMES FAILED!")
+        print("❌ SOME GAMES FAILED!")
         return False
 
 
@@ -275,11 +296,11 @@ def test_poker_result_fields():
     print("POKER RESULT FIELDS TEST")
     print("=" * 80)
 
-    from core.movement_strategy import AlgorithmicMovement
-    from core.genetics import Genome
     from core.algorithms import GreedyFoodSeeker
     from core.entities import Fish
     from core.fish_poker import PokerInteraction
+    from core.genetics import Genome
+    from core.movement_strategy import AlgorithmicMovement
 
     initial_energy = 100.0
 
@@ -304,7 +325,7 @@ def test_poker_result_fields():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy
+        initial_energy=initial_energy,
     )
 
     fish2 = Fish(
@@ -320,7 +341,7 @@ def test_poker_result_fields():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy
+        initial_energy=initial_energy,
     )
 
     poker = PokerInteraction(fish1, fish2)
@@ -335,32 +356,43 @@ def test_poker_result_fields():
         return True
 
     # Calculate actual energy changes
-    winner_delta = fish1.energy - initial_energy if poker.result.winner_id == fish1.fish_id else fish2.energy - initial_energy
-    loser_delta = fish2.energy - initial_energy if poker.result.winner_id == fish1.fish_id else fish1.energy - initial_energy
+    winner_delta = (
+        fish1.energy - initial_energy
+        if poker.result.winner_id == fish1.fish_id
+        else fish2.energy - initial_energy
+    )
+    loser_delta = (
+        fish2.energy - initial_energy
+        if poker.result.winner_id == fish1.fish_id
+        else fish1.energy - initial_energy
+    )
 
-    print(f"\nPokerResult fields:")
+    print("\nPokerResult fields:")
     print(f"  energy_transferred: {poker.result.energy_transferred:.2f} (loser's loss)")
     print(f"  winner_actual_gain: {poker.result.winner_actual_gain:.2f} (winner's gain)")
-    print(f"\nActual energy changes:")
+    print("\nActual energy changes:")
     print(f"  Winner gained: {winner_delta:.2f}")
     print(f"  Loser lost: {loser_delta:.2f}")
 
     # Verify winner_actual_gain matches the actual winner delta
-    assert abs(poker.result.winner_actual_gain - winner_delta) < 0.01, \
-        f"winner_actual_gain ({poker.result.winner_actual_gain:.2f}) doesn't match actual gain ({winner_delta:.2f})"
+    assert (
+        abs(poker.result.winner_actual_gain - winner_delta) < 0.01
+    ), f"winner_actual_gain ({poker.result.winner_actual_gain:.2f}) doesn't match actual gain ({winner_delta:.2f})"
 
     # Verify energy_transferred matches the actual loser delta
-    assert abs(poker.result.energy_transferred - abs(loser_delta)) < 0.01, \
-        f"energy_transferred ({poker.result.energy_transferred:.2f}) doesn't match loser's loss ({abs(loser_delta):.2f})"
+    assert (
+        abs(poker.result.energy_transferred - abs(loser_delta)) < 0.01
+    ), f"energy_transferred ({poker.result.energy_transferred:.2f}) doesn't match loser's loss ({abs(loser_delta):.2f})"
 
     # Verify winner gained less than loser lost
-    assert poker.result.winner_actual_gain < poker.result.energy_transferred, \
-        "Winner should gain less than loser loses (due to house cut)"
+    assert (
+        poker.result.winner_actual_gain < poker.result.energy_transferred
+    ), "Winner should gain less than loser loses (due to house cut)"
 
-    print(f"\n✓ ALL FIELD VALIDATIONS PASSED!")
-    print(f"  • winner_actual_gain correctly represents what winner gained")
-    print(f"  • energy_transferred correctly represents what loser lost")
-    print(f"  • winner_actual_gain < energy_transferred (house cut working)")
+    print("\n✓ ALL FIELD VALIDATIONS PASSED!")
+    print("  • winner_actual_gain correctly represents what winner gained")
+    print("  • energy_transferred correctly represents what loser lost")
+    print("  • winner_actual_gain < energy_transferred (house cut working)")
 
     return True
 
@@ -390,10 +422,12 @@ if __name__ == "__main__":
     except AssertionError as e:
         print(f"\n❌ TEST FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
     except Exception as e:
         print(f"\n❌ UNEXPECTED ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

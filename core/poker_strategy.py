@@ -9,14 +9,13 @@ This module implements sophisticated poker playing strategies including:
 These strategies evolve over time as fish learn from poker outcomes.
 """
 
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Any
-from dataclasses import dataclass, field
-from enum import Enum
 import random
+from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.poker_interaction import PokerHand
 
 
 class HandStrength(Enum):

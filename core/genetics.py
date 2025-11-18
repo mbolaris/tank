@@ -6,10 +6,10 @@ mutations, and evolutionary dynamics.
 
 import random
 from dataclasses import dataclass, field
-from typing import Tuple, Optional, TYPE_CHECKING, Dict, List
 from enum import Enum
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
-from core.constants import FISH_TEMPLATE_COUNT, FISH_PATTERN_COUNT
+from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
 
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm

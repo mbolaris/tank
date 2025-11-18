@@ -1,9 +1,10 @@
 """Integration tests for the backend."""
 
-import time
 import json
+import time
+
+from models import SimulationUpdate
 from simulation_runner import SimulationRunner
-from models import SimulationUpdate, EntityData
 
 
 def test_simulation_runner_lifecycle():
@@ -40,10 +41,10 @@ def test_state_serialization():
 
     # Test JSON is valid
     parsed = json.loads(json_str)
-    assert 'type' in parsed
-    assert 'frame' in parsed
-    assert 'entities' in parsed
-    assert 'stats' in parsed
+    assert "type" in parsed
+    assert "frame" in parsed
+    assert "entities" in parsed
+    assert "stats" in parsed
 
     runner.stop()
     print("✅ Serialization test passed")
@@ -60,7 +61,7 @@ def test_all_entity_types():
     state = runner.get_state()
     entity_types = {e.type for e in state.entities}
 
-    expected_types = {'fish', 'plant', 'crab', 'castle'}
+    expected_types = {"fish", "plant", "crab", "castle"}
     assert expected_types.issubset(entity_types), f"Missing types: {expected_types - entity_types}"
 
     # Test each entity has required fields
@@ -71,9 +72,9 @@ def test_all_entity_types():
         assert entity.width > 0
         assert entity.height > 0
 
-        if entity.type == 'fish':
+        if entity.type == "fish":
             assert entity.energy is not None
-            assert entity.species in ['solo', 'algorithmic', 'neural', 'schooling']
+            assert entity.species in ["solo", "algorithmic", "neural", "schooling"]
             assert entity.generation is not None
             assert entity.age is not None
 
@@ -91,13 +92,13 @@ def test_commands():
 
     # Test add_food
     initial_food = runner.get_state().stats.food_count
-    runner.handle_command('add_food')
+    runner.handle_command("add_food")
     time.sleep(0.3)
     new_food = runner.get_state().stats.food_count
     assert new_food > initial_food, "Food count should increase"
 
     # Test pause
-    runner.handle_command('pause')
+    runner.handle_command("pause")
     time.sleep(0.2)
     frame_before = runner.engine.frame_count
     time.sleep(0.5)
@@ -105,7 +106,7 @@ def test_commands():
     assert frame_before == frame_after, "Frame should not change when paused"
 
     # Test resume
-    runner.handle_command('resume')
+    runner.handle_command("resume")
     time.sleep(0.2)
     frame_before = runner.engine.frame_count
     time.sleep(0.5)
@@ -114,7 +115,7 @@ def test_commands():
 
     # Test reset
     old_frame = runner.engine.frame_count
-    runner.handle_command('reset')
+    runner.handle_command("reset")
     time.sleep(0.5)
     new_frame = runner.engine.frame_count
     assert new_frame < old_frame, "Frame should reset to low number"
@@ -137,9 +138,9 @@ def test_stats_accuracy():
     state = runner.get_state()
 
     # Count entities
-    actual_fish = len([e for e in state.entities if e.type == 'fish'])
-    actual_food = len([e for e in state.entities if e.type == 'food'])
-    actual_plants = len([e for e in state.entities if e.type == 'plant'])
+    actual_fish = len([e for e in state.entities if e.type == "fish"])
+    actual_food = len([e for e in state.entities if e.type == "food"])
+    actual_plants = len([e for e in state.entities if e.type == "plant"])
 
     # Compare with stats
     assert state.stats.fish_count == actual_fish, "Fish count mismatch"
@@ -184,16 +185,16 @@ def test_error_handling():
 
     # Invalid command should not crash
     try:
-        runner.handle_command('invalid_command')
+        runner.handle_command("invalid_command")
         # Should silently ignore
     except Exception as e:
-        assert False, f"Should handle invalid command gracefully: {e}"
+        raise AssertionError(f"Should handle invalid command gracefully: {e}")
 
     runner.stop()
     print("✅ Error handling test passed")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("=" * 60)
     print("RUNNING INTEGRATION TESTS")
     print("=" * 60)

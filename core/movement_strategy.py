@@ -6,10 +6,10 @@ This module provides movement behaviors for fish:
 
 from typing import TYPE_CHECKING
 
-from core.math_utils import Vector2
-from core.entities import Food
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
+from core.entities import Food
+from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.entities import Fish

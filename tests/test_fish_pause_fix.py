@@ -2,10 +2,11 @@
 """Test script to verify fish pause bug fix."""
 
 import sys
-from core import environment, entities
-from core.entity_factory import create_initial_population
-from core.ecosystem import EcosystemManager
+
+from core import entities, environment
 from core.algorithms.energy_management import EnergyConserver, OpportunisticRester
+from core.ecosystem import EcosystemManager
+from core.entity_factory import create_initial_population
 
 
 def test_initial_food_spawning():

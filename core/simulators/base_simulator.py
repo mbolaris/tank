@@ -6,28 +6,29 @@ eliminating code duplication and ensuring consistent simulation behavior.
 
 import random
 from abc import ABC, abstractmethod
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
+
+from core.algorithms import get_algorithm_index
 from core.constants import (
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ENABLED,
-    AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
-    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
     AUTO_FOOD_HIGH_POP_THRESHOLD_1,
     AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
+    AUTO_FOOD_SPAWN_RATE,
+    AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     COLLISION_QUERY_RADIUS,
     MATING_QUERY_RADIUS,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
 )
-from core.algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
 
 # Type checking imports
 if TYPE_CHECKING:
-    from core.entities import Agent, Fish, Food, Plant, Crab
     from core.ecosystem import EcosystemManager
+    from core.entities import Agent, Fish
 
 
 class BaseSimulator(ABC):
@@ -48,8 +49,8 @@ class BaseSimulator(ABC):
         self.frame_count: int = 0
         self.paused: bool = False
         self.auto_food_timer: int = 0
-        self.ecosystem: Optional["EcosystemManager"] = None
-        self.environment: Optional["environment.Environment"] = None
+        self.ecosystem: Optional[EcosystemManager] = None
+        self.environment: Optional[environment.Environment] = None
 
     @abstractmethod
     def get_all_entities(self) -> List["Agent"]:
@@ -189,7 +190,7 @@ class BaseSimulator(ABC):
         Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k)
         where k is the number of nearby entities (typically much smaller than n).
         """
-        from core.entities import Fish, Food, Crab
+        from core.entities import Crab, Fish, Food
 
         # Get all fish entities
         all_entities = self.get_all_entities()
@@ -204,7 +205,9 @@ class BaseSimulator(ABC):
             # Typical fish size is ~30-50px, use generous radius for broad phase
             nearby_entities = []
             if self.environment is not None:
-                nearby_entities = self.environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
+                nearby_entities = self.environment.nearby_agents(
+                    fish, radius=COLLISION_QUERY_RADIUS
+                )
             else:
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in self.get_all_entities() if e != fish]
@@ -230,7 +233,7 @@ class BaseSimulator(ABC):
 
         Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k).
         """
-        from core.entities import Food, Fish, Crab
+        from core.entities import Crab, Food
 
         all_entities = self.get_all_entities()
         food_list = [e for e in all_entities if isinstance(e, Food)]
@@ -243,7 +246,9 @@ class BaseSimulator(ABC):
             # Use spatial grid for nearby entity lookup
             nearby_entities = []
             if self.environment is not None:
-                nearby_entities = self.environment.nearby_agents(food, radius=COLLISION_QUERY_RADIUS)
+                nearby_entities = self.environment.nearby_agents(
+                    food, radius=COLLISION_QUERY_RADIUS
+                )
             else:
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in self.get_all_entities() if e != food]

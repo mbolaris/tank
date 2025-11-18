@@ -9,8 +9,8 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from core.genetics import Genome
     from core.entities import LifeStage
+    from core.genetics import Genome
 
 
 class ReproductionComponent:
@@ -43,7 +43,7 @@ class ReproductionComponent:
         self.is_pregnant: bool = False
         self.pregnancy_timer: int = 0
         self.reproduction_cooldown: int = 0
-        self.mate_genome: Optional["Genome"] = None
+        self.mate_genome: Optional[Genome] = None
 
     def can_reproduce(self, life_stage: "LifeStage", energy: float) -> bool:
         """Check if fish can reproduce.

@@ -1,15 +1,16 @@
 """Test simulation determinism with seeded random."""
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
+
 import pytest
 
-from simulation_engine import SimulationEngine
 from core import entities
+from simulation_engine import SimulationEngine
 
 
 @pytest.mark.xfail(reason="Simulation has non-deterministic behavior that needs investigation")
@@ -37,7 +38,7 @@ def test_simulation_determinism():
 
     # Get stats from simulation #1
     stats1 = sim1.ecosystem.get_summary_stats(sim1.entities_list)
-    print(f"\nSimulation #1 Results:")
+    print("\nSimulation #1 Results:")
     print(f"  Population: {stats1['total_population']}")
     print(f"  Generation: {stats1['current_generation']}")
     print(f"  Births: {stats1['total_births']}")
@@ -59,7 +60,7 @@ def test_simulation_determinism():
 
     # Get stats from simulation #2
     stats2 = sim2.ecosystem.get_summary_stats(sim2.entities_list)
-    print(f"\nSimulation #2 Results:")
+    print("\nSimulation #2 Results:")
     print(f"  Population: {stats2['total_population']}")
     print(f"  Generation: {stats2['current_generation']}")
     print(f"  Births: {stats2['total_births']}")
@@ -113,11 +114,11 @@ def test_simulation_determinism():
             print(f"  - {diff}")
         print("\nThe simulation should be deterministic with a fixed seed!")
         print("=" * 80)
-        assert False, "Simulation is not deterministic!"
+        raise AssertionError("Simulation is not deterministic!")
     else:
         print("DETERMINISM TEST PASSED")
         print("=" * 80)
-        print("\nBoth runs with seed={} produced identical results!".format(SEED))
+        print(f"\nBoth runs with seed={SEED} produced identical results!")
         print("  ✓ Same population")
         print("  ✓ Same generation")
         print("  ✓ Same number of births")

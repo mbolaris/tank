@@ -11,14 +11,15 @@ This module contains 8 algorithms focused on managing energy expenditure:
 - AdaptivePacer: Adapt speed based on current energy and environment
 """
 
-import random
 import math
+import random
 import time
-from typing import Tuple
 from dataclasses import dataclass
+from typing import Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.entities import Food, Crab, Fish as FishClass
+from core.entities import Crab, Food
+from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -254,7 +255,7 @@ class EnergyBalancer(BehaviorAlgorithm):
         # IMPROVEMENT: Use new energy methods and be more conservative
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
-        is_safe = fish.is_safe_energy()
+        fish.is_safe_energy()
         energy_ratio = fish.get_energy_ratio()
 
         # IMPROVEMENT: More aggressive food seeking when energy is low

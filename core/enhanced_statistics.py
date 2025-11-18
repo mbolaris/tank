@@ -9,15 +9,15 @@ This module provides advanced population analytics including:
 - Fitness landscape mapping (trait combinations vs fitness)
 """
 
-from typing import Dict, List, Tuple, Optional, TYPE_CHECKING, Any
-from dataclasses import dataclass, field
-from collections import defaultdict, deque
 import math
+from collections import defaultdict, deque
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 if TYPE_CHECKING:
+    from core.ecosystem import EcosystemManager
     from core.entities import Fish
     from core.genetics import Genome
-    from core.ecosystem import EcosystemManager
 
 
 @dataclass
@@ -269,10 +269,7 @@ class EnhancedStatisticsTracker:
 
             denominator = math.sqrt(trait_variance * fitness_variance)
 
-            if denominator == 0:
-                correlation = 0.0
-            else:
-                correlation = numerator / denominator
+            correlation = 0.0 if denominator == 0 else numerator / denominator
 
             # Calculate p-value (simplified t-test)
             if abs(correlation) > 0.01:
@@ -379,10 +376,7 @@ class EnhancedStatisticsTracker:
             numerator = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, values))
             denominator = sum((x - mean_x) ** 2 for x in x_values)
 
-            if denominator == 0:
-                slope = 0.0
-            else:
-                slope = numerator / denominator
+            slope = 0.0 if denominator == 0 else numerator / denominator
 
             # Calculate variance change
             first_half = values[: n // 2]

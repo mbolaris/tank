@@ -7,8 +7,9 @@ Follow the structure and comments below for best practices.
 File naming: Use descriptive names like 'food_seeking.py' or 'energy_management.py'
 """
 
-from core.algorithms.base import BehaviorAlgorithm
 from typing import Tuple
+
+from core.algorithms.base import BehaviorAlgorithm
 
 
 class BehaviorTemplate(BehaviorAlgorithm):
@@ -59,16 +60,14 @@ class BehaviorTemplate(BehaviorAlgorithm):
         # REQUIRED: Define all evolvable parameters with defaults
         default_parameters = {
             # Movement parameters (common)
-            "speed_multiplier": 1.0,           # How fast to move (0.5-2.0 typical range)
-            "detection_range_factor": 1.0,     # Vision range multiplier (0.5-2.0)
-
+            "speed_multiplier": 1.0,  # How fast to move (0.5-2.0 typical range)
+            "detection_range_factor": 1.0,  # Vision range multiplier (0.5-2.0)
             # Decision thresholds (common)
-            "energy_threshold": 30.0,          # Energy level for behavior switches (10-60)
-            "activation_distance": 150.0,      # Distance to trigger behavior (50-300)
-
+            "energy_threshold": 30.0,  # Energy level for behavior switches (10-60)
+            "activation_distance": 150.0,  # Distance to trigger behavior (50-300)
             # Behavior-specific parameters
-            "custom_parameter_1": 1.0,         # [Describe what this does]
-            "custom_parameter_2": 0.5,         # [Describe what this does]
+            "custom_parameter_1": 1.0,  # [Describe what this does]
+            "custom_parameter_2": 0.5,  # [Describe what this does]
         }
 
         # Call parent constructor
@@ -127,10 +126,9 @@ class BehaviorTemplate(BehaviorAlgorithm):
         # Get current state
         current_energy = fish.energy
         position = fish.position
-        velocity = fish.velocity
 
         # Access parameters (these evolve over generations)
-        speed_mult = self.parameters["speed_multiplier"]
+        self.parameters["speed_multiplier"]
         detection_range = fish.genome.vision_range * self.parameters["detection_range_factor"]
         energy_threshold = self.parameters["energy_threshold"]
 
@@ -140,7 +138,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
 
         # Check for threats (predators, aggressive fish)
         threat_vector = self._get_predator_threat(fish)
-        has_threat = (threat_vector[0] != 0 or threat_vector[1] != 0)
+        has_threat = threat_vector[0] != 0 or threat_vector[1] != 0
 
         # Environmental context (optional)
         # time_of_day = fish.environment.time_system.get_time_of_day()
@@ -166,6 +164,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
             else:
                 # No food visible: search desperately (random movement)
                 import random
+
                 dx = random.uniform(-1.0, 1.0)
                 dy = random.uniform(-1.0, 1.0)
                 return self._safe_normalize(dx, dy)
@@ -190,17 +189,18 @@ class BehaviorTemplate(BehaviorAlgorithm):
             return self._safe_normalize(dx, dy)
 
         # LOW ENERGY: Prioritize food seeking
-        if fish.is_low_energy():
-            if nearest_food:
-                # Calculate distance to food
-                distance_to_food = ((nearest_food.position.x - position.x) ** 2 +
-                                    (nearest_food.position.y - position.y) ** 2) ** 0.5
+        if fish.is_low_energy() and nearest_food:
+            # Calculate distance to food
+            distance_to_food = (
+                (nearest_food.position.x - position.x) ** 2
+                + (nearest_food.position.y - position.y) ** 2
+            ) ** 0.5
 
-                # Only pursue if within detection range (parameter-controlled)
-                if distance_to_food < detection_range:
-                    dx = nearest_food.position.x - position.x
-                    dy = nearest_food.position.y - position.y
-                    return self._safe_normalize(dx, dy)
+            # Only pursue if within detection range (parameter-controlled)
+            if distance_to_food < detection_range:
+                dx = nearest_food.position.x - position.x
+                dy = nearest_food.position.y - position.y
+                return self._safe_normalize(dx, dy)
 
         # SAFE ENERGY: Implement your custom behavior logic here
         if fish.is_safe_energy():
@@ -213,7 +213,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
                 dy = nearest_fish.position.y - position.y
 
                 # Use custom parameter to control approach distance
-                distance_to_fish = ((dx ** 2) + (dy ** 2)) ** 0.5
+                distance_to_fish = ((dx**2) + (dy**2)) ** 0.5
                 if distance_to_fish < self.parameters["activation_distance"]:
                     # Close enough, apply custom behavior
                     # (modify dx, dy based on your algorithm logic)
@@ -224,6 +224,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
                 # No nearby fish, explore using custom pattern
                 # This is behavior-specific - implement your strategy here
                 import random
+
                 dx = random.uniform(-0.5, 0.5)
                 dy = random.uniform(-0.5, 0.5)
 

@@ -4,14 +4,15 @@ This test demonstrates that web mode and headless CLI mode use the same
 simulation engine and produce equivalent results.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
-from simulation_engine import SimulationEngine
+
 from core import entities
+from simulation_engine import SimulationEngine
 
 
 def test_headless_mode_architecture():
@@ -32,12 +33,13 @@ def test_headless_mode_architecture():
 
     # Verify it's using BaseSimulator for core logic
     from core.simulators.base_simulator import BaseSimulator
+
     assert isinstance(engine, BaseSimulator), "Engine must inherit from BaseSimulator"
 
     # Verify critical methods come from BaseSimulator
-    assert hasattr(engine, 'handle_collisions'), "Missing collision handling"
-    assert hasattr(engine, 'handle_reproduction'), "Missing reproduction handling"
-    assert hasattr(engine, 'handle_food_collisions'), "Missing food collision handling"
+    assert hasattr(engine, "handle_collisions"), "Missing collision handling"
+    assert hasattr(engine, "handle_reproduction"), "Missing reproduction handling"
+    assert hasattr(engine, "handle_food_collisions"), "Missing food collision handling"
 
     print("\n✓ Architecture verified:")
     print("  - Both modes use SimulationEngine(headless=True)")
@@ -72,7 +74,7 @@ def test_statistical_equivalence():
         engine = SimulationEngine(headless=True)
         engine.setup()
 
-        for frame in range(NUM_FRAMES):
+        for _frame in range(NUM_FRAMES):
             engine.update()
 
         # Collect stats
@@ -80,10 +82,10 @@ def test_statistical_equivalence():
         fish_count = len([e for e in engine.entities_list if isinstance(e, entities.Fish)])
 
         result = {
-            'fish_count': fish_count,
-            'frame_count': engine.frame_count,
-            'total_births': stats.get('total_births', 0),
-            'total_deaths': stats.get('total_deaths', 0),
+            "fish_count": fish_count,
+            "frame_count": engine.frame_count,
+            "total_births": stats.get("total_births", 0),
+            "total_deaths": stats.get("total_deaths", 0),
         }
         results.append(result)
 
@@ -98,13 +100,13 @@ def test_statistical_equivalence():
 
     # Verify all runs progressed
     for i, result in enumerate(results):
-        assert result['frame_count'] == NUM_FRAMES, f"Run {i+1} didn't complete all frames"
+        assert result["frame_count"] == NUM_FRAMES, f"Run {i+1} didn't complete all frames"
         print(f"✓ Run {i+1}: Completed {NUM_FRAMES} frames")
 
     # Verify fish population is reasonable (not extinct, not exploded)
     for i, result in enumerate(results):
-        assert result['fish_count'] > 0, f"Run {i+1} population went extinct"
-        assert result['fish_count'] < 100, f"Run {i+1} population exploded"
+        assert result["fish_count"] > 0, f"Run {i+1} population went extinct"
+        assert result["fish_count"] < 100, f"Run {i+1} population exploded"
         print(f"✓ Run {i+1}: Population stable ({result['fish_count']} fish)")
 
     print("\nConclusion:")

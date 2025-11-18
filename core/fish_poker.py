@@ -12,10 +12,11 @@ Features:
   survive longer, and reproduce more, spreading their poker genes
 """
 
-from typing import Optional, TYPE_CHECKING, List, Tuple
-from dataclasses import dataclass
-from core.poker_interaction import PokerEngine, PokerHand, PokerGameState, BettingAction
 import random
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+from core.poker_interaction import BettingAction, PokerEngine, PokerHand
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -115,10 +116,7 @@ class PokerInteraction:
         # Don't interrupt pregnant fish
         if hasattr(self.fish1, "is_pregnant") and self.fish1.is_pregnant:
             return False
-        if hasattr(self.fish2, "is_pregnant") and self.fish2.is_pregnant:
-            return False
-
-        return True
+        return not (hasattr(self.fish2, "is_pregnant") and self.fish2.is_pregnant)
 
     def calculate_bet_amount(self, base_bet: float = DEFAULT_BET_AMOUNT) -> float:
         """

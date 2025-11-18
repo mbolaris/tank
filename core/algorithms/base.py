@@ -8,10 +8,9 @@ This module contains:
 """
 
 import random
-import math
 from abc import ABC, abstractmethod
-from typing import Tuple, Dict, Any, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from core.math_utils import Vector2
 

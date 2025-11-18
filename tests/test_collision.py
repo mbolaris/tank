@@ -2,12 +2,10 @@
 
 import pytest
 
-from core.entities import Fish, Crab, Food
-from core.environment import Environment
-from core.movement_strategy import AlgorithmicMovement
-from simulation_engine import SimulationEngine
 from core.constants import SCREEN_HEIGHT
+from core.entities import Crab, Fish, Food
 from core.math_utils import Vector2
+from core.movement_strategy import AlgorithmicMovement
 
 
 class TestCollisionDetection:

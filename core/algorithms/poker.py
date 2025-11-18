@@ -9,12 +9,12 @@ This module contains algorithms focused on poker-based fish interactions:
 """
 
 import random
-import math
-from typing import Tuple
 from dataclasses import dataclass
+from typing import Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.entities import Fish as FishClass, Food, Crab
+from core.entities import Crab, Food
+from core.entities import Fish as FishClass
 
 
 @dataclass
