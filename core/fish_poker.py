@@ -51,8 +51,8 @@ class PokerInteraction:
     # Default bet amount (used for blind sizing, not actual energy transfer)
     DEFAULT_BET_AMOUNT = 5.0
 
-    # Energy transfer is size-based: winner takes percentage of loser's energy
-    # based on winner's size (8-25% range), then pays house cut (same percentage)
+    # Energy transfer is pot-based: winner takes the pot from loser
+    # Then winner pays house cut based on winner's size (8-25% of pot)
 
     # Cooldown between poker games for the same fish (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
@@ -351,31 +351,26 @@ class PokerInteraction:
                 winner_id = -1
                 loser_id = -1
 
-        # Calculate energy transfer based on winner's size
+        # Calculate energy transfer based on pot
         house_cut = 0.0
         if winner_id != -1:
             # Determine winner and loser fish
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
             loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
 
-            # Calculate percentage to take from loser based on WINNER's size
-            # Larger winners take more: Size 0.35: 8%, Size 1.0: ~20%, Size 1.3: ~25%
-            # Formula: 8% + (size - 0.35) * 18% gives range of 8-25%
-            energy_percentage = 0.08 + max(0, (winner_fish.size - 0.35) * 0.18)
+            # Energy transfer is the pot amount
+            energy_transferred = game_state.pot
 
-            # Take percentage from loser's current energy
-            energy_transferred = loser_fish.energy * energy_percentage
-
-            # Apply energy transfer: loser loses energy
+            # Apply energy transfer: loser loses the pot, winner gains the pot
             loser_fish.energy = max(0, loser_fish.energy - energy_transferred)
-
-            # Winner gains energy
             winner_fish.energy = winner_fish.energy + energy_transferred
 
-            # House cut: winner gives up percentage based on winner's size
+            # House cut: winner pays percentage based on winner's size
+            # Larger winners pay more: Size 0.35: 8%, Size 1.0: ~20%, Size 1.3: ~25%
+            # Formula: 8% + (size - 0.35) * 18% gives range of 8-25%
             # The house cut disappears (energy is NOT conserved)
             house_cut_percentage = 0.08 + max(0, (winner_fish.size - 0.35) * 0.18)
-            house_cut = winner_fish.energy * house_cut_percentage
+            house_cut = energy_transferred * house_cut_percentage
             winner_fish.energy = max(0, winner_fish.energy - house_cut)
         else:
             # Tie - no energy transfer
