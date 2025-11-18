@@ -161,7 +161,7 @@ class SimulationRunner:
                 leaderboard_data = self.world.ecosystem.get_poker_leaderboard(
                     fish_list=fish_list, limit=10, sort_by="net_energy"
                 )
-                from models import PokerLeaderboardEntry
+                from backend.models import PokerLeaderboardEntry
 
                 poker_leaderboard = [PokerLeaderboardEntry(**entry) for entry in leaderboard_data]
 

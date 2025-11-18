@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models import Command
-from simulation_runner import SimulationRunner
+from backend.models import Command
+from backend.simulation_runner import SimulationRunner
 
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
