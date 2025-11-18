@@ -493,7 +493,7 @@ class Fish(Agent):
         """
         if self.energy <= 0:
             # Check if there was a recent predator encounter
-            if self.age - self.last_predator_encounter_age <= self.PREDATOR_ENCOUNTER_WINDOW:
+            if self.age - self.last_predator_encounter_age <= PREDATOR_ENCOUNTER_WINDOW:
                 return 'predation'  # Death after conflict
             else:
                 return 'starvation'  # Death without recent conflict
