@@ -219,6 +219,9 @@ class Fish(Agent):
     PREGNANCY_DURATION = REPRODUCTION_GESTATION
     MATING_DISTANCE = MATING_DISTANCE
 
+    # Predator tracking constant (using centralized constant)
+    PREDATOR_ENCOUNTER_WINDOW = PREDATOR_ENCOUNTER_WINDOW
+
     def __init__(self, environment: 'Environment', movement_strategy: 'MovementStrategy',
                  species: str, x: float, y: float, speed: float,
                  genome: Optional['Genome'] = None, generation: int = 0,
