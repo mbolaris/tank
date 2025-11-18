@@ -4,7 +4,12 @@ Fish poker interaction system.
 This module handles poker games between two fish when they collide.
 The outcome determines energy transfer between the fish.
 
-Updated to support multi-round betting and folding.
+Features:
+- Multi-round betting and folding
+- Genome-based poker aggression: Each fish's poker playing style is determined
+  by their genome's aggression trait, which evolves over generations
+- Evolutionary pressure: Fish with optimal poker aggression levels win more energy,
+  survive longer, and reproduce more, spreading their poker genes
 """
 
 from typing import Optional, TYPE_CHECKING, List, Tuple
@@ -282,10 +287,14 @@ class PokerInteraction:
             # Ensure bet doesn't exceed what fish can afford
             bet_amount = self.calculate_bet_amount(bet_amount)
 
-        # Determine aggression levels for each fish based on their behavior
-        # Use random aggression for now, could be tied to fish genome later
-        fish1_aggression = random.uniform(PokerEngine.AGGRESSION_LOW, PokerEngine.AGGRESSION_HIGH)
-        fish2_aggression = random.uniform(PokerEngine.AGGRESSION_LOW, PokerEngine.AGGRESSION_HIGH)
+        # Determine aggression levels for each fish based on their genome
+        # Map genome aggression (0.0-1.0) to poker aggression range (0.3-0.9)
+        fish1_aggression = PokerEngine.AGGRESSION_LOW + (
+            self.fish1.genome.aggression * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
+        )
+        fish2_aggression = PokerEngine.AGGRESSION_LOW + (
+            self.fish2.genome.aggression * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
+        )
 
         # Rotate button position for positional play
         # Button alternates between 1 and 2
