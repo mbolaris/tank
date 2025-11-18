@@ -151,6 +151,8 @@ class BaseSimulator(ABC):
             food: The food entity
         """
         fish.eat(food)
+        food.get_eaten()
+        self.remove_entity(food)
 
     def handle_fish_fish_collision(self, fish1: "Agent", fish2: "Agent") -> bool:
         """Handle collision between two fish (poker interaction).
@@ -215,7 +217,9 @@ class BaseSimulator(ABC):
                         if self.handle_fish_crab_collision(fish, other):
                             break  # Fish died, stop checking collisions for it
                     elif isinstance(other, Food):
-                        self.handle_fish_food_collision(fish, other)
+                        # Check if food still exists (may have been eaten by another fish)
+                        if other in self.get_all_entities():
+                            self.handle_fish_food_collision(fish, other)
                     elif isinstance(other, Fish):
                         if self.handle_fish_fish_collision(fish, other):
                             break  # Fish died, stop checking collisions for it
@@ -248,11 +252,8 @@ class BaseSimulator(ABC):
                     continue
 
                 if self.check_collision(food, other):
-                    if isinstance(other, Fish):
-                        food.get_eaten()
-                        self.remove_entity(food)
-                        break
-                    elif isinstance(other, Crab):
+                    # Fish-food collisions are handled in handle_fish_collisions()
+                    if isinstance(other, Crab):
                         other.eat_food(food)
                         food.get_eaten()
                         self.remove_entity(food)
