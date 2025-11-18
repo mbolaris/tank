@@ -47,15 +47,12 @@ class AlgorithmStats:
     total_food_eaten: int = 0
 
     def get_avg_lifespan(self) -> float:
-        """Calculate average lifespan."""
         return self.total_lifespan / self.total_deaths if self.total_deaths > 0 else 0.0
 
     def get_survival_rate(self) -> float:
-        """Calculate survival rate (still alive / total born)."""
         return self.current_population / self.total_births if self.total_births > 0 else 0.0
 
     def get_reproduction_rate(self) -> float:
-        """Calculate reproduction success rate."""
         return self.total_reproductions / self.total_births if self.total_births > 0 else 0.0
 
 
@@ -141,35 +138,27 @@ class PokerStats:
     total_calls: int = 0
 
     def get_win_rate(self) -> float:
-        """Calculate overall win rate."""
         return self.total_wins / self.total_games if self.total_games > 0 else 0.0
 
     def get_net_energy(self) -> float:
-        """Calculate net energy from poker."""
         return self.total_energy_won - self.total_energy_lost - self.total_house_cuts
 
     def get_showdown_win_rate(self) -> float:
-        """Calculate win rate at showdown."""
         return self.won_at_showdown / self.showdown_count if self.showdown_count > 0 else 0.0
 
     def get_fold_rate(self) -> float:
-        """Calculate percentage of games folded."""
         return self.folds / self.total_games if self.total_games > 0 else 0.0
 
     def get_button_win_rate(self) -> float:
-        """Calculate win rate when on the button."""
         return self.button_wins / self.button_games if self.button_games > 0 else 0.0
 
     def get_off_button_win_rate(self) -> float:
-        """Calculate win rate when off the button."""
         return self.off_button_wins / self.off_button_games if self.off_button_games > 0 else 0.0
 
     def get_aggression_factor(self) -> float:
-        """Calculate aggression factor (raises / calls)."""
         return self.total_raises / self.total_calls if self.total_calls > 0 else 0.0
 
     def get_roi(self) -> float:
-        """Calculate return on investment (net energy per game)."""
         return self.get_net_energy() / self.total_games if self.total_games > 0 else 0.0
 
     def get_vpip(self) -> float:

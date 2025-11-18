@@ -112,9 +112,7 @@ class SimulationEngine(BaseSimulator):
         """
         self.add_poker_event(poker)
 
-        # Handle post-poker reproduction if it occurred
         if poker.result is not None and poker.result.reproduction_occurred and poker.result.offspring is not None:
-            # Add offspring to population
             offspring = poker.result.offspring
             self.add_entity(offspring)
             # Note: Birth is automatically recorded by Fish.__init__ when ecosystem is provided
@@ -126,64 +124,49 @@ class SimulationEngine(BaseSimulator):
 
         self.frame_count += 1
 
-        # Update time system
         self.time_system.update()
         time_modifier = self.time_system.get_activity_modifier()
 
-        # Track new entities (births, food production)
         new_entities: List[entities.Agent] = []
 
-        # Update all entities
         for entity in list(self.entities_list):
-            # Update based on entity type
             if isinstance(entity, entities.Fish):
-                # Fish update returns potential newborn
                 newborn = entity.update(self.frame_count, time_modifier)
                 if newborn is not None and self.ecosystem is not None:
-                    # Check carrying capacity
                     fish_count = len([e for e in self.entities_list if isinstance(e, entities.Fish)])
                     if self.ecosystem.can_reproduce(fish_count):
                         new_entities.append(newborn)
 
-                # Handle fish death
                 if entity.is_dead():
                     self.record_fish_death(entity)
 
             elif isinstance(entity, entities.Plant):
-                # Plant update returns potential food
                 food = entity.update(self.frame_count, time_modifier)
                 if food is not None:
                     new_entities.append(food)
 
             else:
-                # Other entities (Crab, Castle, Food)
                 entity.update(self.frame_count)
 
-            # Keep entity on screen
             self.keep_entity_on_screen(entity)
 
-            # Remove food that fell off screen
             if isinstance(entity, entities.Food) and entity.pos.y >= SCREEN_HEIGHT - entity.height:
                 self.remove_entity(entity)
 
-        # Add new entities
         for new_entity in new_entities:
             self.add_entity(new_entity)
 
-        # Automatic food spawning
         if self.environment is not None:
             self.spawn_auto_food(self.environment)
 
-        # Update spatial grid after all entity movements
         self.update_spatial_grid()
 
-        # Handle collisions (uses spatial grid for efficiency)
+        # Uses spatial grid for efficiency
         self.handle_collisions()
 
-        # Handle reproduction (mate finding)
+        # Mate finding
         self.handle_reproduction()
 
-        # Update ecosystem stats
         if self.ecosystem is not None:
             fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
             self.ecosystem.update_population_stats(fish_list)
