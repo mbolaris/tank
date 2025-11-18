@@ -239,6 +239,10 @@ POKER_AGGRESSION_HIGH = 0.9  # High aggression factor
 MAX_DIVERSITY_SPAWN_ATTEMPTS = 10  # Maximum attempts to spawn diverse fish
 SPAWN_MARGIN_PIXELS = 100  # Margin from screen edges for spawning
 
+# Spatial Query Constants (for collision detection and mating)
+COLLISION_QUERY_RADIUS = 100  # Radius for nearby entity queries during collision detection (pixels)
+MATING_QUERY_RADIUS = 150  # Radius for finding potential mates (pixels)
+
 # Poker Event Tracking
 MAX_POKER_EVENTS = 10  # Maximum number of recent poker events to keep
 POKER_EVENT_MAX_AGE_FRAMES = 180  # Maximum age for poker events (6 seconds at 30fps)
