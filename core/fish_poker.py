@@ -27,7 +27,8 @@ class PokerResult:
 
     hand1: PokerHand
     hand2: PokerHand
-    energy_transferred: float
+    energy_transferred: float  # Amount loser lost (their total bet)
+    winner_actual_gain: float  # Amount winner gained (loser's bet minus house cut)
     winner_id: int
     loser_id: int
     won_by_fold: bool  # True if winner won because opponent folded
@@ -387,11 +388,15 @@ class PokerInteraction:
             house_cut = net_gain * house_cut_percentage
             winner_fish.energy = max(0, winner_fish.energy - house_cut)
 
-            # For reporting purposes, energy_transferred is the loser's bet
+            # For reporting purposes, energy_transferred is the loser's loss (what they bet)
+            # This is used for display and statistics tracking
             energy_transferred = loser_total_bet
+            # Also calculate the winner's actual gain (less than loser's loss due to house cut)
+            winner_actual_gain = net_gain - house_cut
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0
+            winner_actual_gain = 0.0
 
         # Set cooldowns
         self.fish1.poker_cooldown = self.POKER_COOLDOWN
@@ -530,6 +535,7 @@ class PokerInteraction:
             hand1=self.hand1,
             hand2=self.hand2,
             energy_transferred=abs(energy_transferred),
+            winner_actual_gain=abs(winner_actual_gain) if winner_id != -1 else 0.0,
             winner_id=winner_id,
             loser_id=loser_id,
             won_by_fold=won_by_fold,
