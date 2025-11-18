@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from typing import Tuple, Optional, TYPE_CHECKING, Dict, List
 from enum import Enum
 
+from core.constants import FISH_TEMPLATE_COUNT, FISH_PATTERN_COUNT
+
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm
 
@@ -125,13 +127,13 @@ class Genome:
             social_tendency=random.uniform(0.0, 1.0),
             color_hue=random.random(),
             # Visual traits for parametric fish templates
-            template_id=random.randint(0, 5),
+            template_id=random.randint(0, FISH_TEMPLATE_COUNT - 1),
             fin_size=random.uniform(0.6, 1.4),
             tail_size=random.uniform(0.6, 1.4),
             body_aspect=random.uniform(0.7, 1.3),
             eye_size=random.uniform(0.7, 1.3),
             pattern_intensity=random.random(),
-            pattern_type=random.randint(0, 3),
+            pattern_type=random.randint(0, FISH_PATTERN_COUNT - 1),
             behavior_algorithm=algorithm,
         )
 
