@@ -15,6 +15,22 @@ interface CollapsibleSectionProps {
   defaultExpanded?: boolean;
 }
 
+/**
+ * Get color for total energy based on food spawning thresholds
+ * Matches the dynamic food spawning system in core/constants.py
+ */
+function getEnergyColor(totalEnergy: number): string {
+  if (totalEnergy < 2000) {
+    return '#ef4444'; // Red - Critical/Starvation (double food spawn)
+  } else if (totalEnergy < 4000) {
+    return '#4ade80'; // Green - Normal (normal food spawn)
+  } else if (totalEnergy < 6000) {
+    return '#fbbf24'; // Yellow - High (reduced food spawn)
+  } else {
+    return '#fb923c'; // Orange - Very High (very reduced food spawn)
+  }
+}
+
 function CollapsibleSection({ title, children, defaultExpanded = true }: CollapsibleSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -64,7 +80,9 @@ export function StatsPanel({ stats }: StatsPanelProps) {
           </div>
           <div style={styles.summaryItem}>
             <div style={styles.summaryLabel}>Energy</div>
-            <div style={styles.summaryValue}>{stats.total_energy.toFixed(0)}</div>
+            <div style={{...styles.summaryValue, color: getEnergyColor(stats.total_energy)}}>
+              {stats.total_energy.toFixed(0)}
+            </div>
           </div>
           <div style={styles.summaryItem}>
             <div style={styles.summaryLabel}>Frame</div>
@@ -92,7 +110,9 @@ export function StatsPanel({ stats }: StatsPanelProps) {
           </div>
           <div style={styles.statRow}>
             <span style={styles.statLabel}>Total Energy:</span>
-            <span style={styles.statValue}>{stats.total_energy.toFixed(1)}</span>
+            <span style={{...styles.statValue, color: getEnergyColor(stats.total_energy)}}>
+              {stats.total_energy.toFixed(1)}
+            </span>
           </div>
         </div>
       </CollapsibleSection>
