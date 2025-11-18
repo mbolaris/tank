@@ -37,6 +37,10 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
     setIsPaused(false);
   };
 
+  const handleSpawnJellyfish = () => {
+    onCommand({ command: 'spawn_jellyfish' });
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Controls</h2>
@@ -77,6 +81,17 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
         </button>
 
         <button
+          onClick={handleSpawnJellyfish}
+          disabled={!isConnected}
+          style={{
+            ...styles.button,
+            ...styles.buttonSpecial,
+          }}
+        >
+          🎰 Spawn Poker Jellyfish
+        </button>
+
+        <button
           onClick={handlePause}
           disabled={!isConnected}
           style={{
@@ -107,6 +122,9 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
           </li>
           <li>
             <strong>Spawn Fish:</strong> Add a new fish with random genetics
+          </li>
+          <li>
+            <strong>Spawn Poker Jellyfish:</strong> Add a static poker evaluator that plays fish
           </li>
           <li>
             <strong>Pause:</strong> Pause/resume the simulation
@@ -157,6 +175,10 @@ const styles = {
   },
   buttonDanger: {
     backgroundColor: colors.buttonDanger,
+    color: '#ffffff',
+  },
+  buttonSpecial: {
+    backgroundColor: '#f59e0b',
     color: '#ffffff',
   },
   help: {

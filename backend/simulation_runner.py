@@ -248,6 +248,14 @@ class SimulationRunner:
             elif isinstance(entity, entities.Castle):
                 return EntityData(type="castle", **base_data)
 
+            elif isinstance(entity, entities.Jellyfish):
+                return EntityData(
+                    type='jellyfish',
+                    energy=entity.energy if hasattr(entity, 'energy') else 1000,
+                    jellyfish_id=entity.jellyfish_id if hasattr(entity, 'jellyfish_id') else 0,
+                    **base_data
+                )
+
             return None
 
         except Exception as e:
@@ -316,6 +324,21 @@ class SimulationRunner:
                     )
                 except Exception as e:
                     logger.error(f"Error spawning fish: {e}", exc_info=True)
+
+            elif command == "spawn_jellyfish":
+                # Spawn jellyfish at center of tank
+                x = SCREEN_WIDTH // 2
+                y = SCREEN_HEIGHT // 2
+                jellyfish = entities.Jellyfish(
+                    self.world.environment,
+                    x=x,
+                    y=y,
+                    jellyfish_id=0,  # Could track count if needed
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT,
+                )
+                self.world.add_entity(jellyfish)
+                logger.info(f"Spawned jellyfish at ({x}, {y})")
 
             elif command == "pause":
                 self.world.pause()
