@@ -1,7 +1,6 @@
-"""Collision detection system (pure logic, no pygame dependency).
+"""Collision detection system.
 
-This module provides collision detection that works with pure entity objects
-without requiring pygame sprites.
+This module provides collision detection for entity objects in the simulation.
 """
 
 from typing import TYPE_CHECKING

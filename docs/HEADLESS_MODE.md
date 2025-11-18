@@ -1,6 +1,6 @@
 # Headless Simulation Mode
 
-The fish tank simulation now supports running in headless mode without any graphical visualization. This is useful for:
+The fish tank simulation supports running in headless mode without any graphical visualization. This is useful for:
 
 - Running long simulations faster than realtime
 - Collecting statistics and performance data
@@ -9,31 +9,27 @@ The fish tank simulation now supports running in headless mode without any graph
 
 ## Usage
 
-### Graphical Mode (Default)
+### Web Mode (Default)
 
-Run with pygame visualization:
-
-```bash
-python main.py --mode graphical
-```
-
-Or simply:
+Run with React UI and FastAPI backend:
 
 ```bash
-python fishtank.py
+python main.py
 ```
+
+Then open http://localhost:3000 in your browser.
 
 ### Headless Mode
 
 Run without visualization, stats-only:
 
 ```bash
-python main.py --mode headless --max-frames 10000 --stats-interval 500
+python main.py --headless --max-frames 10000 --stats-interval 500
 ```
 
 #### Parameters
 
-- `--mode`: Choose `graphical` or `headless` (default: `graphical`)
+- `--headless`: Enable headless mode (no UI)
 - `--max-frames`: Maximum number of frames to simulate (default: 10000)
 - `--stats-interval`: Print stats every N frames (default: 300)
 - `--seed`: Random seed for deterministic behavior (optional)
@@ -42,17 +38,17 @@ python main.py --mode headless --max-frames 10000 --stats-interval 500
 
 Quick test run (1000 frames):
 ```bash
-python main.py --mode headless --max-frames 1000
+python main.py --headless --max-frames 1000
 ```
 
 Long simulation (100000 frames ≈ 55 minutes of sim time):
 ```bash
-python main.py --mode headless --max-frames 100000 --stats-interval 3000
+python main.py --headless --max-frames 100000 --stats-interval 3000
 ```
 
 Deterministic simulation (for testing):
 ```bash
-python main.py --mode headless --max-frames 1000 --seed 42
+python main.py --headless --max-frames 1000 --seed 42
 ```
 
 ## Performance
@@ -74,6 +70,8 @@ Headless mode provides:
    - Population metrics (births, deaths, capacity)
    - Entity counts (fish, food, plants)
    - Death causes breakdown
+   - Reproduction statistics
+   - Genetic diversity metrics
 
 2. **Final algorithm performance report**:
    - Saved to `algorithm_performance_report.txt`
@@ -81,52 +79,53 @@ Headless mode provides:
    - Identifies best and worst performers
    - Provides recommendations for evolution
 
-## Mode Equivalence
+## Deterministic Behavior
 
-**Headless and graphical modes are now fully equivalent** in terms of simulation behavior. Both modes:
-
-- Use the same entity lifecycle logic
-- Use the same collision detection algorithm (bounding box)
-- Share the same genetics and evolution systems
-- Produce identical population dynamics
-- Generate the same statistics when run with the same seed
-
-### Verified Parity
-
-The modes have been tested to ensure they produce identical results:
-- Same population counts
-- Same birth and death rates
-- Same death causes
-- Same reproduction patterns
-
-You can verify this yourself by running the parity test:
-```bash
-PYTHONPATH=/home/user/tank python tests/test_parity.py
-```
-
-### Deterministic Behavior
-
-Both modes support deterministic behavior via the `--seed` parameter. When using the same seed:
-- Both modes will produce identical results
+Headless mode supports deterministic behavior via the `--seed` parameter. When using the same seed:
+- Produces identical results across runs
 - Useful for reproducible experiments and testing
-- Enables direct comparison between modes
+- Enables regression testing
 
 ## Architecture
 
-The codebase has been refactored to separate simulation logic from visualization:
+The codebase separates simulation logic from visualization:
 
-- **`simulation_engine.py`**: Pure simulation logic without pygame dependencies
-- **`fishtank.py`**: Graphical wrapper using pygame
+- **`simulation_engine.py`**: Pure simulation logic without UI dependencies
 - **`main.py`**: Entry point with command-line argument parsing
 - **`core/entities.py`**: Pure entity logic (no rendering)
-- **`agents.py`**: Pygame sprite wrappers for visualization
+- **`backend/`**: FastAPI server for web mode
 
-All core simulation logic in `core/` modules is now pygame-independent, allowing headless operation.
+All core simulation logic in `core/` modules is UI-independent, allowing headless operation.
 
-### Collision Detection
+## Collision Detection
 
-Both modes use **bounding box (AABB) collision detection** to ensure consistent behavior:
+The simulation uses **bounding box (AABB) collision detection**:
 - Fast and efficient
 - Deterministic results
-- Same collision outcomes in both modes
-- Changed from pixel-perfect mask collision in graphical mode for parity
+- Consistent behavior across runs
+
+## Running Tests
+
+You can verify headless mode behavior with automated tests:
+
+```bash
+pytest tests/
+```
+
+Or run a specific headless test:
+
+```bash
+python main.py --headless --max-frames 1000 --seed 42
+```
+
+## Web vs Headless Mode
+
+Both modes use the same `SimulationEngine` core:
+- Same entity lifecycle logic
+- Same collision detection algorithm
+- Same genetics and evolution systems
+- Same population dynamics
+
+The only difference is the presentation layer:
+- **Web mode**: Sends state to React frontend via WebSocket
+- **Headless mode**: Prints stats to console

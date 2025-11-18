@@ -1,7 +1,7 @@
 """Pure simulation engine without visualization dependencies.
 
 This module provides a headless simulation engine that can run the fish tank
-simulation without pygame or any visualization code.
+simulation without any visualization code.
 """
 
 import logging
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class AgentsWrapper:
-    """Wrapper to make entities_list compatible with pygame sprite group API."""
+    """Wrapper to provide a group-like API for managing entities."""
 
     def __init__(self, entities_list: List):
         self._entities = entities_list
@@ -82,7 +82,7 @@ class SimulationEngine(BaseSimulator):
         """Initialize the simulation engine.
 
         Args:
-            headless: If True, run without any pygame dependencies
+            headless: If True, run without any visualization
         """
         super().__init__()
         self.headless = headless
