@@ -12,6 +12,7 @@ from core.constants import (
     SCREEN_HEIGHT,
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ENABLED,
+    AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     AUTO_FOOD_LOW_ENERGY_THRESHOLD,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
@@ -317,8 +318,12 @@ class BaseSimulator(ABC):
         spawn_rate = AUTO_FOOD_SPAWN_RATE
 
         # Priority 1: Emergency feeding when energy is critically low
-        if total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 2  # Double the drop rate (every 1.5 sec)
+        if total_energy < AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD:
+            # Critical starvation: Quadruple spawn rate (every 0.75 sec)
+            spawn_rate = AUTO_FOOD_SPAWN_RATE // 4
+        elif total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
+            # Low energy: Triple spawn rate (every 1 sec)
+            spawn_rate = AUTO_FOOD_SPAWN_RATE // 3
 
         # Priority 2: Reduce feeding when energy or population is high
         elif (

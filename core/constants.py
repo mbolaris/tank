@@ -44,9 +44,10 @@ AUTO_FOOD_SPAWN_RATE = 90  # Spawn food every 3 seconds (90 frames at 30fps) - B
 AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
 
 # Dynamic food spawn scaling based on population and energy
-AUTO_FOOD_LOW_ENERGY_THRESHOLD = 2000  # Double spawn rate below this total energy
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4000  # Reduce spawn rate above this total energy
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6000  # Further reduce spawn rate above this total energy
+AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 1500  # Quadruple spawn rate below this total energy (critical)
+AUTO_FOOD_LOW_ENERGY_THRESHOLD = 3500  # Triple spawn rate below this total energy
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500  # Reduce spawn rate above this total energy
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500  # Further reduce spawn rate above this total energy
 AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 15  # Reduce spawn rate above this fish count
 AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 20  # Further reduce spawn rate above this fish count
 
