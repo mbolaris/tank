@@ -86,18 +86,35 @@ npm install
 
 ### Start the Simulation (Web UI)
 
+**⚠️ IMPORTANT:** You need to run **BOTH** backend and frontend servers!
+
+**Option 1: Automatic (Recommended)**
+```bash
+# Run the startup script (starts both servers)
+./start-app.sh
+
+# Then open http://localhost:3000 in your browser
+```
+
+**Option 2: Manual (Two Terminals)**
 ```bash
 # Terminal 1: Start the backend server
 python main.py
 
 # Terminal 2: Start the React frontend (in frontend/ directory)
 cd frontend
-npm start
+npm run dev
 
-# Open http://localhost:3000 in your browser
+# Then open http://localhost:3000 in your browser
 ```
 
+**📍 Access Points:**
+- **Frontend UI**: http://localhost:3000 ← **Use this in your browser!**
+- **Backend API**: http://localhost:8000 (WebSocket endpoint for frontend)
+
 The backend runs on port 8000, frontend on port 3000. The frontend connects to the backend via WebSocket for real-time updates.
+
+**🐛 Troubleshooting:** If you see a blank page, see [QUICK_START.md](./QUICK_START.md) for detailed setup instructions.
 
 ### Headless Mode (Fast, Stats-Only)
 
