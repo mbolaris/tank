@@ -142,3 +142,55 @@ POST_POKER_REPRODUCTION_WINNER_PROB = 0.4  # Probability winner offers reproduct
 POST_POKER_REPRODUCTION_LOSER_PROB = 0.2  # Probability loser offers reproduction (20%)
 POST_POKER_CROSSOVER_WINNER_WEIGHT = 0.6  # Winner contributes 60% of DNA, loser 40%
 POST_POKER_MATING_DISTANCE = 80  # Maximum distance for post-poker mating (pixels)
+
+# Fish Life Stage Age Thresholds (in frames at 30fps)
+LIFE_STAGE_BABY_MAX = 300  # 10 seconds
+LIFE_STAGE_JUVENILE_MAX = 900  # 30 seconds
+LIFE_STAGE_YOUNG_ADULT_MAX = 1800  # 60 seconds (1 minute)
+LIFE_STAGE_ADULT_MAX = 3600  # 120 seconds (2 minutes)
+LIFE_STAGE_MATURE_MAX = 5400  # 180 seconds (3 minutes)
+# After MATURE_MAX = Elder
+
+# Fish Energy System Constants
+ENERGY_MAX_DEFAULT = 100.0  # Maximum energy for a fish
+ENERGY_IDLE_CONSUMPTION = 1.0  # Energy consumed per frame when idle
+ENERGY_LOW_MULTIPLIER = 0.01  # Low energy consumption multiplier
+ENERGY_MODERATE_MULTIPLIER = 0.025  # Moderate energy consumption multiplier
+ENERGY_HIGH_MULTIPLIER = 0.015  # High energy consumption multiplier
+ENERGY_MATE_SEARCH_COST = -0.85  # Energy cost per frame when searching for mate
+ENERGY_MOVEMENT_BASE_COST = 0.05  # Base energy cost for movement
+
+# Fish Reproduction Constants
+REPRODUCTION_MIN_ENERGY = 35.0  # Minimum energy to initiate reproduction
+REPRODUCTION_COOLDOWN = 360  # Frames between reproduction attempts (12 seconds)
+REPRODUCTION_GESTATION = 300  # Frames for pregnancy (10 seconds)
+REPRODUCTION_ENERGY_COST = 60.0  # Energy cost to give birth
+
+# Crab Constants
+CRAB_INITIAL_ENERGY = 150.0  # Starting energy for crabs
+CRAB_ATTACK_ENERGY_TRANSFER = 60.0  # Energy stolen from fish when attacked
+CRAB_ATTACK_DAMAGE = 20.0  # Damage dealt to fish
+CRAB_IDLE_CONSUMPTION = 0.01  # Energy consumed per frame when idle
+CRAB_ATTACK_COOLDOWN = 120  # Frames between attacks (4 seconds)
+
+# Plant Constants
+PLANT_FOOD_PRODUCTION_INTERVAL = 75  # Frames between food production (2.5 seconds)
+PLANT_FOOD_PRODUCTION_ENERGY = 15  # Energy cost to produce food
+PLANT_PRODUCTION_CHANCE = 0.35  # 35% chance to produce food each interval
+
+# Ecosystem Constants
+TOTAL_ALGORITHM_COUNT = 48  # Total number of behavior algorithms available
+TOTAL_SPECIES_COUNT = 4  # Total number of fish species
+MAX_ECOSYSTEM_EVENTS = 1000  # Maximum events to track in ecosystem history
+
+# Predator Avoidance Constants (for algorithms)
+FLEE_THRESHOLD_CRITICAL = 45  # Flee distance when energy is critical
+FLEE_THRESHOLD_LOW = 80  # Flee distance when energy is low
+FLEE_THRESHOLD_NORMAL = 120  # Flee distance when energy is normal
+FLEE_SPEED_CRITICAL = 1.1  # Flee speed when energy is critical
+FLEE_SPEED_NORMAL = 1.3  # Flee speed when energy is normal
+
+# Poker Aggression Factors
+POKER_AGGRESSION_LOW = 0.3  # Low aggression factor
+POKER_AGGRESSION_MEDIUM = 0.6  # Medium aggression factor
+POKER_AGGRESSION_HIGH = 0.9  # High aggression factor

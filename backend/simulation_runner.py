@@ -1,5 +1,6 @@
 """Background simulation runner thread."""
 
+import logging
 import random
 import threading
 import time
@@ -11,6 +12,8 @@ from core import entities
 from core.behavior_algorithms import get_algorithm_index
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
 from backend.models import EntityData, StatsData, SimulationUpdate, PokerStatsData, PokerEventData
+
+logger = logging.getLogger(__name__)
 
 
 class SimulationRunner:
@@ -223,7 +226,7 @@ class SimulationRunner:
             return None
 
         except Exception as e:
-            print(f"Error converting entity: {e}")
+            logger.error("Error converting entity: %s", e, exc_info=True)
             return None
 
     def handle_command(self, command: str, data: Optional[Dict[str, Any]] = None):
