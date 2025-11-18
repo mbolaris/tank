@@ -17,6 +17,8 @@ from core.constants import (
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
     AUTO_FOOD_HIGH_POP_THRESHOLD_1,
     AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+    COLLISION_QUERY_RADIUS,
+    MATING_QUERY_RADIUS,
 )
 from core.algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
@@ -199,7 +201,7 @@ class BaseSimulator(ABC):
             # Typical fish size is ~30-50px, use generous radius for broad phase
             nearby_entities = []
             if self.environment is not None:
-                nearby_entities = self.environment.nearby_agents(fish, radius=100)
+                nearby_entities = self.environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
             else:
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in self.get_all_entities() if e != fish]
@@ -236,7 +238,7 @@ class BaseSimulator(ABC):
             # Use spatial grid for nearby entity lookup
             nearby_entities = []
             if self.environment is not None:
-                nearby_entities = self.environment.nearby_agents(food, radius=100)
+                nearby_entities = self.environment.nearby_agents(food, radius=COLLISION_QUERY_RADIUS)
             else:
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in self.get_all_entities() if e != food]
@@ -274,7 +276,7 @@ class BaseSimulator(ABC):
             nearby_fish = []
             if self.environment is not None:
                 nearby_fish = self.environment.nearby_agents_by_type(
-                    fish, radius=150, agent_class=Fish
+                    fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
                 )
             else:
                 # Fallback to checking all fish if no environment

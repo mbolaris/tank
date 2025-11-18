@@ -10,7 +10,7 @@ from typing import List, Optional, Dict, Any
 from simulation_engine import SimulationEngine
 from core import entities
 from core.algorithms import get_algorithm_index
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
+from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, SPAWN_MARGIN_PIXELS
 from backend.models import EntityData, StatsData, SimulationUpdate, PokerStatsData, PokerEventData
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class SimulationRunner:
         self.lock = threading.Lock()
 
         # Target frame rate
-        self.fps = 30
+        self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
 
     def start(self):
@@ -261,9 +261,8 @@ class SimulationRunner:
                     from core.constants import FILES
 
                     # Random spawn position (avoid edges)
-                    SPAWN_MARGIN = 50
-                    x = random.randint(SPAWN_MARGIN, SCREEN_WIDTH - SPAWN_MARGIN)
-                    y = random.randint(SPAWN_MARGIN, SCREEN_HEIGHT - SPAWN_MARGIN)
+                    x = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
+                    y = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
 
                     logger.info(f"Creating fish at position ({x}, {y})")
 
