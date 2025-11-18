@@ -48,11 +48,11 @@ class PokerInteraction:
     # Minimum energy required to play poker
     MIN_ENERGY_TO_PLAY = 10.0
 
-    # Default bet amount (can be overridden)
+    # Default bet amount (used for blind sizing, not actual energy transfer)
     DEFAULT_BET_AMOUNT = 5.0
 
-    # House cut percentage (taken from total pot)
-    HOUSE_CUT_PERCENTAGE = 0.05  # 5% house cut
+    # Energy transfer is size-based: winner takes percentage of loser's energy
+    # based on winner's size (8-25% range)
 
     # Cooldown between poker games for the same fish (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
@@ -351,41 +351,26 @@ class PokerInteraction:
                 winner_id = -1
                 loser_id = -1
 
-        # Calculate energy transfer
-        house_cut = 0.0
+        # Calculate energy transfer based on winner's size
         if winner_id != -1:
-            # Determine winner fish for size-based house cut
+            # Determine winner and loser fish
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
+            loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
 
-            # Winner takes pot minus house cut
-            # Larger fish get lower house cut: Size 0.35: 6%, Size 1.0: 4.5%, Size 1.3: 4%
-            # Formula: 6% - (size - 0.35) * 2.1% gives range of 6-4%
-            size_adjusted_cut = max(0.03, 0.06 - (winner_fish.size - 0.35) * 0.021)
-            house_cut = game_state.pot * size_adjusted_cut
-            energy_transferred = game_state.pot - house_cut
+            # Calculate percentage to take from loser based on WINNER's size
+            # Larger winners take more: Size 0.35: 8%, Size 1.0: ~20%, Size 1.3: ~25%
+            # Formula: 8% + (size - 0.35) * 18% gives range of 8-25%
+            energy_percentage = 0.08 + max(0, (winner_fish.size - 0.35) * 0.18)
 
-            # Apply energy changes
-            if winner_id == self.fish1.fish_id:
-                # Fish 1 wins
-                self.fish1.energy = max(
-                    0, self.fish1.energy - game_state.player1_total_bet + energy_transferred
-                )
-                self.fish2.energy = max(0, self.fish2.energy - game_state.player2_total_bet)
-            else:
-                # Fish 2 wins
-                self.fish1.energy = max(0, self.fish1.energy - game_state.player1_total_bet)
-                self.fish2.energy = max(
-                    0, self.fish2.energy - game_state.player2_total_bet + energy_transferred
-                )
+            # Take percentage from loser's current energy
+            energy_transferred = loser_fish.energy * energy_percentage
+
+            # Apply energy transfer: loser loses, winner gains
+            loser_fish.energy = max(0, loser_fish.energy - energy_transferred)
+            winner_fish.energy = winner_fish.energy + energy_transferred
         else:
-            # Tie - return bets
+            # Tie - no energy transfer
             energy_transferred = 0.0
-            self.fish1.energy = max(
-                0, self.fish1.energy - game_state.player1_total_bet + game_state.player1_total_bet
-            )
-            self.fish2.energy = max(
-                0, self.fish2.energy - game_state.player2_total_bet + game_state.player2_total_bet
-            )
 
         # Set cooldowns
         self.fish1.poker_cooldown = self.POKER_COOLDOWN
@@ -565,7 +550,7 @@ class PokerInteraction:
                 amount=energy_transferred,
                 winner_hand=self.hand1 if winner_id == self.fish1.fish_id else self.hand2,
                 loser_hand=self.hand2 if winner_id == self.fish1.fish_id else self.hand1,
-                house_cut=house_cut,
+                house_cut=0.0,  # No house cut in size-based energy transfer system
                 result=self.result,
                 player1_algo_id=player1_algo_id,
                 player2_algo_id=player2_algo_id,
