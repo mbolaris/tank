@@ -268,6 +268,79 @@ class GeneticDiversityStats:
         return (algo_score + species_score + color_score) / 3.0
 
 
+@dataclass
+class JellyfishPokerStats:
+    """Statistics for a fish's performance against the jellyfish benchmark.
+
+    This tracks how well each fish performs in poker games against the
+    non-evolving jellyfish evaluator, providing a standardized benchmark
+    for comparing fish poker skills.
+
+    Attributes:
+        fish_id: Unique identifier for the fish
+        fish_name: Display name for the fish
+        total_games: Total games played against jellyfish
+        wins: Games won against jellyfish
+        losses: Games lost against jellyfish
+        total_energy_won: Total energy gained from jellyfish
+        total_energy_lost: Total energy lost to jellyfish
+        best_hand_rank: Best hand rank achieved (0-9)
+        avg_hand_rank: Average hand rank
+        wins_by_fold: Wins because jellyfish folded
+        losses_by_fold: Losses because fish folded
+    """
+    fish_id: int
+    fish_name: str = ""
+    total_games: int = 0
+    wins: int = 0
+    losses: int = 0
+    total_energy_won: float = 0.0
+    total_energy_lost: float = 0.0
+    best_hand_rank: int = 0
+    avg_hand_rank: float = 0.0
+    _total_hand_rank: float = field(default=0.0, repr=False)
+    wins_by_fold: int = 0
+    losses_by_fold: int = 0
+
+    def get_win_rate(self) -> float:
+        """Calculate win rate against jellyfish."""
+        return self.wins / self.total_games if self.total_games > 0 else 0.0
+
+    def get_net_energy(self) -> float:
+        """Calculate net energy gained/lost against jellyfish."""
+        return self.total_energy_won - self.total_energy_lost
+
+    def get_avg_energy_per_game(self) -> float:
+        """Calculate average energy per game."""
+        return self.get_net_energy() / self.total_games if self.total_games > 0 else 0.0
+
+    def get_fold_win_rate(self) -> float:
+        """Calculate rate of wins by fold (bluffing success)."""
+        return self.wins_by_fold / self.wins if self.wins > 0 else 0.0
+
+    def get_score(self) -> float:
+        """Calculate overall performance score for leaderboard ranking.
+
+        Combines win rate (60%), net energy (30%), and games played (10%).
+        """
+        if self.total_games == 0:
+            return 0.0
+
+        # Win rate component (0-60 points)
+        win_rate_score = self.get_win_rate() * 60.0
+
+        # Net energy component (0-30 points, normalized)
+        # Assume typical range is -500 to +500 energy
+        net_energy_normalized = max(-1.0, min(1.0, self.get_net_energy() / 500.0))
+        energy_score = (net_energy_normalized + 1.0) / 2.0 * 30.0
+
+        # Games played component (0-10 points, more games = more reliable)
+        # Cap at 50 games for full points
+        games_score = min(self.total_games / 50.0, 1.0) * 10.0
+
+        return win_rate_score + energy_score + games_score
+
+
 class EcosystemManager:
     """Manages ecosystem dynamics and statistics.
 
@@ -320,6 +393,9 @@ class EcosystemManager:
 
         # Genetic diversity statistics tracking
         self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
+
+        # Jellyfish poker leaderboard tracking
+        self.jellyfish_poker_stats: Dict[int, JellyfishPokerStats] = {}
 
         # Next available fish ID
         self.next_fish_id: int = 0
@@ -1249,3 +1325,73 @@ class EcosystemManager:
         report_lines.append("=" * 80)
 
         return "\n".join(report_lines)
+
+    def record_jellyfish_poker_game(self, fish_id: int, fish_won: bool,
+                                   energy_transferred: float, fish_hand_rank: int,
+                                   won_by_fold: bool) -> None:
+        """Record a poker game between a fish and the jellyfish benchmark.
+
+        Args:
+            fish_id: ID of the fish that played
+            fish_won: True if fish won, False if jellyfish won
+            energy_transferred: Amount of energy won or lost
+            fish_hand_rank: Rank of the fish's hand (0-9)
+            won_by_fold: True if game ended by fold
+        """
+        # Initialize stats for this fish if not exists
+        if fish_id not in self.jellyfish_poker_stats:
+            self.jellyfish_poker_stats[fish_id] = JellyfishPokerStats(
+                fish_id=fish_id,
+                fish_name=f"Fish #{fish_id}"
+            )
+
+        stats = self.jellyfish_poker_stats[fish_id]
+        stats.total_games += 1
+
+        if fish_won:
+            stats.wins += 1
+            stats.total_energy_won += energy_transferred
+            if won_by_fold:
+                stats.wins_by_fold += 1
+        else:
+            stats.losses += 1
+            stats.total_energy_lost += energy_transferred
+            if won_by_fold:
+                stats.losses_by_fold += 1
+
+        # Update hand rank stats
+        stats.best_hand_rank = max(stats.best_hand_rank, fish_hand_rank)
+        stats._total_hand_rank += fish_hand_rank
+        stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+    def get_jellyfish_leaderboard(self, limit: int = 10) -> List[JellyfishPokerStats]:
+        """Get the jellyfish poker leaderboard sorted by performance score.
+
+        Args:
+            limit: Maximum number of entries to return
+
+        Returns:
+            List of JellyfishPokerStats sorted by score (highest first)
+        """
+        # Filter out fish with no games
+        stats_with_games = [
+            stats for stats in self.jellyfish_poker_stats.values()
+            if stats.total_games > 0
+        ]
+
+        # Sort by score (highest first)
+        stats_with_games.sort(key=lambda s: s.get_score(), reverse=True)
+
+        # Return top N
+        return stats_with_games[:limit]
+
+    def get_jellyfish_poker_stats_for_fish(self, fish_id: int) -> Optional[JellyfishPokerStats]:
+        """Get jellyfish poker stats for a specific fish.
+
+        Args:
+            fish_id: ID of the fish
+
+        Returns:
+            JellyfishPokerStats or None if fish hasn't played
+        """
+        return self.jellyfish_poker_stats.get(fish_id)

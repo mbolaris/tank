@@ -223,6 +223,14 @@ class SimulationRunner:
                     **base_data
                 )
 
+            elif isinstance(entity, entities.Jellyfish):
+                return EntityData(
+                    type='jellyfish',
+                    energy=entity.energy if hasattr(entity, 'energy') else 1000,
+                    jellyfish_id=entity.jellyfish_id if hasattr(entity, 'jellyfish_id') else 0,
+                    **base_data
+                )
+
             return None
 
         except Exception as e:
@@ -257,6 +265,21 @@ class SimulationRunner:
 
             elif command == 'resume':
                 self.engine.paused = False
+
+            elif command == 'spawn_jellyfish':
+                # Spawn jellyfish at center of tank
+                x = SCREEN_WIDTH // 2
+                y = SCREEN_HEIGHT // 2
+                jellyfish = entities.Jellyfish(
+                    self.engine.environment,
+                    x=x,
+                    y=y,
+                    jellyfish_id=0,  # Could track count if needed
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT
+                )
+                self.engine.entities_list.append(jellyfish)
+                logger.info(f"Spawned jellyfish at ({x}, {y})")
 
             elif command == 'reset':
                 # Reset simulation

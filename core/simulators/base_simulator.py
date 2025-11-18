@@ -15,10 +15,11 @@ from core.constants import (
 )
 from core.algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
+from core.jellyfish_poker import JellyfishPokerInteraction
 
 # Type checking imports
 if TYPE_CHECKING:
-    from core.entities import Agent, Fish, Food, Plant, Crab
+    from core.entities import Agent, Fish, Food, Plant, Crab, Jellyfish
     from core.ecosystem import EcosystemManager
 
 
@@ -173,13 +174,32 @@ class BaseSimulator(ABC):
             return fish1_died
         return False
 
+    def handle_fish_jellyfish_collision(self, fish: 'Agent', jellyfish: 'Agent') -> bool:
+        """Handle collision between a fish and jellyfish (poker benchmark).
+
+        Args:
+            fish: The fish entity
+            jellyfish: The jellyfish entity
+
+        Returns:
+            bool: True if fish died from the collision, False otherwise
+        """
+        # Fish-to-jellyfish poker interaction
+        poker = JellyfishPokerInteraction(fish, jellyfish)
+        if poker.play_poker():
+            # Check if fish died from poker
+            if fish.is_dead() and fish in self.get_all_entities():
+                self.record_fish_death(fish)
+                return True
+        return False
+
     def handle_fish_collisions(self) -> None:
         """Handle collisions involving fish.
 
         Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k)
         where k is the number of nearby entities (typically much smaller than n).
         """
-        from core.entities import Fish, Food, Crab
+        from core.entities import Fish, Food, Crab, Jellyfish
 
         # Get all fish entities
         all_entities = self.get_all_entities()
@@ -209,6 +229,9 @@ class BaseSimulator(ABC):
                             break  # Fish died, stop checking collisions for it
                     elif isinstance(other, Food):
                         self.handle_fish_food_collision(fish, other)
+                    elif isinstance(other, Jellyfish):
+                        if self.handle_fish_jellyfish_collision(fish, other):
+                            break  # Fish died, stop checking collisions for it
                     elif isinstance(other, Fish):
                         if self.handle_fish_fish_collision(fish, other):
                             break  # Fish died, stop checking collisions for it

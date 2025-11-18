@@ -1050,6 +1050,88 @@ class Castle(Agent):
         super().__init__(environment, x, y, 0, screen_width, screen_height)
 
 
+class Jellyfish(Agent):
+    """A poker-evaluating jellyfish that plays poker with fish (pure logic, no rendering).
+
+    The jellyfish is a non-evolving static agent that serves as a benchmark for
+    evaluating fish poker performance. It uses a fixed conservative poker strategy
+    and dies when its energy reaches zero.
+
+    Attributes:
+        energy: Current energy level (starts at 1000)
+        max_energy: Maximum energy capacity (1000)
+        jellyfish_id: Unique identifier
+        age: Age in frames
+        poker_cooldown: Frames until can play poker again
+    """
+
+    # Constants for jellyfish
+    INITIAL_ENERGY = 1000.0
+    ENERGY_DECAY_RATE = 0.5  # Energy lost per frame (slower than fish metabolism)
+    POKER_AGGRESSION = 0.4  # Fixed conservative poker strategy (0.0-1.0)
+
+    def __init__(self, environment: 'Environment', x: float, y: float,
+                 jellyfish_id: int = 0, screen_width: int = 800, screen_height: int = 600) -> None:
+        """Initialize a jellyfish.
+
+        Args:
+            environment: The environment the jellyfish lives in
+            x: Initial x position
+            y: Initial y position
+            jellyfish_id: Unique identifier
+            screen_width: Width of simulation area
+            screen_height: Height of simulation area
+        """
+        # Jellyfish drift slowly
+        speed = 0.8
+        super().__init__(environment, x, y, speed, screen_width, screen_height)
+
+        # Energy system
+        self.max_energy: float = self.INITIAL_ENERGY
+        self.energy: float = self.INITIAL_ENERGY
+
+        # Tracking
+        self.jellyfish_id: int = jellyfish_id
+        self.age: int = 0
+
+        # Poker system
+        self.poker_cooldown: int = 0
+        self.last_button_position: int = 2  # For button rotation in poker
+
+        # Set size for collision detection
+        self.set_size(40, 40)  # Slightly larger than fish
+
+    def consume_energy(self) -> None:
+        """Consume energy over time (jellyfish slowly dies)."""
+        self.energy = max(0, self.energy - self.ENERGY_DECAY_RATE)
+
+    def is_dead(self) -> bool:
+        """Check if jellyfish should die (energy depleted)."""
+        return self.energy <= 0
+
+    def update(self, elapsed_time: int) -> None:
+        """Update the jellyfish state.
+
+        Args:
+            elapsed_time: Time elapsed since start
+        """
+        super().update(elapsed_time)
+
+        # Increment age
+        self.age += 1
+
+        # Decay energy
+        self.consume_energy()
+
+        # Update poker cooldown
+        if self.poker_cooldown > 0:
+            self.poker_cooldown -= 1
+
+        # Gentle drifting movement (slow random walk)
+        if self.age % 30 == 0:  # Change direction every second
+            self.add_random_velocity_change([0.2, 0.6, 0.2], 20)  # Subtle movements
+
+
 class Food(Agent):
     """A food entity with variable nutrients (pure logic, no rendering).
 

@@ -145,6 +145,13 @@ class SimulationEngine(BaseSimulator):
                 if food is not None:
                     new_entities.append(food)
 
+            elif isinstance(entity, entities.Jellyfish):
+                entity.update(self.frame_count)
+                # Remove dead jellyfish
+                if entity.is_dead():
+                    self.remove_entity(entity)
+                    logger.info(f"Jellyfish #{entity.jellyfish_id} died at age {entity.age}")
+
             else:
                 entity.update(self.frame_count)
 
