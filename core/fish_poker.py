@@ -52,7 +52,7 @@ class PokerInteraction:
     DEFAULT_BET_AMOUNT = 5.0
 
     # Energy transfer is size-based: winner takes percentage of loser's energy
-    # based on winner's size (8-25% range)
+    # based on winner's size (8-25% range), then pays house cut (same percentage)
 
     # Cooldown between poker games for the same fish (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
@@ -352,6 +352,7 @@ class PokerInteraction:
                 loser_id = -1
 
         # Calculate energy transfer based on winner's size
+        house_cut = 0.0
         if winner_id != -1:
             # Determine winner and loser fish
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
@@ -365,9 +366,17 @@ class PokerInteraction:
             # Take percentage from loser's current energy
             energy_transferred = loser_fish.energy * energy_percentage
 
-            # Apply energy transfer: loser loses, winner gains
+            # Apply energy transfer: loser loses energy
             loser_fish.energy = max(0, loser_fish.energy - energy_transferred)
+
+            # Winner gains energy
             winner_fish.energy = winner_fish.energy + energy_transferred
+
+            # House cut: winner gives up percentage based on winner's size
+            # The house cut disappears (energy is NOT conserved)
+            house_cut_percentage = 0.08 + max(0, (winner_fish.size - 0.35) * 0.18)
+            house_cut = winner_fish.energy * house_cut_percentage
+            winner_fish.energy = max(0, winner_fish.energy - house_cut)
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0
@@ -550,7 +559,7 @@ class PokerInteraction:
                 amount=energy_transferred,
                 winner_hand=self.hand1 if winner_id == self.fish1.fish_id else self.hand2,
                 loser_hand=self.hand2 if winner_id == self.fish1.fish_id else self.hand1,
-                house_cut=0.0,  # No house cut in size-based energy transfer system
+                house_cut=house_cut,
                 result=self.result,
                 player1_algo_id=player1_algo_id,
                 player2_algo_id=player2_algo_id,
