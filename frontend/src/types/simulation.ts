@@ -110,7 +110,7 @@ export interface SimulationUpdate {
 }
 
 export interface Command {
-  command: 'add_food' | 'pause' | 'resume' | 'reset';
+  command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset';
   data?: Record<string, unknown>;
 }
 

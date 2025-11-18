@@ -17,6 +17,10 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
     onCommand({ command: 'add_food' });
   };
 
+  const handleSpawnFish = () => {
+    onCommand({ command: 'spawn_fish' });
+  };
+
   const handlePause = () => {
     if (isPaused) {
       onCommand({ command: 'resume' });
@@ -61,6 +65,17 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
         </button>
 
         <button
+          onClick={handleSpawnFish}
+          disabled={!isConnected}
+          style={{
+            ...styles.button,
+            ...styles.buttonSuccess,
+          }}
+        >
+          🐟 Spawn Fish
+        </button>
+
+        <button
           onClick={handlePause}
           disabled={!isConnected}
           style={{
@@ -88,6 +103,9 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
         <ul style={styles.helpList}>
           <li>
             <strong>Add Food:</strong> Drop food into the tank
+          </li>
+          <li>
+            <strong>Spawn Fish:</strong> Add a new fish with random genetics
           </li>
           <li>
             <strong>Pause:</strong> Pause/resume the simulation
@@ -146,6 +164,10 @@ const styles = {
   },
   buttonPrimary: {
     backgroundColor: '#3b82f6',
+    color: '#ffffff',
+  },
+  buttonSuccess: {
+    backgroundColor: '#10b981',
     color: '#ffffff',
   },
   buttonSecondary: {
