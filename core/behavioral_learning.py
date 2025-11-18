@@ -17,7 +17,7 @@ Learned behaviors can:
 """
 
 import random
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Dict, Optional, TYPE_CHECKING, Any
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -325,7 +325,7 @@ class BehavioralLearningSystem:
                 inherited_val = avg_val * BehavioralLearningSystem.CULTURAL_INHERITANCE_RATE
                 offspring.learned_behaviors[key] = inherited_val
 
-    def get_learning_summary(self) -> Dict[str, any]:
+    def get_learning_summary(self) -> Dict[str, Any]:
         """Get a summary of learned behaviors for debugging/display.
 
         Returns:

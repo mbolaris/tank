@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.constants import FRAME_RATE
+from core.constants import FRAME_RATE, DEFAULT_API_PORT
 from simulation_runner import SimulationRunner
 from models import Command
 
@@ -158,4 +158,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT)

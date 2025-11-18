@@ -9,7 +9,7 @@ This module implements sophisticated poker playing strategies including:
 These strategies evolve over time as fish learn from poker outcomes.
 """
 
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import random
@@ -401,7 +401,7 @@ class PokerStrategyEngine:
                 # Lost with weak hand - tighten hand selection
                 self.hand_selection_tightness = min(1.0, self.hand_selection_tightness + learning_rate * 0.5)
 
-    def get_strategy_summary(self) -> Dict[str, any]:
+    def get_strategy_summary(self) -> Dict[str, Any]:
         """Get summary of current poker strategy.
 
         Returns:
@@ -415,7 +415,7 @@ class PokerStrategyEngine:
             'opponents_modeled': sum(1 for m in self.opponent_models.values() if m.games_played >= 5),
         }
 
-    def get_opponent_summary(self, opponent_id: int) -> Dict[str, any]:
+    def get_opponent_summary(self, opponent_id: int) -> Dict[str, Any]:
         """Get summary of opponent model.
 
         Args:

@@ -53,11 +53,8 @@ class TestFullSimulation:
         try:
             for _ in range(200):
                 simulator.update()
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Simulation with food should run without crashing"
+        except Exception as e:
+            pytest.fail(f"Simulation with food crashed: {type(e).__name__}: {e}")
 
     def test_simulation_handles_fish_crab_interactions(self, simulation_engine):
         """Test that fish-crab collision handling works over time."""
@@ -79,11 +76,8 @@ class TestFullSimulation:
                 simulator.handle_collisions()
                 for sprite in list(simulator.agents):
                     sprite.update(0)
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Fish-crab interactions should work without errors"
+        except Exception as e:
+            pytest.fail(f"Fish-crab interactions failed: {type(e).__name__}: {e}")
 
     def test_simulation_state_consistency(self, simulation_engine):
         """Test that simulation maintains consistent state over time."""
@@ -116,11 +110,8 @@ class TestFullSimulation:
         try:
             for _ in range(500):
                 simulator.update()
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Simulation should handle rapid updates without issues"
+        except Exception as e:
+            pytest.fail(f"Simulation failed during rapid updates: {type(e).__name__}: {e}")
 
     def test_bug_fixes_verified(self, simulation_engine):
         """Verify that our critical bug fixes are working."""
@@ -157,11 +148,8 @@ class TestFullSimulation:
             # This tests our fix for safe iteration when removing sprites
             for _ in range(20):
                 simulator.handle_collisions()
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Collision handling should safely iterate when removing sprites"
+        except Exception as e:
+            pytest.fail(f"Collision handling failed during sprite removal: {type(e).__name__}: {e}")
 
         # Test 3: Zero-length vector safety - should not crash
         simulator.agents.empty()
@@ -174,8 +162,5 @@ class TestFullSimulation:
         try:
             # This tests our zero-length vector safety checks
             fish.avoid([crab], 50)
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Zero-length vector handling should not crash"
+        except Exception as e:
+            pytest.fail(f"Zero-length vector handling crashed: {type(e).__name__}: {e}")

@@ -81,11 +81,8 @@ class TestCollisionDetection:
 
         try:
             simulator.handle_food_collisions()
-            success = True
-        except Exception:
-            success = False
-
-        assert success
+        except Exception as e:
+            pytest.fail(f"Food collision handling failed: {type(e).__name__}: {e}")
 
     def test_food_falls_off_screen_removed(self, simulation_engine):
         """Test that food removal logic works for food at bottom of screen."""
@@ -119,8 +116,5 @@ class TestCollisionDetection:
         try:
             for _ in range(10):
                 simulator.handle_collisions()
-            success = True
-        except Exception:
-            success = False
-
-        assert success, "Should be able to call handle_collisions repeatedly"
+        except Exception as e:
+            pytest.fail(f"Main collision handler failed: {type(e).__name__}: {e}")
