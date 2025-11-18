@@ -5,9 +5,16 @@ the ecosystem reaches a target generation number.
 """
 
 import argparse
+import logging
 import random
 import time
 from simulation_engine import SimulationEngine
+from core.constants import FRAME_RATE
+
+logger = logging.getLogger(__name__)
+
+# Wider separator for detailed reports
+REPORT_SEPARATOR_WIDTH = 80
 
 
 def run_until_generation(target_generation: int, stats_interval: int = 300, seed=None, max_frames: int = 1000000):
@@ -21,15 +28,15 @@ def run_until_generation(target_generation: int, stats_interval: int = 300, seed
     """
     if seed is not None:
         random.seed(seed)
-        print(f"Using random seed: {seed}")
+        logger.info("Using random seed: %d", seed)
 
-    print("=" * 80)
-    print("FISH TANK SIMULATION - RUNNING UNTIL GENERATION", target_generation)
-    print("=" * 80)
-    print(f"Stats will be printed every {stats_interval} frames")
-    print(f"Maximum frames: {max_frames}")
-    print("=" * 80)
-    print()
+    logger.info("=" * REPORT_SEPARATOR_WIDTH)
+    logger.info("FISH TANK SIMULATION - RUNNING UNTIL GENERATION %d", target_generation)
+    logger.info("=" * REPORT_SEPARATOR_WIDTH)
+    logger.info("Stats will be printed every %d frames", stats_interval)
+    logger.info("Maximum frames: %d", max_frames)
+    logger.info("=" * REPORT_SEPARATOR_WIDTH)
+    logger.info("")
 
     engine = SimulationEngine(headless=True)
     engine.setup()
@@ -47,40 +54,45 @@ def run_until_generation(target_generation: int, stats_interval: int = 300, seed
 
         # Check if we've reached target generation
         if engine.ecosystem and engine.ecosystem.current_generation >= target_generation:
-            print("\n" + "=" * 80)
-            print(f"TARGET GENERATION {target_generation} REACHED!")
-            print("=" * 80)
+            logger.info("")
+            logger.info("=" * REPORT_SEPARATOR_WIDTH)
+            logger.info("TARGET GENERATION %d REACHED!", target_generation)
+            logger.info("=" * REPORT_SEPARATOR_WIDTH)
             break
 
     # Print final stats
-    print("\n" + "=" * 80)
-    print("SIMULATION COMPLETE - Final Statistics")
-    print("=" * 80)
+    logger.info("")
+    logger.info("=" * REPORT_SEPARATOR_WIDTH)
+    logger.info("SIMULATION COMPLETE - Final Statistics")
+    logger.info("=" * REPORT_SEPARATOR_WIDTH)
     engine.print_stats()
 
     # Print detailed generation breakdown
     if engine.ecosystem:
-        print("\n" + "=" * 80)
-        print("GENERATION BREAKDOWN")
-        print("=" * 80)
+        logger.info("")
+        logger.info("=" * REPORT_SEPARATOR_WIDTH)
+        logger.info("GENERATION BREAKDOWN")
+        logger.info("=" * REPORT_SEPARATOR_WIDTH)
         for gen in sorted(engine.ecosystem.generation_stats.keys()):
             stats = engine.ecosystem.generation_stats[gen]
-            print(f"\nGeneration {gen}:")
-            print(f"  Population: {stats.population}")
-            print(f"  Births: {stats.births}")
-            print(f"  Deaths: {stats.deaths}")
-            print(f"  Avg Age at Death: {stats.avg_age:.1f} frames")
-            print(f"  Avg Speed: {stats.avg_speed:.2f}")
-            print(f"  Avg Size: {stats.avg_size:.2f}")
-            print(f"  Avg Energy: {stats.avg_energy:.2f}")
+            logger.info("")
+            logger.info("Generation %d:", gen)
+            logger.info("  Population: %d", stats.population)
+            logger.info("  Births: %d", stats.births)
+            logger.info("  Deaths: %d", stats.deaths)
+            logger.info("  Avg Age at Death: %.1f frames", stats.avg_age)
+            logger.info("  Avg Speed: %.2f", stats.avg_speed)
+            logger.info("  Avg Size: %.2f", stats.avg_size)
+            logger.info("  Avg Energy: %.2f", stats.avg_energy)
 
     # Generate algorithm performance report
     if engine.ecosystem:
-        print("\n" + "=" * 80)
-        print("ALGORITHM PERFORMANCE REPORT")
-        print("=" * 80)
+        logger.info("")
+        logger.info("=" * REPORT_SEPARATOR_WIDTH)
+        logger.info("ALGORITHM PERFORMANCE REPORT")
+        logger.info("=" * REPORT_SEPARATOR_WIDTH)
         report = engine.ecosystem.get_algorithm_performance_report()
-        print(report)
+        logger.info("%s", report)
 
         # Save to file
         filename = f'generation_{target_generation}_report.txt'
@@ -88,17 +100,17 @@ def run_until_generation(target_generation: int, stats_interval: int = 300, seed
             f.write(f"Simulation Report - Generation {target_generation}\n")
             f.write(f"Total Frames: {frame}\n")
             f.write(f"Real Time: {time.time() - start_time:.1f}s\n")
-            f.write("\n" + "=" * 80 + "\n")
+            f.write("\n" + "=" * REPORT_SEPARATOR_WIDTH + "\n")
             f.write("FINAL STATISTICS\n")
-            f.write("=" * 80 + "\n\n")
+            f.write("=" * REPORT_SEPARATOR_WIDTH + "\n\n")
 
             stats = engine.get_stats()
             for key, value in stats.items():
                 f.write(f"{key}: {value}\n")
 
-            f.write("\n" + "=" * 80 + "\n")
+            f.write("\n" + "=" * REPORT_SEPARATOR_WIDTH + "\n")
             f.write("GENERATION BREAKDOWN\n")
-            f.write("=" * 80 + "\n\n")
+            f.write("=" * REPORT_SEPARATOR_WIDTH + "\n\n")
 
             for gen in sorted(engine.ecosystem.generation_stats.keys()):
                 gen_stats = engine.ecosystem.generation_stats[gen]
@@ -113,11 +125,13 @@ def run_until_generation(target_generation: int, stats_interval: int = 300, seed
 
             f.write("\n" + report)
 
-        print(f"\nReport saved to: {filename}")
+        logger.info("")
+        logger.info("Report saved to: %s", filename)
 
     elapsed = time.time() - start_time
-    print(f"\nTotal simulation time: {elapsed:.1f}s ({frame} frames)")
-    print(f"Simulation speed: {frame / (30 * elapsed):.2f}x realtime")
+    logger.info("")
+    logger.info("Total simulation time: %.1fs (%d frames)", elapsed, frame)
+    logger.info("Simulation speed: %.2fx realtime", frame / (FRAME_RATE * elapsed))
 
 
 def main():
