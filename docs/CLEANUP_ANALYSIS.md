@@ -1,5 +1,7 @@
 # CODEBASE CLEANUP ANALYSIS REPORT
 
+> **Note**: This is historical documentation describing cleanup work that was completed in November 2025. It documents the removal of pygame dependencies and consolidation of duplicate code. For current architecture, see `ARCHITECTURE.md`.
+
 ## EXECUTIVE SUMMARY
 
 The tank codebase has undergone good architectural separation (simulation vs rendering) but contains several areas for cleanup and consolidation:

@@ -1,190 +1,283 @@
 # Architecture Documentation
 
-## Recent Architectural Improvements
+## Overview
 
-This document describes the major architectural improvements made to the codebase to improve code quality, reduce duplication, and enhance maintainability.
+The Fish Tank Simulation is a web-based artificial life ecosystem where fish evolve behaviors through genetic algorithms. The architecture follows a clean separation between simulation logic and visualization.
 
-### 1. BaseSimulator Abstraction (2025-11-17)
+## System Architecture
 
-**Problem**: The codebase had two simulation implementations (`FishTankSimulator` and `SimulationEngine`) with approximately 200+ lines of duplicated logic including:
-- Collision handling
-- Reproduction logic
-- Fish death recording
-- Entity boundary checking
-- Auto-food spawning
-
-**Solution**: Created `core/simulators/base_simulator.py` with a `BaseSimulator` abstract base class that contains all shared simulation logic.
-
-**Benefits**:
-- **Eliminated ~200 lines of duplicate code**
-- **Single source of truth** for simulation logic
-- **Easier maintenance** - bug fixes only need to be applied once
-- **Consistent behavior** between graphical and headless modes
-
-**Architecture**:
 ```
-BaseSimulator (Abstract)
-├── handle_collisions()
-├── handle_fish_collisions()
-├── handle_food_collisions()
-├── handle_reproduction()
-├── record_fish_death()
-├── spawn_auto_food()
-├── keep_entity_on_screen()
-└── handle_poker_result()
-
-FishTankSimulator (Pygame)
-├── Implements abstract methods for pygame sprites
-└── check_collision() using pygame.sprite.collide_rect
-
-SimulationEngine (Headless)
-├── Implements abstract methods for pure entities
-└── check_collision() using bounding box math
+┌─────────────────┐
+│  React Frontend │ (Port 3000)
+│   (TypeScript)  │
+└────────┬────────┘
+         │ WebSocket
+         │ + REST API
+┌────────┴────────┐
+│  FastAPI Backend│ (Port 8000)
+└────────┬────────┘
+         │
+┌────────┴────────┐
+│ SimulationEngine│
+│   (Pure Python) │
+└─────────────────┘
 ```
 
-**Files Modified**:
-- Created: `core/simulators/__init__.py`
-- Created: `core/simulators/base_simulator.py`
-- Modified: `fishtank.py` - Now extends BaseSimulator
-- Modified: `simulation_engine.py` - Now extends BaseSimulator
+### Frontend (React + TypeScript)
+- **Location**: `frontend/src/`
+- **Purpose**: Web-based UI for visualizing the simulation
+- **Key Components**:
+  - Canvas renderer for fish, plants, and food
+  - Stats panel showing population metrics
+  - Control panel for simulation controls
+  - Real-time updates via WebSocket
 
-### 2. UI Rendering Separation (2025-11-17)
+### Backend (FastAPI)
+- **Location**: `backend/`
+- **Purpose**: REST API and WebSocket server
+- **Endpoints**:
+  - `GET /api/state` - Get current simulation state
+  - `WebSocket /ws` - Real-time simulation updates
+  - `POST /api/spawn-fish` - Spawn a new fish
+  - `POST /api/spawn-food` - Spawn food
 
-**Problem**: `FishTankSimulator` had rendering logic mixed with game logic, violating separation of concerns:
-- `draw_health_bar()` - 46 lines
-- `draw_stats_panel()` - 64 lines
-- `draw_poker_notifications()` - 33 lines
+### Simulation Core
+- **Location**: `core/` and `simulation_engine.py`
+- **Purpose**: Pure Python simulation logic without any UI dependencies
+- **Key Features**:
+  - Headless operation for testing and benchmarking
+  - Genetic algorithms and evolution
+  - Collision detection and spatial partitioning
+  - Ecosystem management
 
-**Solution**: Created `rendering/ui_renderer.py` with a dedicated `UIRenderer` class responsible for all UI rendering.
+## Core Modules
 
-**Benefits**:
-- **Separation of concerns** - Rendering logic is now isolated
-- **Reusability** - UI components can be reused in other visualizations
-- **Testability** - UI rendering can be tested independently
-- **Cleaner code** - `FishTankSimulator` is now more focused on simulation logic
+### simulation_engine.py
+The main simulation engine that runs the fish tank ecosystem:
+- **SimulationEngine**: Headless simulation without visualization
+- **HeadlessSimulator**: Simplified wrapper for testing
 
-**Architecture**:
-```
-UIRenderer
-├── draw_health_bar(fish)
-├── draw_stats_panel(ecosystem, time_system, paused)
-└── draw_poker_notifications(notifications)
-```
+### core/entities.py
+Entity classes for all simulation objects:
+- **Agent**: Base class for all entities
+- **Fish**: Evolving fish with genetics, energy, and behavior
+- **Food**: Food particles that fish consume
+- **Plant**: Stationary plants that spawn food
 
-**Usage**:
-```python
-# In FishTankSimulator
-self.ui_renderer = UIRenderer(self.screen, self.stats_font)
-self.ui_renderer.set_frame_count(self.frame_count)
-self.ui_renderer.draw_health_bar(fish)
-self.ui_renderer.draw_stats_panel(self.ecosystem, self.time_system, self.paused)
-self.ui_renderer.draw_poker_notifications(self.poker_notifications)
-```
+### core/ecosystem.py
+- **EcosystemManager**: Tracks population stats, births, deaths
+- Genetic diversity metrics
+- Algorithm performance tracking
+- Species distribution
 
-**Files Modified**:
-- Created: `rendering/ui_renderer.py`
-- Modified: `fishtank.py` - Now uses UIRenderer instead of inline rendering
+### core/genetics.py
+- **Genome**: Genetic representation of fish traits
+- Mutation and crossover for evolution
+- Color, speed, size, vision, and behavior genes
 
-## Code Quality Metrics
+### core/algorithms/
+Behavior algorithms for fish:
+- **BoidAlgorithm**: Flocking behavior
+- **HunterAlgorithm**: Aggressive food seeking
+- **CautiousAlgorithm**: Defensive behavior
+- **WandererAlgorithm**: Exploratory movement
+- 12+ other specialized algorithms
 
-### Before Improvements
-- **Duplicate Code**: ~200 lines duplicated between fishtank.py and simulation_engine.py
-- **Large Files**:
-  - `fishtank.py`: 597 lines
-  - `simulation_engine.py`: 436 lines
-  - `core/entities.py`: 931 lines
-  - `core/ecosystem.py`: 800 lines
-- **Mixed Concerns**: UI rendering mixed with simulation logic
+### core/environment.py
+- **Environment**: Spatial queries for nearby entities
+- **SpatialGrid**: Efficient spatial partitioning for collision detection
 
-### After Improvements
-- **Duplicate Code**: Eliminated ~200 lines of duplication
-- **Better Organization**:
-  - Shared logic: `core/simulators/base_simulator.py` (262 lines)
-  - UI rendering: `rendering/ui_renderer.py` (200 lines)
-  - Simulation implementations: Significantly reduced
-- **Clear Separation**: Simulation logic, rendering, and UI are now properly separated
-
-## Design Patterns Used
+## Design Patterns
 
 ### 1. Template Method Pattern
-`BaseSimulator` uses the template method pattern:
-- Defines the skeleton of algorithms (`handle_collisions`, `handle_reproduction`)
-- Subclasses implement specific steps (`check_collision`, `add_entity`, `remove_entity`)
+`BaseSimulator` (in `core/simulators/base_simulator.py`) defines the simulation algorithm skeleton:
+- `handle_collisions()`: Collision detection and response
+- `handle_reproduction()`: Mating and offspring creation
+- `spawn_auto_food()`: Automatic food generation
+- Subclasses implement specific methods like `check_collision()`
 
 ### 2. Strategy Pattern
-Different collision detection strategies:
-- **Pygame mode**: Uses `pygame.sprite.collide_rect()`
-- **Headless mode**: Uses bounding box mathematics
+Different movement strategies for entities:
+- `AlgorithmicMovement`: Uses genetic algorithm for behavior
+- `ConstantVelocityMovement`: Simple linear movement
+- `StaticMovement`: No movement (plants)
 
-### 3. Dependency Injection
-`UIRenderer` receives dependencies through constructor:
-```python
-def __init__(self, screen: pygame.Surface, stats_font: pygame.font.Font):
-    self.screen = screen
-    self.stats_font = stats_font
+### 3. Component-Based Architecture
+Fish behavior is modular:
+- Energy system
+- Reproduction system
+- Memory system
+- Movement system
+
+## Simulation Loop
+
+```
+1. Update time system (day/night cycle)
+2. For each entity:
+   - Update entity state
+   - Handle reproduction (Fish)
+   - Handle food spawning (Plant)
+   - Check for death conditions
+3. Update spatial grid for efficient queries
+4. Handle collisions:
+   - Fish-Food: Feeding
+   - Fish-Fish: Poker games for energy transfer
+5. Handle reproduction (mate finding)
+6. Update ecosystem statistics
+7. Auto-spawn food and emergency fish
+8. Send state to frontend (web mode)
+```
+
+## Running Modes
+
+### Web Mode (Default)
+```bash
+python main.py
+```
+- React frontend at http://localhost:3000
+- FastAPI backend at http://localhost:8000
+- Real-time visualization
+- Interactive controls
+
+### Headless Mode
+```bash
+python main.py --headless --max-frames 10000
+```
+- No visualization
+- Stats printed to console
+- Faster than realtime (10-300x speedup)
+- Useful for testing and benchmarking
+
+## Data Flow
+
+### Web Mode
+```
+SimulationEngine → Backend API → WebSocket → React Frontend
+     ↓                                            ↓
+  Statistics                                  Rendering
+```
+
+### Headless Mode
+```
+SimulationEngine → Console Output
+     ↓
+  Statistics
+     ↓
+  Reports (algorithm_performance_report.txt)
+```
+
+## Key Features
+
+### Genetic Evolution
+- Fish inherit traits from parents with mutation
+- 12+ behavior algorithms compete for survival
+- Natural selection based on survival and reproduction
+- Genetic diversity tracking
+
+### Energy System
+- Fish consume energy over time
+- Gain energy from eating food
+- Poker games transfer energy between fish
+- Death when energy reaches zero
+
+### Reproduction System
+- Fish must find compatible mates
+- Cooldown periods prevent overpopulation
+- Offspring inherit mixed parental traits
+- Population cap management
+
+### Poker System
+- Fish "play poker" when they collide
+- Winner gains energy from loser
+- Hand rankings determine outcomes
+- 5% house cut on energy transfers
+
+## Performance Optimizations
+
+### Spatial Partitioning
+- Grid-based spatial indexing for O(1) proximity queries
+- Reduces collision checks from O(n²) to O(n)
+- Configurable cell size for different population densities
+
+### Caching
+- Cached nearby entity queries
+- Cached movement calculations
+- Reduces redundant computations
+
+## Testing
+
+### Unit Tests
+```bash
+pytest tests/
+```
+
+### Headless Testing
+```bash
+python main.py --headless --max-frames 1000 --seed 42
+```
+
+## File Structure
+
+```
+tank/
+├── main.py                    # Entry point
+├── simulation_engine.py       # Headless simulation engine
+├── backend/                   # FastAPI backend
+│   ├── main.py               # API server
+│   └── simulation_runner.py  # Backend simulation wrapper
+├── core/                      # Pure simulation logic
+│   ├── entities.py           # Fish, Food, Plant
+│   ├── ecosystem.py          # Population management
+│   ├── genetics.py           # Genetic algorithms
+│   ├── environment.py        # Spatial queries
+│   ├── collision_system.py   # Collision detection
+│   ├── algorithms/           # Behavior algorithms
+│   └── simulators/           # Base simulator classes
+├── frontend/                  # React UI
+│   └── src/
+│       ├── components/       # React components
+│       └── utils/            # Frontend utilities
+└── tests/                     # Test suite
 ```
 
 ## Future Improvements
 
-Based on the code analysis, recommended future improvements include:
-
 ### High Priority
-1. **Refactor EcosystemManager** (800 lines)
-   - Split into specialized managers: `PopulationManager`, `AlgorithmTracker`, `PokerStatsManager`
-   - Current: God object anti-pattern
-   - Target: Multiple focused managers
+1. **Refactor EcosystemManager** (~800 lines)
+   - Split into PopulationManager, AlgorithmTracker, StatsManager
+   - Reduce complexity of god object
 
 2. **Component-based Fish Architecture**
-   - Current: Fish class is 463 lines with mixed concerns
-   - Target: Split into `EnergyComponent`, `ReproductionComponent`, `MemoryComponent`
+   - Split Fish class (~463 lines) into components
+   - EnergyComponent, ReproductionComponent, MemoryComponent
 
 ### Medium Priority
-3. **Replace Magic Numbers**
-   - Extract hardcoded values (15.0, 360, 220, etc.) to named constants
-   - Improve code readability and maintainability
+3. **Event System**
+   - Observer pattern for ecosystem events
+   - Decoupled event handling
 
-4. **Event System**
-   - Implement observer pattern for ecosystem events
-   - Replace direct method calls with event publishing/subscribing
+4. **Configuration System**
+   - YAML/JSON config files for simulation parameters
+   - Easy parameter tuning
 
 ### Low Priority
-5. **Reorganize Root Directory**
-   - Move simulation files to `core/simulators/`
-   - Better project structure
+5. **Custom Exception Hierarchy**
+   - SimulationError, EntityError, CollisionError
+   - Better error handling
 
-6. **Custom Exception Hierarchy**
-   - Define `SimulationError`, `EntityError`, `CollisionError`
-   - Consistent error handling
+## Best Practices
 
-## Best Practices Followed
-
-1. **DRY (Don't Repeat Yourself)**: Eliminated code duplication through abstraction
-2. **Single Responsibility**: Each class now has a clearer, more focused purpose
-3. **Open/Closed Principle**: Base classes are open for extension, closed for modification
-4. **Dependency Inversion**: High-level modules depend on abstractions, not concrete implementations
-5. **Type Hints**: All new code includes comprehensive type hints
-6. **Documentation**: All new classes and methods include docstrings
-
-## Testing Recommendations
-
-To verify these architectural improvements:
-
-1. **Run both simulators** to ensure behavior is consistent:
-   ```bash
-   python main.py  # Graphical mode
-   python backend/simulation_runner.py  # Headless mode
-   ```
-
-2. **Verify collision handling** works identically in both modes
-3. **Check UI rendering** still works correctly in graphical mode
-4. **Ensure no regressions** in existing functionality
+1. **Type Hints**: All code uses comprehensive type hints
+2. **Pure Functions**: Core logic is pure Python without visualization dependencies
+3. **Separation of Concerns**: Simulation logic separate from UI
+4. **Testability**: Headless mode enables automated testing
+5. **Documentation**: Comprehensive docstrings
 
 ## Conclusion
 
-These architectural improvements have:
-- **Reduced code duplication by ~200 lines**
-- **Improved separation of concerns**
-- **Made the codebase more maintainable**
-- **Established patterns for future refactoring**
-
-The changes maintain backward compatibility while significantly improving code quality and maintainability.
+The architecture is designed for:
+- **Modularity**: Clear separation between simulation and visualization
+- **Testability**: Headless mode for automated testing
+- **Performance**: Spatial partitioning and caching
+- **Extensibility**: Easy to add new behaviors and features
+- **Web-first**: Modern React-based UI with real-time updates

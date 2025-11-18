@@ -1,7 +1,7 @@
 """Entity factory for creating initial population.
 
 This module provides a single source of truth for initial population creation,
-used by both the pygame GUI mode (fishtank.py) and headless mode (simulation_engine.py).
+used by the web UI backend and headless simulation mode.
 """
 
 import random
