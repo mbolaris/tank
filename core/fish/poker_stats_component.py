@@ -4,7 +4,6 @@ This module tracks individual fish poker performance for leaderboards and analys
 """
 
 from dataclasses import dataclass, field
-from typing import List
 
 
 @dataclass

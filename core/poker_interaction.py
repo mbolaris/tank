@@ -757,7 +757,7 @@ class PokerEngine:
 
                 # Decide action
                 # Determine if player is on button
-                player_on_button = (current_player == button_position)
+                player_on_button = current_player == button_position
 
                 # Get hole cards and community cards for enhanced decision making
                 hole_cards = (

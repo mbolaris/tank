@@ -163,8 +163,12 @@ tank/
 │   └── ...
 ├── docs/                   # Additional documentation
 │   ├── ARCHITECTURE.md     # Architecture details
-│   ├── BEHAVIOR_DEVELOPMENT_GUIDE.md
-│   └── EVOLUTION_EXAMPLE.md
+│   ├── ALGORITHMIC_EVOLUTION.md # Algorithm evolution guide
+│   ├── DEPLOYMENT_GUIDE.md # Deployment instructions
+│   └── HEADLESS_MODE.md    # Headless mode documentation
+├── BEHAVIOR_DEVELOPMENT_GUIDE.md # Guide for creating behaviors
+├── EVOLUTION_EXAMPLE.md    # Example evolution scenarios
+├── QUICK_REFERENCE.md      # Quick command reference
 └── README.md               # This file
 ```
 
@@ -363,11 +367,13 @@ Built with:
 ## 📚 Additional Resources
 
 For more information:
-- **Architecture details**: See `ARCHITECTURE.md`
+- **Architecture details**: See `docs/ARCHITECTURE.md`
+- **Algorithmic evolution**: See `docs/ALGORITHMIC_EVOLUTION.md`
 - **Behavior development**: See `BEHAVIOR_DEVELOPMENT_GUIDE.md`
 - **Evolution examples**: See `EVOLUTION_EXAMPLE.md`
 - **Quick reference**: See `QUICK_REFERENCE.md`
-- **Code issues**: See `docs/` directory
+- **Deployment guide**: See `docs/DEPLOYMENT_GUIDE.md`
+- **Headless mode**: See `docs/HEADLESS_MODE.md`
 
 ---
 
