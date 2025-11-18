@@ -7,7 +7,7 @@ import time
 from typing import List, Optional, Dict, Any
 
 # Use absolute imports assuming tank/ is in PYTHONPATH
-from simulation_engine import SimulationEngine
+from tank_world import TankWorld, TankWorldConfig
 from core import entities
 from core.algorithms import get_algorithm_index
 from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, FRAME_RATE, SPAWN_MARGIN_PIXELS
@@ -19,10 +19,18 @@ logger = logging.getLogger(__name__)
 class SimulationRunner:
     """Runs the simulation in a background thread and provides state updates."""
 
-    def __init__(self):
-        """Initialize the simulation runner."""
-        self.engine = SimulationEngine(headless=True)
-        self.engine.setup()
+    def __init__(self, seed: Optional[int] = None):
+        """Initialize the simulation runner.
+
+        Args:
+            seed: Optional random seed for deterministic behavior
+        """
+        # Create TankWorld configuration
+        config = TankWorldConfig(headless=True)
+
+        # Create TankWorld instance
+        self.world = TankWorld(config=config, seed=seed)
+        self.world.setup()
 
         self.running = False
         self.thread: Optional[threading.Thread] = None
@@ -51,8 +59,8 @@ class SimulationRunner:
             loop_start = time.time()
 
             with self.lock:
-                if not self.engine.paused:
-                    self.engine.update()
+                if not self.world.paused:
+                    self.world.update()
 
             # Maintain frame rate
             elapsed = time.time() - loop_start
@@ -69,13 +77,13 @@ class SimulationRunner:
             entities_data = []
 
             # Convert entities to serializable format
-            for entity in self.engine.entities_list:
+            for entity in self.world.entities_list:
                 entity_data = self._entity_to_data(entity)
                 if entity_data:
                     entities_data.append(entity_data)
 
             # Get ecosystem stats
-            stats = self.engine.get_stats()
+            stats = self.world.get_stats()
 
             # Create poker stats data
             poker_stats_dict = stats.get('poker_stats', {})
@@ -113,7 +121,7 @@ class SimulationRunner:
             )
 
             stats_data = StatsData(
-                frame=self.engine.frame_count,
+                frame=self.world.frame_count,
                 population=stats.get('total_population', 0),
                 generation=stats.get('current_generation', 0),
                 births=stats.get('total_births', 0),
@@ -130,7 +138,7 @@ class SimulationRunner:
 
             # Get recent poker events
             poker_events = []
-            recent_events = self.engine.get_recent_poker_events(max_age_frames=180)
+            recent_events = self.world.get_recent_poker_events(max_age_frames=180)
             for event in recent_events:
                 poker_events.append(PokerEventData(
                     frame=event['frame'],
@@ -143,8 +151,8 @@ class SimulationRunner:
                 ))
 
             return SimulationUpdate(
-                frame=self.engine.frame_count,
-                elapsed_time=self.engine.elapsed_time if hasattr(self.engine, 'elapsed_time') else self.engine.frame_count * 33,
+                frame=self.world.frame_count,
+                elapsed_time=self.world.engine.elapsed_time if hasattr(self.world.engine, 'elapsed_time') else self.world.frame_count * 33,
                 entities=entities_data,
                 stats=stats_data,
                 poker_events=poker_events
@@ -239,9 +247,9 @@ class SimulationRunner:
         with self.lock:
             if command == 'add_food':
                 # Add food at random position
-                x = random.randint(0, SCREEN_WIDTH)
+                x = self.world.rng.randint(0, SCREEN_WIDTH)
                 food = entities.Food(
-                    self.engine.environment,
+                    self.world.environment,
                     x,
                     0,
                     source_plant=None,
@@ -250,7 +258,7 @@ class SimulationRunner:
                     screen_height=SCREEN_HEIGHT
                 )
                 food.pos.y = 0
-                self.engine.entities_list.append(food)
+                self.world.entities_list.append(food)
 
             elif command == 'spawn_fish':
                 # Spawn a new fish at random position
@@ -261,40 +269,36 @@ class SimulationRunner:
                     from core.constants import FILES
 
                     # Random spawn position (avoid edges)
-                    x = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
-                    y = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
+                    x = self.world.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
+                    y = self.world.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
 
                     logger.info(f"Creating fish at position ({x}, {y})")
 
                     # Create new fish with random genome
                     genome = Genome.random(use_algorithm=True)
                     new_fish = entities.Fish(
-                        self.engine.environment,
+                        self.world.environment,
                         movement_strategy.AlgorithmicMovement(),
                         FILES['schooling_fish'][0],
                         x, y,
                         4,  # Base speed
                         genome=genome,
                         generation=0,
-                        ecosystem=self.engine.ecosystem,
+                        ecosystem=self.world.ecosystem,
                         screen_width=SCREEN_WIDTH,
                         screen_height=SCREEN_HEIGHT
                     )
-                    self.engine.add_entity(new_fish)
-                    logger.info(f"Successfully spawned new fish at ({x}, {y}). Total fish count: {len([e for e in self.engine.entities_list if isinstance(e, entities.Fish)])}")
+                    self.world.add_entity(new_fish)
+                    logger.info(f"Successfully spawned new fish at ({x}, {y}). Total fish count: {len([e for e in self.world.entities_list if isinstance(e, entities.Fish)])}")
                 except Exception as e:
                     logger.error(f"Error spawning fish: {e}", exc_info=True)
 
             elif command == 'pause':
-                self.engine.paused = True
+                self.world.pause()
 
             elif command == 'resume':
-                self.engine.paused = False
+                self.world.resume()
 
             elif command == 'reset':
                 # Reset simulation
-                self.engine.entities_list.clear()
-                self.engine.frame_count = 0
-                self.engine.setup()
-                self.engine.paused = False
-                self.engine.start_time = time.time()
+                self.world.reset()

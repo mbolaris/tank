@@ -9,6 +9,12 @@ import argparse
 import sys
 import logging
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:%(name)s:%(message)s',
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,15 +54,15 @@ def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=N
         seed: Optional random seed for deterministic behavior
         export_stats: Optional filename to export JSON stats for LLM analysis
     """
-    import random
-    from simulation_engine import SimulationEngine
+    from tank_world import TankWorld, TankWorldConfig
 
-    if seed is not None:
-        random.seed(seed)
-        logger.info("Using random seed: %d", seed)
+    # Create configuration for headless mode
+    config = TankWorldConfig(headless=True)
 
-    engine = SimulationEngine(headless=True)
-    engine.run_headless(max_frames=max_frames, stats_interval=stats_interval, export_json=export_stats)
+    # Create TankWorld with optional seed
+    world = TankWorld(config=config, seed=seed)
+    # Note: run_headless() calls setup() internally
+    world.run_headless(max_frames=max_frames, stats_interval=stats_interval, export_json=export_stats)
 
 
 def main():
