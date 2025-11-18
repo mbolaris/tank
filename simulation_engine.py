@@ -42,12 +42,19 @@ class AgentsWrapper:
         for entity in entities:
             if entity not in self._entities:
                 self._entities.append(entity)
+                # Track this group in the entity for kill() method
+                if hasattr(entity, 'add_internal'):
+                    entity.add_internal(self)
 
     def remove(self, *entities):
         """Remove entities from the list."""
         for entity in entities:
             if entity in self._entities:
                 self._entities.remove(entity)
+
+    def empty(self):
+        """Remove all entities from the list."""
+        self._entities.clear()
 
     def __contains__(self, entity):
         """Check if entity is in the list."""

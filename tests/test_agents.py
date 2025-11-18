@@ -92,8 +92,8 @@ class TestAgent:
 
         agent.handle_screen_edges()
 
-        # Velocity should reverse when hitting edge
-        assert agent.vel.x == -initial_vel_x
+        # Velocity should be positive (bouncing right) when hitting left edge
+        assert agent.vel.x == abs(initial_vel_x)
 
     def test_agent_align_near(self, simulation_env):
         """Test that agents align with nearby sprites."""
@@ -117,20 +117,22 @@ class TestFish:
         strategy = AlgorithmicMovement()
         fish = Fish(env, strategy, ["george1.png"], 100, 100, 3)
 
-        assert fish.size == 1
+        # Fish start as babies with size 0.5
+        assert fish.size == 0.5
         assert fish.movement_strategy == strategy
 
     def test_fish_grows_when_eating(self, simulation_env):
-        """Test that fish grows when it eats food."""
+        """Test that fish gains energy when it eats food."""
         env, _ = simulation_env
         strategy = AlgorithmicMovement()
         fish = Fish(env, strategy, ["george1.png"], 100, 100, 3)
         food = Food(env, 110, 110)
 
-        initial_size = fish.size
+        initial_energy = fish.energy
         fish.eat(food)
 
-        assert fish.size == initial_size + FISH_GROWTH_RATE
+        # Fish should gain energy from eating (size is based on age, not eating)
+        assert fish.energy > initial_energy
 
     def test_fish_movement_strategy_called(self, simulation_env):
         """Test that fish calls its movement strategy on update."""
@@ -156,7 +158,9 @@ class TestCrab:
         """Test that crab initializes correctly."""
         env, _ = simulation_env
         crab = Crab(env)
-        assert crab.speed == 2
+        # Crab speed is 1.5 * genome.speed_modifier (genome is random, so speed varies)
+        # Speed should be around 1.5 with some genetic variation
+        assert 0.5 < crab.speed < 3.0
 
     def test_crab_stays_on_bottom(self, simulation_env):
         """Test that crab's vertical velocity is always zero."""
@@ -192,14 +196,20 @@ class TestFood:
         assert food.vel.y == initial_vel_y + FOOD_SINK_ACCELERATION
 
     def test_food_gets_eaten(self, simulation_env):
-        """Test that food is removed when eaten."""
+        """Test that food notifies source plant when eaten."""
         env, agents = simulation_env
-        food = Food(env, 100, 50)
+        from core.entities import Plant
+        plant = Plant(env, 1)
+        plant.current_food_count = 5
+        food = Food(env, 100, 50, source_plant=plant)
         agents.add(food)
 
         assert food in agents
+        initial_count = plant.current_food_count
         food.get_eaten()
-        assert food not in agents
+        # Food removal from agents is handled by collision detection, not by get_eaten()
+        # get_eaten() only notifies the source plant
+        assert plant.current_food_count == initial_count - 1
 
 
 class TestPlant:

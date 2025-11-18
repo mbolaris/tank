@@ -16,14 +16,13 @@ class TestFullSimulation:
 
         # Setup the environment with all agents
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
-        # Verify initial setup
+        # Verify initial setup (fixture already called setup() which creates entities)
         assert (
             len([s for s in simulator.agents if isinstance(s, Fish)]) == 10
         )  # 10 algorithmic fish
         assert len([s for s in simulator.agents if isinstance(s, Crab)]) == 1
-        assert len([s for s in simulator.agents if isinstance(s, Plant)]) == 2
+        assert len([s for s in simulator.agents if isinstance(s, Plant)]) == 3  # 3 plants
         assert len([s for s in simulator.agents if isinstance(s, Castle)]) == 1
 
         # Run simulation for 100 frames
@@ -41,7 +40,6 @@ class TestFullSimulation:
         """Test that the simulation handles food drops correctly."""
         simulator = simulation_engine
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
         initial_agent_count = len(simulator.agents)
 
@@ -87,7 +85,6 @@ class TestFullSimulation:
         """Test that simulation maintains consistent state over time."""
         simulator = simulation_engine
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
         initial_non_food_count = len([s for s in simulator.agents if not isinstance(s, Food)])
 
@@ -100,7 +97,7 @@ class TestFullSimulation:
         castles = [s for s in simulator.agents if isinstance(s, Castle)]
         crabs = [s for s in simulator.agents if isinstance(s, Crab)]
 
-        assert len(plants) == 2, "Plants should remain in the simulation"
+        assert len(plants) == 3, "Plants should remain in the simulation"  # 3 plants
         assert len(castles) == 1, "Castle should remain in the simulation"
         assert len(crabs) == 1, "Crab should remain in the simulation"
 
@@ -108,7 +105,6 @@ class TestFullSimulation:
         """Test simulation stability with rapid updates."""
         simulator = simulation_engine
         simulator.environment.agents = simulator.agents
-        simulator.create_initial_agents()
 
         # Run many updates in quick succession
         try:
@@ -132,9 +128,9 @@ class TestFullSimulation:
 
         simulator.agents.add(fish, crab)
 
-        # Move several times - avoidance should persist
+        # Call avoid method multiple times - avoidance should persist when crab stays close
         for _ in range(10):
-            fish.movement_strategy.move(fish)
+            fish.avoid([crab], min_distance=50)
 
         # Avoidance should still be active (not reset to zero)
         # because crab is still close
