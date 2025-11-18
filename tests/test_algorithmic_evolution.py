@@ -85,16 +85,20 @@ def test_algorithm_inheritance():
         params_changed = False
         for key in parent1.behavior_algorithm.parameters:
             if key in offspring.behavior_algorithm.parameters:
-                if (
-                    abs(
-                        parent1.behavior_algorithm.parameters[key]
-                        - offspring.behavior_algorithm.parameters[key]
-                    )
-                    > 0.01
-                ):
+                parent_val = parent1.behavior_algorithm.parameters[key]
+                offspring_val = offspring.behavior_algorithm.parameters[key]
+                # Only check numeric parameters for mutation
+                if isinstance(parent_val, (int, float)) and isinstance(offspring_val, (int, float)):
+                    if abs(parent_val - offspring_val) > 0.01:
+                        params_changed = True
+                        print(
+                            f"  Parameter '{key}' mutated from {parent_val:.3f} to {offspring_val:.3f}"
+                        )
+                elif parent_val != offspring_val:
+                    # String parameters can also change
                     params_changed = True
                     print(
-                        f"  Parameter '{key}' mutated from {parent1.behavior_algorithm.parameters[key]:.3f} to {offspring.behavior_algorithm.parameters[key]:.3f}"
+                        f"  Parameter '{key}' mutated from {parent_val} to {offspring_val}"
                     )
 
         if params_changed:

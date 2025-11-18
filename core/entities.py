@@ -163,6 +163,7 @@ class Agent:
         # Test compatibility attributes
         self.rect: Rect = Rect(x, y, self.width, self.height)
         self.image: Optional[object] = None  # Placeholder for test compatibility
+        self._groups: List = []  # Track sprite groups for kill() method
 
     def get_rect(self) -> Tuple[float, float, float, float]:
         """Get bounding rectangle (x, y, width, height) for collision detection."""
@@ -276,6 +277,18 @@ class Agent:
         diff_length = difference.length()
         if diff_length > 0:
             self.vel += difference.normalize() * 0.1  # ALIGNMENT_SPEED_CHANGE
+
+    def add_internal(self, group) -> None:
+        """Track sprite group for kill() method (pygame compatibility)."""
+        if group not in self._groups:
+            self._groups.append(group)
+
+    def kill(self) -> None:
+        """Remove this agent from all groups (pygame compatibility)."""
+        for group in self._groups[:]:  # Copy list to avoid modification during iteration
+            if hasattr(group, 'remove'):
+                group.remove(self)
+        self._groups.clear()
 
 
 class Fish(Agent):
@@ -1342,7 +1355,8 @@ class Food(Agent):
         """Make the food sink at a rate based on its type."""
         if self.is_stationary:
             return
-        sink_rate = 0.05 * self.food_properties["sink_multiplier"]  # FOOD_SINK_ACCELERATION
+        from core.constants import FOOD_SINK_ACCELERATION
+        sink_rate = FOOD_SINK_ACCELERATION * self.food_properties["sink_multiplier"]
         self.vel.y += sink_rate
 
     def get_eaten(self) -> None:
