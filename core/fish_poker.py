@@ -121,11 +121,12 @@ class PokerInteraction:
 
     def calculate_bet_amount(self, base_bet: float = DEFAULT_BET_AMOUNT) -> float:
         """
-        Calculate the bet amount based on fish energies.
+        Calculate the bet amount based on fish energies and sizes.
 
         The bet is capped at the minimum of:
         - base_bet amount
-        - 20% of either fish's current energy
+        - size-adjusted percentage of either fish's current energy
+        - Larger fish can bet more (20% at size 0.5, 30% at size 1.0)
 
         Args:
             base_bet: Base bet amount
@@ -133,8 +134,13 @@ class PokerInteraction:
         Returns:
             Actual bet amount to use
         """
-        max_bet_fish1 = self.fish1.energy * 0.2
-        max_bet_fish2 = self.fish2.energy * 0.2
+        # Larger fish can bet a higher percentage of their energy
+        # Size 0.5: 20%, Size 1.0: 30%
+        fish1_bet_percentage = 0.2 + (self.fish1.size - 0.5) * 0.2
+        fish2_bet_percentage = 0.2 + (self.fish2.size - 0.5) * 0.2
+
+        max_bet_fish1 = self.fish1.energy * fish1_bet_percentage
+        max_bet_fish2 = self.fish2.energy * fish2_bet_percentage
         return min(base_bet, max_bet_fish1, max_bet_fish2)
 
     def try_post_poker_reproduction(
@@ -347,8 +353,13 @@ class PokerInteraction:
         # Calculate energy transfer
         house_cut = 0.0
         if winner_id != -1:
+            # Determine winner fish for size-based house cut
+            winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
+
             # Winner takes pot minus house cut
-            house_cut = game_state.pot * self.HOUSE_CUT_PERCENTAGE
+            # Larger fish get lower house cut (5% at size 0.5, 4% at size 1.0)
+            size_adjusted_cut = max(0.03, self.HOUSE_CUT_PERCENTAGE - (winner_fish.size - 0.5) * 0.02)
+            house_cut = game_state.pot * size_adjusted_cut
             energy_transferred = game_state.pot - house_cut
 
             # Apply energy changes
