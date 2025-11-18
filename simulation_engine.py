@@ -11,7 +11,8 @@ from core.constants import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FILES, FRAME_RATE,
     MAX_DIVERSITY_SPAWN_ATTEMPTS, SPAWN_MARGIN_PIXELS,
     MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES,
-    SEPARATOR_WIDTH, TOTAL_ALGORITHM_COUNT
+    SEPARATOR_WIDTH, TOTAL_ALGORITHM_COUNT,
+    MAX_POPULATION, CRITICAL_POPULATION_THRESHOLD
 )
 from core import environment, entities
 from core.ecosystem import EcosystemManager
@@ -57,7 +58,7 @@ class SimulationEngine(BaseSimulator):
         """Setup the simulation."""
         # Initialize managers
         self.environment = environment.Environment(self.entities_list, SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.ecosystem = EcosystemManager(max_population=100)
+        self.ecosystem = EcosystemManager(max_population=MAX_POPULATION)
 
         self.create_initial_entities()
 
@@ -172,8 +173,8 @@ class SimulationEngine(BaseSimulator):
             self.ecosystem.update_population_stats(fish_list)
             self.ecosystem.update(self.frame_count)
 
-            # Auto-spawn fish if population drops below 3
-            if len(fish_list) < 3:
+            # Auto-spawn fish if population drops below critical threshold
+            if len(fish_list) < CRITICAL_POPULATION_THRESHOLD:
                 self.spawn_emergency_fish()
 
     def spawn_emergency_fish(self) -> None:
@@ -241,7 +242,7 @@ class SimulationEngine(BaseSimulator):
         )
 
         self.add_entity(new_fish)
-        logger.info("Population critical! Spawned emergency fish at (%d, %d)", x, y)
+        logger.info(f"Population critical! Spawned emergency fish at ({x}, {y})")
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Add a poker event to the recent events list."""
@@ -316,20 +317,20 @@ class SimulationEngine(BaseSimulator):
 
         logger.info("")
         logger.info("=" * SEPARATOR_WIDTH)
-        logger.info("Frame: %d", stats.get('frame_count', 0))
-        logger.info("Time: %s", stats.get('time_string', 'N/A'))
-        logger.info("Real Time: %.1fs", stats.get('elapsed_real_time', 0))
-        logger.info("Simulation Speed: %.2fx", stats.get('simulation_speed', 0))
+        logger.info(f"Frame: {stats.get('frame_count', 0)}")
+        logger.info(f"Time: {stats.get('time_string', 'N/A')}")
+        logger.info(f"Real Time: {stats.get('elapsed_real_time', 0):.1f}s")
+        logger.info(f"Simulation Speed: {stats.get('simulation_speed', 0):.2f}x")
         logger.info("-" * SEPARATOR_WIDTH)
-        logger.info("Population: %d/%s", stats.get('total_population', 0), self.ecosystem.max_population if self.ecosystem else 'N/A')
-        logger.info("Generation: %d", stats.get('current_generation', 0))
-        logger.info("Total Births: %d", stats.get('total_births', 0))
-        logger.info("Total Deaths: %d", stats.get('total_deaths', 0))
-        logger.info("Capacity: %s", stats.get('capacity_usage', 'N/A'))
+        logger.info(f"Population: {stats.get('total_population', 0)}/{self.ecosystem.max_population if self.ecosystem else 'N/A'}")
+        logger.info(f"Generation: {stats.get('current_generation', 0)}")
+        logger.info(f"Total Births: {stats.get('total_births', 0)}")
+        logger.info(f"Total Deaths: {stats.get('total_deaths', 0)}")
+        logger.info(f"Capacity: {stats.get('capacity_usage', 'N/A')}")
         logger.info("-" * SEPARATOR_WIDTH)
-        logger.info("Fish: %d", stats.get('fish_count', 0))
-        logger.info("Food: %d", stats.get('food_count', 0))
-        logger.info("Plants: %d", stats.get('plant_count', 0))
+        logger.info(f"Fish: {stats.get('fish_count', 0)}")
+        logger.info(f"Food: {stats.get('food_count', 0)}")
+        logger.info(f"Plants: {stats.get('plant_count', 0)}")
 
         # Death causes
         death_causes = stats.get('death_causes', {})
@@ -337,32 +338,32 @@ class SimulationEngine(BaseSimulator):
             logger.info("-" * SEPARATOR_WIDTH)
             logger.info("Death Causes:")
             for cause, count in death_causes.items():
-                logger.info("  %s: %d", cause, count)
+                logger.info(f"  {cause}: {count}")
 
         # Reproduction stats
         repro_stats = stats.get('reproduction_stats', {})
         if repro_stats:
             logger.info("-" * SEPARATOR_WIDTH)
             logger.info("Reproduction Stats:")
-            logger.info("  Total Reproductions: %d", repro_stats.get('total_reproductions', 0))
-            logger.info("  Mating Attempts: %d", repro_stats.get('total_mating_attempts', 0))
-            logger.info("  Failed Attempts: %d", repro_stats.get('total_failed_attempts', 0))
-            logger.info("  Success Rate: %s", repro_stats.get('success_rate_pct', 'N/A'))
-            logger.info("  Currently Pregnant: %d", repro_stats.get('current_pregnant_fish', 0))
-            logger.info("  Total Offspring: %d", repro_stats.get('total_offspring', 0))
+            logger.info(f"  Total Reproductions: {repro_stats.get('total_reproductions', 0)}")
+            logger.info(f"  Mating Attempts: {repro_stats.get('total_mating_attempts', 0)}")
+            logger.info(f"  Failed Attempts: {repro_stats.get('total_failed_attempts', 0)}")
+            logger.info(f"  Success Rate: {repro_stats.get('success_rate_pct', 'N/A')}")
+            logger.info(f"  Currently Pregnant: {repro_stats.get('current_pregnant_fish', 0)}")
+            logger.info(f"  Total Offspring: {repro_stats.get('total_offspring', 0)}")
 
         # Genetic diversity stats
         diversity_stats = stats.get('diversity_stats', {})
         if diversity_stats:
             logger.info("-" * SEPARATOR_WIDTH)
             logger.info("Genetic Diversity:")
-            logger.info("  Unique Algorithms: %d/%d", diversity_stats.get('unique_algorithms', 0), TOTAL_ALGORITHM_COUNT)
-            logger.info("  Unique Species: %d/4", diversity_stats.get('unique_species', 0))
-            logger.info("  Diversity Score: %s", diversity_stats.get('diversity_score_pct', 'N/A'))
-            logger.info("  Color Variance: %.4f", diversity_stats.get('color_variance', 0))
-            logger.info("  Speed Variance: %.4f", diversity_stats.get('speed_variance', 0))
-            logger.info("  Size Variance: %.4f", diversity_stats.get('size_variance', 0))
-            logger.info("  Vision Variance: %.4f", diversity_stats.get('vision_variance', 0))
+            logger.info(f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/{TOTAL_ALGORITHM_COUNT}")
+            logger.info(f"  Unique Species: {diversity_stats.get('unique_species', 0)}/4")
+            logger.info(f"  Diversity Score: {diversity_stats.get('diversity_score_pct', 'N/A')}")
+            logger.info(f"  Color Variance: {diversity_stats.get('color_variance', 0):.4f}")
+            logger.info(f"  Speed Variance: {diversity_stats.get('speed_variance', 0):.4f}")
+            logger.info(f"  Size Variance: {diversity_stats.get('size_variance', 0):.4f}")
+            logger.info(f"  Vision Variance: {diversity_stats.get('vision_variance', 0):.4f}")
 
         logger.info("=" * SEPARATOR_WIDTH)
 
@@ -376,8 +377,8 @@ class SimulationEngine(BaseSimulator):
         logger.info("=" * SEPARATOR_WIDTH)
         logger.info("HEADLESS FISH TANK SIMULATION")
         logger.info("=" * SEPARATOR_WIDTH)
-        logger.info("Running for %d frames (%.1f seconds of sim time)", max_frames, max_frames / FRAME_RATE)
-        logger.info("Stats will be printed every %d frames", stats_interval)
+        logger.info(f"Running for {max_frames} frames ({max_frames / FRAME_RATE:.1f} seconds of sim time)")
+        logger.info(f"Stats will be printed every {stats_interval} frames")
         logger.info("=" * SEPARATOR_WIDTH)
 
         self.setup()
@@ -403,7 +404,7 @@ class SimulationEngine(BaseSimulator):
             logger.info("GENERATING ALGORITHM PERFORMANCE REPORT...")
             logger.info("=" * SEPARATOR_WIDTH)
             report = self.ecosystem.get_algorithm_performance_report()
-            logger.info("%s", report)
+            logger.info(f"{report}")
 
             # Save to file
             with open('algorithm_performance_report.txt', 'w') as f:

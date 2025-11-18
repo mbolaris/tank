@@ -9,7 +9,7 @@ This module provides advanced population analytics including:
 - Fitness landscape mapping (trait combinations vs fitness)
 """
 
-from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
+from typing import Dict, List, Tuple, Optional, TYPE_CHECKING, Any
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
 import math
@@ -440,7 +440,7 @@ class EnhancedStatisticsTracker:
                 self.total_death_energy_loss / self.total_deaths_tracked
             )
 
-    def get_time_series_summary(self, frames: int = 100) -> Dict[str, any]:
+    def get_time_series_summary(self, frames: int = 100) -> Dict[str, Any]:
         """Get summary of recent time series data.
 
         Args:
@@ -473,7 +473,7 @@ class EnhancedStatisticsTracker:
             'total_deaths': sum(s.death_rate for s in recent_data),
         }
 
-    def get_full_report(self) -> Dict[str, any]:
+    def get_full_report(self) -> Dict[str, Any]:
         """Generate a comprehensive statistics report.
 
         Returns:
