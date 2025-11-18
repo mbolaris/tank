@@ -194,3 +194,17 @@ FLEE_SPEED_NORMAL = 1.3  # Flee speed when energy is normal
 POKER_AGGRESSION_LOW = 0.3  # Low aggression factor
 POKER_AGGRESSION_MEDIUM = 0.6  # Medium aggression factor
 POKER_AGGRESSION_HIGH = 0.9  # High aggression factor
+
+# Spawning Constants
+MAX_DIVERSITY_SPAWN_ATTEMPTS = 10  # Maximum attempts to spawn diverse fish
+SPAWN_MARGIN_PIXELS = 100  # Margin from screen edges for spawning
+
+# Poker Event Tracking
+MAX_POKER_EVENTS = 10  # Maximum number of recent poker events to keep
+POKER_EVENT_MAX_AGE_FRAMES = 180  # Maximum age for poker events (6 seconds at 30fps)
+
+# Server Configuration
+DEFAULT_API_PORT = 8000  # Default port for FastAPI backend
+
+# UI Display Constants
+SEPARATOR_WIDTH = 60  # Width of separator lines in console output

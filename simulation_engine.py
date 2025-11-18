@@ -7,7 +7,12 @@ simulation without pygame or any visualization code.
 import logging
 import time
 from typing import List, Optional, Dict, Any
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, FILES
+from core.constants import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, FILES, FRAME_RATE,
+    MAX_DIVERSITY_SPAWN_ATTEMPTS, SPAWN_MARGIN_PIXELS,
+    MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES,
+    SEPARATOR_WIDTH, TOTAL_ALGORITHM_COUNT
+)
 from core import environment, entities
 from core.ecosystem import EcosystemManager
 from core.time_system import TimeSystem
@@ -223,8 +228,8 @@ class SimulationEngine(BaseSimulator):
             # This helps maintain diversity
             genome = Genome.random(use_algorithm=True)
 
-            # Try to pick a different algorithm than existing ones (up to 10 attempts)
-            for _ in range(10):
+            # Try to pick a different algorithm than existing ones (up to MAX_DIVERSITY_SPAWN_ATTEMPTS)
+            for _ in range(MAX_DIVERSITY_SPAWN_ATTEMPTS):
                 if hasattr(genome, 'behavior_algorithm'):
                     algo_idx = get_algorithm_index(genome.behavior_algorithm)
                     if algo_idx >= 0 and algo_idx not in existing_algorithms:
@@ -235,8 +240,8 @@ class SimulationEngine(BaseSimulator):
             genome = Genome.random(use_algorithm=True)
 
         # Random spawn position (avoid edges)
-        x = random.randint(100, SCREEN_WIDTH - 100)
-        y = random.randint(100, SCREEN_HEIGHT - 100)
+        x = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
+        y = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
 
         # Create the new fish
         new_fish = entities.Fish(
@@ -289,11 +294,11 @@ class SimulationEngine(BaseSimulator):
 
         self.poker_events.append(event)
 
-        # Keep only last 10 events
-        if len(self.poker_events) > 10:
+        # Keep only last MAX_POKER_EVENTS
+        if len(self.poker_events) > MAX_POKER_EVENTS:
             self.poker_events.pop(0)
 
-    def get_recent_poker_events(self, max_age_frames: int = 180) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(self, max_age_frames: int = POKER_EVENT_MAX_AGE_FRAMES) -> List[Dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
         return [
             event for event in self.poker_events
@@ -313,7 +318,7 @@ class SimulationEngine(BaseSimulator):
         stats['frame_count'] = self.frame_count
         stats['time_string'] = self.time_system.get_time_string()
         stats['elapsed_real_time'] = time.time() - self.start_time
-        stats['simulation_speed'] = self.frame_count / (30 * (time.time() - self.start_time)) if time.time() > self.start_time else 0
+        stats['simulation_speed'] = self.frame_count / (FRAME_RATE * (time.time() - self.start_time)) if time.time() > self.start_time else 0
 
         # Add entity counts
         stats['fish_count'] = len([e for e in self.entities_list if isinstance(e, entities.Fish)])
@@ -326,56 +331,57 @@ class SimulationEngine(BaseSimulator):
         """Print current simulation statistics to console."""
         stats = self.get_stats()
 
-        print("\n" + "=" * 60)
-        print(f"Frame: {stats.get('frame_count', 0)}")
-        print(f"Time: {stats.get('time_string', 'N/A')}")
-        print(f"Real Time: {stats.get('elapsed_real_time', 0):.1f}s")
-        print(f"Simulation Speed: {stats.get('simulation_speed', 0):.2f}x")
-        print("-" * 60)
-        print(f"Population: {stats.get('total_population', 0)}/{self.ecosystem.max_population if self.ecosystem else 'N/A'}")
-        print(f"Generation: {stats.get('current_generation', 0)}")
-        print(f"Total Births: {stats.get('total_births', 0)}")
-        print(f"Total Deaths: {stats.get('total_deaths', 0)}")
-        print(f"Capacity: {stats.get('capacity_usage', 'N/A')}")
-        print("-" * 60)
-        print(f"Fish: {stats.get('fish_count', 0)}")
-        print(f"Food: {stats.get('food_count', 0)}")
-        print(f"Plants: {stats.get('plant_count', 0)}")
+        logger.info("")
+        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("Frame: %d", stats.get('frame_count', 0))
+        logger.info("Time: %s", stats.get('time_string', 'N/A'))
+        logger.info("Real Time: %.1fs", stats.get('elapsed_real_time', 0))
+        logger.info("Simulation Speed: %.2fx", stats.get('simulation_speed', 0))
+        logger.info("-" * SEPARATOR_WIDTH)
+        logger.info("Population: %d/%s", stats.get('total_population', 0), self.ecosystem.max_population if self.ecosystem else 'N/A')
+        logger.info("Generation: %d", stats.get('current_generation', 0))
+        logger.info("Total Births: %d", stats.get('total_births', 0))
+        logger.info("Total Deaths: %d", stats.get('total_deaths', 0))
+        logger.info("Capacity: %s", stats.get('capacity_usage', 'N/A'))
+        logger.info("-" * SEPARATOR_WIDTH)
+        logger.info("Fish: %d", stats.get('fish_count', 0))
+        logger.info("Food: %d", stats.get('food_count', 0))
+        logger.info("Plants: %d", stats.get('plant_count', 0))
 
         # Death causes
         death_causes = stats.get('death_causes', {})
         if death_causes:
-            print("-" * 60)
-            print("Death Causes:")
+            logger.info("-" * SEPARATOR_WIDTH)
+            logger.info("Death Causes:")
             for cause, count in death_causes.items():
-                print(f"  {cause}: {count}")
+                logger.info("  %s: %d", cause, count)
 
         # Reproduction stats
         repro_stats = stats.get('reproduction_stats', {})
         if repro_stats:
-            print("-" * 60)
-            print("Reproduction Stats:")
-            print(f"  Total Reproductions: {repro_stats.get('total_reproductions', 0)}")
-            print(f"  Mating Attempts: {repro_stats.get('total_mating_attempts', 0)}")
-            print(f"  Failed Attempts: {repro_stats.get('total_failed_attempts', 0)}")
-            print(f"  Success Rate: {repro_stats.get('success_rate_pct', 'N/A')}")
-            print(f"  Currently Pregnant: {repro_stats.get('current_pregnant_fish', 0)}")
-            print(f"  Total Offspring: {repro_stats.get('total_offspring', 0)}")
+            logger.info("-" * SEPARATOR_WIDTH)
+            logger.info("Reproduction Stats:")
+            logger.info("  Total Reproductions: %d", repro_stats.get('total_reproductions', 0))
+            logger.info("  Mating Attempts: %d", repro_stats.get('total_mating_attempts', 0))
+            logger.info("  Failed Attempts: %d", repro_stats.get('total_failed_attempts', 0))
+            logger.info("  Success Rate: %s", repro_stats.get('success_rate_pct', 'N/A'))
+            logger.info("  Currently Pregnant: %d", repro_stats.get('current_pregnant_fish', 0))
+            logger.info("  Total Offspring: %d", repro_stats.get('total_offspring', 0))
 
         # Genetic diversity stats
         diversity_stats = stats.get('diversity_stats', {})
         if diversity_stats:
-            print("-" * 60)
-            print("Genetic Diversity:")
-            print(f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/48")
-            print(f"  Unique Species: {diversity_stats.get('unique_species', 0)}/4")
-            print(f"  Diversity Score: {diversity_stats.get('diversity_score_pct', 'N/A')}")
-            print(f"  Color Variance: {diversity_stats.get('color_variance', 0):.4f}")
-            print(f"  Speed Variance: {diversity_stats.get('speed_variance', 0):.4f}")
-            print(f"  Size Variance: {diversity_stats.get('size_variance', 0):.4f}")
-            print(f"  Vision Variance: {diversity_stats.get('vision_variance', 0):.4f}")
+            logger.info("-" * SEPARATOR_WIDTH)
+            logger.info("Genetic Diversity:")
+            logger.info("  Unique Algorithms: %d/%d", diversity_stats.get('unique_algorithms', 0), TOTAL_ALGORITHM_COUNT)
+            logger.info("  Unique Species: %d/4", diversity_stats.get('unique_species', 0))
+            logger.info("  Diversity Score: %s", diversity_stats.get('diversity_score_pct', 'N/A'))
+            logger.info("  Color Variance: %.4f", diversity_stats.get('color_variance', 0))
+            logger.info("  Speed Variance: %.4f", diversity_stats.get('speed_variance', 0))
+            logger.info("  Size Variance: %.4f", diversity_stats.get('size_variance', 0))
+            logger.info("  Vision Variance: %.4f", diversity_stats.get('vision_variance', 0))
 
-        print("=" * 60)
+        logger.info("=" * SEPARATOR_WIDTH)
 
     def run_headless(self, max_frames: int = 10000, stats_interval: int = 300) -> None:
         """Run the simulation in headless mode without visualization.
@@ -384,12 +390,12 @@ class SimulationEngine(BaseSimulator):
             max_frames: Maximum number of frames to simulate
             stats_interval: Print stats every N frames
         """
-        print("=" * 60)
-        print("HEADLESS FISH TANK SIMULATION")
-        print("=" * 60)
-        print(f"Running for {max_frames} frames ({max_frames/30:.1f} seconds of sim time)")
-        print(f"Stats will be printed every {stats_interval} frames")
-        print("=" * 60)
+        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("HEADLESS FISH TANK SIMULATION")
+        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("Running for %d frames (%.1f seconds of sim time)", max_frames, max_frames / FRAME_RATE)
+        logger.info("Stats will be printed every %d frames", stats_interval)
+        logger.info("=" * SEPARATOR_WIDTH)
 
         self.setup()
 
@@ -401,23 +407,26 @@ class SimulationEngine(BaseSimulator):
                 self.print_stats()
 
         # Print final stats
-        print("\n" + "=" * 60)
-        print("SIMULATION COMPLETE - Final Statistics")
-        print("=" * 60)
+        logger.info("")
+        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("SIMULATION COMPLETE - Final Statistics")
+        logger.info("=" * SEPARATOR_WIDTH)
         self.print_stats()
 
         # Generate algorithm performance report if available
         if self.ecosystem is not None:
-            print("\n" + "=" * 60)
-            print("GENERATING ALGORITHM PERFORMANCE REPORT...")
-            print("=" * 60)
+            logger.info("")
+            logger.info("=" * SEPARATOR_WIDTH)
+            logger.info("GENERATING ALGORITHM PERFORMANCE REPORT...")
+            logger.info("=" * SEPARATOR_WIDTH)
             report = self.ecosystem.get_algorithm_performance_report()
-            print(report)
+            logger.info("%s", report)
 
             # Save to file
             with open('algorithm_performance_report.txt', 'w') as f:
                 f.write(report)
-            print("\nReport saved to: algorithm_performance_report.txt")
+            logger.info("")
+            logger.info("Report saved to: algorithm_performance_report.txt")
 
 
 class HeadlessSimulator(SimulationEngine):

@@ -7,30 +7,35 @@ This module provides command-line options to run the simulation:
 
 import argparse
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def run_web_server():
     """Run the web server with React UI backend."""
+    from core.constants import DEFAULT_API_PORT, SEPARATOR_WIDTH
+
     try:
         import uvicorn
         from backend.main import app
 
-        print("=" * 60)
-        print("FISH TANK SIMULATION - WEB SERVER")
-        print("=" * 60)
-        print()
-        print("Starting FastAPI backend server...")
-        print("Open http://localhost:3000 in your browser")
-        print("API docs available at http://localhost:8000/docs")
-        print()
-        print("Press Ctrl+C to stop the server")
-        print("=" * 60)
-        print()
+        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("FISH TANK SIMULATION - WEB SERVER")
+        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("")
+        logger.info("Starting FastAPI backend server...")
+        logger.info("Open http://localhost:3000 in your browser")
+        logger.info("API docs available at http://localhost:%d/docs", DEFAULT_API_PORT)
+        logger.info("")
+        logger.info("Press Ctrl+C to stop the server")
+        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("")
 
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT)
     except ImportError as e:
-        print(f"Error: Required dependencies not installed: {e}")
-        print("Install with: pip install -e .[backend]")
+        logger.error("Error: Required dependencies not installed: %s", e)
+        logger.error("Install with: pip install -e .[backend]")
         sys.exit(1)
 
 
@@ -47,7 +52,7 @@ def run_headless(max_frames: int, stats_interval: int, seed=None):
 
     if seed is not None:
         random.seed(seed)
-        print(f"Using random seed: {seed}")
+        logger.info("Using random seed: %d", seed)
 
     engine = SimulationEngine(headless=True)
     engine.run_headless(max_frames=max_frames, stats_interval=stats_interval)
@@ -104,9 +109,9 @@ Examples:
     args = parser.parse_args()
 
     if args.headless:
-        print("Starting headless simulation...")
-        print(f"Configuration: {args.max_frames} frames, stats every {args.stats_interval} frames")
-        print()
+        logger.info("Starting headless simulation...")
+        logger.info("Configuration: %d frames, stats every %d frames", args.max_frames, args.stats_interval)
+        logger.info("")
         run_headless(args.max_frames, args.stats_interval, seed=args.seed)
     else:
         run_web_server()
