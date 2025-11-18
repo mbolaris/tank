@@ -104,5 +104,5 @@ class SimulationUpdate(BaseModel):
 
 class Command(BaseModel):
     """Command from client to server."""
-    command: str  # 'add_food', 'pause', 'resume', 'reset'
+    command: str  # 'add_food', 'spawn_fish', 'pause', 'resume', 'reset'
     data: Optional[Dict[str, Any]] = None

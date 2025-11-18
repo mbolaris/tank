@@ -18,6 +18,7 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
   };
 
   const handleSpawnFish = () => {
+    console.log('Spawn Fish button clicked - sending command');
     onCommand({ command: 'spawn_fish' });
   };
 

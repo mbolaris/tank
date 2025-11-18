@@ -77,6 +77,7 @@ export function useWebSocket() {
 
   const sendCommand = useCallback((command: Command) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      console.log('Sending command via WebSocket:', command);
       wsRef.current.send(JSON.stringify(command));
     } else {
       console.error('WebSocket is not connected');
