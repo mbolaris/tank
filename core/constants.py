@@ -1,6 +1,6 @@
-# Screen dimensions in pixels
-SCREEN_WIDTH = 1000
-SCREEN_HEIGHT = 750
+# Screen dimensions in pixels (must match Canvas size in frontend)
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
 # The frame rate for the game loop, in frames per second
 FRAME_RATE = 30
