@@ -645,7 +645,7 @@ class Fish(Agent):
 
         # Record successful reproduction in ecosystem
         if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
-            from core.behavior_algorithms import get_algorithm_index
+            from core.algorithms import get_algorithm_index
             algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
             if algorithm_id >= 0:
                 self.ecosystem.record_reproduction(algorithm_id)
@@ -814,7 +814,7 @@ class Fish(Agent):
 
         # Record food consumption for algorithm performance tracking
         if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
-            from core.behavior_algorithms import get_algorithm_index
+            from core.algorithms import get_algorithm_index
             algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
             if algorithm_id >= 0:
                 self.ecosystem.record_food_eaten(algorithm_id)
