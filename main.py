@@ -6,13 +6,13 @@ This module provides command-line options to run the simulation:
 """
 
 import argparse
-import sys
 import logging
+import sys
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(levelname)s:%(name)s:%(message)s',
+    format="%(levelname)s:%(name)s:%(message)s",
 )
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ def run_web_server():
 
     try:
         import uvicorn
+
         from backend.main import app
 
         logger.info("=" * SEPARATOR_WIDTH)
@@ -62,13 +63,15 @@ def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=N
     # Create TankWorld with optional seed
     world = TankWorld(config=config, seed=seed)
     # Note: run_headless() calls setup() internally
-    world.run_headless(max_frames=max_frames, stats_interval=stats_interval, export_json=export_stats)
+    world.run_headless(
+        max_frames=max_frames, stats_interval=stats_interval, export_json=export_stats
+    )
 
 
 def main():
     """Parse command-line arguments and run the appropriate mode."""
     parser = argparse.ArgumentParser(
-        description='Fish Tank Ecosystem Simulation',
+        description="Fish Tank Ecosystem Simulation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -86,53 +89,52 @@ Examples:
 
   # Long simulation with seed for reproducibility
   python main.py --headless --max-frames 100000 --seed 42 --export-stats evolution_run.json
-        """
+        """,
     )
 
     parser.add_argument(
-        '--headless',
-        action='store_true',
-        help='Run in headless mode (no UI, stats only)'
+        "--headless", action="store_true", help="Run in headless mode (no UI, stats only)"
     )
 
     parser.add_argument(
-        '--max-frames',
+        "--max-frames",
         type=int,
         default=10000,
-        help='Maximum frames to simulate in headless mode (default: 10000)'
+        help="Maximum frames to simulate in headless mode (default: 10000)",
     )
 
     parser.add_argument(
-        '--stats-interval',
+        "--stats-interval",
         type=int,
         default=300,
-        help='Print stats every N frames in headless mode (default: 300)'
+        help="Print stats every N frames in headless mode (default: 300)",
     )
 
     parser.add_argument(
-        '--seed',
-        type=int,
-        default=None,
-        help='Random seed for deterministic behavior (optional)'
+        "--seed", type=int, default=None, help="Random seed for deterministic behavior (optional)"
     )
 
     parser.add_argument(
-        '--export-stats',
+        "--export-stats",
         type=str,
         default=None,
-        metavar='FILENAME',
-        help='Export comprehensive stats to JSON file for LLM analysis (e.g., results.json)'
+        metavar="FILENAME",
+        help="Export comprehensive stats to JSON file for LLM analysis (e.g., results.json)",
     )
 
     args = parser.parse_args()
 
     if args.headless:
         logger.info("Starting headless simulation...")
-        logger.info("Configuration: %d frames, stats every %d frames", args.max_frames, args.stats_interval)
+        logger.info(
+            "Configuration: %d frames, stats every %d frames", args.max_frames, args.stats_interval
+        )
         if args.export_stats:
             logger.info("Stats will be exported to: %s", args.export_stats)
         logger.info("")
-        run_headless(args.max_frames, args.stats_interval, seed=args.seed, export_stats=args.export_stats)
+        run_headless(
+            args.max_frames, args.stats_interval, seed=args.seed, export_stats=args.export_stats
+        )
     else:
         run_web_server()
 

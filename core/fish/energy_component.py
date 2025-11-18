@@ -6,16 +6,17 @@ Separating energy logic into its own component improves code organization and te
 """
 
 from typing import TYPE_CHECKING
-from core.math_utils import Vector2
+
 from core.constants import (
-    INITIAL_ENERGY_RATIO,
     BABY_METABOLISM_MULTIPLIER,
-    ELDER_METABOLISM_MULTIPLIER,
-    STARVATION_THRESHOLD,
     CRITICAL_ENERGY_THRESHOLD,
+    ELDER_METABOLISM_MULTIPLIER,
+    INITIAL_ENERGY_RATIO,
     LOW_ENERGY_THRESHOLD,
     SAFE_ENERGY_THRESHOLD,
+    STARVATION_THRESHOLD,
 )
+from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.entities import LifeStage
@@ -63,7 +64,12 @@ class EnergyComponent:
         self.energy = max_energy * initial_energy_ratio
 
     def consume_energy(
-        self, velocity: Vector2, speed: float, life_stage: "LifeStage", time_modifier: float = 1.0, size: float = 1.0
+        self,
+        velocity: Vector2,
+        speed: float,
+        life_stage: "LifeStage",
+        time_modifier: float = 1.0,
+        size: float = 1.0,
     ) -> None:
         """Consume energy based on metabolism and activity.
 

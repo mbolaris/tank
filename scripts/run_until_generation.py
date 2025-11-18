@@ -8,8 +8,9 @@ import argparse
 import logging
 import random
 import time
-from simulation_engine import SimulationEngine
+
 from core.constants import FRAME_RATE
+from simulation_engine import SimulationEngine
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,9 @@ logger = logging.getLogger(__name__)
 REPORT_SEPARATOR_WIDTH = 80
 
 
-def run_until_generation(target_generation: int, stats_interval: int = 300, seed=None, max_frames: int = 1000000):
+def run_until_generation(
+    target_generation: int, stats_interval: int = 300, seed=None, max_frames: int = 1000000
+):
     """Run the simulation until target generation is reached.
 
     Args:
@@ -95,8 +98,8 @@ def run_until_generation(target_generation: int, stats_interval: int = 300, seed
         logger.info("%s", report)
 
         # Save to file
-        filename = f'generation_{target_generation}_report.txt'
-        with open(filename, 'w') as f:
+        filename = f"generation_{target_generation}_report.txt"
+        with open(filename, "w") as f:
             f.write(f"Simulation Report - Generation {target_generation}\n")
             f.write(f"Total Frames: {frame}\n")
             f.write(f"Real Time: {time.time() - start_time:.1f}s\n")
@@ -137,7 +140,7 @@ def run_until_generation(target_generation: int, stats_interval: int = 300, seed
 def main():
     """Parse arguments and run simulation."""
     parser = argparse.ArgumentParser(
-        description='Run fish tank simulation until target generation',
+        description="Run fish tank simulation until target generation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -149,35 +152,26 @@ Examples:
 
   # Run with random seed for reproducibility
   python run_until_generation.py --generation 10 --seed 42
-        """
+        """,
     )
 
     parser.add_argument(
-        '--generation',
-        type=int,
-        default=10,
-        help='Target generation to reach (default: 10)'
+        "--generation", type=int, default=10, help="Target generation to reach (default: 10)"
     )
 
     parser.add_argument(
-        '--stats-interval',
-        type=int,
-        default=300,
-        help='Print stats every N frames (default: 300)'
+        "--stats-interval", type=int, default=300, help="Print stats every N frames (default: 300)"
     )
 
     parser.add_argument(
-        '--seed',
-        type=int,
-        default=None,
-        help='Random seed for deterministic behavior (optional)'
+        "--seed", type=int, default=None, help="Random seed for deterministic behavior (optional)"
     )
 
     parser.add_argument(
-        '--max-frames',
+        "--max-frames",
         type=int,
         default=1000000,
-        help='Maximum frames to prevent infinite loops (default: 1000000)'
+        help="Maximum frames to prevent infinite loops (default: 1000000)",
     )
 
     args = parser.parse_args()
@@ -186,7 +180,7 @@ Examples:
         target_generation=args.generation,
         stats_interval=args.stats_interval,
         seed=args.seed,
-        max_frames=args.max_frames
+        max_frames=args.max_frames,
     )
 
 

@@ -1,12 +1,9 @@
 """Tests for agent behaviors in the fish tank simulation."""
 
-import pytest
-
-from core.entities import Agent, Fish, Crab, Food, Plant, Castle
-from core.environment import Environment
+from core.constants import FOOD_SINK_ACCELERATION
+from core.entities import Agent, Castle, Crab, Fish, Food, Plant
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement
-from core.constants import FISH_GROWTH_RATE, FOOD_SINK_ACCELERATION
 
 
 class TestAgent:
@@ -101,7 +98,7 @@ class TestAgent:
         agent1 = Agent(env, ["george1.png"], 100, 100, 3)
         agent2 = Agent(env, ["george2.png"], 120, 100, 3)
 
-        initial_vel = agent1.vel.copy()
+        agent1.vel.copy()
         agent1.align_near([agent2], min_distance=50)
 
         # Velocity should have been adjusted
@@ -199,6 +196,7 @@ class TestFood:
         """Test that food notifies source plant when eaten."""
         env, agents = simulation_env
         from core.entities import Plant
+
         plant = Plant(env, 1)
         plant.current_food_count = 5
         food = Food(env, 100, 50, source_plant=plant)

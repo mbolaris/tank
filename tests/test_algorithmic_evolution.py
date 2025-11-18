@@ -1,8 +1,9 @@
 """Test script for the algorithmic evolution system."""
 
 import random
+
+from core.algorithms import ALL_ALGORITHMS, get_random_algorithm, inherit_algorithm_with_mutation
 from core.genetics import Genome
-from core.algorithms import get_random_algorithm, inherit_algorithm_with_mutation, ALL_ALGORITHMS
 
 
 def test_algorithm_creation():
@@ -48,7 +49,7 @@ def test_genome_with_algorithm():
         print("✗ Genome should NOT have a behavior algorithm")
         return False
 
-    print(f"✓ Genome created without algorithm")
+    print("✓ Genome created without algorithm")
 
     return True
 
@@ -79,7 +80,7 @@ def test_algorithm_inheritance():
     # Check that offspring inherited from parent 1 (with possible mutations)
     # The algorithm ID should match parent 1
     if offspring.behavior_algorithm.algorithm_id == parent1.behavior_algorithm.algorithm_id:
-        print(f"✓ Offspring inherited algorithm from parent 1")
+        print("✓ Offspring inherited algorithm from parent 1")
 
         # Check if parameters were mutated (they might be different)
         params_changed = False
@@ -97,16 +98,14 @@ def test_algorithm_inheritance():
                 elif parent_val != offspring_val:
                     # String parameters can also change
                     params_changed = True
-                    print(
-                        f"  Parameter '{key}' mutated from {parent_val} to {offspring_val}"
-                    )
+                    print(f"  Parameter '{key}' mutated from {parent_val} to {offspring_val}")
 
         if params_changed:
             print("✓ Parameters were mutated during inheritance")
     elif offspring.behavior_algorithm.algorithm_id == parent2.behavior_algorithm.algorithm_id:
-        print(f"✓ Offspring inherited algorithm from parent 2")
+        print("✓ Offspring inherited algorithm from parent 2")
     else:
-        print(f"✓ Offspring got a new random algorithm")
+        print("✓ Offspring got a new random algorithm")
 
     return True
 

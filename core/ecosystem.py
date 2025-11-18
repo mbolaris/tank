@@ -3,12 +3,11 @@
 This module manages population dynamics, statistics, and ecosystem health.
 """
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple
-from dataclasses import dataclass, field
 from collections import defaultdict
-import json
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from core.constants import TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT, MAX_ECOSYSTEM_EVENTS
+from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -525,7 +524,7 @@ class EcosystemManager:
             return
 
         # Group by generation
-        gen_fish: Dict[int, List["Fish"]] = defaultdict(list)
+        gen_fish: Dict[int, List[Fish]] = defaultdict(list)
         for fish in fish_list:
             if hasattr(fish, "generation"):
                 gen_fish[fish.generation].append(fish)
@@ -978,7 +977,7 @@ class EcosystemManager:
             player1_algo_id: Algorithm ID of player 1
             player2_algo_id: Algorithm ID of player 2
         """
-        from core.poker_interaction import PokerHand, BettingAction
+        from core.poker_interaction import BettingAction
 
         # Handle tie case
         if winner_id == -1:

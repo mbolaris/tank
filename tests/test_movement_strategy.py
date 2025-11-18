@@ -1,12 +1,9 @@
 """Tests for movement strategies in the fish tank simulation."""
 
-import pytest
-
 from core.entities import Fish, Food
-from core.environment import Environment
-from core.math_utils import Vector2
-from core.movement_strategy import MovementStrategy, AlgorithmicMovement
 from core.genetics import Genome
+from core.math_utils import Vector2
+from core.movement_strategy import AlgorithmicMovement, MovementStrategy
 
 
 class TestMovementStrategy:
@@ -102,7 +99,7 @@ class TestAlgorithmicMovement:
         agents.add(fish)
 
         # Store initial velocity
-        initial_vel = fish.vel.copy()
+        fish.vel.copy()
 
         # Move multiple times to allow velocity to change
         for _ in range(10):

@@ -8,8 +8,8 @@ This module enables fish to signal information to nearby fish, including:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, TYPE_CHECKING
 from enum import Enum
+from typing import TYPE_CHECKING, List, Optional
 
 from core.math_utils import Vector2
 

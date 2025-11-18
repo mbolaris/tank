@@ -16,10 +16,10 @@ Features:
 
 import logging
 import random
-from dataclasses import dataclass, field
-from typing import Tuple, Optional, List, Set
-from enum import IntEnum
 from collections import Counter
+from dataclasses import dataclass, field
+from enum import IntEnum
+from typing import List, Optional, Tuple
 
 from core.constants import POKER_MAX_ACTIONS_PER_ROUND
 
@@ -175,9 +175,7 @@ class PokerHand:
             return False
         if self.primary_ranks != other.primary_ranks:
             return False
-        if self.kickers != other.kickers:
-            return False
-        return True
+        return self.kickers == other.kickers
 
     def __str__(self) -> str:
         return f"{self.description} (rank {self.rank_value})"
@@ -299,9 +297,13 @@ class PokerEngine:
 
     # Import aggression constants from centralized constants module
     from core.constants import (
-        POKER_AGGRESSION_LOW as AGGRESSION_LOW,
-        POKER_AGGRESSION_MEDIUM as AGGRESSION_MEDIUM,
         POKER_AGGRESSION_HIGH as AGGRESSION_HIGH,
+    )
+    from core.constants import (
+        POKER_AGGRESSION_LOW as AGGRESSION_LOW,
+    )
+    from core.constants import (
+        POKER_AGGRESSION_MEDIUM as AGGRESSION_MEDIUM,
     )
 
     @staticmethod

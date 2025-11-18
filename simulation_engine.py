@@ -6,27 +6,28 @@ simulation without any visualization code.
 
 import logging
 import time
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from core import entities, environment
 from core.constants import (
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
+    CRITICAL_POPULATION_THRESHOLD,
     FILES,
     FRAME_RATE,
     MAX_DIVERSITY_SPAWN_ATTEMPTS,
-    SPAWN_MARGIN_PIXELS,
     MAX_POKER_EVENTS,
-    POKER_EVENT_MAX_AGE_FRAMES,
-    SEPARATOR_WIDTH,
-    TOTAL_ALGORITHM_COUNT,
     MAX_POPULATION,
-    CRITICAL_POPULATION_THRESHOLD,
+    POKER_EVENT_MAX_AGE_FRAMES,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SEPARATOR_WIDTH,
+    SPAWN_MARGIN_PIXELS,
+    TOTAL_ALGORITHM_COUNT,
 )
-from core import environment, entities
 from core.ecosystem import EcosystemManager
-from core.time_system import TimeSystem
-from core.fish_poker import PokerInteraction
 from core.entity_factory import create_initial_population
+from core.fish_poker import PokerInteraction
 from core.simulators.base_simulator import BaseSimulator
+from core.time_system import TimeSystem
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class AgentsWrapper:
             if entity not in self._entities:
                 self._entities.append(entity)
                 # Track this group in the entity for kill() method
-                if hasattr(entity, 'add_internal'):
+                if hasattr(entity, "add_internal"):
                     entity.add_internal(self)
 
     def remove(self, *entities):
@@ -245,9 +246,10 @@ class SimulationEngine(BaseSimulator):
             return
 
         import random
-        from core.genetics import Genome
+
         from core import movement_strategy
         from core.algorithms import get_algorithm_index
+        from core.genetics import Genome
 
         # Get current fish to analyze diversity
         fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
@@ -319,7 +321,6 @@ class SimulationEngine(BaseSimulator):
             )
         else:
             winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
-            loser_hand = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
             winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
             # Show winner's actual gain (not loser's loss) to make it clear they're different
             message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
@@ -399,6 +400,7 @@ class SimulationEngine(BaseSimulator):
             return
 
         import json
+
         from core.algorithms import get_algorithm_name
 
         # Gather comprehensive stats
@@ -418,7 +420,9 @@ class SimulationEngine(BaseSimulator):
                 "total_births": self.ecosystem.total_births,
                 "total_deaths": self.ecosystem.total_deaths,
                 "current_generation": self.ecosystem.current_generation,
-                "final_population": len([e for e in self.entities_list if isinstance(e, entities.Fish)]),
+                "final_population": len(
+                    [e for e in self.entities_list if isinstance(e, entities.Fish)]
+                ),
             },
             "death_causes": dict(self.ecosystem.death_causes),
             "algorithm_performance": {},
@@ -527,7 +531,10 @@ class SimulationEngine(BaseSimulator):
         for algo_id, stats in algorithms_with_data[:5]:  # Bottom 5
             algo_name = get_algorithm_name(algo_id)
             main_death_cause = "unknown"
-            if stats.deaths_starvation > stats.deaths_old_age and stats.deaths_starvation > stats.deaths_predation:
+            if (
+                stats.deaths_starvation > stats.deaths_old_age
+                and stats.deaths_starvation > stats.deaths_predation
+            ):
                 main_death_cause = "starvation"
             elif stats.deaths_old_age > stats.deaths_predation:
                 main_death_cause = "old_age"

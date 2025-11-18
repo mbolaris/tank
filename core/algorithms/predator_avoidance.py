@@ -13,14 +13,15 @@ This module contains 10 algorithms focused on avoiding and escaping from predato
 - DistanceKeeper: Maintain safe distance from predators
 """
 
-import random
 import math
-from typing import Tuple
+import random
 from dataclasses import dataclass
+from typing import Tuple
 
-from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-from core.entities import Food, Crab, Fish as FishClass
+from core.algorithms.base import BehaviorAlgorithm
+from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.entities import Crab, Food
+from core.entities import Fish as FishClass
 
 
 @dataclass

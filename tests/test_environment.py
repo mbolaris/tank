@@ -1,6 +1,5 @@
-from core.math_utils import Vector2
-
 from core.environment import Environment
+from core.math_utils import Vector2
 
 
 def make_agent(x, y):

@@ -15,14 +15,15 @@ This module contains 12 algorithms focused on finding and pursuing food:
 - CooperativeForager: Follow other fish to food sources
 """
 
-import random
 import math
-from typing import Tuple, List
+import random
 from dataclasses import dataclass
+from typing import List, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.constants import SCREEN_HEIGHT
-from core.entities import Food, Crab, Fish as FishClass
+from core.entities import Crab, Food
+from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -104,10 +105,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                     intercept_point, _ = predict_intercept_point(
                         fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
                     )
-                    if intercept_point:
-                        target_pos = intercept_point
-                    else:
-                        target_pos = nearest_food.pos
+                    target_pos = intercept_point or nearest_food.pos
                 else:
                     target_pos = nearest_food.pos
 
@@ -168,7 +166,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
-        is_low = fish.is_low_energy()
+        fish.is_low_energy()
         energy_ratio = fish.get_energy_ratio()
 
         # Check for predators - even urgent fish should avoid immediate danger
@@ -267,7 +265,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         # IMPROVEMENT: Use new critical energy methods for smarter decisions
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
-        energy_ratio = fish.get_energy_ratio()
+        fish.get_energy_ratio()
 
         # Check predators first - but be less cautious when critically low energy
         nearest_predator = self._find_nearest(fish, Crab)

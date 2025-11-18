@@ -4,9 +4,10 @@ This module provides the Environment class which manages spatial queries
 for agents in the simulation.
 """
 
-from typing import Iterable, List, Optional, Type, Set, Tuple, Dict
-from collections import defaultdict
 import math
+from collections import defaultdict
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Type
+
 from core.entities import Agent
 
 

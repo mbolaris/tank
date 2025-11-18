@@ -39,14 +39,14 @@ def test_visual_traits():
     print("\n2. Testing inheritance from two parents:")
     genome2 = Genome.random(use_algorithm=False)
 
-    print(f"\n   Parent 1:")
+    print("\n   Parent 1:")
     print(
         f"      Template: {genome1.template_id}, Fin: {genome1.fin_size:.2f}, Tail: {genome1.tail_size:.2f}"
     )
     print(f"      Body Aspect: {genome1.body_aspect:.2f}, Eye: {genome1.eye_size:.2f}")
     print(f"      Pattern: Type {genome1.pattern_type}, Intensity {genome1.pattern_intensity:.2f}")
 
-    print(f"\n   Parent 2:")
+    print("\n   Parent 2:")
     print(
         f"      Template: {genome2.template_id}, Fin: {genome2.fin_size:.2f}, Tail: {genome2.tail_size:.2f}"
     )
@@ -58,7 +58,7 @@ def test_visual_traits():
         genome1, genome2, mutation_rate=0.1, mutation_strength=0.1, population_stress=0.0
     )
 
-    print(f"\n   Offspring:")
+    print("\n   Offspring:")
     print(
         f"      Template: {offspring.template_id}, Fin: {offspring.fin_size:.2f}, Tail: {offspring.tail_size:.2f}"
     )
@@ -116,7 +116,7 @@ def test_visual_traits():
         population_stress=0.8,  # High stress
     )
 
-    print(f"   Stressed offspring:")
+    print("   Stressed offspring:")
     print(f"      Template: {stressed_offspring.template_id}")
     print(f"      Fin: {stressed_offspring.fin_size:.2f}, Tail: {stressed_offspring.tail_size:.2f}")
     print(

@@ -5,8 +5,8 @@ import sys
 
 sys.path.insert(0, "/home/user/tank")
 
+from core.algorithms import EnergyAwareFoodSeeker, GreedyFoodSeeker, crossover_algorithms
 from core.genetics import Genome
-from core.algorithms import GreedyFoodSeeker, EnergyAwareFoodSeeker, crossover_algorithms
 
 
 def test_energy_economy():
@@ -17,7 +17,6 @@ def test_energy_economy():
 
     # Simulate reproduction
     parent_energy = 60.0
-    max_energy = 100.0
 
     # Parent pays mating cost
     REPRODUCTION_ENERGY_COST = 10.0
@@ -47,7 +46,7 @@ def test_energy_economy():
 
     print("✓ Energy economy test PASSED!")
     print(f"  → Each birth removes {REPRODUCTION_ENERGY_COST} energy (mating cost only)")
-    print(f"  → No free energy created!\n")
+    print("  → No free energy created!\n")
 
 
 def test_algorithm_crossover():
@@ -85,9 +84,9 @@ def test_algorithm_crossover():
     print(f"\nUnique algorithms: {unique_algorithms}")
 
     print("\n✓ Algorithm crossover test PASSED!")
-    print(f"  → Offspring inherit algorithms from both parents")
-    print(f"  → Algorithm type can vary (50/50 from each parent)")
-    print(f"  → Parameters blend when same type\n")
+    print("  → Offspring inherit algorithms from both parents")
+    print("  → Algorithm type can vary (50/50 from each parent)")
+    print("  → Parameters blend when same type\n")
 
 
 def test_same_algorithm_parameter_blending():
@@ -135,8 +134,8 @@ def test_same_algorithm_parameter_blending():
     ), "Detection parameter not in parent range!"
 
     print("\n✓ Parameter blending test PASSED!")
-    print(f"  → Parameters blend from both parents")
-    print(f"  → Offspring values are within parent ranges\n")
+    print("  → Parameters blend from both parents")
+    print("  → Offspring values are within parent ranges\n")
 
 
 if __name__ == "__main__":

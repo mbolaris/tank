@@ -2,9 +2,7 @@
 
 import pytest
 
-from simulation_engine import SimulationEngine
-from core.entities import Fish, Crab, Food, Plant, Castle
-from core.constants import NUM_SCHOOLING_FISH
+from core.entities import Castle, Crab, Fish, Food, Plant
 
 
 class TestFullSimulation:
@@ -86,7 +84,7 @@ class TestFullSimulation:
         simulator = simulation_engine
         simulator.environment.agents = simulator.agents
 
-        initial_non_food_count = len([s for s in simulator.agents if not isinstance(s, Food)])
+        len([s for s in simulator.agents if not isinstance(s, Food)])
 
         # Run simulation
         for _ in range(50):

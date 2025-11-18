@@ -13,14 +13,14 @@ This module contains 10 algorithms focused on group behavior and social interact
 - DynamicSchooler: Switch between tight and loose schooling based on conditions
 """
 
-import random
 import math
-from typing import Tuple
+import random
 from dataclasses import dataclass
+from typing import Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-from core.entities import Food, Crab, Fish as FishClass
+from core.entities import Crab, Food
+from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -460,7 +460,7 @@ class DynamicSchooler(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Check for danger with graded threat levels
-        predators = fish.environment.get_agents_of_type(Crab)
+        fish.environment.get_agents_of_type(Crab)
         nearest_predator = self._find_nearest(fish, Crab)
 
         # Calculate threat level (0 = no threat, 1 = extreme threat)

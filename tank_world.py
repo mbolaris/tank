@@ -7,19 +7,19 @@ including configuration and random number generation, making it easy to:
 - Interface with both headless and web backends
 """
 
-import random
 import logging
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, field
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from core.constants import (
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
+    AUTO_FOOD_ENABLED,
+    AUTO_FOOD_SPAWN_RATE,
+    CRITICAL_POPULATION_THRESHOLD,
     FRAME_RATE,
     MAX_POPULATION,
-    CRITICAL_POPULATION_THRESHOLD,
-    AUTO_FOOD_SPAWN_RATE,
-    AUTO_FOOD_ENABLED,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class TankWorldConfig:
 
     All parameters have defaults from constants.py but can be overridden.
     """
+
     # Screen dimensions
     screen_width: int = SCREEN_WIDTH
     screen_height: int = SCREEN_HEIGHT
@@ -50,18 +51,18 @@ class TankWorldConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
         return {
-            'screen_width': self.screen_width,
-            'screen_height': self.screen_height,
-            'frame_rate': self.frame_rate,
-            'max_population': self.max_population,
-            'critical_population_threshold': self.critical_population_threshold,
-            'auto_food_spawn_rate': self.auto_food_spawn_rate,
-            'auto_food_enabled': self.auto_food_enabled,
-            'headless': self.headless,
+            "screen_width": self.screen_width,
+            "screen_height": self.screen_height,
+            "frame_rate": self.frame_rate,
+            "max_population": self.max_population,
+            "critical_population_threshold": self.critical_population_threshold,
+            "auto_food_spawn_rate": self.auto_food_spawn_rate,
+            "auto_food_enabled": self.auto_food_enabled,
+            "headless": self.headless,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'TankWorldConfig':
+    def from_dict(cls, data: Dict[str, Any]) -> "TankWorldConfig":
         """Create config from dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
@@ -83,7 +84,7 @@ class TankWorld:
         self,
         config: Optional[TankWorldConfig] = None,
         rng: Optional[random.Random] = None,
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
     ):
         """Initialize TankWorld.
 
@@ -165,10 +166,10 @@ class TankWorld:
             Dictionary with current frame, entities, and stats
         """
         return {
-            'frame': self.engine.frame_count,
-            'paused': self.engine.paused,
-            'entities': self.engine.entities_list,
-            'stats': self.engine.get_stats(),
+            "frame": self.engine.frame_count,
+            "paused": self.engine.paused,
+            "entities": self.engine.entities_list,
+            "stats": self.engine.get_stats(),
         }
 
     def get_stats(self) -> Dict[str, Any]:
@@ -188,10 +189,7 @@ class TankWorld:
         self.engine.export_stats_json(filename)
 
     def run_headless(
-        self,
-        max_frames: int = 10000,
-        stats_interval: int = 300,
-        export_json: Optional[str] = None
+        self, max_frames: int = 10000, stats_interval: int = 300, export_json: Optional[str] = None
     ) -> None:
         """Run simulation in headless mode.
 
@@ -201,9 +199,7 @@ class TankWorld:
             export_json: Optional filename to export JSON stats
         """
         self.engine.run_headless(
-            max_frames=max_frames,
-            stats_interval=stats_interval,
-            export_json=export_json
+            max_frames=max_frames, stats_interval=stats_interval, export_json=export_json
         )
 
     # Expose commonly used properties

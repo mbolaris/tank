@@ -16,13 +16,11 @@ Learned behaviors can:
 3. Decay over time if not reinforced
 """
 
-import random
-from typing import Dict, Optional, TYPE_CHECKING, Any
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
-    from core.entities import Fish
     from core.genetics import Genome
 
 

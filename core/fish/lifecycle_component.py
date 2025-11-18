@@ -6,18 +6,17 @@ Separating lifecycle logic into its own component improves code organization and
 """
 
 from typing import TYPE_CHECKING
+
 from core.constants import (
+    FISH_ADULT_SIZE,
+    FISH_BABY_SIZE,
+    LIFE_STAGE_ADULT_MAX,
     LIFE_STAGE_BABY_MAX,
     LIFE_STAGE_JUVENILE_MAX,
-    LIFE_STAGE_YOUNG_ADULT_MAX,
-    LIFE_STAGE_ADULT_MAX,
-    LIFE_STAGE_MATURE_MAX,
-    FISH_BABY_SIZE,
-    FISH_ADULT_SIZE,
 )
 
 if TYPE_CHECKING:
-    from core.entities import LifeStage
+    pass
 
 
 class LifecycleComponent:
@@ -51,7 +50,7 @@ class LifecycleComponent:
         # Import here to avoid circular dependency
         from core.entities import LifeStage
 
-        self.life_stage: "LifeStage" = LifeStage.BABY
+        self.life_stage: LifeStage = LifeStage.BABY
         self.size: float = FISH_BABY_SIZE * genetic_size_modifier
 
     def increment_age(self) -> None:

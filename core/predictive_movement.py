@@ -6,14 +6,15 @@ will be and intercept them more effectively.
 
 import math
 from typing import Optional, Tuple
-from core.math_utils import Vector2
+
 from core.constants import (
+    MOVEMENT_DISTANCE_EPSILON,
     MOVEMENT_ESCAPE_DIRECT_WEIGHT,
     MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT,
-    MOVEMENT_SLOW_SPEED_MULTIPLIER,
     MOVEMENT_FOV_ANGLE,
-    MOVEMENT_DISTANCE_EPSILON,
+    MOVEMENT_SLOW_SPEED_MULTIPLIER,
 )
+from core.math_utils import Vector2
 
 
 def predict_intercept_point(
@@ -66,10 +67,7 @@ def predict_intercept_point(
     sqrt_discriminant = discriminant**0.5
 
     if abs(a) < 0.001:  # Near zero, use linear approximation
-        if abs(b) > 0.001:
-            t = -c / b
-        else:
-            t = 0.0
+        t = -c / b if abs(b) > 0.001 else 0.0
     else:
         t1 = (-b + sqrt_discriminant) / (2 * a)
         t2 = (-b - sqrt_discriminant) / (2 * a)
