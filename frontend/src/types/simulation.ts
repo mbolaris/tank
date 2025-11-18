@@ -4,7 +4,7 @@
 
 export interface EntityData {
   id: number;
-  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle';
+  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'jellyfish';
   x: number;
   y: number;
   width: number;
@@ -38,6 +38,9 @@ export interface EntityData {
 
   // Plant-specific
   plant_type?: number;
+
+  // Jellyfish-specific
+  jellyfish_id?: number;
 }
 
 export interface PokerEventData {
@@ -134,7 +137,7 @@ export interface SimulationUpdate {
 }
 
 export interface Command {
-  command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset';
+  command: 'add_food' | 'spawn_fish' | 'spawn_jellyfish' | 'pause' | 'resume' | 'reset';
   data?: Record<string, unknown>;
 }
 
