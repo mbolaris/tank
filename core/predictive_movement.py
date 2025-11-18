@@ -7,6 +7,13 @@ will be and intercept them more effectively.
 import math
 from typing import Optional, Tuple
 from core.math_utils import Vector2
+from core.constants import (
+    MOVEMENT_ESCAPE_DIRECT_WEIGHT,
+    MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT,
+    MOVEMENT_SLOW_SPEED_MULTIPLIER,
+    MOVEMENT_FOV_ANGLE,
+    MOVEMENT_DISTANCE_EPSILON
+)
 
 
 def predict_intercept_point(
@@ -146,7 +153,8 @@ def get_avoidance_direction(
         perpendicular = Vector2(-escape_dir.y, escape_dir.x)
 
         # Blend direct escape with perpendicular movement
-        escape_dir = (escape_dir * 0.7 + perpendicular * 0.3).normalize()
+        escape_dir = (escape_dir * MOVEMENT_ESCAPE_DIRECT_WEIGHT +
+                      perpendicular * MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT).normalize()
 
     return escape_dir
 
@@ -181,7 +189,7 @@ def is_target_ahead(
     fish_pos: Vector2,
     fish_heading: Vector2,
     target_pos: Vector2,
-    fov_angle: float = 1.57  # ~90 degrees in radians
+    fov_angle: float = MOVEMENT_FOV_ANGLE  # ~90 degrees in radians
 ) -> bool:
     """Check if target is in front of fish within field of view.
 
@@ -222,7 +230,7 @@ def calculate_smooth_approach(
     to_target = target_pos - fish_pos
     distance = to_target.length()
 
-    if distance < 0.01:
+    if distance < MOVEMENT_DISTANCE_EPSILON:
         return Vector2(0, 0), 0.0
 
     direction = to_target.normalize()
@@ -231,11 +239,11 @@ def calculate_smooth_approach(
     if distance < approach_distance:
         # Too close - back away slowly
         direction = -direction
-        speed_mult = 0.3
+        speed_mult = MOVEMENT_SLOW_SPEED_MULTIPLIER
     elif distance < slowdown_distance:
         # Slow down as approaching
         progress = (distance - approach_distance) / (slowdown_distance - approach_distance)
-        speed_mult = 0.3 + progress * 0.7  # 0.3 to 1.0
+        speed_mult = MOVEMENT_SLOW_SPEED_MULTIPLIER + progress * (1.0 - MOVEMENT_SLOW_SPEED_MULTIPLIER)
     else:
         # Far away - full speed
         speed_mult = 1.0

@@ -328,7 +328,7 @@ class EcosystemManager:
         """Initialize algorithm stats for all algorithms."""
         # Import here to avoid circular dependency
         try:
-            from core.behavior_algorithms import ALL_ALGORITHMS
+            from core.algorithms import ALL_ALGORITHMS
             for i, algo_class in enumerate(ALL_ALGORITHMS):
                 # Get algorithm name from class
                 algo_name = algo_class.__name__

@@ -10,7 +10,7 @@ from typing import Tuple, Optional, TYPE_CHECKING, Dict, List
 from enum import Enum
 
 if TYPE_CHECKING:
-    from core.behavior_algorithms import BehaviorAlgorithm
+    from core.algorithms import BehaviorAlgorithm
 
 
 class GeneticCrossoverMode(Enum):
@@ -107,7 +107,7 @@ class Genome:
         # Create random behavior algorithm
         algorithm = None
         if use_algorithm:
-            from core.behavior_algorithms import get_random_algorithm
+            from core.algorithms import get_random_algorithm
             algorithm = get_random_algorithm()
 
         return cls(
@@ -239,7 +239,7 @@ class Genome:
         # Handle behavior algorithm with weighted crossover
         algorithm = None
         if parent1.behavior_algorithm is not None or parent2.behavior_algorithm is not None:
-            from core.behavior_algorithms import crossover_algorithms_weighted
+            from core.algorithms import crossover_algorithms_weighted
             algorithm = crossover_algorithms_weighted(
                 parent1.behavior_algorithm,
                 parent2.behavior_algorithm,
@@ -249,7 +249,7 @@ class Genome:
                 algorithm_switch_rate=0.03  # 3% chance of random algorithm
             )
         else:
-            from core.behavior_algorithms import get_random_algorithm
+            from core.algorithms import get_random_algorithm
             algorithm = get_random_algorithm()
 
         # Weighted inheritance for template_id (discrete choice biased by weight)
@@ -388,7 +388,7 @@ class Genome:
         algorithm = None
         if parent1.behavior_algorithm is not None or parent2.behavior_algorithm is not None:
             # Crossover algorithms from both parents (or inherit if only one has it)
-            from core.behavior_algorithms import crossover_algorithms
+            from core.algorithms import crossover_algorithms
             algorithm = crossover_algorithms(
                 parent1.behavior_algorithm,
                 parent2.behavior_algorithm,
@@ -398,7 +398,7 @@ class Genome:
             )
         else:
             # No algorithm from either parent, create random
-            from core.behavior_algorithms import get_random_algorithm
+            from core.algorithms import get_random_algorithm
             algorithm = get_random_algorithm()
 
         # Determine dominant genes randomly (for DOMINANT_RECESSIVE mode)

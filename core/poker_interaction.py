@@ -275,11 +275,12 @@ class PokerGameState:
 class PokerEngine:
     """Core poker game logic for fish interactions with authentic Texas Hold'em."""
 
-    # Aggression factors for betting decisions
-    # Higher values = more aggressive (more likely to raise/call)
-    AGGRESSION_LOW = 0.3
-    AGGRESSION_MEDIUM = 0.6
-    AGGRESSION_HIGH = 0.9
+    # Import aggression constants from centralized constants module
+    from core.constants import (
+        POKER_AGGRESSION_LOW as AGGRESSION_LOW,
+        POKER_AGGRESSION_MEDIUM as AGGRESSION_MEDIUM,
+        POKER_AGGRESSION_HIGH as AGGRESSION_HIGH
+    )
 
     @staticmethod
     def evaluate_hand(hole_cards: List[Card], community_cards: List[Card]) -> PokerHand:

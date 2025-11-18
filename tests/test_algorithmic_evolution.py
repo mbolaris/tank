@@ -2,7 +2,7 @@
 
 import random
 from core.genetics import Genome
-from core.behavior_algorithms import (
+from core.algorithms import (
     get_random_algorithm,
     inherit_algorithm_with_mutation,
     ALL_ALGORITHMS
