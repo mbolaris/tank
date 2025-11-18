@@ -363,11 +363,13 @@ const styles = {
   statLabel: {
     color: '#cbd5e1',
     fontSize: '13px',
+    whiteSpace: 'nowrap' as const,
   },
   statValue: {
     fontWeight: 600,
     color: '#e2e8f0',
     fontSize: '13px',
+    whiteSpace: 'nowrap' as const,
   },
   subsection: {
     marginBottom: '14px',
