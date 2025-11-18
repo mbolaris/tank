@@ -34,8 +34,15 @@ PLANT_SWAY_SPEED = 0.0005
 FOOD_SINK_ACCELERATION = 0.01
 
 # Automatic food spawning
-AUTO_FOOD_SPAWN_RATE = 90  # Spawn food every 3 seconds (90 frames at 30fps) - Increased for better fish survival
+AUTO_FOOD_SPAWN_RATE = 90  # Spawn food every 3 seconds (90 frames at 30fps) - Base rate
 AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
+
+# Dynamic food spawn scaling based on population and energy
+AUTO_FOOD_LOW_ENERGY_THRESHOLD = 2000  # Double spawn rate below this total energy
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4000  # Reduce spawn rate above this total energy
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6000  # Further reduce spawn rate above this total energy
+AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 15  # Reduce spawn rate above this fish count
+AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 20  # Further reduce spawn rate above this fish count
 
 # Food type definitions with nutrient properties
 FOOD_TYPES = {

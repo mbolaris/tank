@@ -7,7 +7,12 @@ eliminating code duplication and ensuring consistent simulation behavior.
 import random
 from abc import ABC, abstractmethod
 from typing import List, Optional, TYPE_CHECKING
-from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT, AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED
+from core.constants import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED,
+    AUTO_FOOD_LOW_ENERGY_THRESHOLD, AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2, AUTO_FOOD_HIGH_POP_THRESHOLD_1,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_2
+)
 from core.behavior_algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
 
@@ -280,6 +285,10 @@ class BaseSimulator(ABC):
     def spawn_auto_food(self, environment: 'environment.Environment') -> None:
         """Spawn automatic food if enabled.
 
+        Dynamically adjusts spawn rate based on population size and total energy:
+        - Faster spawning when fish are starving (total energy low)
+        - Slower spawning when population or total energy is high
+
         Args:
             environment: Environment instance for creating food
         """
@@ -288,14 +297,27 @@ class BaseSimulator(ABC):
 
         from core import entities
 
-        # Calculate total energy across all fish
+        # Calculate total energy and population
         all_entities = self.get_all_entities()
-        total_energy = sum(e.energy for e in all_entities if isinstance(e, entities.Fish))
+        fish_list = [e for e in all_entities if isinstance(e, entities.Fish)]
+        fish_count = len(fish_list)
+        total_energy = sum(fish.energy for fish in fish_list)
 
-        # Double food drop rate (halve spawn interval) when total energy is low
+        # Dynamic spawn rate based on population and energy levels
         spawn_rate = AUTO_FOOD_SPAWN_RATE
-        if total_energy < 2000:
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 2  # Double the drop rate by halving the interval
+
+        # Priority 1: Emergency feeding when energy is critically low
+        if total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
+            spawn_rate = AUTO_FOOD_SPAWN_RATE // 2  # Double the drop rate (every 1.5 sec)
+
+        # Priority 2: Reduce feeding when energy or population is high
+        elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2:
+            # Very high energy/population: Slow down significantly (every 8 sec)
+            spawn_rate = AUTO_FOOD_SPAWN_RATE * 3
+        elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1:
+            # High energy/population: Slow down moderately (every 5 sec)
+            spawn_rate = int(AUTO_FOOD_SPAWN_RATE * 1.67)
+        # else: use base rate (every 3 sec)
 
         self.auto_food_timer += 1
         if self.auto_food_timer >= spawn_rate:
