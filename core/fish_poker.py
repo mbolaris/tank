@@ -358,20 +358,37 @@ class PokerInteraction:
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
             loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
 
-            # Energy transfer is the pot amount
-            energy_transferred = game_state.pot
+            # Get total bets for each player
+            winner_total_bet = (
+                game_state.player1_total_bet
+                if winner_id == self.fish1.fish_id
+                else game_state.player2_total_bet
+            )
+            loser_total_bet = (
+                game_state.player1_total_bet
+                if loser_id == self.fish1.fish_id
+                else game_state.player2_total_bet
+            )
 
-            # Apply energy transfer: loser loses the pot, winner gains the pot
-            loser_fish.energy = max(0, loser_fish.energy - energy_transferred)
-            winner_fish.energy = winner_fish.energy + energy_transferred
+            # Both players pay their bets
+            winner_fish.energy = max(0, winner_fish.energy - winner_total_bet)
+            loser_fish.energy = max(0, loser_fish.energy - loser_total_bet)
+
+            # Winner receives the pot
+            winner_fish.energy = winner_fish.energy + game_state.pot
 
             # House cut: winner pays percentage based on winner's size
             # Larger winners pay more: Size 0.35: 8%, Size 1.0: ~20%, Size 1.3: ~25%
             # Formula: 8% + (size - 0.35) * 18% gives range of 8-25%
+            # House cut is calculated on winner's net gain (pot minus their own bet)
             # The house cut disappears (energy is NOT conserved)
+            net_gain = game_state.pot - winner_total_bet
             house_cut_percentage = 0.08 + max(0, (winner_fish.size - 0.35) * 0.18)
-            house_cut = energy_transferred * house_cut_percentage
+            house_cut = net_gain * house_cut_percentage
             winner_fish.energy = max(0, winner_fish.energy - house_cut)
+
+            # For reporting purposes, energy_transferred is the loser's bet
+            energy_transferred = loser_total_bet
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0
