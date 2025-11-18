@@ -14,11 +14,14 @@ Features:
 - Multiple betting rounds with folding
 """
 
+import logging
 import random
 from dataclasses import dataclass, field
 from typing import Tuple, Optional, List, Set
 from enum import IntEnum
 from collections import Counter
+
+logger = logging.getLogger(__name__)
 
 
 class Suit(IntEnum):
@@ -127,26 +130,23 @@ class PokerHand:
     hand_type: str
     rank_value: HandRank
     description: str
-    cards: List[Card] = field(default_factory=list)  # The 5 cards that make up the hand
-    primary_ranks: List[int] = field(default_factory=list)  # Main ranks (e.g., pair ranks)
-    kickers: List[int] = field(default_factory=list)  # Kicker ranks for tie-breaking
+    cards: List[Card] = field(default_factory=list)
+    primary_ranks: List[int] = field(default_factory=list)
+    kickers: List[int] = field(default_factory=list)
 
     def beats(self, other: 'PokerHand') -> bool:
         """Check if this hand beats another hand, including kicker comparison."""
         if self.rank_value != other.rank_value:
             return self.rank_value > other.rank_value
 
-        # Same rank - compare primary ranks
         for my_rank, their_rank in zip(self.primary_ranks, other.primary_ranks):
             if my_rank != their_rank:
                 return my_rank > their_rank
 
-        # Same primary ranks - compare kickers
         for my_kicker, their_kicker in zip(self.kickers, other.kickers):
             if my_kicker != their_kicker:
                 return my_kicker > their_kicker
 
-        # Completely tied
         return False
 
     def ties(self, other: 'PokerHand') -> bool:
@@ -170,15 +170,15 @@ class PokerGameState:
     pot: float
     player1_total_bet: float
     player2_total_bet: float
-    player1_current_bet: float  # Bet in current round
-    player2_current_bet: float  # Bet in current round
+    player1_current_bet: float
+    player2_current_bet: float
     player1_folded: bool
     player2_folded: bool
-    player1_hole_cards: List[Card]  # Player 1's 2 hole cards
-    player2_hole_cards: List[Card]  # Player 2's 2 hole cards
-    community_cards: List[Card]  # Community cards (0 pre-flop, 3 after flop, 4 after turn, 5 after river)
-    player1_hand: Optional[PokerHand]  # Best 5-card hand (evaluated at showdown)
-    player2_hand: Optional[PokerHand]  # Best 5-card hand (evaluated at showdown)
+    player1_hole_cards: List[Card]
+    player2_hole_cards: List[Card]
+    community_cards: List[Card]  # 0 pre-flop, 3 after flop, 4 after turn, 5 after river
+    player1_hand: Optional[PokerHand]  # Evaluated at showdown
+    player2_hand: Optional[PokerHand]  # Evaluated at showdown
     betting_history: List[Tuple[int, BettingAction, float]]  # (player, action, amount)
     button_position: int  # Which player is on the button (1 or 2)
     small_blind: float
@@ -781,55 +781,56 @@ class PokerEngine:
 
 # Example usage and testing
 if __name__ == "__main__":
-    print("Texas Hold'em Poker Engine Test")
-    print("=" * 80)
+    logging.basicConfig(level=logging.INFO)
+    logger.info("Texas Hold'em Poker Engine Test")
+    logger.info("=" * 80)
 
     # Test hand evaluation
-    print("\nTest 1: Hand Evaluation")
-    print("-" * 80)
+    logger.info("\nTest 1: Hand Evaluation")
+    logger.info("-" * 80)
 
     # Create test hands
     deck = Deck()
     hole_cards = deck.deal(2)
     community_cards = deck.deal(5)
 
-    print(f"Hole cards: {' '.join(str(c) for c in hole_cards)}")
-    print(f"Community cards: {' '.join(str(c) for c in community_cards)}")
+    logger.info(f"Hole cards: {' '.join(str(c) for c in hole_cards)}")
+    logger.info(f"Community cards: {' '.join(str(c) for c in community_cards)}")
 
     hand = PokerEngine.evaluate_hand(hole_cards, community_cards)
-    print(f"Best hand: {hand}")
-    print(f"Hand cards: {' '.join(str(c) for c in hand.cards)}")
+    logger.info(f"Best hand: {hand}")
+    logger.info(f"Hand cards: {' '.join(str(c) for c in hand.cards)}")
 
     # Test a few complete games
-    print("\n" + "=" * 80)
-    print("Simulating 5 complete Texas Hold'em games:")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("Simulating 5 complete Texas Hold'em games:")
+    logger.info("=" * 80)
 
     for i in range(5):
         game = PokerEngine.simulate_game(bet_amount=10.0, player1_energy=100.0, player2_energy=100.0)
 
-        print(f"\nGame {i+1}:")
-        print(f"  Button: Player {game.button_position}")
-        print(f"  Blinds: {game.small_blind}/{game.big_blind}")
+        logger.info(f"\nGame {i+1}:")
+        logger.info(f"  Button: Player {game.button_position}")
+        logger.info(f"  Blinds: {game.small_blind}/{game.big_blind}")
 
         if game.player1_hole_cards:
-            print(f"  Player 1 hole cards: {' '.join(str(c) for c in game.player1_hole_cards)}")
+            logger.info(f"  Player 1 hole cards: {' '.join(str(c) for c in game.player1_hole_cards)}")
         if game.player2_hole_cards:
-            print(f"  Player 2 hole cards: {' '.join(str(c) for c in game.player2_hole_cards)}")
+            logger.info(f"  Player 2 hole cards: {' '.join(str(c) for c in game.player2_hole_cards)}")
 
         if game.community_cards:
-            print(f"  Community cards: {' '.join(str(c) for c in game.community_cards)}")
+            logger.info(f"  Community cards: {' '.join(str(c) for c in game.community_cards)}")
 
         winner = game.get_winner_by_fold()
         if winner:
-            print(f"  Result: Player {winner} wins by fold (pot: {game.pot:.1f})")
+            logger.info(f"  Result: Player {winner} wins by fold (pot: {game.pot:.1f})")
         else:
-            print(f"  Player 1 hand: {game.player1_hand}")
-            print(f"  Player 2 hand: {game.player2_hand}")
+            logger.info(f"  Player 1 hand: {game.player1_hand}")
+            logger.info(f"  Player 2 hand: {game.player2_hand}")
 
             if game.player1_hand.beats(game.player2_hand):
-                print(f"  Winner: Player 1 (pot: {game.pot:.1f})")
+                logger.info(f"  Winner: Player 1 (pot: {game.pot:.1f})")
             elif game.player2_hand.beats(game.player1_hand):
-                print(f"  Winner: Player 2 (pot: {game.pot:.1f})")
+                logger.info(f"  Winner: Player 2 (pot: {game.pot:.1f})")
             else:
-                print(f"  Result: Tie - pot split (pot: {game.pot:.1f})")
+                logger.info(f"  Result: Tie - pot split (pot: {game.pot:.1f})")

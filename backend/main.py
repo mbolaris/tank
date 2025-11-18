@@ -1,6 +1,7 @@
 """FastAPI backend for fish tank simulation."""
 
 import asyncio
+import logging
 import sys
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -8,6 +9,8 @@ from typing import Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -27,9 +30,9 @@ connected_clients: Set[WebSocket] = set()
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
     # Startup
-    print("Starting simulation...")
+    logger.info("Starting simulation...")
     simulation.start()
-    print("Simulation started!")
+    logger.info("Simulation started!")
 
     # Start broadcast task
     broadcast_task = asyncio.create_task(broadcast_updates())
@@ -37,14 +40,14 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    print("Stopping simulation...")
+    logger.info("Stopping simulation...")
     simulation.stop()
     broadcast_task.cancel()
     try:
         await broadcast_task
     except asyncio.CancelledError:
         pass
-    print("Simulation stopped!")
+    logger.info("Simulation stopped!")
 
 
 # Create FastAPI app with lifespan handler
@@ -76,7 +79,7 @@ async def broadcast_updates():
                 try:
                     await client.send_text(state_json)
                 except Exception as e:
-                    print(f"Error sending to client: {e}")
+                    logger.error(f"Error sending to client: {e}")
                     disconnected.add(client)
 
             # Remove disconnected clients
@@ -117,7 +120,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     connected_clients.add(websocket)
 
-    print(f"Client connected. Total clients: {len(connected_clients)}")
+    logger.info(f"Client connected. Total clients: {len(connected_clients)}")
 
     try:
         while True:
@@ -147,7 +150,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
 
     except WebSocketDisconnect:
-        print(f"Client disconnected. Total clients: {len(connected_clients) - 1}")
+        logger.info(f"Client disconnected. Total clients: {len(connected_clients) - 1}")
     finally:
         connected_clients.discard(websocket)
 
