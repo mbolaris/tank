@@ -154,6 +154,7 @@ class PokerInteraction:
         from core.constants import (
             POST_POKER_CROSSOVER_WINNER_WEIGHT,
             POST_POKER_MATING_DISTANCE,
+            REPRODUCTION_COOLDOWN,
         )
         from core.genetics import Genome
 
@@ -214,8 +215,8 @@ class PokerInteraction:
         loser_fish.energy -= loser_energy_transfer
 
         # Set reproduction cooldown for both parents
-        winner_fish.reproduction_cooldown = winner_fish.REPRODUCTION_COOLDOWN
-        loser_fish.reproduction_cooldown = loser_fish.REPRODUCTION_COOLDOWN
+        winner_fish.reproduction_cooldown = REPRODUCTION_COOLDOWN
+        loser_fish.reproduction_cooldown = REPRODUCTION_COOLDOWN
 
         # Both parents become pregnant (simulate gestation)
         # In this case we'll just create the baby immediately
