@@ -1,4 +1,5 @@
 """Integration tests for the full fish tank simulation."""
+
 import pytest
 
 from simulation_engine import SimulationEngine
@@ -18,7 +19,9 @@ class TestFullSimulation:
         simulator.create_initial_agents()
 
         # Verify initial setup
-        assert len([s for s in simulator.agents if isinstance(s, Fish)]) == 10  # 10 algorithmic fish
+        assert (
+            len([s for s in simulator.agents if isinstance(s, Fish)]) == 10
+        )  # 10 algorithmic fish
         assert len([s for s in simulator.agents if isinstance(s, Crab)]) == 1
         assert len([s for s in simulator.agents if isinstance(s, Plant)]) == 2
         assert len([s for s in simulator.agents if isinstance(s, Castle)]) == 1
@@ -63,7 +66,8 @@ class TestFullSimulation:
 
         # Create a simple scenario with one fish and one crab
         from core.movement_strategy import AlgorithmicMovement
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
+
+        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos.x = 500  # Far from fish initially
         crab.pos.y = 500
@@ -121,7 +125,7 @@ class TestFullSimulation:
         from core.movement_strategy import AlgorithmicMovement
 
         # Test 1: Fish avoidance bug fix - fish should maintain avoidance when crab stays close
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
+        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos.x = 110  # Close to fish
         crab.pos.y = 100
@@ -134,12 +138,14 @@ class TestFullSimulation:
 
         # Avoidance should still be active (not reset to zero)
         # because crab is still close
-        assert fish.avoidance_velocity.length() > 0, "Avoidance should persist when crab stays close"
+        assert (
+            fish.avoidance_velocity.length() > 0
+        ), "Avoidance should persist when crab stays close"
 
         # Test 2: Safe iteration during collision - should not crash
         simulator.agents.empty()
-        fish1 = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
-        fish2 = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 200, 200, 3)
+        fish1 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
+        fish2 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 200, 200, 3)
         crab = Crab(simulator.environment)
 
         simulator.agents.add(fish1, fish2, crab)
@@ -153,7 +159,7 @@ class TestFullSimulation:
 
         # Test 3: Zero-length vector safety - should not crash
         simulator.agents.empty()
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ['george1.png'], 100, 100, 3)
+        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos = fish.pos  # Same position - zero-length vector!
 

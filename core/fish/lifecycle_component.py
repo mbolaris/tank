@@ -13,7 +13,7 @@ from core.constants import (
     LIFE_STAGE_ADULT_MAX,
     LIFE_STAGE_MATURE_MAX,
     FISH_BABY_SIZE,
-    FISH_ADULT_SIZE
+    FISH_ADULT_SIZE,
 )
 
 if TYPE_CHECKING:
@@ -47,7 +47,8 @@ class LifecycleComponent:
 
         # Import here to avoid circular dependency
         from core.entities import LifeStage
-        self.life_stage: 'LifeStage' = LifeStage.BABY
+
+        self.life_stage: "LifeStage" = LifeStage.BABY
         self.size: float = FISH_BABY_SIZE
 
     def increment_age(self) -> None:
@@ -62,7 +63,9 @@ class LifecycleComponent:
         if self.age < LIFE_STAGE_BABY_MAX:
             self.life_stage = LifeStage.BABY
             # Grow from 0.5 to 1.0 as baby ages
-            self.size = FISH_BABY_SIZE + (FISH_ADULT_SIZE - FISH_BABY_SIZE) * (self.age / LIFE_STAGE_BABY_MAX)
+            self.size = FISH_BABY_SIZE + (FISH_ADULT_SIZE - FISH_BABY_SIZE) * (
+                self.age / LIFE_STAGE_BABY_MAX
+            )
         elif self.age < LIFE_STAGE_JUVENILE_MAX:
             self.life_stage = LifeStage.JUVENILE
             self.size = FISH_ADULT_SIZE
@@ -80,6 +83,7 @@ class LifecycleComponent:
             bool: True if in BABY life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.BABY
 
     def is_juvenile(self) -> bool:
@@ -89,6 +93,7 @@ class LifecycleComponent:
             bool: True if in JUVENILE life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.JUVENILE
 
     def is_adult(self) -> bool:
@@ -98,6 +103,7 @@ class LifecycleComponent:
             bool: True if in ADULT life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.ADULT
 
     def is_elder(self) -> bool:
@@ -107,6 +113,7 @@ class LifecycleComponent:
             bool: True if in ELDER life stage
         """
         from core.entities import LifeStage
+
         return self.life_stage == LifeStage.ELDER
 
     def is_dying_of_old_age(self) -> bool:

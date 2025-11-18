@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 class LearningType(Enum):
     """Types of learnable behaviors."""
+
     FOOD_FINDING = "food_finding"
     PREDATOR_AVOIDANCE = "predator_avoidance"
     POKER_STRATEGY = "poker_strategy"
@@ -38,6 +39,7 @@ class LearningType(Enum):
 @dataclass
 class LearningEvent:
     """Represents a learning experience."""
+
     learning_type: LearningType
     success: bool  # Whether the action was successful
     reward: float  # Magnitude of the reward/punishment
@@ -64,8 +66,12 @@ class BehavioralLearningSystem:
     # Inheritance rates (how much learned behavior passes to offspring)
     CULTURAL_INHERITANCE_RATE = 0.25  # 25% of learned behaviors inherited
 
-    def __init__(self, genome: 'Genome', learning_rate: float = DEFAULT_LEARNING_RATE,
-                 decay_rate: float = DEFAULT_DECAY_RATE):
+    def __init__(
+        self,
+        genome: "Genome",
+        learning_rate: float = DEFAULT_LEARNING_RATE,
+        decay_rate: float = DEFAULT_DECAY_RATE,
+    ):
         """Initialize the learning system.
 
         Args:
@@ -80,17 +86,17 @@ class BehavioralLearningSystem:
         # Initialize learned_behaviors - ensure all required keys exist
         # This handles both empty dicts and partially populated ones from inheritance
         required_keys = {
-            'food_finding_efficiency': 0.0,  # -0.3 to +0.3 adjustment
-            'predator_escape_skill': 0.0,
-            'poker_hand_selection': 0.0,
-            'poker_positional_awareness': 0.0,
-            'poker_aggression_tuning': 0.0,
-            'energy_conservation': 0.0,
-            'spatial_memory_strength': 0.0,
-            'successful_food_finds': 0.0,  # Counter
-            'successful_predator_escapes': 0.0,  # Counter
-            'poker_games_won': 0.0,  # Counter
-            'poker_games_lost': 0.0,  # Counter
+            "food_finding_efficiency": 0.0,  # -0.3 to +0.3 adjustment
+            "predator_escape_skill": 0.0,
+            "poker_hand_selection": 0.0,
+            "poker_positional_awareness": 0.0,
+            "poker_aggression_tuning": 0.0,
+            "energy_conservation": 0.0,
+            "spatial_memory_strength": 0.0,
+            "successful_food_finds": 0.0,  # Counter
+            "successful_predator_escapes": 0.0,  # Counter
+            "poker_games_won": 0.0,  # Counter
+            "poker_games_lost": 0.0,  # Counter
         }
 
         # Add any missing keys while preserving existing values
@@ -124,18 +130,20 @@ class BehavioralLearningSystem:
         if event.success:
             # Successful food find - reinforce current behavior
             adjustment = self.learning_rate * event.reward
-            self.genome.learned_behaviors['food_finding_efficiency'] += adjustment
-            self.genome.learned_behaviors['successful_food_finds'] += 1
+            self.genome.learned_behaviors["food_finding_efficiency"] += adjustment
+            self.genome.learned_behaviors["successful_food_finds"] += 1
         else:
             # Failed to find food - slightly reduce efficiency
             adjustment = self.learning_rate * 0.5
-            self.genome.learned_behaviors['food_finding_efficiency'] -= adjustment
+            self.genome.learned_behaviors["food_finding_efficiency"] -= adjustment
 
         # Clamp to max adjustment range
-        self.genome.learned_behaviors['food_finding_efficiency'] = max(
+        self.genome.learned_behaviors["food_finding_efficiency"] = max(
             -self.MAX_LEARNED_ADJUSTMENT,
-            min(self.MAX_LEARNED_ADJUSTMENT,
-                self.genome.learned_behaviors['food_finding_efficiency'])
+            min(
+                self.MAX_LEARNED_ADJUSTMENT,
+                self.genome.learned_behaviors["food_finding_efficiency"],
+            ),
         )
 
     def _learn_predator_avoidance(self, event: LearningEvent) -> None:
@@ -147,18 +155,19 @@ class BehavioralLearningSystem:
         if event.success:
             # Successfully escaped - reinforce escape behavior
             adjustment = self.learning_rate * event.reward * 2.0  # Higher learning from danger
-            self.genome.learned_behaviors['predator_escape_skill'] += adjustment
-            self.genome.learned_behaviors['successful_predator_escapes'] += 1
+            self.genome.learned_behaviors["predator_escape_skill"] += adjustment
+            self.genome.learned_behaviors["successful_predator_escapes"] += 1
         else:
             # Failed to escape (took damage) - adjust behavior
             adjustment = self.learning_rate * 1.5
-            self.genome.learned_behaviors['predator_escape_skill'] += adjustment
+            self.genome.learned_behaviors["predator_escape_skill"] += adjustment
 
         # Clamp to range
-        self.genome.learned_behaviors['predator_escape_skill'] = max(
+        self.genome.learned_behaviors["predator_escape_skill"] = max(
             -self.MAX_LEARNED_ADJUSTMENT,
-            min(self.MAX_LEARNED_ADJUSTMENT,
-                self.genome.learned_behaviors['predator_escape_skill'])
+            min(
+                self.MAX_LEARNED_ADJUSTMENT, self.genome.learned_behaviors["predator_escape_skill"]
+            ),
         )
 
     def _learn_poker_strategy(self, event: LearningEvent) -> None:
@@ -169,40 +178,54 @@ class BehavioralLearningSystem:
         """
         if event.success:
             # Won poker game
-            self.genome.learned_behaviors['poker_games_won'] += 1
+            self.genome.learned_behaviors["poker_games_won"] += 1
 
             # Learn from context (hand strength, position, etc.)
-            if 'hand_strength' in event.context:
-                hand_strength = event.context['hand_strength']
+            if "hand_strength" in event.context:
+                hand_strength = event.context["hand_strength"]
                 if hand_strength > 0.7:
                     # Won with strong hand - reinforce aggressive play with good hands
-                    self.genome.learned_behaviors['poker_hand_selection'] += self.learning_rate * 0.5
+                    self.genome.learned_behaviors["poker_hand_selection"] += (
+                        self.learning_rate * 0.5
+                    )
                 elif hand_strength < 0.3:
                     # Won with weak hand (bluff success) - slightly increase aggression
-                    self.genome.learned_behaviors['poker_aggression_tuning'] += self.learning_rate * 0.3
+                    self.genome.learned_behaviors["poker_aggression_tuning"] += (
+                        self.learning_rate * 0.3
+                    )
 
-            if 'position' in event.context:
-                position = event.context['position']  # 0=button, 1=off-button
+            if "position" in event.context:
+                position = event.context["position"]  # 0=button, 1=off-button
                 if position == 0:
                     # Won from button position - learn positional advantage
-                    self.genome.learned_behaviors['poker_positional_awareness'] += self.learning_rate * 0.4
+                    self.genome.learned_behaviors["poker_positional_awareness"] += (
+                        self.learning_rate * 0.4
+                    )
         else:
             # Lost poker game
-            self.genome.learned_behaviors['poker_games_lost'] += 1
+            self.genome.learned_behaviors["poker_games_lost"] += 1
 
             # Learn from losses
-            if 'hand_strength' in event.context:
-                hand_strength = event.context['hand_strength']
+            if "hand_strength" in event.context:
+                hand_strength = event.context["hand_strength"]
                 if hand_strength < 0.4:
                     # Lost with weak hand - reduce aggression with weak hands
-                    self.genome.learned_behaviors['poker_hand_selection'] -= self.learning_rate * 0.3
-                    self.genome.learned_behaviors['poker_aggression_tuning'] -= self.learning_rate * 0.2
+                    self.genome.learned_behaviors["poker_hand_selection"] -= (
+                        self.learning_rate * 0.3
+                    )
+                    self.genome.learned_behaviors["poker_aggression_tuning"] -= (
+                        self.learning_rate * 0.2
+                    )
 
         # Clamp learned poker behaviors
-        for key in ['poker_hand_selection', 'poker_positional_awareness', 'poker_aggression_tuning']:
+        for key in [
+            "poker_hand_selection",
+            "poker_positional_awareness",
+            "poker_aggression_tuning",
+        ]:
             self.genome.learned_behaviors[key] = max(
                 -self.MAX_LEARNED_ADJUSTMENT,
-                min(self.MAX_LEARNED_ADJUSTMENT, self.genome.learned_behaviors[key])
+                min(self.MAX_LEARNED_ADJUSTMENT, self.genome.learned_behaviors[key]),
             )
 
     def _learn_energy_management(self, event: LearningEvent) -> None:
@@ -214,17 +237,16 @@ class BehavioralLearningSystem:
         if event.success:
             # Successfully maintained energy - reinforce conservation
             adjustment = self.learning_rate * event.reward
-            self.genome.learned_behaviors['energy_conservation'] += adjustment
+            self.genome.learned_behaviors["energy_conservation"] += adjustment
         else:
             # Energy depletion - learn to conserve more
             adjustment = self.learning_rate * 0.5
-            self.genome.learned_behaviors['energy_conservation'] += adjustment
+            self.genome.learned_behaviors["energy_conservation"] += adjustment
 
         # Clamp
-        self.genome.learned_behaviors['energy_conservation'] = max(
+        self.genome.learned_behaviors["energy_conservation"] = max(
             -self.MAX_LEARNED_ADJUSTMENT,
-            min(self.MAX_LEARNED_ADJUSTMENT,
-                self.genome.learned_behaviors['energy_conservation'])
+            min(self.MAX_LEARNED_ADJUSTMENT, self.genome.learned_behaviors["energy_conservation"]),
         )
 
     def _learn_spatial_navigation(self, event: LearningEvent) -> None:
@@ -236,13 +258,15 @@ class BehavioralLearningSystem:
         if event.success:
             # Successfully navigated - improve spatial memory
             adjustment = self.learning_rate * event.reward
-            self.genome.learned_behaviors['spatial_memory_strength'] += adjustment
+            self.genome.learned_behaviors["spatial_memory_strength"] += adjustment
 
         # Clamp
-        self.genome.learned_behaviors['spatial_memory_strength'] = max(
+        self.genome.learned_behaviors["spatial_memory_strength"] = max(
             -self.MAX_LEARNED_ADJUSTMENT,
-            min(self.MAX_LEARNED_ADJUSTMENT,
-                self.genome.learned_behaviors['spatial_memory_strength'])
+            min(
+                self.MAX_LEARNED_ADJUSTMENT,
+                self.genome.learned_behaviors["spatial_memory_strength"],
+            ),
         )
 
     def apply_decay(self) -> None:
@@ -252,7 +276,12 @@ class BehavioralLearningSystem:
         overfitting to outdated patterns.
         """
         for key in self.genome.learned_behaviors:
-            if key.endswith('_finds') or key.endswith('_escapes') or key.endswith('_won') or key.endswith('_lost'):
+            if (
+                key.endswith("_finds")
+                or key.endswith("_escapes")
+                or key.endswith("_won")
+                or key.endswith("_lost")
+            ):
                 # Don't decay counters
                 continue
 
@@ -262,7 +291,9 @@ class BehavioralLearningSystem:
             elif current_value < 0:
                 self.genome.learned_behaviors[key] = min(0, current_value + self.decay_rate)
 
-    def get_learned_parameter_adjustment(self, parameter_name: str, learning_category: str) -> float:
+    def get_learned_parameter_adjustment(
+        self, parameter_name: str, learning_category: str
+    ) -> float:
         """Get the learned adjustment for a behavior algorithm parameter.
 
         Args:
@@ -272,14 +303,14 @@ class BehavioralLearningSystem:
         Returns:
             Adjustment multiplier to apply to the parameter (-0.3 to +0.3)
         """
-        if learning_category == 'food_finding':
-            return self.genome.learned_behaviors.get('food_finding_efficiency', 0.0)
-        elif learning_category == 'predator_avoidance':
-            return self.genome.learned_behaviors.get('predator_escape_skill', 0.0)
-        elif learning_category == 'energy_management':
-            return self.genome.learned_behaviors.get('energy_conservation', 0.0)
-        elif learning_category == 'spatial_navigation':
-            return self.genome.learned_behaviors.get('spatial_memory_strength', 0.0)
+        if learning_category == "food_finding":
+            return self.genome.learned_behaviors.get("food_finding_efficiency", 0.0)
+        elif learning_category == "predator_avoidance":
+            return self.genome.learned_behaviors.get("predator_escape_skill", 0.0)
+        elif learning_category == "energy_management":
+            return self.genome.learned_behaviors.get("energy_conservation", 0.0)
+        elif learning_category == "spatial_navigation":
+            return self.genome.learned_behaviors.get("spatial_memory_strength", 0.0)
         else:
             return 0.0
 
@@ -290,16 +321,19 @@ class BehavioralLearningSystem:
             Dictionary of poker-related learned behaviors
         """
         return {
-            'hand_selection': self.genome.learned_behaviors.get('poker_hand_selection', 0.0),
-            'positional_awareness': self.genome.learned_behaviors.get('poker_positional_awareness', 0.0),
-            'aggression_tuning': self.genome.learned_behaviors.get('poker_aggression_tuning', 0.0),
-            'games_won': self.genome.learned_behaviors.get('poker_games_won', 0.0),
-            'games_lost': self.genome.learned_behaviors.get('poker_games_lost', 0.0),
+            "hand_selection": self.genome.learned_behaviors.get("poker_hand_selection", 0.0),
+            "positional_awareness": self.genome.learned_behaviors.get(
+                "poker_positional_awareness", 0.0
+            ),
+            "aggression_tuning": self.genome.learned_behaviors.get("poker_aggression_tuning", 0.0),
+            "games_won": self.genome.learned_behaviors.get("poker_games_won", 0.0),
+            "games_lost": self.genome.learned_behaviors.get("poker_games_lost", 0.0),
         }
 
     @staticmethod
-    def inherit_learned_behaviors(parent1: 'Genome', parent2: 'Genome',
-                                  offspring: 'Genome') -> None:
+    def inherit_learned_behaviors(
+        parent1: "Genome", parent2: "Genome", offspring: "Genome"
+    ) -> None:
         """Transfer some learned behaviors to offspring (cultural evolution).
 
         This represents cultural transmission of learned strategies,
@@ -314,7 +348,12 @@ class BehavioralLearningSystem:
         for key in parent1.learned_behaviors:
             if key in parent2.learned_behaviors:
                 # Don't inherit counters
-                if key.endswith('_finds') or key.endswith('_escapes') or key.endswith('_won') or key.endswith('_lost'):
+                if (
+                    key.endswith("_finds")
+                    or key.endswith("_escapes")
+                    or key.endswith("_won")
+                    or key.endswith("_lost")
+                ):
                     continue
 
                 parent1_val = parent1.learned_behaviors[key]
@@ -331,23 +370,39 @@ class BehavioralLearningSystem:
         Returns:
             Dictionary with learning statistics
         """
-        total_games = (self.genome.learned_behaviors.get('poker_games_won', 0) +
-                      self.genome.learned_behaviors.get('poker_games_lost', 0))
-        win_rate = (self.genome.learned_behaviors.get('poker_games_won', 0) / total_games
-                   if total_games > 0 else 0.0)
+        total_games = self.genome.learned_behaviors.get(
+            "poker_games_won", 0
+        ) + self.genome.learned_behaviors.get("poker_games_lost", 0)
+        win_rate = (
+            self.genome.learned_behaviors.get("poker_games_won", 0) / total_games
+            if total_games > 0
+            else 0.0
+        )
 
         return {
-            'food_finding_efficiency': self.genome.learned_behaviors.get('food_finding_efficiency', 0.0),
-            'predator_escape_skill': self.genome.learned_behaviors.get('predator_escape_skill', 0.0),
-            'energy_conservation': self.genome.learned_behaviors.get('energy_conservation', 0.0),
-            'spatial_memory_strength': self.genome.learned_behaviors.get('spatial_memory_strength', 0.0),
-            'poker_skill': {
-                'hand_selection': self.genome.learned_behaviors.get('poker_hand_selection', 0.0),
-                'positional_awareness': self.genome.learned_behaviors.get('poker_positional_awareness', 0.0),
-                'aggression_tuning': self.genome.learned_behaviors.get('poker_aggression_tuning', 0.0),
-                'games_played': total_games,
-                'win_rate': win_rate,
+            "food_finding_efficiency": self.genome.learned_behaviors.get(
+                "food_finding_efficiency", 0.0
+            ),
+            "predator_escape_skill": self.genome.learned_behaviors.get(
+                "predator_escape_skill", 0.0
+            ),
+            "energy_conservation": self.genome.learned_behaviors.get("energy_conservation", 0.0),
+            "spatial_memory_strength": self.genome.learned_behaviors.get(
+                "spatial_memory_strength", 0.0
+            ),
+            "poker_skill": {
+                "hand_selection": self.genome.learned_behaviors.get("poker_hand_selection", 0.0),
+                "positional_awareness": self.genome.learned_behaviors.get(
+                    "poker_positional_awareness", 0.0
+                ),
+                "aggression_tuning": self.genome.learned_behaviors.get(
+                    "poker_aggression_tuning", 0.0
+                ),
+                "games_played": total_games,
+                "win_rate": win_rate,
             },
-            'successful_food_finds': self.genome.learned_behaviors.get('successful_food_finds', 0),
-            'successful_predator_escapes': self.genome.learned_behaviors.get('successful_predator_escapes', 0),
+            "successful_food_finds": self.genome.learned_behaviors.get("successful_food_finds", 0),
+            "successful_predator_escapes": self.genome.learned_behaviors.get(
+                "successful_predator_escapes", 0
+            ),
         }

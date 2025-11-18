@@ -31,15 +31,17 @@ class EnergyConserver(BehaviorAlgorithm):
             parameters={
                 "activity_threshold": random.uniform(0.4, 0.7),
                 "rest_speed": random.uniform(0.1, 0.3),
-                "exploration_rate": random.uniform(0.0, 0.4),  # 0 = no exploration, 0.4 = moderate wandering
-            }
+                "exploration_rate": random.uniform(
+                    0.0, 0.4
+                ),  # 0 = no exploration, 0.4 = moderate wandering
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
@@ -78,7 +80,9 @@ class EnergyConserver(BehaviorAlgorithm):
             if food_distance < max_pursuit_distance or energy_ratio < 0.25:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 # IMPROVEMENT: Faster when food is close to save energy overall
-                speed_mult = self.parameters["rest_speed"] * (1.0 + (1.0 - min(food_distance / 50, 1.0)) * 0.5)
+                speed_mult = self.parameters["rest_speed"] * (
+                    1.0 + (1.0 - min(food_distance / 50, 1.0)) * 0.5
+                )
                 return direction.x * speed_mult, direction.y * speed_mult
 
         # Rest mode - gentle exploration based on exploration_rate parameter
@@ -104,7 +108,7 @@ class BurstSwimmer(BehaviorAlgorithm):
                 "burst_duration": random.uniform(30, 90),
                 "rest_duration": random.uniform(60, 120),
                 "burst_speed": random.uniform(1.2, 1.6),
-            }
+            },
         )
         self.cycle_timer = 0
         self.is_bursting = True
@@ -113,7 +117,7 @@ class BurstSwimmer(BehaviorAlgorithm):
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         energy_ratio = fish.energy / fish.max_energy
 
@@ -159,11 +163,17 @@ class BurstSwimmer(BehaviorAlgorithm):
             if predator_nearby:
                 # Burst away from predator
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
-                return direction.x * self.parameters["burst_speed"], direction.y * self.parameters["burst_speed"]
+                return (
+                    direction.x * self.parameters["burst_speed"],
+                    direction.y * self.parameters["burst_speed"],
+                )
             elif food_nearby:
                 # Burst toward food
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
-                return direction.x * self.parameters["burst_speed"], direction.y * self.parameters["burst_speed"]
+                return (
+                    direction.x * self.parameters["burst_speed"],
+                    direction.y * self.parameters["burst_speed"],
+                )
             else:
                 # Exploration burst - vary direction
                 angle = self.cycle_timer * 0.1
@@ -185,22 +195,28 @@ class OpportunisticRester(BehaviorAlgorithm):
             parameters={
                 "safe_radius": random.uniform(100, 200),
                 "active_speed": random.uniform(0.5, 0.9),
-                "idle_wander_speed": random.uniform(0.0, 0.3),  # 0 = stay still, 0.3 = gentle wandering
-            }
+                "idle_wander_speed": random.uniform(
+                    0.0, 0.3
+                ),  # 0 = stay still, 0.3 = gentle wandering
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Check for nearby stimuli
         foods = fish.environment.get_agents_of_type(Food)
         predators = fish.environment.get_agents_of_type(Crab)
 
-        has_nearby_food = any((f.pos - fish.pos).length() < self.parameters["safe_radius"] for f in foods)
-        has_nearby_threat = any((p.pos - fish.pos).length() < self.parameters["safe_radius"] for p in predators)
+        has_nearby_food = any(
+            (f.pos - fish.pos).length() < self.parameters["safe_radius"] for f in foods
+        )
+        has_nearby_threat = any(
+            (p.pos - fish.pos).length() < self.parameters["safe_radius"] for p in predators
+        )
 
         if has_nearby_food or has_nearby_threat:
             return self.parameters["active_speed"], 0
@@ -227,14 +243,14 @@ class EnergyBalancer(BehaviorAlgorithm):
             parameters={
                 "min_energy_ratio": random.uniform(0.3, 0.5),
                 "max_energy_ratio": random.uniform(0.7, 0.9),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # IMPROVEMENT: Use new energy methods and be more conservative
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
@@ -267,8 +283,10 @@ class EnergyBalancer(BehaviorAlgorithm):
             activity = 1.2  # Slightly more active when energy is high
         else:
             # Linear interpolation
-            activity = 0.3 + 0.9 * ((energy_ratio - self.parameters["min_energy_ratio"]) /
-                                   (self.parameters["max_energy_ratio"] - self.parameters["min_energy_ratio"]))
+            activity = 0.3 + 0.9 * (
+                (energy_ratio - self.parameters["min_energy_ratio"])
+                / (self.parameters["max_energy_ratio"] - self.parameters["min_energy_ratio"])
+            )
 
         return activity, 0
 
@@ -283,14 +301,14 @@ class SustainableCruiser(BehaviorAlgorithm):
             parameters={
                 "cruise_speed": random.uniform(0.4, 0.7),
                 "consistency": random.uniform(0.7, 1.0),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Just maintain steady pace
         return self.parameters["cruise_speed"] * self.parameters["consistency"], 0
 
@@ -305,14 +323,14 @@ class StarvationPreventer(BehaviorAlgorithm):
             parameters={
                 "critical_threshold": random.uniform(0.2, 0.4),
                 "urgency_multiplier": random.uniform(1.3, 1.8),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
@@ -325,7 +343,7 @@ class StarvationPreventer(BehaviorAlgorithm):
             nearest_food = self._find_nearest(fish, Food)
 
             # Check for remembered food locations if no visible food
-            if not nearest_food and hasattr(fish, 'get_remembered_food_locations'):
+            if not nearest_food and hasattr(fish, "get_remembered_food_locations"):
                 remembered = fish.get_remembered_food_locations()
                 if remembered:
                     # Go to closest remembered location
@@ -345,7 +363,10 @@ class StarvationPreventer(BehaviorAlgorithm):
                     return direction.x * 1.5, direction.y * 1.5
                 else:
                     direction = self._safe_normalize(nearest_food.pos - fish.pos)
-                    return direction.x * self.parameters["urgency_multiplier"] * 1.2, direction.y * self.parameters["urgency_multiplier"] * 1.2
+                    return (
+                        direction.x * self.parameters["urgency_multiplier"] * 1.2,
+                        direction.y * self.parameters["urgency_multiplier"] * 1.2,
+                    )
 
         elif is_low or energy_ratio < self.parameters["critical_threshold"]:
             # LOW: High urgency, some predator avoidance
@@ -358,7 +379,10 @@ class StarvationPreventer(BehaviorAlgorithm):
                     return direction.x * 1.3, direction.y * 1.3
                 else:
                     direction = self._safe_normalize(nearest_food.pos - fish.pos)
-                    return direction.x * self.parameters["urgency_multiplier"], direction.y * self.parameters["urgency_multiplier"]
+                    return (
+                        direction.x * self.parameters["urgency_multiplier"],
+                        direction.y * self.parameters["urgency_multiplier"],
+                    )
 
         return 0, 0
 
@@ -374,14 +398,14 @@ class MetabolicOptimizer(BehaviorAlgorithm):
                 "efficiency_threshold": random.uniform(0.5, 0.8),
                 "low_efficiency_speed": random.uniform(0.2, 0.4),
                 "high_efficiency_speed": random.uniform(0.7, 1.1),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use genome metabolism as efficiency indicator
         efficiency = 1.0 / fish.genome.metabolism_rate if fish.genome.metabolism_rate > 0 else 1.0
 
@@ -403,19 +427,21 @@ class AdaptivePacer(BehaviorAlgorithm):
             parameters={
                 "base_speed": random.uniform(0.5, 0.8),
                 "energy_influence": random.uniform(0.3, 0.7),
-            }
+            },
         )
 
     @classmethod
     def random_instance(cls):
         return cls()
 
-    def execute(self, fish: 'Fish') -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         energy_ratio = fish.energy / fish.max_energy
 
         # Base speed influenced by energy
-        base_speed = self.parameters["base_speed"] * (1 + (energy_ratio - 0.5) * self.parameters["energy_influence"])
+        base_speed = self.parameters["base_speed"] * (
+            1 + (energy_ratio - 0.5) * self.parameters["energy_influence"]
+        )
 
         # Check environment for context
         nearest_predator = self._find_nearest(fish, Crab)
@@ -455,8 +481,11 @@ class AdaptivePacer(BehaviorAlgorithm):
 
         # Social pacing - match nearby fish speeds
         if vx == 0 and vy == 0:
-            allies = [f for f in fish.environment.get_agents_of_type(FishClass)
-                     if f != fish and (f.pos - fish.pos).length() < 100]
+            allies = [
+                f
+                for f in fish.environment.get_agents_of_type(FishClass)
+                if f != fish and (f.pos - fish.pos).length() < 100
+            ]
             if allies:
                 avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)
                 if avg_vel.length() > 0:

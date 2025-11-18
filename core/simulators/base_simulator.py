@@ -8,10 +8,15 @@ import random
 from abc import ABC, abstractmethod
 from typing import List, Optional, TYPE_CHECKING
 from core.constants import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, AUTO_FOOD_SPAWN_RATE, AUTO_FOOD_ENABLED,
-    AUTO_FOOD_LOW_ENERGY_THRESHOLD, AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
-    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2, AUTO_FOOD_HIGH_POP_THRESHOLD_1,
-    AUTO_FOOD_HIGH_POP_THRESHOLD_2
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT,
+    AUTO_FOOD_SPAWN_RATE,
+    AUTO_FOOD_ENABLED,
+    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_1,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_2,
 )
 from core.algorithms import get_algorithm_index
 from core.fish_poker import PokerInteraction
@@ -40,11 +45,11 @@ class BaseSimulator(ABC):
         self.frame_count: int = 0
         self.paused: bool = False
         self.auto_food_timer: int = 0
-        self.ecosystem: Optional['EcosystemManager'] = None
-        self.environment: Optional['environment.Environment'] = None
+        self.ecosystem: Optional["EcosystemManager"] = None
+        self.environment: Optional["environment.Environment"] = None
 
     @abstractmethod
-    def get_all_entities(self) -> List['Agent']:
+    def get_all_entities(self) -> List["Agent"]:
         """Get all entities in the simulation.
 
         Returns:
@@ -53,7 +58,7 @@ class BaseSimulator(ABC):
         pass
 
     @abstractmethod
-    def add_entity(self, entity: 'Agent') -> None:
+    def add_entity(self, entity: "Agent") -> None:
         """Add an entity to the simulation.
 
         Args:
@@ -62,7 +67,7 @@ class BaseSimulator(ABC):
         pass
 
     @abstractmethod
-    def remove_entity(self, entity: 'Agent') -> None:
+    def remove_entity(self, entity: "Agent") -> None:
         """Remove an entity from the simulation.
 
         Args:
@@ -71,7 +76,7 @@ class BaseSimulator(ABC):
         pass
 
     @abstractmethod
-    def check_collision(self, e1: 'Agent', e2: 'Agent') -> bool:
+    def check_collision(self, e1: "Agent", e2: "Agent") -> bool:
         """Check if two entities collide.
 
         Args:
@@ -83,7 +88,7 @@ class BaseSimulator(ABC):
         """
         pass
 
-    def record_fish_death(self, fish: 'Fish', cause: Optional[str] = None) -> None:
+    def record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
         """Record a fish death in the ecosystem and remove it from the simulation.
 
         Args:
@@ -102,7 +107,7 @@ class BaseSimulator(ABC):
                 fish.age,
                 death_cause,
                 fish.genome,
-                algorithm_id=algorithm_id
+                algorithm_id=algorithm_id,
             )
         self.remove_entity(fish)
 
@@ -116,7 +121,7 @@ class BaseSimulator(ABC):
         self.handle_fish_collisions()
         self.handle_food_collisions()
 
-    def handle_fish_crab_collision(self, fish: 'Agent', crab: 'Agent') -> bool:
+    def handle_fish_crab_collision(self, fish: "Agent", crab: "Agent") -> bool:
         """Handle collision between a fish and a crab (predator).
 
         Args:
@@ -132,11 +137,11 @@ class BaseSimulator(ABC):
         # Crab can only kill if hunt cooldown is ready
         if crab.can_hunt():
             crab.eat_fish(fish)
-            self.record_fish_death(fish, 'predation')
+            self.record_fish_death(fish, "predation")
             return True
         return False
 
-    def handle_fish_food_collision(self, fish: 'Agent', food: 'Agent') -> None:
+    def handle_fish_food_collision(self, fish: "Agent", food: "Agent") -> None:
         """Handle collision between a fish and food.
 
         Args:
@@ -145,7 +150,7 @@ class BaseSimulator(ABC):
         """
         fish.eat(food)
 
-    def handle_fish_fish_collision(self, fish1: 'Agent', fish2: 'Agent') -> bool:
+    def handle_fish_fish_collision(self, fish1: "Agent", fish2: "Agent") -> bool:
         """Handle collision between two fish (poker interaction).
 
         Args:
@@ -268,7 +273,9 @@ class BaseSimulator(ABC):
             # Use spatial grid to find nearby fish (mating typically happens at close range)
             nearby_fish = []
             if self.environment is not None:
-                nearby_fish = self.environment.nearby_agents_by_type(fish, radius=150, agent_class=Fish)
+                nearby_fish = self.environment.nearby_agents_by_type(
+                    fish, radius=150, agent_class=Fish
+                )
             else:
                 # Fallback to checking all fish if no environment
                 nearby_fish = [f for f in fish_list if f != fish]
@@ -282,7 +289,7 @@ class BaseSimulator(ABC):
                 if fish.try_mate(potential_mate):
                     break  # Found a mate, stop looking
 
-    def spawn_auto_food(self, environment: 'environment.Environment') -> None:
+    def spawn_auto_food(self, environment: "environment.Environment") -> None:
         """Spawn automatic food if enabled.
 
         Dynamically adjusts spawn rate based on population size and total energy:
@@ -311,10 +318,16 @@ class BaseSimulator(ABC):
             spawn_rate = AUTO_FOOD_SPAWN_RATE // 2  # Double the drop rate (every 1.5 sec)
 
         # Priority 2: Reduce feeding when energy or population is high
-        elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2:
+        elif (
+            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2
+            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2
+        ):
             # Very high energy/population: Slow down significantly (every 8 sec)
             spawn_rate = AUTO_FOOD_SPAWN_RATE * 3
-        elif total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1:
+        elif (
+            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1
+            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1
+        ):
             # High energy/population: Slow down moderately (every 5 sec)
             spawn_rate = int(AUTO_FOOD_SPAWN_RATE * 1.67)
         # else: use base rate (every 3 sec)
@@ -331,14 +344,15 @@ class BaseSimulator(ABC):
                 source_plant=None,
                 allow_stationary_types=False,
                 screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT
+                screen_height=SCREEN_HEIGHT,
             )
             # Ensure the food starts exactly at the top edge before falling
             food.pos.y = 0
             self.add_entity(food)
 
-    def keep_entity_on_screen(self, entity: 'Agent', screen_width: int = SCREEN_WIDTH,
-                             screen_height: int = SCREEN_HEIGHT) -> None:
+    def keep_entity_on_screen(
+        self, entity: "Agent", screen_width: int = SCREEN_WIDTH, screen_height: int = SCREEN_HEIGHT
+    ) -> None:
         """Keep an entity fully within the bounds of the screen.
 
         Args:
@@ -371,13 +385,14 @@ class BaseSimulator(ABC):
         # Subclasses can override to add notifications, logging, etc.
         pass
 
-    def get_fish_list(self) -> List['Fish']:
+    def get_fish_list(self) -> List["Fish"]:
         """Get all fish entities in the simulation.
 
         Returns:
             List of all Fish entities
         """
         from core.entities import Fish
+
         return [e for e in self.get_all_entities() if isinstance(e, Fish)]
 
     def get_fish_count(self) -> int:

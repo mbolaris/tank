@@ -17,6 +17,7 @@ from core.math_utils import Vector2
 
 class MemoryType(Enum):
     """Types of memories a fish can have."""
+
     FOOD_LOCATION = "food_location"
     DANGER_ZONE = "danger_zone"
     SAFE_ZONE = "safe_zone"
@@ -27,6 +28,7 @@ class MemoryType(Enum):
 @dataclass
 class Memory:
     """A single memory entry."""
+
     memory_type: MemoryType
     location: Vector2
     strength: float = 1.0  # 0.0 to 1.0, decays over time
@@ -45,7 +47,9 @@ class Memory:
 
     def is_expired(self, max_age: int = 1800) -> bool:
         """Check if memory is too old (default 60 seconds at 30fps)."""
-        return self.strength <= 0.0 or (max_age > 0 and self.timestamp > 0 and time.time() - self.timestamp > max_age)
+        return self.strength <= 0.0 or (
+            max_age > 0 and self.timestamp > 0 and time.time() - self.timestamp > max_age
+        )
 
 
 @dataclass
@@ -71,8 +75,13 @@ class FishMemorySystem:
             if memory_type not in self.memories:
                 self.memories[memory_type] = []
 
-    def add_memory(self, memory_type: MemoryType, location: Vector2,
-                   strength: float = 1.0, metadata: Optional[Dict] = None):
+    def add_memory(
+        self,
+        memory_type: MemoryType,
+        location: Vector2,
+        strength: float = 1.0,
+        metadata: Optional[Dict] = None,
+    ):
         """Add a new memory or reinforce existing one nearby.
 
         Args:
@@ -97,7 +106,7 @@ class FishMemorySystem:
                 location=location,
                 strength=strength,
                 timestamp=self.current_frame,
-                metadata=metadata or {}
+                metadata=metadata or {},
             )
             self.memories[memory_type].append(memory)
 
@@ -107,9 +116,13 @@ class FishMemorySystem:
                 self.memories[memory_type].sort(key=lambda m: m.strength)
                 self.memories[memory_type].pop(0)
 
-    def find_nearest_memory(self, memory_type: MemoryType, current_pos: Vector2,
-                           max_distance: float = float('inf'),
-                           min_strength: float = 0.1) -> Optional[Memory]:
+    def find_nearest_memory(
+        self,
+        memory_type: MemoryType,
+        current_pos: Vector2,
+        max_distance: float = float("inf"),
+        min_strength: float = 0.1,
+    ) -> Optional[Memory]:
         """Find nearest memory of given type.
 
         Args:
@@ -122,8 +135,7 @@ class FishMemorySystem:
             Nearest memory or None
         """
         valid_memories = [
-            m for m in self.memories.get(memory_type, [])
-            if m.strength >= min_strength
+            m for m in self.memories.get(memory_type, []) if m.strength >= min_strength
         ]
 
         if not valid_memories:
@@ -137,8 +149,7 @@ class FishMemorySystem:
             return nearest
         return None
 
-    def get_all_memories(self, memory_type: MemoryType,
-                        min_strength: float = 0.1) -> List[Memory]:
+    def get_all_memories(self, memory_type: MemoryType, min_strength: float = 0.1) -> List[Memory]:
         """Get all memories of a type above minimum strength.
 
         Args:
@@ -148,13 +159,11 @@ class FishMemorySystem:
         Returns:
             List of valid memories
         """
-        return [
-            m for m in self.memories.get(memory_type, [])
-            if m.strength >= min_strength
-        ]
+        return [m for m in self.memories.get(memory_type, []) if m.strength >= min_strength]
 
-    def remember_success(self, memory_type: MemoryType, location: Vector2,
-                        proximity_radius: float = 50.0):
+    def remember_success(
+        self, memory_type: MemoryType, location: Vector2, proximity_radius: float = 50.0
+    ):
         """Mark memories near a location as successful.
 
         Args:
@@ -167,8 +176,9 @@ class FishMemorySystem:
                 memory.success_count += 1
                 memory.reinforce(self.learning_rate * 2.0)  # Double reinforcement for success
 
-    def remember_failure(self, memory_type: MemoryType, location: Vector2,
-                        proximity_radius: float = 50.0):
+    def remember_failure(
+        self, memory_type: MemoryType, location: Vector2, proximity_radius: float = 50.0
+    ):
         """Mark memories near a location as failures.
 
         Args:
@@ -190,10 +200,7 @@ class FishMemorySystem:
         Returns:
             Best memory or None
         """
-        valid_memories = [
-            m for m in self.memories.get(memory_type, [])
-            if m.strength >= 0.1
-        ]
+        valid_memories = [m for m in self.memories.get(memory_type, []) if m.strength >= 0.1]
 
         if not valid_memories:
             return None
@@ -228,8 +235,7 @@ class FishMemorySystem:
 
             # Remove expired memories
             self.memories[memory_type] = [
-                m for m in memories
-                if not m.is_expired(max_age=1800)  # 60 seconds at 30fps
+                m for m in memories if not m.is_expired(max_age=1800)  # 60 seconds at 30fps
             ]
 
     def clear_memories(self, memory_type: Optional[MemoryType] = None):

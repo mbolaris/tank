@@ -8,11 +8,18 @@ import logging
 import time
 from typing import List, Optional, Dict, Any
 from core.constants import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, FILES, FRAME_RATE,
-    MAX_DIVERSITY_SPAWN_ATTEMPTS, SPAWN_MARGIN_PIXELS,
-    MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES,
-    SEPARATOR_WIDTH, TOTAL_ALGORITHM_COUNT,
-    MAX_POPULATION, CRITICAL_POPULATION_THRESHOLD
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT,
+    FILES,
+    FRAME_RATE,
+    MAX_DIVERSITY_SPAWN_ATTEMPTS,
+    SPAWN_MARGIN_PIXELS,
+    MAX_POKER_EVENTS,
+    POKER_EVENT_MAX_AGE_FRAMES,
+    SEPARATOR_WIDTH,
+    TOTAL_ALGORITHM_COUNT,
+    MAX_POPULATION,
+    CRITICAL_POPULATION_THRESHOLD,
 )
 from core import environment, entities
 from core.ecosystem import EcosystemManager
@@ -22,6 +29,37 @@ from core.entity_factory import create_initial_population
 from core.simulators.base_simulator import BaseSimulator
 
 logger = logging.getLogger(__name__)
+
+
+class AgentsWrapper:
+    """Wrapper to make entities_list compatible with pygame sprite group API."""
+
+    def __init__(self, entities_list: List):
+        self._entities = entities_list
+
+    def add(self, *entities):
+        """Add entities to the list."""
+        for entity in entities:
+            if entity not in self._entities:
+                self._entities.append(entity)
+
+    def remove(self, *entities):
+        """Remove entities from the list."""
+        for entity in entities:
+            if entity in self._entities:
+                self._entities.remove(entity)
+
+    def __contains__(self, entity):
+        """Check if entity is in the list."""
+        return entity in self._entities
+
+    def __iter__(self):
+        """Iterate over entities."""
+        return iter(self._entities)
+
+    def __len__(self):
+        """Get number of entities."""
+        return len(self._entities)
 
 
 class SimulationEngine(BaseSimulator):
@@ -53,6 +91,14 @@ class SimulationEngine(BaseSimulator):
         self.time_system: TimeSystem = TimeSystem()
         self.start_time: float = time.time()
         self.poker_events: List[Dict[str, Any]] = []  # Recent poker events
+        self._agents_wrapper: Optional[AgentsWrapper] = None
+
+    @property
+    def agents(self) -> AgentsWrapper:
+        """Get agents wrapper for compatibility with tests."""
+        if self._agents_wrapper is None:
+            self._agents_wrapper = AgentsWrapper(self.entities_list)
+        return self._agents_wrapper
 
     def setup(self) -> None:
         """Setup the simulation."""
@@ -69,10 +115,7 @@ class SimulationEngine(BaseSimulator):
 
         # Use centralized factory function for initial population
         population = create_initial_population(
-            self.environment,
-            self.ecosystem,
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT
+            self.environment, self.ecosystem, SCREEN_WIDTH, SCREEN_HEIGHT
         )
         self.entities_list.extend(population)
 
@@ -101,10 +144,12 @@ class SimulationEngine(BaseSimulator):
             True if entities overlap
         """
         # Simple bounding box collision
-        return (e1.pos.x < e2.pos.x + e2.width and
-                e1.pos.x + e1.width > e2.pos.x and
-                e1.pos.y < e2.pos.y + e2.height and
-                e1.pos.y + e1.height > e2.pos.y)
+        return (
+            e1.pos.x < e2.pos.x + e2.width
+            and e1.pos.x + e1.width > e2.pos.x
+            and e1.pos.y < e2.pos.y + e2.height
+            and e1.pos.y + e1.height > e2.pos.y
+        )
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Handle the result of a poker game by logging to events list.
@@ -113,7 +158,11 @@ class SimulationEngine(BaseSimulator):
         """
         self.add_poker_event(poker)
 
-        if poker.result is not None and poker.result.reproduction_occurred and poker.result.offspring is not None:
+        if (
+            poker.result is not None
+            and poker.result.reproduction_occurred
+            and poker.result.offspring is not None
+        ):
             offspring = poker.result.offspring
             self.add_entity(offspring)
             # Note: Birth is automatically recorded by Fish.__init__ when ecosystem is provided
@@ -134,7 +183,9 @@ class SimulationEngine(BaseSimulator):
             if isinstance(entity, entities.Fish):
                 newborn = entity.update(self.frame_count, time_modifier)
                 if newborn is not None and self.ecosystem is not None:
-                    fish_count = len([e for e in self.entities_list if isinstance(e, entities.Fish)])
+                    fish_count = len(
+                        [e for e in self.entities_list if isinstance(e, entities.Fish)]
+                    )
                     if self.ecosystem.can_reproduce(fish_count):
                         new_entities.append(newborn)
 
@@ -201,11 +252,11 @@ class SimulationEngine(BaseSimulator):
             existing_algorithms = set()
             existing_species = set()
             for fish in fish_list:
-                if hasattr(fish, 'genome') and hasattr(fish.genome, 'behavior_algorithm'):
+                if hasattr(fish, "genome") and hasattr(fish.genome, "behavior_algorithm"):
                     algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
                     if algo_idx >= 0:
                         existing_algorithms.add(algo_idx)
-                if hasattr(fish, 'species'):
+                if hasattr(fish, "species"):
                     existing_species.add(fish.species)
 
             # Create genome with an algorithm not currently in population (if possible)
@@ -214,7 +265,7 @@ class SimulationEngine(BaseSimulator):
 
             # Try to pick a different algorithm than existing ones (up to MAX_DIVERSITY_SPAWN_ATTEMPTS)
             for _ in range(MAX_DIVERSITY_SPAWN_ATTEMPTS):
-                if hasattr(genome, 'behavior_algorithm'):
+                if hasattr(genome, "behavior_algorithm"):
                     algo_idx = get_algorithm_index(genome.behavior_algorithm)
                     if algo_idx >= 0 and algo_idx not in existing_algorithms:
                         break
@@ -231,14 +282,15 @@ class SimulationEngine(BaseSimulator):
         new_fish = entities.Fish(
             self.environment,
             movement_strategy.AlgorithmicMovement(),
-            FILES['schooling_fish'][0],
-            x, y,
+            FILES["schooling_fish"][0],
+            x,
+            y,
             4,
             genome=genome,
             generation=0,  # Reset generation for emergency spawns
             ecosystem=self.ecosystem,
             screen_width=SCREEN_WIDTH,
-            screen_height=SCREEN_HEIGHT
+            screen_height=SCREEN_HEIGHT,
         )
 
         self.add_entity(new_fish)
@@ -255,7 +307,9 @@ class SimulationEngine(BaseSimulator):
         if result.winner_id == -1:
             # Tie
             hand1_desc = result.hand1.description if result.hand1 is not None else "Unknown"
-            message = f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
+            message = (
+                f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
+            )
         else:
             winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
             loser_hand = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
@@ -267,13 +321,15 @@ class SimulationEngine(BaseSimulator):
         loser_hand_obj = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
 
         event = {
-            'frame': self.frame_count,
-            'winner_id': result.winner_id,
-            'loser_id': result.loser_id,
-            'winner_hand': winner_hand_obj.description if winner_hand_obj is not None else "Unknown",
-            'loser_hand': loser_hand_obj.description if loser_hand_obj is not None else "Unknown",
-            'energy_transferred': result.energy_transferred,
-            'message': message
+            "frame": self.frame_count,
+            "winner_id": result.winner_id,
+            "loser_id": result.loser_id,
+            "winner_hand": (
+                winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
+            ),
+            "loser_hand": loser_hand_obj.description if loser_hand_obj is not None else "Unknown",
+            "energy_transferred": result.energy_transferred,
+            "message": message,
         }
 
         self.poker_events.append(event)
@@ -282,11 +338,14 @@ class SimulationEngine(BaseSimulator):
         if len(self.poker_events) > MAX_POKER_EVENTS:
             self.poker_events.pop(0)
 
-    def get_recent_poker_events(self, max_age_frames: int = POKER_EVENT_MAX_AGE_FRAMES) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(
+        self, max_age_frames: int = POKER_EVENT_MAX_AGE_FRAMES
+    ) -> List[Dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
         return [
-            event for event in self.poker_events
-            if self.frame_count - event['frame'] < max_age_frames
+            event
+            for event in self.poker_events
+            if self.frame_count - event["frame"] < max_age_frames
         ]
 
     def get_stats(self) -> Dict[str, Any]:
@@ -299,15 +358,19 @@ class SimulationEngine(BaseSimulator):
             return {}
 
         stats = self.ecosystem.get_summary_stats(self.get_all_entities())
-        stats['frame_count'] = self.frame_count
-        stats['time_string'] = self.time_system.get_time_string()
-        stats['elapsed_real_time'] = time.time() - self.start_time
-        stats['simulation_speed'] = self.frame_count / (FRAME_RATE * (time.time() - self.start_time)) if time.time() > self.start_time else 0
+        stats["frame_count"] = self.frame_count
+        stats["time_string"] = self.time_system.get_time_string()
+        stats["elapsed_real_time"] = time.time() - self.start_time
+        stats["simulation_speed"] = (
+            self.frame_count / (FRAME_RATE * (time.time() - self.start_time))
+            if time.time() > self.start_time
+            else 0
+        )
 
         # Add entity counts
-        stats['fish_count'] = len([e for e in self.entities_list if isinstance(e, entities.Fish)])
-        stats['food_count'] = len([e for e in self.entities_list if isinstance(e, entities.Food)])
-        stats['plant_count'] = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
+        stats["fish_count"] = len([e for e in self.entities_list if isinstance(e, entities.Fish)])
+        stats["food_count"] = len([e for e in self.entities_list if isinstance(e, entities.Food)])
+        stats["plant_count"] = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
 
         return stats
 
@@ -322,7 +385,9 @@ class SimulationEngine(BaseSimulator):
         logger.info(f"Real Time: {stats.get('elapsed_real_time', 0):.1f}s")
         logger.info(f"Simulation Speed: {stats.get('simulation_speed', 0):.2f}x")
         logger.info("-" * SEPARATOR_WIDTH)
-        logger.info(f"Population: {stats.get('total_population', 0)}/{self.ecosystem.max_population if self.ecosystem else 'N/A'}")
+        logger.info(
+            f"Population: {stats.get('total_population', 0)}/{self.ecosystem.max_population if self.ecosystem else 'N/A'}"
+        )
         logger.info(f"Generation: {stats.get('current_generation', 0)}")
         logger.info(f"Total Births: {stats.get('total_births', 0)}")
         logger.info(f"Total Deaths: {stats.get('total_deaths', 0)}")
@@ -333,7 +398,7 @@ class SimulationEngine(BaseSimulator):
         logger.info(f"Plants: {stats.get('plant_count', 0)}")
 
         # Death causes
-        death_causes = stats.get('death_causes', {})
+        death_causes = stats.get("death_causes", {})
         if death_causes:
             logger.info("-" * SEPARATOR_WIDTH)
             logger.info("Death Causes:")
@@ -341,7 +406,7 @@ class SimulationEngine(BaseSimulator):
                 logger.info(f"  {cause}: {count}")
 
         # Reproduction stats
-        repro_stats = stats.get('reproduction_stats', {})
+        repro_stats = stats.get("reproduction_stats", {})
         if repro_stats:
             logger.info("-" * SEPARATOR_WIDTH)
             logger.info("Reproduction Stats:")
@@ -353,11 +418,13 @@ class SimulationEngine(BaseSimulator):
             logger.info(f"  Total Offspring: {repro_stats.get('total_offspring', 0)}")
 
         # Genetic diversity stats
-        diversity_stats = stats.get('diversity_stats', {})
+        diversity_stats = stats.get("diversity_stats", {})
         if diversity_stats:
             logger.info("-" * SEPARATOR_WIDTH)
             logger.info("Genetic Diversity:")
-            logger.info(f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/{TOTAL_ALGORITHM_COUNT}")
+            logger.info(
+                f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/{TOTAL_ALGORITHM_COUNT}"
+            )
             logger.info(f"  Unique Species: {diversity_stats.get('unique_species', 0)}/4")
             logger.info(f"  Diversity Score: {diversity_stats.get('diversity_score_pct', 'N/A')}")
             logger.info(f"  Color Variance: {diversity_stats.get('color_variance', 0):.4f}")
@@ -377,7 +444,9 @@ class SimulationEngine(BaseSimulator):
         logger.info("=" * SEPARATOR_WIDTH)
         logger.info("HEADLESS FISH TANK SIMULATION")
         logger.info("=" * SEPARATOR_WIDTH)
-        logger.info(f"Running for {max_frames} frames ({max_frames / FRAME_RATE:.1f} seconds of sim time)")
+        logger.info(
+            f"Running for {max_frames} frames ({max_frames / FRAME_RATE:.1f} seconds of sim time)"
+        )
         logger.info(f"Stats will be printed every {stats_interval} frames")
         logger.info("=" * SEPARATOR_WIDTH)
 
@@ -407,7 +476,7 @@ class SimulationEngine(BaseSimulator):
             logger.info(f"{report}")
 
             # Save to file
-            with open('algorithm_performance_report.txt', 'w') as f:
+            with open("algorithm_performance_report.txt", "w") as f:
                 f.write(report)
             logger.info("")
             logger.info("Report saved to: algorithm_performance_report.txt")

@@ -3,6 +3,7 @@
 
 from core.genetics import Genome
 
+
 def test_visual_traits():
     """Test that visual traits are properly initialized and inherited"""
 
@@ -12,7 +13,7 @@ def test_visual_traits():
 
     # Test 1: Random genome generation
     print("\n1. Testing random genome generation:")
-    genome1 = Genome.random(use_brain=False, use_algorithm=False)
+    genome1 = Genome.random(use_algorithm=False)
 
     print(f"   Template ID: {genome1.template_id} (should be 0-5)")
     print(f"   Fin Size: {genome1.fin_size:.2f} (should be 0.6-1.4)")
@@ -36,31 +37,35 @@ def test_visual_traits():
 
     # Test 2: Create another random genome for breeding
     print("\n2. Testing inheritance from two parents:")
-    genome2 = Genome.random(use_brain=False, use_algorithm=False)
+    genome2 = Genome.random(use_algorithm=False)
 
     print(f"\n   Parent 1:")
-    print(f"      Template: {genome1.template_id}, Fin: {genome1.fin_size:.2f}, Tail: {genome1.tail_size:.2f}")
+    print(
+        f"      Template: {genome1.template_id}, Fin: {genome1.fin_size:.2f}, Tail: {genome1.tail_size:.2f}"
+    )
     print(f"      Body Aspect: {genome1.body_aspect:.2f}, Eye: {genome1.eye_size:.2f}")
     print(f"      Pattern: Type {genome1.pattern_type}, Intensity {genome1.pattern_intensity:.2f}")
 
     print(f"\n   Parent 2:")
-    print(f"      Template: {genome2.template_id}, Fin: {genome2.fin_size:.2f}, Tail: {genome2.tail_size:.2f}")
+    print(
+        f"      Template: {genome2.template_id}, Fin: {genome2.fin_size:.2f}, Tail: {genome2.tail_size:.2f}"
+    )
     print(f"      Body Aspect: {genome2.body_aspect:.2f}, Eye: {genome2.eye_size:.2f}")
     print(f"      Pattern: Type {genome2.pattern_type}, Intensity {genome2.pattern_intensity:.2f}")
 
     # Test 3: Create offspring
     offspring = Genome.from_parents(
-        genome1,
-        genome2,
-        mutation_rate=0.1,
-        mutation_strength=0.1,
-        population_stress=0.0
+        genome1, genome2, mutation_rate=0.1, mutation_strength=0.1, population_stress=0.0
     )
 
     print(f"\n   Offspring:")
-    print(f"      Template: {offspring.template_id}, Fin: {offspring.fin_size:.2f}, Tail: {offspring.tail_size:.2f}")
+    print(
+        f"      Template: {offspring.template_id}, Fin: {offspring.fin_size:.2f}, Tail: {offspring.tail_size:.2f}"
+    )
     print(f"      Body Aspect: {offspring.body_aspect:.2f}, Eye: {offspring.eye_size:.2f}")
-    print(f"      Pattern: Type {offspring.pattern_type}, Intensity {offspring.pattern_intensity:.2f}")
+    print(
+        f"      Pattern: Type {offspring.pattern_type}, Intensity {offspring.pattern_intensity:.2f}"
+    )
 
     # Validate offspring ranges
     assert 0 <= offspring.template_id <= 5, "offspring template_id out of range"
@@ -108,13 +113,15 @@ def test_visual_traits():
         genome2,
         mutation_rate=0.2,
         mutation_strength=0.2,
-        population_stress=0.8  # High stress
+        population_stress=0.8,  # High stress
     )
 
     print(f"   Stressed offspring:")
     print(f"      Template: {stressed_offspring.template_id}")
     print(f"      Fin: {stressed_offspring.fin_size:.2f}, Tail: {stressed_offspring.tail_size:.2f}")
-    print(f"      Pattern: Type {stressed_offspring.pattern_type}, Intensity {stressed_offspring.pattern_intensity:.2f}")
+    print(
+        f"      Pattern: Type {stressed_offspring.pattern_type}, Intensity {stressed_offspring.pattern_intensity:.2f}"
+    )
 
     print("\n   ✓ High-stress mutations applied successfully")
 
@@ -125,6 +132,7 @@ def test_visual_traits():
     print("Visual traits are properly inherited and mutated across generations.")
     print("\nYou can now run the simulation to see diverse fish evolving!")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     test_visual_traits()

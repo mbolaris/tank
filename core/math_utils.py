@@ -30,10 +30,10 @@ except ImportError:
             return Vector2(self.x / scalar, self.y / scalar)
 
         def length(self):
-            return math.sqrt(self.x ** 2 + self.y ** 2)
+            return math.sqrt(self.x**2 + self.y**2)
 
         def length_squared(self):
-            return self.x ** 2 + self.y ** 2
+            return self.x**2 + self.y**2
 
         def normalize(self):
             length = self.length()
@@ -52,8 +52,18 @@ except ImportError:
             """Return a copy of this vector."""
             return Vector2(self.x, self.y)
 
+        def __eq__(self, other):
+            """Check if two vectors are equal."""
+            if not isinstance(other, Vector2):
+                return False
+            return abs(self.x - other.x) < 1e-9 and abs(self.y - other.y) < 1e-9
+
+        def __ne__(self, other):
+            """Check if two vectors are not equal."""
+            return not self.__eq__(other)
+
         def __repr__(self):
             return f"Vector2({self.x}, {self.y})"
 
 
-__all__ = ['Vector2']
+__all__ = ["Vector2"]

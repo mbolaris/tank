@@ -8,9 +8,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import json
 
-from core.constants import (
-    TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT, MAX_ECOSYSTEM_EVENTS
-)
+from core.constants import TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT, MAX_ECOSYSTEM_EVENTS
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -34,6 +32,7 @@ class AlgorithmStats:
         total_lifespan: Sum of lifespans for averaging
         total_food_eaten: Total food items consumed by fish with this algorithm
     """
+
     algorithm_id: int
     algorithm_name: str = ""
     total_births: int = 0
@@ -70,6 +69,7 @@ class GenerationStats:
         avg_size: Average size modifier
         avg_energy: Average max energy
     """
+
     generation: int
     population: int = 0
     births: int = 0
@@ -109,6 +109,7 @@ class PokerStats:
         total_raises: Total number of raises made
         total_calls: Total number of calls made
     """
+
     algorithm_id: int
     total_games: int = 0
     total_wins: int = 0
@@ -167,7 +168,11 @@ class PokerStats:
         VPIP measures how often a player plays a hand (doesn't fold pre-flop).
         Higher VPIP = looser play, Lower VPIP = tighter play.
         """
-        return (self.total_games - self.preflop_folds) / self.total_games if self.total_games > 0 else 0.0
+        return (
+            (self.total_games - self.preflop_folds) / self.total_games
+            if self.total_games > 0
+            else 0.0
+        )
 
     def get_bluff_success_rate(self) -> float:
         """Calculate bluff success rate (wins by fold / total folds by opponent).
@@ -207,6 +212,7 @@ class EcosystemEvent:
         fish_id: ID of the fish involved
         details: Additional details about the event
     """
+
     frame: int
     event_type: str
     fish_id: int
@@ -224,6 +230,7 @@ class ReproductionStats:
         current_pregnant_fish: Current number of pregnant fish
         total_offspring: Total offspring produced
     """
+
     total_reproductions: int = 0
     total_mating_attempts: int = 0
     total_failed_attempts: int = 0
@@ -232,11 +239,17 @@ class ReproductionStats:
 
     def get_success_rate(self) -> float:
         """Calculate mating success rate."""
-        return self.total_reproductions / self.total_mating_attempts if self.total_mating_attempts > 0 else 0.0
+        return (
+            self.total_reproductions / self.total_mating_attempts
+            if self.total_mating_attempts > 0
+            else 0.0
+        )
 
     def get_offspring_per_reproduction(self) -> float:
         """Calculate average offspring per reproduction."""
-        return self.total_offspring / self.total_reproductions if self.total_reproductions > 0 else 0.0
+        return (
+            self.total_offspring / self.total_reproductions if self.total_reproductions > 0 else 0.0
+        )
 
 
 @dataclass
@@ -250,6 +263,7 @@ class GeneticDiversityStats:
         trait_variances: Dict of trait name to variance
         avg_genome_similarity: Average genetic similarity (0-1, optional)
     """
+
     unique_algorithms: int = 0
     unique_species: int = 0
     color_variance: float = 0.0
@@ -300,9 +314,7 @@ class EcosystemManager:
         self.max_events: int = MAX_ECOSYSTEM_EVENTS
 
         # Statistics tracking
-        self.generation_stats: Dict[int, GenerationStats] = {
-            0: GenerationStats(generation=0)
-        }
+        self.generation_stats: Dict[int, GenerationStats] = {0: GenerationStats(generation=0)}
 
         # Death cause tracking
         self.death_causes: Dict[str, int] = defaultdict(int)
@@ -323,6 +335,7 @@ class EcosystemManager:
 
         # NEW: Enhanced statistics tracker (time series, correlations, extinctions, etc.)
         from core.enhanced_statistics import EnhancedStatisticsTracker
+
         self.enhanced_stats: EnhancedStatisticsTracker = EnhancedStatisticsTracker(
             max_history_length=1000
         )
@@ -335,19 +348,16 @@ class EcosystemManager:
         # Import here to avoid circular dependency
         try:
             from core.algorithms import ALL_ALGORITHMS
+
             for i, algo_class in enumerate(ALL_ALGORITHMS):
                 # Get algorithm name from class
                 algo_name = algo_class.__name__
-                self.algorithm_stats[i] = AlgorithmStats(
-                    algorithm_id=i,
-                    algorithm_name=algo_name
-                )
+                self.algorithm_stats[i] = AlgorithmStats(algorithm_id=i, algorithm_name=algo_name)
         except ImportError:
             # If behavior_algorithms not available, just initialize empty
             for i in range(TOTAL_ALGORITHM_COUNT):
                 self.algorithm_stats[i] = AlgorithmStats(
-                    algorithm_id=i,
-                    algorithm_name=f"Algorithm_{i}"
+                    algorithm_id=i, algorithm_name=f"Algorithm_{i}"
                 )
 
     def _init_poker_stats(self) -> None:
@@ -388,8 +398,13 @@ class EcosystemManager:
         """
         return current_population < self.max_population
 
-    def record_birth(self, fish_id: int, generation: int, parent_ids: Optional[List[int]] = None,
-                     algorithm_id: Optional[int] = None) -> None:
+    def record_birth(
+        self,
+        fish_id: int,
+        generation: int,
+        parent_ids: Optional[List[int]] = None,
+        algorithm_id: Optional[int] = None,
+    ) -> None:
         """Record a birth event.
 
         Args:
@@ -423,16 +438,22 @@ class EcosystemManager:
         details = f"Parents: {parent_ids}" if parent_ids else "Initial spawn"
         if algorithm_id is not None:
             details += f", Algorithm: {algorithm_id}"
-        self._add_event(EcosystemEvent(
-            frame=self.frame_count,
-            event_type='birth',
-            fish_id=fish_id,
-            details=details
-        ))
+        self._add_event(
+            EcosystemEvent(
+                frame=self.frame_count, event_type="birth", fish_id=fish_id, details=details
+            )
+        )
 
-    def record_death(self, fish_id: int, generation: int, age: int,
-                     cause: str = 'unknown', genome: Optional['Genome'] = None,
-                     algorithm_id: Optional[int] = None, remaining_energy: float = 0.0) -> None:
+    def record_death(
+        self,
+        fish_id: int,
+        generation: int,
+        age: int,
+        cause: str = "unknown",
+        genome: Optional["Genome"] = None,
+        algorithm_id: Optional[int] = None,
+        remaining_energy: float = 0.0,
+    ) -> None:
         """Record a death event.
 
         Args:
@@ -470,11 +491,11 @@ class EcosystemManager:
             algo_stats.total_lifespan += age
 
             # Track death cause by algorithm
-            if cause == 'starvation':
+            if cause == "starvation":
                 algo_stats.deaths_starvation += 1
-            elif cause == 'old_age':
+            elif cause == "old_age":
                 algo_stats.deaths_old_age += 1
-            elif cause == 'predation':
+            elif cause == "predation":
                 algo_stats.deaths_predation += 1
 
         # NEW: Record trait-fitness correlation sample (before death)
@@ -488,14 +509,13 @@ class EcosystemManager:
         details = f"Age: {age}, Generation: {generation}"
         if algorithm_id is not None:
             details += f", Algorithm: {algorithm_id}"
-        self._add_event(EcosystemEvent(
-            frame=self.frame_count,
-            event_type=cause,
-            fish_id=fish_id,
-            details=details
-        ))
+        self._add_event(
+            EcosystemEvent(
+                frame=self.frame_count, event_type=cause, fish_id=fish_id, details=details
+            )
+        )
 
-    def update_population_stats(self, fish_list: List['Fish']) -> None:
+    def update_population_stats(self, fish_list: List["Fish"]) -> None:
         """Update population statistics from current fish.
 
         Args:
@@ -505,9 +525,9 @@ class EcosystemManager:
             return
 
         # Group by generation
-        gen_fish: Dict[int, List['Fish']] = defaultdict(list)
+        gen_fish: Dict[int, List["Fish"]] = defaultdict(list)
         for fish in fish_list:
-            if hasattr(fish, 'generation'):
+            if hasattr(fish, "generation"):
                 gen_fish[fish.generation].append(fish)
 
         # Update stats for each generation
@@ -520,23 +540,27 @@ class EcosystemManager:
 
             # Calculate averages
             if fishes:
-                fishes_with_genome = [f for f in fishes if hasattr(f, 'genome')]
+                fishes_with_genome = [f for f in fishes if hasattr(f, "genome")]
                 if fishes_with_genome:
-                    stats.avg_speed = (
-                        sum(f.genome.speed_modifier for f in fishes_with_genome) / len(fishes)
+                    stats.avg_speed = sum(
+                        f.genome.speed_modifier for f in fishes_with_genome
+                    ) / len(fishes)
+                    stats.avg_size = sum(f.genome.size_modifier for f in fishes_with_genome) / len(
+                        fishes
                     )
-                    stats.avg_size = (
-                        sum(f.genome.size_modifier for f in fishes_with_genome) / len(fishes)
-                    )
-                    stats.avg_energy = (
-                        sum(f.genome.max_energy for f in fishes_with_genome) / len(fishes)
+                    stats.avg_energy = sum(f.genome.max_energy for f in fishes_with_genome) / len(
+                        fishes
                     )
 
         # Update genetic diversity stats
         self.update_genetic_diversity_stats(fish_list)
 
         # Update pregnant fish count
-        pregnant_count = sum(1 for fish in fish_list if hasattr(fish, 'reproduction') and fish.reproduction.is_pregnant)
+        pregnant_count = sum(
+            1
+            for fish in fish_list
+            if hasattr(fish, "reproduction") and fish.reproduction.is_pregnant
+        )
         self.update_pregnant_count(pregnant_count)
 
         # NEW: Record time series snapshot for enhanced statistics
@@ -546,10 +570,10 @@ class EcosystemManager:
                 frame=self.frame_count,
                 fish_list=fish_list,
                 births_this_frame=0,  # Will be updated separately
-                deaths_this_frame=0
+                deaths_this_frame=0,
             )
 
-    def update_genetic_diversity_stats(self, fish_list: List['Fish']) -> None:
+    def update_genetic_diversity_stats(self, fish_list: List["Fish"]) -> None:
         """Calculate and update genetic diversity statistics.
 
         Args:
@@ -575,24 +599,28 @@ class EcosystemManager:
 
         for fish in fish_list:
             # Count algorithms (using get_algorithm_index to get the index)
-            if hasattr(fish, 'genome') and hasattr(fish.genome, 'behavior_algorithm') and get_algorithm_index is not None:
+            if (
+                hasattr(fish, "genome")
+                and hasattr(fish.genome, "behavior_algorithm")
+                and get_algorithm_index is not None
+            ):
                 algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
                 if algo_idx >= 0:
                     algorithms.add(algo_idx)
 
             # Count species
-            if hasattr(fish, 'species'):
+            if hasattr(fish, "species"):
                 species.add(fish.species)
 
             # Collect trait values
-            if hasattr(fish, 'genome'):
-                if hasattr(fish.genome, 'color_hue'):
+            if hasattr(fish, "genome"):
+                if hasattr(fish.genome, "color_hue"):
                     color_hues.append(fish.genome.color_hue)
-                if hasattr(fish.genome, 'speed_modifier'):
+                if hasattr(fish.genome, "speed_modifier"):
                     speed_modifiers.append(fish.genome.speed_modifier)
-                if hasattr(fish.genome, 'size_modifier'):
+                if hasattr(fish.genome, "size_modifier"):
                     size_modifiers.append(fish.genome.size_modifier)
-                if hasattr(fish.genome, 'vision_range'):
+                if hasattr(fish.genome, "vision_range"):
                     vision_ranges.append(fish.genome.vision_range)
 
         # Calculate variance for color (0-1 scale)
@@ -605,15 +633,21 @@ class EcosystemManager:
         trait_variances = {}
         if len(speed_modifiers) > 1:
             mean_speed = sum(speed_modifiers) / len(speed_modifiers)
-            trait_variances['speed'] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / len(speed_modifiers)
+            trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / len(
+                speed_modifiers
+            )
 
         if len(size_modifiers) > 1:
             mean_size = sum(size_modifiers) / len(size_modifiers)
-            trait_variances['size'] = sum((s - mean_size) ** 2 for s in size_modifiers) / len(size_modifiers)
+            trait_variances["size"] = sum((s - mean_size) ** 2 for s in size_modifiers) / len(
+                size_modifiers
+            )
 
         if len(vision_ranges) > 1:
             mean_vision = sum(vision_ranges) / len(vision_ranges)
-            trait_variances['vision'] = sum((v - mean_vision) ** 2 for v in vision_ranges) / len(vision_ranges)
+            trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / len(
+                vision_ranges
+            )
 
         # Update diversity stats
         self.genetic_diversity_stats.unique_algorithms = len(algorithms)
@@ -631,7 +665,7 @@ class EcosystemManager:
 
         # Trim old events if we exceed max
         if len(self.events) > self.max_events:
-            self.events = self.events[-self.max_events:]
+            self.events = self.events[-self.max_events :]
 
     def get_recent_events(self, count: int = 10) -> List[EcosystemEvent]:
         """Get the most recent events.
@@ -650,7 +684,11 @@ class EcosystemManager:
         Returns:
             Dictionary mapping generation number to population count
         """
-        return {gen: stats.population for gen, stats in self.generation_stats.items() if stats.population > 0}
+        return {
+            gen: stats.population
+            for gen, stats in self.generation_stats.items()
+            if stats.population > 0
+        }
 
     def get_total_population(self) -> int:
         """Get total current population across all generations.
@@ -676,24 +714,28 @@ class EcosystemManager:
         total_energy = 0.0
         if entities is not None:
             from core.entities import Fish
+
             total_energy = sum(e.energy for e in entities if isinstance(e, Fish))
 
         return {
-            'total_population': total_pop,
-            'current_generation': self.current_generation,
-            'total_births': self.total_births,
-            'total_deaths': self.total_deaths,
-            'carrying_capacity': self.max_population,
-            'capacity_usage': (
+            "total_population": total_pop,
+            "current_generation": self.current_generation,
+            "total_births": self.total_births,
+            "total_deaths": self.total_deaths,
+            "carrying_capacity": self.max_population,
+            "capacity_usage": (
                 f"{int(100 * total_pop / self.max_population)}%"
-                if self.max_population > 0 else "0%"
+                if self.max_population > 0
+                else "0%"
             ),
-            'death_causes': dict(self.death_causes),
-            'generations_alive': len([g for g, s in self.generation_stats.items() if s.population > 0]),
-            'poker_stats': poker_summary,
-            'total_energy': total_energy,
-            'reproduction_stats': self.get_reproduction_summary(),
-            'diversity_stats': self.get_diversity_summary(),
+            "death_causes": dict(self.death_causes),
+            "generations_alive": len(
+                [g for g, s in self.generation_stats.items() if s.population > 0]
+            ),
+            "poker_stats": poker_summary,
+            "total_energy": total_energy,
+            "reproduction_stats": self.get_reproduction_summary(),
+            "diversity_stats": self.get_diversity_summary(),
         }
 
     def get_poker_stats_summary(self) -> Dict[str, Any]:
@@ -719,9 +761,16 @@ class EcosystemManager:
 
         # Get hand rank name
         hand_rank_names = [
-            "High Card", "Pair", "Two Pair", "Three of a Kind",
-            "Straight", "Flush", "Full House", "Four of a Kind",
-            "Straight Flush", "Royal Flush"
+            "High Card",
+            "Pair",
+            "Two Pair",
+            "Three of a Kind",
+            "Straight",
+            "Flush",
+            "Full House",
+            "Four of a Kind",
+            "Straight Flush",
+            "Royal Flush",
         ]
         if 0 <= best_hand_rank < len(hand_rank_names):
             best_hand_name = hand_rank_names[best_hand_rank]
@@ -730,7 +779,9 @@ class EcosystemManager:
 
         # Calculate aggregate stats
         avg_fold_rate = (total_folds / total_games) if total_games > 0 else 0.0
-        showdown_win_rate = (total_won_at_showdown / total_showdowns) if total_showdowns > 0 else 0.0
+        showdown_win_rate = (
+            (total_won_at_showdown / total_showdowns) if total_showdowns > 0 else 0.0
+        )
         net_energy = total_energy_won - total_energy_lost - total_house_cuts
 
         # Advanced metrics
@@ -743,15 +794,21 @@ class EcosystemManager:
 
         # Bluff success rate
         total_fold_opportunities = total_won_by_fold + total_folds
-        bluff_success_rate = (total_won_by_fold / total_fold_opportunities) if total_fold_opportunities > 0 else 0.0
+        bluff_success_rate = (
+            (total_won_by_fold / total_fold_opportunities) if total_fold_opportunities > 0 else 0.0
+        )
 
         # Positional stats
         total_button_wins = sum(s.button_wins for s in self.poker_stats.values())
         total_button_games = sum(s.button_games for s in self.poker_stats.values())
         total_off_button_wins = sum(s.off_button_wins for s in self.poker_stats.values())
         total_off_button_games = sum(s.off_button_games for s in self.poker_stats.values())
-        button_win_rate = (total_button_wins / total_button_games) if total_button_games > 0 else 0.0
-        off_button_win_rate = (total_off_button_wins / total_off_button_games) if total_off_button_games > 0 else 0.0
+        button_win_rate = (
+            (total_button_wins / total_button_games) if total_button_games > 0 else 0.0
+        )
+        off_button_win_rate = (
+            (total_off_button_wins / total_off_button_games) if total_off_button_games > 0 else 0.0
+        )
         positional_advantage = button_win_rate - off_button_win_rate
 
         # Aggression factor
@@ -762,43 +819,45 @@ class EcosystemManager:
         # Average hand rank
         avg_hand_rank = sum(s.avg_hand_rank for s in self.poker_stats.values() if s.total_games > 0)
         num_active_algorithms = len([s for s in self.poker_stats.values() if s.total_games > 0])
-        avg_hand_rank = (avg_hand_rank / num_active_algorithms) if num_active_algorithms > 0 else 0.0
+        avg_hand_rank = (
+            (avg_hand_rank / num_active_algorithms) if num_active_algorithms > 0 else 0.0
+        )
 
         return {
-            'total_games': total_games,
-            'total_wins': total_wins,
-            'total_losses': total_losses,
-            'total_ties': total_ties,
-            'total_energy_won': total_energy_won,
-            'total_energy_lost': total_energy_lost,
-            'total_house_cuts': total_house_cuts,
-            'net_energy': net_energy,
-            'best_hand_rank': best_hand_rank,
-            'best_hand_name': best_hand_name,
-            'total_folds': total_folds,
-            'avg_fold_rate': f"{avg_fold_rate:.1%}",
-            'total_showdowns': total_showdowns,
-            'showdown_win_rate': f"{showdown_win_rate:.1%}",
-            'won_by_fold': total_won_by_fold,
-            'won_at_showdown': total_won_at_showdown,
+            "total_games": total_games,
+            "total_wins": total_wins,
+            "total_losses": total_losses,
+            "total_ties": total_ties,
+            "total_energy_won": total_energy_won,
+            "total_energy_lost": total_energy_lost,
+            "total_house_cuts": total_house_cuts,
+            "net_energy": net_energy,
+            "best_hand_rank": best_hand_rank,
+            "best_hand_name": best_hand_name,
+            "total_folds": total_folds,
+            "avg_fold_rate": f"{avg_fold_rate:.1%}",
+            "total_showdowns": total_showdowns,
+            "showdown_win_rate": f"{showdown_win_rate:.1%}",
+            "won_by_fold": total_won_by_fold,
+            "won_at_showdown": total_won_at_showdown,
             # Advanced metrics for evaluating poker skill improvement
-            'win_rate': win_rate,
-            'win_rate_pct': f"{win_rate:.1%}",
-            'roi': roi,
-            'vpip': vpip,
-            'vpip_pct': f"{vpip:.1%}",
-            'bluff_success_rate': bluff_success_rate,
-            'bluff_success_pct': f"{bluff_success_rate:.1%}",
-            'button_win_rate': button_win_rate,
-            'button_win_rate_pct': f"{button_win_rate:.1%}",
-            'off_button_win_rate': off_button_win_rate,
-            'off_button_win_rate_pct': f"{off_button_win_rate:.1%}",
-            'positional_advantage': positional_advantage,
-            'positional_advantage_pct': f"{positional_advantage:.1%}",
-            'aggression_factor': aggression_factor,
-            'avg_hand_rank': avg_hand_rank,
-            'preflop_folds': total_preflop_folds,
-            'postflop_folds': total_folds - total_preflop_folds,
+            "win_rate": win_rate,
+            "win_rate_pct": f"{win_rate:.1%}",
+            "roi": roi,
+            "vpip": vpip,
+            "vpip_pct": f"{vpip:.1%}",
+            "bluff_success_rate": bluff_success_rate,
+            "bluff_success_pct": f"{bluff_success_rate:.1%}",
+            "button_win_rate": button_win_rate,
+            "button_win_rate_pct": f"{button_win_rate:.1%}",
+            "off_button_win_rate": off_button_win_rate,
+            "off_button_win_rate_pct": f"{off_button_win_rate:.1%}",
+            "positional_advantage": positional_advantage,
+            "positional_advantage_pct": f"{positional_advantage:.1%}",
+            "aggression_factor": aggression_factor,
+            "avg_hand_rank": avg_hand_rank,
+            "preflop_folds": total_preflop_folds,
+            "postflop_folds": total_folds - total_preflop_folds,
         }
 
     def get_reproduction_summary(self) -> Dict[str, Any]:
@@ -808,14 +867,14 @@ class EcosystemManager:
             Dictionary with reproduction metrics
         """
         return {
-            'total_reproductions': self.reproduction_stats.total_reproductions,
-            'total_mating_attempts': self.reproduction_stats.total_mating_attempts,
-            'total_failed_attempts': self.reproduction_stats.total_failed_attempts,
-            'success_rate': self.reproduction_stats.get_success_rate(),
-            'success_rate_pct': f"{self.reproduction_stats.get_success_rate():.1%}",
-            'current_pregnant_fish': self.reproduction_stats.current_pregnant_fish,
-            'total_offspring': self.reproduction_stats.total_offspring,
-            'offspring_per_reproduction': self.reproduction_stats.get_offspring_per_reproduction(),
+            "total_reproductions": self.reproduction_stats.total_reproductions,
+            "total_mating_attempts": self.reproduction_stats.total_mating_attempts,
+            "total_failed_attempts": self.reproduction_stats.total_failed_attempts,
+            "success_rate": self.reproduction_stats.get_success_rate(),
+            "success_rate_pct": f"{self.reproduction_stats.get_success_rate():.1%}",
+            "current_pregnant_fish": self.reproduction_stats.current_pregnant_fish,
+            "total_offspring": self.reproduction_stats.total_offspring,
+            "offspring_per_reproduction": self.reproduction_stats.get_offspring_per_reproduction(),
         }
 
     def get_diversity_summary(self) -> Dict[str, Any]:
@@ -828,14 +887,14 @@ class EcosystemManager:
         trait_vars = self.genetic_diversity_stats.trait_variances
 
         return {
-            'unique_algorithms': self.genetic_diversity_stats.unique_algorithms,
-            'unique_species': self.genetic_diversity_stats.unique_species,
-            'color_variance': self.genetic_diversity_stats.color_variance,
-            'speed_variance': trait_vars.get('speed', 0.0),
-            'size_variance': trait_vars.get('size', 0.0),
-            'vision_variance': trait_vars.get('vision', 0.0),
-            'diversity_score': diversity_score,
-            'diversity_score_pct': f"{diversity_score:.1%}",
+            "unique_algorithms": self.genetic_diversity_stats.unique_algorithms,
+            "unique_species": self.genetic_diversity_stats.unique_species,
+            "color_variance": self.genetic_diversity_stats.color_variance,
+            "speed_variance": trait_vars.get("speed", 0.0),
+            "size_variance": trait_vars.get("size", 0.0),
+            "vision_variance": trait_vars.get("vision", 0.0),
+            "diversity_score": diversity_score,
+            "diversity_score_pct": f"{diversity_score:.1%}",
         }
 
     def get_enhanced_stats_summary(self) -> Dict[str, Any]:
@@ -890,12 +949,20 @@ class EcosystemManager:
         # NEW: Track energy from food for efficiency metrics
         self.enhanced_stats.record_energy_from_food(energy_gained)
 
-    def record_poker_outcome(self, winner_id: int, loser_id: int,
-                            winner_algo_id: Optional[int], loser_algo_id: Optional[int],
-                            amount: float, winner_hand: 'PokerHand', loser_hand: 'PokerHand',
-                            house_cut: float = 0.0, result: Optional['PokerResult'] = None,
-                            player1_algo_id: Optional[int] = None,
-                            player2_algo_id: Optional[int] = None) -> None:
+    def record_poker_outcome(
+        self,
+        winner_id: int,
+        loser_id: int,
+        winner_algo_id: Optional[int],
+        loser_algo_id: Optional[int],
+        amount: float,
+        winner_hand: "PokerHand",
+        loser_hand: "PokerHand",
+        house_cut: float = 0.0,
+        result: Optional["PokerResult"] = None,
+        player1_algo_id: Optional[int] = None,
+        player2_algo_id: Optional[int] = None,
+    ) -> None:
         """Record a poker game outcome with detailed statistics.
 
         Args:
@@ -921,8 +988,8 @@ class EcosystemManager:
                 if winner_hand is not None:
                     self.poker_stats[winner_algo_id]._total_hand_rank += winner_hand.rank_value
                     self.poker_stats[winner_algo_id].avg_hand_rank = (
-                        self.poker_stats[winner_algo_id]._total_hand_rank /
-                        self.poker_stats[winner_algo_id].total_games
+                        self.poker_stats[winner_algo_id]._total_hand_rank
+                        / self.poker_stats[winner_algo_id].total_games
                     )
             if loser_algo_id is not None and loser_algo_id in self.poker_stats:
                 self.poker_stats[loser_algo_id].total_games += 1
@@ -930,8 +997,8 @@ class EcosystemManager:
                 if loser_hand is not None:
                     self.poker_stats[loser_algo_id]._total_hand_rank += loser_hand.rank_value
                     self.poker_stats[loser_algo_id].avg_hand_rank = (
-                        self.poker_stats[loser_algo_id]._total_hand_rank /
-                        self.poker_stats[loser_algo_id].total_games
+                        self.poker_stats[loser_algo_id]._total_hand_rank
+                        / self.poker_stats[loser_algo_id].total_games
                     )
             return
 
@@ -962,9 +1029,8 @@ class EcosystemManager:
 
                 # Track positional stats (winner perspective)
                 winner_on_button = (
-                    (winner_id == result.winner_id and result.button_position == 1) or
-                    (winner_id != result.winner_id and result.button_position == 2)
-                )
+                    winner_id == result.winner_id and result.button_position == 1
+                ) or (winner_id != result.winner_id and result.button_position == 2)
                 if winner_algo_id == player1_algo_id:
                     winner_on_button = result.button_position == 1
                 else:
@@ -980,8 +1046,9 @@ class EcosystemManager:
                 # Count betting actions for aggression factor
                 for player, action, _ in result.betting_history:
                     # Determine if this action was by the winner
-                    if (player == 1 and winner_algo_id == player1_algo_id) or \
-                       (player == 2 and winner_algo_id == player2_algo_id):
+                    if (player == 1 and winner_algo_id == player1_algo_id) or (
+                        player == 2 and winner_algo_id == player2_algo_id
+                    ):
                         if action == BettingAction.RAISE:
                             stats.total_raises += 1
                         elif action == BettingAction.CALL:
@@ -1005,9 +1072,8 @@ class EcosystemManager:
                 stats.avg_pot_size = stats._total_pot_size / stats.total_games
 
                 # Track fold stats
-                loser_folded = (
-                    (loser_algo_id == player1_algo_id and result.player1_folded) or
-                    (loser_algo_id == player2_algo_id and result.player2_folded)
+                loser_folded = (loser_algo_id == player1_algo_id and result.player1_folded) or (
+                    loser_algo_id == player2_algo_id and result.player2_folded
                 )
                 if loser_folded:
                     stats.folds += 1
@@ -1022,9 +1088,8 @@ class EcosystemManager:
 
                 # Track positional stats (loser perspective)
                 loser_on_button = (
-                    (loser_algo_id == player1_algo_id and result.button_position == 1) or
-                    (loser_algo_id == player2_algo_id and result.button_position == 2)
-                )
+                    loser_algo_id == player1_algo_id and result.button_position == 1
+                ) or (loser_algo_id == player2_algo_id and result.button_position == 2)
                 if loser_on_button:
                     stats.button_games += 1
                 else:
@@ -1033,8 +1098,9 @@ class EcosystemManager:
                 # Count betting actions for aggression factor
                 for player, action, _ in result.betting_history:
                     # Determine if this action was by the loser
-                    if (player == 1 and loser_algo_id == player1_algo_id) or \
-                       (player == 2 and loser_algo_id == player2_algo_id):
+                    if (player == 1 and loser_algo_id == player1_algo_id) or (
+                        player == 2 and loser_algo_id == player2_algo_id
+                    ):
                         if action == BettingAction.RAISE:
                             stats.total_raises += 1
                         elif action == BettingAction.CALL:
@@ -1043,15 +1109,17 @@ class EcosystemManager:
         # Log event
         winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
         loser_desc = loser_hand.description if loser_hand is not None else "Unknown"
-        self.events.append(EcosystemEvent(
-            frame=self.frame_count,
-            event_type='poker',
-            fish_id=winner_id,
-            details=(
-                f"Won {amount:.1f} energy from fish {loser_id} "
-                f"({winner_desc} vs {loser_desc})"
+        self.events.append(
+            EcosystemEvent(
+                frame=self.frame_count,
+                event_type="poker",
+                fish_id=winner_id,
+                details=(
+                    f"Won {amount:.1f} energy from fish {loser_id} "
+                    f"({winner_desc} vs {loser_desc})"
+                ),
             )
-        ))
+        )
 
     def _get_report_header(self) -> List[str]:
         """Generate the report header section."""
@@ -1064,182 +1132,161 @@ class EcosystemManager:
             f"Total Population Births: {self.total_births}",
             f"Total Population Deaths: {self.total_deaths}",
             f"Current Generation: {self.current_generation}",
-            ""
+            "",
         ]
 
     def _get_top_performers_section(
-        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+        self, algorithms_with_data: List[Tuple[int, "AlgorithmStats"]]
     ) -> List[str]:
         """Generate top performing algorithms section."""
         algorithms_sorted = sorted(
-            algorithms_with_data,
-            key=lambda x: x[1].get_reproduction_rate(),
-            reverse=True
+            algorithms_with_data, key=lambda x: x[1].get_reproduction_rate(), reverse=True
         )
 
-        lines = [
-            "-" * 80,
-            "TOP PERFORMING ALGORITHMS (by reproduction rate)",
-            "-" * 80,
-            ""
-        ]
+        lines = ["-" * 80, "TOP PERFORMING ALGORITHMS (by reproduction rate)", "-" * 80, ""]
 
         for i, (algo_id, stats) in enumerate(algorithms_sorted[:10], 1):
-            lines.extend([
-                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
-                f"  Births: {stats.total_births}",
-                f"  Deaths: {stats.total_deaths}",
-                f"  Current Population: {stats.current_population}",
-                f"  Reproductions: {stats.total_reproductions}",
-                f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}",
-                f"  Survival Rate: {stats.get_survival_rate():.2%}",
-                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
-                f"  Food Eaten: {stats.total_food_eaten}",
-                f"  Deaths - Starvation: {stats.deaths_starvation}, "
-                f"Old Age: {stats.deaths_old_age}, Predation: {stats.deaths_predation}",
-                ""
-            ])
+            lines.extend(
+                [
+                    f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                    f"  Births: {stats.total_births}",
+                    f"  Deaths: {stats.total_deaths}",
+                    f"  Current Population: {stats.current_population}",
+                    f"  Reproductions: {stats.total_reproductions}",
+                    f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}",
+                    f"  Survival Rate: {stats.get_survival_rate():.2%}",
+                    f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                    f"  Food Eaten: {stats.total_food_eaten}",
+                    f"  Deaths - Starvation: {stats.deaths_starvation}, "
+                    f"Old Age: {stats.deaths_old_age}, Predation: {stats.deaths_predation}",
+                    "",
+                ]
+            )
 
         return lines
 
     def _get_survival_section(
-        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+        self, algorithms_with_data: List[Tuple[int, "AlgorithmStats"]]
     ) -> List[str]:
         """Generate top surviving algorithms section."""
         algorithms_sorted = sorted(
-            algorithms_with_data,
-            key=lambda x: x[1].get_survival_rate(),
-            reverse=True
+            algorithms_with_data, key=lambda x: x[1].get_survival_rate(), reverse=True
         )
 
-        lines = [
-            "-" * 80,
-            "TOP SURVIVING ALGORITHMS (by current survival rate)",
-            "-" * 80,
-            ""
-        ]
+        lines = ["-" * 80, "TOP SURVIVING ALGORITHMS (by current survival rate)", "-" * 80, ""]
 
         for i, (algo_id, stats) in enumerate(algorithms_sorted[:10], 1):
-            lines.extend([
-                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
-                f"  Survival Rate: {stats.get_survival_rate():.2%}",
-                f"  Current Population: {stats.current_population}",
-                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
-                ""
-            ])
+            lines.extend(
+                [
+                    f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                    f"  Survival Rate: {stats.get_survival_rate():.2%}",
+                    f"  Current Population: {stats.current_population}",
+                    f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                    "",
+                ]
+            )
 
         return lines
 
     def _get_longevity_section(
-        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+        self, algorithms_with_data: List[Tuple[int, "AlgorithmStats"]]
     ) -> List[str]:
         """Generate longest-lived algorithms section."""
         algorithms_sorted = sorted(
-            algorithms_with_data,
-            key=lambda x: x[1].get_avg_lifespan(),
-            reverse=True
+            algorithms_with_data, key=lambda x: x[1].get_avg_lifespan(), reverse=True
         )
 
-        lines = [
-            "-" * 80,
-            "LONGEST-LIVED ALGORITHMS (by average lifespan)",
-            "-" * 80,
-            ""
-        ]
+        lines = ["-" * 80, "LONGEST-LIVED ALGORITHMS (by average lifespan)", "-" * 80, ""]
 
         for i, (algo_id, stats) in enumerate(algorithms_sorted[:10], 1):
             starvation_pct = (
-                stats.deaths_starvation / stats.total_deaths * 100
-                if stats.total_deaths > 0 else 0
+                stats.deaths_starvation / stats.total_deaths * 100 if stats.total_deaths > 0 else 0
             )
-            lines.extend([
-                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
-                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
-                f"  Deaths: {stats.total_deaths}",
-                f"  Starvation Deaths: {stats.deaths_starvation} ({starvation_pct:.1f}%)",
-                ""
-            ])
+            lines.extend(
+                [
+                    f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                    f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                    f"  Deaths: {stats.total_deaths}",
+                    f"  Starvation Deaths: {stats.deaths_starvation} ({starvation_pct:.1f}%)",
+                    "",
+                ]
+            )
 
         return lines
 
     def _get_worst_performers_section(self, min_sample_size: int) -> List[str]:
         """Generate worst performing algorithms section."""
         algorithms_with_deaths = [
-            (algo_id, stats) for algo_id, stats in self.algorithm_stats.items()
+            (algo_id, stats)
+            for algo_id, stats in self.algorithm_stats.items()
             if stats.total_deaths >= min_sample_size
         ]
         algorithms_with_deaths.sort(
             key=lambda x: (
-                x[1].deaths_starvation / x[1].total_deaths
-                if x[1].total_deaths > 0 else 0
+                x[1].deaths_starvation / x[1].total_deaths if x[1].total_deaths > 0 else 0
             ),
-            reverse=True
+            reverse=True,
         )
 
-        lines = [
-            "-" * 80,
-            "WORST PERFORMERS (highest starvation rate)",
-            "-" * 80,
-            ""
-        ]
+        lines = ["-" * 80, "WORST PERFORMERS (highest starvation rate)", "-" * 80, ""]
 
         for i, (algo_id, stats) in enumerate(algorithms_with_deaths[:10], 1):
             starvation_rate = (
-                stats.deaths_starvation / stats.total_deaths
-                if stats.total_deaths > 0 else 0
+                stats.deaths_starvation / stats.total_deaths if stats.total_deaths > 0 else 0
             )
-            lines.extend([
-                f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
-                f"  Starvation Rate: {starvation_rate:.2%}",
-                f"  Deaths: {stats.total_deaths}",
-                f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
-                f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}",
-                ""
-            ])
+            lines.extend(
+                [
+                    f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
+                    f"  Starvation Rate: {starvation_rate:.2%}",
+                    f"  Deaths: {stats.total_deaths}",
+                    f"  Avg Lifespan: {stats.get_avg_lifespan():.1f} frames",
+                    f"  Reproduction Rate: {stats.get_reproduction_rate():.2%}",
+                    "",
+                ]
+            )
 
         return lines
 
     def _get_recommendations_section(
-        self, algorithms_with_data: List[Tuple[int, 'AlgorithmStats']]
+        self, algorithms_with_data: List[Tuple[int, "AlgorithmStats"]]
     ) -> List[str]:
         """Generate recommendations section based on performance data."""
-        lines = [
-            "-" * 80,
-            "RECOMMENDATIONS FOR NEXT GENERATION",
-            "-" * 80,
-            ""
-        ]
+        lines = ["-" * 80, "RECOMMENDATIONS FOR NEXT GENERATION", "-" * 80, ""]
 
         # Best performer recommendation
         if algorithms_with_data:
             best_algo_id, best_stats = algorithms_with_data[0]
-            lines.extend([
-                f"1. The most successful algorithm is '{best_stats.algorithm_name}'",
-                f"   with a reproduction rate of {best_stats.get_reproduction_rate():.2%}.",
-                ""
-            ])
+            lines.extend(
+                [
+                    f"1. The most successful algorithm is '{best_stats.algorithm_name}'",
+                    f"   with a reproduction rate of {best_stats.get_reproduction_rate():.2%}.",
+                    "",
+                ]
+            )
 
         # Worst performer warning
         algorithms_by_starvation = sorted(
             [(aid, s) for aid, s in self.algorithm_stats.items() if s.total_deaths > 0],
             key=lambda x: (
-                x[1].deaths_starvation / x[1].total_deaths
-                if x[1].total_deaths > 0 else 0
+                x[1].deaths_starvation / x[1].total_deaths if x[1].total_deaths > 0 else 0
             ),
-            reverse=True
+            reverse=True,
         )
 
         if algorithms_by_starvation:
             worst_algo_id, worst_stats = algorithms_by_starvation[0]
             starvation_rate = (
                 worst_stats.deaths_starvation / worst_stats.total_deaths
-                if worst_stats.total_deaths > 0 else 0
+                if worst_stats.total_deaths > 0
+                else 0
             )
-            lines.extend([
-                f"2. The algorithm '{worst_stats.algorithm_name}' has the highest starvation rate",
-                f"   at {starvation_rate:.2%}, indicating poor food-seeking behavior.",
-                ""
-            ])
+            lines.extend(
+                [
+                    f"2. The algorithm '{worst_stats.algorithm_name}' has the highest starvation rate",
+                    f"   at {starvation_rate:.2%}, indicating poor food-seeking behavior.",
+                    "",
+                ]
+            )
 
         # Overall metrics
         total_starvation = sum(s.deaths_starvation for s in self.algorithm_stats.values())
@@ -1248,10 +1295,12 @@ class EcosystemManager:
             overall_starvation_rate = total_starvation / total_deaths_all
             lines.append(f"3. Overall starvation rate: {overall_starvation_rate:.2%}")
             if overall_starvation_rate > 0.5:
-                lines.extend([
-                    "   RECOMMENDATION: High starvation indicates resource scarcity.",
-                    "   Focus on food-seeking and energy conservation algorithms."
-                ])
+                lines.extend(
+                    [
+                        "   RECOMMENDATION: High starvation indicates resource scarcity.",
+                        "   Focus on food-seeking and energy conservation algorithms.",
+                    ]
+                )
             lines.append("")
 
         return lines
@@ -1270,15 +1319,13 @@ class EcosystemManager:
         """
         # Filter algorithms with sufficient data
         algorithms_with_data = [
-            (algo_id, stats) for algo_id, stats in self.algorithm_stats.items()
+            (algo_id, stats)
+            for algo_id, stats in self.algorithm_stats.items()
             if stats.total_births >= min_sample_size
         ]
 
         # Sort by reproduction rate for recommendations
-        algorithms_with_data.sort(
-            key=lambda x: x[1].get_reproduction_rate(),
-            reverse=True
-        )
+        algorithms_with_data.sort(key=lambda x: x[1].get_reproduction_rate(), reverse=True)
 
         # Build report from sections
         report_lines = []

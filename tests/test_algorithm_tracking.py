@@ -3,6 +3,7 @@
 from core.ecosystem import EcosystemManager, AlgorithmStats
 from core.algorithms import ALL_ALGORITHMS, get_algorithm_index
 
+
 def test_algorithm_stats():
     """Test the algorithm statistics tracking."""
     print("Testing Algorithm Performance Tracking System")
@@ -38,7 +39,7 @@ def test_algorithm_stats():
 
     # Test recording deaths
     print(f"\n4. Testing death recording...")
-    ecosystem.record_death(fish_id=1, generation=0, age=100, cause='starvation', algorithm_id=0)
+    ecosystem.record_death(fish_id=1, generation=0, age=100, cause="starvation", algorithm_id=0)
     assert ecosystem.algorithm_stats[0].total_deaths == 1
     assert ecosystem.algorithm_stats[0].deaths_starvation == 1
     assert ecosystem.algorithm_stats[0].current_population == 1
@@ -78,10 +79,12 @@ def test_algorithm_stats():
     print(f"\n8. Testing report generation...")
     # Add more data for a better report
     for i in range(10):
-        ecosystem.record_birth(fish_id=100+i, generation=1, algorithm_id=1)
+        ecosystem.record_birth(fish_id=100 + i, generation=1, algorithm_id=1)
         ecosystem.record_food_eaten(algorithm_id=1)
     for i in range(7):
-        ecosystem.record_death(fish_id=100+i, generation=1, age=150, cause='old_age', algorithm_id=1)
+        ecosystem.record_death(
+            fish_id=100 + i, generation=1, age=150, cause="old_age", algorithm_id=1
+        )
     ecosystem.record_reproduction(algorithm_id=1)
     ecosystem.record_reproduction(algorithm_id=1)
     ecosystem.record_reproduction(algorithm_id=1)
@@ -93,7 +96,7 @@ def test_algorithm_stats():
     print("   ✓ Report generated successfully")
     print(f"\n   Report preview (first 500 chars):")
     print("   " + "-" * 76)
-    for line in report[:500].split('\n'):
+    for line in report[:500].split("\n"):
         print(f"   {line}")
     print("   " + "-" * 76)
 
@@ -104,6 +107,7 @@ def test_algorithm_stats():
     # Print full report
     print("\n\nFULL ALGORITHM PERFORMANCE REPORT:")
     print(report)
+
 
 if __name__ == "__main__":
     test_algorithm_stats()

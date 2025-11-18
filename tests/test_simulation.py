@@ -2,6 +2,7 @@
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from simulation_engine import SimulationEngine
@@ -25,9 +26,11 @@ def test_simulation():
             food_count = len([e for e in sim.entities_list if isinstance(e, entities.Food)])
             if sim.ecosystem:
                 stats = sim.ecosystem.get_summary_stats(sim.entities_list)
-                print(f"Frame {frame:4d}: {fish_count:2d} fish, {food_count:2d} food | "
-                      f"Gen {stats['current_generation']}, "
-                      f"Births: {stats['total_births']}, Deaths: {stats['total_deaths']}")
+                print(
+                    f"Frame {frame:4d}: {fish_count:2d} fish, {food_count:2d} food | "
+                    f"Gen {stats['current_generation']}, "
+                    f"Births: {stats['total_births']}, Deaths: {stats['total_deaths']}"
+                )
 
     print("\nTest completed successfully!")
 

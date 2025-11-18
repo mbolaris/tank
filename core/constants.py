@@ -52,74 +52,74 @@ AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 20  # Further reduce spawn rate above this fish
 
 # Food type definitions with nutrient properties
 FOOD_TYPES = {
-    'algae': {
-        'name': 'Algae Flake',
-        'files': ['food_algae1.png', 'food_algae2.png'],
-        'energy': 30.0,  # Low energy - basic food source (increased 50%)
-        'rarity': 0.35,  # 35% spawn rate
-        'sink_multiplier': 0.8,  # Sinks slower (lighter)
-        'stationary': False,
+    "algae": {
+        "name": "Algae Flake",
+        "files": ["food_algae1.png", "food_algae2.png"],
+        "energy": 30.0,  # Low energy - basic food source (increased 50%)
+        "rarity": 0.35,  # 35% spawn rate
+        "sink_multiplier": 0.8,  # Sinks slower (lighter)
+        "stationary": False,
     },
-    'protein': {
-        'name': 'Protein Flake',
-        'files': ['food_protein1.png', 'food_protein2.png'],
-        'energy': 50.0,  # Good energy - valuable food (increased 50%)
-        'rarity': 0.25,  # 25% spawn rate
-        'sink_multiplier': 1.2,  # Sinks faster (heavier)
-        'stationary': False,
+    "protein": {
+        "name": "Protein Flake",
+        "files": ["food_protein1.png", "food_protein2.png"],
+        "energy": 50.0,  # Good energy - valuable food (increased 50%)
+        "rarity": 0.25,  # 25% spawn rate
+        "sink_multiplier": 1.2,  # Sinks faster (heavier)
+        "stationary": False,
     },
-    'vitamin': {
-        'name': 'Vitamin Flake',
-        'files': ['food_vitamin1.png', 'food_vitamin2.png'],
-        'energy': 40.0,  # Moderate energy (increased 50%)
-        'rarity': 0.20,  # 20% spawn rate
-        'sink_multiplier': 0.9,  # Sinks slightly slower
-        'stationary': False,
+    "vitamin": {
+        "name": "Vitamin Flake",
+        "files": ["food_vitamin1.png", "food_vitamin2.png"],
+        "energy": 40.0,  # Moderate energy (increased 50%)
+        "rarity": 0.20,  # 20% spawn rate
+        "sink_multiplier": 0.9,  # Sinks slightly slower
+        "stationary": False,
     },
-    'energy': {
-        'name': 'Energy Flake',
-        'files': ['food_energy1.png', 'food_energy2.png'],
-        'energy': 45.0,  # Good energy (increased 50%)
-        'rarity': 0.15,  # 15% spawn rate
-        'sink_multiplier': 1.0,  # Normal sink rate
-        'stationary': False,
+    "energy": {
+        "name": "Energy Flake",
+        "files": ["food_energy1.png", "food_energy2.png"],
+        "energy": 45.0,  # Good energy (increased 50%)
+        "rarity": 0.15,  # 15% spawn rate
+        "sink_multiplier": 1.0,  # Normal sink rate
+        "stationary": False,
     },
-    'rare': {
-        'name': 'Rainbow Flake',
-        'files': ['food_rare1.png', 'food_rare2.png'],
-        'energy': 75.0,  # High energy - rare treat (increased 50%)
-        'rarity': 0.05,  # 5% spawn rate (rare)
-        'sink_multiplier': 1.1,  # Sinks bit faster
-        'stationary': False,
+    "rare": {
+        "name": "Rainbow Flake",
+        "files": ["food_rare1.png", "food_rare2.png"],
+        "energy": 75.0,  # High energy - rare treat (increased 50%)
+        "rarity": 0.05,  # 5% spawn rate (rare)
+        "sink_multiplier": 1.1,  # Sinks bit faster
+        "stationary": False,
     },
-    'nectar': {
-        'name': 'Plant Nectar',
-        'files': ['food_vitamin1.png', 'food_vitamin2.png'],
-        'energy': 60.0,  # Rewarding stationary food (increased 50%)
-        'rarity': 0.15,  # Used for plant-only spawn weighting
-        'sink_multiplier': 0.0,  # Remains in place
-        'stationary': True,
+    "nectar": {
+        "name": "Plant Nectar",
+        "files": ["food_vitamin1.png", "food_vitamin2.png"],
+        "energy": 60.0,  # Rewarding stationary food (increased 50%)
+        "rarity": 0.15,  # Used for plant-only spawn weighting
+        "sink_multiplier": 0.0,  # Remains in place
+        "stationary": True,
     },
 }
 
 # Filenames for the animation frames of each type of sprite
 FILES = {
-    'solo_fish': ['george1.png', 'george2.png'],
-    'crab': ['crab1.png', 'crab2.png'],
-    'schooling_fish': ['school.png'],
-    'plant': ['plant1.png', 'plant2.png'],
-    'castle': ['castle.png'],
+    "solo_fish": ["george1.png", "george2.png"],
+    "crab": ["crab1.png", "crab2.png"],
+    "schooling_fish": ["school.png"],
+    "plant": ["plant1.png", "plant2.png"],
+    "castle": ["castle.png"],
 }
 
 # The initial positions of the sprites in the game
 INIT_POS = {
-    'fish': (275, 80),
-    'crab': (250, 542),
-    'school': (300, 200),
-    'plant1': (250, 510),
-    'plant2': (10, 510),
-    'plant3': (500, 510),  # Add third plant
-    'castle': (100, 500),
+    "fish": (275, 80),
+    "crab": (250, 542),
+    "school": (300, 200),
+    "plant1": (250, 510),
+    "plant2": (10, 510),
+    "plant3": (500, 510),  # Add third plant
+    "castle": (100, 500),
 }
 
 # UI Constants - Poker Notifications
@@ -132,8 +132,8 @@ POKER_WIN_COLOR = (100, 255, 100)
 HEALTH_BAR_WIDTH = 30
 HEALTH_BAR_HEIGHT = 4
 HEALTH_CRITICAL_COLOR = (200, 50, 50)  # Red (below 30%)
-HEALTH_LOW_COLOR = (200, 200, 50)      # Yellow (30-60%)
-HEALTH_GOOD_COLOR = (50, 200, 50)      # Green (above 60%)
+HEALTH_LOW_COLOR = (200, 200, 50)  # Yellow (30-60%)
+HEALTH_GOOD_COLOR = (50, 200, 50)  # Green (above 60%)
 
 # Fish movement constraints
 FISH_TOP_MARGIN = 20  # Minimum pixels from top to keep energy bar visible

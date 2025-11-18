@@ -14,7 +14,7 @@ from core.constants import (
     STARVATION_THRESHOLD,
     CRITICAL_ENERGY_THRESHOLD,
     LOW_ENERGY_THRESHOLD,
-    SAFE_ENERGY_THRESHOLD
+    SAFE_ENERGY_THRESHOLD,
 )
 
 if TYPE_CHECKING:
@@ -45,8 +45,12 @@ class EnergyComponent:
     SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns (reduced from 0.08)
     SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
-    def __init__(self, max_energy: float, base_metabolism: float,
-                 initial_energy_ratio: float = INITIAL_ENERGY_RATIO):
+    def __init__(
+        self,
+        max_energy: float,
+        base_metabolism: float,
+        initial_energy_ratio: float = INITIAL_ENERGY_RATIO,
+    ):
         """Initialize the energy component.
 
         Args:
@@ -58,8 +62,9 @@ class EnergyComponent:
         self.base_metabolism = base_metabolism
         self.energy = max_energy * initial_energy_ratio
 
-    def consume_energy(self, velocity: Vector2, speed: float, life_stage: 'LifeStage',
-                      time_modifier: float = 1.0) -> None:
+    def consume_energy(
+        self, velocity: Vector2, speed: float, life_stage: "LifeStage", time_modifier: float = 1.0
+    ) -> None:
         """Consume energy based on metabolism and activity.
 
         Energy consumption includes:

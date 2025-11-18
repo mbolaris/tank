@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class GeneticCrossoverMode(Enum):
     """Different modes for genetic crossover during reproduction."""
+
     AVERAGING = "averaging"  # Simple average of parent traits
     RECOMBINATION = "recombination"  # Gene recombination (more realistic)
     DOMINANT_RECESSIVE = "dominant_recessive"  # Some genes are dominant
@@ -75,7 +76,7 @@ class Genome:
     pattern_type: int = 0  # Pattern style: 0=stripes, 1=spots, 2=solid, 3=gradient
 
     # Behavior algorithm (algorithmic evolution system)
-    behavior_algorithm: Optional['BehaviorAlgorithm'] = None
+    behavior_algorithm: Optional["BehaviorAlgorithm"] = None
 
     # Fitness tracking (NEW: for selection pressure)
     fitness_score: float = field(default=0.0)
@@ -87,15 +88,17 @@ class Genome:
     epigenetic_modifiers: Dict[str, float] = field(default_factory=dict)
 
     # Mate preferences (NEW: sexual selection)
-    mate_preferences: Dict[str, float] = field(default_factory=lambda: {
-        'prefer_high_fitness': 0.5,
-        'prefer_similar_size': 0.5,
-        'prefer_different_color': 0.5,
-        'prefer_high_energy': 0.5,
-    })
+    mate_preferences: Dict[str, float] = field(
+        default_factory=lambda: {
+            "prefer_high_fitness": 0.5,
+            "prefer_similar_size": 0.5,
+            "prefer_different_color": 0.5,
+            "prefer_high_energy": 0.5,
+        }
+    )
 
     @classmethod
-    def random(cls, use_algorithm: bool = True) -> 'Genome':
+    def random(cls, use_algorithm: bool = True) -> "Genome":
         """Create a random genome with traits within normal ranges.
 
         Args:
@@ -108,6 +111,7 @@ class Genome:
         algorithm = None
         if use_algorithm:
             from core.algorithms import get_random_algorithm
+
             algorithm = get_random_algorithm()
 
         return cls(
@@ -131,8 +135,13 @@ class Genome:
             behavior_algorithm=algorithm,
         )
 
-    def update_fitness(self, food_eaten: int = 0, survived_frames: int = 0,
-                      reproductions: int = 0, energy_ratio: float = 0.0):
+    def update_fitness(
+        self,
+        food_eaten: int = 0,
+        survived_frames: int = 0,
+        reproductions: int = 0,
+        energy_ratio: float = 0.0,
+    ):
         """Update fitness score based on life events.
 
         Args:
@@ -147,7 +156,7 @@ class Genome:
         self.fitness_score += reproductions * 50.0  # Reproduction is highly valuable
         self.fitness_score += energy_ratio * 0.1  # Maintaining energy is good
 
-    def calculate_mate_compatibility(self, other: 'Genome') -> float:
+    def calculate_mate_compatibility(self, other: "Genome") -> float:
         """Calculate compatibility score with potential mate (0.0-1.0).
 
         Args:
@@ -160,33 +169,40 @@ class Genome:
 
         # Fitness preference
         if other.fitness_score > self.fitness_score:
-            compatibility += self.mate_preferences.get('prefer_high_fitness', 0.5) * 0.3
+            compatibility += self.mate_preferences.get("prefer_high_fitness", 0.5) * 0.3
 
         # Size similarity preference
         size_diff = abs(self.size_modifier - other.size_modifier)
         size_score = 1.0 - min(size_diff / 0.6, 1.0)  # 0.6 is max diff
-        compatibility += self.mate_preferences.get('prefer_similar_size', 0.5) * size_score * 0.2
+        compatibility += self.mate_preferences.get("prefer_similar_size", 0.5) * size_score * 0.2
 
         # Color diversity preference
         color_diff = abs(self.color_hue - other.color_hue)
         color_score = min(color_diff / 0.5, 1.0)  # Prefer different colors
-        compatibility += self.mate_preferences.get('prefer_different_color', 0.5) * color_score * 0.2
+        compatibility += (
+            self.mate_preferences.get("prefer_different_color", 0.5) * color_score * 0.2
+        )
 
         # General genetic diversity (trait variance)
         trait_variance = (
-            abs(self.speed_modifier - other.speed_modifier) +
-            abs(self.metabolism_rate - other.metabolism_rate) +
-            abs(self.vision_range - other.vision_range)
+            abs(self.speed_modifier - other.speed_modifier)
+            + abs(self.metabolism_rate - other.metabolism_rate)
+            + abs(self.vision_range - other.vision_range)
         ) / 3.0
         compatibility += min(trait_variance / 0.3, 1.0) * 0.3
 
         return min(compatibility, 1.0)
 
     @classmethod
-    def from_parents_weighted(cls, parent1: 'Genome', parent2: 'Genome',
-                            parent1_weight: float = 0.5,
-                            mutation_rate: float = 0.1, mutation_strength: float = 0.1,
-                            population_stress: float = 0.0) -> 'Genome':
+    def from_parents_weighted(
+        cls,
+        parent1: "Genome",
+        parent2: "Genome",
+        parent1_weight: float = 0.5,
+        mutation_rate: float = 0.1,
+        mutation_strength: float = 0.1,
+        population_stress: float = 0.0,
+    ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
 
         This method allows for unequal genetic contributions, useful for scenarios
@@ -240,31 +256,39 @@ class Genome:
         algorithm = None
         if parent1.behavior_algorithm is not None or parent2.behavior_algorithm is not None:
             from core.algorithms import crossover_algorithms_weighted
+
             algorithm = crossover_algorithms_weighted(
                 parent1.behavior_algorithm,
                 parent2.behavior_algorithm,
                 parent1_weight=parent1_weight,
                 mutation_rate=adaptive_mutation_rate * 1.5,
                 mutation_strength=adaptive_mutation_strength * 1.5,
-                algorithm_switch_rate=0.03  # 3% chance of random algorithm
+                algorithm_switch_rate=0.03,  # 3% chance of random algorithm
             )
         else:
             from core.algorithms import get_random_algorithm
+
             algorithm = get_random_algorithm()
 
         # Weighted inheritance for template_id (discrete choice biased by weight)
-        inherited_template = parent1.template_id if random.random() < parent1_weight else parent2.template_id
+        inherited_template = (
+            parent1.template_id if random.random() < parent1_weight else parent2.template_id
+        )
         if random.random() < adaptive_mutation_rate:
             inherited_template = max(0, min(5, inherited_template + random.choice([-1, 0, 1])))
 
         # Weighted inheritance for pattern_type (discrete choice biased by weight)
-        inherited_pattern = parent1.pattern_type if random.random() < parent1_weight else parent2.pattern_type
+        inherited_pattern = (
+            parent1.pattern_type if random.random() < parent1_weight else parent2.pattern_type
+        )
         if random.random() < adaptive_mutation_rate:
             inherited_pattern = max(0, min(3, inherited_pattern + random.choice([-1, 0, 1])))
 
         # Linked traits: speed influences metabolism
         speed = weighted_inherit(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5)
-        base_metabolism = weighted_inherit(parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3)
+        base_metabolism = weighted_inherit(
+            parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3
+        )
         metabolism_link_factor = (speed - 1.0) * 0.2
         metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
 
@@ -278,7 +302,10 @@ class Genome:
         # Weighted epigenetic modifiers
         epigenetic = {}
         if parent1.epigenetic_modifiers or parent2.epigenetic_modifiers:
-            for modifier_key in set(list(parent1.epigenetic_modifiers.keys()) + list(parent2.epigenetic_modifiers.keys())):
+            for modifier_key in set(
+                list(parent1.epigenetic_modifiers.keys())
+                + list(parent2.epigenetic_modifiers.keys())
+            ):
                 p1_val = parent1.epigenetic_modifiers.get(modifier_key, 0.0)
                 p2_val = parent2.epigenetic_modifiers.get(modifier_key, 0.0)
                 weighted_val = p1_val * parent1_weight + p2_val * parent2_weight
@@ -294,14 +321,18 @@ class Genome:
             max_energy=weighted_inherit(parent1.max_energy, parent2.max_energy, 0.7, 1.5),
             fertility=weighted_inherit(parent1.fertility, parent2.fertility, 0.6, 1.4),
             aggression=weighted_inherit(parent1.aggression, parent2.aggression, 0.0, 1.0),
-            social_tendency=weighted_inherit(parent1.social_tendency, parent2.social_tendency, 0.0, 1.0),
+            social_tendency=weighted_inherit(
+                parent1.social_tendency, parent2.social_tendency, 0.0, 1.0
+            ),
             color_hue=weighted_inherit(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
             template_id=inherited_template,
             fin_size=weighted_inherit(parent1.fin_size, parent2.fin_size, 0.6, 1.4),
             tail_size=weighted_inherit(parent1.tail_size, parent2.tail_size, 0.6, 1.4),
             body_aspect=weighted_inherit(parent1.body_aspect, parent2.body_aspect, 0.7, 1.3),
             eye_size=weighted_inherit(parent1.eye_size, parent2.eye_size, 0.7, 1.3),
-            pattern_intensity=weighted_inherit(parent1.pattern_intensity, parent2.pattern_intensity, 0.0, 1.0),
+            pattern_intensity=weighted_inherit(
+                parent1.pattern_intensity, parent2.pattern_intensity, 0.0, 1.0
+            ),
             pattern_type=inherited_pattern,
             behavior_algorithm=algorithm,
             fitness_score=0.0,
@@ -312,15 +343,21 @@ class Genome:
 
         # NEW: Cultural inheritance of learned behaviors
         from core.behavioral_learning import BehavioralLearningSystem
+
         BehavioralLearningSystem.inherit_learned_behaviors(parent1, parent2, offspring)
 
         return offspring
 
     @classmethod
-    def from_parents(cls, parent1: 'Genome', parent2: 'Genome',
-                     mutation_rate: float = 0.1, mutation_strength: float = 0.1,
-                     population_stress: float = 0.0,
-                     crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION) -> 'Genome':
+    def from_parents(
+        cls,
+        parent1: "Genome",
+        parent2: "Genome",
+        mutation_rate: float = 0.1,
+        mutation_strength: float = 0.1,
+        population_stress: float = 0.0,
+        crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
+    ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations.
 
         Args:
@@ -337,14 +374,21 @@ class Genome:
         # IMPROVEMENT: Adaptive mutation rates - increase when population is stressed
         # This allows faster evolution when the population is struggling
         adaptive_mutation_rate = mutation_rate * (1.0 + population_stress * 2.0)  # Up to 3x higher
-        adaptive_mutation_strength = mutation_strength * (1.0 + population_stress * 1.5)  # Up to 2.5x stronger
+        adaptive_mutation_strength = mutation_strength * (
+            1.0 + population_stress * 1.5
+        )  # Up to 2.5x stronger
 
         # Clamp to reasonable ranges
         adaptive_mutation_rate = min(0.4, adaptive_mutation_rate)  # Max 40% mutation rate
         adaptive_mutation_strength = min(0.25, adaptive_mutation_strength)  # Max 25% strength
 
-        def inherit_trait(val1: float, val2: float, min_val: float, max_val: float,
-                         dominant_gene: Optional[int] = None) -> float:
+        def inherit_trait(
+            val1: float,
+            val2: float,
+            min_val: float,
+            max_val: float,
+            dominant_gene: Optional[int] = None,
+        ) -> float:
             """Inherit a trait from parents with possible mutation.
 
             Args:
@@ -396,16 +440,19 @@ class Genome:
         if parent1.behavior_algorithm is not None or parent2.behavior_algorithm is not None:
             # Crossover algorithms from both parents (or inherit if only one has it)
             from core.algorithms import crossover_algorithms
+
             algorithm = crossover_algorithms(
                 parent1.behavior_algorithm,
                 parent2.behavior_algorithm,
-                mutation_rate=adaptive_mutation_rate * 1.5,  # Slightly higher mutation for algorithms
+                mutation_rate=adaptive_mutation_rate
+                * 1.5,  # Slightly higher mutation for algorithms
                 mutation_strength=adaptive_mutation_strength * 1.5,
-                algorithm_switch_rate=0.05  # 5% chance of random algorithm mutation
+                algorithm_switch_rate=0.05,  # 5% chance of random algorithm mutation
             )
         else:
             # No algorithm from either parent, create random
             from core.algorithms import get_random_algorithm
+
             algorithm = get_random_algorithm()
 
         # Determine dominant genes randomly (for DOMINANT_RECESSIVE mode)
@@ -415,10 +462,14 @@ class Genome:
 
         # NEW: Trait linkage - speed and metabolism are linked
         # Higher speed should correlate with higher metabolism
-        speed = inherit_trait(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5, speed_dominant)
+        speed = inherit_trait(
+            parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5, speed_dominant
+        )
 
         # Metabolism is influenced by speed (linked traits)
-        base_metabolism = inherit_trait(parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3, metabolism_dominant)
+        base_metabolism = inherit_trait(
+            parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3, metabolism_dominant
+        )
         # Link: faster fish tend to have higher metabolism
         metabolism_link_factor = (speed - 1.0) * 0.2  # -0.1 to +0.1 adjustment
         metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
@@ -434,7 +485,10 @@ class Genome:
         epigenetic = {}
         if parent1.epigenetic_modifiers or parent2.epigenetic_modifiers:
             # Inherit some epigenetic modifications (with 50% retention rate)
-            for modifier_key in set(list(parent1.epigenetic_modifiers.keys()) + list(parent2.epigenetic_modifiers.keys())):
+            for modifier_key in set(
+                list(parent1.epigenetic_modifiers.keys())
+                + list(parent2.epigenetic_modifiers.keys())
+            ):
                 p1_val = parent1.epigenetic_modifiers.get(modifier_key, 0.0)
                 p2_val = parent2.epigenetic_modifiers.get(modifier_key, 0.0)
                 avg_val = (p1_val + p2_val) / 2.0
@@ -456,13 +510,17 @@ class Genome:
 
         offspring = cls(
             speed_modifier=speed,
-            size_modifier=inherit_trait(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3, size_dominant),
+            size_modifier=inherit_trait(
+                parent1.size_modifier, parent2.size_modifier, 0.7, 1.3, size_dominant
+            ),
             vision_range=inherit_trait(parent1.vision_range, parent2.vision_range, 0.7, 1.3),
             metabolism_rate=metabolism,  # Linked to speed
             max_energy=inherit_trait(parent1.max_energy, parent2.max_energy, 0.7, 1.5),
             fertility=inherit_trait(parent1.fertility, parent2.fertility, 0.6, 1.4),
             aggression=inherit_trait(parent1.aggression, parent2.aggression, 0.0, 1.0),
-            social_tendency=inherit_trait(parent1.social_tendency, parent2.social_tendency, 0.0, 1.0),
+            social_tendency=inherit_trait(
+                parent1.social_tendency, parent2.social_tendency, 0.0, 1.0
+            ),
             color_hue=inherit_trait(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
             # NEW: Visual trait inheritance for parametric fish templates
             template_id=inherited_template,
@@ -470,7 +528,9 @@ class Genome:
             tail_size=inherit_trait(parent1.tail_size, parent2.tail_size, 0.6, 1.4),
             body_aspect=inherit_trait(parent1.body_aspect, parent2.body_aspect, 0.7, 1.3),
             eye_size=inherit_trait(parent1.eye_size, parent2.eye_size, 0.7, 1.3),
-            pattern_intensity=inherit_trait(parent1.pattern_intensity, parent2.pattern_intensity, 0.0, 1.0),
+            pattern_intensity=inherit_trait(
+                parent1.pattern_intensity, parent2.pattern_intensity, 0.0, 1.0
+            ),
             pattern_type=inherited_pattern,
             behavior_algorithm=algorithm,
             fitness_score=0.0,  # New offspring starts with 0 fitness
@@ -481,6 +541,7 @@ class Genome:
 
         # NEW: Cultural inheritance of learned behaviors
         from core.behavioral_learning import BehavioralLearningSystem
+
         BehavioralLearningSystem.inherit_learned_behaviors(parent1, parent2, offspring)
 
         return offspring

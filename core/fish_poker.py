@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 @dataclass
 class PokerResult:
     """Result of a poker game between two fish."""
+
     hand1: PokerHand
     hand2: PokerHand
     energy_transferred: float
@@ -36,9 +37,9 @@ class PokerResult:
     player1_folded: bool  # Did player 1 fold
     player2_folded: bool  # Did player 2 fold
     reached_showdown: bool  # Did game reach showdown
-    betting_history: List[Tuple[int, 'BettingAction', float]]  # Betting actions taken
+    betting_history: List[Tuple[int, "BettingAction", float]]  # Betting actions taken
     reproduction_occurred: bool = False  # True if fish reproduced after poker
-    offspring: Optional['Fish'] = None  # The baby fish created (if reproduction occurred)
+    offspring: Optional["Fish"] = None  # The baby fish created (if reproduction occurred)
 
 
 class PokerInteraction:
@@ -56,7 +57,7 @@ class PokerInteraction:
     # Cooldown between poker games for the same fish (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
 
-    def __init__(self, fish1: 'Fish', fish2: 'Fish'):
+    def __init__(self, fish1: "Fish", fish2: "Fish"):
         """
         Initialize a poker interaction between two fish.
 
@@ -71,16 +72,16 @@ class PokerInteraction:
         self.result: Optional[PokerResult] = None
 
         # Add poker cooldown tracking to fish if not present
-        if not hasattr(fish1, 'poker_cooldown'):
+        if not hasattr(fish1, "poker_cooldown"):
             fish1.poker_cooldown = 0
-        if not hasattr(fish2, 'poker_cooldown'):
+        if not hasattr(fish2, "poker_cooldown"):
             fish2.poker_cooldown = 0
 
         # Add button position tracking for positional play
         # Button rotates between players in consecutive games
-        if not hasattr(fish1, 'last_button_position'):
+        if not hasattr(fish1, "last_button_position"):
             fish1.last_button_position = 2  # Start with button position 2
-        if not hasattr(fish2, 'last_button_position'):
+        if not hasattr(fish2, "last_button_position"):
             fish2.last_button_position = 2
 
     def can_play_poker(self) -> bool:
@@ -111,9 +112,9 @@ class PokerInteraction:
             return False
 
         # Don't interrupt pregnant fish
-        if hasattr(self.fish1, 'is_pregnant') and self.fish1.is_pregnant:
+        if hasattr(self.fish1, "is_pregnant") and self.fish1.is_pregnant:
             return False
-        if hasattr(self.fish2, 'is_pregnant') and self.fish2.is_pregnant:
+        if hasattr(self.fish2, "is_pregnant") and self.fish2.is_pregnant:
             return False
 
         return True
@@ -136,8 +137,9 @@ class PokerInteraction:
         max_bet_fish2 = self.fish2.energy * 0.2
         return min(base_bet, max_bet_fish1, max_bet_fish2)
 
-    def try_post_poker_reproduction(self, winner_fish: 'Fish', loser_fish: 'Fish',
-                                   energy_transferred: float) -> Optional['Fish']:
+    def try_post_poker_reproduction(
+        self, winner_fish: "Fish", loser_fish: "Fish", energy_transferred: float
+    ) -> Optional["Fish"]:
         """Attempt voluntary sexual reproduction after poker game.
 
         This is the core of the post-poker evolution system. Both fish can decide
@@ -181,6 +183,7 @@ class PokerInteraction:
         population_stress = 0.0
         if winner_fish.ecosystem is not None:
             from core.entities import Fish
+
             fish_count = len([e for e in winner_fish.environment.agents if isinstance(e, Fish)])
             target_population = 15
             population_ratio = fish_count / target_population if target_population > 0 else 1.0
@@ -188,7 +191,7 @@ class PokerInteraction:
             if population_ratio < 1.0:
                 population_stress = (1.0 - population_ratio) * 0.8
 
-            if hasattr(winner_fish.ecosystem, 'recent_death_rate'):
+            if hasattr(winner_fish.ecosystem, "recent_death_rate"):
                 death_rate_stress = min(0.4, winner_fish.ecosystem.recent_death_rate)
                 population_stress = min(1.0, population_stress + death_rate_stress)
 
@@ -199,12 +202,12 @@ class PokerInteraction:
             parent1_weight=POST_POKER_CROSSOVER_WINNER_WEIGHT,  # Winner contributes 60%
             mutation_rate=0.1,
             mutation_strength=0.1,
-            population_stress=population_stress
+            population_stress=population_stress,
         )
 
         # Energy transfer for baby (both parents contribute)
         winner_energy_contribution = 0.15  # Winner gives 15% of energy
-        loser_energy_contribution = 0.15   # Loser gives 15% of energy
+        loser_energy_contribution = 0.15  # Loser gives 15% of energy
 
         winner_energy_transfer = winner_fish.energy * winner_energy_contribution
         loser_energy_transfer = loser_fish.energy * loser_energy_contribution
@@ -236,6 +239,7 @@ class PokerInteraction:
 
         # Create baby fish with combined energy from both parents
         from core.entities import Fish
+
         baby = Fish(
             environment=winner_fish.environment,
             movement_strategy=winner_fish.movement_strategy.__class__(),
@@ -248,7 +252,7 @@ class PokerInteraction:
             ecosystem=winner_fish.ecosystem,
             screen_width=winner_fish.screen_width,
             screen_height=winner_fish.screen_height,
-            initial_energy=total_baby_energy
+            initial_energy=total_baby_energy,
         )
 
         # Record reproduction in ecosystem for both parents
@@ -291,10 +295,12 @@ class PokerInteraction:
         # Determine aggression levels for each fish based on their genome
         # Map genome aggression (0.0-1.0) to poker aggression range (0.3-0.9)
         fish1_aggression = PokerEngine.AGGRESSION_LOW + (
-            self.fish1.genome.aggression * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
+            self.fish1.genome.aggression
+            * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
         )
         fish2_aggression = PokerEngine.AGGRESSION_LOW + (
-            self.fish2.genome.aggression * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
+            self.fish2.genome.aggression
+            * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
         )
 
         # Rotate button position for positional play
@@ -310,7 +316,7 @@ class PokerInteraction:
             player2_energy=self.fish2.energy,
             player1_aggression=fish1_aggression,
             player2_aggression=fish2_aggression,
-            button_position=button_position
+            button_position=button_position,
         )
 
         # Store hands
@@ -348,17 +354,25 @@ class PokerInteraction:
             # Apply energy changes
             if winner_id == self.fish1.fish_id:
                 # Fish 1 wins
-                self.fish1.energy = max(0, self.fish1.energy - game_state.player1_total_bet + energy_transferred)
+                self.fish1.energy = max(
+                    0, self.fish1.energy - game_state.player1_total_bet + energy_transferred
+                )
                 self.fish2.energy = max(0, self.fish2.energy - game_state.player2_total_bet)
             else:
                 # Fish 2 wins
                 self.fish1.energy = max(0, self.fish1.energy - game_state.player1_total_bet)
-                self.fish2.energy = max(0, self.fish2.energy - game_state.player2_total_bet + energy_transferred)
+                self.fish2.energy = max(
+                    0, self.fish2.energy - game_state.player2_total_bet + energy_transferred
+                )
         else:
             # Tie - return bets
             energy_transferred = 0.0
-            self.fish1.energy = max(0, self.fish1.energy - game_state.player1_total_bet + game_state.player1_total_bet)
-            self.fish2.energy = max(0, self.fish2.energy - game_state.player2_total_bet + game_state.player2_total_bet)
+            self.fish1.energy = max(
+                0, self.fish1.energy - game_state.player1_total_bet + game_state.player1_total_bet
+            )
+            self.fish2.energy = max(
+                0, self.fish2.energy - game_state.player2_total_bet + game_state.player2_total_bet
+            )
 
         # Set cooldowns
         self.fish1.poker_cooldown = self.POKER_COOLDOWN
@@ -381,13 +395,22 @@ class PokerInteraction:
                 pass
             else:
                 # Determine positions and hand strengths
-                winner_on_button = (winner_id == self.fish1.fish_id and button_position == 1) or \
-                                  (winner_id == self.fish2.fish_id and button_position == 2)
+                winner_on_button = (winner_id == self.fish1.fish_id and button_position == 1) or (
+                    winner_id == self.fish2.fish_id and button_position == 2
+                )
                 loser_on_button = not winner_on_button
 
                 # Get hand rankings (normalized 0-1)
-                winner_hand_strength = (self.hand1.rank_value if winner_id == self.fish1.fish_id else self.hand2.rank_value) / 9.0
-                loser_hand_strength = (self.hand2.rank_value if winner_id == self.fish1.fish_id else self.hand1.rank_value) / 9.0
+                winner_hand_strength = (
+                    self.hand1.rank_value
+                    if winner_id == self.fish1.fish_id
+                    else self.hand2.rank_value
+                ) / 9.0
+                loser_hand_strength = (
+                    self.hand2.rank_value
+                    if winner_id == self.fish1.fish_id
+                    else self.hand1.rank_value
+                ) / 9.0
 
                 # Check if fish bluffed (won with weak hand or lost with weak hand)
                 winner_bluffed = won_by_fold and winner_hand_strength < 0.3
@@ -399,7 +422,7 @@ class PokerInteraction:
                     hand_strength=winner_hand_strength,
                     position_on_button=winner_on_button,
                     bluffed=winner_bluffed,
-                    opponent_id=loser_fish.fish_id
+                    opponent_id=loser_fish.fish_id,
                 )
 
                 # Loser learns from defeat
@@ -408,18 +431,24 @@ class PokerInteraction:
                     hand_strength=loser_hand_strength,
                     position_on_button=loser_on_button,
                     bluffed=loser_bluffed,
-                    opponent_id=winner_fish.fish_id
+                    opponent_id=winner_fish.fish_id,
                 )
 
                 # Update opponent models for both fish
                 winner_fish.poker_strategy.update_opponent_model(
                     opponent_id=loser_fish.fish_id,
                     won=False,  # From winner's perspective, opponent lost
-                    folded=game_state.player2_folded if winner_id == self.fish1.fish_id else game_state.player1_folded,
+                    folded=(
+                        game_state.player2_folded
+                        if winner_id == self.fish1.fish_id
+                        else game_state.player1_folded
+                    ),
                     raised=False,  # Simplified - would need betting history
                     called=True,  # Simplified
-                    aggression=fish2_aggression if winner_id == self.fish1.fish_id else fish1_aggression,
-                    frame=winner_fish.ecosystem.frame_count if winner_fish.ecosystem else 0
+                    aggression=(
+                        fish2_aggression if winner_id == self.fish1.fish_id else fish1_aggression
+                    ),
+                    frame=winner_fish.ecosystem.frame_count if winner_fish.ecosystem else 0,
                 )
 
                 loser_fish.poker_strategy.update_opponent_model(
@@ -428,8 +457,10 @@ class PokerInteraction:
                     folded=False,
                     raised=False,
                     called=True,
-                    aggression=fish1_aggression if winner_id == self.fish1.fish_id else fish2_aggression,
-                    frame=loser_fish.ecosystem.frame_count if loser_fish.ecosystem else 0
+                    aggression=(
+                        fish1_aggression if winner_id == self.fish1.fish_id else fish2_aggression
+                    ),
+                    frame=loser_fish.ecosystem.frame_count if loser_fish.ecosystem else 0,
                 )
 
                 # NEW: Trigger learning events for behavioral learning system
@@ -441,10 +472,10 @@ class PokerInteraction:
                     success=True,
                     reward=energy_transferred / 10.0,  # Normalize reward
                     context={
-                        'hand_strength': winner_hand_strength,
-                        'position': 0 if winner_on_button else 1,
-                        'bluffed': 1.0 if winner_bluffed else 0.0
-                    }
+                        "hand_strength": winner_hand_strength,
+                        "position": 0 if winner_on_button else 1,
+                        "bluffed": 1.0 if winner_bluffed else 0.0,
+                    },
                 )
                 winner_fish.learning_system.learn_from_event(winner_poker_event)
 
@@ -454,10 +485,10 @@ class PokerInteraction:
                     success=False,
                     reward=-energy_transferred / 10.0,  # Negative reward for loss
                     context={
-                        'hand_strength': loser_hand_strength,
-                        'position': 0 if loser_on_button else 1,
-                        'bluffed': 0.0
-                    }
+                        "hand_strength": loser_hand_strength,
+                        "position": 0 if loser_on_button else 1,
+                        "bluffed": 0.0,
+                    },
                 )
                 loser_fish.learning_system.learn_from_event(loser_poker_event)
 
@@ -471,7 +502,7 @@ class PokerInteraction:
             offspring = self.try_post_poker_reproduction(
                 winner_fish=winner_fish,
                 loser_fish=loser_fish,
-                energy_transferred=energy_transferred
+                energy_transferred=energy_transferred,
             )
             reproduction_occurred = offspring is not None
 
@@ -491,7 +522,7 @@ class PokerInteraction:
             reached_showdown=reached_showdown,
             betting_history=game_state.betting_history,
             reproduction_occurred=reproduction_occurred,
-            offspring=offspring
+            offspring=offspring,
         )
 
         # Record in ecosystem if available (including ties)
@@ -500,11 +531,13 @@ class PokerInteraction:
             fish1_algo_id = None
             if self.fish1.genome.behavior_algorithm is not None:
                 from core.algorithms import get_algorithm_index
+
                 fish1_algo_id = get_algorithm_index(self.fish1.genome.behavior_algorithm)
 
             fish2_algo_id = None
             if self.fish2.genome.behavior_algorithm is not None:
                 from core.algorithms import get_algorithm_index
+
                 fish2_algo_id = get_algorithm_index(self.fish2.genome.behavior_algorithm)
 
             # Determine which fish is player 1 and player 2 for stats
@@ -522,7 +555,7 @@ class PokerInteraction:
                 house_cut=house_cut,
                 result=self.result,
                 player1_algo_id=player1_algo_id,
-                player2_algo_id=player2_algo_id
+                player2_algo_id=player2_algo_id,
             )
 
         return True
@@ -538,27 +571,41 @@ class PokerInteraction:
             return "No poker game has been played"
 
         round_names = ["Pre-flop", "Flop", "Turn", "River", "Showdown"]
-        rounds_text = f"after {round_names[self.result.total_rounds]}" if self.result.total_rounds < 4 else "at Showdown"
+        rounds_text = (
+            f"after {round_names[self.result.total_rounds]}"
+            if self.result.total_rounds < 4
+            else "at Showdown"
+        )
 
         if self.result.winner_id == -1:
-            return (f"Tie {rounds_text}! Fish {self.fish1.fish_id} had {self.result.hand1.description}, "
-                   f"Fish {self.fish2.fish_id} had {self.result.hand2.description}")
+            return (
+                f"Tie {rounds_text}! Fish {self.fish1.fish_id} had {self.result.hand1.description}, "
+                f"Fish {self.fish2.fish_id} had {self.result.hand2.description}"
+            )
 
         winner_fish = self.fish1 if self.result.winner_id == self.fish1.fish_id else self.fish2
         loser_fish = self.fish2 if self.result.winner_id == self.fish1.fish_id else self.fish1
-        winner_hand = self.result.hand1 if self.result.winner_id == self.fish1.fish_id else self.result.hand2
-        loser_hand = self.result.hand2 if self.result.winner_id == self.fish1.fish_id else self.result.hand1
+        winner_hand = (
+            self.result.hand1 if self.result.winner_id == self.fish1.fish_id else self.result.hand2
+        )
+        loser_hand = (
+            self.result.hand2 if self.result.winner_id == self.fish1.fish_id else self.result.hand1
+        )
 
         if self.result.won_by_fold:
-            return (f"Fish {winner_fish.fish_id} wins {self.result.energy_transferred:.1f} energy {rounds_text}! "
-                   f"Fish {loser_fish.fish_id} folded ({loser_hand.description})")
+            return (
+                f"Fish {winner_fish.fish_id} wins {self.result.energy_transferred:.1f} energy {rounds_text}! "
+                f"Fish {loser_fish.fish_id} folded ({loser_hand.description})"
+            )
         else:
-            return (f"Fish {winner_fish.fish_id} wins {self.result.energy_transferred:.1f} energy {rounds_text}! "
-                   f"({winner_hand.description} beats {loser_hand.description})")
+            return (
+                f"Fish {winner_fish.fish_id} wins {self.result.energy_transferred:.1f} energy {rounds_text}! "
+                f"({winner_hand.description} beats {loser_hand.description})"
+            )
 
 
 # Helper function for easy integration
-def try_poker_interaction(fish1: 'Fish', fish2: 'Fish', bet_amount: Optional[float] = None) -> bool:
+def try_poker_interaction(fish1: "Fish", fish2: "Fish", bet_amount: Optional[float] = None) -> bool:
     """
     Convenience function to attempt a poker interaction between two fish.
 
