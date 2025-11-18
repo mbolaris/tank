@@ -196,6 +196,8 @@ FISH_BABY_SIZE = 0.5  # Size multiplier for baby fish
 FISH_ADULT_SIZE = 1.0  # Size multiplier for adult fish
 FISH_BASE_WIDTH = 50  # Base width for fish sprite
 FISH_BASE_HEIGHT = 50  # Base height for fish sprite
+FISH_TEMPLATE_COUNT = 6  # Number of parametric fish templates (0-5)
+FISH_PATTERN_COUNT = 4  # Number of pattern types (0-3)
 
 # Crab Constants
 CRAB_INITIAL_ENERGY = 150.0  # Starting energy for crabs
@@ -234,6 +236,9 @@ MOVEMENT_DISTANCE_EPSILON = 0.01  # Minimum distance threshold for movement calc
 POKER_AGGRESSION_LOW = 0.3  # Low aggression factor
 POKER_AGGRESSION_MEDIUM = 0.6  # Medium aggression factor
 POKER_AGGRESSION_HIGH = 0.9  # High aggression factor
+
+# Poker Game Mechanics
+POKER_MAX_ACTIONS_PER_ROUND = 10  # Maximum betting actions per round (prevents infinite loops)
 
 # Spawning Constants
 MAX_DIVERSITY_SPAWN_ATTEMPTS = 10  # Maximum attempts to spawn diverse fish

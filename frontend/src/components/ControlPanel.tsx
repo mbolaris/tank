@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import type { Command } from '../types/simulation';
+import { colors, commonStyles } from '../styles/theme';
 
 interface ControlPanelProps {
   onCommand: (command: Command) => void;
@@ -18,7 +19,6 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
   };
 
   const handleSpawnFish = () => {
-    console.log('Spawn Fish button clicked - sending command');
     onCommand({ command: 'spawn_fish' });
   };
 
@@ -121,19 +121,8 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
 }
 
 const styles = {
-  container: {
-    padding: '24px',
-    background: 'linear-gradient(145deg, rgba(30,41,59,0.92), rgba(15,23,42,0.95))',
-    borderRadius: '20px',
-    color: '#e2e8f0',
-    border: '1px solid rgba(148,163,184,0.18)',
-    boxShadow: '0 35px 55px rgba(2,6,23,0.65)',
-  },
-  title: {
-    margin: '0 0 16px 0',
-    fontSize: '20px',
-    fontWeight: 600,
-  },
+  container: commonStyles.panelContainer,
+  title: commonStyles.panelTitle,
   status: {
     display: 'flex',
     alignItems: 'center',
@@ -153,36 +142,27 @@ const styles = {
     flexDirection: 'column' as const,
     gap: '8px',
   },
-  button: {
-    padding: '12px 16px',
-    fontSize: '14px',
-    fontWeight: 500,
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    boxShadow: '0 10px 25px rgba(15,23,42,0.45)',
-  },
+  button: commonStyles.button,
   buttonPrimary: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.buttonPrimary,
     color: '#ffffff',
   },
   buttonSuccess: {
-    backgroundColor: '#10b981',
+    backgroundColor: colors.buttonSuccess,
     color: '#ffffff',
   },
   buttonSecondary: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: colors.buttonSecondary,
     color: '#ffffff',
   },
   buttonDanger: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.buttonDanger,
     color: '#ffffff',
   },
   help: {
     marginTop: '24px',
     padding: '16px',
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.bgDark,
     borderRadius: '6px',
   },
   helpTitle: {

@@ -21,6 +21,8 @@ from typing import Tuple, Optional, List, Set
 from enum import IntEnum
 from collections import Counter
 
+from core.constants import POKER_MAX_ACTIONS_PER_ROUND
+
 logger = logging.getLogger(__name__)
 
 
@@ -667,7 +669,7 @@ class PokerEngine:
 
             # Simulate betting for this round
             # Players alternate actions until both have matched bets or someone folds
-            max_actions_per_round = 10  # Prevent infinite loops
+            max_actions_per_round = POKER_MAX_ACTIONS_PER_ROUND  # Prevent infinite loops
             actions_this_round = 0
 
             # In heads-up pre-flop, button (small blind) acts first
