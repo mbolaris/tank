@@ -535,7 +535,7 @@ class Fish(Agent):
         Args:
             time_modifier: Modifier for time-based effects (e.g., day/night)
         """
-        self._energy_component.consume_energy(self.vel, self.speed, self.life_stage, time_modifier)
+        self._energy_component.consume_energy(self.vel, self.speed, self.life_stage, time_modifier, self.size)
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy).
