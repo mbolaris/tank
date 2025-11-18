@@ -321,7 +321,8 @@ class SimulationEngine(BaseSimulator):
             winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
             loser_hand = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
             winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
-            message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.energy_transferred:.1f} energy)"
+            # Show winner's actual gain (not loser's loss) to make it clear they're different
+            message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
 
         # Create event data
         winner_hand_obj = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
