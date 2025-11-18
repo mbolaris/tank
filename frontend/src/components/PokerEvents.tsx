@@ -42,6 +42,11 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                   style={{ opacity: fading }}
                 >
                   {event.message}
+                  {!isTie && event.energy_transferred > 0 && (
+                    <span className="poker-events__energy-loss">
+                      {' '}(-{event.energy_transferred.toFixed(1)} energy)
+                    </span>
+                  )}
                 </div>
               );
             })}
