@@ -516,9 +516,14 @@ class PokerEngine:
         pot: float,
         player_energy: float,
         aggression: float = AGGRESSION_MEDIUM,
+        hole_cards: Optional[List[Card]] = None,
+        community_cards: Optional[List[Card]] = None,
+        position_on_button: bool = False,
     ) -> Tuple[BettingAction, float]:
         """
         Decide what action to take based on hand strength and game state.
+
+        Enhanced with realistic pre-flop hand evaluation and position awareness.
 
         Args:
             hand: Player's poker hand
@@ -527,6 +532,9 @@ class PokerEngine:
             pot: Current pot size
             player_energy: Player's available energy
             aggression: Aggression factor (0-1, higher = more aggressive)
+            hole_cards: Player's hole cards (for pre-flop evaluation)
+            community_cards: Community cards (None for pre-flop)
+            position_on_button: True if player is on the button
 
         Returns:
             Tuple of (action, bet_amount)
@@ -538,6 +546,53 @@ class PokerEngine:
         if call_amount > player_energy:
             # Must fold if can't afford to call
             return (BettingAction.FOLD, 0.0)
+
+        # Enhanced pre-flop decision making with starting hand evaluation
+        is_preflop = community_cards is None or len(community_cards) == 0
+        if is_preflop and hole_cards is not None and len(hole_cards) == 2:
+            from core.poker_hand_strength import (
+                calculate_pot_odds,
+                evaluate_starting_hand_strength,
+                get_action_recommendation,
+            )
+
+            # Evaluate starting hand strength
+            starting_strength = evaluate_starting_hand_strength(hole_cards, position_on_button)
+
+            # Calculate pot odds
+            pot_odds = calculate_pot_odds(call_amount, pot) if call_amount > 0 else 0.0
+
+            # Get recommended action based on situation
+            action_type, bet_multiplier = get_action_recommendation(
+                hand_strength=starting_strength,
+                pot_odds=pot_odds,
+                aggression=aggression,
+                position_on_button=position_on_button,
+                is_preflop=True,
+            )
+
+            # Convert recommendation to actual action
+            if action_type == "fold":
+                return (BettingAction.FOLD, 0.0)
+            elif action_type == "check":
+                if call_amount == 0:
+                    return (BettingAction.CHECK, 0.0)
+                else:
+                    # Can't check with a bet to call
+                    if starting_strength > pot_odds * 0.8:
+                        return (BettingAction.CALL, call_amount)
+                    else:
+                        return (BettingAction.FOLD, 0.0)
+            elif action_type == "call":
+                if call_amount == 0:
+                    return (BettingAction.CHECK, 0.0)
+                else:
+                    return (BettingAction.CALL, call_amount)
+            else:  # raise
+                raise_amount = min(pot * bet_multiplier, player_energy * 0.3)
+                if call_amount > 0:
+                    raise_amount = max(raise_amount, call_amount * 1.5)
+                return (BettingAction.RAISE, raise_amount)
 
         # Determine hand strength category
         hand_strength = hand.rank_value
@@ -701,6 +756,16 @@ class PokerEngine:
                     aggression = player2_aggression
 
                 # Decide action
+                # Determine if player is on button
+                player_on_button = (current_player == button_position)
+
+                # Get hole cards and community cards for enhanced decision making
+                hole_cards = (
+                    game_state.player1_hole_cards
+                    if current_player == 1
+                    else game_state.player2_hole_cards
+                )
+
                 action, bet_amount = PokerEngine.decide_action(
                     hand=hand,
                     current_bet=current_bet,
@@ -708,6 +773,9 @@ class PokerEngine:
                     pot=game_state.pot,
                     player_energy=remaining_energy,
                     aggression=aggression,
+                    hole_cards=hole_cards,
+                    community_cards=game_state.community_cards,
+                    position_on_button=player_on_button,
                 )
 
                 # Record action

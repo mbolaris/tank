@@ -7,6 +7,7 @@ import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
 import { StatsPanel } from './components/StatsPanel';
 import PokerEvents from './components/PokerEvents';
+import { PokerLeaderboard } from './components/PokerLeaderboard';
 import './App.css';
 
 function App() {
@@ -53,6 +54,7 @@ function App() {
             events={state?.poker_events ?? []}
             currentFrame={state?.frame ?? 0}
           />
+          <PokerLeaderboard leaderboard={state?.poker_leaderboard ?? []} />
         </div>
 
         <div className="sidebar">

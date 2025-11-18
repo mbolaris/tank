@@ -859,6 +859,98 @@ class EcosystemManager:
             "postflop_folds": total_folds - total_preflop_folds,
         }
 
+    def get_poker_leaderboard(
+        self, fish_list: Optional[List] = None, limit: int = 10, sort_by: str = "net_energy"
+    ) -> List[Dict[str, Any]]:
+        """Get poker leaderboard of top-performing fish.
+
+        Args:
+            fish_list: List of fish to include (if None, uses all tracked fish)
+            limit: Maximum number of fish to return (default 10)
+            sort_by: Metric to sort by (options: 'net_energy', 'wins', 'win_rate', 'roi')
+
+        Returns:
+            List of dictionaries with fish poker stats, sorted by the specified metric
+        """
+        from core.entities import Fish
+
+        if fish_list is None:
+            return []
+
+        # Filter to only fish with poker games played
+        poker_fish = [f for f in fish_list if isinstance(f, Fish) and f.poker_stats.total_games > 0]
+
+        # Sort by the requested metric
+        if sort_by == "net_energy":
+            poker_fish.sort(key=lambda f: f.poker_stats.get_net_energy(), reverse=True)
+        elif sort_by == "wins":
+            poker_fish.sort(key=lambda f: f.poker_stats.wins, reverse=True)
+        elif sort_by == "win_rate":
+            poker_fish.sort(key=lambda f: f.poker_stats.get_win_rate(), reverse=True)
+        elif sort_by == "roi":
+            poker_fish.sort(key=lambda f: f.poker_stats.get_roi(), reverse=True)
+        else:
+            # Default to net energy
+            poker_fish.sort(key=lambda f: f.poker_stats.get_net_energy(), reverse=True)
+
+        # Get hand rank names for display
+        hand_rank_names = [
+            "High Card",
+            "Pair",
+            "Two Pair",
+            "Three of a Kind",
+            "Straight",
+            "Flush",
+            "Full House",
+            "Four of a Kind",
+            "Straight Flush",
+            "Royal Flush",
+        ]
+
+        # Build leaderboard data
+        leaderboard = []
+        for rank, fish in enumerate(poker_fish[:limit], start=1):
+            stats = fish.poker_stats
+            best_hand_name = (
+                hand_rank_names[stats.best_hand_rank]
+                if 0 <= stats.best_hand_rank < len(hand_rank_names)
+                else "Unknown"
+            )
+
+            # Get algorithm name if available
+            algo_name = "Unknown"
+            if fish.genome.behavior_algorithm is not None:
+                from core.algorithms import get_algorithm_name
+
+                algo_name = get_algorithm_name(fish.genome.behavior_algorithm)
+
+            leaderboard.append(
+                {
+                    "rank": rank,
+                    "fish_id": fish.fish_id,
+                    "generation": fish.generation,
+                    "algorithm": algo_name,
+                    "energy": round(fish.energy, 1),
+                    "age": fish.age,
+                    "total_games": stats.total_games,
+                    "wins": stats.wins,
+                    "losses": stats.losses,
+                    "ties": stats.ties,
+                    "win_rate": round(stats.get_win_rate() * 100, 1),
+                    "net_energy": round(stats.get_net_energy(), 1),
+                    "roi": round(stats.get_roi(), 2),
+                    "current_streak": stats.current_streak,
+                    "best_streak": stats.best_streak,
+                    "best_hand": best_hand_name,
+                    "best_hand_rank": stats.best_hand_rank,
+                    "showdown_win_rate": round(stats.get_showdown_win_rate() * 100, 1),
+                    "fold_rate": round(stats.get_fold_rate() * 100, 1),
+                    "positional_advantage": round(stats.get_positional_advantage() * 100, 1),
+                }
+            )
+
+        return leaderboard
+
     def get_reproduction_summary(self) -> Dict[str, Any]:
         """Get summary reproduction statistics.
 

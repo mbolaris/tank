@@ -151,6 +151,20 @@ class SimulationRunner:
                     )
                 )
 
+            # Get poker leaderboard
+            poker_leaderboard = []
+            if hasattr(self.world.ecosystem, "get_poker_leaderboard"):
+                # Get fish list from entities
+                from core.entities import Fish
+
+                fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+                leaderboard_data = self.world.ecosystem.get_poker_leaderboard(
+                    fish_list=fish_list, limit=10, sort_by="net_energy"
+                )
+                from models import PokerLeaderboardEntry
+
+                poker_leaderboard = [PokerLeaderboardEntry(**entry) for entry in leaderboard_data]
+
             return SimulationUpdate(
                 frame=self.world.frame_count,
                 elapsed_time=(
@@ -161,6 +175,7 @@ class SimulationRunner:
                 entities=entities_data,
                 stats=stats_data,
                 poker_events=poker_events,
+                poker_leaderboard=poker_leaderboard,
             )
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntityData]:
