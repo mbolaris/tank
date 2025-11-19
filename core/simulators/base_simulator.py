@@ -200,7 +200,10 @@ class BaseSimulator(ABC):
         poker = JellyfishPokerInteraction(fish, jellyfish)
         if poker.play_poker():
             # Add jellyfish poker event if available
-            if hasattr(self, 'add_jellyfish_poker_event') and poker.result is not None:
+            if (hasattr(self, 'add_jellyfish_poker_event') and
+                poker.result is not None and
+                poker.result.fish_hand is not None and
+                poker.result.jellyfish_hand is not None):
                 self.add_jellyfish_poker_event(
                     fish_id=poker.result.fish_id,
                     fish_won=poker.result.fish_won,
