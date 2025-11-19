@@ -121,6 +121,13 @@ class FreezeResponse(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        """Freeze when predator is near, seek food when safe.
+
+        AI-IMPROVED: Added food-seeking when no threat detected.
+        Previous version always returned (0,0) even when safe, causing starvation.
+        Stats showed: 100% death by starvation, 492 frame avg lifespan.
+        """
+        from core.entities import Food
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -131,9 +138,20 @@ class FreezeResponse(BehaviorAlgorithm):
                 self.is_frozen = False
 
             if self.is_frozen:
-                return 0, 0
+                return 0, 0  # Freeze in place when threatened
+        else:
+            # No predator detected - unfreeze
+            self.is_frozen = False
 
-        return 0, 0
+        # When not frozen, seek food to avoid starvation
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
+            # Move cautiously toward food (slower speed for safety)
+            return direction.x * 0.5, direction.y * 0.5
+
+        # No food found - wander slowly
+        return random.uniform(-0.3, 0.3), random.uniform(-0.3, 0.3)
 
 
 @dataclass
