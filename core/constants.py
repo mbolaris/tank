@@ -147,6 +147,12 @@ INITIAL_ENERGY_RATIO = 0.5  # Start with 50% energy
 BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
 ELDER_METABOLISM_MULTIPLIER = 1.2  # Elders need more energy
 
+# Energy Consumption Constants
+EXISTENCE_ENERGY_COST = 0.02  # Cost just for being alive per frame
+MOVEMENT_ENERGY_COST = 0.015  # Movement-based energy consumption multiplier
+SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns
+SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
+
 # Energy Thresholds (centralized for consistency across the codebase)
 STARVATION_THRESHOLD = 15.0  # Below this, fish dies from starvation
 CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode (same as starvation threshold)
@@ -244,6 +250,33 @@ POKER_AGGRESSION_HIGH = 0.9  # High aggression factor
 
 # Poker Game Mechanics
 POKER_MAX_ACTIONS_PER_ROUND = 10  # Maximum betting actions per round (prevents infinite loops)
+
+# Poker Betting Constants
+POKER_BET_MIN_SIZE = 0.35  # Minimum fish size for bet percentage calculation
+POKER_BET_MIN_PERCENTAGE = 0.15  # Minimum bet percentage (15% at size 0.35)
+POKER_BET_SIZE_MULTIPLIER = 0.158  # Bet percentage increase per size unit (15-30% range)
+
+# Poker House Cut Constants
+POKER_HOUSE_CUT_MIN_PERCENTAGE = 0.08  # Minimum house cut (8% at size 0.35)
+POKER_HOUSE_CUT_SIZE_MULTIPLIER = 0.18  # House cut increase per size unit (8-25% range)
+
+# Poker Hand Evaluation
+POKER_MAX_HAND_RANK = 9.0  # Maximum hand rank value for normalization
+POKER_WEAK_HAND_THRESHOLD = 0.3  # Threshold for considering a hand weak (for bluff detection)
+
+# Post-Poker Reproduction Energy Constants
+POST_POKER_PARENT_ENERGY_CONTRIBUTION = 0.15  # Energy contribution from each parent (15%)
+POST_POKER_MUTATION_RATE = 0.1  # Mutation rate for post-poker offspring
+POST_POKER_MUTATION_STRENGTH = 0.1  # Mutation strength for post-poker offspring
+
+# Population Stress Constants
+POPULATION_STRESS_MAX_MULTIPLIER = 0.8  # Maximum population stress from low population
+POPULATION_STRESS_DEATH_RATE_MAX = 0.4  # Maximum stress contribution from death rate
+POPULATION_STRESS_MAX_TOTAL = 1.0  # Maximum total population stress
+
+# Baby Fish Spawning Constants
+BABY_POSITION_RANDOM_RANGE = 20  # Random offset range for baby position (pixels)
+BABY_SPAWN_MARGIN = 50  # Margin from screen edges for baby spawning (pixels)
 
 # Spawning Constants
 MAX_DIVERSITY_SPAWN_ATTEMPTS = 10  # Maximum attempts to spawn diverse fish

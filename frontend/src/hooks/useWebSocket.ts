@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SimulationUpdate, Command } from '../types/simulation';
 
 const WS_URL = 'ws://localhost:8000/ws';
+const WS_RECONNECT_DELAY = 3000; // 3 seconds
 
 export function useWebSocket() {
   const [state, setState] = useState<SimulationUpdate | null>(null);
@@ -30,29 +31,31 @@ export function useWebSocket() {
             setState(data as SimulationUpdate);
           }
         } catch (error) {
-          // Silently handle parsing errors
+          console.error('WebSocket: Failed to parse message:', error, 'Data:', event.data);
         }
       };
 
-      ws.onerror = () => {
-        // Silently handle WebSocket errors
+      ws.onerror = (error) => {
+        console.error('WebSocket: Connection error:', error);
       };
 
       ws.onclose = () => {
         setIsConnected(false);
         wsRef.current = null;
 
-        // Attempt to reconnect after 3 seconds
+        // Attempt to reconnect after delay
         reconnectTimeoutRef.current = window.setTimeout(() => {
           if (connectRef.current) {
+            console.log(`WebSocket: Attempting to reconnect to ${WS_URL}...`);
             connectRef.current();
           }
-        }, 3000);
+        }, WS_RECONNECT_DELAY);
       };
 
       wsRef.current = ws;
     } catch (error) {
-      // Silently handle WebSocket creation errors
+      console.error('WebSocket: Failed to create connection:', error);
+      setIsConnected(false);
     }
   }, []);
 

@@ -60,8 +60,11 @@ def get_algorithm_id_to_source_map() -> Dict[str, str]:
             abs_path = os.path.abspath(source_file)
 
             mapping[algo_id] = abs_path
-        except Exception as e:
+        except (TypeError, OSError, AttributeError) as e:
             # Skip algorithms that can't be instantiated or inspected
+            # TypeError: inspect.getfile() fails for built-in classes
+            # OSError: File system errors
+            # AttributeError: Missing algorithm_id attribute
             continue
 
     return mapping
@@ -93,20 +96,20 @@ def get_algorithm_metadata() -> Dict[str, Dict[str, str]]:
             abs_path = os.path.abspath(source_file)
             module_path = algorithm_class.__module__
 
-            # Determine category from module path
+            # Determine category from module path using dictionary lookup
+            category_keywords = {
+                "food_seeking": "food_seeking",
+                "predator_avoidance": "predator_avoidance",
+                "schooling": "schooling",
+                "energy_management": "energy_management",
+                "territory": "territory",
+                "poker": "poker",
+            }
             category = "unknown"
-            if "food_seeking" in module_path:
-                category = "food_seeking"
-            elif "predator_avoidance" in module_path:
-                category = "predator_avoidance"
-            elif "schooling" in module_path:
-                category = "schooling"
-            elif "energy_management" in module_path:
-                category = "energy_management"
-            elif "territory" in module_path:
-                category = "territory"
-            elif "poker" in module_path:
-                category = "poker"
+            for keyword, cat_name in category_keywords.items():
+                if keyword in module_path:
+                    category = cat_name
+                    break
 
             metadata[algo_id] = {
                 "class_name": class_name,
@@ -115,8 +118,11 @@ def get_algorithm_metadata() -> Dict[str, Dict[str, str]]:
                 "module": module_path,
                 "category": category,
             }
-        except Exception as e:
-            # Log error but continue
+        except (TypeError, OSError, AttributeError) as e:
+            # Skip algorithms that can't be instantiated or inspected
+            # TypeError: inspect.getfile() fails for built-in classes
+            # OSError: File system errors
+            # AttributeError: Missing algorithm_id attribute
             continue
 
     return metadata
