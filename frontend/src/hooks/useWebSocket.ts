@@ -14,6 +14,7 @@ export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const connectRef = useRef<(() => void) | null>(null);
+  const responseCallbacksRef = useRef<Map<string, (data: any) => void>>(new Map());
 
   const connect = useCallback(() => {
     try {
@@ -29,6 +30,11 @@ export function useWebSocket() {
 
           if (data.type === 'update') {
             setState(data as SimulationUpdate);
+          } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
+            // This is a command response (e.g., poker game state)
+            // Call any pending callbacks
+            responseCallbacksRef.current.forEach((callback) => callback(data));
+            responseCallbacksRef.current.clear();
           }
         } catch (error) {
           console.error('WebSocket: Failed to parse message:', error, 'Data:', event.data);
@@ -82,9 +88,34 @@ export function useWebSocket() {
     }
   }, []);
 
+  const sendCommandWithResponse = useCallback((command: Command): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Add a callback to handle the response
+        const callbackId = Math.random().toString(36);
+        responseCallbacksRef.current.set(callbackId, (data) => {
+          resolve(data);
+        });
+
+        // Set a timeout in case response never comes
+        setTimeout(() => {
+          if (responseCallbacksRef.current.has(callbackId)) {
+            responseCallbacksRef.current.delete(callbackId);
+            reject(new Error('Command timeout'));
+          }
+        }, 10000); // 10 second timeout
+
+        wsRef.current.send(JSON.stringify(command));
+      } else {
+        reject(new Error('WebSocket not connected'));
+      }
+    });
+  }, []);
+
   return {
     state,
     isConnected,
     sendCommand,
+    sendCommandWithResponse,
   };
 }

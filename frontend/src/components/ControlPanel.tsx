@@ -9,9 +9,10 @@ import { colors, commonStyles } from '../styles/theme';
 interface ControlPanelProps {
   onCommand: (command: Command) => void;
   isConnected: boolean;
+  onPlayPoker?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPanelProps) {
   const [isPaused, setIsPaused] = useState(false);
 
   const handleAddFood = () => {
@@ -41,6 +42,12 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
     onCommand({ command: 'spawn_jellyfish' });
   };
 
+  const handlePlayPoker = () => {
+    if (onPlayPoker) {
+      onPlayPoker();
+    }
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Controls</h2>
@@ -58,6 +65,17 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
       </div>
 
       <div style={styles.buttons}>
+        <button
+          onClick={handlePlayPoker}
+          disabled={!isConnected}
+          style={{
+            ...styles.button,
+            ...styles.buttonPoker,
+          }}
+        >
+          🃏 Play Poker
+        </button>
+
         <button
           onClick={handleAddFood}
           disabled={!isConnected}
@@ -117,6 +135,9 @@ export function ControlPanel({ onCommand, isConnected }: ControlPanelProps) {
       <div style={styles.help}>
         <h3 style={styles.helpTitle}>Controls</h3>
         <ul style={styles.helpList}>
+          <li>
+            <strong>Play Poker:</strong> Play poker against the top 3 fish
+          </li>
           <li>
             <strong>Add Food:</strong> Drop food into the tank
           </li>
@@ -180,6 +201,11 @@ const styles = {
   buttonSpecial: {
     backgroundColor: '#f59e0b',
     color: '#ffffff',
+  },
+  buttonPoker: {
+    backgroundColor: '#8b5cf6',
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
   help: {
     marginTop: '24px',

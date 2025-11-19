@@ -294,13 +294,18 @@ async def websocket_endpoint(websocket: WebSocket):
                     logger.info(f"WebSocket: Client {client_id} sent command: {command.command}")
 
                     # Handle command
-                    simulation.handle_command(command.command, command.data)
+                    result = simulation.handle_command(command.command, command.data)
 
-                    # Send acknowledgment
-                    await websocket.send_json(
-                        {"type": "ack", "command": command.command, "status": "success"}
-                    )
-                    logger.debug(f"WebSocket: Sent acknowledgment to client {client_id}")
+                    # Send response
+                    if result is not None:
+                        # Command returned a result (e.g., poker game state)
+                        await websocket.send_json(result)
+                    else:
+                        # Send acknowledgment for commands that don't return data
+                        await websocket.send_json(
+                            {"type": "ack", "command": command.command, "status": "success"}
+                        )
+                    logger.debug(f"WebSocket: Sent response to client {client_id}")
 
                 except json.JSONDecodeError as e:
                     logger.warning(f"WebSocket: Invalid JSON from client {client_id}: {e}")

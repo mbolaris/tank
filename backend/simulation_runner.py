@@ -4,10 +4,12 @@ import logging
 import threading
 import time
 from typing import Any, Dict, Optional
+import uuid
 
 from backend.models import EntityData, PokerEventData, PokerStatsData, SimulationUpdate, StatsData
 from core import entities
 from core.constants import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
+from core.human_poker_game import HumanPokerGame
 
 # Use absolute imports assuming tank/ is in PYTHONPATH
 from tank_world import TankWorld, TankWorldConfig
@@ -48,6 +50,9 @@ class SimulationRunner:
         self.websocket_update_interval = 2  # Send every 2 frames
         self.frames_since_websocket_update = 0
         self._cached_state: Optional[SimulationUpdate] = None
+
+        # Human poker game management
+        self.human_poker_game: Optional[HumanPokerGame] = None
 
     def start(self):
         """Start the simulation in a background thread."""
@@ -409,3 +414,98 @@ class SimulationRunner:
             elif command == "reset":
                 # Reset simulation
                 self.world.reset()
+
+            elif command == "start_poker":
+                # Start a new poker game with top 3 fish
+                logger.info("Starting human poker game...")
+                try:
+                    # Get top 3 fish from leaderboard
+                    from core.entities import Fish
+
+                    fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+
+                    if len(fish_list) < 3:
+                        logger.warning(f"Not enough fish to start poker game (need 3, have {len(fish_list)})")
+                        return {
+                            "success": False,
+                            "error": f"Need at least 3 fish to play poker (currently {len(fish_list)})",
+                        }
+
+                    # Get leaderboard
+                    leaderboard = self.world.ecosystem.get_poker_leaderboard(
+                        fish_list=fish_list, limit=3, sort_by="net_energy"
+                    )
+
+                    # Create AI fish data from top 3
+                    ai_fish = []
+                    for entry in leaderboard[:3]:
+                        # Find the actual fish object
+                        fish = next((f for f in fish_list if f.fish_id == entry["fish_id"]), None)
+                        if fish:
+                            ai_fish.append({
+                                "fish_id": fish.fish_id,
+                                "name": f"{entry['algorithm'][:15]} (Gen {entry['generation']})",
+                                "energy": fish.energy,
+                                "algorithm": entry["algorithm"],
+                                "aggression": getattr(fish.genome, "aggression", 0.5),
+                            })
+
+                    # If we don't have 3 fish from leaderboard, fill with random fish
+                    if len(ai_fish) < 3:
+                        for fish in fish_list:
+                            if len(ai_fish) >= 3:
+                                break
+                            if fish.fish_id not in [f["fish_id"] for f in ai_fish]:
+                                from core.algorithms import get_algorithm_name
+                                algo_name = get_algorithm_name(fish.genome.behavior_algorithm)
+                                ai_fish.append({
+                                    "fish_id": fish.fish_id,
+                                    "name": f"{algo_name[:15]} (Gen {fish.generation})",
+                                    "energy": fish.energy,
+                                    "algorithm": algo_name,
+                                    "aggression": getattr(fish.genome, "aggression", 0.5),
+                                })
+
+                    # Create poker game
+                    game_id = str(uuid.uuid4())
+                    human_energy = data.get("energy", 500.0) if data else 500.0
+
+                    self.human_poker_game = HumanPokerGame(
+                        game_id=game_id,
+                        human_energy=human_energy,
+                        ai_fish=ai_fish,
+                        small_blind=5.0,
+                        big_blind=10.0,
+                    )
+
+                    logger.info(f"Created human poker game {game_id} with {len(ai_fish)} AI opponents")
+
+                except Exception as e:
+                    logger.error(f"Error starting poker game: {e}", exc_info=True)
+                    return {
+                        "success": False,
+                        "error": f"Failed to start poker game: {str(e)}",
+                    }
+
+            elif command == "poker_action":
+                # Handle poker action (fold, check, call, raise)
+                if not self.human_poker_game:
+                    logger.warning("Poker action received but no game active")
+                    return {
+                        "success": False,
+                        "error": "No poker game active",
+                    }
+
+                if not data:
+                    return {
+                        "success": False,
+                        "error": "No action data provided",
+                    }
+
+                action = data.get("action")
+                amount = data.get("amount", 0.0)
+
+                logger.info(f"Processing poker action: {action}, amount: {amount}")
+
+                result = self.human_poker_game.handle_action("human", action, amount)
+                return result
