@@ -211,9 +211,9 @@ CRAB_IDLE_CONSUMPTION = 0.01  # Energy consumed per frame when idle
 CRAB_ATTACK_COOLDOWN = 120  # Frames between attacks (4 seconds)
 
 # Plant Constants
-PLANT_FOOD_PRODUCTION_INTERVAL = 75  # Frames between food production (2.5 seconds)
+PLANT_FOOD_PRODUCTION_INTERVAL = 50  # Frames between food production (1.67 seconds)
 PLANT_FOOD_PRODUCTION_ENERGY = 15  # Energy cost to produce food
-PLANT_PRODUCTION_CHANCE = 0.35  # 35% chance to produce food each interval
+PLANT_PRODUCTION_CHANCE = 0.50  # 50% chance to produce food each interval
 
 # Ecosystem Constants
 TOTAL_ALGORITHM_COUNT = 48  # Total number of behavior algorithms available
