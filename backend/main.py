@@ -253,6 +253,10 @@ async def get_lineage():
     try:
         # Get lineage data from ecosystem manager
         lineage_data = simulation.world.ecosystem.get_lineage_data()
+        logger.info(f"Lineage API: Returning {len(lineage_data)} lineage records")
+        if len(lineage_data) == 0:
+            logger.warning("Lineage API: lineage_log is empty! This should contain records for all fish ever born.")
+            logger.warning(f"Lineage API: Current stats - total_births: {simulation.world.ecosystem.total_births}, next_fish_id: {simulation.world.ecosystem.next_fish_id}")
         return JSONResponse(lineage_data)
     except Exception as e:
         logger.error(f"Error getting lineage data: {e}", exc_info=True)

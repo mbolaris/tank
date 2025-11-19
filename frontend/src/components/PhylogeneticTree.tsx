@@ -37,17 +37,26 @@ export const PhylogeneticTree: React.FC = () => {
       }
 
       const data: FishRecord[] = await response.json();
+      console.log('[PhylogeneticTree] Fetched lineage data:', data);
+      console.log('[PhylogeneticTree] Data length:', data?.length);
 
       if (data && data.length > 0) {
         const nestedData = transformLineageData(data);
-        setTreeData(nestedData);
+        console.log('[PhylogeneticTree] Transformed data:', nestedData);
+        if (nestedData) {
+          setTreeData(nestedData);
+          setError(null);  // Clear any previous errors
+        } else {
+          setError(`Failed to build phylogenetic tree from ${data.length} lineage records. Check console for details.`);
+        }
       } else {
+        console.log('[PhylogeneticTree] No data or empty array');
         setError('No lineage data available yet. Fish need to reproduce to build the tree.');
       }
 
       setLoading(false);
     } catch (err) {
-      console.error("Failed to load lineage", err);
+      console.error("[PhylogeneticTree] Failed to load lineage", err);
       setError(err instanceof Error ? err.message : 'Failed to load lineage data');
       setLoading(false);
     }
