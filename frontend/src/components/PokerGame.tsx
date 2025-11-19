@@ -46,15 +46,13 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
 
   if (!gameState) {
     return (
-      <div style={styles.overlay}>
-        <div style={styles.modal}>
-          <div style={styles.header}>
-            <h2 style={styles.title}>Loading Poker Game...</h2>
-            <button onClick={onClose} style={styles.closeButton}>×</button>
-          </div>
-          <div style={styles.loading}>
-            <p>Setting up your poker game with the top 3 fish...</p>
-          </div>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>Loading Poker Game...</h2>
+          <button onClick={onClose} style={styles.closeButton}>×</button>
+        </div>
+        <div style={styles.loading}>
+          <p>Setting up your poker game with the top 3 fish...</p>
         </div>
       </div>
     );
@@ -92,12 +90,11 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
   const aiPlayers = gameState.players.filter(p => !p.is_human);
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Poker Game - {gameState.current_round}</h2>
-          <button onClick={onClose} style={styles.closeButton}>×</button>
-        </div>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.title}>Poker Game - {gameState.current_round}</h2>
+        <button onClick={onClose} style={styles.closeButton}>×</button>
+      </div>
 
         {/* Pot and Community Cards */}
         <div style={styles.tableSection}>
@@ -267,34 +264,18 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
             </button>
           </div>
         )}
-      </div>
     </div>
   );
 }
 
 const styles = {
-  overlay: {
-    position: 'fixed' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modal: {
+  container: {
     backgroundColor: colors.bgDark,
     borderRadius: '12px',
-    padding: '24px',
-    width: '90%',
-    maxWidth: '800px',
-    maxHeight: '90vh',
-    overflow: 'auto',
+    padding: '20px',
     border: `2px solid ${colors.primary}`,
-    boxShadow: '0 0 40px rgba(0, 255, 0, 0.3)',
+    boxShadow: '0 0 20px rgba(0, 255, 0, 0.2)',
+    width: '100%',
   },
   header: {
     display: 'flex',

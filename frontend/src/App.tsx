@@ -119,6 +119,18 @@ function App() {
             </h2>
             <PhylogeneticTree />
           </div>
+
+          {/* Poker Game */}
+          {showPokerGame && (
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
+              <PokerGame
+                onClose={handleClosePoker}
+                onAction={handlePokerAction}
+                gameState={pokerGameState}
+                loading={pokerLoading}
+              />
+            </div>
+          )}
         </div>
 
         <div className="sidebar">
@@ -130,16 +142,6 @@ function App() {
           <StatsPanel stats={state?.stats ?? null} />
         </div>
       </main>
-
-      {/* Poker Game Modal */}
-      {showPokerGame && (
-        <PokerGame
-          onClose={handleClosePoker}
-          onAction={handlePokerAction}
-          gameState={pokerGameState}
-          loading={pokerLoading}
-        />
-      )}
 
       <footer className="footer">
         <p>
