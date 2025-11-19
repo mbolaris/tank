@@ -1255,6 +1255,9 @@ class Castle(Agent):
             screen_height: Height of simulation area
         """
         super().__init__(environment, x, y, 0, screen_width, screen_height)
+        # Make castle larger (3x default size)
+        self.width = 150.0
+        self.height = 150.0
 
 
 class Jellyfish(Agent):

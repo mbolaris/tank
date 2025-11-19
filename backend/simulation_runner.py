@@ -101,6 +101,18 @@ class SimulationRunner:
                 if entity_data:
                     entities_data.append(entity_data)
 
+            # Sort entities by z-order (background to foreground)
+            # This ensures castles and plants are rendered first (background)
+            z_order = {
+                'castle': 0,
+                'plant': 1,
+                'food': 2,
+                'crab': 3,
+                'fish': 4,
+                'jellyfish': 5,
+            }
+            entities_data.sort(key=lambda e: z_order.get(e.type, 999))
+
             # Get ecosystem stats
             stats = self.world.get_stats()
 
