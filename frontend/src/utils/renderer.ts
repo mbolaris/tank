@@ -10,6 +10,44 @@ import { getFishPath, getEyePosition, type FishParams } from './fishTemplates';
 // Animation constants
 const IMAGE_CHANGE_RATE = 500; // milliseconds
 
+// Particle system constants
+const PARTICLE_COUNT = 30;
+const PARTICLE_SIZE_MIN = 1;
+const PARTICLE_SIZE_RANGE = 3;
+const PARTICLE_SPEED_MIN = 0.1;
+const PARTICLE_SPEED_RANGE = 0.3;
+const PARTICLE_OPACITY_MIN = 0.1;
+const PARTICLE_OPACITY_RANGE = 0.4;
+const PARTICLE_WOBBLE_INCREMENT = 0.02;
+const PARTICLE_WOBBLE_AMPLITUDE = 0.5;
+const PARTICLE_BOUNDS_MARGIN = 10;
+
+// Background gradient stops
+const GRADIENT_STOP_1 = 0.3;
+const GRADIENT_STOP_2 = 0.6;
+
+// Light ray constants
+const LIGHT_RAY_COUNT = 4;
+const LIGHT_RAY_OPACITY_MAIN = 0.08;
+const LIGHT_RAY_OPACITY_SECONDARY = 0.15;
+const CAUSTICS_SPEED = 0.0005;
+const CAUSTICS_AMPLITUDE = 30;
+const WOBBLE_SPEED = 0.0003;
+const WOBBLE_AMPLITUDE = 15;
+
+// Seabed constants
+const SEABED_MIN_HEIGHT = 50;
+const SEABED_HEIGHT_RATIO = 0.12;
+const SEABED_TEXTURE_SPACING = 40;
+const SEABED_ROCK_SIZE_MIN = 4;
+const SEABED_ROCK_SIZE_RANGE = 8;
+const SEABED_TEXTURE_OPACITY = 0.2;
+
+// Particle highlight constants
+const PARTICLE_HIGHLIGHT_OPACITY_MULTIPLIER = 0.6;
+const PARTICLE_HIGHLIGHT_OFFSET_RATIO = 0.3;
+const PARTICLE_HIGHLIGHT_SIZE_RATIO = 0.4;
+
 // Food type image mappings (matching core/constants.py)
 const FOOD_TYPE_IMAGES: Record<string, string[]> = {
   algae: ['food_algae1.png', 'food_algae2.png'],
@@ -52,13 +90,13 @@ export class Renderer {
     const width = this.ctx.canvas.width;
     const height = this.ctx.canvas.height;
 
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
       this.particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: Math.random() * 3 + 1,
-        speed: Math.random() * 0.3 + 0.1,
-        opacity: Math.random() * 0.4 + 0.1,
+        size: Math.random() * PARTICLE_SIZE_RANGE + PARTICLE_SIZE_MIN,
+        speed: Math.random() * PARTICLE_SPEED_RANGE + PARTICLE_SPEED_MIN,
+        opacity: Math.random() * PARTICLE_OPACITY_RANGE + PARTICLE_OPACITY_MIN,
         wobble: Math.random() * Math.PI * 2,
       });
     }
@@ -71,21 +109,21 @@ export class Renderer {
     // Enhanced ocean gradient with more depth
     const gradient = this.ctx.createLinearGradient(0, 0, 0, height);
     gradient.addColorStop(0, '#051d35');
-    gradient.addColorStop(0.3, '#0a3854');
-    gradient.addColorStop(0.6, '#0d4a6b');
+    gradient.addColorStop(GRADIENT_STOP_1, '#0a3854');
+    gradient.addColorStop(GRADIENT_STOP_2, '#0d4a6b');
     gradient.addColorStop(1, '#0e2838');
     this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, width, height);
 
     // Animated light rays with caustics effect
     this.ctx.save();
-    const causticsOffset = Math.sin(time * 0.0005) * 30;
-    for (let i = 0; i < 4; i += 1) {
-      const baseX = (width / 4) * i + causticsOffset;
-      const wobble = Math.sin(time * 0.0003 + i) * 15;
+    const causticsOffset = Math.sin(time * CAUSTICS_SPEED) * CAUSTICS_AMPLITUDE;
+    for (let i = 0; i < LIGHT_RAY_COUNT; i += 1) {
+      const baseX = (width / LIGHT_RAY_COUNT) * i + causticsOffset;
+      const wobble = Math.sin(time * WOBBLE_SPEED + i) * WOBBLE_AMPLITUDE;
 
       // Main light ray
-      this.ctx.globalAlpha = 0.08;
+      this.ctx.globalAlpha = LIGHT_RAY_OPACITY_MAIN;
       this.ctx.beginPath();
       this.ctx.moveTo(baseX + 60 + wobble, 0);
       this.ctx.lineTo(baseX + 180 + wobble, 0);
@@ -99,7 +137,7 @@ export class Renderer {
       this.ctx.fill();
 
       // Secondary highlight for caustics
-      this.ctx.globalAlpha = 0.15;
+      this.ctx.globalAlpha = LIGHT_RAY_OPACITY_SECONDARY;
       this.ctx.beginPath();
       this.ctx.moveTo(baseX + 80 + wobble * 1.5, 0);
       this.ctx.lineTo(baseX + 120 + wobble * 1.5, 0);
@@ -115,7 +153,7 @@ export class Renderer {
     this.drawParticles();
 
     // Enhanced seabed with texture
-    const seabedHeight = Math.max(50, height * 0.12);
+    const seabedHeight = Math.max(SEABED_MIN_HEIGHT, height * SEABED_HEIGHT_RATIO);
     const seabedY = height - seabedHeight;
 
     // Seabed gradient with more depth
@@ -128,9 +166,9 @@ export class Renderer {
 
     // Add seabed texture (rocks/pebbles)
     this.ctx.save();
-    this.ctx.globalAlpha = 0.2;
-    for (let x = 0; x < width; x += 40) {
-      const rockSize = Math.random() * 8 + 4;
+    this.ctx.globalAlpha = SEABED_TEXTURE_OPACITY;
+    for (let x = 0; x < width; x += SEABED_TEXTURE_SPACING) {
+      const rockSize = Math.random() * SEABED_ROCK_SIZE_RANGE + SEABED_ROCK_SIZE_MIN;
       const rockX = x + Math.random() * 30;
       const rockY = seabedY + seabedHeight * 0.6 + Math.random() * 15;
       this.ctx.fillStyle = '#8b6f47';
@@ -147,16 +185,16 @@ export class Renderer {
       particle.y -= particle.speed;
 
       // Wobble side to side
-      particle.wobble += 0.02;
-      particle.x += Math.sin(particle.wobble) * 0.5;
+      particle.wobble += PARTICLE_WOBBLE_INCREMENT;
+      particle.x += Math.sin(particle.wobble) * PARTICLE_WOBBLE_AMPLITUDE;
 
       // Reset if out of bounds
-      if (particle.y < -10) {
-        particle.y = height + 10;
+      if (particle.y < -PARTICLE_BOUNDS_MARGIN) {
+        particle.y = height + PARTICLE_BOUNDS_MARGIN;
         particle.x = Math.random() * width;
       }
-      if (particle.x < -10) particle.x = width + 10;
-      if (particle.x > width + 10) particle.x = -10;
+      if (particle.x < -PARTICLE_BOUNDS_MARGIN) particle.x = width + PARTICLE_BOUNDS_MARGIN;
+      if (particle.x > width + PARTICLE_BOUNDS_MARGIN) particle.x = -PARTICLE_BOUNDS_MARGIN;
     }
   }
 
@@ -172,13 +210,13 @@ export class Renderer {
       this.ctx.fill();
 
       // Highlight
-      this.ctx.globalAlpha = particle.opacity * 0.6;
+      this.ctx.globalAlpha = particle.opacity * PARTICLE_HIGHLIGHT_OPACITY_MULTIPLIER;
       this.ctx.fillStyle = '#ffffff';
       this.ctx.beginPath();
       this.ctx.arc(
-        particle.x - particle.size * 0.3,
-        particle.y - particle.size * 0.3,
-        particle.size * 0.4,
+        particle.x - particle.size * PARTICLE_HIGHLIGHT_OFFSET_RATIO,
+        particle.y - particle.size * PARTICLE_HIGHLIGHT_OFFSET_RATIO,
+        particle.size * PARTICLE_HIGHLIGHT_SIZE_RATIO,
         0,
         Math.PI * 2
       );

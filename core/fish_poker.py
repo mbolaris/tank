@@ -133,11 +133,21 @@ class PokerInteraction:
         Returns:
             Actual bet amount to use
         """
+        from core.constants import (
+            POKER_BET_MIN_PERCENTAGE,
+            POKER_BET_MIN_SIZE,
+            POKER_BET_SIZE_MULTIPLIER,
+        )
+
         # Larger fish can bet a higher percentage of their energy
         # Size 0.35: 15%, Size 1.0: 25%, Size 1.3: 30%
         # Formula: 15% + (size - 0.35) * 15.8% gives range of 15-30%
-        fish1_bet_percentage = 0.15 + (self.fish1.size - 0.35) * 0.158
-        fish2_bet_percentage = 0.15 + (self.fish2.size - 0.35) * 0.158
+        fish1_bet_percentage = POKER_BET_MIN_PERCENTAGE + (
+            self.fish1.size - POKER_BET_MIN_SIZE
+        ) * POKER_BET_SIZE_MULTIPLIER
+        fish2_bet_percentage = POKER_BET_MIN_PERCENTAGE + (
+            self.fish2.size - POKER_BET_MIN_SIZE
+        ) * POKER_BET_SIZE_MULTIPLIER
 
         max_bet_fish1 = self.fish1.energy * fish1_bet_percentage
         max_bet_fish2 = self.fish2.energy * fish2_bet_percentage
@@ -186,34 +196,52 @@ class PokerInteraction:
             return None
 
         # Calculate population stress for adaptive mutations
+        from core.constants import (
+            POPULATION_STRESS_DEATH_RATE_MAX,
+            POPULATION_STRESS_MAX_MULTIPLIER,
+            POPULATION_STRESS_MAX_TOTAL,
+            TARGET_POPULATION,
+        )
+
         population_stress = 0.0
         if winner_fish.ecosystem is not None:
             from core.entities import Fish
 
             fish_count = len([e for e in winner_fish.environment.agents if isinstance(e, Fish)])
-            target_population = 15
-            population_ratio = fish_count / target_population if target_population > 0 else 1.0
+            population_ratio = (
+                fish_count / TARGET_POPULATION if TARGET_POPULATION > 0 else 1.0
+            )
 
             if population_ratio < 1.0:
-                population_stress = (1.0 - population_ratio) * 0.8
+                population_stress = (1.0 - population_ratio) * POPULATION_STRESS_MAX_MULTIPLIER
 
             if hasattr(winner_fish.ecosystem, "recent_death_rate"):
-                death_rate_stress = min(0.4, winner_fish.ecosystem.recent_death_rate)
-                population_stress = min(1.0, population_stress + death_rate_stress)
+                death_rate_stress = min(
+                    POPULATION_STRESS_DEATH_RATE_MAX, winner_fish.ecosystem.recent_death_rate
+                )
+                population_stress = min(
+                    POPULATION_STRESS_MAX_TOTAL, population_stress + death_rate_stress
+                )
 
         # Create offspring genome using WEIGHTED crossover (winner contributes more DNA)
+        from core.constants import (
+            POST_POKER_MUTATION_RATE,
+            POST_POKER_MUTATION_STRENGTH,
+            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
+        )
+
         offspring_genome = Genome.from_parents_weighted(
             parent1=winner_fish.genome,
             parent2=loser_fish.genome,
             parent1_weight=POST_POKER_CROSSOVER_WINNER_WEIGHT,  # Winner contributes 60%
-            mutation_rate=0.1,
-            mutation_strength=0.1,
+            mutation_rate=POST_POKER_MUTATION_RATE,
+            mutation_strength=POST_POKER_MUTATION_STRENGTH,
             population_stress=population_stress,
         )
 
         # Energy transfer for baby (both parents contribute)
-        winner_energy_contribution = 0.15  # Winner gives 15% of energy
-        loser_energy_contribution = 0.15  # Loser gives 15% of energy
+        winner_energy_contribution = POST_POKER_PARENT_ENERGY_CONTRIBUTION
+        loser_energy_contribution = POST_POKER_PARENT_ENERGY_CONTRIBUTION
 
         winner_energy_transfer = winner_fish.energy * winner_energy_contribution
         loser_energy_transfer = loser_fish.energy * loser_energy_contribution
@@ -232,16 +260,18 @@ class PokerInteraction:
         # (Could make one parent pregnant for realism, but immediate birth is simpler)
 
         # Create baby position (between parents)
+        from core.constants import BABY_POSITION_RANDOM_RANGE, BABY_SPAWN_MARGIN
+
         baby_x = (winner_fish.pos.x + loser_fish.pos.x) / 2.0
         baby_y = (winner_fish.pos.y + loser_fish.pos.y) / 2.0
 
         # Add some randomness
-        baby_x += random.uniform(-20, 20)
-        baby_y += random.uniform(-20, 20)
+        baby_x += random.uniform(-BABY_POSITION_RANDOM_RANGE, BABY_POSITION_RANDOM_RANGE)
+        baby_y += random.uniform(-BABY_POSITION_RANDOM_RANGE, BABY_POSITION_RANDOM_RANGE)
 
         # Clamp to screen
-        baby_x = max(0, min(winner_fish.screen_width - 50, baby_x))
-        baby_y = max(0, min(winner_fish.screen_height - 50, baby_y))
+        baby_x = max(0, min(winner_fish.screen_width - BABY_SPAWN_MARGIN, baby_x))
+        baby_y = max(0, min(winner_fish.screen_height - BABY_SPAWN_MARGIN, baby_y))
 
         # Create baby fish with combined energy from both parents
         from core.entities import Fish
@@ -381,8 +411,16 @@ class PokerInteraction:
             # Formula: 8% + (size - 0.35) * 18% gives range of 8-25%
             # House cut is calculated on winner's net gain (pot minus their own bet)
             # The house cut disappears (energy is NOT conserved)
+            from core.constants import (
+                POKER_BET_MIN_SIZE,
+                POKER_HOUSE_CUT_MIN_PERCENTAGE,
+                POKER_HOUSE_CUT_SIZE_MULTIPLIER,
+            )
+
             net_gain = game_state.pot - winner_total_bet
-            house_cut_percentage = 0.08 + max(0, (winner_fish.size - 0.35) * 0.18)
+            house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
+                0, (winner_fish.size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
+            )
             house_cut = net_gain * house_cut_percentage
             winner_fish.energy = max(0, winner_fish.energy - house_cut)
 
@@ -423,19 +461,21 @@ class PokerInteraction:
                 loser_on_button = not winner_on_button
 
                 # Get hand rankings (normalized 0-1)
+                from core.constants import POKER_MAX_HAND_RANK, POKER_WEAK_HAND_THRESHOLD
+
                 winner_hand_strength = (
                     self.hand1.rank_value
                     if winner_id == self.fish1.fish_id
                     else self.hand2.rank_value
-                ) / 9.0
+                ) / POKER_MAX_HAND_RANK
                 loser_hand_strength = (
                     self.hand2.rank_value
                     if winner_id == self.fish1.fish_id
                     else self.hand1.rank_value
-                ) / 9.0
+                ) / POKER_MAX_HAND_RANK
 
                 # Check if fish bluffed (won with weak hand or lost with weak hand)
-                winner_bluffed = won_by_fold and winner_hand_strength < 0.3
+                winner_bluffed = won_by_fold and winner_hand_strength < POKER_WEAK_HAND_THRESHOLD
                 loser_bluffed = False  # Loser didn't bluff if they lost
 
                 # Winner learns from victory

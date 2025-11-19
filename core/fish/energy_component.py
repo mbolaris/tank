@@ -11,9 +11,13 @@ from core.constants import (
     BABY_METABOLISM_MULTIPLIER,
     CRITICAL_ENERGY_THRESHOLD,
     ELDER_METABOLISM_MULTIPLIER,
+    EXISTENCE_ENERGY_COST,
     INITIAL_ENERGY_RATIO,
     LOW_ENERGY_THRESHOLD,
+    MOVEMENT_ENERGY_COST,
     SAFE_ENERGY_THRESHOLD,
+    SHARP_TURN_DOT_THRESHOLD,
+    SHARP_TURN_ENERGY_COST,
     STARVATION_THRESHOLD,
 )
 from core.math_utils import Vector2
@@ -39,12 +43,6 @@ class EnergyComponent:
         movement_cost_multiplier: Multiplier for movement-based energy consumption
         sharp_turn_cost: Additional energy cost for sharp turns
     """
-
-    # Energy consumption constants (reduced for sustainable evolution)
-    EXISTENCE_ENERGY_COST = 0.02  # Cost just for being alive per frame
-    MOVEMENT_ENERGY_COST = 0.015  # Movement-based energy consumption multiplier (reduced)
-    SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns (reduced from 0.08)
-    SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
     def __init__(
         self,
@@ -89,14 +87,14 @@ class EnergyComponent:
         from core.entities import LifeStage
 
         # Existence cost - scales with body size (larger fish need more energy to exist)
-        total_cost = self.EXISTENCE_ENERGY_COST * time_modifier * size
+        total_cost = EXISTENCE_ENERGY_COST * time_modifier * size
 
         # Base metabolism (affected by genes and life stage)
         metabolism = self.base_metabolism * time_modifier
 
         # Additional cost for movement - scales with body size (larger fish use more energy to move)
         if velocity.length() > 0:
-            movement_cost = self.MOVEMENT_ENERGY_COST * velocity.length() / speed * size
+            movement_cost = MOVEMENT_ENERGY_COST * velocity.length() / speed * size
             metabolism += movement_cost
 
         # Apply life stage modifiers to metabolism (not existence cost)

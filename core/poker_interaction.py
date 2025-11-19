@@ -512,6 +512,106 @@ class PokerEngine:
         )
 
     @staticmethod
+    def _decide_strong_hand_action(
+        call_amount: float, pot: float, player_energy: float, aggression: float
+    ) -> Tuple[BettingAction, float]:
+        """Decide action for strong hands (flush or better).
+
+        Args:
+            call_amount: Amount needed to call
+            pot: Current pot size
+            player_energy: Player's available energy
+            aggression: Aggression factor (0-1)
+
+        Returns:
+            Tuple of (action, bet_amount)
+        """
+        if call_amount == 0:
+            # No bet to call - raise most of the time
+            if random.random() < 0.8:
+                raise_amount = min(pot * 0.5, player_energy * 0.3)
+                return (BettingAction.RAISE, raise_amount)
+            else:
+                return (BettingAction.CHECK, 0.0)
+        else:
+            # There's a bet - call or raise
+            if random.random() < aggression:
+                # Raise
+                raise_amount = min(call_amount * 2, player_energy * 0.4)
+                return (BettingAction.RAISE, raise_amount)
+            else:
+                # Call
+                return (BettingAction.CALL, call_amount)
+
+    @staticmethod
+    def _decide_medium_hand_action(
+        call_amount: float, pot: float, player_energy: float, aggression: float
+    ) -> Tuple[BettingAction, float]:
+        """Decide action for medium hands (pair through straight).
+
+        Args:
+            call_amount: Amount needed to call
+            pot: Current pot size
+            player_energy: Player's available energy
+            aggression: Aggression factor (0-1)
+
+        Returns:
+            Tuple of (action, bet_amount)
+        """
+        if call_amount == 0:
+            # No bet - check or small raise
+            if random.random() < aggression * 0.6:
+                raise_amount = min(pot * 0.3, player_energy * 0.2)
+                return (BettingAction.RAISE, raise_amount)
+            else:
+                return (BettingAction.CHECK, 0.0)
+        else:
+            # There's a bet - fold, call, or raise based on bet size and aggression
+            pot_odds = call_amount / (pot + call_amount) if pot > 0 else 1.0
+
+            # More likely to fold if bet is large relative to pot
+            if pot_odds > 0.5 and random.random() > aggression:
+                return (BettingAction.FOLD, 0.0)
+            elif random.random() < aggression * 0.4:
+                # Sometimes raise with medium hands
+                raise_amount = min(call_amount * 1.5, player_energy * 0.25)
+                return (BettingAction.RAISE, raise_amount)
+            else:
+                # Usually call
+                return (BettingAction.CALL, call_amount)
+
+    @staticmethod
+    def _decide_weak_hand_action(
+        call_amount: float, pot: float, player_energy: float, aggression: float
+    ) -> Tuple[BettingAction, float]:
+        """Decide action for weak hands (high card).
+
+        Args:
+            call_amount: Amount needed to call
+            pot: Current pot size
+            player_energy: Player's available energy
+            aggression: Aggression factor (0-1)
+
+        Returns:
+            Tuple of (action, bet_amount)
+        """
+        if call_amount == 0:
+            # No bet - usually check, rarely bluff
+            if random.random() < aggression * 0.2:
+                # Bluff
+                raise_amount = min(pot * 0.4, player_energy * 0.15)
+                return (BettingAction.RAISE, raise_amount)
+            else:
+                return (BettingAction.CHECK, 0.0)
+        else:
+            # There's a bet - usually fold, rarely bluff call
+            if random.random() < aggression * 0.15:
+                # Bluff call
+                return (BettingAction.CALL, call_amount)
+            else:
+                return (BettingAction.FOLD, 0.0)
+
+    @staticmethod
     def decide_action(
         hand: PokerHand,
         current_bet: float,
@@ -597,69 +697,24 @@ class PokerEngine:
                     raise_amount = max(raise_amount, call_amount * 1.5)
                 return (BettingAction.RAISE, raise_amount)
 
-        # Determine hand strength category
+        # Determine hand strength category and delegate to appropriate helper
         hand_strength = hand.rank_value
 
         # Strong hands (flush or better)
         if hand_strength >= HandRank.FLUSH:
-            if call_amount == 0:
-                # No bet to call - raise most of the time
-                if random.random() < 0.8:
-                    raise_amount = min(pot * 0.5, player_energy * 0.3)
-                    return (BettingAction.RAISE, raise_amount)
-                else:
-                    return (BettingAction.CHECK, 0.0)
-            else:
-                # There's a bet - call or raise
-                if random.random() < aggression:
-                    # Raise
-                    raise_amount = min(call_amount * 2, player_energy * 0.4)
-                    return (BettingAction.RAISE, raise_amount)
-                else:
-                    # Call
-                    return (BettingAction.CALL, call_amount)
-
+            return PokerEngine._decide_strong_hand_action(
+                call_amount, pot, player_energy, aggression
+            )
         # Medium hands (pair through straight)
         elif hand_strength >= HandRank.PAIR:
-            if call_amount == 0:
-                # No bet - check or small raise
-                if random.random() < aggression * 0.6:
-                    raise_amount = min(pot * 0.3, player_energy * 0.2)
-                    return (BettingAction.RAISE, raise_amount)
-                else:
-                    return (BettingAction.CHECK, 0.0)
-            else:
-                # There's a bet - fold, call, or raise based on bet size and aggression
-                pot_odds = call_amount / (pot + call_amount) if pot > 0 else 1.0
-
-                # More likely to fold if bet is large relative to pot
-                if pot_odds > 0.5 and random.random() > aggression:
-                    return (BettingAction.FOLD, 0.0)
-                elif random.random() < aggression * 0.4:
-                    # Sometimes raise with medium hands
-                    raise_amount = min(call_amount * 1.5, player_energy * 0.25)
-                    return (BettingAction.RAISE, raise_amount)
-                else:
-                    # Usually call
-                    return (BettingAction.CALL, call_amount)
-
+            return PokerEngine._decide_medium_hand_action(
+                call_amount, pot, player_energy, aggression
+            )
         # Weak hands (high card)
         else:
-            if call_amount == 0:
-                # No bet - usually check, rarely bluff
-                if random.random() < aggression * 0.2:
-                    # Bluff
-                    raise_amount = min(pot * 0.4, player_energy * 0.15)
-                    return (BettingAction.RAISE, raise_amount)
-                else:
-                    return (BettingAction.CHECK, 0.0)
-            else:
-                # There's a bet - usually fold, rarely bluff call
-                if random.random() < aggression * 0.15:
-                    # Bluff call
-                    return (BettingAction.CALL, call_amount)
-                else:
-                    return (BettingAction.FOLD, 0.0)
+            return PokerEngine._decide_weak_hand_action(
+                call_amount, pot, player_energy, aggression
+            )
 
     @staticmethod
     def simulate_multi_round_game(
