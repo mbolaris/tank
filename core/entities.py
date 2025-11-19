@@ -1,7 +1,7 @@
-"""Pure entity classes without pygame dependencies.
+"""Pure entity classes for the simulation.
 
 This module contains the core simulation logic for all entities in the fish tank.
-No pygame-specific code is included - all rendering is handled separately.
+All rendering is handled separately by the frontend.
 """
 
 import random
@@ -37,7 +37,6 @@ from core.constants import (
     TARGET_POPULATION,
 )
 
-# Use a simple Vector2 class or import from pygame.math (we'll create a pure version)
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -57,7 +56,7 @@ class LifeStage(Enum):
 
 
 class Rect:
-    """Simple rectangle class for test compatibility (pygame.Rect replacement)."""
+    """Simple rectangle class for collision detection and positioning."""
 
     def __init__(self, x: float = 0, y: float = 0, width: float = 32, height: float = 32):
         self.x = x
@@ -258,12 +257,12 @@ class Agent:
             self.vel += difference.normalize() * 0.1  # ALIGNMENT_SPEED_CHANGE
 
     def add_internal(self, group) -> None:
-        """Track sprite group for kill() method (pygame compatibility)."""
+        """Track group for kill() method."""
         if group not in self._groups:
             self._groups.append(group)
 
     def kill(self) -> None:
-        """Remove this agent from all groups (pygame compatibility)."""
+        """Remove this agent from all groups."""
         for group in self._groups[:]:  # Copy list to avoid modification during iteration
             if hasattr(group, "remove"):
                 group.remove(self)

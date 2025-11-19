@@ -3,7 +3,6 @@
 This module contains:
 - BehaviorAlgorithm base class
 - ALGORITHM_PARAMETER_BOUNDS configuration
-- Vector2 implementation (if pygame not available)
 - Helper functions for algorithm execution
 """
 

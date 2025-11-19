@@ -118,8 +118,7 @@ def test_statistical_equivalence():
 def test_mode_independence():
     """Verify that headless=True parameter is consistently used.
 
-    This ensures no pygame or visualization dependencies leak into the
-    simulation logic.
+    This ensures no visualization dependencies leak into the simulation logic.
     """
     print("=" * 80)
     print("TESTING: Mode Independence")
