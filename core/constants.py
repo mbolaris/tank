@@ -110,8 +110,8 @@ FILES = {
     "solo_fish": ["george1.png", "george2.png"],
     "crab": ["crab1.png", "crab2.png"],
     "schooling_fish": ["school.png"],
-    "plant": ["plant1.png", "plant2.png"],
-    "castle": ["castle.png"],
+    "plant": ["plant1-improved.png", "plant2.png"],
+    "castle": ["castle-improved.png"],
 }
 
 # The initial positions of the sprites in the game

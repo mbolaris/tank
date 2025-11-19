@@ -523,7 +523,7 @@ export class Renderer {
     const { x, y, width, height, plant_type = 1 } = plant;
 
     // Get plant image (plant_type is 1 or 2)
-    const imageName = plant_type === 1 ? 'plant1.png' : 'plant2.png';
+    const imageName = plant_type === 1 ? 'plant1-improved.png' : 'plant2.png';
     const image = ImageLoader.getCachedImage(imageName);
 
     if (!image) return;
@@ -745,7 +745,7 @@ export class Renderer {
   private renderCastle(castle: EntityData) {
     const { x, y, width, height } = castle;
 
-    const imageName = 'castle.png';
+    const imageName = 'castle-improved.png';
     const image = ImageLoader.getCachedImage(imageName);
 
     if (!image) return;
