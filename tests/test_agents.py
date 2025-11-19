@@ -112,9 +112,12 @@ class TestFish:
         """Test that fish initializes correctly."""
         env, _ = simulation_env
         strategy = AlgorithmicMovement()
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3)
+        # Create a genome with size_modifier=1.0 for deterministic testing
+        from core.genetics import Genome
+        genome = Genome(size_modifier=1.0)
+        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
 
-        # Fish start as babies with size 0.5
+        # Fish start as babies with size 0.5 (when genetic size_modifier is 1.0)
         assert fish.size == 0.5
         assert fish.movement_strategy == strategy
 
