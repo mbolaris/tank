@@ -23,7 +23,7 @@ def create_initial_population(
 
     Creates a starting population with algorithmic fish that evolve their behavior:
     - 10 algorithmic fish with parametrizable behavior algorithms
-    - 3 plants
+    - 4 plants
     - 1 crab
     - 1 castle
 
@@ -66,6 +66,7 @@ def create_initial_population(
     plant1 = entities.Plant(env, 1, *INIT_POS["plant1"], screen_width, screen_height)
     plant2 = entities.Plant(env, 2, *INIT_POS["plant2"], screen_width, screen_height)
     plant3 = entities.Plant(env, 1, *INIT_POS["plant3"], screen_width, screen_height)
+    plant4 = entities.Plant(env, 2, *INIT_POS["plant4"], screen_width, screen_height)
 
     # Create initial food items to prevent startup pause
     # Spawn 8 food items at various locations so fish have immediate targets
@@ -98,6 +99,6 @@ def create_initial_population(
     castle = entities.Castle(env, *INIT_POS["castle"], screen_width, screen_height)
 
     # Add all non-fish entities
-    population.extend([plant1, plant2, plant3] + initial_food + [crab, castle])
+    population.extend([plant1, plant2, plant3, plant4] + initial_food + [crab, castle])
 
     return population

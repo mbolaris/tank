@@ -490,8 +490,8 @@ export class Renderer {
 
     if (!image) return;
 
-    // Make plant images 50% larger (1.5x scale)
-    const plantScale = 1.5;
+    // Make plant images 100% larger (2x scale)
+    const plantScale = 2.0;
     const scaledWidth = width * plantScale;
     const scaledHeight = height * plantScale;
 
