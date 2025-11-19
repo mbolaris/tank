@@ -158,6 +158,16 @@ class JellyfishPokerInteraction:
             button_position=button_position
         )
 
+        # Assign hands based on button position
+        if button_position == 1:
+            # Fish is player1
+            self.fish_hand = game_state.player1_hand
+            self.jellyfish_hand = game_state.player2_hand
+        else:
+            # Jellyfish is player1
+            self.fish_hand = game_state.player2_hand
+            self.jellyfish_hand = game_state.player1_hand
+
         # Determine winner
         if game_state.player1_folded:
             fish_won = (button_position != 1)  # If fish is player1 and folded, fish lost
@@ -173,15 +183,11 @@ class JellyfishPokerInteraction:
                 fish_won = game_state.player1_hand.beats(game_state.player2_hand) or (
                     not game_state.player2_hand.beats(game_state.player1_hand)
                 )
-                self.fish_hand = game_state.player1_hand
-                self.jellyfish_hand = game_state.player2_hand
             else:
                 # Jellyfish is player1
                 fish_won = game_state.player2_hand.beats(game_state.player1_hand) or (
                     not game_state.player1_hand.beats(game_state.player2_hand)
                 )
-                self.fish_hand = game_state.player2_hand
-                self.jellyfish_hand = game_state.player1_hand
 
         # Calculate energy transfer
         total_pot = game_state.pot
@@ -206,8 +212,8 @@ class JellyfishPokerInteraction:
 
         # Store result
         self.result = JellyfishPokerResult(
-            fish_hand=self.fish_hand if self.fish_hand else game_state.player1_hand,
-            jellyfish_hand=self.jellyfish_hand if self.jellyfish_hand else game_state.player2_hand,
+            fish_hand=self.fish_hand,
+            jellyfish_hand=self.jellyfish_hand,
             energy_transferred=energy_transferred if fish_won else -energy_transferred,
             fish_won=fish_won,
             won_by_fold=won_by_fold,
