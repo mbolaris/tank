@@ -75,7 +75,32 @@ Built with **React + FastAPI + WebSocket**:
 
 ### Installation
 
+#### Windows (PowerShell)
+
+```powershell
+# Create and activate virtual environment (recommended)
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Run the setup script
+.\setup-windows.ps1
+
+# Or manually install dependencies
+python -m pip install --upgrade pip
+python -m pip install -e .
+
+# Install frontend dependencies (in frontend\ directory)
+cd frontend
+npm install
+```
+
+#### Linux/Mac
+
 ```bash
+# Create and activate virtual environment (recommended)
+python3 -m venv .venv
+source .venv/bin/activate
+
 # Install Python dependencies
 pip install -e .
 
