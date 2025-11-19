@@ -521,7 +521,7 @@ class SimulationRunner:
                 return result
 
             elif command == "auto_evaluate_poker":
-                # Start auto-evaluation poker game with top fish
+                # Start auto-evaluation poker game with top 3 fish vs standard algorithm
                 logger.info("Starting auto-evaluation poker game...")
                 try:
                     # Get top fish from leaderboard
@@ -536,39 +536,44 @@ class SimulationRunner:
                             "error": "Need at least 1 fish to run auto-evaluation",
                         }
 
-                    # Get top fish from leaderboard
+                    # Get top 3 fish from leaderboard
+                    num_fish = min(3, len(fish_list))
                     leaderboard = self.world.ecosystem.get_poker_leaderboard(
-                        fish_list=fish_list, limit=1, sort_by="net_energy"
+                        fish_list=fish_list, limit=num_fish, sort_by="net_energy"
                     )
 
-                    # Find the top fish
-                    top_fish_entry = leaderboard[0] if leaderboard else None
-                    if not top_fish_entry:
-                        # Fallback to first fish
-                        fish = fish_list[0]
-                        fish_name = f"{fish.genome.behavior_algorithm.algorithm_id} (Gen {fish.generation})"
-                        fish_energy = fish.energy
-                        fish_poker_strategy = fish.genome.poker_strategy_algorithm
-                    else:
-                        # Find the actual fish object
-                        fish = next(
-                            (f for f in fish_list if f.fish_id == top_fish_entry["fish_id"]),
-                            fish_list[0]
-                        )
-                        fish_name = f"{top_fish_entry['algorithm'][:20]} (Gen {top_fish_entry['generation']})"
-                        fish_energy = fish.energy
-                        fish_poker_strategy = fish.genome.poker_strategy_algorithm
+                    # Build list of fish player data
+                    fish_players = []
+                    for i in range(num_fish):
+                        if i < len(leaderboard):
+                            # Use leaderboard entry
+                            entry = leaderboard[i]
+                            fish = next(
+                                (f for f in fish_list if f.fish_id == entry["fish_id"]),
+                                fish_list[i]
+                            )
+                            fish_name = f"{entry['algorithm'][:15]} (Gen {entry['generation']}) #{entry['fish_id']}"
+                        else:
+                            # Fallback to fish from list
+                            fish = fish_list[i]
+                            algo_name = fish.genome.behavior_algorithm.algorithm_id
+                            fish_name = f"{algo_name[:15]} (Gen {fish.generation}) #{fish.fish_id}"
 
-                    # Create auto-evaluation game
+                        fish_players.append({
+                            "name": fish_name,
+                            "fish_id": fish.fish_id,
+                            "generation": fish.generation,
+                            "poker_strategy": fish.genome.poker_strategy_algorithm,
+                        })
+
+                    # Create auto-evaluation game with multiple fish
                     game_id = str(uuid.uuid4())
                     standard_energy = data.get("standard_energy", 500.0) if data else 500.0
                     max_hands = data.get("max_hands", 100) if data else 100
 
                     self.auto_evaluate_game = AutoEvaluatePokerGame(
                         game_id=game_id,
-                        fish_name=fish_name,
-                        fish_energy=fish_energy,
-                        fish_poker_strategy=fish_poker_strategy,
+                        fish_players=fish_players,
                         standard_energy=standard_energy,
                         max_hands=max_hands,
                         small_blind=5.0,
@@ -576,8 +581,7 @@ class SimulationRunner:
                     )
 
                     logger.info(
-                        f"Created auto-evaluation game {game_id} - "
-                        f"Fish: {fish_name} ({fish_energy:.1f} energy) vs Standard ({standard_energy:.1f} energy)"
+                        f"Created auto-evaluation game {game_id} with {len(fish_players)} fish vs Standard"
                     )
 
                     # Run the evaluation (this will complete all hands)
@@ -587,27 +591,14 @@ class SimulationRunner:
                     stats_dict = {
                         "hands_played": final_stats.hands_played,
                         "hands_remaining": final_stats.hands_remaining,
-                        "fish_energy": round(final_stats.fish_energy, 1),
-                        "standard_energy": round(final_stats.standard_energy, 1),
-                        "fish_wins": final_stats.fish_wins,
-                        "standard_wins": final_stats.standard_wins,
-                        "fish_total_won": round(final_stats.fish_total_won, 1),
-                        "fish_total_lost": round(final_stats.fish_total_lost, 1),
-                        "standard_total_won": round(final_stats.standard_total_won, 1),
-                        "standard_total_lost": round(final_stats.standard_total_lost, 1),
                         "game_over": final_stats.game_over,
                         "winner": final_stats.winner,
                         "reason": final_stats.reason,
-                        "fish_name": fish_name,
-                        "fish_id": fish.fish_id,
-                        "fish_generation": fish.generation,
-                        "fish_net_energy": round(final_stats.fish_total_won - final_stats.fish_total_lost, 1),
-                        "fish_win_rate": round(final_stats.fish_wins / final_stats.hands_played * 100, 1) if final_stats.hands_played > 0 else 0.0,
+                        "players": final_stats.players,  # List of all player stats
                     }
 
                     logger.info(
-                        f"Auto-evaluation complete: {final_stats.winner} wins! "
-                        f"Fish: {final_stats.fish_wins} wins, Standard: {final_stats.standard_wins} wins"
+                        f"Auto-evaluation complete: {final_stats.winner} wins after {final_stats.hands_played} hands!"
                     )
 
                     # Return the final stats to the frontend
