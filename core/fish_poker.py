@@ -345,14 +345,21 @@ class PokerInteraction:
         self.fish1.last_button_position = button_position
         self.fish2.last_button_position = button_position
 
+        # Get poker strategy algorithms from fish genomes (if available)
+        player1_strategy = self.fish1.genome.poker_strategy_algorithm if hasattr(self.fish1.genome, 'poker_strategy_algorithm') else None
+        player2_strategy = self.fish2.genome.poker_strategy_algorithm if hasattr(self.fish2.genome, 'poker_strategy_algorithm') else None
+
         # Simulate multi-round Texas Hold'em game with blinds and position
+        # Use evolved poker strategies if available, otherwise fall back to aggression
         game_state = PokerEngine.simulate_multi_round_game(
             initial_bet=bet_amount,
             player1_energy=self.fish1.energy,
             player2_energy=self.fish2.energy,
-            player1_aggression=fish1_aggression,
-            player2_aggression=fish2_aggression,
+            player1_aggression=fish1_aggression,  # Fallback if no strategy
+            player2_aggression=fish2_aggression,  # Fallback if no strategy
             button_position=button_position,
+            player1_strategy=player1_strategy,  # Evolving poker strategy
+            player2_strategy=player2_strategy,  # Evolving poker strategy
         )
 
         # Store hands
