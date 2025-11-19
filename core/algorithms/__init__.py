@@ -299,6 +299,100 @@ def inherit_algorithm_with_mutation(
     return offspring
 
 
+def _crossover_algorithms_base(
+    parent1_algorithm: BehaviorAlgorithm,
+    parent2_algorithm: BehaviorAlgorithm,
+    parent1_weight: float,
+    parent2_weight: float,
+    mutation_rate: float,
+    mutation_strength: float,
+    algorithm_switch_rate: float,
+    blend_strategy: str = "weighted",
+    mutation_kwargs: Optional[dict] = None,
+) -> BehaviorAlgorithm:
+    """Base crossover function with common logic extracted.
+
+    Args:
+        parent1_algorithm: First parent's behavior algorithm
+        parent2_algorithm: Second parent's behavior algorithm
+        parent1_weight: Weight for parent1's contribution (0.0-1.0)
+        parent2_weight: Weight for parent2's contribution (0.0-1.0)
+        mutation_rate: Probability of each parameter mutating
+        mutation_strength: Magnitude of mutations
+        algorithm_switch_rate: Probability of switching to random algorithm
+        blend_strategy: How to blend parameters ("weighted", "average_or_select")
+        mutation_kwargs: Additional kwargs for mutate_parameters()
+
+    Returns:
+        New algorithm instance with blended parameters
+    """
+    # Handle edge cases
+    if parent1_algorithm is None and parent2_algorithm is None:
+        return get_random_algorithm()
+    elif parent1_algorithm is None:
+        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength)
+    elif parent2_algorithm is None:
+        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength)
+
+    # Both parents have algorithms
+    same_type = type(parent1_algorithm) == type(parent2_algorithm)
+
+    # Decide whether to switch to random algorithm
+    if random.random() < algorithm_switch_rate:
+        return get_random_algorithm()
+
+    if same_type:
+        # CASE 1: Both parents have same algorithm type - blend parameters
+        offspring = parent1_algorithm.__class__()
+
+        for param_key in parent1_algorithm.parameters:
+            if param_key in parent2_algorithm.parameters:
+                val1 = parent1_algorithm.parameters[param_key]
+                val2 = parent2_algorithm.parameters[param_key]
+
+                # Handle non-numeric parameters
+                if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
+                    offspring.parameters[param_key] = val1 if random.random() < parent1_weight else val2
+                    continue
+
+                # Blend numeric parameters based on strategy
+                if blend_strategy == "weighted":
+                    # Weighted average
+                    offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
+                elif blend_strategy == "average_or_select":
+                    # 50% average, 50% random selection
+                    if random.random() < 0.5:
+                        offspring.parameters[param_key] = (val1 + val2) / 2.0
+                    else:
+                        offspring.parameters[param_key] = val1 if random.random() < 0.5 else val2
+                else:
+                    # Default to weighted
+                    offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
+
+            elif param_key in parent1_algorithm.parameters:
+                # Only parent1 has this parameter
+                offspring.parameters[param_key] = parent1_algorithm.parameters[param_key]
+
+        # Add any parameters from parent2 that parent1 doesn't have
+        for param_key in parent2_algorithm.parameters:
+            if param_key not in offspring.parameters:
+                offspring.parameters[param_key] = parent2_algorithm.parameters[param_key]
+
+    else:
+        # CASE 2: Different algorithm types - choose one parent
+        chosen_parent = parent1_algorithm if random.random() < parent1_weight else parent2_algorithm
+        offspring = chosen_parent.__class__()
+        offspring.parameters = chosen_parent.parameters.copy()
+
+    # Apply mutations to offspring parameters
+    if mutation_kwargs:
+        offspring.mutate_parameters(mutation_rate, mutation_strength, **mutation_kwargs)
+    else:
+        offspring.mutate_parameters(mutation_rate, mutation_strength)
+
+    return offspring
+
+
 def crossover_algorithms(
     parent1_algorithm: BehaviorAlgorithm,
     parent2_algorithm: BehaviorAlgorithm,
@@ -324,69 +418,16 @@ def crossover_algorithms(
     Returns:
         New algorithm instance with blended/crossed-over parameters
     """
-    # Determine which algorithm type to inherit
-    if parent1_algorithm is None and parent2_algorithm is None:
-        # Both parents have no algorithm, create random
-        return get_random_algorithm()
-    elif parent1_algorithm is None:
-        # Only parent2 has algorithm
-        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength)
-    elif parent2_algorithm is None:
-        # Only parent1 has algorithm
-        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength)
-
-    # Both parents have algorithms
-    same_type = type(parent1_algorithm) == type(parent2_algorithm)
-
-    # Decide which parent's algorithm type to use (or switch with small probability)
-    if random.random() < algorithm_switch_rate:
-        # Rare mutation: switch to a completely different algorithm
-        return get_random_algorithm()
-
-    if same_type:
-        # CASE 1: Both parents have same algorithm type
-        # Blend parameters from both parents
-        offspring = parent1_algorithm.__class__()
-
-        # For each parameter, blend from both parents
-        for param_key in parent1_algorithm.parameters:
-            if param_key in parent2_algorithm.parameters:
-                val1 = parent1_algorithm.parameters[param_key]
-                val2 = parent2_algorithm.parameters[param_key]
-
-                # Skip non-numeric parameters
-                if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
-                    offspring.parameters[param_key] = val1 if random.random() < 0.5 else val2
-                    continue
-
-                # Crossover: randomly blend from both parents
-                if random.random() < 0.5:
-                    # Averaging (Mendelian inheritance)
-                    offspring.parameters[param_key] = (val1 + val2) / 2.0
-                else:
-                    # Random selection (dominant gene)
-                    offspring.parameters[param_key] = val1 if random.random() < 0.5 else val2
-
-            elif param_key in parent1_algorithm.parameters:
-                # Only parent1 has this parameter
-                offspring.parameters[param_key] = parent1_algorithm.parameters[param_key]
-
-        # Add any parameters from parent2 that parent1 doesn't have
-        for param_key in parent2_algorithm.parameters:
-            if param_key not in offspring.parameters:
-                offspring.parameters[param_key] = parent2_algorithm.parameters[param_key]
-
-    else:
-        # CASE 2: Different algorithm types
-        # Choose one parent's algorithm type (50/50 chance)
-        chosen_parent = parent1_algorithm if random.random() < 0.5 else parent2_algorithm
-        offspring = chosen_parent.__class__()
-        offspring.parameters = chosen_parent.parameters.copy()
-
-    # Apply mutations to offspring parameters
-    offspring.mutate_parameters(mutation_rate, mutation_strength)
-
-    return offspring
+    return _crossover_algorithms_base(
+        parent1_algorithm=parent1_algorithm,
+        parent2_algorithm=parent2_algorithm,
+        parent1_weight=0.5,
+        parent2_weight=0.5,
+        mutation_rate=mutation_rate,
+        mutation_strength=mutation_strength,
+        algorithm_switch_rate=algorithm_switch_rate,
+        blend_strategy="average_or_select",
+    )
 
 
 def crossover_algorithms_weighted(
@@ -417,60 +458,16 @@ def crossover_algorithms_weighted(
     parent1_weight = max(0.0, min(1.0, parent1_weight))
     parent2_weight = 1.0 - parent1_weight
 
-    # Determine which algorithm type to inherit
-    if parent1_algorithm is None and parent2_algorithm is None:
-        return get_random_algorithm()
-    elif parent1_algorithm is None:
-        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength)
-    elif parent2_algorithm is None:
-        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength)
-
-    # Both parents have algorithms
-    same_type = type(parent1_algorithm) == type(parent2_algorithm)
-
-    # Weighted decision: switch to random algorithm with small probability
-    if random.random() < algorithm_switch_rate:
-        return get_random_algorithm()
-
-    if same_type:
-        # CASE 1: Both parents have same algorithm type
-        # Blend parameters using weights
-        offspring = parent1_algorithm.__class__()
-
-        for param_key in parent1_algorithm.parameters:
-            if param_key in parent2_algorithm.parameters:
-                val1 = parent1_algorithm.parameters[param_key]
-                val2 = parent2_algorithm.parameters[param_key]
-
-                # Skip non-numeric parameters
-                if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
-                    offspring.parameters[param_key] = (
-                        val1 if random.random() < parent1_weight else val2
-                    )
-                    continue
-
-                # Weighted average based on parent contributions
-                offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
-
-            elif param_key in parent1_algorithm.parameters:
-                offspring.parameters[param_key] = parent1_algorithm.parameters[param_key]
-
-        # Add parameters from parent2 that parent1 doesn't have
-        for param_key in parent2_algorithm.parameters:
-            if param_key not in offspring.parameters:
-                offspring.parameters[param_key] = parent2_algorithm.parameters[param_key]
-
-    else:
-        # CASE 2: Different algorithm types
-        # Choose based on weight (parent1_weight probability of choosing parent1)
-        chosen_parent = parent1_algorithm if random.random() < parent1_weight else parent2_algorithm
-        offspring = chosen_parent.__class__()
-        offspring.parameters = chosen_parent.parameters.copy()
-
-    # Apply mutations to offspring parameters
-    offspring.mutate_parameters(mutation_rate, mutation_strength)
-
-    return offspring
+    return _crossover_algorithms_base(
+        parent1_algorithm=parent1_algorithm,
+        parent2_algorithm=parent2_algorithm,
+        parent1_weight=parent1_weight,
+        parent2_weight=parent2_weight,
+        mutation_rate=mutation_rate,
+        mutation_strength=mutation_strength,
+        algorithm_switch_rate=algorithm_switch_rate,
+        blend_strategy="weighted",
+    )
 
 
 def crossover_poker_algorithms(
@@ -521,82 +518,37 @@ def crossover_poker_algorithms(
 
     parent2_weight = 1.0 - parent1_weight
 
-    # Determine algorithm type inheritance
-    same_type = type(parent1_algorithm) == type(parent2_algorithm)
+    # For poker algorithms, use special selection logic
+    if is_poker1 and not is_poker2:
+        # Only parent1 is poker - strongly prefer it (80%)
+        parent1_weight = 0.8
+    elif is_poker2 and not is_poker1:
+        # Only parent2 is poker - strongly prefer it (80%)
+        parent1_weight = 0.2
 
-    # For poker algorithms, prefer keeping poker algorithms
-    if is_poker1 and is_poker2:
-        # Both are poker algorithms
-        if same_type:
-            # Same poker algorithm - blend parameters intelligently
-            offspring = parent1_algorithm.__class__()
-
-            for param_key in parent1_algorithm.parameters:
-                if param_key in parent2_algorithm.parameters:
-                    val1 = parent1_algorithm.parameters[param_key]
-                    val2 = parent2_algorithm.parameters[param_key]
-
-                    if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
-                        offspring.parameters[param_key] = val1 if random.random() < parent1_weight else val2
-                        continue
-
-                    # Performance-weighted average for poker algorithms
-                    offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
-
-                elif param_key in parent1_algorithm.parameters:
-                    offspring.parameters[param_key] = parent1_algorithm.parameters[param_key]
-
-            # Add parameters from parent2
-            for param_key in parent2_algorithm.parameters:
-                if param_key not in offspring.parameters:
-                    offspring.parameters[param_key] = parent2_algorithm.parameters[param_key]
-
-        else:
-            # Different poker algorithms - choose based on performance
-            chosen_parent = parent1_algorithm if random.random() < parent1_weight else parent2_algorithm
-            offspring = chosen_parent.__class__()
-            offspring.parameters = chosen_parent.parameters.copy()
-
-    elif is_poker1:
-        # Only parent1 is poker - strongly prefer it
-        if random.random() < 0.8:  # 80% chance to keep poker algorithm
-            offspring = parent1_algorithm.__class__()
-            offspring.parameters = parent1_algorithm.parameters.copy()
-        else:
-            offspring = parent2_algorithm.__class__()
-            offspring.parameters = parent2_algorithm.parameters.copy()
-
-    elif is_poker2:
-        # Only parent2 is poker - strongly prefer it
-        if random.random() < 0.8:
-            offspring = parent2_algorithm.__class__()
-            offspring.parameters = parent2_algorithm.parameters.copy()
-        else:
-            offspring = parent1_algorithm.__class__()
-            offspring.parameters = parent1_algorithm.parameters.copy()
-
-    else:
-        # Neither is poker - use standard crossover
-        chosen_parent = parent1_algorithm if random.random() < parent1_weight else parent2_algorithm
-        offspring = chosen_parent.__class__()
-        offspring.parameters = chosen_parent.parameters.copy()
-
-    # Apply mutations with lower rates for poker algorithms to preserve strategies
-    if "poker" in offspring.algorithm_id.lower():
-        # Reduce mutation for successful poker players
+    # Determine mutation kwargs for poker algorithms
+    mutation_kwargs = None
+    if is_poker1 or is_poker2:
+        # Adaptive mutation based on success rate
         success_rate = max(parent1_poker_wins, parent2_poker_wins) / max(total_wins, 1)
         if success_rate > 0.6:
-            adaptive_factor = 0.7  # Successful poker player - fine-tune
+            adaptive_factor = 0.7  # Successful - fine-tune
         else:
             adaptive_factor = 1.2  # Less successful - explore more
 
-        offspring.mutate_parameters(
-            mutation_rate, mutation_strength, use_parameter_specific=True, adaptive_factor=adaptive_factor
-        )
-    else:
-        offspring.mutate_parameters(mutation_rate, mutation_strength)
+        mutation_kwargs = {"use_parameter_specific": True, "adaptive_factor": adaptive_factor}
 
-    return offspring
+    return _crossover_algorithms_base(
+        parent1_algorithm=parent1_algorithm,
+        parent2_algorithm=parent2_algorithm,
+        parent1_weight=parent1_weight,
+        parent2_weight=parent2_weight,
+        mutation_rate=mutation_rate,
+        mutation_strength=mutation_strength,
+        algorithm_switch_rate=0.0,  # Poker algorithms don't randomly switch
+        blend_strategy="weighted",
+        mutation_kwargs=mutation_kwargs,
+    )
 
 
 # Export all symbols
