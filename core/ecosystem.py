@@ -415,6 +415,10 @@ class EcosystemManager:
             max_history_length=1000
         )
 
+        # NEW: Lineage tracking for phylogenetic tree
+        # Each entry: {id, parent_id, generation, algorithm, color, birth_time}
+        self.lineage_log: List[Dict[str, Any]] = []
+
         # Next available fish ID
         self.next_fish_id: int = 0
 
@@ -479,6 +483,7 @@ class EcosystemManager:
         generation: int,
         parent_ids: Optional[List[int]] = None,
         algorithm_id: Optional[int] = None,
+        color: Optional[str] = None,
     ) -> None:
         """Record a birth event.
 
@@ -487,6 +492,7 @@ class EcosystemManager:
             generation: Generation number
             parent_ids: Optional list of parent IDs
             algorithm_id: Optional algorithm ID (0-47)
+            color: Optional color hex string for phylogenetic tree visualization
         """
         self.total_births += 1
 
@@ -508,6 +514,27 @@ class EcosystemManager:
 
         # NEW: Record offspring birth for energy efficiency tracking
         self.enhanced_stats.record_offspring_birth(energy_cost=0.0)
+
+        # NEW: Record lineage for phylogenetic tree
+        parent_id = None
+        if parent_ids and len(parent_ids) > 0:
+            # Use first parent as primary lineage link
+            parent_id = parent_ids[0]
+
+        # Get algorithm name
+        algorithm_name = "Unknown"
+        if algorithm_id is not None and algorithm_id in self.algorithm_stats:
+            algorithm_name = self.algorithm_stats[algorithm_id].algorithm_name
+
+        lineage_record = {
+            "id": str(fish_id),
+            "parent_id": str(parent_id) if parent_id is not None else "root",
+            "generation": generation,
+            "algorithm": algorithm_name,
+            "color": color if color else "#00ff00",  # Default green color
+            "birth_time": self.frame_count,
+        }
+        self.lineage_log.append(lineage_record)
 
         # Log event
         details = f"Parents: {parent_ids}" if parent_ids else "Initial spawn"
@@ -1580,3 +1607,11 @@ class EcosystemManager:
             JellyfishPokerStats or None if fish hasn't played
         """
         return self.jellyfish_poker_stats.get(fish_id)
+
+    def get_lineage_data(self) -> List[Dict[str, Any]]:
+        """Get complete lineage data for phylogenetic tree visualization.
+
+        Returns:
+            List of lineage records with parent-child relationships
+        """
+        return self.lineage_log

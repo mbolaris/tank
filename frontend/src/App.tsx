@@ -8,6 +8,7 @@ import { ControlPanel } from './components/ControlPanel';
 import { StatsPanel } from './components/StatsPanel';
 import PokerEvents from './components/PokerEvents';
 import { PokerLeaderboard } from './components/PokerLeaderboard';
+import { PhylogeneticTree } from './components/PhylogeneticTree';
 import './App.css';
 
 function App() {
@@ -55,6 +56,12 @@ function App() {
             currentFrame={state?.frame ?? 0}
           />
           <PokerLeaderboard leaderboard={state?.poker_leaderboard ?? []} />
+          <div style={{ marginTop: '20px' }}>
+            <h2 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '20px' }}>
+              Phylogenetic Tree
+            </h2>
+            <PhylogeneticTree />
+          </div>
         </div>
 
         <div className="sidebar">

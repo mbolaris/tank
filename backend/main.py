@@ -237,6 +237,22 @@ async def health():
     )
 
 
+@app.get("/api/lineage")
+async def get_lineage():
+    """Get phylogenetic lineage data for all fish.
+
+    Returns:
+        List of lineage records with parent-child relationships for tree visualization
+    """
+    try:
+        # Get lineage data from ecosystem manager
+        lineage_data = simulation.simulation.ecosystem.get_lineage_data()
+        return JSONResponse(lineage_data)
+    except Exception as e:
+        logger.error(f"Error getting lineage data: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time simulation updates."""
