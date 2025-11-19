@@ -19,6 +19,8 @@ interface AutoEvaluateStats {
   winner: string | null;
   reason: string;
   fish_name: string;
+  fish_id: number;
+  fish_generation: number;
   fish_net_energy: number;
   fish_win_rate: number;
 }
@@ -99,7 +101,7 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
         {/* Fish Stats */}
         <div style={styles.playerSection}>
           <h4 style={styles.playerName}>
-            🐟 {stats.fish_name}
+            🐟 {stats.fish_name} #{stats.fish_id}
           </h4>
           <div style={styles.statsGrid}>
             <div style={styles.statRow}>
