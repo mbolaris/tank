@@ -117,7 +117,7 @@ python main.py
 
 # Terminal 2: Start the React frontend (in frontend/ directory)
 cd frontend
-npm start
+npm run dev
 
 # Open http://localhost:3000 in your browser
 ```
