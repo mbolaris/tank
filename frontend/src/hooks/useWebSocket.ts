@@ -28,16 +28,14 @@ export function useWebSocket() {
 
           if (data.type === 'update') {
             setState(data as SimulationUpdate);
-          } else if (data.type === 'error') {
-            console.error('Server error:', data.message);
           }
         } catch (error) {
-          console.error('Error parsing message:', error);
+          // Silently handle parsing errors
         }
       };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+      ws.onerror = () => {
+        // Silently handle WebSocket errors
       };
 
       ws.onclose = () => {
@@ -54,7 +52,7 @@ export function useWebSocket() {
 
       wsRef.current = ws;
     } catch (error) {
-      console.error('Error creating WebSocket:', error);
+      // Silently handle WebSocket creation errors
     }
   }, []);
 
@@ -78,8 +76,6 @@ export function useWebSocket() {
   const sendCommand = useCallback((command: Command) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(command));
-    } else {
-      console.error('WebSocket is not connected');
     }
   }, []);
 

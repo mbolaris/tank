@@ -3,6 +3,11 @@ import Tree from 'react-d3-tree';
 import { transformLineageData } from '../utils/lineageUtils';
 import type { FishRecord, TreeNodeData } from '../utils/lineageUtils';
 
+interface CustomNodeElementProps {
+  nodeDatum: TreeNodeData;
+  toggleNode: () => void;
+}
+
 const containerStyles: React.CSSProperties = {
   width: '100%',
   height: '600px',
@@ -37,26 +42,21 @@ export const PhylogeneticTree: React.FC = () => {
       }
 
       const data: FishRecord[] = await response.json();
-      console.log('[PhylogeneticTree] Fetched lineage data:', data);
-      console.log('[PhylogeneticTree] Data length:', data?.length);
 
       if (data && data.length > 0) {
         const nestedData = transformLineageData(data);
-        console.log('[PhylogeneticTree] Transformed data:', nestedData);
         if (nestedData) {
           setTreeData(nestedData);
           setError(null);  // Clear any previous errors
         } else {
-          setError(`Failed to build phylogenetic tree from ${data.length} lineage records. Check console for details.`);
+          setError(`Failed to build phylogenetic tree from ${data.length} lineage records.`);
         }
       } else {
-        console.log('[PhylogeneticTree] No data or empty array');
         setError('No lineage data available yet. Fish need to reproduce to build the tree.');
       }
 
       setLoading(false);
     } catch (err) {
-      console.error("[PhylogeneticTree] Failed to load lineage", err);
       setError(err instanceof Error ? err.message : 'Failed to load lineage data');
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export const PhylogeneticTree: React.FC = () => {
   }, []);
 
   // Custom node renderer to color-code by fish color
-  const renderCustomNode = ({ nodeDatum, toggleNode }: any) => (
+  const renderCustomNode = ({ nodeDatum, toggleNode }: CustomNodeElementProps) => (
     <g>
       <circle
         r={10}

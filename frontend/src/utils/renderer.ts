@@ -111,7 +111,7 @@ export class Renderer {
     this.ctx.restore();
 
     // Update and draw floating particles
-    this.updateParticles(width, height, time);
+    this.updateParticles(width, height);
     this.drawParticles();
 
     // Enhanced seabed with texture
@@ -141,7 +141,7 @@ export class Renderer {
     this.ctx.restore();
   }
 
-  private updateParticles(width: number, height: number, _time: number) {
+  private updateParticles(width: number, height: number) {
     for (const particle of this.particles) {
       // Float upward
       particle.y -= particle.speed;
@@ -202,7 +202,7 @@ export class Renderer {
         this.renderCrab(entity, elapsedTime);
         break;
       case 'castle':
-        this.renderCastle(entity, elapsedTime);
+        this.renderCastle(entity);
         break;
       case 'jellyfish':
         this.renderJellyfish(entity, elapsedTime);
@@ -216,7 +216,7 @@ export class Renderer {
 
     // Use SVG-based parametric fish rendering if genome_data is available
     if (genome_data && genome_data.template_id !== undefined) {
-      this.renderSVGFish(fish, elapsedTime);
+      this.renderSVGFish(fish);
       return;
     }
 
@@ -252,7 +252,7 @@ export class Renderer {
     }
   }
 
-  private renderSVGFish(fish: EntityData, _elapsedTime: number) {
+  private renderSVGFish(fish: EntityData) {
     const { ctx } = this;
     const { x, y, width, height, vel_x = 1, genome_data } = fish;
 
@@ -704,7 +704,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  private renderCastle(castle: EntityData, _elapsedTime: number) {
+  private renderCastle(castle: EntityData) {
     const { x, y, width, height } = castle;
 
     const imageName = 'castle.png';
