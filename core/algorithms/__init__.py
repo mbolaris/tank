@@ -35,6 +35,7 @@ from core.algorithms.energy_management import (
 
 # Import all food-seeking algorithms
 from core.algorithms.food_seeking import (
+    AggressiveHunter,
     AmbushFeeder,
     BottomFeeder,
     CircularHunter,
@@ -45,6 +46,7 @@ from core.algorithms.food_seeking import (
     GreedyFoodSeeker,
     OpportunisticFeeder,
     PatrolFeeder,
+    SpiralForager,
     SurfaceSkimmer,
     ZigZagForager,
 )
@@ -116,6 +118,8 @@ ALL_ALGORITHMS = [
     CircularHunter,
     FoodMemorySeeker,
     CooperativeForager,
+    AggressiveHunter,  # NEW: High-speed food pursuit
+    SpiralForager,  # NEW: Systematic spiral search pattern
     # Predator avoidance
     PanicFlee,
     StealthyAvoider,
@@ -614,6 +618,8 @@ __all__ = [
     "CircularHunter",
     "FoodMemorySeeker",
     "CooperativeForager",
+    "AggressiveHunter",
+    "SpiralForager",
     # Predator avoidance
     "PanicFlee",
     "StealthyAvoider",

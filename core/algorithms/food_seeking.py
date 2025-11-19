@@ -238,32 +238,63 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 
 @dataclass
 class OpportunisticFeeder(BehaviorAlgorithm):
-    """Only pursue food if it's close enough."""
+    """Only pursue food if it's close enough - IMPROVED to avoid starvation."""
 
     def __init__(self):
         super().__init__(
             algorithm_id="opportunistic_feeder",
             parameters={
-                "max_pursuit_distance": random.uniform(50, 200),
-                "speed": random.uniform(0.6, 1.0),
+                "max_pursuit_distance": random.uniform(150, 300),  # INCREASED from 50-200
+                "speed": random.uniform(0.9, 1.3),  # INCREASED from 0.6-1.0
+                "exploration_speed": random.uniform(0.5, 0.8),  # NEW: explore when idle
             },
         )
+        self.exploration_angle = random.uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        # IMPROVEMENT: Check energy state
+        is_critical = fish.energy / fish.max_energy < 0.3
+        is_low = fish.energy / fish.max_energy < 0.5
+
+        # IMPROVEMENT: Flee from predators
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator:
+            pred_dist = (nearest_predator.pos - fish.pos).length()
+            flee_threshold = 60 if is_critical else 90
+            if pred_dist < flee_threshold:
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+                return direction.x * 1.3, direction.y * 1.3
 
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
-            if distance < self.parameters["max_pursuit_distance"]:
+            # IMPROVEMENT: Expand pursuit when hungry
+            max_dist = self.parameters["max_pursuit_distance"]
+            if is_critical:
+                max_dist *= 2  # Desperate: chase much further
+            elif is_low:
+                max_dist *= 1.5
+
+            if distance < max_dist:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
-                return (
-                    direction.x * self.parameters["speed"],
-                    direction.y * self.parameters["speed"],
-                )
+                # IMPROVEMENT: Speed up when close and when hungry
+                speed = self.parameters["speed"]
+                if distance < 100:
+                    speed *= 1.3
+                if is_critical:
+                    speed *= 1.2
+                return direction.x * speed, direction.y * speed
+
+        # IMPROVEMENT: Don't just idle - explore!
+        if is_critical or is_low:
+            self.exploration_angle += random.uniform(-0.4, 0.4)
+            ex_speed = self.parameters["exploration_speed"] * (1.5 if is_critical else 1.0)
+            return math.cos(self.exploration_angle) * ex_speed, math.sin(self.exploration_angle) * ex_speed
+
         return 0, 0
 
 
@@ -406,15 +437,15 @@ class AmbushFeeder(BehaviorAlgorithm):
 
 @dataclass
 class PatrolFeeder(BehaviorAlgorithm):
-    """Patrol in a pattern looking for food."""
+    """Patrol in a pattern looking for food - IMPROVED with better detection."""
 
     def __init__(self):
         super().__init__(
             algorithm_id="patrol_feeder",
             parameters={
-                "patrol_radius": random.uniform(50, 150),
-                "patrol_speed": random.uniform(0.5, 1.0),
-                "food_priority": random.uniform(0.6, 1.0),
+                "patrol_radius": random.uniform(100, 200),  # INCREASED from 50-150
+                "patrol_speed": random.uniform(0.8, 1.2),  # INCREASED from 0.5-1.0
+                "food_priority": random.uniform(1.0, 1.4),  # INCREASED from 0.6-1.0
             },
         )
         self.patrol_center = None
@@ -425,21 +456,32 @@ class PatrolFeeder(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        # IMPROVEMENT: Check energy and predators
+        energy_ratio = fish.energy / fish.max_energy
+        is_desperate = energy_ratio < 0.3
 
-        # Check for nearby food first
+        # IMPROVEMENT: Predator avoidance
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator:
+            pred_dist = (nearest_predator.pos - fish.pos).length()
+            if pred_dist < 80:
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+                return direction.x * 1.3, direction.y * 1.3
+
+        # Check for nearby food first - EXPANDED detection
         nearest_food = self._find_nearest(fish, Food)
-        if nearest_food and (nearest_food.pos - fish.pos).length() < 100:
+        detection_range = 200 if is_desperate else 150  # INCREASED from 100
+        if nearest_food and (nearest_food.pos - fish.pos).length() < detection_range:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
-            return (
-                direction.x * self.parameters["food_priority"],
-                direction.y * self.parameters["food_priority"],
-            )
+            # IMPROVEMENT: Faster when desperate
+            speed = self.parameters["food_priority"] * (1.3 if is_desperate else 1.0)
+            return direction.x * speed, direction.y * speed
 
-        # Otherwise patrol
+        # Otherwise patrol - FASTER rotation
         if self.patrol_center is None:
             self.patrol_center = Vector2(fish.pos.x, fish.pos.y)
 
-        self.patrol_angle += 0.05
+        self.patrol_angle += 0.15  # INCREASED from 0.05 for faster patrol
         target_x = (
             self.patrol_center.x + math.cos(self.patrol_angle) * self.parameters["patrol_radius"]
         )
@@ -447,22 +489,22 @@ class PatrolFeeder(BehaviorAlgorithm):
             self.patrol_center.y + math.sin(self.patrol_angle) * self.parameters["patrol_radius"]
         )
         direction = self._safe_normalize(Vector2(target_x, target_y) - fish.pos)
-        return (
-            direction.x * self.parameters["patrol_speed"],
-            direction.y * self.parameters["patrol_speed"],
-        )
+        # IMPROVEMENT: Patrol faster to cover more ground
+        speed = self.parameters["patrol_speed"] * (1.3 if is_desperate else 1.0)
+        return direction.x * speed, direction.y * speed
 
 
 @dataclass
 class SurfaceSkimmer(BehaviorAlgorithm):
-    """Stay near surface to catch falling food."""
+    """Stay near surface to catch falling food - IMPROVED for better survival."""
 
     def __init__(self):
         super().__init__(
             algorithm_id="surface_skimmer",
             parameters={
-                "preferred_depth": random.uniform(0.1, 0.3),  # 10-30% from top
-                "horizontal_speed": random.uniform(0.5, 1.0),
+                "preferred_depth": random.uniform(0.1, 0.25),  # 10-25% from top
+                "horizontal_speed": random.uniform(0.8, 1.3),  # INCREASED from 0.5-1.0
+                "dive_for_food_threshold": random.uniform(150, 250),  # NEW: will dive for food
             },
         )
 
@@ -471,25 +513,46 @@ class SurfaceSkimmer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        # IMPROVEMENT: Check energy and threats
+        energy_ratio = fish.energy / fish.max_energy
+        is_desperate = energy_ratio < 0.3
+
+        # IMPROVEMENT: Predator avoidance
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator:
+            pred_dist = (nearest_predator.pos - fish.pos).length()
+            if pred_dist < 90:
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+                return direction.x * 1.3, direction.y * 1.3
 
         target_y = SCREEN_HEIGHT * self.parameters["preferred_depth"]
 
-        # Move toward target depth
-        vy = (target_y - fish.pos.y) / 100  # Gentle vertical adjustment
-
-        # Look for food while at surface
+        # Look for food - IMPROVED to actively pursue
         nearest_food = self._find_nearest(fish, Food)
-        vx = 0
         if nearest_food:
-            vx = (nearest_food.pos.x - fish.pos.x) / 100
+            food_dist = (nearest_food.pos - fish.pos).length()
+            # IMPROVEMENT: Dive for food if desperate or food is reasonably close
+            if is_desperate or food_dist < self.parameters["dive_for_food_threshold"]:
+                # Go directly for food, abandoning surface position
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                speed = 1.2 if is_desperate else 1.0
+                return direction.x * speed, direction.y * speed
+            else:
+                # Move horizontally toward food while maintaining depth
+                vx = (nearest_food.pos.x - fish.pos.x) / 80  # FASTER horizontal tracking
+                vy = (target_y - fish.pos.y) / 100
+                # IMPROVEMENT: Speed up horizontal movement
+                vx *= 1.5
+                return vx, vy
         else:
-            vx = (
-                self.parameters["horizontal_speed"]
-                if random.random() > 0.5
-                else -self.parameters["horizontal_speed"]
-            )
-
-        return vx, vy
+            # No food visible - patrol surface actively
+            vy = (target_y - fish.pos.y) / 100
+            # IMPROVEMENT: Active patrol instead of random flip
+            vx = self.parameters["horizontal_speed"]
+            # Change direction periodically
+            if random.random() < 0.02:  # 2% chance per frame to reverse
+                self.parameters["horizontal_speed"] *= -1
+            return vx, vy
 
 
 @dataclass
@@ -693,15 +756,138 @@ class FoodMemorySeeker(BehaviorAlgorithm):
 
 
 @dataclass
+class AggressiveHunter(BehaviorAlgorithm):
+    """NEW: Aggressively pursue food with high-speed interception - replaces weak algorithms."""
+
+    def __init__(self):
+        super().__init__(
+            algorithm_id="aggressive_hunter",
+            parameters={
+                "pursuit_speed": random.uniform(1.3, 1.7),
+                "detection_range": random.uniform(250, 400),
+                "strike_speed": random.uniform(1.5, 2.0),
+            },
+        )
+        self.last_food_pos = None
+
+    @classmethod
+    def random_instance(cls):
+        return cls()
+
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
+        energy_ratio = fish.energy / fish.max_energy
+        is_critical = energy_ratio < 0.3
+
+        # Predator check - but take more risks when desperate
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator:
+            pred_dist = (nearest_predator.pos - fish.pos).length()
+            flee_threshold = 50 if is_critical else 75  # Risk more when desperate
+            if pred_dist < flee_threshold:
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+                return direction.x * 1.4, direction.y * 1.4
+
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            distance = (nearest_food.pos - fish.pos).length()
+            self.last_food_pos = Vector2(nearest_food.pos.x, nearest_food.pos.y)
+
+            # High-speed pursuit within detection range
+            if distance < self.parameters["detection_range"]:
+                # Predict food movement
+                target_pos = nearest_food.pos
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
+                    # Lead the target
+                    target_pos = nearest_food.pos + nearest_food.vel * 15
+
+                direction = self._safe_normalize(target_pos - fish.pos)
+
+                # Strike mode when very close
+                if distance < 80:
+                    return direction.x * self.parameters["strike_speed"], direction.y * self.parameters["strike_speed"]
+                else:
+                    return direction.x * self.parameters["pursuit_speed"], direction.y * self.parameters["pursuit_speed"]
+
+        # No food visible - check last known location
+        if self.last_food_pos and is_critical:
+            direction = self._safe_normalize(self.last_food_pos - fish.pos)
+            return direction.x * 0.9, direction.y * 0.9
+
+        # Active exploration
+        import math
+        angle = fish.age * 0.1  # Use age for varied exploration
+        return math.cos(angle) * 0.7, math.sin(angle) * 0.7
+
+
+@dataclass
+class SpiralForager(BehaviorAlgorithm):
+    """NEW: Spiral outward from center to systematically cover area - replaces weak algorithms."""
+
+    def __init__(self):
+        super().__init__(
+            algorithm_id="spiral_forager",
+            parameters={
+                "spiral_speed": random.uniform(0.8, 1.2),
+                "spiral_growth": random.uniform(0.3, 0.7),
+                "food_pursuit_speed": random.uniform(1.1, 1.5),
+            },
+        )
+        self.spiral_angle = 0
+        self.spiral_radius = 10
+
+    @classmethod
+    def random_instance(cls):
+        return cls()
+
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
+        energy_ratio = fish.energy / fish.max_energy
+        is_desperate = energy_ratio < 0.3
+
+        # Predator avoidance
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator:
+            pred_dist = (nearest_predator.pos - fish.pos).length()
+            if pred_dist < 85:
+                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+                return direction.x * 1.3, direction.y * 1.3
+
+        # Always check for food first
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            distance = (nearest_food.pos - fish.pos).length()
+            # Abandon spiral to pursue food
+            if distance < 250 or is_desperate:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                speed = self.parameters["food_pursuit_speed"] * (1.3 if is_desperate else 1.0)
+                return direction.x * speed, direction.y * speed
+
+        # Spiral search pattern
+        self.spiral_angle += 0.25  # Fast spiral
+        self.spiral_radius += self.parameters["spiral_growth"]
+
+        # Reset spiral if too large
+        if self.spiral_radius > 150:
+            self.spiral_radius = 10
+
+        # Calculate spiral movement
+        import math
+        vx = math.cos(self.spiral_angle) * self.parameters["spiral_speed"]
+        vy = math.sin(self.spiral_angle) * self.parameters["spiral_speed"]
+
+        return vx, vy
+
+
+@dataclass
 class CooperativeForager(BehaviorAlgorithm):
-    """Follow other fish to food sources."""
+    """Follow other fish to food sources - HEAVILY IMPROVED."""
 
     def __init__(self):
         super().__init__(
             algorithm_id="cooperative_forager",
             parameters={
-                "follow_strength": random.uniform(0.5, 0.9),
-                "independence": random.uniform(0.2, 0.5),
+                "follow_strength": random.uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
+                "independence": random.uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
+                "food_pursuit_speed": random.uniform(1.1, 1.4),  # NEW
             },
         )
 
@@ -710,10 +896,13 @@ class CooperativeForager(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        # IMPROVEMENT: Check energy state
+        energy_ratio = fish.energy / fish.max_energy
+        is_desperate = energy_ratio < 0.3
 
-        # Check for predators
+        # Check for predators - IMPROVED avoidance
         nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 95:
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 100:
             # NEW: Broadcast danger signal
             if hasattr(fish.environment, "communication_system"):
                 from core.fish_communication import SignalType
@@ -729,9 +918,10 @@ class CooperativeForager(BehaviorAlgorithm):
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.3, direction.y * 1.3
 
-        # Look for food directly first
+        # Look for food directly first - EXPANDED range
         nearest_food = self._find_nearest(fish, Food)
-        if nearest_food and (nearest_food.pos - fish.pos).length() < 80:
+        detection_range = 150 if is_desperate else 100  # INCREASED from 80
+        if nearest_food and (nearest_food.pos - fish.pos).length() < detection_range:
             # NEW: Broadcast food found signal (if social)
             if (
                 hasattr(fish.environment, "communication_system")
@@ -747,9 +937,10 @@ class CooperativeForager(BehaviorAlgorithm):
                     urgency=0.7,
                 )
 
-            # Food is close, go for it directly
+            # Food is close, go for it directly - FASTER
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
-            return direction.x * 1.1, direction.y * 1.1
+            speed = self.parameters["food_pursuit_speed"] * (1.3 if is_desperate else 1.0)
+            return direction.x * speed, direction.y * speed
 
         # NEW: Listen for food signals from communication system
         best_signal_target = None

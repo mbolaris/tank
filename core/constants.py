@@ -222,7 +222,7 @@ PLANT_FOOD_PRODUCTION_ENERGY = 15  # Energy cost to produce food
 PLANT_PRODUCTION_CHANCE = 0.50  # 50% chance to produce food each interval
 
 # Ecosystem Constants
-TOTAL_ALGORITHM_COUNT = 48  # Total number of behavior algorithms available
+TOTAL_ALGORITHM_COUNT = 50  # Total number of behavior algorithms available (updated with 2 new algorithms)
 TOTAL_SPECIES_COUNT = 4  # Total number of fish species
 MAX_ECOSYSTEM_EVENTS = 1000  # Maximum events to track in ecosystem history
 MAX_POPULATION = 100  # Maximum population capacity for ecosystem
