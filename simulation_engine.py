@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from core import entities, environment
 from core.constants import (
     CRITICAL_POPULATION_THRESHOLD,
+    EMERGENCY_SPAWN_COOLDOWN,
     FILES,
     FRAME_RATE,
     MAX_DIVERSITY_SPAWN_ATTEMPTS,
@@ -100,6 +101,7 @@ class SimulationEngine(BaseSimulator):
         self.start_time: float = time.time()
         self.poker_events: List[Dict[str, Any]] = []  # Recent poker events
         self._agents_wrapper: Optional[AgentsWrapper] = None
+        self.last_emergency_spawn_frame: int = -EMERGENCY_SPAWN_COOLDOWN  # Allow immediate first spawn
 
     @property
     def agents(self) -> AgentsWrapper:
@@ -239,9 +241,12 @@ class SimulationEngine(BaseSimulator):
             self.ecosystem.update_population_stats(fish_list)
             self.ecosystem.update(self.frame_count)
 
-            # Auto-spawn fish if population drops below critical threshold
+            # Auto-spawn fish if population drops below critical threshold (with cooldown)
             if len(fish_list) < CRITICAL_POPULATION_THRESHOLD:
-                self.spawn_emergency_fish()
+                frames_since_last_spawn = self.frame_count - self.last_emergency_spawn_frame
+                if frames_since_last_spawn >= EMERGENCY_SPAWN_COOLDOWN:
+                    self.spawn_emergency_fish()
+                    self.last_emergency_spawn_frame = self.frame_count
 
     def spawn_emergency_fish(self) -> None:
         """Spawn a new fish when population drops below critical threshold.
