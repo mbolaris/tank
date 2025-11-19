@@ -244,7 +244,126 @@ ALGORITHM_PARAMETER_BOUNDS = {
         "food_weight": (0.3, 0.7),
         "opportunity_radius": (80.0, 150.0),
     },
+    "poker_strategist": {
+        "aggression_variance": (0.1, 0.4),
+        "position_awareness": (0.5, 1.0),
+        "opponent_tracking": (0.3, 0.8),
+        "min_energy_ratio": (0.3, 0.6),
+        "challenge_speed": (0.7, 1.2),
+    },
+    "poker_bluffer": {
+        "bluff_frequency": (0.2, 0.6),
+        "aggression_swing": (0.4, 1.0),
+        "unpredictability": (0.3, 0.7),
+        "min_energy_to_bluff": (20.0, 40.0),
+    },
+    "poker_conservative": {
+        "min_energy_ratio": (0.6, 0.85),
+        "max_risk_tolerance": (0.1, 0.3),
+        "safety_distance": (100.0, 180.0),
+        "challenge_speed": (0.5, 0.9),
+        "energy_advantage_required": (10.0, 30.0),
+    },
 }
+
+
+# Parameter-specific mutation configuration
+# Different parameter types benefit from different mutation strategies
+PARAMETER_MUTATION_CONFIG = {
+    # Speed parameters: smaller mutations (they're already normalized)
+    "speed": {"base_rate": 0.15, "strength": 0.15},
+    # Distance/radius parameters: medium mutations
+    "distance": {"base_rate": 0.15, "strength": 0.25},
+    # Ratio/threshold parameters: larger mutations (explore energy/behavior states)
+    "ratio": {"base_rate": 0.20, "strength": 0.30},
+    # Weight parameters: medium mutations
+    "weight": {"base_rate": 0.15, "strength": 0.25},
+    # Frequency/probability parameters: larger mutations
+    "frequency": {"base_rate": 0.20, "strength": 0.30},
+    # Energy parameters: medium mutations
+    "energy": {"base_rate": 0.15, "strength": 0.25},
+    # Default for unclassified parameters
+    "default": {"base_rate": 0.15, "strength": 0.20},
+}
+
+
+def classify_parameter(param_name: str) -> str:
+    """Classify parameter type based on name for mutation strategy.
+
+    Args:
+        param_name: Name of the parameter
+
+    Returns:
+        Parameter classification (speed, distance, ratio, weight, etc.)
+    """
+    param_lower = param_name.lower()
+
+    # Speed-related
+    if any(
+        word in param_lower
+        for word in ["speed", "velocity", "pace", "cruise", "swim", "chase", "flee"]
+    ):
+        return "speed"
+
+    # Distance/radius-related
+    if any(
+        word in param_lower
+        for word in [
+            "radius",
+            "distance",
+            "range",
+            "threshold",
+            "detection",
+            "awareness",
+            "pursuit",
+            "safe",
+        ]
+    ):
+        return "distance"
+
+    # Ratio/percentage-related
+    if any(
+        word in param_lower
+        for word in [
+            "ratio",
+            "threshold",
+            "influence",
+            "tolerance",
+            "selectivity",
+            "awareness",
+            "tracking",
+            "variance",
+        ]
+    ):
+        return "ratio"
+
+    # Weight-related
+    if any(
+        word in param_lower
+        for word in ["weight", "strength", "cohesion", "separation", "alignment", "priority"]
+    ):
+        return "weight"
+
+    # Frequency/probability-related
+    if any(
+        word in param_lower
+        for word in [
+            "frequency",
+            "rate",
+            "probability",
+            "chance",
+            "bluff",
+            "unpredictability",
+            "swing",
+        ]
+    ):
+        return "frequency"
+
+    # Energy-related
+    if "energy" in param_lower:
+        return "energy"
+
+    return "default"
 
 
 @dataclass
@@ -282,33 +401,51 @@ class BehaviorAlgorithm(ABC):
         pass
 
     def mutate_parameters(
-        self, mutation_rate: float = 0.15, mutation_strength: float = 0.2
+        self,
+        mutation_rate: float = 0.15,
+        mutation_strength: float = 0.2,
+        use_parameter_specific: bool = True,
+        adaptive_factor: float = 1.0,
     ) -> None:
-        """Mutate the algorithm's parameters.
+        """Mutate the algorithm's parameters with parameter-specific strategies.
 
         Args:
-            mutation_rate: Probability of each parameter mutating
-            mutation_strength: Magnitude of mutations
+            mutation_rate: Base probability of each parameter mutating
+            mutation_strength: Base magnitude of mutations
+            use_parameter_specific: Use parameter-specific mutation rates
+            adaptive_factor: Multiplier for mutation rates (1.0 = normal, <1.0 = less mutation, >1.0 = more mutation)
         """
         for key, current_value in list(self.parameters.items()):
             # Skip non-numeric parameters (they shouldn't be mutated)
             if not isinstance(current_value, (int, float)):
                 continue
 
-            if random.random() >= mutation_rate:
+            # Get parameter-specific mutation config
+            if use_parameter_specific:
+                param_type = classify_parameter(key)
+                config = PARAMETER_MUTATION_CONFIG.get(param_type, PARAMETER_MUTATION_CONFIG["default"])
+                effective_rate = config["base_rate"] * adaptive_factor
+                effective_strength = config["strength"] * adaptive_factor
+            else:
+                effective_rate = mutation_rate * adaptive_factor
+                effective_strength = mutation_strength * adaptive_factor
+
+            # Roll for mutation
+            if random.random() >= effective_rate:
                 continue
 
+            # Apply mutation within bounds
             bounds = self.parameter_bounds.get(key)
             if bounds:
                 lower, upper = bounds
                 span = upper - lower
                 if span <= 0:
                     span = max(abs(current_value), 1.0)
-                mutated = current_value + random.gauss(0, mutation_strength) * span
+                mutated = current_value + random.gauss(0, effective_strength) * span
                 mutated = max(lower, min(upper, mutated))
             else:
                 scale = max(abs(current_value), 1.0)
-                mutated = current_value + random.gauss(0, mutation_strength) * scale
+                mutated = current_value + random.gauss(0, effective_strength) * scale
                 mutated = max(0.0, mutated)
 
             self.parameters[key] = mutated

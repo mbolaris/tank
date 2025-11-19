@@ -51,10 +51,13 @@ from core.algorithms.food_seeking import (
 
 # Import all poker interaction algorithms
 from core.algorithms.poker import (
+    PokerBluffer,
     PokerChallenger,
+    PokerConservative,
     PokerDodger,
     PokerGambler,
     PokerOpportunist,
+    PokerStrategist,
     SelectivePoker,
 )
 
@@ -159,6 +162,9 @@ ALL_ALGORITHMS = [
     PokerGambler,
     SelectivePoker,
     PokerOpportunist,
+    PokerStrategist,
+    PokerBluffer,
+    PokerConservative,
 ]
 
 
@@ -210,8 +216,53 @@ def get_algorithm_by_id(algorithm_id: str) -> Optional[BehaviorAlgorithm]:
     return None
 
 
+def calculate_adaptive_mutation_factor(
+    parent_fitness: Optional[float] = None, generation: Optional[int] = None
+) -> float:
+    """Calculate adaptive mutation factor based on fitness and generation.
+
+    Successful lineages (high fitness) get reduced mutation.
+    Struggling lineages (low fitness) get increased mutation.
+
+    Args:
+        parent_fitness: Fitness score (0.0-1.0, higher is better)
+        generation: Generation number (for time-based adaptation)
+
+    Returns:
+        Adaptive factor (0.5-2.0, where 1.0 is baseline)
+    """
+    factor = 1.0
+
+    # Fitness-based adaptation
+    if parent_fitness is not None:
+        if parent_fitness >= 0.7:
+            # High fitness: reduce mutation (fine-tuning)
+            factor *= 0.6
+        elif parent_fitness >= 0.5:
+            # Medium fitness: normal mutation
+            factor *= 1.0
+        elif parent_fitness >= 0.3:
+            # Low fitness: increase mutation (exploration)
+            factor *= 1.4
+        else:
+            # Very low fitness: high mutation (radical exploration)
+            factor *= 2.0
+
+    # Generation-based adaptation (optional cooling schedule)
+    if generation is not None and generation > 50:
+        # Gradually reduce mutation over time
+        cooling = max(0.7, 1.0 - (generation - 50) / 1000.0)
+        factor *= cooling
+
+    return max(0.5, min(2.0, factor))
+
+
 def inherit_algorithm_with_mutation(
-    parent_algorithm: BehaviorAlgorithm, mutation_rate: float = 0.15, mutation_strength: float = 0.2
+    parent_algorithm: BehaviorAlgorithm,
+    mutation_rate: float = 0.15,
+    mutation_strength: float = 0.2,
+    parent_fitness: Optional[float] = None,
+    use_adaptive_mutation: bool = True,
 ) -> BehaviorAlgorithm:
     """Create offspring algorithm by copying parent and mutating parameters.
 
@@ -219,6 +270,8 @@ def inherit_algorithm_with_mutation(
         parent_algorithm: Parent's behavior algorithm
         mutation_rate: Probability of each parameter mutating
         mutation_strength: Magnitude of mutations
+        parent_fitness: Parent's fitness score (0.0-1.0) for adaptive mutation
+        use_adaptive_mutation: Whether to use adaptive mutation rates
 
     Returns:
         New algorithm instance with mutated parameters
@@ -229,8 +282,15 @@ def inherit_algorithm_with_mutation(
     # Copy parent parameters
     offspring.parameters = parent_algorithm.parameters.copy()
 
-    # Mutate
-    offspring.mutate_parameters(mutation_rate, mutation_strength)
+    # Calculate adaptive mutation factor
+    adaptive_factor = 1.0
+    if use_adaptive_mutation and parent_fitness is not None:
+        adaptive_factor = calculate_adaptive_mutation_factor(parent_fitness)
+
+    # Mutate with adaptive factor
+    offspring.mutate_parameters(
+        mutation_rate, mutation_strength, use_parameter_specific=True, adaptive_factor=adaptive_factor
+    )
 
     return offspring
 
@@ -409,6 +469,132 @@ def crossover_algorithms_weighted(
     return offspring
 
 
+def crossover_poker_algorithms(
+    parent1_algorithm: BehaviorAlgorithm,
+    parent2_algorithm: BehaviorAlgorithm,
+    parent1_poker_wins: int = 0,
+    parent2_poker_wins: int = 0,
+    mutation_rate: float = 0.12,
+    mutation_strength: float = 0.18,
+) -> BehaviorAlgorithm:
+    """Specialized crossover for poker algorithms with performance-based weighting.
+
+    This function is optimized for poker behavior evolution:
+    1. Weights contributions based on poker performance
+    2. Uses intelligent parameter blending for synergistic combinations
+    3. Lower mutation rates to preserve successful strategies
+    4. Special handling for poker-specific parameter types
+
+    Args:
+        parent1_algorithm: First parent's behavior algorithm
+        parent2_algorithm: Second parent's behavior algorithm
+        parent1_poker_wins: Number of poker games parent1 has won
+        parent2_poker_wins: Number of poker games parent2 has won
+        mutation_rate: Probability of mutation (lower than standard for poker)
+        mutation_strength: Magnitude of mutations
+
+    Returns:
+        New poker algorithm with intelligently blended parameters
+    """
+    # Handle edge cases
+    if parent1_algorithm is None and parent2_algorithm is None:
+        return get_random_algorithm()
+    elif parent1_algorithm is None:
+        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength)
+    elif parent2_algorithm is None:
+        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength)
+
+    # Check if these are poker algorithms
+    is_poker1 = "poker" in parent1_algorithm.algorithm_id.lower()
+    is_poker2 = "poker" in parent2_algorithm.algorithm_id.lower()
+
+    # Calculate performance-based weights
+    total_wins = parent1_poker_wins + parent2_poker_wins
+    if total_wins > 0:
+        parent1_weight = (parent1_poker_wins + 1) / (total_wins + 2)  # Add pseudocounts
+    else:
+        parent1_weight = 0.5
+
+    parent2_weight = 1.0 - parent1_weight
+
+    # Determine algorithm type inheritance
+    same_type = type(parent1_algorithm) == type(parent2_algorithm)
+
+    # For poker algorithms, prefer keeping poker algorithms
+    if is_poker1 and is_poker2:
+        # Both are poker algorithms
+        if same_type:
+            # Same poker algorithm - blend parameters intelligently
+            offspring = parent1_algorithm.__class__()
+
+            for param_key in parent1_algorithm.parameters:
+                if param_key in parent2_algorithm.parameters:
+                    val1 = parent1_algorithm.parameters[param_key]
+                    val2 = parent2_algorithm.parameters[param_key]
+
+                    if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
+                        offspring.parameters[param_key] = val1 if random.random() < parent1_weight else val2
+                        continue
+
+                    # Performance-weighted average for poker algorithms
+                    offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
+
+                elif param_key in parent1_algorithm.parameters:
+                    offspring.parameters[param_key] = parent1_algorithm.parameters[param_key]
+
+            # Add parameters from parent2
+            for param_key in parent2_algorithm.parameters:
+                if param_key not in offspring.parameters:
+                    offspring.parameters[param_key] = parent2_algorithm.parameters[param_key]
+
+        else:
+            # Different poker algorithms - choose based on performance
+            chosen_parent = parent1_algorithm if random.random() < parent1_weight else parent2_algorithm
+            offspring = chosen_parent.__class__()
+            offspring.parameters = chosen_parent.parameters.copy()
+
+    elif is_poker1:
+        # Only parent1 is poker - strongly prefer it
+        if random.random() < 0.8:  # 80% chance to keep poker algorithm
+            offspring = parent1_algorithm.__class__()
+            offspring.parameters = parent1_algorithm.parameters.copy()
+        else:
+            offspring = parent2_algorithm.__class__()
+            offspring.parameters = parent2_algorithm.parameters.copy()
+
+    elif is_poker2:
+        # Only parent2 is poker - strongly prefer it
+        if random.random() < 0.8:
+            offspring = parent2_algorithm.__class__()
+            offspring.parameters = parent2_algorithm.parameters.copy()
+        else:
+            offspring = parent1_algorithm.__class__()
+            offspring.parameters = parent1_algorithm.parameters.copy()
+
+    else:
+        # Neither is poker - use standard crossover
+        chosen_parent = parent1_algorithm if random.random() < parent1_weight else parent2_algorithm
+        offspring = chosen_parent.__class__()
+        offspring.parameters = chosen_parent.parameters.copy()
+
+    # Apply mutations with lower rates for poker algorithms to preserve strategies
+    if "poker" in offspring.algorithm_id.lower():
+        # Reduce mutation for successful poker players
+        success_rate = max(parent1_poker_wins, parent2_poker_wins) / max(total_wins, 1)
+        if success_rate > 0.6:
+            adaptive_factor = 0.7  # Successful poker player - fine-tune
+        else:
+            adaptive_factor = 1.2  # Less successful - explore more
+
+        offspring.mutate_parameters(
+            mutation_rate, mutation_strength, use_parameter_specific=True, adaptive_factor=adaptive_factor
+        )
+    else:
+        offspring.mutate_parameters(mutation_rate, mutation_strength)
+
+    return offspring
+
+
 # Export all symbols
 __all__ = [
     # Base
@@ -474,6 +660,9 @@ __all__ = [
     "PokerGambler",
     "SelectivePoker",
     "PokerOpportunist",
+    "PokerStrategist",
+    "PokerBluffer",
+    "PokerConservative",
     # Utilities
     "ALL_ALGORITHMS",
     "get_algorithm_index",
@@ -483,4 +672,6 @@ __all__ = [
     "inherit_algorithm_with_mutation",
     "crossover_algorithms",
     "crossover_algorithms_weighted",
+    "crossover_poker_algorithms",
+    "calculate_adaptive_mutation_factor",
 ]
