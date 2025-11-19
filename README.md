@@ -1,13 +1,13 @@
 # 🐠 Artificial Life Fish Tank Simulation
 
-An advanced artificial life ecosystem simulation featuring **48 parametrizable behavior algorithms**, genetics, evolution, energy systems, and emergent population dynamics with a **React-based web UI**.
+An advanced artificial life ecosystem simulation featuring **53 parametrizable behavior algorithms**, genetics, evolution, energy systems, and emergent population dynamics with a **React-based web UI**.
 
 ## 🎯 Overview
 
 This is a **cutting-edge ALife simulation** with a modern web interface that demonstrates complex ecosystem behaviors through **algorithmic evolution** and competitive dynamics. Fish evolve diverse survival strategies through genetic algorithms, with each fish inheriting and mutating behavior algorithms across generations. The simulation features:
 
-- 🧬 **ALGORITHMIC EVOLUTION** - 48 unique parametrizable behavior strategies that evolve!
-- 🦀 **Balanced Predator-Prey** - Crabs hunt fish with realistic hunting mechanics
+- 🧬 **ALGORITHMIC EVOLUTION** - 53 unique parametrizable behavior strategies that evolve!
+- 🦀 **Balanced Predator-Prey** - Crabs and jellyfish interact with fish ecosystem
 - 🔬 **Genetic Evolution** - Traits and algorithms evolve across generations
 - 🌐 **Modern Web UI** - React-based interface with real-time visualization
 - 📊 **Live Statistics & LLM Export** - Track evolution and export data for AI analysis
@@ -19,15 +19,16 @@ This is a **cutting-edge ALife simulation** with a modern web interface that dem
 
 ### 🧬 **ALGORITHMIC EVOLUTION SYSTEM** 🚀
 
-The simulation features **48 parametrizable behavior algorithms** that fish can inherit and evolve! This creates unprecedented diversity and sophistication in fish behavior.
+The simulation features **53 parametrizable behavior algorithms** that fish can inherit and evolve! This creates unprecedented diversity and sophistication in fish behavior.
 
 **Key Features:**
-- **48 Unique Algorithms** across 5 categories:
+- **53 Unique Algorithms** across 6 categories:
   - 🍔 Food Seeking (12 algorithms)
   - 🛡️ Predator Avoidance (10 algorithms)
   - 🐟 Schooling/Social (10 algorithms)
   - ⚡ Energy Management (8 algorithms)
   - 🗺️ Territory/Exploration (8 algorithms)
+  - 🎴 Poker Interactions (5 algorithms)
 
 - **Parametrizable Behaviors**: Each algorithm has tunable parameters that mutate during reproduction
 - **Inheritance**: Offspring inherit parent's algorithm type with parameter mutations
@@ -41,21 +42,24 @@ The simulation features **48 parametrizable behavior algorithms** that fish can 
 - `TightSchooler` - Stay very close to school members
 - `BurstSwimmer` - Alternate between bursts and rest
 - `TerritorialDefender` - Defend territory from intruders
-- ...and 42 more!
+- `PokerChallenger` - Actively seek poker games
+- `PokerDodger` - Avoid poker encounters
+- ...and 45 more!
 
 ### 🎴 **Fish Poker Minigame**
-Fish can play poker against each other for energy rewards!
+Fish can play poker against each other and against jellyfish for energy rewards!
 
 - **Automatic**: Fish play when they collide and have >10 energy
 - **5-Card Draw**: Standard poker hand rankings
 - **Energy Stakes**: Winner takes energy from loser (with house cut)
+- **Jellyfish Opponents**: Jellyfish drift through the tank, playing poker with fish using a fixed conservative strategy
 - **Live Events**: See poker games happen in real-time in the UI
 - **Statistics**: Track total games, wins/losses, best hands
 
 ### 🧬 **Pure Algorithmic Evolution**
 The ecosystem focuses on **algorithmic evolution** with all fish competing using parametrizable behavior algorithms:
 
-- **48 Different Algorithms** across 5 categories (food seeking, predator avoidance, schooling, energy management, territory)
+- **53 Different Algorithms** across 6 categories (food seeking, predator avoidance, schooling, energy management, territory, poker interactions)
 - **Parameter Tuning**: Each algorithm has parameters that mutate during reproduction
 - **Natural Selection**: Better algorithms survive and reproduce, spreading through the population
 - **High Interpretability**: Unlike black-box neural networks, algorithm behaviors are clear and analyzable
@@ -167,20 +171,22 @@ tank/
 │   │   └── utils/          # Rendering utilities
 │   └── package.json
 ├── core/                   # Shared simulation logic
-│   ├── entities.py         # Fish, Plant, Food, Crab entities
+│   ├── entities.py         # Fish, Plant, Food, Crab, Jellyfish entities
 │   ├── genetics.py         # Genome system & inheritance
 │   ├── ecosystem.py        # Population tracking & statistics
 │   ├── enhanced_statistics.py # Comprehensive stats for LLM export
 │   ├── time_system.py      # Day/night cycle management
 │   ├── environment.py      # Spatial queries & collision detection
 │   ├── movement_strategy.py # AlgorithmicMovement implementation
-│   ├── fish_poker.py       # Poker minigame system
+│   ├── fish_poker.py       # Poker minigame system (fish vs fish)
+│   ├── jellyfish_poker.py  # Jellyfish poker interactions
 │   ├── algorithms/         # Behavior algorithm library
 │   │   ├── food_seeking.py # 12 food-seeking algorithms
 │   │   ├── predator_avoidance.py # 10 predator avoidance algorithms
 │   │   ├── schooling.py    # 10 schooling algorithms
 │   │   ├── energy_management.py # 8 energy management algorithms
-│   │   └── territory.py    # 8 territory/exploration algorithms
+│   │   ├── territory.py    # 8 territory/exploration algorithms
+│   │   └── poker.py        # 5 poker interaction algorithms
 │   └── constants.py        # Configuration parameters
 ├── tests/                  # Test suite
 │   ├── test_simulation.py  # Integration test
@@ -256,9 +262,11 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Performance tracking**: Stats export shows which algorithms dominate
 
 ### Poker Economy
-- **Energy redistribution**: Poker transfers energy between fish
+- **Energy redistribution**: Poker transfers energy between fish and jellyfish
+- **Jellyfish benchmark**: Jellyfish use a fixed conservative poker strategy, serving as a skill benchmark
 - **Fitness signaling**: Better poker players accumulate more energy
 - **Risk/reward**: Fish must balance poker with survival needs
+- **Jellyfish lifecycle**: Jellyfish slowly lose energy over time and die when depleted
 
 ### Population Dynamics
 - **Carrying capacity**: Max 100 fish prevents overpopulation
@@ -318,7 +326,7 @@ This simulation demonstrates:
 ## 🔬 Recent Improvements & Future Enhancements
 
 Recently Completed: ✅
-- [✅] 48 parametrizable behavior algorithms
+- [✅] 53 parametrizable behavior algorithms (including poker strategies)
 - [✅] TankWorld class for clean simulation management
 - [✅] LLM-friendly JSON stats export
 - [✅] Comprehensive behavior evolution tracking
@@ -326,7 +334,8 @@ Recently Completed: ✅
 - [✅] Headless mode (10-300x faster)
 - [✅] Deterministic seeding for reproducibility
 - [✅] React-based web UI
-- [✅] Fish poker minigame
+- [✅] Fish poker minigame with jellyfish opponents
+- [✅] Jellyfish entity with fixed poker strategy
 - [✅] Removed pygame dependencies (pure Python core)
 
 Potential Future Additions:
