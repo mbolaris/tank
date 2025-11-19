@@ -73,7 +73,6 @@ class SimulationRunner:
                             except Exception as e:
                                 logger.error(f"Simulation loop: Error updating world at frame {frame_count}: {e}", exc_info=True)
                                 # Continue running even if update fails
-                                pass
 
                     # Maintain frame rate
                     elapsed = time.time() - loop_start

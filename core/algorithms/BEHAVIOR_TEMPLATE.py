@@ -119,9 +119,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
             4. RETURN NORMALIZED: Always normalize before returning
         """
 
-        # ==================================================================
-        # STEP 1: GATHER CONTEXT
-        # ==================================================================
+        # --- STEP 1: GATHER CONTEXT ---
 
         # Get current state
         current_energy = fish.energy
@@ -144,9 +142,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
         # time_of_day = fish.environment.time_system.get_time_of_day()
         # is_night = time_of_day in ["night", "dusk"]
 
-        # ==================================================================
-        # STEP 2: MAKE DECISIONS
-        # ==================================================================
+        # --- STEP 2: MAKE DECISIONS ---
 
         # Default: no movement
         dx, dy = 0.0, 0.0
@@ -228,9 +224,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
                 dx = random.uniform(-0.5, 0.5)
                 dy = random.uniform(-0.5, 0.5)
 
-        # ==================================================================
-        # STEP 3: CALCULATE DIRECTION (if not already returned)
-        # ==================================================================
+        # --- STEP 3: CALCULATE DIRECTION (if not already returned) ---
 
         # At this point, dx and dy should be set by one of the above conditions
         # If still (0, 0), fish will not move this frame (which is valid)
@@ -239,17 +233,13 @@ class BehaviorTemplate(BehaviorAlgorithm):
         # dx *= self.parameters["custom_parameter_1"]
         # dy *= self.parameters["custom_parameter_2"]
 
-        # ==================================================================
-        # STEP 4: RETURN NORMALIZED DIRECTION
-        # ==================================================================
+        # --- STEP 4: RETURN NORMALIZED DIRECTION ---
 
         # ALWAYS normalize before returning (handles zero vectors safely)
         return self._safe_normalize(dx, dy)
 
 
-# ==================================================================
-# INTEGRATION CHECKLIST
-# ==================================================================
+# --- INTEGRATION CHECKLIST ---
 """
 After implementing your behavior:
 
@@ -277,9 +267,7 @@ After implementing your behavior:
 10. ✅ Analyze results and iterate!
 """
 
-# ==================================================================
-# COMMON PATTERNS
-# ==================================================================
+# --- COMMON PATTERNS ---
 """
 Pattern 1: Distance-Based Behavior
     target = self._find_nearest(position, entities)
