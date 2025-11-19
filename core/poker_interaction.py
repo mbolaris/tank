@@ -429,7 +429,10 @@ class PokerEngine:
             return PokerHand(
                 hand_type="full_house",
                 rank_value=HandRank.FULL_HOUSE,
-                description=f"Full House, {PokerEngine._rank_name(trips_rank)}s over {PokerEngine._rank_name(pair_rank)}s",
+                description=(
+                    f"Full House, {PokerEngine._rank_name(trips_rank)}s "
+                    f"over {PokerEngine._rank_name(pair_rank)}s"
+                ),
                 cards=sorted_cards,
                 primary_ranks=[trips_rank, pair_rank],
                 kickers=[],
