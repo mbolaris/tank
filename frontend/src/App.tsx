@@ -2,6 +2,7 @@
  * Main App component
  */
 
+import { useState } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
@@ -9,10 +10,66 @@ import { StatsPanel } from './components/StatsPanel';
 import PokerEvents from './components/PokerEvents';
 import { PokerLeaderboard } from './components/PokerLeaderboard';
 import { PhylogeneticTree } from './components/PhylogeneticTree';
+import { PokerGame } from './components/PokerGame';
 import './App.css';
 
 function App() {
-  const { state, isConnected, sendCommand } = useWebSocket();
+  const { state, isConnected, sendCommand, sendCommandWithResponse } = useWebSocket();
+  const [pokerGameState, setPokerGameState] = useState<any>(null);
+  const [showPokerGame, setShowPokerGame] = useState(false);
+  const [pokerLoading, setPokerLoading] = useState(false);
+
+  const handleStartPoker = async () => {
+    try {
+      setPokerLoading(true);
+      setShowPokerGame(true);
+
+      const response = await sendCommandWithResponse({
+        command: 'start_poker',
+        data: { energy: 500 },
+      });
+
+      if (response.success === false) {
+        alert(response.error || 'Failed to start poker game');
+        setShowPokerGame(false);
+      } else if (response.state) {
+        setPokerGameState(response.state);
+      }
+    } catch (error) {
+      console.error('Failed to start poker game:', error);
+      alert('Failed to start poker game. Please try again.');
+      setShowPokerGame(false);
+    } finally {
+      setPokerLoading(false);
+    }
+  };
+
+  const handlePokerAction = async (action: string, amount?: number) => {
+    try {
+      setPokerLoading(true);
+
+      const response = await sendCommandWithResponse({
+        command: 'poker_action',
+        data: { action, amount: amount || 0 },
+      });
+
+      if (response.success === false) {
+        alert(response.error || 'Invalid action');
+      } else if (response.state) {
+        setPokerGameState(response.state);
+      }
+    } catch (error) {
+      console.error('Failed to send poker action:', error);
+      alert('Failed to send action. Please try again.');
+    } finally {
+      setPokerLoading(false);
+    }
+  };
+
+  const handleClosePoker = () => {
+    setShowPokerGame(false);
+    setPokerGameState(null);
+  };
 
   return (
     <div className="app">
@@ -65,10 +122,24 @@ function App() {
         </div>
 
         <div className="sidebar">
-          <ControlPanel onCommand={sendCommand} isConnected={isConnected} />
+          <ControlPanel
+            onCommand={sendCommand}
+            isConnected={isConnected}
+            onPlayPoker={handleStartPoker}
+          />
           <StatsPanel stats={state?.stats ?? null} />
         </div>
       </main>
+
+      {/* Poker Game Modal */}
+      {showPokerGame && (
+        <PokerGame
+          onClose={handleClosePoker}
+          onAction={handlePokerAction}
+          gameState={pokerGameState}
+          loading={pokerLoading}
+        />
+      )}
 
       <footer className="footer">
         <p>
