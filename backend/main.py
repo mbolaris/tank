@@ -246,7 +246,7 @@ async def get_lineage():
     """
     try:
         # Get lineage data from ecosystem manager
-        lineage_data = simulation.simulation.ecosystem.get_lineage_data()
+        lineage_data = simulation.world.ecosystem.get_lineage_data()
         return JSONResponse(lineage_data)
     except Exception as e:
         logger.error(f"Error getting lineage data: {e}", exc_info=True)
