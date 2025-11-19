@@ -303,6 +303,7 @@ class Fish(Agent):
         screen_width: int = 800,
         screen_height: int = 600,
         initial_energy: Optional[float] = None,
+        parent_id: Optional[int] = None,
     ) -> None:
         """Initialize a fish with genetics and life systems.
 
@@ -423,7 +424,20 @@ class Fish(Agent):
                 from core.algorithms import get_algorithm_index
 
                 algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
-            ecosystem.record_birth(self.fish_id, self.generation, algorithm_id=algorithm_id)
+
+            # Get color as hex string for phylogenetic tree
+            r, g, b = self.genome.get_color_tint()
+            color_hex = f"#{r:02x}{g:02x}{b:02x}"
+
+            # Record birth with parent lineage
+            parent_ids = [parent_id] if parent_id is not None else None
+            ecosystem.record_birth(
+                self.fish_id,
+                self.generation,
+                parent_ids=parent_ids,
+                algorithm_id=algorithm_id,
+                color=color_hex
+            )
 
         self.last_direction: Optional[Vector2] = (
             self.vel.normalize() if self.vel.length_squared() > 0 else None
@@ -848,6 +862,7 @@ class Fish(Agent):
             screen_width=self.screen_width,
             screen_height=self.screen_height,
             initial_energy=energy_to_transfer,  # Baby gets only transferred energy
+            parent_id=self.fish_id,  # Track lineage for phylogenetic tree
         )
 
         return baby
