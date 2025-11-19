@@ -1054,6 +1054,8 @@ class EcosystemManager:
                     "showdown_win_rate": round(stats.get_showdown_win_rate() * 100, 1),
                     "fold_rate": round(stats.get_fold_rate() * 100, 1),
                     "positional_advantage": round(stats.get_positional_advantage() * 100, 1),
+                    "recent_win_rate": round(stats.get_recent_win_rate() * 100, 1),
+                    "skill_trend": stats.get_skill_trend(),
                 }
             )
 

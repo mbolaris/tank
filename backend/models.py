@@ -36,12 +36,13 @@ class PokerEventData(BaseModel):
     """A single poker game event."""
 
     frame: int
-    winner_id: int  # -1 for tie
-    loser_id: int
+    winner_id: int  # -1 for tie, -2 for jellyfish
+    loser_id: int  # -2 for jellyfish
     winner_hand: str
     loser_hand: str
     energy_transferred: float
     message: str
+    is_jellyfish: bool = False
 
 
 class PokerLeaderboardEntry(BaseModel):
@@ -67,6 +68,8 @@ class PokerLeaderboardEntry(BaseModel):
     showdown_win_rate: float  # Percentage (0-100)
     fold_rate: float  # Percentage (0-100)
     positional_advantage: float  # Percentage (0-100)
+    recent_win_rate: float = 0.0  # Recent win rate (0-100)
+    skill_trend: str = "stable"  # "improving", "declining", or "stable"
 
 
 class PokerStatsData(BaseModel):

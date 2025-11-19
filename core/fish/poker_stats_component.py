@@ -3,7 +3,9 @@
 This module tracks individual fish poker performance for leaderboards and analysis.
 """
 
+from collections import deque
 from dataclasses import dataclass, field
+from typing import Deque
 
 
 @dataclass
@@ -58,6 +60,9 @@ class FishPokerStats:
 
     # Private fields for tracking
     _hand_rank_sum: float = field(default=0.0, repr=False)
+    # Track recent game results for skill progression (1 = win, 0 = loss/tie)
+    # Using last 10 games for recent performance
+    _recent_results: Deque[int] = field(default_factory=lambda: deque(maxlen=10), repr=False)
 
     def get_net_energy(self) -> float:
         """Calculate net energy profit/loss."""
@@ -109,6 +114,38 @@ class FishPokerStats:
         """Calculate positional advantage (button win rate - off button win rate)."""
         return self.get_button_win_rate() - self.get_off_button_win_rate()
 
+    def get_recent_win_rate(self) -> float:
+        """Calculate win rate for recent games (last 10 games).
+
+        Returns:
+            Win rate for recent games (0.0 to 1.0), or 0.0 if no recent games
+        """
+        if len(self._recent_results) == 0:
+            return 0.0
+        return sum(self._recent_results) / len(self._recent_results)
+
+    def get_skill_trend(self) -> str:
+        """Get skill trend indicator based on recent vs overall performance.
+
+        Returns:
+            "improving" if recent win rate > overall win rate
+            "declining" if recent win rate < overall win rate
+            "stable" if similar or insufficient data
+        """
+        if len(self._recent_results) < 5:  # Need at least 5 games to assess trend
+            return "stable"
+
+        overall_wr = self.get_win_rate()
+        recent_wr = self.get_recent_win_rate()
+
+        # Use 10% threshold to avoid noise
+        if recent_wr > overall_wr + 0.1:
+            return "improving"
+        elif recent_wr < overall_wr - 0.1:
+            return "declining"
+        else:
+            return "stable"
+
     def record_win(
         self,
         energy_won: float,
@@ -132,6 +169,9 @@ class FishPokerStats:
         self.total_house_cuts_paid += house_cut
         self.best_hand_rank = max(self.best_hand_rank, hand_rank)
         self._hand_rank_sum += hand_rank
+
+        # Track recent result
+        self._recent_results.append(1)  # 1 for win
 
         # Update streak
         if self.current_streak >= 0:
@@ -177,6 +217,9 @@ class FishPokerStats:
         self.total_energy_lost += energy_lost
         self._hand_rank_sum += hand_rank
 
+        # Track recent result
+        self._recent_results.append(0)  # 0 for loss
+
         # Update streak
         if self.current_streak <= 0:
             self.current_streak -= 1
@@ -207,6 +250,9 @@ class FishPokerStats:
         self.ties += 1
         self._hand_rank_sum += hand_rank
         self.showdown_count += 1  # Ties only happen at showdown
+
+        # Track recent result
+        self._recent_results.append(0)  # 0 for tie (not a win)
 
         # Reset streak
         self.current_streak = 0
@@ -243,4 +289,6 @@ class FishPokerStats:
             "button_win_rate": self.get_button_win_rate(),
             "off_button_win_rate": self.get_off_button_win_rate(),
             "positional_advantage": self.get_positional_advantage(),
+            "recent_win_rate": self.get_recent_win_rate(),
+            "skill_trend": self.get_skill_trend(),
         }

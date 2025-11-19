@@ -346,6 +346,43 @@ class SimulationEngine(BaseSimulator):
             "loser_hand": loser_hand_obj.description if loser_hand_obj is not None else "Unknown",
             "energy_transferred": result.energy_transferred,
             "message": message,
+            "is_jellyfish": False,
+        }
+
+        self.poker_events.append(event)
+
+        # Keep only last MAX_POKER_EVENTS
+        if len(self.poker_events) > MAX_POKER_EVENTS:
+            self.poker_events.pop(0)
+
+    def add_jellyfish_poker_event(self, fish_id: int, fish_won: bool,
+                                   fish_hand: str, jellyfish_hand: str,
+                                   energy_transferred: float) -> None:
+        """Add a jellyfish poker event to the recent events list.
+
+        Args:
+            fish_id: ID of the fish that played
+            fish_won: Whether the fish won
+            fish_hand: Description of the fish's hand
+            jellyfish_hand: Description of the jellyfish's hand
+            energy_transferred: Amount of energy transferred
+        """
+        # Create event message with jellyfish emoji indicator
+        if fish_won:
+            message = f"Fish #{fish_id} beats Jellyfish with {fish_hand}! (+{energy_transferred:.1f} energy)"
+        else:
+            message = f"Jellyfish beats Fish #{fish_id} with {jellyfish_hand}! (-{energy_transferred:.1f} energy)"
+
+        # Create event data
+        event = {
+            "frame": self.frame_count,
+            "winner_id": fish_id if fish_won else -2,  # -2 indicates jellyfish won
+            "loser_id": -2 if fish_won else fish_id,  # -2 indicates jellyfish lost
+            "winner_hand": fish_hand if fish_won else jellyfish_hand,
+            "loser_hand": jellyfish_hand if fish_won else fish_hand,
+            "energy_transferred": energy_transferred,
+            "message": message,
+            "is_jellyfish": True,
         }
 
         self.poker_events.append(event)

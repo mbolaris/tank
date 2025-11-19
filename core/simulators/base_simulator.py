@@ -198,6 +198,15 @@ class BaseSimulator(ABC):
         # Fish-to-jellyfish poker interaction
         poker = JellyfishPokerInteraction(fish, jellyfish)
         if poker.play_poker():
+            # Add jellyfish poker event if available
+            if hasattr(self, 'add_jellyfish_poker_event') and poker.result is not None:
+                self.add_jellyfish_poker_event(
+                    fish_id=poker.result.fish_id,
+                    fish_won=poker.result.fish_won,
+                    fish_hand=poker.result.fish_hand.description,
+                    jellyfish_hand=poker.result.jellyfish_hand.description,
+                    energy_transferred=abs(poker.result.energy_transferred)
+                )
             # Check if fish died from poker
             if fish.is_dead() and fish in self.get_all_entities():
                 self.record_fish_death(fish)
