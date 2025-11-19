@@ -21,7 +21,21 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.constants import SCREEN_HEIGHT
+from core.constants import (
+    CHASE_DISTANCE_CRITICAL,
+    CHASE_DISTANCE_LOW,
+    CHASE_DISTANCE_SAFE_BASE,
+    FLEE_SPEED_CRITICAL,
+    FLEE_SPEED_NORMAL,
+    FLEE_THRESHOLD_CRITICAL,
+    FLEE_THRESHOLD_LOW,
+    FLEE_THRESHOLD_NORMAL,
+    PROXIMITY_BOOST_DIVISOR,
+    PROXIMITY_BOOST_MULTIPLIER,
+    SCREEN_HEIGHT,
+    URGENCY_BOOST_CRITICAL,
+    URGENCY_BOOST_LOW,
+)
 from core.entities import Crab, Food
 from core.entities import Fish as FishClass
 
@@ -55,7 +69,11 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
         predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
 
         # IMPROVEMENT: Adaptive flee threshold based on energy state
-        flee_threshold = 45 if is_critical else (80 if is_low else 120)
+        flee_threshold = (
+            FLEE_THRESHOLD_CRITICAL
+            if is_critical
+            else (FLEE_THRESHOLD_LOW if is_low else FLEE_THRESHOLD_NORMAL)
+        )
 
         if predator_distance < flee_threshold:
             # NEW: Use predictive avoidance
@@ -70,7 +88,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
 
             # IMPROVEMENT: Conserve energy when fleeing in critical state
-            flee_speed = 1.1 if is_critical else 1.3
+            flee_speed = FLEE_SPEED_CRITICAL if is_critical else FLEE_SPEED_NORMAL
 
             # NEW: Remember danger zone
             if hasattr(fish, "memory_system"):
@@ -91,11 +109,13 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
             # IMPROVEMENT: Smarter chase distance calculation
             if is_critical:
-                max_chase_distance = 400  # Chase far when desperate
+                max_chase_distance = CHASE_DISTANCE_CRITICAL
             elif is_low:
-                max_chase_distance = 250  # Moderate chase when low
+                max_chase_distance = CHASE_DISTANCE_LOW
             else:
-                max_chase_distance = 150 + (energy_ratio * 150)  # Conservative when safe
+                max_chase_distance = CHASE_DISTANCE_SAFE_BASE + (
+                    energy_ratio * CHASE_DISTANCE_SAFE_BASE
+                )
 
             if distance < max_chase_distance:
                 # NEW: Use predictive interception for moving food
@@ -115,10 +135,14 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                 base_speed = self.parameters["speed_multiplier"]
 
                 # Speed up when closer to food
-                proximity_boost = (1.0 - min(distance / 100, 1.0)) * 0.5
+                proximity_boost = (
+                    1.0 - min(distance / PROXIMITY_BOOST_DIVISOR, 1.0)
+                ) * PROXIMITY_BOOST_MULTIPLIER
 
                 # Urgency boost when low/critical energy
-                urgency_boost = 0.3 if is_critical else (0.15 if is_low else 0)
+                urgency_boost = (
+                    URGENCY_BOOST_CRITICAL if is_critical else (URGENCY_BOOST_LOW if is_low else 0)
+                )
 
                 speed = base_speed * (1.0 + proximity_boost + urgency_boost)
 

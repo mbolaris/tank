@@ -236,6 +236,15 @@ FLEE_THRESHOLD_NORMAL = 120  # Flee distance when energy is normal
 FLEE_SPEED_CRITICAL = 1.1  # Flee speed when energy is critical
 FLEE_SPEED_NORMAL = 1.3  # Flee speed when energy is normal
 
+# Food Seeking Constants
+CHASE_DISTANCE_CRITICAL = 400  # Maximum chase distance when energy is critical
+CHASE_DISTANCE_LOW = 250  # Maximum chase distance when energy is low
+CHASE_DISTANCE_SAFE_BASE = 150  # Base chase distance when energy is safe
+PROXIMITY_BOOST_DIVISOR = 100  # Divisor for proximity boost calculation
+PROXIMITY_BOOST_MULTIPLIER = 0.5  # Multiplier for proximity boost
+URGENCY_BOOST_CRITICAL = 0.3  # Speed boost when energy is critical
+URGENCY_BOOST_LOW = 0.15  # Speed boost when energy is low
+
 # Movement Calculation Constants
 MOVEMENT_ESCAPE_DIRECT_WEIGHT = 0.7  # Weight of direct escape direction
 MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT = 0.3  # Weight of perpendicular escape component
@@ -255,6 +264,29 @@ POKER_MAX_ACTIONS_PER_ROUND = 10  # Maximum betting actions per round (prevents 
 POKER_BET_MIN_SIZE = 0.35  # Minimum fish size for bet percentage calculation
 POKER_BET_MIN_PERCENTAGE = 0.15  # Minimum bet percentage (15% at size 0.35)
 POKER_BET_SIZE_MULTIPLIER = 0.158  # Bet percentage increase per size unit (15-30% range)
+
+# Poker Action Decision Constants
+# Strong hand betting (high card or better)
+POKER_STRONG_RAISE_PROBABILITY = 0.8  # Probability of raising with strong hand when no bet
+POKER_STRONG_POT_MULTIPLIER = 0.5  # Pot multiplier for strong hand raise
+POKER_STRONG_ENERGY_FRACTION = 0.3  # Energy fraction for strong hand raise (no bet)
+POKER_STRONG_ENERGY_FRACTION_RERAISE = 0.4  # Energy fraction for strong hand reraise
+POKER_STRONG_CALL_MULTIPLIER = 2.0  # Call amount multiplier for strong hand raise
+
+# Medium hand betting (pair through straight)
+POKER_MEDIUM_AGGRESSION_MULTIPLIER = 0.6  # Aggression multiplier for medium hand raise
+POKER_MEDIUM_POT_MULTIPLIER = 0.3  # Pot multiplier for medium hand raise
+POKER_MEDIUM_ENERGY_FRACTION = 0.2  # Energy fraction for medium hand raise
+POKER_MEDIUM_ENERGY_FRACTION_RERAISE = 0.25  # Energy fraction for medium hand reraise
+POKER_MEDIUM_CALL_MULTIPLIER = 1.5  # Call amount multiplier for medium hand raise
+POKER_MEDIUM_RAISE_PROBABILITY = 0.4  # Aggression multiplier for reraise probability
+POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD = 0.5  # Pot odds threshold for folding
+
+# Weak hand betting (high card)
+POKER_WEAK_BLUFF_PROBABILITY = 0.2  # Aggression multiplier for bluff probability (no bet)
+POKER_WEAK_POT_MULTIPLIER = 0.4  # Pot multiplier for weak hand bluff
+POKER_WEAK_ENERGY_FRACTION = 0.15  # Energy fraction for weak hand bluff
+POKER_WEAK_CALL_PROBABILITY = 0.15  # Aggression multiplier for bluff call probability
 
 # Poker House Cut Constants
 POKER_HOUSE_CUT_MIN_PERCENTAGE = 0.08  # Minimum house cut (8% at size 0.35)
