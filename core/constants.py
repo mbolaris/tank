@@ -123,7 +123,7 @@ INIT_POS = {
     "plant2": (10, 510),
     "plant3": (500, 510),  # Add third plant
     "plant4": (700, 510),  # Add fourth plant
-    "castle": (100, 500),
+    "castle": (100, 420),
 }
 
 # UI Constants - Poker Notifications
