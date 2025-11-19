@@ -104,33 +104,45 @@ class StealthyAvoider(BehaviorAlgorithm):
 
 @dataclass
 class FreezeResponse(BehaviorAlgorithm):
-    """Freeze when predator is near."""
+    """Freeze when predator is near, but prioritize survival over safety when starving."""
 
     def __init__(self):
         super().__init__(
             algorithm_id="freeze_response",
             parameters={
-                "freeze_distance": random.uniform(80, 150),
-                "resume_distance": random.uniform(200, 300),
+                "freeze_distance": random.uniform(50, 90),  # Reduced from 80-150
+                "resume_distance": random.uniform(120, 180),  # Reduced from 200-300
+                "desperation_threshold": random.uniform(30, 50),  # Energy % to ignore threats
             },
         )
         self.is_frozen = False
+        self.search_angle = random.uniform(0, 6.28)  # For systematic food search
 
     @classmethod
     def random_instance(cls):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-        """Freeze when predator is near, seek food when safe.
+        """Freeze when predator is near, but prioritize food when starving.
 
-        AI-IMPROVED: Added food-seeking when no threat detected.
-        Previous version always returned (0,0) even when safe, causing starvation.
-        Stats showed: 100% death by starvation, 492 frame avg lifespan.
+        AI-IMPROVED v2: Survival rate was 0%, all deaths from starvation.
+        Key changes:
+        - Reduced freeze distances (fish were freezing too often)
+        - Added energy-aware behavior (desperate fish ignore predators)
+        - Increased food-seeking speed from 0.5 to 0.8-1.0
+        - Better food search pattern instead of random wandering
         """
         from core.entities import Food
 
+        # Calculate energy percentage
+        energy_percent = (fish.energy / fish.max_energy) * 100
+
+        # When desperate (low energy), prioritize food over safety
+        is_desperate = energy_percent < self.parameters["desperation_threshold"]
+
+        # Check for predators (but may ignore if desperate)
         nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator:
+        if nearest_predator and not is_desperate:
             distance = (nearest_predator.pos - fish.pos).length()
             if distance < self.parameters["freeze_distance"]:
                 self.is_frozen = True
@@ -140,18 +152,34 @@ class FreezeResponse(BehaviorAlgorithm):
             if self.is_frozen:
                 return 0, 0  # Freeze in place when threatened
         else:
-            # No predator detected - unfreeze
+            # No predator or desperate - unfreeze
             self.is_frozen = False
 
-        # When not frozen, seek food to avoid starvation
+        # Seek food aggressively when not frozen
         nearest_food = self._find_nearest(fish, Food)
         if nearest_food:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
-            # Move cautiously toward food (slower speed for safety)
-            return direction.x * 0.5, direction.y * 0.5
 
-        # No food found - wander slowly
-        return random.uniform(-0.3, 0.3), random.uniform(-0.3, 0.3)
+            # Speed based on energy level (desperate = faster)
+            if is_desperate:
+                speed = 1.0  # Full speed when starving
+            elif energy_percent < 60:
+                speed = 0.8  # Medium speed when moderately hungry
+            else:
+                speed = 0.6  # Cautious speed when comfortable
+
+            return direction.x * speed, direction.y * speed
+
+        # No food visible - systematic search instead of random wandering
+        # Spiral search pattern to cover more area
+        self.search_angle += 0.15
+        search_speed = 0.7 if is_desperate else 0.4
+
+        import math
+        return (
+            math.cos(self.search_angle) * search_speed,
+            math.sin(self.search_angle) * search_speed
+        )
 
 
 @dataclass
