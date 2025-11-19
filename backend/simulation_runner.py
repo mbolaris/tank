@@ -54,17 +54,37 @@ class SimulationRunner:
 
     def _run_loop(self):
         """Main simulation loop."""
-        while self.running:
-            loop_start = time.time()
+        logger.info("Simulation loop: Starting")
+        frame_count = 0
+        try:
+            while self.running:
+                try:
+                    loop_start = time.time()
+                    frame_count += 1
 
-            with self.lock:
-                if not self.world.paused:
-                    self.world.update()
+                    with self.lock:
+                        if not self.world.paused:
+                            try:
+                                self.world.update()
+                            except Exception as e:
+                                logger.error(f"Simulation loop: Error updating world at frame {frame_count}: {e}", exc_info=True)
+                                # Continue running even if update fails
+                                pass
 
-            # Maintain frame rate
-            elapsed = time.time() - loop_start
-            sleep_time = max(0, self.frame_time - elapsed)
-            time.sleep(sleep_time)
+                    # Maintain frame rate
+                    elapsed = time.time() - loop_start
+                    sleep_time = max(0, self.frame_time - elapsed)
+                    time.sleep(sleep_time)
+
+                except Exception as e:
+                    logger.error(f"Simulation loop: Unexpected error at frame {frame_count}: {e}", exc_info=True)
+                    # Continue running even if there's an error
+                    time.sleep(self.frame_time)
+
+        except Exception as e:
+            logger.error(f"Simulation loop: Fatal error, loop exiting: {e}", exc_info=True)
+        finally:
+            logger.info(f"Simulation loop: Ended after {frame_count} frames")
 
     def get_state(self) -> SimulationUpdate:
         """Get current simulation state for WebSocket broadcast.

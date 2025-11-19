@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import platform
 import sys
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
@@ -12,7 +13,22 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+# Set up logging with more detail
+logging.basicConfig(
+    level=logging.DEBUG,  # Changed to DEBUG for more detailed logs
+    format="%(levelname)s:%(name)s:%(message)s",
+)
 logger = logging.getLogger(__name__)
+
+# Windows-specific asyncio configuration
+if platform.system() == "Windows":
+    logger.info("Windows detected - configuring asyncio event loop policy")
+    try:
+        # Use ProactorEventLoop on Windows for better compatibility
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        logger.info("Set WindowsProactorEventLoopPolicy for asyncio")
+    except Exception as e:
+        logger.warning(f"Could not set Windows event loop policy: {e}")
 
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -29,26 +45,76 @@ simulation = SimulationRunner()
 connected_clients: Set[WebSocket] = set()
 
 
+def _handle_task_exception(task: asyncio.Task) -> None:
+    """Handle exceptions from background tasks."""
+    try:
+        exc = task.exception()
+        if exc is not None:
+            logger.error(
+                f"Unhandled exception in task {task.get_name()}: {exc}",
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+    except asyncio.CancelledError:
+        logger.debug(f"Task {task.get_name()} was cancelled")
+    except Exception as e:
+        logger.error(f"Error getting task exception: {e}", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
-    # Startup
-    logger.info("Starting simulation...")
-    simulation.start()
-    logger.info("Simulation started!")
+    broadcast_task = None
+    try:
+        # Startup
+        logger.info("=" * 60)
+        logger.info("LIFESPAN STARTUP: Beginning initialization")
+        logger.info(f"Platform: {platform.system()} {platform.release()}")
+        logger.info(f"Python: {sys.version}")
+        logger.info("=" * 60)
 
-    # Start broadcast task
-    broadcast_task = asyncio.create_task(broadcast_updates())
+        logger.info("Starting simulation...")
+        try:
+            simulation.start()
+            logger.info("Simulation started successfully!")
+        except Exception as e:
+            logger.error(f"Failed to start simulation: {e}", exc_info=True)
+            raise
 
-    yield
+        # Start broadcast task with exception callback
+        logger.info("Starting broadcast task...")
+        broadcast_task = asyncio.create_task(broadcast_updates(), name="broadcast_updates")
+        broadcast_task.add_done_callback(_handle_task_exception)
+        logger.info("Broadcast task started successfully!")
 
-    # Shutdown
-    logger.info("Stopping simulation...")
-    simulation.stop()
-    broadcast_task.cancel()
-    with suppress(asyncio.CancelledError):
-        await broadcast_task
-    logger.info("Simulation stopped!")
+        logger.info("LIFESPAN STARTUP: Complete - yielding control to app")
+        yield
+        logger.info("LIFESPAN SHUTDOWN: Received shutdown signal")
+
+    except Exception as e:
+        logger.error(f"Exception in lifespan startup: {e}", exc_info=True)
+        raise
+    finally:
+        # Shutdown
+        logger.info("LIFESPAN SHUTDOWN: Cleaning up resources...")
+        try:
+            logger.info("Stopping simulation...")
+            simulation.stop()
+            logger.info("Simulation stopped!")
+        except Exception as e:
+            logger.error(f"Error stopping simulation: {e}", exc_info=True)
+
+        if broadcast_task:
+            try:
+                logger.info("Cancelling broadcast task...")
+                broadcast_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await broadcast_task
+                logger.info("Broadcast task cancelled!")
+            except Exception as e:
+                logger.error(f"Error cancelling broadcast task: {e}", exc_info=True)
+
+        logger.info("LIFESPAN SHUTDOWN: Complete")
+        logger.info("=" * 60)
 
 
 # Create FastAPI app with lifespan handler
@@ -66,31 +132,83 @@ app.add_middleware(
 
 async def broadcast_updates():
     """Broadcast simulation updates to all connected clients."""
-    while True:
-        if connected_clients:
+    logger.info("broadcast_updates: Task started")
+    frame_count = 0
+    try:
+        while True:
             try:
-                # Get current state
-                state = simulation.get_state()
+                frame_count += 1
 
-                # Convert to JSON
-                state_json = state.model_dump_json()
+                if connected_clients:
+                    if frame_count % 60 == 0:  # Log every 60 frames (~2 seconds)
+                        logger.debug(
+                            f"broadcast_updates: Frame {frame_count}, clients: {len(connected_clients)}"
+                        )
 
-                # Broadcast to all clients
-                disconnected = set()
-                for client in connected_clients:
                     try:
-                        await client.send_text(state_json)
+                        # Get current state
+                        state = simulation.get_state()
                     except Exception as e:
-                        logger.error(f"Error sending to client: {e}", exc_info=True)
-                        disconnected.add(client)
+                        logger.error(
+                            f"broadcast_updates: Error getting simulation state: {e}", exc_info=True
+                        )
+                        await asyncio.sleep(1 / FRAME_RATE)
+                        continue
 
-                # Remove disconnected clients
-                connected_clients.difference_update(disconnected)
+                    try:
+                        # Convert to JSON
+                        state_json = state.model_dump_json()
+                    except Exception as e:
+                        logger.error(
+                            f"broadcast_updates: Error serializing state to JSON: {e}", exc_info=True
+                        )
+                        await asyncio.sleep(1 / FRAME_RATE)
+                        continue
+
+                    # Broadcast to all clients
+                    disconnected = set()
+                    for client in list(connected_clients):  # Copy to avoid modification during iteration
+                        try:
+                            await client.send_text(state_json)
+                        except Exception as e:
+                            logger.warning(
+                                f"broadcast_updates: Error sending to client, marking for removal: {e}"
+                            )
+                            disconnected.add(client)
+
+                    # Remove disconnected clients
+                    if disconnected:
+                        logger.info(
+                            f"broadcast_updates: Removing {len(disconnected)} disconnected clients"
+                        )
+                        connected_clients.difference_update(disconnected)
+
+            except asyncio.CancelledError:
+                logger.info("broadcast_updates: Task cancelled")
+                raise
             except Exception as e:
-                logger.error(f"Error in broadcast_updates: {e}", exc_info=True)
+                logger.error(
+                    f"broadcast_updates: Unexpected error in main loop: {e}", exc_info=True
+                )
+                # Continue running even if there's an error
+                await asyncio.sleep(1 / FRAME_RATE)
+                continue
 
-        # Wait for next frame
-        await asyncio.sleep(1 / FRAME_RATE)
+            # Wait for next frame
+            try:
+                await asyncio.sleep(1 / FRAME_RATE)
+            except asyncio.CancelledError:
+                logger.info("broadcast_updates: Task cancelled during sleep")
+                raise
+
+    except asyncio.CancelledError:
+        logger.info("broadcast_updates: Task cancelled (outer handler)")
+        raise
+    except Exception as e:
+        logger.error(f"broadcast_updates: Fatal error, task exiting: {e}", exc_info=True)
+        raise
+    finally:
+        logger.info("broadcast_updates: Task ended")
 
 
 @app.get("/")
@@ -122,37 +240,63 @@ async def health():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time simulation updates."""
-    await websocket.accept()
-    connected_clients.add(websocket)
+    client_id = id(websocket)
+    logger.info(f"WebSocket: New connection attempt from client {client_id}")
 
-    logger.info(f"Client connected. Total clients: {len(connected_clients)}")
+    try:
+        await websocket.accept()
+        logger.info(f"WebSocket: Accepted connection from client {client_id}")
+    except Exception as e:
+        logger.error(f"WebSocket: Error accepting connection from client {client_id}: {e}", exc_info=True)
+        return
+
+    connected_clients.add(websocket)
+    logger.info(f"WebSocket: Client {client_id} added to connected_clients. Total clients: {len(connected_clients)}")
 
     try:
         while True:
-            # Receive messages from client
-            data = await websocket.receive_text()
-
             try:
-                # Parse command
-                command_data = json.loads(data)
-                command = Command(**command_data)
+                # Receive messages from client
+                logger.debug(f"WebSocket: Waiting for message from client {client_id}")
+                data = await websocket.receive_text()
+                logger.debug(f"WebSocket: Received message from client {client_id}: {data[:100]}...")
 
-                # Handle command
-                simulation.handle_command(command.command, command.data)
+                try:
+                    # Parse command
+                    command_data = json.loads(data)
+                    command = Command(**command_data)
+                    logger.info(f"WebSocket: Client {client_id} sent command: {command.command}")
 
-                # Send acknowledgment
-                await websocket.send_json(
-                    {"type": "ack", "command": command.command, "status": "success"}
-                )
+                    # Handle command
+                    simulation.handle_command(command.command, command.data)
 
+                    # Send acknowledgment
+                    await websocket.send_json(
+                        {"type": "ack", "command": command.command, "status": "success"}
+                    )
+                    logger.debug(f"WebSocket: Sent acknowledgment to client {client_id}")
+
+                except json.JSONDecodeError as e:
+                    logger.warning(f"WebSocket: Invalid JSON from client {client_id}: {e}")
+                    await websocket.send_json({"type": "error", "message": f"Invalid JSON: {str(e)}"})
+                except Exception as e:
+                    logger.error(f"WebSocket: Error handling command from client {client_id}: {e}", exc_info=True)
+                    await websocket.send_json({"type": "error", "message": str(e)})
+
+            except asyncio.CancelledError:
+                logger.info(f"WebSocket: Connection cancelled for client {client_id}")
+                raise
             except Exception as e:
-                # Send error response
-                await websocket.send_json({"type": "error", "message": str(e)})
+                logger.error(f"WebSocket: Error in message loop for client {client_id}: {e}", exc_info=True)
+                break
 
-    except WebSocketDisconnect:
-        logger.info(f"Client disconnected. Total clients: {len(connected_clients) - 1}")
+    except WebSocketDisconnect as e:
+        logger.info(f"WebSocket: Client {client_id} disconnected normally (code: {e.code if hasattr(e, 'code') else 'unknown'})")
+    except Exception as e:
+        logger.error(f"WebSocket: Unexpected error for client {client_id}: {e}", exc_info=True)
     finally:
         connected_clients.discard(websocket)
+        logger.info(f"WebSocket: Client {client_id} removed. Total clients: {len(connected_clients)}")
 
 
 if __name__ == "__main__":
