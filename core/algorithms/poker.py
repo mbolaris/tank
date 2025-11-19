@@ -6,6 +6,9 @@ This module contains algorithms focused on poker-based fish interactions:
 - PokerGambler: Seeks poker aggressively when high energy
 - SelectivePoker: Only engages in poker when conditions are favorable
 - PokerOpportunist: Balances food seeking with poker opportunities
+- PokerStrategist: Uses opponent modeling and position awareness
+- PokerBluffer: Varies behavior unpredictably to confuse opponents
+- PokerConservative: Risk-averse, plays only when highly favorable
 """
 
 import random
@@ -321,5 +324,302 @@ class PokerOpportunist(BehaviorAlgorithm):
         if final_vector.length() > 0:
             final_vector = self._safe_normalize(final_vector)
             return final_vector.x, final_vector.y
+
+        return 0, 0
+
+
+@dataclass
+class PokerStrategist(BehaviorAlgorithm):
+    """Uses opponent modeling and strategic positioning for poker."""
+
+    def __init__(self):
+        super().__init__(
+            algorithm_id="poker_strategist",
+            parameters={
+                "aggression_variance": random.uniform(0.1, 0.4),
+                "position_awareness": random.uniform(0.5, 1.0),
+                "opponent_tracking": random.uniform(0.3, 0.8),
+                "min_energy_ratio": random.uniform(0.3, 0.6),
+                "challenge_speed": random.uniform(0.7, 1.2),
+            },
+        )
+        # Track recent poker encounters for opponent modeling
+        self.recent_encounters = []
+        self.max_memory = 5
+
+    @classmethod
+    def random_instance(cls):
+        return cls()
+
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
+        # Check for predators first
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+            return direction.x * 1.2, direction.y * 1.2
+
+        energy_ratio = fish.energy / fish.max_energy
+
+        # Only seek poker if energy is above minimum
+        if energy_ratio < self.parameters["min_energy_ratio"]:
+            # Low energy - seek food
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x * 0.9, direction.y * 0.9
+            return 0, 0
+
+        # Find potential poker opponents
+        all_fish = fish.environment.get_agents_of_type(FishClass)
+        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+
+        if not other_fish:
+            # No opponents - seek food
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x * 0.7, direction.y * 0.7
+            return 0, 0
+
+        # Strategic target selection based on position and energy
+        best_target = None
+        best_score = -float("inf")
+
+        for target in other_fish:
+            distance = (target.pos - fish.pos).length()
+            if distance > 200:  # Too far
+                continue
+
+            # Calculate strategic score
+            score = 0
+
+            # Prefer closer targets (but not too close)
+            optimal_distance = 100
+            distance_score = 1.0 - abs(distance - optimal_distance) / 150.0
+            score += distance_score * self.parameters["position_awareness"]
+
+            # Prefer targets with similar or lower energy
+            if hasattr(target, "energy") and target.energy is not None:
+                energy_diff = fish.energy - target.energy
+                if energy_diff > 0:  # We have more energy
+                    score += 0.5 * self.parameters["opponent_tracking"]
+                else:  # They have more energy - risky
+                    score -= 0.3 * self.parameters["opponent_tracking"]
+
+            # Add some randomness based on aggression variance
+            score += random.uniform(
+                -self.parameters["aggression_variance"], self.parameters["aggression_variance"]
+            )
+
+            if score > best_score:
+                best_score = score
+                best_target = target
+
+        # If we found a good target, pursue it
+        if best_target and best_score > 0:
+            direction = self._safe_normalize(best_target.pos - fish.pos)
+            speed = self.parameters["challenge_speed"]
+            return direction.x * speed, direction.y * speed
+
+        # No good targets - balance food and exploration
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            direction = self._safe_normalize(nearest_food.pos - fish.pos)
+            return direction.x * 0.8, direction.y * 0.8
+
+        return random.uniform(-0.3, 0.3), random.uniform(-0.3, 0.3)
+
+
+@dataclass
+class PokerBluffer(BehaviorAlgorithm):
+    """Varies behavior unpredictably to confuse opponents."""
+
+    def __init__(self):
+        super().__init__(
+            algorithm_id="poker_bluffer",
+            parameters={
+                "bluff_frequency": random.uniform(0.2, 0.6),
+                "aggression_swing": random.uniform(0.4, 1.0),
+                "unpredictability": random.uniform(0.3, 0.7),
+                "min_energy_to_bluff": random.uniform(20.0, 40.0),
+            },
+        )
+        # Track behavior state
+        self.current_mode = "normal"  # 'normal', 'aggressive', 'passive'
+        self.mode_timer = 0
+        self.mode_duration = random.randint(50, 150)
+
+    @classmethod
+    def random_instance(cls):
+        return cls()
+
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
+        # Check for predators
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+            return direction.x * 1.2, direction.y * 1.2
+
+        # Update behavior mode timer
+        self.mode_timer += 1
+        if self.mode_timer >= self.mode_duration:
+            # Switch modes randomly
+            if random.random() < self.parameters["bluff_frequency"]:
+                modes = ["normal", "aggressive", "passive"]
+                self.current_mode = random.choice(modes)
+                self.mode_duration = random.randint(30, 100)
+                self.mode_timer = 0
+
+        # Don't bluff if energy is too low
+        if fish.energy < self.parameters["min_energy_to_bluff"]:
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x, direction.y
+            return 0, 0
+
+        # Find nearest fish
+        all_fish = fish.environment.get_agents_of_type(FishClass)
+        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+
+        # Behavior based on current mode
+        if self.current_mode == "aggressive":
+            # Aggressively seek poker
+            if other_fish:
+                nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
+                direction = self._safe_normalize(nearest_fish.pos - fish.pos)
+                speed = 1.0 + self.parameters["aggression_swing"]
+                return direction.x * speed, direction.y * speed
+
+        elif self.current_mode == "passive":
+            # Avoid fish, focus on food
+            nearest_food = self._find_nearest(fish, Food)
+            avoidance = Vector2(0, 0)
+
+            # Calculate avoidance from nearby fish
+            for other in other_fish:
+                distance = (other.pos - fish.pos).length()
+                if distance < 100 and distance > 0:
+                    avoid_dir = self._safe_normalize(fish.pos - other.pos)
+                    avoidance = avoidance + avoid_dir
+
+            # Blend avoidance with food seeking
+            if nearest_food and avoidance.length() > 0:
+                food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
+                avoidance = self._safe_normalize(avoidance)
+                final_dir = self._safe_normalize(avoidance * 0.6 + food_dir * 0.4)
+                return final_dir.x * 0.8, final_dir.y * 0.8
+            elif nearest_food:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x * 0.7, direction.y * 0.7
+
+        else:  # normal mode
+            # Balanced approach with unpredictability
+            if other_fish and random.random() < 0.6:
+                nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
+                distance = (nearest_fish.pos - fish.pos).length()
+
+                if distance < 150:
+                    direction = self._safe_normalize(nearest_fish.pos - fish.pos)
+                    # Add unpredictable speed variation
+                    speed = 0.8 + random.uniform(0, self.parameters["unpredictability"])
+                    return direction.x * speed, direction.y * speed
+
+            # Default to food seeking
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x * 0.8, direction.y * 0.8
+
+        return random.uniform(-0.4, 0.4), random.uniform(-0.4, 0.4)
+
+
+@dataclass
+class PokerConservative(BehaviorAlgorithm):
+    """Risk-averse poker player that only engages in highly favorable conditions."""
+
+    def __init__(self):
+        super().__init__(
+            algorithm_id="poker_conservative",
+            parameters={
+                "min_energy_ratio": random.uniform(0.6, 0.85),
+                "max_risk_tolerance": random.uniform(0.1, 0.3),
+                "safety_distance": random.uniform(100.0, 180.0),
+                "challenge_speed": random.uniform(0.5, 0.9),
+                "energy_advantage_required": random.uniform(10.0, 30.0),
+            },
+        )
+
+    @classmethod
+    def random_instance(cls):
+        return cls()
+
+    def execute(self, fish: "Fish") -> Tuple[float, float]:
+        # Always flee from predators
+        nearest_predator = self._find_nearest(fish, Crab)
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+            return direction.x * 1.3, direction.y * 1.3
+
+        energy_ratio = fish.energy / fish.max_energy
+
+        # Very conservative - only play poker when energy is high
+        if energy_ratio < self.parameters["min_energy_ratio"]:
+            # Focus entirely on food
+            nearest_food = self._find_nearest(fish, Food)
+            if nearest_food:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x, direction.y
+            return 0, 0
+
+        # Even with high energy, be very selective
+        all_fish = fish.environment.get_agents_of_type(FishClass)
+        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+
+        best_target = None
+        best_advantage = 0
+
+        for other in other_fish:
+            distance = (other.pos - fish.pos).length()
+
+            # Only consider fish within safety distance
+            if distance > self.parameters["safety_distance"]:
+                continue
+
+            # Check if we have energy advantage
+            if hasattr(other, "energy") and other.energy is not None:
+                energy_advantage = fish.energy - other.energy
+
+                # Only challenge if we have significant energy advantage
+                if energy_advantage > self.parameters["energy_advantage_required"]:
+                    if energy_advantage > best_advantage:
+                        best_advantage = energy_advantage
+                        best_target = other
+
+        # Only engage if we found a favorable matchup
+        if best_target and random.random() > self.parameters["max_risk_tolerance"]:
+            direction = self._safe_normalize(best_target.pos - fish.pos)
+            speed = self.parameters["challenge_speed"]
+            return direction.x * speed, direction.y * speed
+
+        # Default to safe food seeking
+        nearest_food = self._find_nearest(fish, Food)
+        if nearest_food:
+            # Check if any fish are too close while seeking food
+            close_fish = [f for f in other_fish if (f.pos - fish.pos).length() < 80]
+            if close_fish:
+                # Avoid close fish while seeking food
+                avoidance = Vector2(0, 0)
+                for f in close_fish:
+                    avoid_dir = self._safe_normalize(fish.pos - f.pos)
+                    avoidance = avoidance + avoid_dir
+
+                food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
+                avoidance = self._safe_normalize(avoidance)
+                final_dir = self._safe_normalize(avoidance * 0.5 + food_dir * 0.5)
+                return final_dir.x * 0.8, final_dir.y * 0.8
+            else:
+                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                return direction.x * 0.9, direction.y * 0.9
 
         return 0, 0
