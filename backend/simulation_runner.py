@@ -599,6 +599,8 @@ class SimulationRunner:
                         "winner": final_stats.winner,
                         "reason": final_stats.reason,
                         "fish_name": fish_name,
+                        "fish_id": fish.fish_id,
+                        "fish_generation": fish.generation,
                         "fish_net_energy": round(final_stats.fish_total_won - final_stats.fish_total_lost, 1),
                         "fish_win_rate": round(final_stats.fish_wins / final_stats.hands_played * 100, 1) if final_stats.hands_played > 0 else 0.0,
                     }
