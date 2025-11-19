@@ -4,25 +4,27 @@
 
 import { colors, commonStyles } from '../styles/theme';
 
+interface PlayerStats {
+  player_id: string;
+  name: string;
+  is_standard: boolean;
+  fish_id?: number;
+  fish_generation?: number;
+  energy: number;
+  hands_won: number;
+  hands_lost: number;
+  total_energy_won: number;
+  total_energy_lost: number;
+  net_energy: number;
+}
+
 interface AutoEvaluateStats {
   hands_played: number;
   hands_remaining: number;
-  fish_energy: number;
-  standard_energy: number;
-  fish_wins: number;
-  standard_wins: number;
-  fish_total_won: number;
-  fish_total_lost: number;
-  standard_total_won: number;
-  standard_total_lost: number;
+  players: PlayerStats[];
   game_over: boolean;
   winner: string | null;
   reason: string;
-  fish_name: string;
-  fish_id: number;
-  fish_generation: number;
-  fish_net_energy: number;
-  fish_win_rate: number;
 }
 
 interface AutoEvaluateDisplayProps {
@@ -40,20 +42,28 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
           <button onClick={onClose} style={styles.closeButton}>×</button>
         </div>
         <div style={styles.loading}>
-          <p>Running automated poker evaluation against standard algorithm...</p>
+          <p>Running automated poker evaluation with multiple fish vs standard algorithm...</p>
           <p style={styles.loadingSubtext}>This may take a moment...</p>
         </div>
       </div>
     );
   }
 
-  if (!stats) {
+  if (!stats || !stats.players) {
     return null;
   }
 
-  const fishWon = stats.winner === stats.fish_name;
-  const standardWon = stats.winner === 'Standard Algorithm';
   const isTie = stats.winner === 'Tie';
+  const standardPlayer = stats.players.find(p => p.is_standard);
+  const fishPlayers = stats.players.filter(p => !p.is_standard);
+  const standardWon = stats.winner === standardPlayer?.name;
+
+  // Calculate aggregate fish stats
+  const totalFishWins = fishPlayers.reduce((sum, p) => sum + p.hands_won, 0);
+  const totalFishEnergy = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0);
+  const fishWinRate = stats.hands_played > 0
+    ? ((totalFishWins / stats.hands_played) * 100).toFixed(1)
+    : '0.0';
 
   return (
     <div style={styles.container}>
@@ -65,7 +75,7 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
       {/* Winner Announcement */}
       <div style={{
         ...styles.winnerSection,
-        backgroundColor: fishWon ? colors.buttonSuccess : (standardWon ? colors.buttonDanger : colors.bgLight),
+        backgroundColor: standardWon ? colors.buttonDanger : (isTie ? colors.bgLight : colors.buttonSuccess),
       }}>
         <h3 style={styles.winnerTitle}>
           {isTie ? '🤝 Tie Game!' : `🏆 ${stats.winner} Wins!`}
@@ -81,15 +91,15 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
         </div>
         <div style={styles.summaryCard}>
           <div style={styles.summaryLabel}>Fish Win Rate</div>
-          <div style={styles.summaryValue}>{stats.fish_win_rate}%</div>
+          <div style={styles.summaryValue}>{fishWinRate}%</div>
         </div>
         <div style={styles.summaryCard}>
           <div style={styles.summaryLabel}>Fish Net Energy</div>
           <div style={{
             ...styles.summaryValue,
-            color: stats.fish_net_energy >= 0 ? colors.buttonSuccess : colors.danger,
+            color: totalFishEnergy >= 0 ? colors.buttonSuccess : colors.danger,
           }}>
-            {stats.fish_net_energy >= 0 ? '+' : ''}{stats.fish_net_energy}
+            {totalFishEnergy >= 0 ? '+' : ''}{totalFishEnergy}
           </div>
         </div>
       </div>
@@ -98,92 +108,51 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
       <div style={styles.detailsSection}>
         <h3 style={styles.sectionTitle}>Detailed Statistics</h3>
 
-        {/* Fish Stats */}
-        <div style={styles.playerSection}>
-          <h4 style={styles.playerName}>
-            🐟 {stats.fish_name} #{stats.fish_id}
-          </h4>
-          <div style={styles.statsGrid}>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Final Energy:</span>
-              <span style={styles.statValue}>{stats.fish_energy} ⚡</span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Hands Won:</span>
-              <span style={styles.statValue}>{stats.fish_wins}</span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Hands Lost:</span>
-              <span style={styles.statValue}>{stats.standard_wins}</span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Total Won:</span>
-              <span style={{ ...styles.statValue, color: colors.buttonSuccess }}>
-                +{stats.fish_total_won} ⚡
-              </span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Total Lost:</span>
-              <span style={{ ...styles.statValue, color: colors.danger }}>
-                -{stats.fish_total_lost} ⚡
-              </span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Net Profit:</span>
-              <span style={{
-                ...styles.statValue,
-                color: stats.fish_net_energy >= 0 ? colors.buttonSuccess : colors.danger,
-                fontWeight: 'bold',
-              }}>
-                {stats.fish_net_energy >= 0 ? '+' : ''}{stats.fish_net_energy} ⚡
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Standard Algorithm Stats */}
-        <div style={styles.playerSection}>
-          <h4 style={styles.playerName}>
-            🤖 Standard Algorithm
-          </h4>
-          <div style={styles.statsGrid}>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Final Energy:</span>
-              <span style={styles.statValue}>{stats.standard_energy} ⚡</span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Hands Won:</span>
-              <span style={styles.statValue}>{stats.standard_wins}</span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Hands Lost:</span>
-              <span style={styles.statValue}>{stats.fish_wins}</span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Total Won:</span>
-              <span style={{ ...styles.statValue, color: colors.buttonSuccess }}>
-                +{stats.standard_total_won} ⚡
-              </span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Total Lost:</span>
-              <span style={{ ...styles.statValue, color: colors.danger }}>
-                -{stats.standard_total_lost} ⚡
-              </span>
-            </div>
-            <div style={styles.statRow}>
-              <span style={styles.statLabel}>Net Profit:</span>
-              <span style={{
-                ...styles.statValue,
-                color: (stats.standard_total_won - stats.standard_total_lost) >= 0 ? colors.buttonSuccess : colors.danger,
-                fontWeight: 'bold',
-              }}>
-                {(stats.standard_total_won - stats.standard_total_lost) >= 0 ? '+' : ''}
-                {(stats.standard_total_won - stats.standard_total_lost).toFixed(1)} ⚡
-              </span>
+        {/* Display all players */}
+        {stats.players.map((player) => (
+          <div key={player.player_id} style={styles.playerSection}>
+            <h4 style={styles.playerName}>
+              {player.is_standard ? '🤖' : '🐟'} {player.name}
+              {!player.is_standard && player.fish_id ? ` #${player.fish_id}` : ''}
+            </h4>
+            <div style={styles.statsGrid}>
+              <div style={styles.statRow}>
+                <span style={styles.statLabel}>Final Energy:</span>
+                <span style={styles.statValue}>{player.energy} ⚡</span>
+              </div>
+              <div style={styles.statRow}>
+                <span style={styles.statLabel}>Hands Won:</span>
+                <span style={styles.statValue}>{player.hands_won}</span>
+              </div>
+              <div style={styles.statRow}>
+                <span style={styles.statLabel}>Hands Lost:</span>
+                <span style={styles.statValue}>{player.hands_lost}</span>
+              </div>
+              <div style={styles.statRow}>
+                <span style={styles.statLabel}>Total Won:</span>
+                <span style={{ ...styles.statValue, color: colors.buttonSuccess }}>
+                  +{player.total_energy_won} ⚡
+                </span>
+              </div>
+              <div style={styles.statRow}>
+                <span style={styles.statLabel}>Total Lost:</span>
+                <span style={{ ...styles.statValue, color: colors.danger }}>
+                  -{player.total_energy_lost} ⚡
+                </span>
+              </div>
+              <div style={styles.statRow}>
+                <span style={styles.statLabel}>Net Profit:</span>
+                <span style={{
+                  ...styles.statValue,
+                  color: player.net_energy >= 0 ? colors.buttonSuccess : colors.danger,
+                  fontWeight: 'bold',
+                }}>
+                  {player.net_energy >= 0 ? '+' : ''}{player.net_energy} ⚡
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* Close Button */}
