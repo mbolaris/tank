@@ -998,7 +998,12 @@ class EcosystemManager:
             if fish.genome.behavior_algorithm is not None:
                 from core.algorithms import get_algorithm_name
 
-                algo_name = get_algorithm_name(fish.genome.behavior_algorithm)
+                # Handle both int indices and algorithm objects
+                if isinstance(fish.genome.behavior_algorithm, int):
+                    algo_name = get_algorithm_name(fish.genome.behavior_algorithm)
+                else:
+                    # It's an algorithm object, get its class name
+                    algo_name = fish.genome.behavior_algorithm.__class__.__name__
 
             leaderboard.append(
                 {
