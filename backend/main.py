@@ -309,6 +309,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     logger.error(f"WebSocket: Error handling command from client {client_id}: {e}", exc_info=True)
                     await websocket.send_json({"type": "error", "message": str(e)})
 
+            except WebSocketDisconnect:
+                # Re-raise to be handled by outer exception handler
+                raise
             except asyncio.CancelledError:
                 logger.info(f"WebSocket: Connection cancelled for client {client_id}")
                 raise
