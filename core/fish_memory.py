@@ -112,9 +112,9 @@ class FishMemorySystem:
 
             # Limit memory count
             if len(self.memories[memory_type]) > self.max_memories_per_type:
-                # Remove weakest memory
-                self.memories[memory_type].sort(key=lambda m: m.strength)
-                self.memories[memory_type].pop(0)
+                # Remove weakest memory (O(n) min search instead of O(n log n) sort)
+                weakest = min(self.memories[memory_type], key=lambda m: m.strength)
+                self.memories[memory_type].remove(weakest)
 
     def find_nearest_memory(
         self,

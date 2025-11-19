@@ -9,6 +9,8 @@ from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from core.constants import (
+    ALIGNMENT_SPEED_CHANGE,
+    AVOIDANCE_SPEED_CHANGE,
     CRAB_ATTACK_COOLDOWN,
     CRAB_ATTACK_ENERGY_TRANSFER,
     CRAB_IDLE_CONSUMPTION,
@@ -207,7 +209,7 @@ class Agent:
                     velocity_change = dist_vector.normalize()
                     if isinstance(other, Crab):
                         velocity_change.y = abs(velocity_change.y)
-                    self.avoidance_velocity -= velocity_change * 0.15  # AVOIDANCE_SPEED_CHANGE
+                    self.avoidance_velocity -= velocity_change * AVOIDANCE_SPEED_CHANGE
 
         # Only reset avoidance_velocity when no sprites are close
         if not any_sprite_close:
@@ -248,13 +250,13 @@ class Agent:
         """Adjust velocity to move away from another agent."""
         dist_length = dist_vector.length()
         if dist_length > 0:
-            self.vel -= dist_vector.normalize() * 0.15  # AVOIDANCE_SPEED_CHANGE
+            self.vel -= dist_vector.normalize() * AVOIDANCE_SPEED_CHANGE
 
     def move_towards(self, difference: Vector2) -> None:
         """Adjust velocity to move towards the average position of other agents."""
         diff_length = difference.length()
         if diff_length > 0:
-            self.vel += difference.normalize() * 0.1  # ALIGNMENT_SPEED_CHANGE
+            self.vel += difference.normalize() * ALIGNMENT_SPEED_CHANGE
 
     def add_internal(self, group) -> None:
         """Track group for kill() method."""

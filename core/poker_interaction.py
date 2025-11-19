@@ -21,7 +21,25 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import List, Optional, Tuple
 
-from core.constants import POKER_MAX_ACTIONS_PER_ROUND
+from core.constants import (
+    POKER_MAX_ACTIONS_PER_ROUND,
+    POKER_MEDIUM_AGGRESSION_MULTIPLIER,
+    POKER_MEDIUM_CALL_MULTIPLIER,
+    POKER_MEDIUM_ENERGY_FRACTION,
+    POKER_MEDIUM_ENERGY_FRACTION_RERAISE,
+    POKER_MEDIUM_POT_MULTIPLIER,
+    POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD,
+    POKER_MEDIUM_RAISE_PROBABILITY,
+    POKER_STRONG_CALL_MULTIPLIER,
+    POKER_STRONG_ENERGY_FRACTION,
+    POKER_STRONG_ENERGY_FRACTION_RERAISE,
+    POKER_STRONG_POT_MULTIPLIER,
+    POKER_STRONG_RAISE_PROBABILITY,
+    POKER_WEAK_BLUFF_PROBABILITY,
+    POKER_WEAK_CALL_PROBABILITY,
+    POKER_WEAK_ENERGY_FRACTION,
+    POKER_WEAK_POT_MULTIPLIER,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -528,8 +546,10 @@ class PokerEngine:
         """
         if call_amount == 0:
             # No bet to call - raise most of the time
-            if random.random() < 0.8:
-                raise_amount = min(pot * 0.5, player_energy * 0.3)
+            if random.random() < POKER_STRONG_RAISE_PROBABILITY:
+                raise_amount = min(
+                    pot * POKER_STRONG_POT_MULTIPLIER, player_energy * POKER_STRONG_ENERGY_FRACTION
+                )
                 return (BettingAction.RAISE, raise_amount)
             else:
                 return (BettingAction.CHECK, 0.0)
@@ -537,7 +557,10 @@ class PokerEngine:
             # There's a bet - call or raise
             if random.random() < aggression:
                 # Raise
-                raise_amount = min(call_amount * 2, player_energy * 0.4)
+                raise_amount = min(
+                    call_amount * POKER_STRONG_CALL_MULTIPLIER,
+                    player_energy * POKER_STRONG_ENERGY_FRACTION_RERAISE,
+                )
                 return (BettingAction.RAISE, raise_amount)
             else:
                 # Call
@@ -560,8 +583,10 @@ class PokerEngine:
         """
         if call_amount == 0:
             # No bet - check or small raise
-            if random.random() < aggression * 0.6:
-                raise_amount = min(pot * 0.3, player_energy * 0.2)
+            if random.random() < aggression * POKER_MEDIUM_AGGRESSION_MULTIPLIER:
+                raise_amount = min(
+                    pot * POKER_MEDIUM_POT_MULTIPLIER, player_energy * POKER_MEDIUM_ENERGY_FRACTION
+                )
                 return (BettingAction.RAISE, raise_amount)
             else:
                 return (BettingAction.CHECK, 0.0)
@@ -570,11 +595,14 @@ class PokerEngine:
             pot_odds = call_amount / (pot + call_amount) if pot > 0 else 1.0
 
             # More likely to fold if bet is large relative to pot
-            if pot_odds > 0.5 and random.random() > aggression:
+            if pot_odds > POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD and random.random() > aggression:
                 return (BettingAction.FOLD, 0.0)
-            elif random.random() < aggression * 0.4:
+            elif random.random() < aggression * POKER_MEDIUM_RAISE_PROBABILITY:
                 # Sometimes raise with medium hands
-                raise_amount = min(call_amount * 1.5, player_energy * 0.25)
+                raise_amount = min(
+                    call_amount * POKER_MEDIUM_CALL_MULTIPLIER,
+                    player_energy * POKER_MEDIUM_ENERGY_FRACTION_RERAISE,
+                )
                 return (BettingAction.RAISE, raise_amount)
             else:
                 # Usually call
@@ -597,15 +625,17 @@ class PokerEngine:
         """
         if call_amount == 0:
             # No bet - usually check, rarely bluff
-            if random.random() < aggression * 0.2:
+            if random.random() < aggression * POKER_WEAK_BLUFF_PROBABILITY:
                 # Bluff
-                raise_amount = min(pot * 0.4, player_energy * 0.15)
+                raise_amount = min(
+                    pot * POKER_WEAK_POT_MULTIPLIER, player_energy * POKER_WEAK_ENERGY_FRACTION
+                )
                 return (BettingAction.RAISE, raise_amount)
             else:
                 return (BettingAction.CHECK, 0.0)
         else:
             # There's a bet - usually fold, rarely bluff call
-            if random.random() < aggression * 0.15:
+            if random.random() < aggression * POKER_WEAK_CALL_PROBABILITY:
                 # Bluff call
                 return (BettingAction.CALL, call_amount)
             else:

@@ -6,6 +6,7 @@ simulation without any visualization code.
 
 import logging
 import time
+from collections import deque
 from typing import Any, Dict, List, Optional
 
 from core import entities, environment
@@ -99,7 +100,7 @@ class SimulationEngine(BaseSimulator):
         self.environment: Optional[environment.Environment] = None
         self.time_system: TimeSystem = TimeSystem()
         self.start_time: float = time.time()
-        self.poker_events: List[Dict[str, Any]] = []  # Recent poker events
+        self.poker_events: deque = deque(maxlen=MAX_POKER_EVENTS)  # Recent poker events (auto-trimming)
         self._agents_wrapper: Optional[AgentsWrapper] = None
         self.last_emergency_spawn_frame: int = -EMERGENCY_SPAWN_COOLDOWN  # Allow immediate first spawn
 
@@ -317,6 +318,40 @@ class SimulationEngine(BaseSimulator):
         self.add_entity(new_fish)
         logger.info(f"Population critical! Spawned emergency fish at ({x}, {y})")
 
+    def _add_poker_event_to_history(
+        self,
+        winner_id: int,
+        loser_id: int,
+        winner_hand: str,
+        loser_hand: str,
+        energy_transferred: float,
+        message: str,
+        is_jellyfish: bool,
+    ) -> None:
+        """Helper method to add a poker event to history.
+
+        Args:
+            winner_id: ID of the winner (-1 for tie, -2 for jellyfish)
+            loser_id: ID of the loser (-2 for jellyfish)
+            winner_hand: Description of winner's hand
+            loser_hand: Description of loser's hand
+            energy_transferred: Amount of energy transferred
+            message: Event message
+            is_jellyfish: Whether jellyfish was involved
+        """
+        event = {
+            "frame": self.frame_count,
+            "winner_id": winner_id,
+            "loser_id": loser_id,
+            "winner_hand": winner_hand,
+            "loser_hand": loser_hand,
+            "energy_transferred": energy_transferred,
+            "message": message,
+            "is_jellyfish": is_jellyfish,
+        }
+        # Deque with maxlen automatically drops oldest when full
+        self.poker_events.append(event)
+
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Add a poker event to the recent events list."""
         if poker.result is None:
@@ -337,28 +372,22 @@ class SimulationEngine(BaseSimulator):
             # Show winner's actual gain (not loser's loss) to make it clear they're different
             message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
 
-        # Create event data
+        # Extract hand descriptions
         winner_hand_obj = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
         loser_hand_obj = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
+        winner_hand_desc = winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
+        loser_hand_desc = loser_hand_obj.description if loser_hand_obj is not None else "Unknown"
 
-        event = {
-            "frame": self.frame_count,
-            "winner_id": result.winner_id,
-            "loser_id": result.loser_id,
-            "winner_hand": (
-                winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
-            ),
-            "loser_hand": loser_hand_obj.description if loser_hand_obj is not None else "Unknown",
-            "energy_transferred": result.energy_transferred,
-            "message": message,
-            "is_jellyfish": False,
-        }
-
-        self.poker_events.append(event)
-
-        # Keep only last MAX_POKER_EVENTS
-        if len(self.poker_events) > MAX_POKER_EVENTS:
-            self.poker_events.pop(0)
+        # Add to history using helper method
+        self._add_poker_event_to_history(
+            result.winner_id,
+            result.loser_id,
+            winner_hand_desc,
+            loser_hand_desc,
+            result.energy_transferred,
+            message,
+            is_jellyfish=False,
+        )
 
     def add_jellyfish_poker_event(self, fish_id: int, fish_won: bool,
                                    fish_hand: str, jellyfish_hand: str,
@@ -378,23 +407,16 @@ class SimulationEngine(BaseSimulator):
         else:
             message = f"Jellyfish beats Fish #{fish_id} with {jellyfish_hand}! (-{energy_transferred:.1f} energy)"
 
-        # Create event data
-        event = {
-            "frame": self.frame_count,
-            "winner_id": fish_id if fish_won else -2,  # -2 indicates jellyfish won
-            "loser_id": -2 if fish_won else fish_id,  # -2 indicates jellyfish lost
-            "winner_hand": fish_hand if fish_won else jellyfish_hand,
-            "loser_hand": jellyfish_hand if fish_won else fish_hand,
-            "energy_transferred": energy_transferred,
-            "message": message,
-            "is_jellyfish": True,
-        }
-
-        self.poker_events.append(event)
-
-        # Keep only last MAX_POKER_EVENTS
-        if len(self.poker_events) > MAX_POKER_EVENTS:
-            self.poker_events.pop(0)
+        # Add to history using helper method
+        self._add_poker_event_to_history(
+            winner_id=fish_id if fish_won else -2,  # -2 indicates jellyfish won
+            loser_id=-2 if fish_won else fish_id,  # -2 indicates jellyfish lost
+            winner_hand=fish_hand if fish_won else jellyfish_hand,
+            loser_hand=jellyfish_hand if fish_won else fish_hand,
+            energy_transferred=energy_transferred,
+            message=message,
+            is_jellyfish=True,
+        )
 
     def get_recent_poker_events(
         self, max_age_frames: int = POKER_EVENT_MAX_AGE_FRAMES
@@ -591,16 +613,13 @@ class SimulationEngine(BaseSimulator):
         algorithms_with_data.sort(key=lambda x: x[1].get_reproduction_rate())
         for algo_id, stats in algorithms_with_data[:5]:  # Bottom 5
             algo_name = get_algorithm_name(algo_id)
-            main_death_cause = "unknown"
-            if (
-                stats.deaths_starvation > stats.deaths_old_age
-                and stats.deaths_starvation > stats.deaths_predation
-            ):
-                main_death_cause = "starvation"
-            elif stats.deaths_old_age > stats.deaths_predation:
-                main_death_cause = "old_age"
-            elif stats.deaths_predation > 0:
-                main_death_cause = "predation"
+            # Determine main death cause using max() for cleaner code
+            death_causes = {
+                "starvation": stats.deaths_starvation,
+                "old_age": stats.deaths_old_age,
+                "predation": stats.deaths_predation,
+            }
+            main_death_cause = max(death_causes, key=death_causes.get) if any(death_causes.values()) else "unknown"
 
             export_data["recommendations"]["worst_performers"].append(
                 {
