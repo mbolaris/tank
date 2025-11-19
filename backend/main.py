@@ -133,6 +133,12 @@ app.add_middleware(
 async def broadcast_updates():
     """Broadcast simulation updates to all connected clients."""
     logger.info("broadcast_updates: Task started")
+
+    # Unpause simulation now that broadcast task is ready
+    # This prevents initial fish from aging before the frontend sees them
+    simulation.world.paused = False
+    logger.info("broadcast_updates: Simulation unpaused")
+
     frame_count = 0
     try:
         while True:
