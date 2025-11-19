@@ -45,12 +45,13 @@ export interface EntityData {
 
 export interface PokerEventData {
   frame: number;
-  winner_id: number;  // -1 for tie
-  loser_id: number;
+  winner_id: number;  // -1 for tie, -2 for jellyfish
+  loser_id: number;  // -2 for jellyfish
   winner_hand: string;
   loser_hand: string;
   energy_transferred: number;
   message: string;
+  is_jellyfish?: boolean;
 }
 
 export interface PokerLeaderboardEntry {
@@ -74,6 +75,8 @@ export interface PokerLeaderboardEntry {
   showdown_win_rate: number;  // Percentage (0-100)
   fold_rate: number;  // Percentage (0-100)
   positional_advantage: number;  // Percentage (0-100)
+  recent_win_rate: number;  // Recent win rate (0-100)
+  skill_trend: string;  // "improving", "declining", or "stable"
 }
 
 export interface PokerStatsData {

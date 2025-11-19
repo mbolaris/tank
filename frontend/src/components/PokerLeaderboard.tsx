@@ -23,6 +23,7 @@ export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard 
               <th>Fish</th>
               <th>Games</th>
               <th>Win%</th>
+              <th>Trend</th>
               <th>Net Energy</th>
               <th>Streak</th>
               <th>Best Hand</th>
@@ -55,6 +56,9 @@ export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard 
                   </td>
                   <td className={entry.win_rate >= 50 ? styles.positive : styles.neutral}>
                     {entry.win_rate.toFixed(1)}%
+                  </td>
+                  <td className={styles.trendCell}>
+                    {getTrendIndicator(entry.skill_trend, entry.recent_win_rate)}
                   </td>
                   <td className={entry.net_energy >= 0 ? styles.positive : styles.negative}>
                     {entry.net_energy >= 0 ? '+' : ''}
@@ -94,4 +98,27 @@ function getHandEmoji(rank: number): string {
     '👑', // Royal Flush
   ];
   return emojis[rank] || '🃏';
+}
+
+// Helper function to get trend indicator
+function getTrendIndicator(trend: string, recentWinRate: number): React.ReactNode {
+  if (trend === 'improving') {
+    return (
+      <span className={styles.improving} title={`Recent: ${recentWinRate.toFixed(1)}%`}>
+        📈 ↗
+      </span>
+    );
+  } else if (trend === 'declining') {
+    return (
+      <span className={styles.declining} title={`Recent: ${recentWinRate.toFixed(1)}%`}>
+        📉 ↘
+      </span>
+    );
+  } else {
+    return (
+      <span className={styles.stable} title={`Recent: ${recentWinRate.toFixed(1)}%`}>
+        ➡ ─
+      </span>
+    );
+  }
 }

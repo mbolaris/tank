@@ -117,6 +117,28 @@
   color: #a78bfa;
 }
 
+.trendCell {
+  text-align: center;
+  font-size: 14px;
+}
+
+.improving {
+  color: #4ade80;
+  font-weight: bold;
+  cursor: help;
+}
+
+.declining {
+  color: #f87171;
+  font-weight: bold;
+  cursor: help;
+}
+
+.stable {
+  color: #94a3b8;
+  cursor: help;
+}
+
 @media (max-width: 768px) {
   .pokerLeaderboard table {
     font-size: 11px;
