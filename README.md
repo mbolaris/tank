@@ -1,12 +1,12 @@
 # 🐠 Artificial Life Fish Tank Simulation
 
-An advanced artificial life ecosystem simulation featuring **53 parametrizable behavior algorithms**, genetics, evolution, energy systems, and emergent population dynamics with a **React-based web UI**.
+An advanced artificial life ecosystem simulation featuring **58 parametrizable behavior algorithms**, genetics, evolution, energy systems, and emergent population dynamics with a **React-based web UI**.
 
 ## 🎯 Overview
 
 This is a **cutting-edge ALife simulation** with a modern web interface that demonstrates complex ecosystem behaviors through **algorithmic evolution** and competitive dynamics. Fish evolve diverse survival strategies through genetic algorithms, with each fish inheriting and mutating behavior algorithms across generations. The simulation features:
 
-- 🧬 **ALGORITHMIC EVOLUTION** - 53 unique parametrizable behavior strategies that evolve!
+- 🧬 **ALGORITHMIC EVOLUTION** - 58 unique parametrizable behavior strategies that evolve!
 - 🦀 **Balanced Predator-Prey** - Crabs and jellyfish interact with fish ecosystem
 - 🔬 **Genetic Evolution** - Traits and algorithms evolve across generations
 - 🌐 **Modern Web UI** - React-based interface with real-time visualization
@@ -19,16 +19,16 @@ This is a **cutting-edge ALife simulation** with a modern web interface that dem
 
 ### 🧬 **ALGORITHMIC EVOLUTION SYSTEM** 🚀
 
-The simulation features **53 parametrizable behavior algorithms** that fish can inherit and evolve! This creates unprecedented diversity and sophistication in fish behavior.
+The simulation features **58 parametrizable behavior algorithms** that fish can inherit and evolve! This creates unprecedented diversity and sophistication in fish behavior.
 
 **Key Features:**
-- **53 Unique Algorithms** across 6 categories:
-  - 🍔 Food Seeking (12 algorithms)
+- **58 Unique Algorithms** across 6 categories:
+  - 🍔 Food Seeking (14 algorithms)
   - 🛡️ Predator Avoidance (10 algorithms)
   - 🐟 Schooling/Social (10 algorithms)
   - ⚡ Energy Management (8 algorithms)
   - 🗺️ Territory/Exploration (8 algorithms)
-  - 🎴 Poker Interactions (5 algorithms)
+  - 🎴 Poker Interactions (8 algorithms)
 
 - **Parametrizable Behaviors**: Each algorithm has tunable parameters that mutate during reproduction
 - **Inheritance**: Offspring inherit parent's algorithm type with parameter mutations
@@ -44,7 +44,9 @@ The simulation features **53 parametrizable behavior algorithms** that fish can 
 - `TerritorialDefender` - Defend territory from intruders
 - `PokerChallenger` - Actively seek poker games
 - `PokerDodger` - Avoid poker encounters
-- ...and 45 more!
+- `PokerStrategist` - Uses opponent modeling for strategic poker play
+- `PokerBluffer` - Varies behavior unpredictably to confuse opponents
+- ...and 48 more!
 
 ### 🎴 **Fish Poker Minigame**
 Fish can play poker against each other and against jellyfish for energy rewards!
@@ -52,6 +54,10 @@ Fish can play poker against each other and against jellyfish for energy rewards!
 - **Automatic**: Fish play when they collide and have >10 energy
 - **5-Card Draw**: Standard poker hand rankings
 - **Energy Stakes**: Winner takes energy from loser (with house cut)
+- **Evolving Poker Strategies**: Fish use genome-based poker aggression that evolves across generations!
+  - Each fish's poker playing style is determined by their genome's aggression trait
+  - Evolutionary pressure: Fish with optimal poker aggression win more energy and reproduce more
+  - 8 specialized poker behavior algorithms (Challenger, Dodger, Gambler, Strategist, Bluffer, Conservative, and more)
 - **Jellyfish Opponents**: Jellyfish drift through the tank, playing poker with fish using a fixed conservative strategy
 - **Live Events**: See poker games happen in real-time in the UI
 - **Statistics**: Track total games, wins/losses, best hands
@@ -59,7 +65,7 @@ Fish can play poker against each other and against jellyfish for energy rewards!
 ### 🧬 **Pure Algorithmic Evolution**
 The ecosystem focuses on **algorithmic evolution** with all fish competing using parametrizable behavior algorithms:
 
-- **53 Different Algorithms** across 6 categories (food seeking, predator avoidance, schooling, energy management, territory, poker interactions)
+- **58 Different Algorithms** across 6 categories (food seeking, predator avoidance, schooling, energy management, territory, poker interactions)
 - **Parameter Tuning**: Each algorithm has parameters that mutate during reproduction
 - **Natural Selection**: Better algorithms survive and reproduce, spreading through the population
 - **High Interpretability**: Unlike black-box neural networks, algorithm behaviors are clear and analyzable
@@ -220,15 +226,15 @@ tank/
 │   ├── time_system.py      # Day/night cycle management
 │   ├── environment.py      # Spatial queries & collision detection
 │   ├── movement_strategy.py # AlgorithmicMovement implementation
-│   ├── fish_poker.py       # Poker minigame system (fish vs fish)
+│   ├── fish_poker.py       # Poker minigame with genome-based aggression
 │   ├── jellyfish_poker.py  # Jellyfish poker interactions
 │   ├── algorithms/         # Behavior algorithm library
-│   │   ├── food_seeking.py # 12 food-seeking algorithms
+│   │   ├── food_seeking.py # 14 food-seeking algorithms
 │   │   ├── predator_avoidance.py # 10 predator avoidance algorithms
 │   │   ├── schooling.py    # 10 schooling algorithms
 │   │   ├── energy_management.py # 8 energy management algorithms
 │   │   ├── territory.py    # 8 territory/exploration algorithms
-│   │   └── poker.py        # 5 poker interaction algorithms
+│   │   └── poker.py        # 8 poker interaction algorithms
 │   └── constants.py        # Configuration parameters
 ├── scripts/                # Automation scripts
 │   ├── ai_code_evolution_agent.py # AI-powered algorithm improver
@@ -326,7 +332,7 @@ MAX_FOOD_CAPACITY = 8  # per plant
 ### Heritable Traits
 - **Physical traits**: Speed, size, vision range, metabolism, max energy, fertility
 - **Visual traits**: Body shape, fin size, tail size, color pattern
-- **Behavior algorithm**: One of 48 parametrizable algorithms (inherited from parent)
+- **Behavior algorithm**: One of 58 parametrizable algorithms (inherited from parent)
 - **Algorithm parameters**: Tunable values that control algorithm behavior
 
 ### Mutation
@@ -373,9 +379,11 @@ This simulation demonstrates:
 ## 🔬 Recent Improvements & Future Enhancements
 
 Recently Completed: ✅
+- [✅] **Evolving Poker Strategies** - Genome-based poker aggression that evolves across generations!
+- [✅] **8 Poker Behavior Algorithms** - Strategist, Bluffer, Conservative, and more poker strategies
 - [✅] **AI Code Evolution Agent** - Automated algorithm improvement using Claude/GPT-4!
 - [✅] **Algorithm Registry** - Source mapping for AI-driven code improvements
-- [✅] 48 parametrizable behavior algorithms
+- [✅] 58 parametrizable behavior algorithms
 - [✅] TankWorld class for clean simulation management
 - [✅] LLM-friendly JSON stats export with source file mapping
 - [✅] Comprehensive behavior evolution tracking
