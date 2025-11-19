@@ -446,6 +446,10 @@ class SimulationEngine(BaseSimulator):
         import json
 
         from core.algorithms import get_algorithm_name
+        from core.registry import get_algorithm_metadata
+
+        # Get algorithm source mapping for AI agent
+        algorithm_metadata = get_algorithm_metadata()
 
         # Gather comprehensive stats
         export_data = {
@@ -469,6 +473,7 @@ class SimulationEngine(BaseSimulator):
                 ),
             },
             "death_causes": dict(self.ecosystem.death_causes),
+            "algorithm_registry": algorithm_metadata,
             "algorithm_performance": {},
             "poker_statistics": {},
             "generation_trends": [],
@@ -485,8 +490,15 @@ class SimulationEngine(BaseSimulator):
             if algo_name == "Unknown":
                 algo_name = f"algorithm_{algo_id}"
 
+            # Get source file info from registry
+            metadata = algorithm_metadata.get(algo_name, {})
+            source_file = metadata.get("source_file", "unknown")
+            category = metadata.get("category", "unknown")
+
             export_data["algorithm_performance"][algo_name] = {
                 "algorithm_id": algo_id,
+                "source_file": source_file,
+                "category": category,
                 "total_births": stats.total_births,
                 "total_deaths": stats.total_deaths,
                 "current_population": stats.current_population,
