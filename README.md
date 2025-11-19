@@ -161,38 +161,49 @@ python main.py --headless --max-frames 10000 --export-stats results.json
 
 ### 🤖 AI Code Evolution Workflow (NEW!)
 
-**Automatically improve fish behaviors using AI!** The simulation now includes an **AI Code Evolution Agent** that analyzes simulation data and generates algorithm improvements.
+**Automatically improve fish behaviors using AI!** Simply tell Claude to evolve the algorithms and it handles everything automatically.
+
+#### Quick Start (Recommended)
+
+When using Claude Code, just say:
+```
+"Run AI evolution"
+"Evolve the code pool"
+```
+
+**What Claude does automatically:**
+- ✅ Runs headless simulation and exports performance stats
+- ✅ Identifies the worst performing algorithm (lowest reproduction rate)
+- ✅ Analyzes why it's failing (starvation, predation, etc.)
+- ✅ Reads the source code and generates improvements
+- ✅ Commits changes with detailed explanation
+- ✅ Pushes to git branch ready for PR review
+- ✅ Optionally runs longer validation simulation
+
+**Example result**: CircularHunter improved from 0% reproduction (starving after 13 seconds) to active exploration, energy-aware behavior, and 5x faster movement!
+
+See `docs/CLAUDE_CODE_EVOLUTION.md` for complete guide.
+
+#### Advanced: Python Script Method
+
+For automated/scripted workflows without Claude Code:
 
 ```bash
 # Step 1: Run simulation and export stats
 python main.py --headless --max-frames 10000 --export-stats results.json
 
-# Step 2: Set up your API key (Claude or GPT-4)
+# Step 2: Set up your API key
 export ANTHROPIC_API_KEY="sk-ant-..."
-# OR
-export OPENAI_API_KEY="sk-..."
 
-# Step 3: Run the AI agent to improve worst performer
+# Step 3: Run the AI agent
 python scripts/ai_code_evolution_agent.py results.json --provider anthropic
 
-# Step 4: Review changes
+# Step 4: Review and push
 git diff HEAD~1
-
-# Step 5: Push and create PR
 git push -u origin <branch-name>
 ```
 
-**What the AI agent does:**
-- ✅ Identifies the worst performing algorithm (lowest reproduction rate)
-- ✅ Analyzes why it's failing (starvation, predation, etc.)
-- ✅ Reads the source code from the algorithm registry
-- ✅ Generates improved code using Claude/GPT-4
-- ✅ Creates a git branch with descriptive commit message
-- ✅ Ready for human review and testing before merge
-
-**Example result**: FreezeResponse improved from 0% → 100% reproduction rate!
-
-See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for complete guide and `docs/PROOF_OF_AI_IMPROVEMENT.md` for real-world example.
+See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for the Python script method and `docs/PROOF_OF_AI_IMPROVEMENT.md` for real-world examples.
 
 ## 📁 Project Structure
 
@@ -450,7 +461,8 @@ Built with:
 ## 📚 Additional Resources
 
 For more information:
-- **AI Code Evolution**: See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` - Complete guide to automated algorithm improvement
+- **AI Evolution (Claude)**: See `docs/CLAUDE_CODE_EVOLUTION.md` - Simple one-command AI evolution workflow
+- **AI Evolution (Script)**: See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` - Python script for automated pipelines
 - **AI Improvement Proof**: See `docs/PROOF_OF_AI_IMPROVEMENT.md` - Real-world example (0% → 100% reproduction)
 - **Architecture details**: See `docs/ARCHITECTURE.md`
 - **Algorithmic evolution**: See `docs/ALGORITHMIC_EVOLUTION.md`
