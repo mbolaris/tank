@@ -6,7 +6,7 @@ SCREEN_HEIGHT = 600
 FRAME_RATE = 30
 
 # The number of schooling fish to create at the start of the game
-NUM_SCHOOLING_FISH = 10  # Increased to create resource competition
+NUM_SCHOOLING_FISH = 0  # Start with empty tank, let random spawning populate
 
 # Target stable population for ecosystem balance
 TARGET_POPULATION = 15
