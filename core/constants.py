@@ -220,7 +220,7 @@ TOTAL_ALGORITHM_COUNT = 48  # Total number of behavior algorithms available
 TOTAL_SPECIES_COUNT = 4  # Total number of fish species
 MAX_ECOSYSTEM_EVENTS = 1000  # Maximum events to track in ecosystem history
 MAX_POPULATION = 100  # Maximum population capacity for ecosystem
-CRITICAL_POPULATION_THRESHOLD = 3  # Minimum population before emergency spawning
+CRITICAL_POPULATION_THRESHOLD = 10  # Minimum population before emergency spawning
 
 # Predator Avoidance Constants (for algorithms)
 FLEE_THRESHOLD_CRITICAL = 45  # Flee distance when energy is critical
