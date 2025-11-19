@@ -104,6 +104,15 @@ class SimulationEngine(BaseSimulator):
         self._agents_wrapper: Optional[AgentsWrapper] = None
         self.last_emergency_spawn_frame: int = -EMERGENCY_SPAWN_COOLDOWN  # Allow immediate first spawn
 
+        # Performance: Object pool for Food entities
+        from core.object_pool import FoodPool
+        self.food_pool = FoodPool()
+
+        # Performance: Cached entity type lists to avoid repeated filtering
+        self._cached_fish_list: Optional[List[entities.Fish]] = None
+        self._cached_food_list: Optional[List[entities.Food]] = None
+        self._cache_dirty = True
+
     @property
     def agents(self) -> AgentsWrapper:
         """Get agents wrapper for compatibility with tests."""
@@ -138,11 +147,50 @@ class SimulationEngine(BaseSimulator):
     def add_entity(self, entity: entities.Agent) -> None:
         """Add an entity to the simulation."""
         self.entities_list.append(entity)
+        # Add to spatial grid incrementally
+        if self.environment:
+            self.environment.add_agent_to_grid(entity)
+        # Invalidate cached lists
+        self._cache_dirty = True
 
     def remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation."""
         if entity in self.entities_list:
             self.entities_list.remove(entity)
+            # Remove from spatial grid incrementally
+            if self.environment:
+                self.environment.remove_agent_from_grid(entity)
+            # Return Food to pool for reuse
+            if isinstance(entity, entities.Food):
+                self.food_pool.release(entity)
+            # Invalidate cached lists
+            self._cache_dirty = True
+
+    def get_fish_list(self) -> List[entities.Fish]:
+        """Get cached list of all fish in the simulation.
+
+        Returns:
+            List of Fish entities, cached to avoid repeated filtering
+        """
+        if self._cache_dirty or self._cached_fish_list is None:
+            self._cached_fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
+        return self._cached_fish_list
+
+    def get_food_list(self) -> List[entities.Food]:
+        """Get cached list of all food in the simulation.
+
+        Returns:
+            List of Food entities, cached to avoid repeated filtering
+        """
+        if self._cache_dirty or self._cached_food_list is None:
+            self._cached_food_list = [e for e in self.entities_list if isinstance(e, entities.Food)]
+        return self._cached_food_list
+
+    def _rebuild_caches(self) -> None:
+        """Rebuild all cached entity lists."""
+        self._cached_fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
+        self._cached_food_list = [e for e in self.entities_list if isinstance(e, entities.Food)]
+        self._cache_dirty = False
 
     def check_collision(self, e1: entities.Agent, e2: entities.Agent) -> bool:
         """Check if two entities collide using bounding box collision.
@@ -194,9 +242,8 @@ class SimulationEngine(BaseSimulator):
             if isinstance(entity, entities.Fish):
                 newborn = entity.update(self.frame_count, time_modifier)
                 if newborn is not None and self.ecosystem is not None:
-                    fish_count = len(
-                        [e for e in self.entities_list if isinstance(e, entities.Fish)]
-                    )
+                    # Use cached fish list for better performance
+                    fish_count = len(self.get_fish_list())
                     if self.ecosystem.can_reproduce(fish_count):
                         new_entities.append(newborn)
 
@@ -229,7 +276,12 @@ class SimulationEngine(BaseSimulator):
         if self.environment is not None:
             self.spawn_auto_food(self.environment)
 
-        self.update_spatial_grid()
+        # Update spatial grid incrementally for entities that moved
+        # This is much faster than rebuilding the entire grid
+        if self.environment is not None:
+            for entity in self.entities_list:
+                if hasattr(entity, 'pos'):
+                    self.environment.update_agent_position(entity)
 
         # Uses spatial grid for efficiency
         self.handle_collisions()
@@ -238,7 +290,8 @@ class SimulationEngine(BaseSimulator):
         self.handle_reproduction()
 
         if self.ecosystem is not None:
-            fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
+            # Use cached fish list for better performance
+            fish_list = self.get_fish_list()
             self.ecosystem.update_population_stats(fish_list)
             self.ecosystem.update(self.frame_count)
 
@@ -248,6 +301,71 @@ class SimulationEngine(BaseSimulator):
                 if frames_since_last_spawn >= EMERGENCY_SPAWN_COOLDOWN:
                     self.spawn_emergency_fish()
                     self.last_emergency_spawn_frame = self.frame_count
+
+        # Rebuild caches at end of frame if dirty
+        if self._cache_dirty:
+            self._rebuild_caches()
+
+    def spawn_auto_food(self, environment: "environment.Environment") -> None:
+        """Spawn automatic food using object pooling for better performance.
+
+        Override base implementation to use food pool.
+        """
+        from core.constants import (
+            AUTO_FOOD_ENABLED,
+            AUTO_FOOD_SPAWN_RATE,
+            AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
+            AUTO_FOOD_LOW_ENERGY_THRESHOLD,
+            AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
+            AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
+            AUTO_FOOD_HIGH_POP_THRESHOLD_1,
+            AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+        )
+        import random
+
+        if not AUTO_FOOD_ENABLED:
+            return
+
+        # Calculate total energy and population (use cached list)
+        fish_list = self.get_fish_list()
+        fish_count = len(fish_list)
+        total_energy = sum(fish.energy for fish in fish_list)
+
+        # Dynamic spawn rate based on population and energy levels
+        spawn_rate = AUTO_FOOD_SPAWN_RATE
+
+        # Priority 1: Emergency feeding when energy is critically low
+        if total_energy < AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD:
+            spawn_rate = AUTO_FOOD_SPAWN_RATE // 4
+        elif total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
+            spawn_rate = AUTO_FOOD_SPAWN_RATE // 3
+        # Priority 2: Reduce feeding when energy or population is high
+        elif (
+            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2
+            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2
+        ):
+            spawn_rate = AUTO_FOOD_SPAWN_RATE * 3
+        elif (
+            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1
+            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1
+        ):
+            spawn_rate = int(AUTO_FOOD_SPAWN_RATE * 1.67)
+
+        self.auto_food_timer += 1
+        if self.auto_food_timer >= spawn_rate:
+            self.auto_food_timer = 0
+            # Use food pool instead of creating new Food
+            x = random.randint(0, SCREEN_WIDTH)
+            food = self.food_pool.acquire(
+                environment=environment,
+                x=x,
+                y=0,
+                source_plant=None,
+                allow_stationary_types=False,
+                screen_width=SCREEN_WIDTH,
+                screen_height=SCREEN_HEIGHT,
+            )
+            self.add_entity(food)
 
     def spawn_emergency_fish(self) -> None:
         """Spawn a new fish when population drops below critical threshold.
@@ -264,8 +382,8 @@ class SimulationEngine(BaseSimulator):
         from core.algorithms import get_algorithm_index
         from core.genetics import Genome
 
-        # Get current fish to analyze diversity
-        fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
+        # Get current fish to analyze diversity (use cached list)
+        fish_list = self.get_fish_list()
 
         # If we have existing fish, try to spawn diverse genomes
         # Otherwise, spawn completely random
@@ -447,9 +565,9 @@ class SimulationEngine(BaseSimulator):
             else 0
         )
 
-        # Add entity counts
-        stats["fish_count"] = len([e for e in self.entities_list if isinstance(e, entities.Fish)])
-        stats["food_count"] = len([e for e in self.entities_list if isinstance(e, entities.Food)])
+        # Add entity counts (use cached lists)
+        stats["fish_count"] = len(self.get_fish_list())
+        stats["food_count"] = len(self.get_food_list())
         stats["plant_count"] = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
 
         return stats
@@ -495,9 +613,7 @@ class SimulationEngine(BaseSimulator):
                 "total_births": self.ecosystem.total_births,
                 "total_deaths": self.ecosystem.total_deaths,
                 "current_generation": self.ecosystem.current_generation,
-                "final_population": len(
-                    [e for e in self.entities_list if isinstance(e, entities.Fish)]
-                ),
+                "final_population": len(self.get_fish_list()),
             },
             "death_causes": dict(self.ecosystem.death_causes),
             "algorithm_registry": algorithm_metadata,

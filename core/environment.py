@@ -175,9 +175,23 @@ class Environment:
         """Rebuild the spatial grid from scratch. Call when agents are added/removed."""
         if self.agents:
             self.spatial_grid.rebuild(self.agents)
-        # Clear query caches when grid is rebuilt (new frame)
+        # Clear query caches when grid is rebuilt
         self._query_cache.clear()
+        # Note: Type cache is NOT cleared here - it's only cleared on entity add/remove
+
+    def invalidate_type_cache(self):
+        """Invalidate the type cache when entities are added or removed."""
         self._type_cache.clear()
+
+    def add_agent_to_grid(self, agent: Agent):
+        """Add a new agent to the spatial grid and invalidate caches."""
+        self.spatial_grid.add_agent(agent)
+        self.invalidate_type_cache()
+
+    def remove_agent_from_grid(self, agent: Agent):
+        """Remove an agent from the spatial grid and invalidate caches."""
+        self.spatial_grid.remove_agent(agent)
+        self.invalidate_type_cache()
 
     def update_agent_position(self, agent: Agent):
         """Update an agent's position in the spatial grid. Call when agent moves."""
