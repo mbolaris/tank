@@ -480,6 +480,12 @@ class SimulationRunner:
 
                     logger.info(f"Created human poker game {game_id} with {len(ai_fish)} AI opponents")
 
+                    # Return the initial game state to the frontend
+                    return {
+                        "success": True,
+                        "state": self.human_poker_game.get_state(),
+                    }
+
                 except Exception as e:
                     logger.error(f"Error starting poker game: {e}", exc_info=True)
                     return {
