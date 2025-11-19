@@ -10,6 +10,7 @@ from backend.models import EntityData, PokerEventData, PokerStatsData, Simulatio
 from core import entities
 from core.constants import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
 from core.human_poker_game import HumanPokerGame
+from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
 # Use absolute imports assuming tank/ is in PYTHONPATH
 from tank_world import TankWorld, TankWorldConfig
@@ -53,6 +54,9 @@ class SimulationRunner:
 
         # Human poker game management
         self.human_poker_game: Optional[HumanPokerGame] = None
+
+        # Auto-evaluation poker game management
+        self.auto_evaluate_game: Optional[AutoEvaluatePokerGame] = None
 
     def start(self):
         """Start the simulation in a background thread."""
@@ -515,3 +519,104 @@ class SimulationRunner:
 
                 result = self.human_poker_game.handle_action("human", action, amount)
                 return result
+
+            elif command == "auto_evaluate_poker":
+                # Start auto-evaluation poker game with top fish
+                logger.info("Starting auto-evaluation poker game...")
+                try:
+                    # Get top fish from leaderboard
+                    from core.entities import Fish
+
+                    fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+
+                    if len(fish_list) < 1:
+                        logger.warning("No fish available for auto-evaluation")
+                        return {
+                            "success": False,
+                            "error": "Need at least 1 fish to run auto-evaluation",
+                        }
+
+                    # Get top fish from leaderboard
+                    leaderboard = self.world.ecosystem.get_poker_leaderboard(
+                        fish_list=fish_list, limit=1, sort_by="net_energy"
+                    )
+
+                    # Find the top fish
+                    top_fish_entry = leaderboard[0] if leaderboard else None
+                    if not top_fish_entry:
+                        # Fallback to first fish
+                        fish = fish_list[0]
+                        fish_name = f"{fish.genome.behavior_algorithm.algorithm_id} (Gen {fish.generation})"
+                        fish_energy = fish.energy
+                        fish_poker_strategy = fish.genome.poker_strategy
+                    else:
+                        # Find the actual fish object
+                        fish = next(
+                            (f for f in fish_list if f.fish_id == top_fish_entry["fish_id"]),
+                            fish_list[0]
+                        )
+                        fish_name = f"{top_fish_entry['algorithm'][:20]} (Gen {top_fish_entry['generation']})"
+                        fish_energy = fish.energy
+                        fish_poker_strategy = fish.genome.poker_strategy
+
+                    # Create auto-evaluation game
+                    game_id = str(uuid.uuid4())
+                    standard_energy = data.get("standard_energy", 500.0) if data else 500.0
+                    max_hands = data.get("max_hands", 100) if data else 100
+
+                    self.auto_evaluate_game = AutoEvaluatePokerGame(
+                        game_id=game_id,
+                        fish_name=fish_name,
+                        fish_energy=fish_energy,
+                        fish_poker_strategy=fish_poker_strategy,
+                        standard_energy=standard_energy,
+                        max_hands=max_hands,
+                        small_blind=5.0,
+                        big_blind=10.0,
+                    )
+
+                    logger.info(
+                        f"Created auto-evaluation game {game_id} - "
+                        f"Fish: {fish_name} ({fish_energy:.1f} energy) vs Standard ({standard_energy:.1f} energy)"
+                    )
+
+                    # Run the evaluation (this will complete all hands)
+                    final_stats = self.auto_evaluate_game.run_evaluation()
+
+                    # Convert stats to dict for JSON serialization
+                    stats_dict = {
+                        "hands_played": final_stats.hands_played,
+                        "hands_remaining": final_stats.hands_remaining,
+                        "fish_energy": round(final_stats.fish_energy, 1),
+                        "standard_energy": round(final_stats.standard_energy, 1),
+                        "fish_wins": final_stats.fish_wins,
+                        "standard_wins": final_stats.standard_wins,
+                        "fish_total_won": round(final_stats.fish_total_won, 1),
+                        "fish_total_lost": round(final_stats.fish_total_lost, 1),
+                        "standard_total_won": round(final_stats.standard_total_won, 1),
+                        "standard_total_lost": round(final_stats.standard_total_lost, 1),
+                        "game_over": final_stats.game_over,
+                        "winner": final_stats.winner,
+                        "reason": final_stats.reason,
+                        "fish_name": fish_name,
+                        "fish_net_energy": round(final_stats.fish_total_won - final_stats.fish_total_lost, 1),
+                        "fish_win_rate": round(final_stats.fish_wins / final_stats.hands_played * 100, 1) if final_stats.hands_played > 0 else 0.0,
+                    }
+
+                    logger.info(
+                        f"Auto-evaluation complete: {final_stats.winner} wins! "
+                        f"Fish: {final_stats.fish_wins} wins, Standard: {final_stats.standard_wins} wins"
+                    )
+
+                    # Return the final stats to the frontend
+                    return {
+                        "success": True,
+                        "stats": stats_dict,
+                    }
+
+                except Exception as e:
+                    logger.error(f"Error running auto-evaluation: {e}", exc_info=True)
+                    return {
+                        "success": False,
+                        "error": f"Failed to run auto-evaluation: {str(e)}",
+                    }

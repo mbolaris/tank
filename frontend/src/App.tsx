@@ -11,6 +11,7 @@ import PokerEvents from './components/PokerEvents';
 import { PokerLeaderboard } from './components/PokerLeaderboard';
 import { PhylogeneticTree } from './components/PhylogeneticTree';
 import { PokerGame } from './components/PokerGame';
+import { AutoEvaluateDisplay } from './components/AutoEvaluateDisplay';
 import './App.css';
 
 function App() {
@@ -18,6 +19,11 @@ function App() {
   const [pokerGameState, setPokerGameState] = useState<any>(null);
   const [showPokerGame, setShowPokerGame] = useState(false);
   const [pokerLoading, setPokerLoading] = useState(false);
+
+  // Auto-evaluation state
+  const [autoEvaluateStats, setAutoEvaluateStats] = useState<any>(null);
+  const [showAutoEvaluate, setShowAutoEvaluate] = useState(false);
+  const [autoEvaluateLoading, setAutoEvaluateLoading] = useState(false);
 
   const handleStartPoker = async () => {
     try {
@@ -69,6 +75,36 @@ function App() {
   const handleClosePoker = () => {
     setShowPokerGame(false);
     setPokerGameState(null);
+  };
+
+  const handleAutoEvaluatePoker = async () => {
+    try {
+      setAutoEvaluateLoading(true);
+      setShowAutoEvaluate(true);
+
+      const response = await sendCommandWithResponse({
+        command: 'auto_evaluate_poker',
+        data: { standard_energy: 500, max_hands: 100 },
+      });
+
+      if (response.success === false) {
+        alert(response.error || 'Failed to run auto-evaluation');
+        setShowAutoEvaluate(false);
+      } else if (response.stats) {
+        setAutoEvaluateStats(response.stats);
+      }
+    } catch (error) {
+      console.error('Failed to run auto-evaluation:', error);
+      alert('Failed to run auto-evaluation. Please try again.');
+      setShowAutoEvaluate(false);
+    } finally {
+      setAutoEvaluateLoading(false);
+    }
+  };
+
+  const handleCloseAutoEvaluate = () => {
+    setShowAutoEvaluate(false);
+    setAutoEvaluateStats(null);
   };
 
   return (
@@ -131,6 +167,17 @@ function App() {
               />
             </div>
           )}
+
+          {/* Auto-Evaluation Display */}
+          {showAutoEvaluate && (
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
+              <AutoEvaluateDisplay
+                stats={autoEvaluateStats}
+                onClose={handleCloseAutoEvaluate}
+                loading={autoEvaluateLoading}
+              />
+            </div>
+          )}
         </div>
 
         <div className="sidebar">
@@ -138,6 +185,7 @@ function App() {
             onCommand={sendCommand}
             isConnected={isConnected}
             onPlayPoker={handleStartPoker}
+            onAutoEvaluatePoker={handleAutoEvaluatePoker}
           />
           <StatsPanel stats={state?.stats ?? null} />
         </div>

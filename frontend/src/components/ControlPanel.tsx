@@ -10,9 +10,10 @@ interface ControlPanelProps {
   onCommand: (command: Command) => void;
   isConnected: boolean;
   onPlayPoker?: () => void;
+  onAutoEvaluatePoker?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvaluatePoker }: ControlPanelProps) {
   const [isPaused, setIsPaused] = useState(false);
 
   const handleAddFood = () => {
@@ -48,6 +49,12 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPan
     }
   };
 
+  const handleAutoEvaluatePoker = () => {
+    if (onAutoEvaluatePoker) {
+      onAutoEvaluatePoker();
+    }
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Controls</h2>
@@ -74,6 +81,17 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPan
           }}
         >
           🃏 Play Poker
+        </button>
+
+        <button
+          onClick={handleAutoEvaluatePoker}
+          disabled={!isConnected}
+          style={{
+            ...styles.button,
+            ...styles.buttonEvaluate,
+          }}
+        >
+          📊 Auto-Evaluate Skill
         </button>
 
         <button
@@ -137,6 +155,9 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPan
         <ul style={styles.helpList}>
           <li>
             <strong>Play Poker:</strong> Play poker against the top 3 fish
+          </li>
+          <li>
+            <strong>Auto-Evaluate Skill:</strong> Test top fish against standard algorithm (100 hands)
           </li>
           <li>
             <strong>Add Food:</strong> Drop food into the tank
@@ -204,6 +225,11 @@ const styles = {
   },
   buttonPoker: {
     backgroundColor: '#8b5cf6',
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  buttonEvaluate: {
+    backgroundColor: '#06b6d4',
     color: '#ffffff',
     fontWeight: 'bold',
   },
