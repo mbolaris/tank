@@ -541,18 +541,20 @@ class ZigZagForager(BehaviorAlgorithm):
 
 @dataclass
 class CircularHunter(BehaviorAlgorithm):
-    """Circle around food before striking."""
+    """Circle around food before striking - IMPROVED for better survival."""
 
     def __init__(self):
         super().__init__(
             algorithm_id="circular_hunter",
             parameters={
-                "circle_radius": random.uniform(40, 100),
-                "circle_speed": random.uniform(0.05, 0.15),
-                "strike_threshold": random.uniform(0.3, 0.6),
+                "circle_radius": random.uniform(50, 80),
+                "approach_speed": random.uniform(0.9, 1.2),
+                "strike_distance": random.uniform(60, 100),
+                "exploration_speed": random.uniform(0.6, 0.9),
             },
         )
         self.circle_angle = 0
+        self.exploration_direction = random.uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls):
@@ -560,15 +562,31 @@ class CircularHunter(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        # Predator check
+        # Check energy status for smarter decisions
+        energy_ratio = fish.energy / fish.max_energy
+        is_desperate = energy_ratio < 0.3
+        is_low_energy = energy_ratio < 0.5
+
+        # Predator check - flee distance based on energy
         nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 110:
+        flee_distance = 80 if is_desperate else 110
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < flee_distance:
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
-            return direction.x * 1.3, direction.y * 1.3
+            # Conserve energy when desperate
+            flee_speed = 1.2 if is_desperate else 1.4
+            return direction.x * flee_speed, direction.y * flee_speed
 
         nearest_food = self._find_nearest(fish, Food)
         if not nearest_food:
-            return 0, 0
+            # CRITICAL FIX: Actively explore instead of stopping!
+            # Slowly change direction for more exploration coverage
+            self.exploration_direction += random.uniform(-0.3, 0.3)
+            exploration_vec = Vector2(
+                math.cos(self.exploration_direction),
+                math.sin(self.exploration_direction)
+            )
+            speed = self.parameters["exploration_speed"]
+            return exploration_vec.x * speed, exploration_vec.y * speed
 
         distance = (nearest_food.pos - fish.pos).length()
 
@@ -578,27 +596,35 @@ class CircularHunter(BehaviorAlgorithm):
             # Predict food position 10 frames ahead
             food_future_pos = nearest_food.pos + nearest_food.vel * 10
 
-        # Strike if close enough and angle is good
-        if distance < self.parameters["circle_radius"] * self.parameters["strike_threshold"]:
+        # IMPROVEMENT: Skip circling when desperate or very hungry
+        # Go straight for food when energy is low!
+        if is_desperate or is_low_energy:
+            direction = self._safe_normalize(food_future_pos - fish.pos)
+            speed = 1.3  # Fast, direct approach when hungry
+            return direction.x * speed, direction.y * speed
+
+        # IMPROVEMENT: Larger strike distance to actually catch food
+        if distance < self.parameters["strike_distance"]:
             direction = self._safe_normalize(food_future_pos - fish.pos)
             # Fast strike
             return direction.x * 1.5, direction.y * 1.5
 
-        # Tighten circle as we get closer
-        effective_radius = self.parameters["circle_radius"] * (distance / 150)
-        effective_radius = max(effective_radius, self.parameters["circle_radius"] * 0.5)
+        # Only circle when well-fed (this is the "hunting" behavior)
+        # IMPROVEMENT: Much faster circling to not waste time
+        if distance < 200:
+            self.circle_angle += 0.25  # Much faster than old 0.05-0.15!
 
-        # Circle around food with varying speed (faster when farther)
-        circle_speed = self.parameters["circle_speed"] * (1 + distance / 200)
-        self.circle_angle += circle_speed
-
-        target_x = nearest_food.pos.x + math.cos(self.circle_angle) * effective_radius
-        target_y = nearest_food.pos.y + math.sin(self.circle_angle) * effective_radius
-        target_vector = Vector2(target_x, target_y) - fish.pos
-        direction = self._safe_normalize(target_vector)
-        # Move faster when adjusting position
-        speed = 0.8 + min(target_vector.length() / 100, 0.5)
-        return direction.x * speed, direction.y * speed
+            target_x = nearest_food.pos.x + math.cos(self.circle_angle) * self.parameters["circle_radius"]
+            target_y = nearest_food.pos.y + math.sin(self.circle_angle) * self.parameters["circle_radius"]
+            target_vector = Vector2(target_x, target_y) - fish.pos
+            direction = self._safe_normalize(target_vector)
+            # Faster circling movement
+            speed = self.parameters["approach_speed"]
+            return direction.x * speed, direction.y * speed
+        else:
+            # Food is far - approach directly
+            direction = self._safe_normalize(food_future_pos - fish.pos)
+            return direction.x * self.parameters["approach_speed"], direction.y * self.parameters["approach_speed"]
 
 
 @dataclass
