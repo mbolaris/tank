@@ -13,6 +13,7 @@ from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
 
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm
+    from core.poker_strategy_algorithms import PokerStrategyAlgorithm
 
 
 class GeneticCrossoverMode(Enum):
@@ -85,6 +86,10 @@ class Genome:
     # This allows fish to have different algorithms for general movement vs poker decisions
     poker_algorithm: Optional["BehaviorAlgorithm"] = None
 
+    # Poker strategy algorithm (NEW: controls actual betting decisions)
+    # This is separate from poker_algorithm which controls movement when seeking/avoiding poker
+    poker_strategy_algorithm: Optional["PokerStrategyAlgorithm"] = None
+
     # Fitness tracking (NEW: for selection pressure)
     fitness_score: float = field(default=0.0)
 
@@ -117,12 +122,16 @@ class Genome:
         # Create random behavior algorithms
         algorithm = None
         poker_algorithm = None
+        poker_strategy_algorithm = None
         if use_algorithm:
             from core.algorithms import get_random_algorithm
+            from core.poker_strategy_algorithms import get_random_poker_strategy
 
             algorithm = get_random_algorithm()
             # Also create a random poker algorithm for mix-and-match evolution
             poker_algorithm = get_random_algorithm()
+            # Create random poker strategy for betting decisions
+            poker_strategy_algorithm = get_random_poker_strategy()
 
         return cls(
             speed_modifier=random.uniform(0.7, 1.3),
@@ -144,6 +153,7 @@ class Genome:
             pattern_type=random.randint(0, FISH_PATTERN_COUNT - 1),
             behavior_algorithm=algorithm,
             poker_algorithm=poker_algorithm,
+            poker_strategy_algorithm=poker_strategy_algorithm,
         )
 
     def update_fitness(
@@ -306,6 +316,22 @@ class Genome:
 
             poker_algorithm = get_random_algorithm()
 
+        # Handle poker strategy algorithm (betting decisions evolve independently)
+        poker_strategy_algorithm = None
+        if parent1.poker_strategy_algorithm is not None or parent2.poker_strategy_algorithm is not None:
+            from core.poker_strategy_algorithms import crossover_poker_strategies
+
+            poker_strategy_algorithm = crossover_poker_strategies(
+                parent1.poker_strategy_algorithm,
+                parent2.poker_strategy_algorithm,
+                mutation_rate=adaptive_mutation_rate * 1.2,
+                mutation_strength=adaptive_mutation_strength * 1.2,
+            )
+        else:
+            from core.poker_strategy_algorithms import get_random_poker_strategy
+
+            poker_strategy_algorithm = get_random_poker_strategy()
+
         # Weighted inheritance for template_id (discrete choice biased by weight)
         inherited_template = (
             parent1.template_id if random.random() < parent1_weight else parent2.template_id
@@ -372,6 +398,7 @@ class Genome:
             pattern_type=inherited_pattern,
             behavior_algorithm=algorithm,
             poker_algorithm=poker_algorithm,  # Mix-and-match poker algorithm evolution
+            poker_strategy_algorithm=poker_strategy_algorithm,  # Evolving poker betting strategy
             fitness_score=0.0,
             learned_behaviors={},
             epigenetic_modifiers=epigenetic,
@@ -509,6 +536,22 @@ class Genome:
 
             poker_algorithm = get_random_algorithm()
 
+        # Handle poker strategy algorithm inheritance (for betting decisions)
+        poker_strategy_algorithm = None
+        if parent1.poker_strategy_algorithm is not None or parent2.poker_strategy_algorithm is not None:
+            from core.poker_strategy_algorithms import crossover_poker_strategies
+
+            poker_strategy_algorithm = crossover_poker_strategies(
+                parent1.poker_strategy_algorithm,
+                parent2.poker_strategy_algorithm,
+                mutation_rate=adaptive_mutation_rate * 1.2,
+                mutation_strength=adaptive_mutation_strength * 1.2,
+            )
+        else:
+            from core.poker_strategy_algorithms import get_random_poker_strategy
+
+            poker_strategy_algorithm = get_random_poker_strategy()
+
         # Determine dominant genes randomly (for DOMINANT_RECESSIVE mode)
         speed_dominant = 0 if random.random() < 0.5 else 1
         size_dominant = 0 if random.random() < 0.5 else 1
@@ -588,6 +631,7 @@ class Genome:
             pattern_type=inherited_pattern,
             behavior_algorithm=algorithm,
             poker_algorithm=poker_algorithm,  # Mix-and-match poker algorithm
+            poker_strategy_algorithm=poker_strategy_algorithm,  # Evolving poker betting strategy
             fitness_score=0.0,  # New offspring starts with 0 fitness
             learned_behaviors={},  # Start with no learned behaviors
             epigenetic_modifiers=epigenetic,  # Inherit epigenetic effects
