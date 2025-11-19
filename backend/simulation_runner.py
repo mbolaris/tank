@@ -456,8 +456,8 @@ class SimulationRunner:
                             if len(ai_fish) >= 3:
                                 break
                             if fish.fish_id not in [f["fish_id"] for f in ai_fish]:
-                                from core.algorithms import get_algorithm_name
-                                algo_name = get_algorithm_name(fish.genome.behavior_algorithm)
+                                # Get algorithm name directly from the algorithm object
+                                algo_name = fish.genome.behavior_algorithm.algorithm_id
                                 ai_fish.append({
                                     "fish_id": fish.fish_id,
                                     "name": f"{algo_name[:15]} (Gen {fish.generation})",
