@@ -30,6 +30,7 @@ from core.jellyfish_poker import JellyfishPokerInteraction
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.entities import Agent, Fish, Jellyfish
+    from core.environment import Environment
 
 
 class BaseSimulator(ABC):
@@ -51,7 +52,7 @@ class BaseSimulator(ABC):
         self.paused: bool = False
         self.auto_food_timer: int = 0
         self.ecosystem: Optional[EcosystemManager] = None
-        self.environment: Optional[environment.Environment] = None
+        self.environment: Optional["Environment"] = None
 
     @abstractmethod
     def get_all_entities(self) -> List["Agent"]:
@@ -330,7 +331,7 @@ class BaseSimulator(ABC):
                 if fish.try_mate(potential_mate):
                     break  # Found a mate, stop looking
 
-    def spawn_auto_food(self, environment: "environment.Environment") -> None:
+    def spawn_auto_food(self, environment: "Environment") -> None:
         """Spawn automatic food if enabled.
 
         Dynamically adjusts spawn rate based on population size and total energy:

@@ -65,7 +65,7 @@ class TestAgent:
         try:
             agent1.avoid([agent2], min_distance=50)
             success = True
-        except Exception:
+        except Exception as e:
             success = False
 
         assert success, "Avoidance should handle zero-length vectors safely"
@@ -145,7 +145,7 @@ class TestFish:
         try:
             fish.update(0)
             success = True
-        except Exception:
+        except Exception as e:
             success = False
 
         assert success
