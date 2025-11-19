@@ -159,6 +159,9 @@ class HumanPokerGame:
             f"current player: {self.current_player_index}"
         )
 
+        # Process AI actions if first player to act is AI
+        self._process_ai_turns()
+
     def _player_bet(self, player_index: int, amount: float):
         """Record a player's bet.
 
@@ -424,19 +427,24 @@ class HumanPokerGame:
             self._next_player()
 
             # Process AI actions automatically
-            while not self.game_over and not self.players[self.current_player_index].is_human:
-                self._process_ai_action()
+            self._process_ai_turns()
 
         return {
             "success": True,
             "state": self.get_state(),
         }
 
-    def _process_ai_action(self):
-        """Process an AI player's action automatically."""
+    def _process_ai_turns(self):
+        """Process AI player actions until it's the human's turn or game is over."""
+        while not self.game_over and not self.players[self.current_player_index].is_human:
+            self._process_ai_action_internal()
+
+    def _process_ai_action_internal(self):
+        """Process an AI player's action internally without recursion."""
         player = self.players[self.current_player_index]
 
         if player.folded or self.game_over:
+            self._next_player()
             return
 
         # Evaluate hand
@@ -456,15 +464,43 @@ class HumanPokerGame:
             position_on_button=(self.current_player_index == self.button_index),
         )
 
-        # Convert BettingAction to string
+        # Process action directly without calling handle_action to avoid recursion
         if action == BettingAction.FOLD:
-            self.handle_action(player.player_id, "fold")
+            player.folded = True
+            self.betting_history.append({"player": player.name, "action": "fold", "amount": 0.0})
+            self.message = f"{player.name} folds"
+            # Check if only one player left
+            active_players = [p for p in self.players if not p.folded]
+            if len(active_players) == 1:
+                self._showdown()
+                return
+
         elif action == BettingAction.CHECK:
-            self.handle_action(player.player_id, "check")
+            self.betting_history.append({"player": player.name, "action": "check", "amount": 0.0})
+            self.message = f"{player.name} checks"
+
         elif action == BettingAction.CALL:
-            self.handle_action(player.player_id, "call")
+            if call_amount > player.energy:
+                call_amount = player.energy
+            self._player_bet(self.current_player_index, call_amount)
+            self.betting_history.append({"player": player.name, "action": "call", "amount": call_amount})
+            self.message = f"{player.name} calls {call_amount:.1f}"
+
         elif action == BettingAction.RAISE:
-            self.handle_action(player.player_id, "raise", bet_amount)
+            total_amount = call_amount + bet_amount
+            if total_amount > player.energy:
+                total_amount = player.energy
+            self._player_bet(self.current_player_index, total_amount)
+            self.betting_history.append({
+                "player": player.name,
+                "action": "raise" if call_amount > 0 else "bet",
+                "amount": total_amount
+            })
+            self.message = f"{player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.1f}"
+
+        # Move to next player
+        if not self.game_over:
+            self._next_player()
 
     def get_state(self) -> Dict[str, Any]:
         """Get current game state for frontend.
