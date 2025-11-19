@@ -43,6 +43,12 @@ class SimulationRunner:
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
 
+        # Performance: Throttle WebSocket updates to reduce serialization overhead
+        # Cache state and only rebuild every N frames (reduces from 30 FPS to 15 FPS)
+        self.websocket_update_interval = 2  # Send every 2 frames
+        self.frames_since_websocket_update = 0
+        self._cached_state: Optional[SimulationUpdate] = None
+
     def start(self):
         """Start the simulation in a background thread."""
         if not self.running:
@@ -92,9 +98,23 @@ class SimulationRunner:
     def get_state(self) -> SimulationUpdate:
         """Get current simulation state for WebSocket broadcast.
 
+        Uses caching to reduce serialization overhead - only rebuilds state
+        every N frames instead of every single frame.
+
         Returns:
             SimulationUpdate with current entities and stats
         """
+        # Check if we should rebuild state this frame
+        self.frames_since_websocket_update += 1
+        should_rebuild = self.frames_since_websocket_update >= self.websocket_update_interval
+
+        # Return cached state if available and not time to rebuild
+        if not should_rebuild and self._cached_state is not None:
+            return self._cached_state
+
+        # Reset counter and rebuild state
+        self.frames_since_websocket_update = 0
+
         with self.lock:
             entities_data = []
 
@@ -201,7 +221,7 @@ class SimulationRunner:
 
                 poker_leaderboard = [PokerLeaderboardEntry(**entry) for entry in leaderboard_data]
 
-            return SimulationUpdate(
+            state = SimulationUpdate(
                 frame=self.world.frame_count,
                 elapsed_time=(
                     self.world.engine.elapsed_time
@@ -213,6 +233,10 @@ class SimulationRunner:
                 poker_events=poker_events,
                 poker_leaderboard=poker_leaderboard,
             )
+
+            # Cache the state for reuse
+            self._cached_state = state
+            return state
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntityData]:
         """Convert an entity to EntityData.
