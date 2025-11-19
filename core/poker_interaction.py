@@ -19,7 +19,7 @@ import random
 from collections import Counter
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from core.constants import (
     POKER_MAX_ACTIONS_PER_ROUND,
@@ -40,6 +40,9 @@ from core.constants import (
     POKER_WEAK_ENERGY_FRACTION,
     POKER_WEAK_POT_MULTIPLIER,
 )
+
+if TYPE_CHECKING:
+    from core.poker_strategy_algorithms import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
 
@@ -754,6 +757,8 @@ class PokerEngine:
         player1_aggression: float = AGGRESSION_MEDIUM,
         player2_aggression: float = AGGRESSION_MEDIUM,
         button_position: int = 1,
+        player1_strategy: Optional["PokerStrategyAlgorithm"] = None,
+        player2_strategy: Optional["PokerStrategyAlgorithm"] = None,
     ) -> PokerGameState:
         """
         Simulate a complete multi-round Texas Hold'em poker game with blinds.
@@ -762,9 +767,11 @@ class PokerEngine:
             initial_bet: Base bet amount (used to calculate blinds)
             player1_energy: Player 1's available energy
             player2_energy: Player 2's available energy
-            player1_aggression: Player 1's aggression factor
-            player2_aggression: Player 2's aggression factor
+            player1_aggression: Player 1's aggression factor (fallback if no strategy)
+            player2_aggression: Player 2's aggression factor (fallback if no strategy)
             button_position: Which player has the button (1 or 2)
+            player1_strategy: Player 1's evolving poker strategy algorithm (optional)
+            player2_strategy: Player 2's evolving poker strategy algorithm (optional)
 
         Returns:
             PokerGameState with final game results
@@ -854,17 +861,36 @@ class PokerEngine:
                     else game_state.player2_hole_cards
                 )
 
-                action, bet_amount = PokerEngine.decide_action(
-                    hand=hand,
-                    current_bet=current_bet,
-                    opponent_bet=opponent_bet,
-                    pot=game_state.pot,
-                    player_energy=remaining_energy,
-                    aggression=aggression,
-                    hole_cards=hole_cards,
-                    community_cards=game_state.community_cards,
-                    position_on_button=player_on_button,
-                )
+                # Use poker strategy algorithm if available, otherwise fall back to aggression-based
+                player_strategy = player1_strategy if current_player == 1 else player2_strategy
+
+                if player_strategy is not None:
+                    # Use evolving poker strategy algorithm
+                    # Normalize hand strength from HandRank (0-9) to 0.0-1.0
+                    from core.constants import POKER_MAX_HAND_RANK
+                    hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
+
+                    action, bet_amount = player_strategy.decide_action(
+                        hand_strength=hand_strength,
+                        current_bet=current_bet,
+                        opponent_bet=opponent_bet,
+                        pot=game_state.pot,
+                        player_energy=remaining_energy,
+                        position_on_button=player_on_button,
+                    )
+                else:
+                    # Fall back to old aggression-based decision making
+                    action, bet_amount = PokerEngine.decide_action(
+                        hand=hand,
+                        current_bet=current_bet,
+                        opponent_bet=opponent_bet,
+                        pot=game_state.pot,
+                        player_energy=remaining_energy,
+                        aggression=aggression,
+                        hole_cards=hole_cards,
+                        community_cards=game_state.community_cards,
+                        position_on_button=player_on_button,
+                    )
 
                 # Record action
                 game_state.betting_history.append((current_player, action, bet_amount))
