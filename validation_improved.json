@@ -1,0 +1,2536 @@
+{
+  "simulation_metadata": {
+    "total_frames": 50000,
+    "total_sim_time_seconds": 1666.6666666666667,
+    "elapsed_real_time_seconds": 46.16049885749817,
+    "simulation_speed_multiplier": 36.10590617720289,
+    "max_population": 100
+  },
+  "population_summary": {
+    "total_births": 557,
+    "total_deaths": 525,
+    "current_generation": 27,
+    "final_population": 32
+  },
+  "death_causes": {
+    "predation": 3,
+    "starvation": 481,
+    "old_age": 41
+  },
+  "algorithm_registry": {
+    "greedy_food_seeker": {
+      "class_name": "GreedyFoodSeeker",
+      "algorithm_id": "greedy_food_seeker",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "energy_aware_food_seeker": {
+      "class_name": "EnergyAwareFoodSeeker",
+      "algorithm_id": "energy_aware_food_seeker",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "opportunistic_feeder": {
+      "class_name": "OpportunisticFeeder",
+      "algorithm_id": "opportunistic_feeder",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "food_quality_optimizer": {
+      "class_name": "FoodQualityOptimizer",
+      "algorithm_id": "food_quality_optimizer",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "ambush_feeder": {
+      "class_name": "AmbushFeeder",
+      "algorithm_id": "ambush_feeder",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "patrol_feeder": {
+      "class_name": "PatrolFeeder",
+      "algorithm_id": "patrol_feeder",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "surface_skimmer": {
+      "class_name": "SurfaceSkimmer",
+      "algorithm_id": "surface_skimmer",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "bottom_feeder": {
+      "class_name": "BottomFeeder",
+      "algorithm_id": "bottom_feeder",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "zigzag_forager": {
+      "class_name": "ZigZagForager",
+      "algorithm_id": "zigzag_forager",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "circular_hunter": {
+      "class_name": "CircularHunter",
+      "algorithm_id": "circular_hunter",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "food_memory_seeker": {
+      "class_name": "FoodMemorySeeker",
+      "algorithm_id": "food_memory_seeker",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "cooperative_forager": {
+      "class_name": "CooperativeForager",
+      "algorithm_id": "cooperative_forager",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "aggressive_hunter": {
+      "class_name": "AggressiveHunter",
+      "algorithm_id": "aggressive_hunter",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "spiral_forager": {
+      "class_name": "SpiralForager",
+      "algorithm_id": "spiral_forager",
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "module": "core.algorithms.food_seeking",
+      "category": "food_seeking"
+    },
+    "panic_flee": {
+      "class_name": "PanicFlee",
+      "algorithm_id": "panic_flee",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "stealthy_avoider": {
+      "class_name": "StealthyAvoider",
+      "algorithm_id": "stealthy_avoider",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "freeze_response": {
+      "class_name": "FreezeResponse",
+      "algorithm_id": "freeze_response",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "erratic_evader": {
+      "class_name": "ErraticEvader",
+      "algorithm_id": "erratic_evader",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "vertical_escaper": {
+      "class_name": "VerticalEscaper",
+      "algorithm_id": "vertical_escaper",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "group_defender": {
+      "class_name": "GroupDefender",
+      "algorithm_id": "group_defender",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "spiral_escape": {
+      "class_name": "SpiralEscape",
+      "algorithm_id": "spiral_escape",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "border_hugger": {
+      "class_name": "BorderHugger",
+      "algorithm_id": "border_hugger",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "perpendicular_escape": {
+      "class_name": "PerpendicularEscape",
+      "algorithm_id": "perpendicular_escape",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "distance_keeper": {
+      "class_name": "DistanceKeeper",
+      "algorithm_id": "distance_keeper",
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "module": "core.algorithms.predator_avoidance",
+      "category": "predator_avoidance"
+    },
+    "tight_schooler": {
+      "class_name": "TightSchooler",
+      "algorithm_id": "tight_schooler",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "loose_schooler": {
+      "class_name": "LooseSchooler",
+      "algorithm_id": "loose_schooler",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "leader_follower": {
+      "class_name": "LeaderFollower",
+      "algorithm_id": "leader_follower",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "alignment_matcher": {
+      "class_name": "AlignmentMatcher",
+      "algorithm_id": "alignment_matcher",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "separation_seeker": {
+      "class_name": "SeparationSeeker",
+      "algorithm_id": "separation_seeker",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "front_runner": {
+      "class_name": "FrontRunner",
+      "algorithm_id": "front_runner",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "perimeter_guard": {
+      "class_name": "PerimeterGuard",
+      "algorithm_id": "perimeter_guard",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "mirror_mover": {
+      "class_name": "MirrorMover",
+      "algorithm_id": "mirror_mover",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "boids_behavior": {
+      "class_name": "BoidsBehavior",
+      "algorithm_id": "boids_behavior",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "dynamic_schooler": {
+      "class_name": "DynamicSchooler",
+      "algorithm_id": "dynamic_schooler",
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "module": "core.algorithms.schooling",
+      "category": "schooling"
+    },
+    "energy_conserver": {
+      "class_name": "EnergyConserver",
+      "algorithm_id": "energy_conserver",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "burst_swimmer": {
+      "class_name": "BurstSwimmer",
+      "algorithm_id": "burst_swimmer",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "opportunistic_rester": {
+      "class_name": "OpportunisticRester",
+      "algorithm_id": "opportunistic_rester",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "energy_balancer": {
+      "class_name": "EnergyBalancer",
+      "algorithm_id": "energy_balancer",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "sustainable_cruiser": {
+      "class_name": "SustainableCruiser",
+      "algorithm_id": "sustainable_cruiser",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "starvation_preventer": {
+      "class_name": "StarvationPreventer",
+      "algorithm_id": "starvation_preventer",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "metabolic_optimizer": {
+      "class_name": "MetabolicOptimizer",
+      "algorithm_id": "metabolic_optimizer",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "adaptive_pacer": {
+      "class_name": "AdaptivePacer",
+      "algorithm_id": "adaptive_pacer",
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "module": "core.algorithms.energy_management",
+      "category": "energy_management"
+    },
+    "territorial_defender": {
+      "class_name": "TerritorialDefender",
+      "algorithm_id": "territorial_defender",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "random_explorer": {
+      "class_name": "RandomExplorer",
+      "algorithm_id": "random_explorer",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "wall_follower": {
+      "class_name": "WallFollower",
+      "algorithm_id": "wall_follower",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "corner_seeker": {
+      "class_name": "CornerSeeker",
+      "algorithm_id": "corner_seeker",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "center_hugger": {
+      "class_name": "CenterHugger",
+      "algorithm_id": "center_hugger",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "route_patroller": {
+      "class_name": "RoutePatroller",
+      "algorithm_id": "route_patroller",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "boundary_explorer": {
+      "class_name": "BoundaryExplorer",
+      "algorithm_id": "boundary_explorer",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "nomadic_wanderer": {
+      "class_name": "NomadicWanderer",
+      "algorithm_id": "nomadic_wanderer",
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "module": "core.algorithms.territory",
+      "category": "territory"
+    },
+    "poker_challenger": {
+      "class_name": "PokerChallenger",
+      "algorithm_id": "poker_challenger",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    },
+    "poker_dodger": {
+      "class_name": "PokerDodger",
+      "algorithm_id": "poker_dodger",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    },
+    "poker_gambler": {
+      "class_name": "PokerGambler",
+      "algorithm_id": "poker_gambler",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    },
+    "selective_poker": {
+      "class_name": "SelectivePoker",
+      "algorithm_id": "selective_poker",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    },
+    "poker_opportunist": {
+      "class_name": "PokerOpportunist",
+      "algorithm_id": "poker_opportunist",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    },
+    "poker_strategist": {
+      "class_name": "PokerStrategist",
+      "algorithm_id": "poker_strategist",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    },
+    "poker_bluffer": {
+      "class_name": "PokerBluffer",
+      "algorithm_id": "poker_bluffer",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    },
+    "poker_conservative": {
+      "class_name": "PokerConservative",
+      "algorithm_id": "poker_conservative",
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "module": "core.algorithms.poker",
+      "category": "poker"
+    }
+  },
+  "algorithm_performance": {
+    "greedy_food_seeker": {
+      "algorithm_id": 0,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "energy_aware_food_seeker": {
+      "algorithm_id": 1,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 471,
+      "total_deaths": 440,
+      "current_population": 31,
+      "avg_lifespan_frames": 1681.65,
+      "survival_rate": 0.06581740976645435,
+      "reproduction_rate": 1.2845010615711252,
+      "total_reproductions": 605,
+      "total_food_eaten": 2730,
+      "death_breakdown": {
+        "starvation": 407,
+        "old_age": 32,
+        "predation": 1
+      },
+      "energy_efficiency": 5.796178343949045,
+      "reproductive_success": 1.375
+    },
+    "opportunistic_feeder": {
+      "algorithm_id": 2,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "food_quality_optimizer": {
+      "algorithm_id": 3,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 2,
+      "total_deaths": 1,
+      "current_population": 1,
+      "avg_lifespan_frames": 7401.0,
+      "survival_rate": 0.5,
+      "reproduction_rate": 1.0,
+      "total_reproductions": 2,
+      "total_food_eaten": 168,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 1,
+        "predation": 0
+      },
+      "energy_efficiency": 84.0,
+      "reproductive_success": 2.0
+    },
+    "ambush_feeder": {
+      "algorithm_id": 4,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 5,
+      "total_deaths": 5,
+      "current_population": 0,
+      "avg_lifespan_frames": 1096.8,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.8,
+      "total_reproductions": 4,
+      "total_food_eaten": 4,
+      "death_breakdown": {
+        "starvation": 5,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.8,
+      "reproductive_success": 0.8
+    },
+    "patrol_feeder": {
+      "algorithm_id": 5,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 58.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "surface_skimmer": {
+      "algorithm_id": 6,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "bottom_feeder": {
+      "algorithm_id": 7,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 81.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 3,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 1
+      },
+      "energy_efficiency": 3.0,
+      "reproductive_success": 0.0
+    },
+    "zigzag_forager": {
+      "algorithm_id": 8,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "circular_hunter": {
+      "algorithm_id": 9,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "food_memory_seeker": {
+      "algorithm_id": 10,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 209.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "cooperative_forager": {
+      "algorithm_id": 11,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 227.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "aggressive_hunter": {
+      "algorithm_id": 12,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "spiral_forager": {
+      "algorithm_id": 13,
+      "source_file": "/home/user/tank/core/algorithms/food_seeking.py",
+      "category": "food_seeking",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 6148.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 118,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 1,
+        "predation": 0
+      },
+      "energy_efficiency": 118.0,
+      "reproductive_success": 0.0
+    },
+    "panic_flee": {
+      "algorithm_id": 14,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "stealthy_avoider": {
+      "algorithm_id": 15,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 685.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "freeze_response": {
+      "algorithm_id": 16,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 324.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "erratic_evader": {
+      "algorithm_id": 17,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "vertical_escaper": {
+      "algorithm_id": 18,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "group_defender": {
+      "algorithm_id": 19,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 2,
+      "total_deaths": 2,
+      "current_population": 0,
+      "avg_lifespan_frames": 2727.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.5,
+      "total_reproductions": 1,
+      "total_food_eaten": 9,
+      "death_breakdown": {
+        "starvation": 2,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 4.5,
+      "reproductive_success": 0.5
+    },
+    "spiral_escape": {
+      "algorithm_id": 20,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 11,
+      "total_deaths": 11,
+      "current_population": 0,
+      "avg_lifespan_frames": 2657.090909090909,
+      "survival_rate": 0.0,
+      "reproduction_rate": 1.0,
+      "total_reproductions": 11,
+      "total_food_eaten": 175,
+      "death_breakdown": {
+        "starvation": 8,
+        "old_age": 3,
+        "predation": 0
+      },
+      "energy_efficiency": 15.909090909090908,
+      "reproductive_success": 1.0
+    },
+    "border_hugger": {
+      "algorithm_id": 21,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 251.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "perpendicular_escape": {
+      "algorithm_id": 22,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "distance_keeper": {
+      "algorithm_id": 23,
+      "source_file": "/home/user/tank/core/algorithms/predator_avoidance.py",
+      "category": "predator_avoidance",
+      "total_births": 9,
+      "total_deaths": 9,
+      "current_population": 0,
+      "avg_lifespan_frames": 2069.1111111111113,
+      "survival_rate": 0.0,
+      "reproduction_rate": 1.2222222222222223,
+      "total_reproductions": 11,
+      "total_food_eaten": 60,
+      "death_breakdown": {
+        "starvation": 8,
+        "old_age": 1,
+        "predation": 0
+      },
+      "energy_efficiency": 6.666666666666667,
+      "reproductive_success": 1.2222222222222223
+    },
+    "tight_schooler": {
+      "algorithm_id": 24,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 3,
+      "total_deaths": 3,
+      "current_population": 0,
+      "avg_lifespan_frames": 825.3333333333334,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.3333333333333333,
+      "total_reproductions": 1,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 3,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.3333333333333333
+    },
+    "loose_schooler": {
+      "algorithm_id": 25,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "leader_follower": {
+      "algorithm_id": 26,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "alignment_matcher": {
+      "algorithm_id": 27,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 283.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "separation_seeker": {
+      "algorithm_id": 28,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "front_runner": {
+      "algorithm_id": 29,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 1269.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "perimeter_guard": {
+      "algorithm_id": 30,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 236.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 2,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 2.0,
+      "reproductive_success": 0.0
+    },
+    "mirror_mover": {
+      "algorithm_id": 31,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "boids_behavior": {
+      "algorithm_id": 32,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "dynamic_schooler": {
+      "algorithm_id": 33,
+      "source_file": "/home/user/tank/core/algorithms/schooling.py",
+      "category": "schooling",
+      "total_births": 11,
+      "total_deaths": 11,
+      "current_population": 0,
+      "avg_lifespan_frames": 1566.909090909091,
+      "survival_rate": 0.0,
+      "reproduction_rate": 1.0909090909090908,
+      "total_reproductions": 12,
+      "total_food_eaten": 46,
+      "death_breakdown": {
+        "starvation": 10,
+        "old_age": 1,
+        "predation": 0
+      },
+      "energy_efficiency": 4.181818181818182,
+      "reproductive_success": 1.0909090909090908
+    },
+    "energy_conserver": {
+      "algorithm_id": 34,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 813.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "burst_swimmer": {
+      "algorithm_id": 35,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 1320.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "opportunistic_rester": {
+      "algorithm_id": 36,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 2,
+      "total_deaths": 2,
+      "current_population": 0,
+      "avg_lifespan_frames": 1137.5,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 2,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "energy_balancer": {
+      "algorithm_id": 37,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 460.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "sustainable_cruiser": {
+      "algorithm_id": 38,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 4,
+      "total_deaths": 4,
+      "current_population": 0,
+      "avg_lifespan_frames": 1894.25,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.75,
+      "total_reproductions": 3,
+      "total_food_eaten": 8,
+      "death_breakdown": {
+        "starvation": 4,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 2.0,
+      "reproductive_success": 0.75
+    },
+    "starvation_preventer": {
+      "algorithm_id": 39,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 2,
+      "total_deaths": 2,
+      "current_population": 0,
+      "avg_lifespan_frames": 7701.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.5,
+      "total_reproductions": 1,
+      "total_food_eaten": 91,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 2,
+        "predation": 0
+      },
+      "energy_efficiency": 45.5,
+      "reproductive_success": 0.5
+    },
+    "metabolic_optimizer": {
+      "algorithm_id": 40,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 991.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "adaptive_pacer": {
+      "algorithm_id": 41,
+      "source_file": "/home/user/tank/core/algorithms/energy_management.py",
+      "category": "energy_management",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "territorial_defender": {
+      "algorithm_id": 42,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 852.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "random_explorer": {
+      "algorithm_id": 43,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 4682.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 13,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 1
+      },
+      "energy_efficiency": 13.0,
+      "reproductive_success": 0.0
+    },
+    "wall_follower": {
+      "algorithm_id": 44,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "corner_seeker": {
+      "algorithm_id": 45,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "center_hugger": {
+      "algorithm_id": 46,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 2,
+      "total_deaths": 2,
+      "current_population": 0,
+      "avg_lifespan_frames": 1074.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 2,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "route_patroller": {
+      "algorithm_id": 47,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "boundary_explorer": {
+      "algorithm_id": 48,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 2,
+      "total_deaths": 2,
+      "current_population": 0,
+      "avg_lifespan_frames": 229.5,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 2,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "nomadic_wanderer": {
+      "algorithm_id": 49,
+      "source_file": "/home/user/tank/core/algorithms/territory.py",
+      "category": "territory",
+      "total_births": 4,
+      "total_deaths": 4,
+      "current_population": 0,
+      "avg_lifespan_frames": 880.5,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.75,
+      "total_reproductions": 3,
+      "total_food_eaten": 17,
+      "death_breakdown": {
+        "starvation": 4,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 4.25,
+      "reproductive_success": 0.75
+    },
+    "poker_challenger": {
+      "algorithm_id": 50,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 3,
+      "total_deaths": 3,
+      "current_population": 0,
+      "avg_lifespan_frames": 982.3333333333334,
+      "survival_rate": 0.0,
+      "reproduction_rate": 1.0,
+      "total_reproductions": 3,
+      "total_food_eaten": 8,
+      "death_breakdown": {
+        "starvation": 3,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 2.6666666666666665,
+      "reproductive_success": 1.0
+    },
+    "poker_dodger": {
+      "algorithm_id": 51,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "poker_gambler": {
+      "algorithm_id": 52,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 65.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "selective_poker": {
+      "algorithm_id": 53,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 3,
+      "total_deaths": 3,
+      "current_population": 0,
+      "avg_lifespan_frames": 1819.3333333333333,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.6666666666666666,
+      "total_reproductions": 2,
+      "total_food_eaten": 111,
+      "death_breakdown": {
+        "starvation": 3,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 37.0,
+      "reproductive_success": 0.6666666666666666
+    },
+    "poker_opportunist": {
+      "algorithm_id": 54,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 0,
+      "total_deaths": 0,
+      "current_population": 0,
+      "avg_lifespan_frames": 0.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 0,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "poker_strategist": {
+      "algorithm_id": 55,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 569.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    },
+    "poker_bluffer": {
+      "algorithm_id": 56,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 3840.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 4.0,
+      "total_reproductions": 4,
+      "total_food_eaten": 51,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 51.0,
+      "reproductive_success": 4.0
+    },
+    "poker_conservative": {
+      "algorithm_id": 57,
+      "source_file": "/home/user/tank/core/algorithms/poker.py",
+      "category": "poker",
+      "total_births": 1,
+      "total_deaths": 1,
+      "current_population": 0,
+      "avg_lifespan_frames": 352.0,
+      "survival_rate": 0.0,
+      "reproduction_rate": 0.0,
+      "total_reproductions": 0,
+      "total_food_eaten": 0,
+      "death_breakdown": {
+        "starvation": 1,
+        "old_age": 0,
+        "predation": 0
+      },
+      "energy_efficiency": 0.0,
+      "reproductive_success": 0.0
+    }
+  },
+  "poker_statistics": {
+    "energy_aware_food_seeker": {
+      "algorithm_id": 1,
+      "total_games": 7803,
+      "win_rate": 0.49070870178136616,
+      "fold_rate": 0.33141099577085736,
+      "net_energy": -7545.658841246788,
+      "roi": -0.9670202282771739,
+      "vpip": 1.0,
+      "aggression_factor": 1.173661694993641,
+      "showdown_win_rate": 0.4997978164173069,
+      "bluff_success_rate": 0.5006758061401815,
+      "positional_advantage": -0.6277714254417568
+    },
+    "food_quality_optimizer": {
+      "algorithm_id": 3,
+      "total_games": 19,
+      "win_rate": 0.631578947368421,
+      "fold_rate": 0.3157894736842105,
+      "net_energy": -55.94248241225907,
+      "roi": -2.9443411795925827,
+      "vpip": 1.0,
+      "aggression_factor": 2.2857142857142856,
+      "showdown_win_rate": 0.5,
+      "bluff_success_rate": 0.6470588235294118,
+      "positional_advantage": 0.06666666666666665
+    },
+    "ambush_feeder": {
+      "algorithm_id": 4,
+      "total_games": 36,
+      "win_rate": 0.5,
+      "fold_rate": 0.3055555555555556,
+      "net_energy": -52.98436043219461,
+      "roi": -1.4717877897831837,
+      "vpip": 1.0,
+      "aggression_factor": 0.9047619047619048,
+      "showdown_win_rate": 0.46153846153846156,
+      "bluff_success_rate": 0.5217391304347826,
+      "positional_advantage": -0.17142857142857137
+    },
+    "patrol_feeder": {
+      "algorithm_id": 5,
+      "total_games": 1,
+      "win_rate": 0.0,
+      "fold_rate": 1.0,
+      "net_energy": -82.5848128057124,
+      "roi": -82.5848128057124,
+      "vpip": 1.0,
+      "aggression_factor": 0.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.0,
+      "positional_advantage": 0.0
+    },
+    "food_memory_seeker": {
+      "algorithm_id": 10,
+      "total_games": 2,
+      "win_rate": 0.5,
+      "fold_rate": 0.5,
+      "net_energy": -25.782912034898867,
+      "roi": -12.891456017449434,
+      "vpip": 1.0,
+      "aggression_factor": 0.6666666666666666,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.5,
+      "positional_advantage": 1.0
+    },
+    "cooperative_forager": {
+      "algorithm_id": 11,
+      "total_games": 3,
+      "win_rate": 0.3333333333333333,
+      "fold_rate": 0.6666666666666666,
+      "net_energy": -24.11098066629921,
+      "roi": -8.03699355543307,
+      "vpip": 1.0,
+      "aggression_factor": 0.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.3333333333333333,
+      "positional_advantage": -0.5
+    },
+    "spiral_forager": {
+      "algorithm_id": 13,
+      "total_games": 7,
+      "win_rate": 0.7142857142857143,
+      "fold_rate": 0.2857142857142857,
+      "net_energy": 66.82952285526359,
+      "roi": 9.547074693609085,
+      "vpip": 1.0,
+      "aggression_factor": 3.5,
+      "showdown_win_rate": 1.0,
+      "bluff_success_rate": 0.6666666666666666,
+      "positional_advantage": -0.5
+    },
+    "stealthy_avoider": {
+      "algorithm_id": 15,
+      "total_games": 4,
+      "win_rate": 0.25,
+      "fold_rate": 0.5,
+      "net_energy": -12.91447894969853,
+      "roi": -3.2286197374246326,
+      "vpip": 1.0,
+      "aggression_factor": 2.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.3333333333333333,
+      "positional_advantage": 1.0
+    },
+    "freeze_response": {
+      "algorithm_id": 16,
+      "total_games": 2,
+      "win_rate": 0.0,
+      "fold_rate": 0.5,
+      "net_energy": -20.467610900672057,
+      "roi": -10.233805450336028,
+      "vpip": 1.0,
+      "aggression_factor": 1.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.0,
+      "positional_advantage": 0.0
+    },
+    "group_defender": {
+      "algorithm_id": 19,
+      "total_games": 11,
+      "win_rate": 0.6363636363636364,
+      "fold_rate": 0.2727272727272727,
+      "net_energy": 33.51036090747643,
+      "roi": 3.0463964461342212,
+      "vpip": 1.0,
+      "aggression_factor": 26.0,
+      "showdown_win_rate": 0.5,
+      "bluff_success_rate": 0.6666666666666666,
+      "positional_advantage": -0.30000000000000004
+    },
+    "spiral_escape": {
+      "algorithm_id": 20,
+      "total_games": 143,
+      "win_rate": 0.5384615384615384,
+      "fold_rate": 0.3706293706293706,
+      "net_energy": -169.61622300959343,
+      "roi": -1.1861274336335204,
+      "vpip": 1.0,
+      "aggression_factor": 2.15,
+      "showdown_win_rate": 0.6176470588235294,
+      "bluff_success_rate": 0.5137614678899083,
+      "positional_advantage": 0.03231492361927146
+    },
+    "distance_keeper": {
+      "algorithm_id": 23,
+      "total_games": 114,
+      "win_rate": 0.5087719298245614,
+      "fold_rate": 0.32456140350877194,
+      "net_energy": -59.65534187290626,
+      "roi": -0.5232924725693532,
+      "vpip": 1.0,
+      "aggression_factor": 2.060344827586207,
+      "showdown_win_rate": 0.5,
+      "bluff_success_rate": 0.5131578947368421,
+      "positional_advantage": -0.5860862806062961
+    },
+    "tight_schooler": {
+      "algorithm_id": 24,
+      "total_games": 22,
+      "win_rate": 0.5,
+      "fold_rate": 0.36363636363636365,
+      "net_energy": -19.529876038760634,
+      "roi": -0.8877216381254833,
+      "vpip": 1.0,
+      "aggression_factor": 0.5,
+      "showdown_win_rate": 0.8,
+      "bluff_success_rate": 0.4666666666666667,
+      "positional_advantage": 0.08333333333333337
+    },
+    "perimeter_guard": {
+      "algorithm_id": 30,
+      "total_games": 3,
+      "win_rate": 0.3333333333333333,
+      "fold_rate": 0.6666666666666666,
+      "net_energy": -133.1229096021328,
+      "roi": -44.37430320071093,
+      "vpip": 1.0,
+      "aggression_factor": 0.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.3333333333333333,
+      "positional_advantage": -0.3333333333333333
+    },
+    "dynamic_schooler": {
+      "algorithm_id": 33,
+      "total_games": 153,
+      "win_rate": 0.45098039215686275,
+      "fold_rate": 0.37254901960784315,
+      "net_energy": -685.8944319410459,
+      "roi": -4.482970143405529,
+      "vpip": 1.0,
+      "aggression_factor": 1.7073170731707317,
+      "showdown_win_rate": 0.45652173913043476,
+      "bluff_success_rate": 0.45714285714285713,
+      "positional_advantage": -0.3238721804511278
+    },
+    "energy_conserver": {
+      "algorithm_id": 34,
+      "total_games": 3,
+      "win_rate": 0.6666666666666666,
+      "fold_rate": 0.0,
+      "net_energy": -5.049184024370617,
+      "roi": -1.6830613414568723,
+      "vpip": 1.0,
+      "aggression_factor": 3.0,
+      "showdown_win_rate": 0.5,
+      "bluff_success_rate": 1.0,
+      "positional_advantage": 0.6666666666666666
+    },
+    "burst_swimmer": {
+      "algorithm_id": 35,
+      "total_games": 4,
+      "win_rate": 0.75,
+      "fold_rate": 0.0,
+      "net_energy": 11.993832477460892,
+      "roi": 2.998458119365223,
+      "vpip": 1.0,
+      "aggression_factor": 1.0,
+      "showdown_win_rate": 0.5,
+      "bluff_success_rate": 1.0,
+      "positional_advantage": 0.33333333333333337
+    },
+    "opportunistic_rester": {
+      "algorithm_id": 36,
+      "total_games": 10,
+      "win_rate": 0.4,
+      "fold_rate": 0.5,
+      "net_energy": -24.509337634642087,
+      "roi": -2.4509337634642088,
+      "vpip": 1.0,
+      "aggression_factor": 0.6,
+      "showdown_win_rate": 0.6666666666666666,
+      "bluff_success_rate": 0.2857142857142857,
+      "positional_advantage": 0.39999999999999997
+    },
+    "energy_balancer": {
+      "algorithm_id": 37,
+      "total_games": 2,
+      "win_rate": 0.0,
+      "fold_rate": 0.5,
+      "net_energy": -8.606501961729132,
+      "roi": -4.303250980864566,
+      "vpip": 1.0,
+      "aggression_factor": 0.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.0,
+      "positional_advantage": 0.0
+    },
+    "sustainable_cruiser": {
+      "algorithm_id": 38,
+      "total_games": 30,
+      "win_rate": 0.5,
+      "fold_rate": 0.3333333333333333,
+      "net_energy": -22.152580858558927,
+      "roi": -0.7384193619519642,
+      "vpip": 1.0,
+      "aggression_factor": 1.8695652173913044,
+      "showdown_win_rate": 0.3333333333333333,
+      "bluff_success_rate": 0.5652173913043478,
+      "positional_advantage": -0.3383838383838384
+    },
+    "starvation_preventer": {
+      "algorithm_id": 39,
+      "total_games": 24,
+      "win_rate": 0.5416666666666666,
+      "fold_rate": 0.3333333333333333,
+      "net_energy": 98.1040197112903,
+      "roi": 4.087667487970429,
+      "vpip": 1.0,
+      "aggression_factor": 0.7333333333333333,
+      "showdown_win_rate": 0.5,
+      "bluff_success_rate": 0.5555555555555556,
+      "positional_advantage": 0.006993006993006978
+    },
+    "territorial_defender": {
+      "algorithm_id": 42,
+      "total_games": 3,
+      "win_rate": 0.3333333333333333,
+      "fold_rate": 0.3333333333333333,
+      "net_energy": -1.2276741393314687,
+      "roi": -0.4092247131104896,
+      "vpip": 1.0,
+      "aggression_factor": 0.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.5,
+      "positional_advantage": 1.0
+    },
+    "random_explorer": {
+      "algorithm_id": 43,
+      "total_games": 4,
+      "win_rate": 0.5,
+      "fold_rate": 0.0,
+      "net_energy": 9.292813963315258,
+      "roi": 2.3232034908288144,
+      "vpip": 1.0,
+      "aggression_factor": 1.0,
+      "showdown_win_rate": 0.5,
+      "bluff_success_rate": 0.0,
+      "positional_advantage": -0.5
+    },
+    "center_hugger": {
+      "algorithm_id": 46,
+      "total_games": 1,
+      "win_rate": 0.0,
+      "fold_rate": 1.0,
+      "net_energy": -13.350719666374586,
+      "roi": -13.350719666374586,
+      "vpip": 1.0,
+      "aggression_factor": 0.0,
+      "showdown_win_rate": 0.0,
+      "bluff_success_rate": 0.0,
+      "positional_advantage": 0.0
+    },
+    "nomadic_wanderer": {
+      "algorithm_id": 49,
+      "total_games": 16,
+      "win_rate": 0.25,
+      "fold_rate": 0.4375,
+      "net_energy": -76.66336932888508,
+      "roi": -4.791460583055318,
+      "vpip": 1.0,
+      "aggression_factor": 0.7272727272727273,
+      "showdown_win_rate": 0.2,
+      "bluff_success_rate": 0.3,
+      "positional_advantage": -0.30357142857142855
+    },
+    "poker_challenger": {
+      "algorithm_id": 50,
+      "total_games": 20,
+      "win_rate": 0.65,
+      "fold_rate": 0.15,
+      "net_energy": -50.06214495569759,
+      "roi": -2.5031072477848797,
+      "vpip": 1.0,
+      "aggression_factor": 1.6666666666666667,
+      "showdown_win_rate": 0.75,
+      "bluff_success_rate": 0.7,
+      "positional_advantage": -0.22077922077922074
+    },
+    "poker_gambler": {
+      "algorithm_id": 52,
+      "total_games": 2,
+      "win_rate": 0.5,
+      "fold_rate": 0.5,
+      "net_energy": -82.8318460592461,
+      "roi": -41.41592302962305,
+      "vpip": 1.0,
+      "aggression_factor": 2.0,
+      "showdown_win_rate": 1.0,
+      "bluff_success_rate": 0.0,
+      "positional_advantage": -1.0
+    },
+    "selective_poker": {
+      "algorithm_id": 53,
+      "total_games": 37,
+      "win_rate": 0.35135135135135137,
+      "fold_rate": 0.43243243243243246,
+      "net_energy": -379.56048721603645,
+      "roi": -10.258391546379363,
+      "vpip": 1.0,
+      "aggression_factor": 2.3333333333333335,
+      "showdown_win_rate": 0.375,
+      "bluff_success_rate": 0.38461538461538464,
+      "positional_advantage": 0.08771929824561403
+    }
+  },
+  "generation_trends": [
+    {
+      "generation": 0,
+      "population": 0,
+      "births": 21,
+      "deaths": 21,
+      "avg_age": 2446.190476190476,
+      "avg_speed": 1.043163431452145,
+      "avg_size": 0.7769608528598881,
+      "avg_energy": 1.208239530847104
+    },
+    {
+      "generation": 1,
+      "population": 0,
+      "births": 19,
+      "deaths": 19,
+      "avg_age": 1841.4736842105262,
+      "avg_speed": 0.9137571405895917,
+      "avg_size": 0.9609611533083835,
+      "avg_energy": 1.322132563985039
+    },
+    {
+      "generation": 2,
+      "population": 0,
+      "births": 13,
+      "deaths": 13,
+      "avg_age": 2191.4615384615386,
+      "avg_speed": 1.0681166111624858,
+      "avg_size": 0.8258906203123388,
+      "avg_energy": 1.307299069551715
+    },
+    {
+      "generation": 3,
+      "population": 0,
+      "births": 12,
+      "deaths": 12,
+      "avg_age": 2095.75,
+      "avg_speed": 1.0738339247776896,
+      "avg_size": 0.8523401934148197,
+      "avg_energy": 1.2800970963152598
+    },
+    {
+      "generation": 4,
+      "population": 0,
+      "births": 11,
+      "deaths": 11,
+      "avg_age": 1830.090909090909,
+      "avg_speed": 1.0746915218199702,
+      "avg_size": 0.7963704368823343,
+      "avg_energy": 1.149074258559668
+    },
+    {
+      "generation": 5,
+      "population": 0,
+      "births": 22,
+      "deaths": 22,
+      "avg_age": 1986.8636363636363,
+      "avg_speed": 1.0556720391009722,
+      "avg_size": 0.8058548291969782,
+      "avg_energy": 1.1383829227675437
+    },
+    {
+      "generation": 6,
+      "population": 0,
+      "births": 20,
+      "deaths": 20,
+      "avg_age": 1664.9,
+      "avg_speed": 1.0844605551054982,
+      "avg_size": 0.8143964139805815,
+      "avg_energy": 1.2093954041636101
+    },
+    {
+      "generation": 7,
+      "population": 0,
+      "births": 17,
+      "deaths": 17,
+      "avg_age": 1626.3529411764705,
+      "avg_speed": 1.0738339247776896,
+      "avg_size": 0.8855793141180898,
+      "avg_energy": 1.2800970963152598
+    },
+    {
+      "generation": 8,
+      "population": 0,
+      "births": 16,
+      "deaths": 16,
+      "avg_age": 1526.3125,
+      "avg_speed": 1.0771520816269238,
+      "avg_size": 0.8674778651092885,
+      "avg_energy": 1.1155042603216978
+    },
+    {
+      "generation": 9,
+      "population": 0,
+      "births": 16,
+      "deaths": 16,
+      "avg_age": 2125.6875,
+      "avg_speed": 1.0804721280118375,
+      "avg_size": 0.8713570526685119,
+      "avg_energy": 1.2279977051531614
+    },
+    {
+      "generation": 10,
+      "population": 0,
+      "births": 20,
+      "deaths": 20,
+      "avg_age": 2097.8,
+      "avg_speed": 1.1061715205163325,
+      "avg_size": 0.9427475120618135,
+      "avg_energy": 1.4264488600390273
+    },
+    {
+      "generation": 11,
+      "population": 0,
+      "births": 24,
+      "deaths": 24,
+      "avg_age": 1541.0416666666667,
+      "avg_speed": 1.1433275978136537,
+      "avg_size": 0.8889964133512491,
+      "avg_energy": 1.4220186971960562
+    },
+    {
+      "generation": 12,
+      "population": 0,
+      "births": 26,
+      "deaths": 26,
+      "avg_age": 1371.0384615384614,
+      "avg_speed": 1.1412704311335902,
+      "avg_size": 0.9173506005232648,
+      "avg_energy": 1.5
+    },
+    {
+      "generation": 13,
+      "population": 0,
+      "births": 22,
+      "deaths": 22,
+      "avg_age": 2001.4545454545455,
+      "avg_speed": 1.1055834302341019,
+      "avg_size": 0.9289421527536855,
+      "avg_energy": 1.4621774234302776
+    },
+    {
+      "generation": 14,
+      "population": 0,
+      "births": 23,
+      "deaths": 23,
+      "avg_age": 1926.608695652174,
+      "avg_speed": 1.1095134437840182,
+      "avg_size": 0.9257162038351159,
+      "avg_energy": 1.4267232768387217
+    },
+    {
+      "generation": 15,
+      "population": 0,
+      "births": 21,
+      "deaths": 21,
+      "avg_age": 2358.0,
+      "avg_speed": 1.2320803662608264,
+      "avg_size": 0.9224783849936837,
+      "avg_energy": 1.4024800535917588
+    },
+    {
+      "generation": 16,
+      "population": 0,
+      "births": 27,
+      "deaths": 27,
+      "avg_age": 1588.037037037037,
+      "avg_speed": 1.1352519402279722,
+      "avg_size": 0.9457404778260514,
+      "avg_energy": 1.3938353533184324
+    },
+    {
+      "generation": 17,
+      "population": 0,
+      "births": 26,
+      "deaths": 26,
+      "avg_age": 1422.6923076923076,
+      "avg_speed": 1.2136306296411612,
+      "avg_size": 0.9193041426216397,
+      "avg_energy": 1.3858312410423608
+    },
+    {
+      "generation": 18,
+      "population": 0,
+      "births": 25,
+      "deaths": 25,
+      "avg_age": 2375.6,
+      "avg_speed": 1.3278091439093944,
+      "avg_size": 0.9150921561038411,
+      "avg_energy": 1.376623357238592
+    },
+    {
+      "generation": 19,
+      "population": 0,
+      "births": 37,
+      "deaths": 37,
+      "avg_age": 1493.945945945946,
+      "avg_speed": 1.2117634133141904,
+      "avg_size": 0.9186271710564597,
+      "avg_energy": 1.4828289545902102
+    },
+    {
+      "generation": 20,
+      "population": 1,
+      "births": 25,
+      "deaths": 24,
+      "avg_age": 1399.5416666666667,
+      "avg_speed": 1.185598964392769,
+      "avg_size": 0.8421088470780755,
+      "avg_energy": 1.3858690463522083
+    },
+    {
+      "generation": 21,
+      "population": 1,
+      "births": 25,
+      "deaths": 24,
+      "avg_age": 1225.2499999999998,
+      "avg_speed": 1.2237037107573017,
+      "avg_size": 0.9246426450793819,
+      "avg_energy": 1.3814997493961554
+    },
+    {
+      "generation": 22,
+      "population": 4,
+      "births": 20,
+      "deaths": 16,
+      "avg_age": 1708.8125,
+      "avg_speed": 1.3837227780926842,
+      "avg_size": 0.8972280519660771,
+      "avg_energy": 1.3676661771961163
+    },
+    {
+      "generation": 23,
+      "population": 8,
+      "births": 28,
+      "deaths": 20,
+      "avg_age": 895.5,
+      "avg_speed": 1.362488567628361,
+      "avg_size": 0.8819149604948188,
+      "avg_energy": 1.3828837150160838
+    },
+    {
+      "generation": 24,
+      "population": 8,
+      "births": 22,
+      "deaths": 14,
+      "avg_age": 572.3571428571429,
+      "avg_speed": 1.2896401062664755,
+      "avg_size": 0.9023450808616535,
+      "avg_energy": 1.3698405015957908
+    },
+    {
+      "generation": 25,
+      "population": 4,
+      "births": 9,
+      "deaths": 5,
+      "avg_age": 424.4,
+      "avg_speed": 1.3454479298451525,
+      "avg_size": 0.890705857154959,
+      "avg_energy": 1.359371113348557
+    },
+    {
+      "generation": 26,
+      "population": 5,
+      "births": 8,
+      "deaths": 3,
+      "avg_age": 250.0,
+      "avg_speed": 1.351375877980381,
+      "avg_size": 0.9034223037488248,
+      "avg_energy": 1.3593895051737865
+    },
+    {
+      "generation": 27,
+      "population": 1,
+      "births": 2,
+      "deaths": 1,
+      "avg_age": 0.0,
+      "avg_speed": 1.3239844114817538,
+      "avg_size": 0.8940761913912143,
+      "avg_energy": 1.3364005437675177
+    }
+  ],
+  "recommendations": {
+    "top_performers": [
+      {
+        "algorithm_name": "energy_aware_food_seeker",
+        "algorithm_id": 1,
+        "reproduction_rate": 1.2845010615711252,
+        "avg_lifespan": 1681.65,
+        "survival_rate": 0.06581740976645435,
+        "reason": "High reproduction rate (128.45%) and survival"
+      },
+      {
+        "algorithm_name": "distance_keeper",
+        "algorithm_id": 23,
+        "reproduction_rate": 1.2222222222222223,
+        "avg_lifespan": 2069.1111111111113,
+        "survival_rate": 0.0,
+        "reason": "High reproduction rate (122.22%) and survival"
+      },
+      {
+        "algorithm_name": "dynamic_schooler",
+        "algorithm_id": 33,
+        "reproduction_rate": 1.0909090909090908,
+        "avg_lifespan": 1566.909090909091,
+        "survival_rate": 0.0,
+        "reason": "High reproduction rate (109.09%) and survival"
+      },
+      {
+        "algorithm_name": "spiral_escape",
+        "algorithm_id": 20,
+        "reproduction_rate": 1.0,
+        "avg_lifespan": 2657.090909090909,
+        "survival_rate": 0.0,
+        "reason": "High reproduction rate (100.00%) and survival"
+      },
+      {
+        "algorithm_name": "ambush_feeder",
+        "algorithm_id": 4,
+        "reproduction_rate": 0.8,
+        "avg_lifespan": 1096.8,
+        "survival_rate": 0.0,
+        "reason": "High reproduction rate (80.00%) and survival"
+      }
+    ],
+    "worst_performers": [
+      {
+        "algorithm_name": "ambush_feeder",
+        "algorithm_id": 4,
+        "reproduction_rate": 0.8,
+        "avg_lifespan": 1096.8,
+        "main_death_cause": "starvation",
+        "reason": "Low reproduction rate (80.00%), main death: starvation"
+      },
+      {
+        "algorithm_name": "spiral_escape",
+        "algorithm_id": 20,
+        "reproduction_rate": 1.0,
+        "avg_lifespan": 2657.090909090909,
+        "main_death_cause": "starvation",
+        "reason": "Low reproduction rate (100.00%), main death: starvation"
+      },
+      {
+        "algorithm_name": "dynamic_schooler",
+        "algorithm_id": 33,
+        "reproduction_rate": 1.0909090909090908,
+        "avg_lifespan": 1566.909090909091,
+        "main_death_cause": "starvation",
+        "reason": "Low reproduction rate (109.09%), main death: starvation"
+      },
+      {
+        "algorithm_name": "distance_keeper",
+        "algorithm_id": 23,
+        "reproduction_rate": 1.2222222222222223,
+        "avg_lifespan": 2069.1111111111113,
+        "main_death_cause": "starvation",
+        "reason": "Low reproduction rate (122.22%), main death: starvation"
+      },
+      {
+        "algorithm_name": "energy_aware_food_seeker",
+        "algorithm_id": 1,
+        "reproduction_rate": 1.2845010615711252,
+        "avg_lifespan": 1681.65,
+        "main_death_cause": "starvation",
+        "reason": "Low reproduction rate (128.45%), main death: starvation"
+      }
+    ],
+    "extinct_algorithms": [
+      {
+        "algorithm_name": "ambush_feeder",
+        "algorithm_id": 4,
+        "total_births": 5,
+        "avg_lifespan": 1096.8
+      },
+      {
+        "algorithm_name": "patrol_feeder",
+        "algorithm_id": 5,
+        "total_births": 1,
+        "avg_lifespan": 58.0
+      },
+      {
+        "algorithm_name": "bottom_feeder",
+        "algorithm_id": 7,
+        "total_births": 1,
+        "avg_lifespan": 81.0
+      },
+      {
+        "algorithm_name": "food_memory_seeker",
+        "algorithm_id": 10,
+        "total_births": 1,
+        "avg_lifespan": 209.0
+      },
+      {
+        "algorithm_name": "cooperative_forager",
+        "algorithm_id": 11,
+        "total_births": 1,
+        "avg_lifespan": 227.0
+      },
+      {
+        "algorithm_name": "spiral_forager",
+        "algorithm_id": 13,
+        "total_births": 1,
+        "avg_lifespan": 6148.0
+      },
+      {
+        "algorithm_name": "stealthy_avoider",
+        "algorithm_id": 15,
+        "total_births": 1,
+        "avg_lifespan": 685.0
+      },
+      {
+        "algorithm_name": "freeze_response",
+        "algorithm_id": 16,
+        "total_births": 1,
+        "avg_lifespan": 324.0
+      },
+      {
+        "algorithm_name": "group_defender",
+        "algorithm_id": 19,
+        "total_births": 2,
+        "avg_lifespan": 2727.0
+      },
+      {
+        "algorithm_name": "spiral_escape",
+        "algorithm_id": 20,
+        "total_births": 11,
+        "avg_lifespan": 2657.090909090909
+      },
+      {
+        "algorithm_name": "border_hugger",
+        "algorithm_id": 21,
+        "total_births": 1,
+        "avg_lifespan": 251.0
+      },
+      {
+        "algorithm_name": "distance_keeper",
+        "algorithm_id": 23,
+        "total_births": 9,
+        "avg_lifespan": 2069.1111111111113
+      },
+      {
+        "algorithm_name": "tight_schooler",
+        "algorithm_id": 24,
+        "total_births": 3,
+        "avg_lifespan": 825.3333333333334
+      },
+      {
+        "algorithm_name": "alignment_matcher",
+        "algorithm_id": 27,
+        "total_births": 1,
+        "avg_lifespan": 283.0
+      },
+      {
+        "algorithm_name": "front_runner",
+        "algorithm_id": 29,
+        "total_births": 1,
+        "avg_lifespan": 1269.0
+      },
+      {
+        "algorithm_name": "perimeter_guard",
+        "algorithm_id": 30,
+        "total_births": 1,
+        "avg_lifespan": 236.0
+      },
+      {
+        "algorithm_name": "dynamic_schooler",
+        "algorithm_id": 33,
+        "total_births": 11,
+        "avg_lifespan": 1566.909090909091
+      },
+      {
+        "algorithm_name": "energy_conserver",
+        "algorithm_id": 34,
+        "total_births": 1,
+        "avg_lifespan": 813.0
+      },
+      {
+        "algorithm_name": "burst_swimmer",
+        "algorithm_id": 35,
+        "total_births": 1,
+        "avg_lifespan": 1320.0
+      },
+      {
+        "algorithm_name": "opportunistic_rester",
+        "algorithm_id": 36,
+        "total_births": 2,
+        "avg_lifespan": 1137.5
+      },
+      {
+        "algorithm_name": "energy_balancer",
+        "algorithm_id": 37,
+        "total_births": 1,
+        "avg_lifespan": 460.0
+      },
+      {
+        "algorithm_name": "sustainable_cruiser",
+        "algorithm_id": 38,
+        "total_births": 4,
+        "avg_lifespan": 1894.25
+      },
+      {
+        "algorithm_name": "starvation_preventer",
+        "algorithm_id": 39,
+        "total_births": 2,
+        "avg_lifespan": 7701.0
+      },
+      {
+        "algorithm_name": "metabolic_optimizer",
+        "algorithm_id": 40,
+        "total_births": 1,
+        "avg_lifespan": 991.0
+      },
+      {
+        "algorithm_name": "territorial_defender",
+        "algorithm_id": 42,
+        "total_births": 1,
+        "avg_lifespan": 852.0
+      },
+      {
+        "algorithm_name": "random_explorer",
+        "algorithm_id": 43,
+        "total_births": 1,
+        "avg_lifespan": 4682.0
+      },
+      {
+        "algorithm_name": "center_hugger",
+        "algorithm_id": 46,
+        "total_births": 2,
+        "avg_lifespan": 1074.0
+      },
+      {
+        "algorithm_name": "boundary_explorer",
+        "algorithm_id": 48,
+        "total_births": 2,
+        "avg_lifespan": 229.5
+      },
+      {
+        "algorithm_name": "nomadic_wanderer",
+        "algorithm_id": 49,
+        "total_births": 4,
+        "avg_lifespan": 880.5
+      },
+      {
+        "algorithm_name": "poker_challenger",
+        "algorithm_id": 50,
+        "total_births": 3,
+        "avg_lifespan": 982.3333333333334
+      },
+      {
+        "algorithm_name": "poker_gambler",
+        "algorithm_id": 52,
+        "total_births": 1,
+        "avg_lifespan": 65.0
+      },
+      {
+        "algorithm_name": "selective_poker",
+        "algorithm_id": 53,
+        "total_births": 3,
+        "avg_lifespan": 1819.3333333333333
+      },
+      {
+        "algorithm_name": "poker_strategist",
+        "algorithm_id": 55,
+        "total_births": 1,
+        "avg_lifespan": 569.0
+      },
+      {
+        "algorithm_name": "poker_bluffer",
+        "algorithm_id": 56,
+        "total_births": 1,
+        "avg_lifespan": 3840.0
+      },
+      {
+        "algorithm_name": "poker_conservative",
+        "algorithm_id": 57,
+        "total_births": 1,
+        "avg_lifespan": 352.0
+      }
+    ]
+  }
+}
