@@ -122,6 +122,7 @@ INIT_POS = {
     "plant1": (250, 510),
     "plant2": (10, 510),
     "plant3": (500, 510),  # Add third plant
+    "plant4": (700, 510),  # Add fourth plant
     "castle": (100, 500),
 }
 
