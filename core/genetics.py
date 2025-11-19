@@ -44,7 +44,8 @@ class Genome:
         eye_size: Eye size relative to body (0.7-1.3)
         pattern_intensity: Visibility of patterns/stripes (0.0-1.0)
         pattern_type: Pattern style: 0=stripes, 1=spots, 2=solid, 3=gradient
-        behavior_algorithm: Parametrizable behavior algorithm for movement decisions
+        behavior_algorithm: Primary behavior algorithm for general movement decisions
+        poker_algorithm: Poker-specific behavior algorithm (mix-and-match evolution)
         fitness_score: Accumulated fitness over lifetime (0.0+)
         learned_behaviors: Behavioral improvements from experience
         epigenetic_modifiers: Environmental effects on gene expression
@@ -80,6 +81,10 @@ class Genome:
     # Behavior algorithm (algorithmic evolution system)
     behavior_algorithm: Optional["BehaviorAlgorithm"] = None
 
+    # Poker-specific behavior algorithm (NEW: for mix-and-match evolution)
+    # This allows fish to have different algorithms for general movement vs poker decisions
+    poker_algorithm: Optional["BehaviorAlgorithm"] = None
+
     # Fitness tracking (NEW: for selection pressure)
     fitness_score: float = field(default=0.0)
 
@@ -104,17 +109,20 @@ class Genome:
         """Create a random genome with traits within normal ranges.
 
         Args:
-            use_algorithm: Whether to include a behavior algorithm
+            use_algorithm: Whether to include behavior algorithms
 
         Returns:
             New random genome
         """
-        # Create random behavior algorithm
+        # Create random behavior algorithms
         algorithm = None
+        poker_algorithm = None
         if use_algorithm:
             from core.algorithms import get_random_algorithm
 
             algorithm = get_random_algorithm()
+            # Also create a random poker algorithm for mix-and-match evolution
+            poker_algorithm = get_random_algorithm()
 
         return cls(
             speed_modifier=random.uniform(0.7, 1.3),
@@ -135,6 +143,7 @@ class Genome:
             pattern_intensity=random.random(),
             pattern_type=random.randint(0, FISH_PATTERN_COUNT - 1),
             behavior_algorithm=algorithm,
+            poker_algorithm=poker_algorithm,
         )
 
     def update_fitness(
@@ -272,6 +281,31 @@ class Genome:
 
             algorithm = get_random_algorithm()
 
+        # Handle poker algorithm with SPECIALIZED poker crossover for evolution
+        # This uses crossover_poker_algorithms() which is optimized for poker algorithm evolution
+        poker_algorithm = None
+        if parent1.poker_algorithm is not None or parent2.poker_algorithm is not None:
+            from core.algorithms import crossover_poker_algorithms
+
+            # Get poker stats for performance-based weighting
+            parent1_poker_wins = 0
+            parent2_poker_wins = 0
+            # Note: Fish objects don't exist in this context, so we can't get actual poker stats
+            # The crossover_poker_algorithms() will use parent1_weight instead
+
+            poker_algorithm = crossover_poker_algorithms(
+                parent1.poker_algorithm,
+                parent2.poker_algorithm,
+                parent1_poker_wins=parent1_poker_wins,
+                parent2_poker_wins=parent2_poker_wins,
+                mutation_rate=adaptive_mutation_rate * 1.2,  # Moderate mutation for poker
+                mutation_strength=adaptive_mutation_strength * 1.2,
+            )
+        else:
+            from core.algorithms import get_random_algorithm
+
+            poker_algorithm = get_random_algorithm()
+
         # Weighted inheritance for template_id (discrete choice biased by weight)
         inherited_template = (
             parent1.template_id if random.random() < parent1_weight else parent2.template_id
@@ -337,6 +371,7 @@ class Genome:
             ),
             pattern_type=inherited_pattern,
             behavior_algorithm=algorithm,
+            poker_algorithm=poker_algorithm,  # Mix-and-match poker algorithm evolution
             fitness_score=0.0,
             learned_behaviors={},
             epigenetic_modifiers=epigenetic,
@@ -457,6 +492,23 @@ class Genome:
 
             algorithm = get_random_algorithm()
 
+        # Handle poker algorithm inheritance separately for mix-and-match evolution
+        poker_algorithm = None
+        if parent1.poker_algorithm is not None or parent2.poker_algorithm is not None:
+            from core.algorithms import crossover_algorithms
+
+            poker_algorithm = crossover_algorithms(
+                parent1.poker_algorithm,
+                parent2.poker_algorithm,
+                mutation_rate=adaptive_mutation_rate * 1.5,
+                mutation_strength=adaptive_mutation_strength * 1.5,
+                algorithm_switch_rate=0.05,
+            )
+        else:
+            from core.algorithms import get_random_algorithm
+
+            poker_algorithm = get_random_algorithm()
+
         # Determine dominant genes randomly (for DOMINANT_RECESSIVE mode)
         speed_dominant = 0 if random.random() < 0.5 else 1
         size_dominant = 0 if random.random() < 0.5 else 1
@@ -535,6 +587,7 @@ class Genome:
             ),
             pattern_type=inherited_pattern,
             behavior_algorithm=algorithm,
+            poker_algorithm=poker_algorithm,  # Mix-and-match poker algorithm
             fitness_score=0.0,  # New offspring starts with 0 fitness
             learned_behaviors={},  # Start with no learned behaviors
             epigenetic_modifiers=epigenetic,  # Inherit epigenetic effects

@@ -45,10 +45,17 @@ class MovementStrategy:
 
 
 class AlgorithmicMovement(MovementStrategy):
-    """Movement strategy controlled by a behavior algorithm (NEW!)."""
+    """Movement strategy controlled by behavior algorithms with mix-and-match evolution.
+
+    Fish now have TWO algorithms that can evolve independently:
+    - behavior_algorithm: Primary movement algorithm (food seeking, exploration, etc.)
+    - poker_algorithm: Poker-specific behavior algorithm (seeking/avoiding poker games)
+
+    The algorithms are blended to create sophisticated composite behaviors.
+    """
 
     def move(self, sprite: "Fish") -> None:
-        """Move using the fish's behavior algorithm."""
+        """Move using the fish's behavior algorithms (mix-and-match)."""
         # Check if fish has a behavior algorithm
         if sprite.genome.behavior_algorithm is None:
             # Fallback to simple random movement
@@ -56,8 +63,44 @@ class AlgorithmicMovement(MovementStrategy):
             super().move(sprite)
             return
 
-        # Execute the algorithm to get desired velocity
-        desired_vx, desired_vy = sprite.genome.behavior_algorithm.execute(sprite)
+        # Execute primary behavior algorithm
+        primary_vx, primary_vy = sprite.genome.behavior_algorithm.execute(sprite)
+
+        # Execute poker algorithm if available (mix-and-match evolution)
+        poker_vx, poker_vy = 0, 0
+        if sprite.genome.poker_algorithm is not None:
+            poker_vx, poker_vy = sprite.genome.poker_algorithm.execute(sprite)
+
+        # Blend algorithms based on context
+        # If fish has high energy and poker algorithm is seeking poker, blend behaviors
+        # Otherwise, primarily use the main behavior algorithm
+        if sprite.genome.poker_algorithm is not None:
+            # Check if there are nearby fish for poker (determines poker relevance)
+            from core.entities import Fish as FishClass
+            all_fish = sprite.environment.get_agents_of_type(FishClass)
+            other_fish = [f for f in all_fish if f.fish_id != sprite.fish_id]
+
+            # Calculate poker behavior weight based on context
+            poker_weight = 0.0
+            if other_fish and len(other_fish) > 0:
+                # Find nearest fish
+                nearest_fish = min(other_fish, key=lambda f: (f.pos - sprite.pos).length())
+                distance = (nearest_fish.pos - sprite.pos).length()
+
+                # Poker is more relevant when fish are nearby (within 200 units)
+                # Weight increases as fish get closer
+                if distance < 200:
+                    poker_weight = max(0.0, 1.0 - distance / 200.0)
+                    # Also consider energy - poker more relevant with higher energy
+                    energy_ratio = sprite.energy / sprite.max_energy if sprite.max_energy > 0 else 0
+                    poker_weight *= (0.3 + energy_ratio * 0.7)  # Scale by energy (30-100%)
+
+            # Blend primary and poker algorithms
+            desired_vx = primary_vx * (1.0 - poker_weight) + poker_vx * poker_weight
+            desired_vy = primary_vy * (1.0 - poker_weight) + poker_vy * poker_weight
+        else:
+            # No poker algorithm, use primary only
+            desired_vx, desired_vy = primary_vx, primary_vy
 
         # Apply algorithm decision
         # Scale by speed to get actual velocity
