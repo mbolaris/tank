@@ -223,7 +223,7 @@ class SimulationRunner:
                 if hasattr(entity, "genome"):
                     genome_data = {
                         "speed": entity.genome.speed_modifier,
-                        "size": entity.genome.size_modifier,
+                        "size": entity.size,  # Use actual size (includes baby stage growth)
                         "color_hue": entity.genome.color_hue,
                         # Visual traits for parametric fish templates
                         "template_id": entity.genome.template_id,
