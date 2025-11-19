@@ -92,6 +92,9 @@ python -m pip install -e .
 # Install frontend dependencies (in frontend\ directory)
 cd frontend
 npm install
+
+# OPTIONAL: Install AI Code Evolution dependencies
+pip install -e ".[ai]"
 ```
 
 #### Linux/Mac
@@ -107,6 +110,9 @@ pip install -e .
 # Install frontend dependencies (in frontend/ directory)
 cd frontend
 npm install
+
+# OPTIONAL: Install AI Code Evolution dependencies
+pip install -e ".[ai]"
 ```
 
 ### Start the Simulation (Web UI)
@@ -149,6 +155,41 @@ python main.py --headless --max-frames 10000 --export-stats results.json
 - Identical simulation behavior to web UI
 - **LLM-friendly stats export**: Export comprehensive JSON data including algorithm performance, evolution trends, and population dynamics for AI-assisted analysis
 
+### 🤖 AI Code Evolution Workflow (NEW!)
+
+**Automatically improve fish behaviors using AI!** The simulation now includes an **AI Code Evolution Agent** that analyzes simulation data and generates algorithm improvements.
+
+```bash
+# Step 1: Run simulation and export stats
+python main.py --headless --max-frames 10000 --export-stats results.json
+
+# Step 2: Set up your API key (Claude or GPT-4)
+export ANTHROPIC_API_KEY="sk-ant-..."
+# OR
+export OPENAI_API_KEY="sk-..."
+
+# Step 3: Run the AI agent to improve worst performer
+python scripts/ai_code_evolution_agent.py results.json --provider anthropic
+
+# Step 4: Review changes
+git diff HEAD~1
+
+# Step 5: Push and create PR
+git push -u origin <branch-name>
+```
+
+**What the AI agent does:**
+- ✅ Identifies the worst performing algorithm (lowest reproduction rate)
+- ✅ Analyzes why it's failing (starvation, predation, etc.)
+- ✅ Reads the source code from the algorithm registry
+- ✅ Generates improved code using Claude/GPT-4
+- ✅ Creates a git branch with descriptive commit message
+- ✅ Ready for human review and testing before merge
+
+**Example result**: FreezeResponse improved from 0% → 100% reproduction rate!
+
+See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for complete guide and `docs/PROOF_OF_AI_IMPROVEMENT.md` for real-world example.
+
 ## 📁 Project Structure
 
 ```
@@ -171,6 +212,7 @@ tank/
 │   ├── genetics.py         # Genome system & inheritance
 │   ├── ecosystem.py        # Population tracking & statistics
 │   ├── enhanced_statistics.py # Comprehensive stats for LLM export
+│   ├── registry.py         # Algorithm source mapping for AI agent
 │   ├── time_system.py      # Day/night cycle management
 │   ├── environment.py      # Spatial queries & collision detection
 │   ├── movement_strategy.py # AlgorithmicMovement implementation
@@ -182,6 +224,9 @@ tank/
 │   │   ├── energy_management.py # 8 energy management algorithms
 │   │   └── territory.py    # 8 territory/exploration algorithms
 │   └── constants.py        # Configuration parameters
+├── scripts/                # Automation scripts
+│   ├── ai_code_evolution_agent.py # AI-powered algorithm improver
+│   └── demo_evolution_loop.sh # Demo: continuous improvement loop
 ├── tests/                  # Test suite
 │   ├── test_simulation.py  # Integration test
 │   ├── test_parity.py      # Determinism test
@@ -189,6 +234,8 @@ tank/
 ├── docs/                   # Additional documentation
 │   ├── ARCHITECTURE.md     # Architecture details
 │   ├── ALGORITHMIC_EVOLUTION.md # Algorithm evolution guide
+│   ├── AI_CODE_EVOLUTION_WORKFLOW.md # AI-powered improvement guide
+│   ├── PROOF_OF_AI_IMPROVEMENT.md # Real-world improvement example
 │   ├── DEPLOYMENT_GUIDE.md # Deployment instructions
 │   └── HEADLESS_MODE.md    # Headless mode documentation
 ├── BEHAVIOR_DEVELOPMENT_GUIDE.md # Guide for creating behaviors
@@ -318,9 +365,11 @@ This simulation demonstrates:
 ## 🔬 Recent Improvements & Future Enhancements
 
 Recently Completed: ✅
+- [✅] **AI Code Evolution Agent** - Automated algorithm improvement using Claude/GPT-4!
+- [✅] **Algorithm Registry** - Source mapping for AI-driven code improvements
 - [✅] 48 parametrizable behavior algorithms
 - [✅] TankWorld class for clean simulation management
-- [✅] LLM-friendly JSON stats export
+- [✅] LLM-friendly JSON stats export with source file mapping
 - [✅] Comprehensive behavior evolution tracking
 - [✅] Predator-prey balance improvements
 - [✅] Headless mode (10-300x faster)
@@ -392,6 +441,8 @@ Built with:
 ## 📚 Additional Resources
 
 For more information:
+- **AI Code Evolution**: See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` - Complete guide to automated algorithm improvement
+- **AI Improvement Proof**: See `docs/PROOF_OF_AI_IMPROVEMENT.md` - Real-world example (0% → 100% reproduction)
 - **Architecture details**: See `docs/ARCHITECTURE.md`
 - **Algorithmic evolution**: See `docs/ALGORITHMIC_EVOLUTION.md`
 - **Behavior development**: See `BEHAVIOR_DEVELOPMENT_GUIDE.md`

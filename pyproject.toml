@@ -46,6 +46,10 @@ dev = [
     "black>=23.0",
     "ruff>=0.1.0",
 ]
+ai = [
+    "anthropic>=0.18.0",  # For AI Code Evolution with Claude
+    "openai>=1.0.0",      # For AI Code Evolution with GPT-4
+]
 
 [project.scripts]
 fishtank = "main:main"
