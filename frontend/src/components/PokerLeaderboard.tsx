@@ -7,15 +7,9 @@ interface PokerLeaderboardProps {
 }
 
 export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard }) => {
+  // Don't render anything if there's no data - prevents layout shift
   if (!leaderboard || leaderboard.length === 0) {
-    return (
-      <div className={styles.pokerLeaderboard}>
-        <h3>🏆 Poker Leaderboard</h3>
-        <p style={{ fontSize: '12px', color: '#888', padding: '10px' }}>
-          No poker games yet. Fish will appear here after playing poker!
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (
