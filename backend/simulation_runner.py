@@ -548,7 +548,7 @@ class SimulationRunner:
                         fish = fish_list[0]
                         fish_name = f"{fish.genome.behavior_algorithm.algorithm_id} (Gen {fish.generation})"
                         fish_energy = fish.energy
-                        fish_poker_strategy = fish.genome.poker_strategy
+                        fish_poker_strategy = fish.genome.poker_strategy_algorithm
                     else:
                         # Find the actual fish object
                         fish = next(
@@ -557,7 +557,7 @@ class SimulationRunner:
                         )
                         fish_name = f"{top_fish_entry['algorithm'][:20]} (Gen {top_fish_entry['generation']})"
                         fish_energy = fish.energy
-                        fish_poker_strategy = fish.genome.poker_strategy
+                        fish_poker_strategy = fish.genome.poker_strategy_algorithm
 
                     # Create auto-evaluation game
                     game_id = str(uuid.uuid4())
