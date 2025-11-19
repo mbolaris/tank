@@ -68,23 +68,26 @@ async def broadcast_updates():
     """Broadcast simulation updates to all connected clients."""
     while True:
         if connected_clients:
-            # Get current state
-            state = simulation.get_state()
+            try:
+                # Get current state
+                state = simulation.get_state()
 
-            # Convert to JSON
-            state_json = state.model_dump_json()
+                # Convert to JSON
+                state_json = state.model_dump_json()
 
-            # Broadcast to all clients
-            disconnected = set()
-            for client in connected_clients:
-                try:
-                    await client.send_text(state_json)
-                except Exception as e:
-                    logger.error(f"Error sending to client: {e}")
-                    disconnected.add(client)
+                # Broadcast to all clients
+                disconnected = set()
+                for client in connected_clients:
+                    try:
+                        await client.send_text(state_json)
+                    except Exception as e:
+                        logger.error(f"Error sending to client: {e}", exc_info=True)
+                        disconnected.add(client)
 
-            # Remove disconnected clients
-            connected_clients.difference_update(disconnected)
+                # Remove disconnected clients
+                connected_clients.difference_update(disconnected)
+            except Exception as e:
+                logger.error(f"Error in broadcast_updates: {e}", exc_info=True)
 
         # Wait for next frame
         await asyncio.sleep(1 / FRAME_RATE)
