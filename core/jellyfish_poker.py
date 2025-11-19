@@ -153,8 +153,8 @@ class JellyfishPokerInteraction:
             initial_bet=bet_amount,
             player1_energy=self.fish.energy,
             player2_energy=self.jellyfish.energy,
-            player1_aggression=fish_aggression if button_position == 1 else jellyfish_aggression,
-            player2_aggression=jellyfish_aggression if button_position == 1 else fish_aggression,
+            player1_aggression=fish_aggression,
+            player2_aggression=jellyfish_aggression,
             button_position=button_position
         )
 
