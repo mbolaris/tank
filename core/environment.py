@@ -163,8 +163,8 @@ class Environment:
 
         # Query cache to avoid redundant searches within the same frame
         # Cache is cleared when rebuild_spatial_grid() is called
-        self._query_cache: dict[Tuple, List[Agent]] = {}
-        self._type_cache: dict[Type[Agent], List[Agent]] = {}
+        self._query_cache: Dict[Tuple, List[Agent]] = {}
+        self._type_cache: Dict[Type[Agent], List[Agent]] = {}
 
         # NEW: Initialize communication system for fish
         from core.fish_communication import FishCommunicationSystem
