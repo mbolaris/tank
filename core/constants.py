@@ -52,6 +52,7 @@ AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500  # Reduce spawn rate above this total e
 AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500  # Further reduce spawn rate above this total energy
 AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 15  # Reduce spawn rate above this fish count
 AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 20  # Further reduce spawn rate above this fish count
+LIVE_FOOD_SPAWN_CHANCE = 0.2  # 20% of auto-spawned food will be live/active
 
 # Food type definitions with nutrient properties
 FOOD_TYPES = {
@@ -102,6 +103,14 @@ FOOD_TYPES = {
         "rarity": 0.15,  # Used for plant-only spawn weighting
         "sink_multiplier": 0.0,  # Remains in place
         "stationary": True,
+    },
+    "live": {
+        "name": "Live Treat",
+        "files": ["food_energy1.png", "food_energy2.png"],
+        "energy": 80.0,  # Moderate reward but harder to catch
+        "rarity": 0.12,  # Appears occasionally
+        "sink_multiplier": 0.0,  # Self-propelled, so no sinking
+        "stationary": False,
     },
 }
 

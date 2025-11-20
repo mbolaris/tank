@@ -19,6 +19,7 @@ from core.constants import (
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     COLLISION_QUERY_RADIUS,
+    LIVE_FOOD_SPAWN_CHANCE,
     MATING_QUERY_RADIUS,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
@@ -486,19 +487,31 @@ class BaseSimulator(ABC):
         self.auto_food_timer += 1
         if self.auto_food_timer >= spawn_rate:
             self.auto_food_timer = 0
-            # Spawn food from the top at random x position
-            x = random.randint(0, SCREEN_WIDTH)
-            food = entities.Food(
-                environment,
-                x,
-                0,
-                source_plant=None,
-                allow_stationary_types=False,
-                screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT,
-            )
-            # Ensure the food starts exactly at the top edge before falling
-            food.pos.y = 0
+            live_food_roll = random.random()
+            if live_food_roll < LIVE_FOOD_SPAWN_CHANCE:
+                food_x = random.randint(0, SCREEN_WIDTH)
+                food_y = random.randint(0, SCREEN_HEIGHT)
+                food = entities.LiveFood(
+                    environment,
+                    food_x,
+                    food_y,
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT,
+                )
+            else:
+                # Spawn food from the top at random x position
+                x = random.randint(0, SCREEN_WIDTH)
+                food = entities.Food(
+                    environment,
+                    x,
+                    0,
+                    source_plant=None,
+                    allow_stationary_types=False,
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT,
+                )
+                # Ensure the food starts exactly at the top edge before falling
+                food.pos.y = 0
             self.add_entity(food)
 
     def keep_entity_on_screen(
