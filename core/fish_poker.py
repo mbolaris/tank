@@ -670,7 +670,11 @@ class PokerInteraction:
             house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
                 0, (winner_fish.size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
             )
-            house_cut = net_gain * house_cut_percentage
+            # Clamp house cut to the documented 8-25% range to avoid over-charging large fish
+            house_cut_percentage = min(house_cut_percentage, 0.25)
+
+            # Never let the house cut exceed the winner's profit (net_gain)
+            house_cut = min(net_gain * house_cut_percentage, net_gain)
 
             # Winner receives the pot minus house cut
             winner_fish.energy += (total_pot - house_cut)
