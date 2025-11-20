@@ -2,7 +2,7 @@
 Auto-evaluation poker game for testing fish poker skills.
 
 This module manages automated poker games where multiple fish play against
-a standard poker evaluation algorithm for 100 hands or until one player
+a standard poker evaluation algorithm for 1000 hands or until one player
 runs out of money.
 """
 
@@ -51,7 +51,7 @@ class AutoEvaluateStats:
     """Statistics for the auto-evaluation game."""
 
     hands_played: int = 0
-    hands_remaining: int = 100
+    hands_remaining: int = 1000
     players: List[Dict[str, Any]] = field(default_factory=list)  # List of player stats
     game_over: bool = False
     winner: Optional[str] = None
@@ -66,7 +66,7 @@ class AutoEvaluatePokerGame:
         game_id: str,
         fish_players: List[Dict[str, Any]],
         standard_energy: float = 500.0,
-        max_hands: int = 100,
+        max_hands: int = 1000,
         small_blind: float = 5.0,
         big_blind: float = 10.0,
     ):
@@ -76,7 +76,7 @@ class AutoEvaluatePokerGame:
             game_id: Unique identifier for this game
             fish_players: List of dicts with keys: name, fish_id, generation, poker_strategy
             standard_energy: Starting energy for standard algorithm player
-            max_hands: Maximum number of hands to play (default 100)
+            max_hands: Maximum number of hands to play (default 1000)
             small_blind: Small blind amount
             big_blind: Big blind amount
         """
@@ -89,11 +89,11 @@ class AutoEvaluatePokerGame:
         # Create players list
         self.players: List[EvalPlayerState] = []
 
-        # Add fish players - ensure they have enough energy to play 100 hands
+        # Add fish players - ensure they have enough energy to play all hands
         # With 4 players, blinds rotate, so each player posts SB+BB every 4 hands
-        # Minimum energy needed: (SB + BB) * (max_hands / 4) * 2 = (5+10) * (100/4) * 2 = 750
-        min_energy_for_100_hands = (small_blind + big_blind) * (max_hands / len(fish_players) + 1) * 2
-        starting_energy = max(500.0, min_energy_for_100_hands)
+        # Minimum energy needed: (SB + BB) * (max_hands / num_players) * 2
+        min_energy_needed = (small_blind + big_blind) * (max_hands / len(fish_players) + 1) * 2
+        starting_energy = max(500.0, min_energy_needed)
 
         for i, fish_data in enumerate(fish_players):
             self.players.append(
@@ -418,7 +418,7 @@ class AutoEvaluatePokerGame:
             self._showdown()
 
     def run_evaluation(self) -> AutoEvaluateStats:
-        """Run the full evaluation (100 hands or until only one player remains).
+        """Run the full evaluation (max_hands or until only one player remains).
 
         Returns:
             Final evaluation statistics
