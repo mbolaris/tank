@@ -1533,7 +1533,7 @@ class LiveFood(Food):
         y: float,
         screen_width: int = 800,
         screen_height: int = 600,
-        speed: float = 1.4,
+        speed: float = 1.8,
     ) -> None:
         super().__init__(
             environment,
@@ -1546,9 +1546,9 @@ class LiveFood(Food):
             screen_height=screen_height,
             speed=speed,
         )
-        self.max_speed = speed * 1.4
+        self.max_speed = speed * 1.6
         self.wander_timer = random.randint(20, 45)
-        self.avoid_radius = 140
+        self.avoid_radius = 180
         self.wander_strength = 0.25
 
     def update(self, elapsed_time: int) -> None:
@@ -1572,10 +1572,12 @@ class LiveFood(Food):
         for fish in nearby_fish:
             offset = self.pos - fish.pos
             distance_sq = max(offset.length_squared(), 1)
+            # Stronger avoidance - inverse square law for more pronounced fleeing
             flee_vector += offset / distance_sq
 
         if flee_vector.length_squared() > 0:
-            self.vel += flee_vector.normalize() * 0.8
+            # Increased avoidance force from 0.8 to 1.2 for more obvious fleeing
+            self.vel += flee_vector.normalize() * 1.2
 
     def _limit_speed(self) -> None:
         speed = self.vel.length()
