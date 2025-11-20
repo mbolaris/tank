@@ -7,6 +7,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
 import { StatsPanel } from './components/StatsPanel';
+import { EcosystemStats } from './components/EcosystemStats';
 import PokerEvents from './components/PokerEvents';
 import { PokerLeaderboard } from './components/PokerLeaderboard';
 import { PhylogeneticTree } from './components/PhylogeneticTree';
@@ -127,6 +128,12 @@ function App() {
                 </p>
               </div>
               <div>
+                <p className="canvas-label">Generation</p>
+                <p className="canvas-value">
+                  {state?.stats?.generation ?? 0}
+                </p>
+              </div>
+              <div>
                 <p className="canvas-label">Population</p>
                 <p className="canvas-value">
                   {state?.stats?.fish_count ?? 0}
@@ -144,6 +151,12 @@ function App() {
                 </p>
               </div>
               <div>
+                <p className="canvas-label">Age</p>
+                <p className="canvas-value">
+                  {state?.stats?.time ?? '—'}
+                </p>
+              </div>
+              <div>
                 <p className="canvas-label">Status</p>
                 <p className={`canvas-status ${isConnected ? 'online' : 'offline'}`}>
                   {isConnected ? 'Connected' : 'Waiting'}
@@ -153,6 +166,7 @@ function App() {
             <Canvas state={state} width={800} height={600} />
             <div className="canvas-glow" aria-hidden />
           </div>
+          <EcosystemStats stats={state?.stats ?? null} />
           <PokerEvents
             events={state?.poker_events ?? []}
             currentFrame={state?.frame ?? 0}
