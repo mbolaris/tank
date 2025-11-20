@@ -153,6 +153,11 @@ MOVEMENT_ENERGY_COST = 0.015  # Movement-based energy consumption multiplier
 SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns
 SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
+# Direction Change Energy Constants
+DIRECTION_CHANGE_ENERGY_BASE = 0.03  # Base energy cost for direction changes
+DIRECTION_CHANGE_SIZE_MULTIPLIER = 1.5  # Larger fish use more energy to turn (multiplied by size)
+MOVEMENT_SIZE_MULTIPLIER = 1.2  # Additional size-based movement cost multiplier
+
 # Energy Thresholds (centralized for consistency across the codebase)
 STARVATION_THRESHOLD = 15.0  # Below this, fish dies from starvation
 CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode (same as starvation threshold)
