@@ -6,7 +6,7 @@ Separating reproduction logic into its own component improves code organization 
 """
 
 import random
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
     from core.entities import LifeStage
@@ -169,7 +169,7 @@ class ReproductionComponent:
 
     def give_birth(
         self, own_genome: "Genome", population_stress: float = 0.0
-    ) -> tuple["Genome", float]:
+    ) -> Tuple["Genome", float]:
         """Generate offspring genome from mating.
 
         Args:
