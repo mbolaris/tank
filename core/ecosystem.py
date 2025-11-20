@@ -847,7 +847,7 @@ class EcosystemManager:
             player1_algo_id: Algorithm ID of player 1
             player2_algo_id: Algorithm ID of player 2
         """
-        from core.poker_interaction import BettingAction
+        from core.poker.core import BettingAction
 
         # Handle tie case
         if winner_id == -1:

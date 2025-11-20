@@ -16,7 +16,7 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from core.poker_interaction import BettingAction, PokerEngine, PokerHand
+from core.poker.core import BettingAction, PokerEngine, PokerHand
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -381,7 +381,7 @@ class PokerInteraction:
             fish.energy = max(0, fish.energy - bet_amount)
 
         # Create deck and deal cards
-        from core.poker_interaction import Deck, PokerEngine
+        from core.poker.core import Deck, PokerEngine
 
         deck = Deck()
 

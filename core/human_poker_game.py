@@ -8,7 +8,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.poker_interaction import (
+from core.poker.core import (
     BettingAction,
     BettingRound,
     Card,

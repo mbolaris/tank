@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.poker_interaction import (
+from core.poker.core import (
     BettingAction,
     BettingRound,
     Card,
@@ -18,7 +18,7 @@ from core.poker_interaction import (
     PokerEngine,
     PokerHand,
 )
-from core.poker_strategy_algorithms import PokerStrategyAlgorithm
+from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
 

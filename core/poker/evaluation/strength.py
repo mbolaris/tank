@@ -7,7 +7,7 @@ position-aware play, and improved decision making based on actual poker theory.
 
 from typing import List, Tuple
 
-from core.poker_interaction import Card, Rank
+from core.poker.core.cards import Card, Rank
 
 
 def evaluate_starting_hand_strength(hole_cards: List[Card], position_on_button: bool) -> float:

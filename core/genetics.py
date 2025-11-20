@@ -13,7 +13,7 @@ from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
 
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm
-    from core.poker_strategy_algorithms import PokerStrategyAlgorithm
+    from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 
 class GeneticCrossoverMode(Enum):
@@ -127,7 +127,7 @@ class Genome:
         poker_strategy_algorithm = None
         if use_algorithm:
             from core.algorithms import get_random_algorithm
-            from core.poker_strategy_algorithms import get_random_poker_strategy
+            from core.poker.strategy.implementations import get_random_poker_strategy
 
             algorithm = get_random_algorithm(rng=rng)
             # Also create a random poker algorithm for mix-and-match evolution
@@ -324,7 +324,7 @@ class Genome:
             parent1.poker_strategy_algorithm is not None
             or parent2.poker_strategy_algorithm is not None
         ):
-            from core.poker_strategy_algorithms import crossover_poker_strategies
+            from core.poker.strategy.implementations import crossover_poker_strategies
 
             poker_strategy_algorithm = crossover_poker_strategies(
                 parent1.poker_strategy_algorithm,
@@ -333,7 +333,7 @@ class Genome:
                 mutation_strength=adaptive_mutation_strength * 1.2,
             )
         else:
-            from core.poker_strategy_algorithms import get_random_poker_strategy
+            from core.poker.strategy.implementations import get_random_poker_strategy
 
             poker_strategy_algorithm = get_random_poker_strategy()
 
@@ -547,7 +547,7 @@ class Genome:
             parent1.poker_strategy_algorithm is not None
             or parent2.poker_strategy_algorithm is not None
         ):
-            from core.poker_strategy_algorithms import crossover_poker_strategies
+            from core.poker.strategy.implementations import crossover_poker_strategies
 
             poker_strategy_algorithm = crossover_poker_strategies(
                 parent1.poker_strategy_algorithm,
@@ -556,7 +556,7 @@ class Genome:
                 mutation_strength=adaptive_mutation_strength * 1.2,
             )
         else:
-            from core.poker_strategy_algorithms import get_random_poker_strategy
+            from core.poker.strategy.implementations import get_random_poker_strategy
 
             poker_strategy_algorithm = get_random_poker_strategy()
 
