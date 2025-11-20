@@ -113,7 +113,6 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
           <div key={player.player_id} style={styles.playerSection}>
             <h4 style={styles.playerName}>
               {player.is_standard ? '🤖' : '🐟'} {player.name}
-              {!player.is_standard && player.fish_id ? ` #${player.fish_id}` : ''}
             </h4>
             <div style={styles.statsGrid}>
               <div style={styles.statRow}>
