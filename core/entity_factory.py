@@ -5,7 +5,7 @@ used by the web UI backend and headless simulation mode.
 """
 
 import random
-from typing import List
+from typing import List, Optional
 
 from core import entities, environment, movement_strategy
 from core.constants import FILES, INIT_POS, NUM_SCHOOLING_FISH, SCREEN_HEIGHT, SCREEN_WIDTH
@@ -18,6 +18,7 @@ def create_initial_population(
     ecosystem: EcosystemManager,
     screen_width: int = SCREEN_WIDTH,
     screen_height: int = SCREEN_HEIGHT,
+    rng: Optional[random.Random] = None,
 ) -> List[entities.Agent]:
     """Create initial population for simulation.
 
@@ -37,16 +38,17 @@ def create_initial_population(
         List of Entity objects representing the initial population
     """
     population = []
+    rng = rng or random
 
     # Create algorithmic fish with parametrizable behavior algorithms
     # These fish use the algorithmic evolution system with diverse genomes
     for _i in range(
         NUM_SCHOOLING_FISH
     ):  # Start with NUM_SCHOOLING_FISH algorithmic fish for better evolution and sustainability
-        x = INIT_POS["school"][0] + random.randint(-100, 100)
-        y = INIT_POS["school"][1] + random.randint(-60, 60)
+        x = INIT_POS["school"][0] + rng.randint(-100, 100)
+        y = INIT_POS["school"][1] + rng.randint(-60, 60)
         # Create genome with behavior algorithm
-        genome = Genome.random(use_algorithm=True)
+        genome = Genome.random(use_algorithm=True, rng=rng)
         fish = entities.Fish(
             env,
             movement_strategy.AlgorithmicMovement(),

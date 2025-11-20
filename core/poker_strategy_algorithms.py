@@ -415,9 +415,10 @@ ALL_POKER_STRATEGIES = [
 ]
 
 
-def get_random_poker_strategy() -> PokerStrategyAlgorithm:
+def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
     """Get random poker strategy."""
-    return random.choice(ALL_POKER_STRATEGIES).random_instance()
+    rng = rng or random
+    return rng.choice(ALL_POKER_STRATEGIES).random_instance()
 
 
 def crossover_poker_strategies(

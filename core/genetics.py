@@ -110,15 +110,17 @@ class Genome:
     )
 
     @classmethod
-    def random(cls, use_algorithm: bool = True) -> "Genome":
+    def random(cls, use_algorithm: bool = True, rng: Optional[random.Random] = None) -> "Genome":
         """Create a random genome with traits within normal ranges.
 
         Args:
             use_algorithm: Whether to include behavior algorithms
+            rng: Random number generator (defaults to global random module)
 
         Returns:
             New random genome
         """
+        rng = rng or random
         # Create random behavior algorithms
         algorithm = None
         poker_algorithm = None
@@ -127,30 +129,30 @@ class Genome:
             from core.algorithms import get_random_algorithm
             from core.poker_strategy_algorithms import get_random_poker_strategy
 
-            algorithm = get_random_algorithm()
+            algorithm = get_random_algorithm(rng=rng)
             # Also create a random poker algorithm for mix-and-match evolution
-            poker_algorithm = get_random_algorithm()
+            poker_algorithm = get_random_algorithm(rng=rng)
             # Create random poker strategy for betting decisions
-            poker_strategy_algorithm = get_random_poker_strategy()
+            poker_strategy_algorithm = get_random_poker_strategy(rng=rng)
 
         return cls(
-            speed_modifier=random.uniform(0.7, 1.3),
-            size_modifier=random.uniform(0.7, 1.3),
-            vision_range=random.uniform(0.7, 1.3),
-            metabolism_rate=random.uniform(0.7, 1.3),
-            max_energy=random.uniform(0.7, 1.5),
-            fertility=random.uniform(0.6, 1.4),
-            aggression=random.uniform(0.0, 1.0),
-            social_tendency=random.uniform(0.0, 1.0),
-            color_hue=random.random(),
+            speed_modifier=rng.uniform(0.7, 1.3),
+            size_modifier=rng.uniform(0.7, 1.3),
+            vision_range=rng.uniform(0.7, 1.3),
+            metabolism_rate=rng.uniform(0.7, 1.3),
+            max_energy=rng.uniform(0.7, 1.5),
+            fertility=rng.uniform(0.6, 1.4),
+            aggression=rng.uniform(0.0, 1.0),
+            social_tendency=rng.uniform(0.0, 1.0),
+            color_hue=rng.random(),
             # Visual traits for parametric fish templates
-            template_id=random.randint(0, FISH_TEMPLATE_COUNT - 1),
-            fin_size=random.uniform(0.6, 1.4),
-            tail_size=random.uniform(0.6, 1.4),
-            body_aspect=random.uniform(0.7, 1.3),
-            eye_size=random.uniform(0.7, 1.3),
-            pattern_intensity=random.random(),
-            pattern_type=random.randint(0, FISH_PATTERN_COUNT - 1),
+            template_id=rng.randint(0, FISH_TEMPLATE_COUNT - 1),
+            fin_size=rng.uniform(0.6, 1.4),
+            tail_size=rng.uniform(0.6, 1.4),
+            body_aspect=rng.uniform(0.7, 1.3),
+            eye_size=rng.uniform(0.7, 1.3),
+            pattern_intensity=rng.random(),
+            pattern_type=rng.randint(0, FISH_PATTERN_COUNT - 1),
             behavior_algorithm=algorithm,
             poker_algorithm=poker_algorithm,
             poker_strategy_algorithm=poker_strategy_algorithm,

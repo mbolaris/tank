@@ -5,6 +5,7 @@ simulation without any visualization code.
 """
 
 import logging
+import random
 import time
 from collections import deque
 from typing import Any, Dict, List, Optional
@@ -88,14 +89,16 @@ class SimulationEngine(BaseSimulator):
         start_time: Real-world start time
     """
 
-    def __init__(self, headless: bool = True) -> None:
+    def __init__(self, headless: bool = True, rng: Optional[random.Random] = None) -> None:
         """Initialize the simulation engine.
 
         Args:
             headless: If True, run without any visualization
+            rng: Shared random number generator for deterministic runs
         """
         super().__init__()
         self.headless = headless
+        self.rng: random.Random = rng or random.Random()
         self.entities_list: List[entities.Agent] = []
         self.environment: Optional[environment.Environment] = None
         self.time_system: TimeSystem = TimeSystem()
@@ -140,7 +143,7 @@ class SimulationEngine(BaseSimulator):
 
         # Use centralized factory function for initial population
         population = create_initial_population(
-            self.environment, self.ecosystem, SCREEN_WIDTH, SCREEN_HEIGHT
+            self.environment, self.ecosystem, SCREEN_WIDTH, SCREEN_HEIGHT, rng=self.rng
         )
         self.entities_list.extend(population)
 
@@ -316,8 +319,6 @@ class SimulationEngine(BaseSimulator):
 
         Override base implementation to use food pool.
         """
-        import random
-
         from core.constants import (
             AUTO_FOOD_ENABLED,
             AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
@@ -361,7 +362,7 @@ class SimulationEngine(BaseSimulator):
         if self.auto_food_timer >= spawn_rate:
             self.auto_food_timer = 0
             # Use food pool instead of creating new Food
-            x = random.randint(0, SCREEN_WIDTH)
+            x = self.rng.randint(0, SCREEN_WIDTH)
             food = self.food_pool.acquire(
                 environment=environment,
                 x=x,
@@ -381,8 +382,6 @@ class SimulationEngine(BaseSimulator):
         """
         if self.environment is None or self.ecosystem is None:
             return
-
-        import random
 
         from core import movement_strategy
         from core.algorithms import get_algorithm_index
@@ -407,7 +406,7 @@ class SimulationEngine(BaseSimulator):
 
             # Create genome with an algorithm not currently in population (if possible)
             # This helps maintain diversity
-            genome = Genome.random(use_algorithm=True)
+            genome = Genome.random(use_algorithm=True, rng=self.rng)
 
             # Try to pick a different algorithm than existing ones (up to MAX_DIVERSITY_SPAWN_ATTEMPTS)
             for _ in range(MAX_DIVERSITY_SPAWN_ATTEMPTS):
@@ -415,14 +414,14 @@ class SimulationEngine(BaseSimulator):
                     algo_idx = get_algorithm_index(genome.behavior_algorithm)
                     if algo_idx >= 0 and algo_idx not in existing_algorithms:
                         break
-                genome = Genome.random(use_algorithm=True)
+                genome = Genome.random(use_algorithm=True, rng=self.rng)
         else:
             # No existing fish, spawn completely random
-            genome = Genome.random(use_algorithm=True)
+            genome = Genome.random(use_algorithm=True, rng=self.rng)
 
         # Random spawn position (avoid edges)
-        x = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
-        y = random.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
+        x = self.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
+        y = self.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
 
         # Create the new fish
         new_fish = entities.Fish(
