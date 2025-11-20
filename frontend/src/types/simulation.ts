@@ -156,3 +156,56 @@ export interface ErrorMessage {
 }
 
 export type WebSocketMessage = SimulationUpdate | CommandAck | ErrorMessage;
+
+// Poker Game State
+export interface PokerPlayer {
+  player_id: string;
+  name: string;
+  balance: number;
+  current_bet: number;
+  is_folded: boolean;
+  is_all_in: boolean;
+  hand?: string[];
+}
+
+export interface PokerGameState {
+  game_id: string;
+  current_round: string;
+  pot: number;
+  current_bet: number;
+  players: PokerPlayer[];
+  community_cards: string[];
+  dealer_position: number;
+  active_player: number;
+  game_over: boolean;
+  winner?: string;
+  winning_hand?: string;
+  message?: string;
+}
+
+// Auto-Evaluation Stats
+export interface AutoEvaluatePlayerStats {
+  name: string;
+  balance: number;
+  hands_won: number;
+  hands_lost: number;
+  total_winnings: number;
+  win_rate: number;
+}
+
+export interface AutoEvaluateStats {
+  hands_played: number;
+  hands_remaining: number;
+  game_over: boolean;
+  winner: string;
+  reason: string;
+  players: AutoEvaluatePlayerStats[];
+}
+
+// Command Response Types
+export interface CommandResponse {
+  success: boolean;
+  error?: string;
+  state?: PokerGameState;
+  stats?: AutoEvaluateStats;
+}

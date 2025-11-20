@@ -12,16 +12,17 @@ import { PokerLeaderboard } from './components/PokerLeaderboard';
 import { PhylogeneticTree } from './components/PhylogeneticTree';
 import { PokerGame } from './components/PokerGame';
 import { AutoEvaluateDisplay } from './components/AutoEvaluateDisplay';
+import type { PokerGameState, AutoEvaluateStats } from './types/simulation';
 import './App.css';
 
 function App() {
   const { state, isConnected, sendCommand, sendCommandWithResponse } = useWebSocket();
-  const [pokerGameState, setPokerGameState] = useState<any>(null);
+  const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
   const [showPokerGame, setShowPokerGame] = useState(false);
   const [pokerLoading, setPokerLoading] = useState(false);
 
   // Auto-evaluation state
-  const [autoEvaluateStats, setAutoEvaluateStats] = useState<any>(null);
+  const [autoEvaluateStats, setAutoEvaluateStats] = useState<AutoEvaluateStats | null>(null);
   const [showAutoEvaluate, setShowAutoEvaluate] = useState(false);
   const [autoEvaluateLoading, setAutoEvaluateLoading] = useState(false);
 
@@ -42,7 +43,6 @@ function App() {
         setPokerGameState(response.state);
       }
     } catch (error) {
-      console.error('Failed to start poker game:', error);
       alert('Failed to start poker game. Please try again.');
       setShowPokerGame(false);
     } finally {
@@ -65,7 +65,6 @@ function App() {
         setPokerGameState(response.state);
       }
     } catch (error) {
-      console.error('Failed to send poker action:', error);
       alert('Failed to send action. Please try again.');
     } finally {
       setPokerLoading(false);
@@ -94,7 +93,6 @@ function App() {
         setAutoEvaluateStats(response.stats);
       }
     } catch (error) {
-      console.error('Failed to run auto-evaluation:', error);
       alert('Failed to run auto-evaluation. Please try again.');
       setShowAutoEvaluate(false);
     } finally {

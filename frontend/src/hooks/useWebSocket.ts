@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { SimulationUpdate, Command } from '../types/simulation';
+import type { SimulationUpdate, Command, CommandResponse } from '../types/simulation';
 
 const WS_URL = 'ws://localhost:8000/ws';
 const WS_RECONNECT_DELAY = 3000; // 3 seconds
@@ -14,7 +14,7 @@ export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const connectRef = useRef<(() => void) | null>(null);
-  const responseCallbacksRef = useRef<Map<string, (data: any) => void>>(new Map());
+  const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
 
   const connect = useCallback(() => {
     try {
@@ -37,12 +37,12 @@ export function useWebSocket() {
             responseCallbacksRef.current.clear();
           }
         } catch (error) {
-          console.error('WebSocket: Failed to parse message:', error, 'Data:', event.data);
+          // Silently ignore parse errors - malformed data
         }
       };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket: Connection error:', error);
+      ws.onerror = () => {
+        // Connection error will be handled by onclose
       };
 
       ws.onclose = () => {
@@ -52,7 +52,6 @@ export function useWebSocket() {
         // Attempt to reconnect after delay
         reconnectTimeoutRef.current = window.setTimeout(() => {
           if (connectRef.current) {
-            console.log(`WebSocket: Attempting to reconnect to ${WS_URL}...`);
             connectRef.current();
           }
         }, WS_RECONNECT_DELAY);
@@ -60,7 +59,6 @@ export function useWebSocket() {
 
       wsRef.current = ws;
     } catch (error) {
-      console.error('WebSocket: Failed to create connection:', error);
       setIsConnected(false);
     }
   }, []);
@@ -88,7 +86,7 @@ export function useWebSocket() {
     }
   }, []);
 
-  const sendCommandWithResponse = useCallback((command: Command): Promise<any> => {
+  const sendCommandWithResponse = useCallback((command: Command): Promise<CommandResponse> => {
     return new Promise((resolve, reject) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         // Add a callback to handle the response
