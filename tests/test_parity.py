@@ -10,7 +10,7 @@ import random
 import pytest
 
 from core import entities
-from simulation_engine import SimulationEngine
+from core.simulation_engine import SimulationEngine
 
 
 @pytest.mark.xfail(reason="Simulation has non-deterministic behavior that needs investigation")

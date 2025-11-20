@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import random
 
 from core import entities
-from simulation_engine import SimulationEngine
+from core.simulation_engine import SimulationEngine
 
 
 def test_headless_mode_architecture():

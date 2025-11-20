@@ -20,7 +20,7 @@ class TestFullSimulation:
             len([s for s in simulator.agents if isinstance(s, Fish)]) == 10
         )  # 10 algorithmic fish
         assert len([s for s in simulator.agents if isinstance(s, Crab)]) == 1
-        assert len([s for s in simulator.agents if isinstance(s, Plant)]) == 3  # 3 plants
+        assert len([s for s in simulator.agents if isinstance(s, Plant)]) == 4  # 4 plants
         assert len([s for s in simulator.agents if isinstance(s, Castle)]) == 1
 
         # Run simulation for 100 frames
@@ -95,7 +95,7 @@ class TestFullSimulation:
         castles = [s for s in simulator.agents if isinstance(s, Castle)]
         crabs = [s for s in simulator.agents if isinstance(s, Crab)]
 
-        assert len(plants) == 3, "Plants should remain in the simulation"  # 3 plants
+        assert len(plants) == 4, "Plants should remain in the simulation"  # 4 plants
         assert len(castles) == 1, "Castle should remain in the simulation"
         assert len(crabs) == 1, "Crab should remain in the simulation"
 

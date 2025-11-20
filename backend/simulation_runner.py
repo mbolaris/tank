@@ -22,7 +22,7 @@ from core.human_poker_game import HumanPokerGame
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
 # Use absolute imports assuming tank/ is in PYTHONPATH
-from tank_world import TankWorld, TankWorldConfig
+from core.tank_world import TankWorld, TankWorldConfig
 
 logger = logging.getLogger(__name__)
 

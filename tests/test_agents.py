@@ -188,7 +188,7 @@ class TestFood:
     def test_food_sinks(self, simulation_env):
         """Test that food sinks over time."""
         env, _ = simulation_env
-        food = Food(env, 100, 50)
+        food = Food(env, 100, 50, food_type="energy")
         initial_vel_y = food.vel.y
 
         food.sink()

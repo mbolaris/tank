@@ -37,6 +37,7 @@ from core.constants import (
     PLANT_PRODUCTION_CHANCE,
     PREDATOR_ENCOUNTER_WINDOW,
     TARGET_POPULATION,
+    FOOD_TYPES,
 )
 
 from core.math_utils import Vector2
@@ -1367,15 +1368,8 @@ class Food(Agent):
         food_properties: Dictionary containing energy and other properties
     """
 
-    # Food type definitions (copied from constants.py for now)
-    FOOD_TYPES = {
-        "algae": {"energy": 25.0, "rarity": 0.40, "sink_multiplier": 1.0, "stationary": False},
-        "protein": {"energy": 45.0, "rarity": 0.25, "sink_multiplier": 1.5, "stationary": False},
-        "vitamin": {"energy": 35.0, "rarity": 0.20, "sink_multiplier": 0.8, "stationary": False},
-        "energy": {"energy": 60.0, "rarity": 0.10, "sink_multiplier": 1.2, "stationary": False},
-        "rare": {"energy": 100.0, "rarity": 0.05, "sink_multiplier": 0.5, "stationary": False},
-        "nectar": {"energy": 30.0, "rarity": 0.0, "sink_multiplier": 0.0, "stationary": True},
-    }
+    # Food type definitions (imported from constants.py)
+    FOOD_TYPES = FOOD_TYPES
 
     def __init__(
         self,

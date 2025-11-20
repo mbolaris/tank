@@ -15,7 +15,7 @@ def test_algorithm_stats():
     # Verify algorithm stats are initialized
     print("\n1. Testing initialization...")
     print(f"   Total algorithms initialized: {len(ecosystem.algorithm_stats)}")
-    assert len(ecosystem.algorithm_stats) == 53, "Should have 53 algorithms"
+    assert len(ecosystem.algorithm_stats) == 58, "Should have 58 algorithms"
     print("   ✓ All 53 algorithms initialized")
 
     # Test a few algorithm names

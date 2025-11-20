@@ -55,7 +55,7 @@ def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=N
         seed: Optional random seed for deterministic behavior
         export_stats: Optional filename to export JSON stats for LLM analysis
     """
-    from tank_world import TankWorld, TankWorldConfig
+    from core.tank_world import TankWorld, TankWorldConfig
 
     # Create configuration for headless mode
     config = TankWorldConfig(headless=True)

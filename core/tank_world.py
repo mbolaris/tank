@@ -106,7 +106,7 @@ class TankWorld:
             self.rng = random.Random()
 
         # Import here to avoid circular dependencies
-        from simulation_engine import SimulationEngine
+        from core.simulation_engine import SimulationEngine
 
         # Create the simulation engine
         # For now, we pass headless flag to engine
