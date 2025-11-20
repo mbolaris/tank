@@ -77,6 +77,7 @@ class AlgorithmicMovement(MovementStrategy):
         if sprite.genome.poker_algorithm is not None:
             # Check if there are nearby fish for poker (determines poker relevance)
             from core.entities import Fish as FishClass
+
             all_fish = sprite.environment.get_agents_of_type(FishClass)
             other_fish = [f for f in all_fish if f.fish_id != sprite.fish_id]
 
@@ -93,7 +94,7 @@ class AlgorithmicMovement(MovementStrategy):
                     poker_weight = max(0.0, 1.0 - distance / 200.0)
                     # Also consider energy - poker more relevant with higher energy
                     energy_ratio = sprite.energy / sprite.max_energy if sprite.max_energy > 0 else 0
-                    poker_weight *= (0.3 + energy_ratio * 0.7)  # Scale by energy (30-100%)
+                    poker_weight *= 0.3 + energy_ratio * 0.7  # Scale by energy (30-100%)
 
             # Blend primary and poker algorithms
             desired_vx = primary_vx * (1.0 - poker_weight) + poker_vx * poker_weight

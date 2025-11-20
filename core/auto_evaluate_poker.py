@@ -263,9 +263,7 @@ class AutoEvaluatePokerGame:
                 player.hands_lost += 1
                 player.total_energy_lost += player.total_bet
 
-        logger.info(
-            f"Auto-eval {self.game_id}: {winner.name} wins {self.pot:.1f} energy"
-        )
+        logger.info(f"Auto-eval {self.game_id}: {winner.name} wins {self.pot:.1f} energy")
 
     def _split_pot(self, tied_player_indices: List[int]):
         """Split the pot among tied players."""
@@ -341,9 +339,7 @@ class AutoEvaluatePokerGame:
             if total_amount > player.energy:
                 total_amount = player.energy
             self._player_bet(player_index, total_amount)
-            logger.info(
-                f"Auto-eval {self.game_id}: {player.name} raises {total_amount:.1f}"
-            )
+            logger.info(f"Auto-eval {self.game_id}: {player.name} raises {total_amount:.1f}")
 
     def _play_betting_round(self):
         """Play one betting round."""
@@ -469,19 +465,21 @@ class AutoEvaluatePokerGame:
         # Build player stats list
         players_stats = []
         for player in self.players:
-            players_stats.append({
-                "player_id": player.player_id,
-                "name": player.name,
-                "is_standard": player.is_standard,
-                "fish_id": player.fish_id,
-                "fish_generation": player.fish_generation,
-                "energy": round(player.energy, 1),
-                "hands_won": player.hands_won,
-                "hands_lost": player.hands_lost,
-                "total_energy_won": round(player.total_energy_won, 1),
-                "total_energy_lost": round(player.total_energy_lost, 1),
-                "net_energy": round(player.total_energy_won - player.total_energy_lost, 1),
-            })
+            players_stats.append(
+                {
+                    "player_id": player.player_id,
+                    "name": player.name,
+                    "is_standard": player.is_standard,
+                    "fish_id": player.fish_id,
+                    "fish_generation": player.fish_generation,
+                    "energy": round(player.energy, 1),
+                    "hands_won": player.hands_won,
+                    "hands_lost": player.hands_lost,
+                    "total_energy_won": round(player.total_energy_won, 1),
+                    "total_energy_lost": round(player.total_energy_lost, 1),
+                    "net_energy": round(player.total_energy_won - player.total_energy_lost, 1),
+                }
+            )
 
         return AutoEvaluateStats(
             hands_played=self.hands_played,

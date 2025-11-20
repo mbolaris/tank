@@ -191,9 +191,10 @@ class PokerInteraction:
             # Larger fish can bet a higher percentage of their energy
             # Size 0.35: 15%, Size 1.0: 25%, Size 1.3: 30%
             # Formula: 15% + (size - 0.35) * 15.8% gives range of 15-30%
-            bet_percentage = POKER_BET_MIN_PERCENTAGE + (
-                fish.size - POKER_BET_MIN_SIZE
-            ) * POKER_BET_SIZE_MULTIPLIER
+            bet_percentage = (
+                POKER_BET_MIN_PERCENTAGE
+                + (fish.size - POKER_BET_MIN_SIZE) * POKER_BET_SIZE_MULTIPLIER
+            )
             max_bets.append(fish.energy * bet_percentage)
 
         # Return the minimum of base_bet and all fish max bets
@@ -254,9 +255,7 @@ class PokerInteraction:
             from core.entities import Fish
 
             fish_count = len([e for e in winner_fish.environment.agents if isinstance(e, Fish)])
-            population_ratio = (
-                fish_count / TARGET_POPULATION if TARGET_POPULATION > 0 else 1.0
-            )
+            population_ratio = fish_count / TARGET_POPULATION if TARGET_POPULATION > 0 else 1.0
 
             if population_ratio < 1.0:
                 population_stress = (1.0 - population_ratio) * POPULATION_STRESS_MAX_MULTIPLIER
@@ -436,7 +435,9 @@ class PokerInteraction:
             winner_fish.energy += total_pot - house_cut
 
             # Collect loser IDs
-            loser_ids = [self.fish_list[i].fish_id for i in range(self.num_players) if i != best_hand_idx]
+            loser_ids = [
+                self.fish_list[i].fish_id for i in range(self.num_players) if i != best_hand_idx
+            ]
         else:
             # Tie - split pot among tied players
             split_amount = total_pot / len(tied_players)
@@ -512,7 +513,9 @@ class PokerInteraction:
                         loser_fish = self.fish_list[loser_idx]
                         loser_algo_id = None
                         if loser_fish.genome.behavior_algorithm is not None:
-                            loser_algo_id = get_algorithm_index(loser_fish.genome.behavior_algorithm)
+                            loser_algo_id = get_algorithm_index(
+                                loser_fish.genome.behavior_algorithm
+                            )
 
                         self.fish_list[0].ecosystem.record_poker_outcome(
                             winner_id=winner_id,
@@ -579,12 +582,12 @@ class PokerInteraction:
         # Get poker strategy algorithms from fish genomes (if available)
         player1_strategy = (
             self.fish1.genome.poker_strategy_algorithm
-            if hasattr(self.fish1.genome, 'poker_strategy_algorithm')
+            if hasattr(self.fish1.genome, "poker_strategy_algorithm")
             else None
         )
         player2_strategy = (
             self.fish2.genome.poker_strategy_algorithm
-            if hasattr(self.fish2.genome, 'poker_strategy_algorithm')
+            if hasattr(self.fish2.genome, "poker_strategy_algorithm")
             else None
         )
 

@@ -745,9 +745,7 @@ class PokerEngine:
             )
         # Weak hands (high card)
         else:
-            return PokerEngine._decide_weak_hand_action(
-                call_amount, pot, player_energy, aggression
-            )
+            return PokerEngine._decide_weak_hand_action(call_amount, pot, player_energy, aggression)
 
     @staticmethod
     def simulate_multi_round_game(
@@ -868,6 +866,7 @@ class PokerEngine:
                     # Use evolving poker strategy algorithm
                     # Normalize hand strength from HandRank (0-9) to 0.0-1.0
                     from core.constants import POKER_MAX_HAND_RANK
+
                     hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
 
                     action, bet_amount = player_strategy.decide_action(

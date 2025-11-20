@@ -29,7 +29,7 @@ from core.jellyfish_poker import JellyfishPokerInteraction
 # Type checking imports
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
-    from core.entities import Agent, Fish, Jellyfish
+    from core.entities import Agent, Fish
     from core.environment import Environment
 
 
@@ -52,7 +52,7 @@ class BaseSimulator(ABC):
         self.paused: bool = False
         self.auto_food_timer: int = 0
         self.ecosystem: Optional[EcosystemManager] = None
-        self.environment: Optional["Environment"] = None
+        self.environment: Optional[Environment] = None
 
     @abstractmethod
     def get_all_entities(self) -> List["Agent"]:
@@ -186,7 +186,7 @@ class BaseSimulator(ABC):
             return fish1_died
         return False
 
-    def handle_fish_jellyfish_collision(self, fish: 'Agent', jellyfish: 'Agent') -> bool:
+    def handle_fish_jellyfish_collision(self, fish: "Agent", jellyfish: "Agent") -> bool:
         """Handle collision between a fish and jellyfish (poker benchmark).
 
         Args:
@@ -200,16 +200,18 @@ class BaseSimulator(ABC):
         poker = JellyfishPokerInteraction(fish, jellyfish)
         if poker.play_poker():
             # Add jellyfish poker event if available
-            if (hasattr(self, 'add_jellyfish_poker_event') and
-                poker.result is not None and
-                poker.result.fish_hand is not None and
-                poker.result.jellyfish_hand is not None):
+            if (
+                hasattr(self, "add_jellyfish_poker_event")
+                and poker.result is not None
+                and poker.result.fish_hand is not None
+                and poker.result.jellyfish_hand is not None
+            ):
                 self.add_jellyfish_poker_event(
                     fish_id=poker.result.fish_id,
                     fish_won=poker.result.fish_won,
                     fish_hand=poker.result.fish_hand.description,
                     jellyfish_hand=poker.result.jellyfish_hand.description,
-                    energy_transferred=abs(poker.result.energy_transferred)
+                    energy_transferred=abs(poker.result.energy_transferred),
                 )
             # Check if fish died from poker
             if fish.is_dead() and fish in self.get_all_entities():
@@ -306,7 +308,9 @@ class BaseSimulator(ABC):
 
         for group in fish_groups:
             # Filter out fish that can't play poker (already processed, dead, etc.)
-            valid_fish = [f for f in group if f in self.get_all_entities() and f not in processed_fish]
+            valid_fish = [
+                f for f in group if f in self.get_all_entities() and f not in processed_fish
+            ]
 
             if len(valid_fish) >= 2:
                 # Play multi-player poker with all fish in this group

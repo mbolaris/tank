@@ -6,14 +6,13 @@ This module manages poker games between a human player and AI fish opponents.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from core.poker_interaction import (
     BettingAction,
     BettingRound,
     Card,
     Deck,
-    HandRank,
     PokerEngine,
     PokerHand,
 )
@@ -307,9 +306,7 @@ class HumanPokerGame:
                 if call_amount > 0 or len(self.betting_history) < len(self.players):
                     return
 
-    def handle_action(
-        self, player_id: str, action: str, amount: float = 0.0
-    ) -> Dict[str, Any]:
+    def handle_action(self, player_id: str, action: str, amount: float = 0.0) -> Dict[str, Any]:
         """Handle a player action.
 
         Args:
@@ -483,7 +480,9 @@ class HumanPokerGame:
             if call_amount > player.energy:
                 call_amount = player.energy
             self._player_bet(self.current_player_index, call_amount)
-            self.betting_history.append({"player": player.name, "action": "call", "amount": call_amount})
+            self.betting_history.append(
+                {"player": player.name, "action": "call", "amount": call_amount}
+            )
             self.message = f"{player.name} calls {call_amount:.1f}"
 
         elif action == BettingAction.RAISE:
@@ -491,12 +490,16 @@ class HumanPokerGame:
             if total_amount > player.energy:
                 total_amount = player.energy
             self._player_bet(self.current_player_index, total_amount)
-            self.betting_history.append({
-                "player": player.name,
-                "action": "raise" if call_amount > 0 else "bet",
-                "amount": total_amount
-            })
-            self.message = f"{player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.1f}"
+            self.betting_history.append(
+                {
+                    "player": player.name,
+                    "action": "raise" if call_amount > 0 else "bet",
+                    "amount": total_amount,
+                }
+            )
+            self.message = (
+                f"{player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.1f}"
+            )
 
         # Move to next player
         if not self.game_over:
@@ -522,7 +525,9 @@ class HumanPokerGame:
             "is_your_turn": current_player.is_human,
             "game_over": self.game_over,
             "message": self.message,
-            "winner": self.players[self.winner_index].name if self.winner_index is not None else None,
+            "winner": (
+                self.players[self.winner_index].name if self.winner_index is not None else None
+            ),
             "players": [
                 {
                     "player_id": p.player_id,
@@ -534,7 +539,9 @@ class HumanPokerGame:
                     "is_human": p.is_human,
                     "algorithm": p.algorithm,
                     # Only show hole cards for human player
-                    "hole_cards": [str(card) for card in p.hole_cards] if p.is_human else ["??", "??"],
+                    "hole_cards": (
+                        [str(card) for card in p.hole_cards] if p.is_human else ["??", "??"]
+                    ),
                 }
                 for p in self.players
             ],

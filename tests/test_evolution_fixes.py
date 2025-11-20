@@ -91,6 +91,11 @@ def test_algorithm_crossover():
 
 def test_same_algorithm_parameter_blending():
     """Test parameter blending when both parents have same algorithm."""
+    import random
+
+    # Set seed for deterministic test results
+    random.seed(12345)
+
     print("=" * 60)
     print("Testing Parameter Blending (Same Algorithm)")
     print("=" * 60)
@@ -112,8 +117,10 @@ def test_same_algorithm_parameter_blending():
     )
     print()
 
-    # Create offspring (no mutation for cleaner test)
-    offspring = crossover_algorithms(algo1, algo2, mutation_rate=0.0, mutation_strength=0.0)
+    # Create offspring (no mutation or algorithm switching for cleaner test)
+    offspring = crossover_algorithms(
+        algo1, algo2, mutation_rate=0.0, mutation_strength=0.0, algorithm_switch_rate=0.0
+    )
 
     print(
         f"Offspring: speed={offspring.parameters['speed_multiplier']:.2f}, "

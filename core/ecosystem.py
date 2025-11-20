@@ -6,7 +6,7 @@ This module manages population dynamics, statistics, and ecosystem health.
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT
+from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import (
     AlgorithmStats,
     EcosystemEvent,
@@ -1208,9 +1208,14 @@ class EcosystemManager:
 
         return "\n".join(report_lines)
 
-    def record_jellyfish_poker_game(self, fish_id: int, fish_won: bool,
-                                   energy_transferred: float, fish_hand_rank: int,
-                                   won_by_fold: bool) -> None:
+    def record_jellyfish_poker_game(
+        self,
+        fish_id: int,
+        fish_won: bool,
+        energy_transferred: float,
+        fish_hand_rank: int,
+        won_by_fold: bool,
+    ) -> None:
         """Record a poker game between a fish and the jellyfish benchmark.
 
         Args:
@@ -1223,8 +1228,7 @@ class EcosystemManager:
         # Initialize stats for this fish if not exists
         if fish_id not in self.jellyfish_poker_stats:
             self.jellyfish_poker_stats[fish_id] = JellyfishPokerStats(
-                fish_id=fish_id,
-                fish_name=f"Fish #{fish_id}"
+                fish_id=fish_id, fish_name=f"Fish #{fish_id}"
             )
 
         stats = self.jellyfish_poker_stats[fish_id]
@@ -1257,8 +1261,7 @@ class EcosystemManager:
         """
         # Filter out fish with no games
         stats_with_games = [
-            stats for stats in self.jellyfish_poker_stats.values()
-            if stats.total_games > 0
+            stats for stats in self.jellyfish_poker_stats.values() if stats.total_games > 0
         ]
 
         # Sort by score (highest first)

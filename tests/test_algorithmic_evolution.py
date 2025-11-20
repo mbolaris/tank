@@ -26,7 +26,8 @@ def test_algorithm_creation():
 
     print(f"✓ Successfully created {len(created_types)} unique algorithm types")
 
-    return True
+    # Assert all algorithm types were created
+    assert len(created_types) > 0, "Should create at least one algorithm type"
 
 
 def test_genome_with_algorithm():
@@ -36,22 +37,16 @@ def test_genome_with_algorithm():
     # Create genome with algorithm
     genome = Genome.random(use_algorithm=True)
 
-    if genome.behavior_algorithm is None:
-        print("✗ Genome should have a behavior algorithm")
-        return False
+    assert genome.behavior_algorithm is not None, "Genome should have a behavior algorithm"
 
     print(f"✓ Genome created with algorithm: {genome.behavior_algorithm.algorithm_id}")
     print(f"  Parameters: {genome.behavior_algorithm.parameters}")
 
     # Create genome without algorithm
     genome_no_algo = Genome.random(use_algorithm=False)
-    if genome_no_algo.behavior_algorithm is not None:
-        print("✗ Genome should NOT have a behavior algorithm")
-        return False
+    assert genome_no_algo.behavior_algorithm is None, "Genome should NOT have a behavior algorithm"
 
     print("✓ Genome created without algorithm")
-
-    return True
 
 
 def test_algorithm_inheritance():
@@ -70,9 +65,7 @@ def test_algorithm_inheritance():
     # Create offspring
     offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.3, mutation_strength=0.2)
 
-    if offspring.behavior_algorithm is None:
-        print("✗ Offspring should have a behavior algorithm")
-        return False
+    assert offspring.behavior_algorithm is not None, "Offspring should have a behavior algorithm"
 
     print(f"\nOffspring algorithm: {offspring.behavior_algorithm.algorithm_id}")
     print(f"  Parameters: {offspring.behavior_algorithm.parameters}")
@@ -107,8 +100,6 @@ def test_algorithm_inheritance():
     else:
         print("✓ Offspring got a new random algorithm")
 
-    return True
-
 
 def test_parameter_mutation():
     """Test that algorithm parameters mutate correctly."""
@@ -130,9 +121,9 @@ def test_parameter_mutation():
     print(f"  Mutated parameters: {mutated_algo.parameters}")
 
     # Check that algorithm type is preserved
-    if mutated_algo.algorithm_id != original_algo.algorithm_id:
-        print("✗ Algorithm type should be preserved during mutation")
-        return False
+    assert (
+        mutated_algo.algorithm_id == original_algo.algorithm_id
+    ), "Algorithm type should be preserved during mutation"
 
     print("✓ Algorithm type preserved")
 
@@ -150,8 +141,6 @@ def test_parameter_mutation():
         print(f"✓ Found {mutations_found} mutated parameters")
     else:
         print("⚠ No parameters were mutated (this is possible with low mutation strength)")
-
-    return True
 
 
 def test_multiple_generations():
@@ -195,7 +184,8 @@ def test_multiple_generations():
         print(f"  Algorithm distribution: {dict(list(algo_distribution.items())[:5])}...")
 
     print("✓ Successfully simulated 5 generations")
-    return True
+    # Assert that we still have a population
+    assert len(population) > 0, "Population should not be empty after evolution"
 
 
 def main():

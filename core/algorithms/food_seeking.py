@@ -293,7 +293,10 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         if is_critical or is_low:
             self.exploration_angle += random.uniform(-0.4, 0.4)
             ex_speed = self.parameters["exploration_speed"] * (1.5 if is_critical else 1.0)
-            return math.cos(self.exploration_angle) * ex_speed, math.sin(self.exploration_angle) * ex_speed
+            return (
+                math.cos(self.exploration_angle) * ex_speed,
+                math.sin(self.exploration_angle) * ex_speed,
+            )
 
         return 0, 0
 
@@ -669,8 +672,7 @@ class CircularHunter(BehaviorAlgorithm):
             # Slowly change direction for more exploration coverage
             self.exploration_direction += random.uniform(-0.3, 0.3)
             exploration_vec = Vector2(
-                math.cos(self.exploration_direction),
-                math.sin(self.exploration_direction)
+                math.cos(self.exploration_direction), math.sin(self.exploration_direction)
             )
             speed = self.parameters["exploration_speed"]
             return exploration_vec.x * speed, exploration_vec.y * speed
@@ -701,8 +703,12 @@ class CircularHunter(BehaviorAlgorithm):
         if distance < 200:
             self.circle_angle += 0.25  # Much faster than old 0.05-0.15!
 
-            target_x = nearest_food.pos.x + math.cos(self.circle_angle) * self.parameters["circle_radius"]
-            target_y = nearest_food.pos.y + math.sin(self.circle_angle) * self.parameters["circle_radius"]
+            target_x = (
+                nearest_food.pos.x + math.cos(self.circle_angle) * self.parameters["circle_radius"]
+            )
+            target_y = (
+                nearest_food.pos.y + math.sin(self.circle_angle) * self.parameters["circle_radius"]
+            )
             target_vector = Vector2(target_x, target_y) - fish.pos
             direction = self._safe_normalize(target_vector)
             # Faster circling movement
@@ -711,7 +717,10 @@ class CircularHunter(BehaviorAlgorithm):
         else:
             # Food is far - approach directly
             direction = self._safe_normalize(food_future_pos - fish.pos)
-            return direction.x * self.parameters["approach_speed"], direction.y * self.parameters["approach_speed"]
+            return (
+                direction.x * self.parameters["approach_speed"],
+                direction.y * self.parameters["approach_speed"],
+            )
 
 
 @dataclass
@@ -804,7 +813,10 @@ class AggressiveHunter(BehaviorAlgorithm):
 
                 # Strike mode when very close
                 if distance < 80:
-                    return direction.x * self.parameters["strike_speed"], direction.y * self.parameters["strike_speed"]
+                    return (
+                        direction.x * self.parameters["strike_speed"],
+                        direction.y * self.parameters["strike_speed"],
+                    )
                 else:
                     return (
                         direction.x * self.parameters["pursuit_speed"],
@@ -818,6 +830,7 @@ class AggressiveHunter(BehaviorAlgorithm):
 
         # Active exploration
         import math
+
         angle = fish.age * 0.1  # Use age for varied exploration
         return math.cos(angle) * 0.7, math.sin(angle) * 0.7
 
@@ -874,6 +887,7 @@ class SpiralForager(BehaviorAlgorithm):
 
         # Calculate spiral movement
         import math
+
         vx = math.cos(self.spiral_angle) * self.parameters["spiral_speed"]
         vy = math.sin(self.spiral_angle) * self.parameters["spiral_speed"]
 
