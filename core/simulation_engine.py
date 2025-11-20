@@ -275,7 +275,12 @@ class SimulationEngine(BaseSimulator):
 
             self.keep_entity_on_screen(entity)
 
-            if isinstance(entity, entities.Food) and entity.pos.y >= SCREEN_HEIGHT - entity.height:
+            # Remove regular food that sinks to bottom, but NOT live food (which swims freely)
+            if (
+                isinstance(entity, entities.Food)
+                and not isinstance(entity, entities.LiveFood)
+                and entity.pos.y >= SCREEN_HEIGHT - entity.height
+            ):
                 self.remove_entity(entity)
 
         for new_entity in new_entities:
