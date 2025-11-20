@@ -265,26 +265,14 @@ if (treeError) {
 
 ---
 
-### 5. TODO/FIXME COMMENTS - 1 Total
+### 5. RNG SEEDING FOR DETERMINISM ✓ ADDRESSED
 
-**Impact: LOW** | **Effort to Fix: 0.5-1 hour** | **Benefit: MEDIUM**
+**Impact: LOW** | **Effort to Fix: Completed** | **Benefit: MEDIUM**
 
-#### Location
-**File: tank_world.py, Line 131**
-
-```python
-# TODO: Refactor all random.* calls to use self.engine._tank_world_rng
-```
-
-#### Context
-- RNG refactoring for deterministic behavior
-- Would enable reproducible simulations
-- Should be seeded for testing
-
-#### Recommendation
-1. Create GitHub issue with priority
-2. Link to random number generation refactoring work
-3. Estimate effort: 1-2 hours to replace all `random.*` calls
+#### Summary
+- `TankWorld` now injects a shared `random.Random` instance into `SimulationEngine` rather than monkey-patching.
+- Initial population creation and emergency spawning now use the shared RNG for reproducible runs when a seed is provided.
+- Follow-up work can extend RNG plumbing to remaining modules that still use the global `random` module.
 
 ---
 

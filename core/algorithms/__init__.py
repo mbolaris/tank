@@ -205,9 +205,10 @@ def get_algorithm_name(algorithm_index: int) -> str:
     return "Unknown"
 
 
-def get_random_algorithm() -> BehaviorAlgorithm:
+def get_random_algorithm(rng: Optional[random.Random] = None) -> BehaviorAlgorithm:
     """Get a random behavior algorithm instance."""
-    algorithm_class = random.choice(ALL_ALGORITHMS)
+    rng = rng or random
+    algorithm_class = rng.choice(ALL_ALGORITHMS)
     return algorithm_class.random_instance()
 
 

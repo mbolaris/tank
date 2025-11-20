@@ -111,28 +111,7 @@ class TankWorld:
         # Create the simulation engine
         # For now, we pass headless flag to engine
         # Later we can refactor engine to use config directly
-        self.engine = SimulationEngine(headless=self.config.headless)
-
-        # Monkey-patch the engine to use our RNG
-        # This is a temporary solution - ideally engine would accept RNG in constructor
-        self._patch_engine_rng()
-
-    def _patch_engine_rng(self):
-        """Temporarily patch the engine to use our RNG.
-
-        This is a transitional approach. Eventually, the engine should
-        accept and use the RNG instance directly.
-        """
-        # Store reference to our RNG in the engine
-        self.engine._tank_world_rng = self.rng
-
-        # NOTE: For full deterministic simulation, all random.* calls need to be refactored
-        # to use self.engine._tank_world_rng instead of the global random module.
-        # This is tracked as technical debt and requires:
-        #   1. Grep for all 'import random' and 'random.' calls
-        #   2. Pass RNG instance through module constructors
-        #   3. Update all random.* calls to use instance methods
-        # Estimated effort: 2-3 hours across ~15 modules
+        self.engine = SimulationEngine(headless=self.config.headless, rng=self.rng)
 
     def setup(self) -> None:
         """Setup the simulation.
