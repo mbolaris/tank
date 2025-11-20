@@ -268,7 +268,9 @@ def test_jellyfish_poker_applies_house_cut():
         # Fish starts with 100, Jellyfish starts with 1000 (INITIAL_ENERGY)
         total_initial = 100.0 + 1000.0  # = 1100.0
         total_after = fish.energy + jellyfish.energy
-        assert total_after < total_initial, f"Total energy should decrease due to house cut: {total_after} >= {total_initial}"
+        assert total_after < total_initial, (
+            f"Total energy should decrease due to house cut: {total_after} >= {total_initial}"
+        )
 
         # House cut should be 5%
         energy_lost = total_initial - total_after

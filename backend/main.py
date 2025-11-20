@@ -256,7 +256,10 @@ async def get_lineage():
         logger.info(f"Lineage API: Returning {len(lineage_data)} lineage records")
         if len(lineage_data) == 0:
             logger.warning("Lineage API: lineage_log is empty! This should contain records for all fish ever born.")
-            logger.warning(f"Lineage API: Current stats - total_births: {simulation.world.ecosystem.total_births}, next_fish_id: {simulation.world.ecosystem.next_fish_id}")
+            logger.warning(
+                f"Lineage API: Current stats - total_births: {simulation.world.ecosystem.total_births}, "
+                f"next_fish_id: {simulation.world.ecosystem.next_fish_id}"
+            )
         return JSONResponse(lineage_data)
     except Exception as e:
         logger.error(f"Error getting lineage data: {e}", exc_info=True)
@@ -325,7 +328,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 break
 
     except WebSocketDisconnect as e:
-        logger.info(f"WebSocket: Client {client_id} disconnected normally (code: {e.code if hasattr(e, 'code') else 'unknown'})")
+        disconnect_code = e.code if hasattr(e, 'code') else 'unknown'
+        logger.info(f"WebSocket: Client {client_id} disconnected normally (code: {disconnect_code})")
     except Exception as e:
         logger.error(f"WebSocket: Unexpected error for client {client_id}: {e}", exc_info=True)
     finally:

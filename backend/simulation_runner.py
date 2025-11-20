@@ -6,7 +6,14 @@ import time
 from typing import Any, Dict, Optional
 import uuid
 
-from backend.models import EntityData, PokerEventData, PokerLeaderboardEntry, PokerStatsData, SimulationUpdate, StatsData
+from backend.models import (
+    EntityData,
+    PokerEventData,
+    PokerLeaderboardEntry,
+    PokerStatsData,
+    SimulationUpdate,
+    StatsData,
+)
 from core import entities, movement_strategy
 from core.constants import FRAME_RATE, FILES, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
 from core.entities import Fish
@@ -122,7 +129,10 @@ class SimulationRunner:
                             try:
                                 self.world.update()
                             except Exception as e:
-                                logger.error(f"Simulation loop: Error updating world at frame {frame_count}: {e}", exc_info=True)
+                                logger.error(
+                                    f"Simulation loop: Error updating world at frame {frame_count}: {e}",
+                                    exc_info=True,
+                                )
                                 # Continue running even if update fails
 
                     # Maintain frame rate
@@ -417,9 +427,8 @@ class SimulationRunner:
                         screen_height=SCREEN_HEIGHT,
                     )
                     self.world.add_entity(new_fish)
-                    logger.info(
-                        f"Successfully spawned new fish at ({x}, {y}). Total fish count: {len([e for e in self.world.entities_list if isinstance(e, entities.Fish)])}"
-                    )
+                    fish_count = len([e for e in self.world.entities_list if isinstance(e, entities.Fish)])
+                    logger.info(f"Successfully spawned new fish at ({x}, {y}). Total fish count: {fish_count}")
                 except Exception as e:
                     logger.error(f"Error spawning fish: {e}", exc_info=True)
 

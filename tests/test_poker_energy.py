@@ -260,7 +260,8 @@ def test_multiple_poker_games():
             )
 
             print(
-                f"  Winner gained: {winner_delta:+.2f}, Loser lost: {loser_delta:+.2f}, House cut: {abs(total_delta):.2f}"
+                f"  Winner gained: {winner_delta:+.2f}, Loser lost: {loser_delta:+.2f}, "
+                f"House cut: {abs(total_delta):.2f}"
             )
             print(
                 f"  Pot: {poker.result.final_pot:.2f}, Reported transfer: {poker.result.energy_transferred:.2f}"

@@ -126,9 +126,13 @@ class TankWorld:
         # Store reference to our RNG in the engine
         self.engine._tank_world_rng = self.rng
 
-        # We'll need to patch individual modules that use random
-        # For now, we'll handle this in the refactoring steps
-        # TODO: Refactor all random.* calls to use self.engine._tank_world_rng
+        # NOTE: For full deterministic simulation, all random.* calls need to be refactored
+        # to use self.engine._tank_world_rng instead of the global random module.
+        # This is tracked as technical debt and requires:
+        #   1. Grep for all 'import random' and 'random.' calls
+        #   2. Pass RNG instance through module constructors
+        #   3. Update all random.* calls to use instance methods
+        # Estimated effort: 2-3 hours across ~15 modules
 
     def setup(self) -> None:
         """Setup the simulation.
