@@ -1413,6 +1413,7 @@ class Food(Agent):
         allow_stationary_types: bool = True,
         screen_width: int = 800,
         screen_height: int = 600,
+        speed: float = 0.0,
     ) -> None:
         """Initialize a food item.
 
@@ -1428,13 +1429,15 @@ class Food(Agent):
         """
         # Select random food type based on rarity if not specified
         if food_type is None:
-            food_type = self._select_random_food_type(include_stationary=allow_stationary_types)
+            food_type = self._select_random_food_type(
+                include_stationary=allow_stationary_types, include_live=False
+            )
 
         self.food_type = food_type
         self.food_properties = self.FOOD_TYPES[food_type]
         self.is_stationary: bool = self.food_properties.get("stationary", False)
 
-        super().__init__(environment, x, y, 0, screen_width, screen_height)
+        super().__init__(environment, x, y, speed, screen_width, screen_height)
         self.source_plant: Optional[Plant] = source_plant
         
         # Energy tracking for partial consumption
@@ -1444,12 +1447,13 @@ class Food(Agent):
         self.original_height: float = self.height
 
     @staticmethod
-    def _select_random_food_type(include_stationary: bool = True) -> str:
+    def _select_random_food_type(include_stationary: bool = True, include_live: bool = False) -> str:
         """Select a random food type based on rarity weights."""
         food_types = [
             ft
             for ft, props in Food.FOOD_TYPES.items()
-            if include_stationary or not props.get("stationary", False)
+            if (include_stationary or not props.get("stationary", False))
+            and (include_live or ft != "live")
         ]
         weights = [Food.FOOD_TYPES[ft]["rarity"] for ft in food_types]
         return random.choices(food_types, weights=weights)[0]
@@ -1512,3 +1516,69 @@ class Food(Agent):
         # Notify plant that food was consumed
         if self.source_plant is not None:
             self.source_plant.notify_food_eaten()
+
+
+class LiveFood(Food):
+    """Active food that tries to avoid fish.
+
+    Live food moves around the tank instead of sinking, making it harder to
+    catch. It makes small wandering motions and steers away from nearby fish
+    to simulate evasive movement.
+    """
+
+    def __init__(
+        self,
+        environment: "Environment",
+        x: float,
+        y: float,
+        screen_width: int = 800,
+        screen_height: int = 600,
+        speed: float = 1.4,
+    ) -> None:
+        super().__init__(
+            environment,
+            x,
+            y,
+            source_plant=None,
+            food_type="live",
+            allow_stationary_types=False,
+            screen_width=screen_width,
+            screen_height=screen_height,
+            speed=speed,
+        )
+        self.max_speed = speed * 1.4
+        self.wander_timer = random.randint(20, 45)
+        self.avoid_radius = 140
+        self.wander_strength = 0.25
+
+    def update(self, elapsed_time: int) -> None:
+        self._apply_wander()
+        self._avoid_nearby_fish()
+        self._limit_speed()
+        self.update_position()
+
+    def _apply_wander(self) -> None:
+        self.wander_timer -= 1
+        if self.wander_timer <= 0:
+            self.add_random_velocity_change([0.3, 0.4, 0.3], 4)
+            self.wander_timer = random.randint(20, 45)
+
+    def _avoid_nearby_fish(self) -> None:
+        nearby_fish = self.environment.nearby_agents_by_type(self, self.avoid_radius, Fish)
+        if not nearby_fish:
+            return
+
+        flee_vector = Vector2(0, 0)
+        for fish in nearby_fish:
+            offset = self.pos - fish.pos
+            distance_sq = max(offset.length_squared(), 1)
+            flee_vector += offset / distance_sq
+
+        if flee_vector.length_squared() > 0:
+            self.vel += flee_vector.normalize() * 0.8
+
+    def _limit_speed(self) -> None:
+        speed = self.vel.length()
+        if speed > self.max_speed:
+            direction = self.vel.normalize()
+            self.vel = direction * self.max_speed
