@@ -28,7 +28,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class AlgorithmImprover:
             Dictionary with stats data
         """
         logger.info(f"Loading stats from: {stats_file}")
-        with open(stats_file, "r") as f:
+        with open(stats_file) as f:
             return json.load(f)
 
     def identify_worst_performer(self, stats: Dict) -> Optional[Tuple[str, Dict]]:
@@ -115,7 +115,7 @@ class AlgorithmImprover:
             Source code as string
         """
         logger.info(f"Reading source file: {file_path}")
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             return f.read()
 
     def generate_improvement(self, algo_name: str, performance: Dict, source_code: str) -> str:
@@ -210,9 +210,7 @@ Do not include markdown code blocks or explanations - just the raw Python code.
         try:
             import anthropic
         except ImportError:
-            raise ImportError(
-                "anthropic package not installed. Run: pip install anthropic"
-            )
+            raise ImportError("anthropic package not installed. Run: pip install anthropic")
 
         client = anthropic.Anthropic(api_key=self.api_key)
 

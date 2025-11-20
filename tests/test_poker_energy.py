@@ -75,9 +75,7 @@ def test_poker_energy_transfer():
     poker = PokerInteraction(fish1, fish2)
     success = poker.play_poker()
 
-    if not success:
-        print("\n❌ Poker game failed to play")
-        return False
+    assert success, "Poker game failed to play"
 
     # Get final energies
     final_energy_fish1 = fish1.energy
@@ -116,7 +114,7 @@ def test_poker_energy_transfer():
         assert abs(delta_fish1) < 0.01, f"Fish 1 energy changed on tie: {delta_fish1}"
         assert abs(delta_fish2) < 0.01, f"Fish 2 energy changed on tie: {delta_fish2}"
         print("\n✓ Tie handled correctly!")
-        return True
+        return  # Early return for tie case
 
     print(f"\nResult: {winner_name} WINS")
     print(
@@ -156,17 +154,16 @@ def test_poker_energy_transfer():
     print(f"   Loser lost: {abs(loser_delta):.2f}")
     print(f"   Difference: {abs(loser_delta) - winner_delta:.2f}")
 
-    if abs(winner_delta + loser_delta) < 0.01:
-        print("   ❌ FAIL: Winner gained EXACTLY what loser lost!")
-        print("   This means energy is conserved, but it shouldn't be!")
-        print("   There should be a house cut that removes energy from the system.")
-        return False
-    else:
-        house_cut = abs(total_delta)
-        house_cut_percentage = (house_cut / abs(loser_delta) * 100) if abs(loser_delta) > 0 else 0
-        print(
-            f"   ✓ PASS: House cut of {house_cut:.2f} energy ({house_cut_percentage:.1f}% of loser's loss)"
-        )
+    assert not (abs(winner_delta + loser_delta) < 0.01), (
+        "Winner gained EXACTLY what loser lost! "
+        "This means energy is conserved, but it shouldn't be! "
+        "There should be a house cut that removes energy from the system."
+    )
+    house_cut = abs(total_delta)
+    house_cut_percentage = (house_cut / abs(loser_delta) * 100) if abs(loser_delta) > 0 else 0
+    print(
+        f"   ✓ PASS: House cut of {house_cut:.2f} energy ({house_cut_percentage:.1f}% of loser's loss)"
+    )
 
     # 4. Total energy should decrease (house cut)
     print("\n4. Total energy should DECREASE (house cut removes energy):")
@@ -184,8 +181,6 @@ def test_poker_energy_transfer():
     print(f"  • Winner gained: {winner_delta:.2f} energy")
     print(f"  • House took: {abs(total_delta):.2f} energy")
     print(f"  • Winner gained {(winner_delta / abs(loser_delta) * 100):.1f}% of loser's loss")
-
-    return True
 
 
 def test_multiple_poker_games():
@@ -283,12 +278,8 @@ def test_multiple_poker_games():
     total = len(results)
     print(f"Results: {successful}/{total} games had proper energy transfer")
 
-    if successful == total:
-        print("✓ ALL GAMES PASSED!")
-        return True
-    else:
-        print("❌ SOME GAMES FAILED!")
-        return False
+    assert successful == total, f"Only {successful}/{total} games had proper energy transfer"
+    print("✓ ALL GAMES PASSED!")
 
 
 def test_poker_result_fields():
@@ -348,13 +339,11 @@ def test_poker_result_fields():
     poker = PokerInteraction(fish1, fish2)
     success = poker.play_poker()
 
-    if not success:
-        print("❌ Poker game failed")
-        return False
+    assert success, "Poker game failed"
 
     if poker.result.winner_id == -1:
         print("Game was a tie, skipping")
-        return True
+        return  # Early return for tie case
 
     # Calculate actual energy changes
     winner_delta = (
@@ -394,8 +383,6 @@ def test_poker_result_fields():
     print("  • winner_actual_gain correctly represents what winner gained")
     print("  • energy_transferred correctly represents what loser lost")
     print("  • winner_actual_gain < energy_transferred (house cut working)")
-
-    return True
 
 
 if __name__ == "__main__":

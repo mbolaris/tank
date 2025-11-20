@@ -100,12 +100,17 @@ class SimulationEngine(BaseSimulator):
         self.environment: Optional[environment.Environment] = None
         self.time_system: TimeSystem = TimeSystem()
         self.start_time: float = time.time()
-        self.poker_events: deque = deque(maxlen=MAX_POKER_EVENTS)  # Recent poker events (auto-trimming)
+        self.poker_events: deque = deque(
+            maxlen=MAX_POKER_EVENTS
+        )  # Recent poker events (auto-trimming)
         self._agents_wrapper: Optional[AgentsWrapper] = None
-        self.last_emergency_spawn_frame: int = -EMERGENCY_SPAWN_COOLDOWN  # Allow immediate first spawn
+        self.last_emergency_spawn_frame: int = (
+            -EMERGENCY_SPAWN_COOLDOWN
+        )  # Allow immediate first spawn
 
         # Performance: Object pool for Food entities
         from core.object_pool import FoodPool
+
         self.food_pool = FoodPool()
 
         # Performance: Cached entity type lists to avoid repeated filtering
@@ -280,7 +285,7 @@ class SimulationEngine(BaseSimulator):
         # This is much faster than rebuilding the entire grid
         if self.environment is not None:
             for entity in self.entities_list:
-                if hasattr(entity, 'pos'):
+                if hasattr(entity, "pos"):
                     self.environment.update_agent_position(entity)
 
         # Uses spatial grid for efficiency
@@ -311,17 +316,18 @@ class SimulationEngine(BaseSimulator):
 
         Override base implementation to use food pool.
         """
+        import random
+
         from core.constants import (
             AUTO_FOOD_ENABLED,
-            AUTO_FOOD_SPAWN_RATE,
-            AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
-            AUTO_FOOD_LOW_ENERGY_THRESHOLD,
             AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
             AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
             AUTO_FOOD_HIGH_POP_THRESHOLD_1,
             AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+            AUTO_FOOD_LOW_ENERGY_THRESHOLD,
+            AUTO_FOOD_SPAWN_RATE,
+            AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
         )
-        import random
 
         if not AUTO_FOOD_ENABLED:
             return
@@ -483,9 +489,7 @@ class SimulationEngine(BaseSimulator):
             # Tie - show all players involved
             hand1_desc = result.hand1.description if result.hand1 is not None else "Unknown"
             if num_players == 2:
-                message = (
-                    f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
-                )
+                message = f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
             else:
                 # Multi-player tie - show all players
                 player_list = ", ".join(f"#{pid}" for pid in result.player_ids)
@@ -532,9 +536,14 @@ class SimulationEngine(BaseSimulator):
             is_jellyfish=False,
         )
 
-    def add_jellyfish_poker_event(self, fish_id: int, fish_won: bool,
-                                   fish_hand: str, jellyfish_hand: str,
-                                   energy_transferred: float) -> None:
+    def add_jellyfish_poker_event(
+        self,
+        fish_id: int,
+        fish_won: bool,
+        fish_hand: str,
+        jellyfish_hand: str,
+        energy_transferred: float,
+    ) -> None:
         """Add a jellyfish poker event to the recent events list.
 
         Args:
@@ -760,7 +769,9 @@ class SimulationEngine(BaseSimulator):
                 "old_age": stats.deaths_old_age,
                 "predation": stats.deaths_predation,
             }
-            main_death_cause = max(death_causes, key=death_causes.get) if any(death_causes.values()) else "unknown"
+            main_death_cause = (
+                max(death_causes, key=death_causes.get) if any(death_causes.values()) else "unknown"
+            )
 
             export_data["recommendations"]["worst_performers"].append(
                 {
@@ -808,7 +819,7 @@ class SimulationEngine(BaseSimulator):
         logger.info(f"Real Time: {stats.get('elapsed_real_time', 0):.1f}s")
         logger.info(f"Simulation Speed: {stats.get('simulation_speed', 0):.2f}x")
         logger.info("-" * SEPARATOR_WIDTH)
-        max_pop = self.ecosystem.max_population if self.ecosystem else 'N/A'
+        max_pop = self.ecosystem.max_population if self.ecosystem else "N/A"
         logger.info(f"Population: {stats.get('total_population', 0)}/{max_pop}")
         logger.info(f"Generation: {stats.get('current_generation', 0)}")
         logger.info(f"Total Births: {stats.get('total_births', 0)}")
@@ -907,6 +918,7 @@ class SimulationEngine(BaseSimulator):
 
             # Save to file
             import os
+
             os.makedirs("logs", exist_ok=True)
             report_path = os.path.join("logs", "algorithm_performance_report.txt")
             with open(report_path, "w") as f:

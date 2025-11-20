@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
-    from core.poker_interaction import BettingAction, PokerHand
+    from core.poker_interaction import BettingAction
 
 
 @dataclass
@@ -72,7 +72,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
                 "value_raise_multiplier": random.uniform(0.5, 1.0),
                 "bluff_frequency": random.uniform(0.05, 0.15),
                 "position_bonus": random.uniform(0.05, 0.15),
-            }
+            },
         )
 
     @classmethod
@@ -126,7 +126,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
                 "raise_multiplier": random.uniform(0.7, 1.5),
                 "bluff_frequency": random.uniform(0.25, 0.45),
                 "position_aggression": random.uniform(0.1, 0.25),
-            }
+            },
         )
 
     @classmethod
@@ -183,7 +183,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
                 "call_threshold": random.uniform(0.35, 0.55),
                 "raise_multiplier": random.uniform(0.3, 0.6),
                 "bluff_frequency": random.uniform(0.01, 0.05),
-            }
+            },
         )
 
     @classmethod
@@ -239,7 +239,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
                 "bluff_frequency": random.uniform(0.15, 0.30),
                 "position_bonus": random.uniform(0.08, 0.18),
                 "pot_odds_factor": random.uniform(1.2, 1.8),
-            }
+            },
         )
 
     @classmethod
@@ -269,7 +269,11 @@ class BalancedStrategy(PokerStrategyAlgorithm):
 
         if hand_strength < self.parameters["weak_fold_threshold"]:
             if pot_odds > 0 and hand_strength > pot_odds * self.parameters["pot_odds_factor"]:
-                return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
+                return (
+                    (BettingAction.CALL, call_amount)
+                    if call_amount > 0
+                    else (BettingAction.CHECK, 0.0)
+                )
             if random.random() < self.parameters["bluff_frequency"] * 0.5:
                 bluff = pot * self.parameters["bluff_multiplier"]
                 return (BettingAction.RAISE, min(bluff, player_energy * 0.25))
@@ -285,11 +289,16 @@ class BalancedStrategy(PokerStrategyAlgorithm):
                 raise_amt = pot * self.parameters["value_raise_multiplier"] * 0.7
                 raise_amt = min(raise_amt, player_energy * 0.30)
                 return (BettingAction.RAISE, max(raise_amt, call_amount * 1.3))
-            return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
+            return (
+                (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
+            )
 
         if call_amount == 0:
             return (BettingAction.CHECK, 0.0)
-        if call_amount < pot * 0.3 and hand_strength > pot_odds * self.parameters["pot_odds_factor"]:
+        if (
+            call_amount < pot * 0.3
+            and hand_strength > pot_odds * self.parameters["pot_odds_factor"]
+        ):
             return (BettingAction.CALL, call_amount)
         return (BettingAction.FOLD, 0.0)
 
@@ -307,7 +316,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
                 "raise_sizing": random.uniform(1.0, 2.5),
                 "bluff_frequency": random.uniform(0.40, 0.65),
                 "all_in_threshold": random.uniform(0.75, 0.95),
-            }
+            },
         )
 
     @classmethod
@@ -360,7 +369,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
                 "call_threshold": random.uniform(0.15, 0.30),
                 "raise_multiplier": random.uniform(0.25, 0.50),
                 "pot_odds_sensitivity": random.uniform(0.5, 1.5),
-            }
+            },
         )
 
     @classmethod
@@ -438,7 +447,8 @@ def crossover_poker_strategies(
                         ) / 2.0
                     else:
                         offspring.parameters[param_key] = (
-                            parent1.parameters[param_key] if random.random() < 0.5
+                            parent1.parameters[param_key]
+                            if random.random() < 0.5
                             else parent2.parameters[param_key]
                         )
                 else:

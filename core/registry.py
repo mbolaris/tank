@@ -60,7 +60,7 @@ def get_algorithm_id_to_source_map() -> Dict[str, str]:
             abs_path = os.path.abspath(source_file)
 
             mapping[algo_id] = abs_path
-        except (TypeError, OSError, AttributeError) as e:
+        except (TypeError, OSError, AttributeError):
             # Skip algorithms that can't be instantiated or inspected
             # TypeError: inspect.getfile() fails for built-in classes
             # OSError: File system errors
@@ -118,7 +118,7 @@ def get_algorithm_metadata() -> Dict[str, Dict[str, str]]:
                 "module": module_path,
                 "category": category,
             }
-        except (TypeError, OSError, AttributeError) as e:
+        except (TypeError, OSError, AttributeError):
             # Skip algorithms that can't be instantiated or inspected
             # TypeError: inspect.getfile() fails for built-in classes
             # OSError: File system errors

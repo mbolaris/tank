@@ -4,8 +4,9 @@ This module provides object pooling to reduce memory allocation overhead
 and garbage collection pressure for entities like Food.
 """
 
-from typing import List, Optional
-from core.entities import Food, Agent
+from typing import List
+
+from core.entities import Food
 
 
 class FoodPool:
@@ -25,9 +26,16 @@ class FoodPool:
         self._pool: List[Food] = []
         self._active: set = set()
 
-    def acquire(self, environment, x: float, y: float, source_plant=None,
-                allow_stationary_types: bool = True, screen_width: int = 800,
-                screen_height: int = 600) -> Food:
+    def acquire(
+        self,
+        environment,
+        x: float,
+        y: float,
+        source_plant=None,
+        allow_stationary_types: bool = True,
+        screen_width: int = 800,
+        screen_height: int = 600,
+    ) -> Food:
         """Get a Food object from the pool or create a new one.
 
         Args:
@@ -93,7 +101,7 @@ class FoodPool:
             Dictionary with pool size and active count
         """
         return {
-            'pool_size': len(self._pool),
-            'active_count': len(self._active),
-            'total_capacity': len(self._pool) + len(self._active),
+            "pool_size": len(self._pool),
+            "active_count": len(self._active),
+            "total_capacity": len(self._pool) + len(self._active),
         }

@@ -293,7 +293,10 @@ def inherit_algorithm_with_mutation(
 
     # Mutate with adaptive factor
     offspring.mutate_parameters(
-        mutation_rate, mutation_strength, use_parameter_specific=True, adaptive_factor=adaptive_factor
+        mutation_rate,
+        mutation_strength,
+        use_parameter_specific=True,
+        adaptive_factor=adaptive_factor,
     )
 
     return offspring
@@ -352,7 +355,9 @@ def _crossover_algorithms_base(
 
                 # Handle non-numeric parameters
                 if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
-                    offspring.parameters[param_key] = val1 if random.random() < parent1_weight else val2
+                    offspring.parameters[param_key] = (
+                        val1 if random.random() < parent1_weight else val2
+                    )
                     continue
 
                 # Blend numeric parameters based on strategy

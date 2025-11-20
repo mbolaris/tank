@@ -321,12 +321,11 @@ class MirrorMover(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query with mirror_distance (O(N) instead of O(N²))
         # This eliminates the double O(N²) problem: get_all + distance_filter
-        allies = [
-            f
-            for f in fish.environment.nearby_agents_by_type(
+        allies = list(
+            fish.environment.nearby_agents_by_type(
                 fish, int(self.parameters["mirror_distance"]), FishClass
             )
-        ]
+        )
 
         if allies:
             nearest = min(allies, key=lambda f: (f.pos - fish.pos).length())

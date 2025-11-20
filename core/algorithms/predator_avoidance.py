@@ -176,9 +176,10 @@ class FreezeResponse(BehaviorAlgorithm):
         search_speed = 0.7 if is_desperate else 0.4
 
         import math
+
         return (
             math.cos(self.search_angle) * search_speed,
-            math.sin(self.search_angle) * search_speed
+            math.sin(self.search_angle) * search_speed,
         )
 
 

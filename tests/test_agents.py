@@ -65,7 +65,7 @@ class TestAgent:
         try:
             agent1.avoid([agent2], min_distance=50)
             success = True
-        except Exception as e:
+        except Exception:
             success = False
 
         assert success, "Avoidance should handle zero-length vectors safely"
@@ -114,6 +114,7 @@ class TestFish:
         strategy = AlgorithmicMovement()
         # Create a genome with size_modifier=1.0 for deterministic testing
         from core.genetics import Genome
+
         genome = Genome(size_modifier=1.0)
         fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
 
@@ -145,7 +146,7 @@ class TestFish:
         try:
             fish.update(0)
             success = True
-        except Exception as e:
+        except Exception:
             success = False
 
         assert success
