@@ -335,6 +335,7 @@ class PokerInteraction:
             screen_width=winner_fish.screen_width,
             screen_height=winner_fish.screen_height,
             initial_energy=total_baby_energy,
+            parent_id=winner_fish.fish_id,  # Track lineage for phylogenetic tree
         )
 
         # Record reproduction in ecosystem for both parents

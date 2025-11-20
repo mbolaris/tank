@@ -36,6 +36,14 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
       }
     }
 
+    // Log orphans if found
+    if (orphans.length > 0) {
+      console.error('Phylogenetic tree error: Found orphaned records:', orphans);
+      console.error('Available IDs:', Array.from(idSet));
+      console.error('Full data:', flatData);
+      return null;
+    }
+
     // D3 Stratify converts flat list -> nested tree
     const strategy = stratify<FishRecord>()
       .id((d) => d.id)
@@ -62,6 +70,8 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
     const result = mapper(tree);
     return result;
   } catch (error) {
+    console.error('Phylogenetic tree error:', error);
+    console.error('Data that caused error:', flatData);
     return null;
   }
 };
