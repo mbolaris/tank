@@ -524,6 +524,16 @@ class Fish(Agent):
         """Current size multiplier (read-only property delegating to LifecycleComponent)."""
         return self._lifecycle_component.size
 
+    @property
+    def bite_size(self) -> float:
+        """Calculate the size of a bite this fish can take.
+        
+        Bite size scales with fish size.
+        """
+        # Base bite size is 20.0 energy units
+        # Scales with size (larger fish take bigger bites)
+        return 20.0 * self.size
+
     def update_life_stage(self) -> None:
         """Update life stage based on age (delegates to LifecycleComponent)."""
         self._lifecycle_component.update_life_stage()
@@ -944,11 +954,13 @@ class Fish(Agent):
         """Eat food and gain energy.
 
         Delegates energy gain to EnergyComponent for cleaner code organization.
+        Now supports partial consumption (taking bites).
 
         Args:
             food: The food being eaten
         """
-        energy_gained = food.get_energy_value()
+        # Take a bite from the food
+        energy_gained = food.take_bite(self.bite_size)
         self._energy_component.gain_energy(energy_gained)
 
         # NEW: Track food consumption in fitness
@@ -1424,6 +1436,12 @@ class Food(Agent):
 
         super().__init__(environment, x, y, 0, screen_width, screen_height)
         self.source_plant: Optional[Plant] = source_plant
+        
+        # Energy tracking for partial consumption
+        self.max_energy: float = self.food_properties["energy"]
+        self.energy: float = self.max_energy
+        self.original_width: float = self.width
+        self.original_height: float = self.height
 
     @staticmethod
     def _select_random_food_type(include_stationary: bool = True) -> str:
@@ -1437,8 +1455,36 @@ class Food(Agent):
         return random.choices(food_types, weights=weights)[0]
 
     def get_energy_value(self) -> float:
-        """Get the energy value this food provides."""
-        return self.food_properties["energy"]
+        """Get the current energy value this food provides."""
+        return self.energy
+
+    def take_bite(self, bite_size: float) -> float:
+        """Take a bite from the food.
+        
+        Args:
+            bite_size: Amount of energy to attempt to consume
+            
+        Returns:
+            Amount of energy actually consumed
+        """
+        consumed = min(self.energy, bite_size)
+        self.energy -= consumed
+        
+        # Update size based on remaining energy
+        # Minimum size is 20% of original
+        energy_ratio = self.energy / self.max_energy
+        size_ratio = 0.2 + (0.8 * energy_ratio)
+        
+        self.set_size(
+            self.original_width * size_ratio,
+            self.original_height * size_ratio
+        )
+        
+        return consumed
+
+    def is_fully_consumed(self) -> bool:
+        """Check if food is fully consumed."""
+        return self.energy <= 0.1  # Small threshold for float comparison
 
     def update(self, elapsed_time: int) -> None:
         """Update the food state."""

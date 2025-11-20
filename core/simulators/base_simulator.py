@@ -155,8 +155,11 @@ class BaseSimulator(ABC):
             food: The food entity
         """
         fish.eat(food)
-        food.get_eaten()
-        self.remove_entity(food)
+        
+        # Only remove food if it's fully consumed
+        if food.is_fully_consumed():
+            food.get_eaten()
+            self.remove_entity(food)
 
     def handle_fish_fish_collision(self, fish1: "Agent", fish2: "Agent") -> bool:
         """Handle collision between two fish (poker interaction).
