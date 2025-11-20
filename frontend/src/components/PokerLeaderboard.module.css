@@ -1,156 +1,156 @@
 .pokerLeaderboard {
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #4a9eff;
-  border-radius: 8px;
-  padding: 15px;
-  color: white;
-  font-family: 'Courier New', monospace;
-  max-width: 800px;
-  margin: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #4a9eff;
+    border-radius: 8px;
+    padding: 15px;
+    color: white;
+    font-family: 'Courier New', monospace;
+    max-width: 1140px;
+    margin: 10px;
 }
 
 .pokerLeaderboard h3 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
-  color: #ffd700;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .leaderboardTable {
-  overflow-x: auto;
+    overflow-x: auto;
 }
 
 .pokerLeaderboard table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
 }
 
 .pokerLeaderboard th {
-  background: rgba(74, 158, 255, 0.3);
-  padding: 8px 6px;
-  text-align: left;
-  font-weight: bold;
-  border-bottom: 2px solid #4a9eff;
-  font-size: 12px;
-  text-transform: uppercase;
+    background: rgba(74, 158, 255, 0.3);
+    padding: 8px 6px;
+    text-align: left;
+    font-weight: bold;
+    border-bottom: 2px solid #4a9eff;
+    font-size: 12px;
+    text-transform: uppercase;
 }
 
 .pokerLeaderboard td {
-  padding: 8px 6px;
-  border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+    padding: 8px 6px;
+    border-bottom: 1px solid rgba(74, 158, 255, 0.2);
 }
 
 .pokerLeaderboard tr:hover {
-  background: rgba(74, 158, 255, 0.1);
+    background: rgba(74, 158, 255, 0.1);
 }
 
 .rank1 {
-  background: rgba(255, 215, 0, 0.15);
+    background: rgba(255, 215, 0, 0.15);
 }
 
 .rank2 {
-  background: rgba(192, 192, 192, 0.15);
+    background: rgba(192, 192, 192, 0.15);
 }
 
 .rank3 {
-  background: rgba(205, 127, 50, 0.15);
+    background: rgba(205, 127, 50, 0.15);
 }
 
 .rankCell {
-  font-size: 18px;
-  text-align: center;
-  width: 40px;
+    font-size: 18px;
+    text-align: center;
+    width: 40px;
 }
 
 .fishCell {
-  min-width: 100px;
+    min-width: 100px;
 }
 
 .fishInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .fishId {
-  font-weight: bold;
-  color: #4a9eff;
+    font-weight: bold;
+    color: #4a9eff;
 }
 
 .fishGen {
-  font-size: 10px;
-  color: #888;
+    font-size: 10px;
+    color: #888;
 }
 
 .gamesInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .totalGames {
-  font-weight: bold;
+    font-weight: bold;
 }
 
 .winLoss {
-  font-size: 10px;
-  color: #aaa;
+    font-size: 10px;
+    color: #aaa;
 }
 
 .positive {
-  color: #4ade80;
-  font-weight: bold;
+    color: #4ade80;
+    font-weight: bold;
 }
 
 .negative {
-  color: #f87171;
-  font-weight: bold;
+    color: #f87171;
+    font-weight: bold;
 }
 
 .neutral {
-  color: #fbbf24;
+    color: #fbbf24;
 }
 
 .bestHand {
-  font-size: 11px;
-  color: #a78bfa;
+    font-size: 11px;
+    color: #a78bfa;
 }
 
 .trendCell {
-  text-align: center;
-  font-size: 14px;
+    text-align: center;
+    font-size: 14px;
 }
 
 .improving {
-  color: #4ade80;
-  font-weight: bold;
-  cursor: help;
+    color: #4ade80;
+    font-weight: bold;
+    cursor: help;
 }
 
 .declining {
-  color: #f87171;
-  font-weight: bold;
-  cursor: help;
+    color: #f87171;
+    font-weight: bold;
+    cursor: help;
 }
 
 .stable {
-  color: #94a3b8;
-  cursor: help;
+    color: #94a3b8;
+    cursor: help;
 }
 
 @media (max-width: 768px) {
-  .pokerLeaderboard table {
-    font-size: 11px;
-  }
+    .pokerLeaderboard table {
+        font-size: 11px;
+    }
 
-  .pokerLeaderboard th,
-  .pokerLeaderboard td {
-    padding: 6px 4px;
-  }
+    .pokerLeaderboard th,
+    .pokerLeaderboard td {
+        padding: 6px 4px;
+    }
 
-  .fishGen,
-  .winLoss {
-    display: none;
-  }
+    .fishGen,
+    .winLoss {
+        display: none;
+    }
 }
