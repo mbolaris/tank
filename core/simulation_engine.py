@@ -328,6 +328,7 @@ class SimulationEngine(BaseSimulator):
             AUTO_FOOD_LOW_ENERGY_THRESHOLD,
             AUTO_FOOD_SPAWN_RATE,
             AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
+            LIVE_FOOD_SPAWN_CHANCE,
         )
 
         if not AUTO_FOOD_ENABLED:
@@ -361,17 +362,32 @@ class SimulationEngine(BaseSimulator):
         self.auto_food_timer += 1
         if self.auto_food_timer >= spawn_rate:
             self.auto_food_timer = 0
-            # Use food pool instead of creating new Food
-            x = self.rng.randint(0, SCREEN_WIDTH)
-            food = self.food_pool.acquire(
-                environment=environment,
-                x=x,
-                y=0,
-                source_plant=None,
-                allow_stationary_types=False,
-                screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT,
-            )
+
+            # Decide whether to spawn live food or regular food
+            live_food_roll = self.rng.random()
+            if live_food_roll < LIVE_FOOD_SPAWN_CHANCE:
+                # Spawn live food at random position (not from pool - LiveFood is special)
+                food_x = self.rng.randint(0, SCREEN_WIDTH)
+                food_y = self.rng.randint(0, SCREEN_HEIGHT)
+                food = entities.LiveFood(
+                    environment,
+                    food_x,
+                    food_y,
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT,
+                )
+            else:
+                # Use food pool for regular food (performance optimization)
+                x = self.rng.randint(0, SCREEN_WIDTH)
+                food = self.food_pool.acquire(
+                    environment=environment,
+                    x=x,
+                    y=0,
+                    source_plant=None,
+                    allow_stationary_types=False,
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT,
+                )
             self.add_entity(food)
 
     def spawn_emergency_fish(self) -> None:
