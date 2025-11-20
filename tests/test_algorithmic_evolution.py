@@ -131,10 +131,16 @@ def test_parameter_mutation():
     mutations_found = 0
     for key in original_params:
         if key in mutated_algo.parameters:
-            if abs(original_params[key] - mutated_algo.parameters[key]) > 0.01:
+            if isinstance(original_params[key], (int, float)) and isinstance(mutated_algo.parameters[key], (int, float)):
+                if abs(original_params[key] - mutated_algo.parameters[key]) > 0.01:
+                    mutations_found += 1
+                    print(
+                        f"  ✓ Parameter '{key}': {original_params[key]:.3f} → {mutated_algo.parameters[key]:.3f}"
+                    )
+            elif original_params[key] != mutated_algo.parameters[key]:
                 mutations_found += 1
                 print(
-                    f"  ✓ Parameter '{key}': {original_params[key]:.3f} → {mutated_algo.parameters[key]:.3f}"
+                    f"  ✓ Parameter '{key}': {original_params[key]} → {mutated_algo.parameters[key]}"
                 )
 
     if mutations_found > 0:
