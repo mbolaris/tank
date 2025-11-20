@@ -365,7 +365,13 @@ class SimulationEngine(BaseSimulator):
 
             # Decide whether to spawn live food or regular food
             live_food_roll = self.rng.random()
-            if live_food_roll < LIVE_FOOD_SPAWN_CHANCE:
+            live_food_chance = LIVE_FOOD_SPAWN_CHANCE
+
+            # Live food becomes more common at night to mimic nocturnal plankton swarms
+            if self.time_system.is_night():
+                live_food_chance = min(0.9, LIVE_FOOD_SPAWN_CHANCE * 1.75)
+
+            if live_food_roll < live_food_chance:
                 # Spawn live food at random position (not from pool - LiveFood is special)
                 food_x = self.rng.randint(0, SCREEN_WIDTH)
                 food_y = self.rng.randint(0, SCREEN_HEIGHT)
