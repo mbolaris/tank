@@ -18,10 +18,8 @@ from core.constants import (
     DEFAULT_AGENT_SIZE,
     DIRECTION_CHANGE_ENERGY_BASE,
     DIRECTION_CHANGE_SIZE_MULTIPLIER,
-    ENERGY_MATE_SEARCH_COST,
     ENERGY_MAX_DEFAULT,
     ENERGY_MODERATE_MULTIPLIER,
-    ENERGY_MOVEMENT_BASE_COST,
     FISH_BASE_HEIGHT,
     FISH_BASE_WIDTH,
     FISH_FOOD_MEMORY_DECAY,
@@ -527,7 +525,7 @@ class Fish(Agent):
     @property
     def bite_size(self) -> float:
         """Calculate the size of a bite this fish can take.
-        
+
         Bite size scales with fish size.
         """
         # Base bite size is 20.0 energy units
@@ -1462,7 +1460,7 @@ class Food(Agent):
 
         super().__init__(environment, x, y, speed, screen_width, screen_height)
         self.source_plant: Optional[Plant] = source_plant
-        
+
         # Energy tracking for partial consumption
         self.max_energy: float = self.food_properties["energy"]
         self.energy: float = self.max_energy
@@ -1487,26 +1485,26 @@ class Food(Agent):
 
     def take_bite(self, bite_size: float) -> float:
         """Take a bite from the food.
-        
+
         Args:
             bite_size: Amount of energy to attempt to consume
-            
+
         Returns:
             Amount of energy actually consumed
         """
         consumed = min(self.energy, bite_size)
         self.energy -= consumed
-        
+
         # Update size based on remaining energy
         # Minimum size is 20% of original
         energy_ratio = self.energy / self.max_energy
         size_ratio = 0.2 + (0.8 * energy_ratio)
-        
+
         self.set_size(
             self.original_width * size_ratio,
             self.original_height * size_ratio
         )
-        
+
         return consumed
 
     def is_fully_consumed(self) -> bool:

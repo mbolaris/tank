@@ -156,7 +156,7 @@ class BaseSimulator(ABC):
             food: The food entity
         """
         fish.eat(food)
-        
+
         # Only remove food if it's fully consumed
         if food.is_fully_consumed():
             food.get_eaten()
