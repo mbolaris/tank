@@ -28,8 +28,6 @@ const GRADIENT_STOP_2 = 0.6;
 
 // Light ray constants
 const LIGHT_RAY_COUNT = 4;
-const LIGHT_RAY_OPACITY_MAIN = 0.08;
-const LIGHT_RAY_OPACITY_SECONDARY = 0.15;
 const CAUSTICS_SPEED = 0.0005;
 const CAUSTICS_AMPLITUDE = 30;
 const WOBBLE_SPEED = 0.0003;
@@ -47,6 +45,22 @@ const SEABED_TEXTURE_OPACITY = 0.2;
 const PARTICLE_HIGHLIGHT_OPACITY_MULTIPLIER = 0.6;
 const PARTICLE_HIGHLIGHT_OFFSET_RATIO = 0.3;
 const PARTICLE_HIGHLIGHT_SIZE_RATIO = 0.4;
+
+interface TimeOfDayPalette {
+  gradientTop: string;
+  gradientMid: string;
+  gradientDeep: string;
+  overlayColor: string;
+  overlayAlpha: number;
+  rayColorMain: string;
+  rayColorSecondary: string;
+  rayOpacityMain: number;
+  rayOpacitySecondary: number;
+  seabedTop: string;
+  seabedMid: string;
+  seabedBottom: string;
+  particleColor: string;
+}
 
 // Food type image mappings (matching core/constants.py)
 const FOOD_TYPE_IMAGES: Record<string, string[]> = {
@@ -78,6 +92,7 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private particles: Particle[] = [];
   private initialized = false;
+  private currentPalette: TimeOfDayPalette | null = null;
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
@@ -103,16 +118,90 @@ export class Renderer {
     }
   }
 
-  clear(width: number, height: number) {
+  private getTimeOfDayPalette(timeOfDay?: string): TimeOfDayPalette {
+    const key = timeOfDay?.toLowerCase() ?? 'day';
+
+    switch (key) {
+      case 'night':
+        return {
+          gradientTop: '#041124',
+          gradientMid: '#06233b',
+          gradientDeep: '#04192c',
+          overlayColor: '#021423',
+          overlayAlpha: 0.35,
+          rayColorMain: '#4dd5ff',
+          rayColorSecondary: '#6be0ff',
+          rayOpacityMain: 0.03,
+          rayOpacitySecondary: 0.06,
+          seabedTop: 'rgba(120, 95, 60, 0.15)',
+          seabedMid: 'rgba(135, 105, 65, 0.24)',
+          seabedBottom: 'rgba(100, 80, 55, 0.35)',
+          particleColor: '#7bb6d4',
+        };
+      case 'dawn':
+        return {
+          gradientTop: '#16324f',
+          gradientMid: '#1f5674',
+          gradientDeep: '#1d3c5a',
+          overlayColor: '#f7c392',
+          overlayAlpha: 0.12,
+          rayColorMain: '#ffd27f',
+          rayColorSecondary: '#ffb070',
+          rayOpacityMain: 0.14,
+          rayOpacitySecondary: 0.2,
+          seabedTop: 'rgba(200, 165, 105, 0.18)',
+          seabedMid: 'rgba(210, 175, 115, 0.32)',
+          seabedBottom: 'rgba(165, 135, 90, 0.4)',
+          particleColor: '#b2d8ff',
+        };
+      case 'dusk':
+        return {
+          gradientTop: '#0f2640',
+          gradientMid: '#1b3e63',
+          gradientDeep: '#16324f',
+          overlayColor: '#f0937c',
+          overlayAlpha: 0.16,
+          rayColorMain: '#ff9e7d',
+          rayColorSecondary: '#ffb38d',
+          rayOpacityMain: 0.12,
+          rayOpacitySecondary: 0.18,
+          seabedTop: 'rgba(195, 150, 95, 0.18)',
+          seabedMid: 'rgba(205, 160, 105, 0.3)',
+          seabedBottom: 'rgba(160, 125, 80, 0.4)',
+          particleColor: '#9ac8ec',
+        };
+      case 'day':
+      default:
+        return {
+          gradientTop: '#0a3350',
+          gradientMid: '#0d4a6b',
+          gradientDeep: '#0e2f46',
+          overlayColor: '#8ce0ff',
+          overlayAlpha: 0.08,
+          rayColorMain: '#5de5ff',
+          rayColorSecondary: '#7cf0ff',
+          rayOpacityMain: 0.12,
+          rayOpacitySecondary: 0.18,
+          seabedTop: 'rgba(180, 145, 85, 0.15)',
+          seabedMid: 'rgba(200, 160, 95, 0.3)',
+          seabedBottom: 'rgba(160, 130, 75, 0.4)',
+          particleColor: '#8dd5ef',
+        };
+    }
+  }
+
+  clear(width: number, height: number, timeOfDay?: string) {
     this.initParticles();
     const time = Date.now();
+    const palette = this.getTimeOfDayPalette(timeOfDay);
+    this.currentPalette = palette;
 
     // Enhanced ocean gradient with more depth
     const gradient = this.ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#051d35');
-    gradient.addColorStop(GRADIENT_STOP_1, '#0a3854');
-    gradient.addColorStop(GRADIENT_STOP_2, '#0d4a6b');
-    gradient.addColorStop(1, '#0e2838');
+    gradient.addColorStop(0, palette.gradientTop);
+    gradient.addColorStop(GRADIENT_STOP_1, palette.gradientMid);
+    gradient.addColorStop(GRADIENT_STOP_2, palette.gradientDeep);
+    gradient.addColorStop(1, palette.gradientDeep);
     this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, width, height);
 
@@ -124,30 +213,39 @@ export class Renderer {
       const wobble = Math.sin(time * WOBBLE_SPEED + i) * WOBBLE_AMPLITUDE;
 
       // Main light ray
-      this.ctx.globalAlpha = LIGHT_RAY_OPACITY_MAIN;
+      this.ctx.globalAlpha = palette.rayOpacityMain;
       this.ctx.beginPath();
       this.ctx.moveTo(baseX + 60 + wobble, 0);
       this.ctx.lineTo(baseX + 180 + wobble, 0);
       this.ctx.lineTo(baseX + wobble, height);
       this.ctx.closePath();
       const rayGradient = this.ctx.createLinearGradient(baseX, 0, baseX, height);
-      rayGradient.addColorStop(0, '#4dd5ff');
-      rayGradient.addColorStop(0.6, '#3dd5ff');
+      rayGradient.addColorStop(0, palette.rayColorMain);
+      rayGradient.addColorStop(0.6, palette.rayColorMain);
       rayGradient.addColorStop(1, 'rgba(61, 213, 255, 0)');
       this.ctx.fillStyle = rayGradient;
       this.ctx.fill();
 
       // Secondary highlight for caustics
-      this.ctx.globalAlpha = LIGHT_RAY_OPACITY_SECONDARY;
+      this.ctx.globalAlpha = palette.rayOpacitySecondary;
       this.ctx.beginPath();
       this.ctx.moveTo(baseX + 80 + wobble * 1.5, 0);
       this.ctx.lineTo(baseX + 120 + wobble * 1.5, 0);
       this.ctx.lineTo(baseX + 40 + wobble, height * 0.4);
       this.ctx.closePath();
-      this.ctx.fillStyle = '#5de5ff';
+      this.ctx.fillStyle = palette.rayColorSecondary;
       this.ctx.fill();
     }
     this.ctx.restore();
+
+    // Apply subtle global overlay for time-of-day mood
+    if (palette.overlayAlpha > 0) {
+      this.ctx.save();
+      this.ctx.globalAlpha = palette.overlayAlpha;
+      this.ctx.fillStyle = palette.overlayColor;
+      this.ctx.fillRect(0, 0, width, height);
+      this.ctx.restore();
+    }
 
     // Update and draw floating particles
     this.updateParticles(width, height);
@@ -159,9 +257,9 @@ export class Renderer {
 
     // Seabed gradient with more depth
     const seabedGradient = this.ctx.createLinearGradient(0, seabedY, 0, height);
-    seabedGradient.addColorStop(0, 'rgba(180, 145, 85, 0.15)');
-    seabedGradient.addColorStop(0.5, 'rgba(200, 160, 95, 0.3)');
-    seabedGradient.addColorStop(1, 'rgba(160, 130, 75, 0.4)');
+    seabedGradient.addColorStop(0, palette.seabedTop);
+    seabedGradient.addColorStop(0.5, palette.seabedMid);
+    seabedGradient.addColorStop(1, palette.seabedBottom);
     this.ctx.fillStyle = seabedGradient;
     this.ctx.fillRect(0, seabedY, width, seabedHeight);
 
@@ -201,9 +299,10 @@ export class Renderer {
 
   private drawParticles() {
     this.ctx.save();
+    const particleColor = this.currentPalette?.particleColor ?? '#8dd5ef';
     for (const particle of this.particles) {
       this.ctx.globalAlpha = particle.opacity;
-      this.ctx.fillStyle = '#8dd5ef';
+      this.ctx.fillStyle = particleColor;
 
       // Draw bubble with highlight
       this.ctx.beginPath();
