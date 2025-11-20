@@ -538,9 +538,11 @@ class HumanPokerGame:
                     "folded": p.folded,
                     "is_human": p.is_human,
                     "algorithm": p.algorithm,
-                    # Only show hole cards for human player
+                    # Show hole cards for human player or during showdown
                     "hole_cards": (
-                        [str(card) for card in p.hole_cards] if p.is_human else ["??", "??"]
+                        [str(card) for card in p.hole_cards]
+                        if (p.is_human or self.current_round == BettingRound.SHOWDOWN)
+                        else ["??", "??"]
                     ),
                 }
                 for p in self.players
