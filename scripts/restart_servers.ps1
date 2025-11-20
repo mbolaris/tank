@@ -12,14 +12,14 @@ Start-Sleep -Seconds 2
 
 Write-Host ""
 Write-Host "Starting backend server..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; python main.py"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\..\backend'; python main.py"
 
 Write-Host "Waiting for backend to start..." -ForegroundColor Yellow
 Start-Sleep -Seconds 3
 
 Write-Host ""
 Write-Host "Starting frontend server..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\frontend'; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\..\frontend'; npm run dev"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan

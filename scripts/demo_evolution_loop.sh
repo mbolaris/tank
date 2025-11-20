@@ -47,12 +47,12 @@ for i in $(seq 1 $ITERATIONS); do
 
     # Step 1: Run simulation
     echo "Step 1: Running simulation (10,000 frames)..."
-    python main.py --headless --max-frames 10000 --export-stats results.json
+    python ../main.py --headless --max-frames 10000 --export-stats results.json
     echo ""
 
     # Step 2: Run AI agent
     echo "Step 2: Running AI Code Evolution Agent..."
-    python scripts/ai_code_evolution_agent.py results.json --provider $PROVIDER
+    python ai_code_evolution_agent.py results.json --provider $PROVIDER
     echo ""
 
     # Step 3: Show the diff
@@ -62,7 +62,7 @@ for i in $(seq 1 $ITERATIONS); do
 
     # Step 4: Quick test
     echo "Step 4: Quick validation test (1,000 frames)..."
-    python main.py --headless --max-frames 1000
+    python ../main.py --headless --max-frames 1000
     echo ""
 
     # Step 5: Ask user to continue
