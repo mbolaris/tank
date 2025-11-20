@@ -4,7 +4,8 @@
 
 import { useState } from 'react';
 import type { Command } from '../types/simulation';
-import { colors, commonStyles } from '../styles/theme';
+import { Panel, Button } from './ui';
+import styles from './ControlPanel.module.css';
 
 interface ControlPanelProps {
   onCommand: (command: Command) => void;
@@ -56,103 +57,80 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvalua
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Controls</h2>
-
-      <div style={styles.status}>
+    <Panel title="Controls">
+      <div className={styles.status}>
         <div
+          className={styles.statusDot}
           style={{
-            ...styles.statusDot,
             backgroundColor: isConnected ? '#4ade80' : '#ef4444',
           }}
         />
-        <span style={styles.statusText}>
+        <span className={styles.statusText}>
           {isConnected ? 'Connected' : 'Disconnected'}
         </span>
       </div>
 
-      <div style={styles.buttons}>
-        <button
+      <div className={styles.buttons}>
+        <Button
           onClick={handlePlayPoker}
           disabled={!isConnected}
-          style={{
-            ...styles.button,
-            ...styles.buttonPoker,
-          }}
+          variant="poker"
         >
           🃏 Play Poker
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleAutoEvaluatePoker}
           disabled={!isConnected}
-          style={{
-            ...styles.button,
-            ...styles.buttonEvaluate,
-          }}
+          variant="evaluate"
         >
           📊 Auto-Evaluate Skill
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleAddFood}
           disabled={!isConnected}
-          style={{
-            ...styles.button,
-            ...styles.buttonPrimary,
-          }}
+          variant="primary"
         >
           🍔 Add Food
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleSpawnFish}
           disabled={!isConnected}
-          style={{
-            ...styles.button,
-            ...styles.buttonSuccess,
-          }}
+          variant="success"
         >
           🐟 Spawn Fish
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleSpawnJellyfish}
           disabled={!isConnected}
-          style={{
-            ...styles.button,
-            ...styles.buttonSpecial,
-          }}
+          variant="special"
         >
           🎰 Spawn Poker Jellyfish
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handlePause}
           disabled={!isConnected}
-          style={{
-            ...styles.button,
-            ...styles.buttonSecondary,
-          }}
+          variant="secondary"
         >
           {isPaused ? '▶️ Resume' : '⏸️ Pause'}
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleReset}
           disabled={!isConnected}
-          style={{
-            ...styles.button,
-            ...styles.buttonDanger,
-          }}
+          variant="danger"
         >
           🔄 Reset
-        </button>
+        </Button>
       </div>
 
-      <div style={styles.help}>
-        <h3 style={styles.helpTitle}>Controls</h3>
-        <ul style={styles.helpList}>
+      <div className={styles.help}>
+        <h3 className={styles.helpTitle}>Controls</h3>
+        <ul className={styles.helpList}>
           <li>
             <strong>Play Poker:</strong> Play poker against the top 3 fish
           </li>
@@ -176,78 +154,6 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvalua
           </li>
         </ul>
       </div>
-    </div>
+    </Panel>
   );
 }
-
-const styles = {
-  container: commonStyles.panelContainer,
-  title: commonStyles.panelTitle,
-  status: {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: '16px',
-  },
-  statusDot: {
-    width: '12px',
-    height: '12px',
-    borderRadius: '50%',
-    marginRight: '8px',
-  },
-  statusText: {
-    fontSize: '14px',
-  },
-  buttons: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-  },
-  button: commonStyles.button,
-  buttonPrimary: {
-    backgroundColor: colors.buttonPrimary,
-    color: '#ffffff',
-  },
-  buttonSuccess: {
-    backgroundColor: colors.buttonSuccess,
-    color: '#ffffff',
-  },
-  buttonSecondary: {
-    backgroundColor: colors.buttonSecondary,
-    color: '#ffffff',
-  },
-  buttonDanger: {
-    backgroundColor: colors.buttonDanger,
-    color: '#ffffff',
-  },
-  buttonSpecial: {
-    backgroundColor: '#f59e0b',
-    color: '#ffffff',
-  },
-  buttonPoker: {
-    backgroundColor: '#8b5cf6',
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  buttonEvaluate: {
-    backgroundColor: '#06b6d4',
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  help: {
-    marginTop: '24px',
-    padding: '16px',
-    backgroundColor: colors.bgDark,
-    borderRadius: '6px',
-  },
-  helpTitle: {
-    margin: '0 0 12px 0',
-    fontSize: '16px',
-    fontWeight: 500,
-  },
-  helpList: {
-    margin: 0,
-    paddingLeft: '20px',
-    fontSize: '13px',
-    lineHeight: '1.6',
-  },
-};

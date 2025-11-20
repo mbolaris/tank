@@ -1,0 +1,73 @@
+.noData {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.summaryCard {
+  background: rgba(51,65,85,0.4);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(148,163,184,0.1);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.summaryItem {
+  text-align: center;
+}
+
+.summaryLabel {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.summaryValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.gridRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.statRow {
+  /* Individual stat rows - no styling needed as StatRow component handles it */
+}
+
+.subsection {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(148,163,184,0.15);
+}
+
+.subsectionLabel {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.noPokerGames {
+  font-style: italic;
+  opacity: 0.7;
+  font-size: 13px;
+  color: #e2e8f0;
+  padding: 8px 12px;
+  background: rgba(51,65,85,0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(148,163,184,0.08);
+}

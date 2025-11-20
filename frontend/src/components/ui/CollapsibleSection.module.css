@@ -1,0 +1,29 @@
+.section {
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.title:hover {
+  color: #cbd5e1;
+}
+
+.icon {
+  margin-right: 8px;
+  font-size: 12px;
+}
+
+.content {
+  /* Content styling handled by children */
+}

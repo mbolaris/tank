@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import Tree from 'react-d3-tree';
+import Tree, { type CustomNodeElementProps } from 'react-d3-tree';
 import { transformLineageData } from '../utils/lineageUtils';
 import type { FishRecord, TreeNodeData } from '../utils/lineageUtils';
-
-interface CustomNodeElementProps {
-  nodeDatum: TreeNodeData;
-  toggleNode: () => void;
-}
 
 const containerStyles: React.CSSProperties = {
   width: '100%',
@@ -70,36 +65,39 @@ export const PhylogeneticTree: React.FC = () => {
   }, []);
 
   // Custom node renderer to color-code by fish color
-  const renderCustomNode = ({ nodeDatum, toggleNode }: CustomNodeElementProps) => (
-    <g>
-      <circle
-        r={10}
-        fill={nodeDatum.nodeColor || "#00ff00"}
-        stroke="#fff"
-        strokeWidth="1"
-        onClick={toggleNode}
-        style={{ cursor: 'pointer' }}
-      />
-      <text
-        fill="white"
-        x="15"
-        dy=".31em"
-        fontSize="12px"
-        style={{ pointerEvents: 'none' }}
-      >
-        {nodeDatum.attributes.Algo}
-      </text>
-      <text
-        fill="#888"
-        x="15"
-        dy="1.5em"
-        fontSize="10px"
-        style={{ pointerEvents: 'none' }}
-      >
-        ID: {nodeDatum.attributes.ID}
-      </text>
-    </g>
-  );
+  const renderCustomNode = ({ nodeDatum, toggleNode }: CustomNodeElementProps) => {
+    const treeNode = nodeDatum as unknown as TreeNodeData;
+    return (
+      <g>
+        <circle
+          r={10}
+          fill={treeNode.nodeColor || "#00ff00"}
+          stroke="#fff"
+          strokeWidth="1"
+          onClick={toggleNode}
+          style={{ cursor: 'pointer' }}
+        />
+        <text
+          fill="white"
+          x="15"
+          dy=".31em"
+          fontSize="12px"
+          style={{ pointerEvents: 'none' }}
+        >
+          {treeNode.attributes?.Algo}
+        </text>
+        <text
+          fill="#888"
+          x="15"
+          dy="1.5em"
+          fontSize="10px"
+          style={{ pointerEvents: 'none' }}
+        >
+          ID: {treeNode.attributes?.ID}
+        </text>
+      </g>
+    );
+  };
 
   if (loading && !treeData) {
     return (

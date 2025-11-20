@@ -1,0 +1,37 @@
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.actionButton {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 120px;
+}
+
+.raiseInputContainer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.raiseInput {
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 2px solid rgba(148,163,184,0.18);
+  background-color: #0f172a;
+  color: #e2e8f0;
+  width: 120px;
+}
+
+.waitingMessage {
+  padding: 12px;
+  font-size: 16px;
+  color: #fbbf24;
+  text-align: center;
+}
