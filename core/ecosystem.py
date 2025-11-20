@@ -4,7 +4,7 @@ This module manages population dynamics, statistics, and ecosystem health.
 """
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import (
@@ -1281,7 +1281,7 @@ class EcosystemManager:
         """
         return self.jellyfish_poker_stats.get(fish_id)
 
-    def get_lineage_data(self, alive_fish_ids: Optional[set[int]] = None) -> List[Dict[str, Any]]:
+    def get_lineage_data(self, alive_fish_ids: Optional[Set[int]] = None) -> List[Dict[str, Any]]:
         """Get complete lineage data for phylogenetic tree visualization.
 
         Args:
