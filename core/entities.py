@@ -924,12 +924,8 @@ class Fish(Agent):
 
         previous_direction = self.last_direction
 
-        # Movement (only if not starving)
-        if not self.is_starving():
-            self.movement_strategy.move(self)
-        else:
-            # Slow down when starving
-            self.vel *= 0.5
+        # Movement (algorithms handle critical energy internally)
+        self.movement_strategy.move(self)
 
         self._apply_turn_energy_cost(previous_direction)
 
