@@ -108,13 +108,14 @@ function App() {
     };
 
     return (
+        <>
         <div className="app">
             <header className="header">
                 <h1 className="title">Tank World</h1>
                 <p className="subtitle">
                     An ecosystem where fish play Poker for energy and an autonomous AI rewrites their source code to ensure survival.
                 </p>
-              </div>
+              </header>
               <div>
                 <p className="canvas-label">Generation</p>
                 <p className="canvas-value">
@@ -200,6 +201,7 @@ function App() {
           />
           <StatsPanel stats={state?.stats ?? null} />
         </div>
+        </>
     );
 }
 
