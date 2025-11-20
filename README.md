@@ -359,6 +359,12 @@ python tests/test_simulation.py
 
 # Test determinism
 python tests/test_parity.py
+
+# Run static analysis (import order, safety, style)
+ruff check
+
+# Format code
+black .
 ```
 
 ## 🎓 Educational Value

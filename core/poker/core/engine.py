@@ -7,7 +7,7 @@ This module contains the core game engine, game state tracking, and AI decision 
 import logging
 import random
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum
 from itertools import combinations
 from typing import TYPE_CHECKING, List, Optional, Tuple
@@ -31,7 +31,7 @@ from core.constants import (
     POKER_WEAK_ENERGY_FRACTION,
     POKER_WEAK_POT_MULTIPLIER,
 )
-from core.poker.core.cards import Card, Deck, Rank
+from core.poker.core.cards import Card, Deck
 from core.poker.core.hand import HandRank, PokerHand
 
 if TYPE_CHECKING:
