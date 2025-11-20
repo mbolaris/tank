@@ -1216,15 +1216,35 @@ class Plant(Agent):
 
         return False
 
-    def produce_food(self) -> "Food":
+    def _get_nectar_chance(self, time_of_day: Optional[float]) -> float:
+        """Calculate the chance of producing nectar based on time of day."""
+        if time_of_day is None:
+            return PLANT_PRODUCTION_CHANCE
+
+        is_dawn = 0.15 <= time_of_day < 0.35
+        is_day = 0.35 <= time_of_day < 0.65
+        is_dusk = 0.65 <= time_of_day < 0.85
+
+        if is_day:
+            return min(0.9, PLANT_PRODUCTION_CHANCE * 1.35)
+        if is_dawn or is_dusk:
+            return min(0.75, PLANT_PRODUCTION_CHANCE * 1.1)
+        return PLANT_PRODUCTION_CHANCE * 0.6
+
+    def produce_food(self, time_of_day: Optional[float] = None) -> "Food":
         """Produce a food item near or on the plant.
+
+        Args:
+            time_of_day: Normalized time of day (0.0-1.0) to shape nectar output.
 
         Returns:
             New food item
         """
         self.current_food_count += 1
 
-        if random.random() < PLANT_PRODUCTION_CHANCE:
+        nectar_chance = self._get_nectar_chance(time_of_day)
+
+        if random.random() < nectar_chance:
             # Grow nectar that clings to the top of the plant
             food = Food(
                 self.environment,
@@ -1257,12 +1277,15 @@ class Plant(Agent):
         """Notify plant that one of its food items was eaten."""
         self.current_food_count = max(0, self.current_food_count - 1)
 
-    def update(self, elapsed_time: int, time_modifier: float = 1.0) -> Optional["Food"]:
+    def update(
+        self, elapsed_time: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> Optional["Food"]:
         """Update the plant.
 
         Args:
             elapsed_time: Time elapsed since start
             time_modifier: Time-based modifier (higher during day)
+            time_of_day: Normalized time of day (0.0-1.0) for nectar biasing
 
         Returns:
             New food item if produced, None otherwise
@@ -1271,7 +1294,7 @@ class Plant(Agent):
 
         # Check food production
         if self.should_produce_food(time_modifier):
-            return self.produce_food()
+            return self.produce_food(time_of_day)
 
         return None
 

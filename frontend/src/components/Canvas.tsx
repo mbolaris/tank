@@ -40,8 +40,8 @@ export function Canvas({ state, width = 800, height = 600 }: CanvasProps) {
 
     const renderer = rendererRef.current;
 
-    // Clear canvas
-    renderer.clear(width, height);
+    // Clear canvas with time-of-day effects
+    renderer.clear(width, height, state.stats?.time);
 
     // Render all entities
     state.entities.forEach((entity) => {

@@ -243,6 +243,7 @@ class SimulationEngine(BaseSimulator):
 
         self.time_system.update()
         time_modifier = self.time_system.get_activity_modifier()
+        time_of_day = self.time_system.get_time_of_day()
 
         new_entities: List[entities.Agent] = []
 
@@ -259,7 +260,7 @@ class SimulationEngine(BaseSimulator):
                     self.record_fish_death(entity)
 
             elif isinstance(entity, entities.Plant):
-                food = entity.update(self.frame_count, time_modifier)
+                food = entity.update(self.frame_count, time_modifier, time_of_day)
                 if food is not None:
                     new_entities.append(food)
 
@@ -287,7 +288,7 @@ class SimulationEngine(BaseSimulator):
             self.add_entity(new_entity)
 
         if self.environment is not None:
-            self.spawn_auto_food(self.environment)
+            self.spawn_auto_food(self.environment, time_of_day)
 
         # Update spatial grid incrementally for entities that moved
         # This is much faster than rebuilding the entire grid
@@ -319,7 +320,7 @@ class SimulationEngine(BaseSimulator):
         if self._cache_dirty:
             self._rebuild_caches()
 
-    def spawn_auto_food(self, environment: "environment.Environment") -> None:
+    def spawn_auto_food(self, environment: "environment.Environment", time_of_day: Optional[float] = None) -> None:
         """Spawn automatic food using object pooling for better performance.
 
         Override base implementation to use food pool.
@@ -372,9 +373,20 @@ class SimulationEngine(BaseSimulator):
             live_food_roll = self.rng.random()
             live_food_chance = LIVE_FOOD_SPAWN_CHANCE
 
-            # Live food becomes more common at night to mimic nocturnal plankton swarms
-            if self.time_system.is_night():
-                live_food_chance = min(0.9, LIVE_FOOD_SPAWN_CHANCE * 1.75)
+            # Time-of-day effects: twilight peaks, darker nights slightly boost live food
+            if time_of_day is None:
+                time_of_day = self.time_system.get_time_of_day()
+
+            is_dawn = 0.15 <= time_of_day < 0.35
+            is_day = 0.35 <= time_of_day < 0.65
+            is_dusk = 0.65 <= time_of_day < 0.85
+
+            if is_dawn or is_dusk:
+                live_food_chance = min(0.95, LIVE_FOOD_SPAWN_CHANCE * 2.2)
+            elif self.time_system.is_night():
+                live_food_chance = min(0.85, LIVE_FOOD_SPAWN_CHANCE * 1.6)
+            elif is_day:
+                live_food_chance = max(0.25, LIVE_FOOD_SPAWN_CHANCE * 0.9)
 
             if live_food_roll < live_food_chance:
                 # Spawn live food at random position (not from pool - LiveFood is special)
