@@ -476,21 +476,40 @@ class SimulationEngine(BaseSimulator):
             return
 
         result = poker.result
+        num_players = len(result.player_ids)
 
         # Create event message
         if result.winner_id == -1:
-            # Tie
+            # Tie - show all players involved
             hand1_desc = result.hand1.description if result.hand1 is not None else "Unknown"
-            message = (
-                f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
-            )
+            if num_players == 2:
+                message = (
+                    f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
+                )
+            else:
+                # Multi-player tie - show all players
+                player_list = ", ".join(f"#{pid}" for pid in result.player_ids)
+                message = f"Fish {player_list} - TIE! ({hand1_desc})"
         else:
-            winner_hand = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
-            winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
-            # Show winner's actual gain (not loser's loss) to make it clear they're different
-            message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+            # Get winner's hand from player_hands based on winner_id
+            winner_hand_obj = None
+            for i, pid in enumerate(result.player_ids):
+                if pid == result.winner_id:
+                    winner_hand_obj = result.player_hands[i]
+                    break
+            winner_desc = winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
 
-        # Extract hand descriptions
+            # Format loser(s)
+            if num_players == 2:
+                # 2-player game: show single loser
+                message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+            else:
+                # Multi-player game: show all losers
+                loser_list = ", ".join(f"#{lid}" for lid in result.loser_ids)
+                message = f"Fish #{result.winner_id} beats Fish {loser_list} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+
+        # Extract hand descriptions for the event record
+        # For 2-player games, use legacy approach; for multi-player, use first player vs first loser
         winner_hand_obj = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
         loser_hand_obj = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
         winner_hand_desc = winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
