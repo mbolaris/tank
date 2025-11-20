@@ -6,9 +6,11 @@ import time
 from typing import Any, Dict, Optional
 import uuid
 
-from backend.models import EntityData, PokerEventData, PokerStatsData, SimulationUpdate, StatsData
-from core import entities
-from core.constants import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
+from backend.models import EntityData, PokerEventData, PokerLeaderboardEntry, PokerStatsData, SimulationUpdate, StatsData
+from core import entities, movement_strategy
+from core.constants import FRAME_RATE, FILES, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
+from core.entities import Fish
+from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
@@ -57,6 +59,40 @@ class SimulationRunner:
 
         # Auto-evaluation poker game management
         self.auto_evaluate_game: Optional[AutoEvaluatePokerGame] = None
+
+    def _create_error_response(self, error_msg: str) -> Dict[str, Any]:
+        """Create a standardized error response.
+
+        Args:
+            error_msg: The error message to return
+
+        Returns:
+            Dictionary with success=False and error message
+        """
+        return {"success": False, "error": error_msg}
+
+    def _create_fish_player_data(self, fish: Fish, include_aggression: bool = False) -> Dict[str, Any]:
+        """Create fish player data dictionary.
+
+        Args:
+            fish: The fish entity
+            include_aggression: If True, include aggression field for human poker games
+
+        Returns:
+            Dictionary with fish player data
+        """
+        algo_name = fish.genome.behavior_algorithm.algorithm_id
+        player_data = {
+            "fish_id": fish.fish_id,
+            "name": f"{algo_name[:15]} (Gen {fish.generation})",
+            "energy": fish.energy,
+            "algorithm": algo_name,
+        }
+
+        if include_aggression:
+            player_data["aggression"] = getattr(fish.genome, "aggression", 0.5)
+
+        return player_data
 
     def start(self):
         """Start the simulation in a background thread."""
@@ -220,14 +256,10 @@ class SimulationRunner:
             poker_leaderboard = []
             if hasattr(self.world.ecosystem, "get_poker_leaderboard"):
                 # Get fish list from entities
-                from core.entities import Fish
-
                 fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
                 leaderboard_data = self.world.ecosystem.get_poker_leaderboard(
                     fish_list=fish_list, limit=10, sort_by="net_energy"
                 )
-                from backend.models import PokerLeaderboardEntry
-
                 poker_leaderboard = [PokerLeaderboardEntry(**entry) for entry in leaderboard_data]
 
             state = SimulationUpdate(
@@ -358,9 +390,6 @@ class SimulationRunner:
                 # Spawn a new fish at random position
                 try:
                     logger.info("Spawn fish command received")
-                    from core import movement_strategy
-                    from core.constants import FILES
-                    from core.genetics import Genome
 
                     # Random spawn position (avoid edges)
                     x = self.world.rng.randint(
@@ -424,16 +453,13 @@ class SimulationRunner:
                 logger.info("Starting human poker game...")
                 try:
                     # Get top 3 fish from leaderboard
-                    from core.entities import Fish
-
                     fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
 
                     if len(fish_list) < 3:
                         logger.warning(f"Not enough fish to start poker game (need 3, have {len(fish_list)})")
-                        return {
-                            "success": False,
-                            "error": f"Need at least 3 fish to play poker (currently {len(fish_list)})",
-                        }
+                        return self._create_error_response(
+                            f"Need at least 3 fish to play poker (currently {len(fish_list)})"
+                        )
 
                     # Get leaderboard
                     leaderboard = self.world.ecosystem.get_poker_leaderboard(
@@ -446,13 +472,7 @@ class SimulationRunner:
                         # Find the actual fish object
                         fish = next((f for f in fish_list if f.fish_id == entry["fish_id"]), None)
                         if fish:
-                            ai_fish.append({
-                                "fish_id": fish.fish_id,
-                                "name": f"{entry['algorithm'][:15]} (Gen {entry['generation']})",
-                                "energy": fish.energy,
-                                "algorithm": entry["algorithm"],
-                                "aggression": getattr(fish.genome, "aggression", 0.5),
-                            })
+                            ai_fish.append(self._create_fish_player_data(fish, include_aggression=True))
 
                     # If we don't have 3 fish from leaderboard, fill with random fish
                     if len(ai_fish) < 3:
@@ -460,15 +480,7 @@ class SimulationRunner:
                             if len(ai_fish) >= 3:
                                 break
                             if fish.fish_id not in [f["fish_id"] for f in ai_fish]:
-                                # Get algorithm name directly from the algorithm object
-                                algo_name = fish.genome.behavior_algorithm.algorithm_id
-                                ai_fish.append({
-                                    "fish_id": fish.fish_id,
-                                    "name": f"{algo_name[:15]} (Gen {fish.generation})",
-                                    "energy": fish.energy,
-                                    "algorithm": algo_name,
-                                    "aggression": getattr(fish.genome, "aggression", 0.5),
-                                })
+                                ai_fish.append(self._create_fish_player_data(fish, include_aggression=True))
 
                     # Create poker game
                     game_id = str(uuid.uuid4())
@@ -492,25 +504,16 @@ class SimulationRunner:
 
                 except Exception as e:
                     logger.error(f"Error starting poker game: {e}", exc_info=True)
-                    return {
-                        "success": False,
-                        "error": f"Failed to start poker game: {str(e)}",
-                    }
+                    return self._create_error_response(f"Failed to start poker game: {str(e)}")
 
             elif command == "poker_action":
                 # Handle poker action (fold, check, call, raise)
                 if not self.human_poker_game:
                     logger.warning("Poker action received but no game active")
-                    return {
-                        "success": False,
-                        "error": "No poker game active",
-                    }
+                    return self._create_error_response("No poker game active")
 
                 if not data:
-                    return {
-                        "success": False,
-                        "error": "No action data provided",
-                    }
+                    return self._create_error_response("No action data provided")
 
                 action = data.get("action")
                 amount = data.get("amount", 0.0)
@@ -525,16 +528,11 @@ class SimulationRunner:
                 logger.info("Starting auto-evaluation poker game...")
                 try:
                     # Get top fish from leaderboard
-                    from core.entities import Fish
-
                     fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
 
                     if len(fish_list) < 1:
                         logger.warning("No fish available for auto-evaluation")
-                        return {
-                            "success": False,
-                            "error": "Need at least 1 fish to run auto-evaluation",
-                        }
+                        return self._create_error_response("Need at least 1 fish to run auto-evaluation")
 
                     # Get top 3 fish from leaderboard
                     num_fish = min(3, len(fish_list))
@@ -609,7 +607,4 @@ class SimulationRunner:
 
                 except Exception as e:
                     logger.error(f"Error running auto-evaluation: {e}", exc_info=True)
-                    return {
-                        "success": False,
-                        "error": f"Failed to run auto-evaluation: {str(e)}",
-                    }
+                    return self._create_error_response(f"Failed to run auto-evaluation: {str(e)}")
