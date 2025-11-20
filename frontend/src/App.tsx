@@ -84,7 +84,7 @@ function App() {
 
       const response = await sendCommandWithResponse({
         command: 'auto_evaluate_poker',
-        data: { standard_energy: 500, max_hands: 100 },
+        data: { standard_energy: 500, max_hands: 1000 },
       });
 
       if (response.success === false) {
