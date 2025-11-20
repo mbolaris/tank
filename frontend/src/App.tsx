@@ -7,7 +7,6 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
 import { StatsPanel } from './components/StatsPanel';
-import { EcosystemStats } from './components/EcosystemStats';
 import PokerEvents from './components/PokerEvents';
 import { PokerLeaderboard } from './components/PokerLeaderboard';
 import { PhylogeneticTree } from './components/PhylogeneticTree';
@@ -108,98 +107,105 @@ function App() {
     };
 
     return (
-        <>
         <div className="app">
             <header className="header">
                 <h1 className="title">Tank World</h1>
                 <p className="subtitle">
                     An ecosystem where fish play Poker for energy and an autonomous AI rewrites their source code to ensure survival.
                 </p>
-              </header>
-              <div>
-                <p className="canvas-label">Generation</p>
-                <p className="canvas-value">
-                  {state?.stats?.generation ?? 0}
-                </p>
-              </div>
-              <div>
-                <p className="canvas-label">Population</p>
-                <p className="canvas-value">
-                  {state?.stats?.fish_count ?? 0}
-                  <span> fish</span>
-                </p>
-              </div>
-              <div>
-                <p className="canvas-label">Energy</p>
-                <p
-                  className="canvas-value"
-                  style={{ color: getEnergyColor(state?.stats?.total_energy ?? 0) }}
-                >
-                  {state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}
-                  <span>total</span>
-                </p>
-              </div>
-              <div>
-                <p className="canvas-label">Age</p>
-                <p className="canvas-value">
-                  {state?.stats?.time ?? '—'}
-                </p>
-              </div>
-              <div>
-                <p className="canvas-label">Status</p>
-                <p className={`canvas-status ${isConnected ? 'online' : 'offline'}`}>
-                  {isConnected ? 'Connected' : 'Waiting'}
-                </p>
-              </div>
-            <Canvas state={state} width={800} height={600} />
-            <div className="canvas-glow" aria-hidden />
-            <EcosystemStats stats={state?.stats ?? null} />
-            <PokerEvents
-              events={state?.poker_events ?? []}
-              currentFrame={state?.frame ?? 0}
-            />
-            <PokerLeaderboard leaderboard={state?.poker_leaderboard ?? []} />
-            <div style={{ marginTop: '20px' }}>
-              <h2 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '20px' }}>
-                Phylogenetic Tree
-              </h2>
-              <PhylogeneticTree />
-            </div>
+            </header>
 
-            {/* Poker Game */}
-            {showPokerGame && (
-              <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
-                <PokerGame
-                  onClose={handleClosePoker}
-                  onAction={handlePokerAction}
-                  gameState={pokerGameState}
-                  loading={pokerLoading}
-                />
-              </div>
-            )}
+            <main className="main">
+                <div className="canvas-section">
+                    <div className="canvas-wrapper">
+                        <div className="canvas-meta">
+                            <div>
+                                <p className="canvas-label">Simulation</p>
+                                <p className="canvas-value">
+                                    {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}{' '}
+                                    <span>frames</span>
+                                </p>
+                            </div>
+                            <div>
+                                <p className="canvas-label">Population</p>
+                                <p className="canvas-value">
+                                    {state?.stats?.fish_count ?? 0}
+                                    <span> fish</span>
+                                </p>
+                            </div>
+                            <div>
+                                <p className="canvas-label">Energy</p>
+                                <p
+                                    className="canvas-value"
+                                    style={{ color: getEnergyColor(state?.stats?.total_energy ?? 0) }}
+                                >
+                                    {state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}
+                                    <span>total</span>
+                                </p>
+                            </div>
+                            <div>
+                                <p className="canvas-label">Status</p>
+                                <p className={`canvas-status ${isConnected ? 'online' : 'offline'}`}>
+                                    {isConnected ? 'Connected' : 'Waiting'}
+                                </p>
+                            </div>
+                        </div>
+                        <Canvas state={state} width={1088} height={612} />
+                        <div className="canvas-glow" aria-hidden />
+                    </div>
+                    <PokerEvents
+                        events={state?.poker_events ?? []}
+                        currentFrame={state?.frame ?? 0}
+                    />
+                    <PokerLeaderboard leaderboard={state?.poker_leaderboard ?? []} />
+                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                        <h2 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '20px' }}>
+                            Phylogenetic Tree
+                        </h2>
+                        <PhylogeneticTree />
+                    </div>
 
-            {/* Auto-Evaluation Display */}
-            {showAutoEvaluate && (
-              <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
-                <AutoEvaluateDisplay
-                  stats={autoEvaluateStats}
-                  onClose={handleCloseAutoEvaluate}
-                  loading={autoEvaluateLoading}
-                />
-              </div>
-            )}
-          </div>
+                    {/* Poker Game */}
+                    {showPokerGame && (
+                        <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                            <PokerGame
+                                onClose={handleClosePoker}
+                                onAction={handlePokerAction}
+                                gameState={pokerGameState}
+                                loading={pokerLoading}
+                            />
+                        </div>
+                    )}
 
-        <div className="sidebar">
-          <ControlPanel
-            onCommand={sendCommand}
-            isConnected={isConnected}
-            onPlayPoker={handleStartPoker}
-            onAutoEvaluatePoker={handleAutoEvaluatePoker}
-          />
-          <StatsPanel stats={state?.stats ?? null} />
+                    {/* Auto-Evaluation Display */}
+                    {showAutoEvaluate && (
+                        <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                            <AutoEvaluateDisplay
+                                stats={autoEvaluateStats}
+                                onClose={handleCloseAutoEvaluate}
+                                loading={autoEvaluateLoading}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                <div className="sidebar">
+                    <ControlPanel
+                        onCommand={sendCommand}
+                        isConnected={isConnected}
+                        onPlayPoker={handleStartPoker}
+                        onAutoEvaluatePoker={handleAutoEvaluatePoker}
+                    />
+                    <StatsPanel stats={state?.stats ?? null} />
+                </div>
+            </main>
+
+            <footer className="footer">
+                <p>
+                    Built with React + FastAPI + WebSocket | Running at ~30 FPS
+                </p>
+            </footer>
         </div>
-        </>
     );
 }
 
