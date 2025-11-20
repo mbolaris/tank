@@ -7,7 +7,6 @@ This module provides advanced memory capabilities including:
 - Learning from experience
 """
 
-import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
@@ -45,10 +44,14 @@ class Memory:
         """Reinforce memory (increase strength)."""
         self.strength = min(1.0, self.strength + amount)
 
-    def is_expired(self, max_age: int = 1800) -> bool:
-        """Check if memory is too old (default 60 seconds at 30fps)."""
+    def is_expired(self, current_frame: int, max_age: int = 1800) -> bool:
+        """Check if memory is too old based on simulation frames."""
+
+        if max_age <= 0:
+            return self.strength <= 0.0
+
         return self.strength <= 0.0 or (
-            max_age > 0 and self.timestamp > 0 and time.time() - self.timestamp > max_age
+            self.timestamp > 0 and current_frame - self.timestamp > max_age
         )
 
 
@@ -235,7 +238,9 @@ class FishMemorySystem:
 
             # Remove expired memories
             self.memories[memory_type] = [
-                m for m in memories if not m.is_expired(max_age=1800)  # 60 seconds at 30fps
+                m
+                for m in memories
+                if not m.is_expired(self.current_frame, max_age=1800)  # 60 seconds at 30fps
             ]
 
     def clear_memories(self, memory_type: Optional[MemoryType] = None):
