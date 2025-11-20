@@ -485,8 +485,9 @@ export class Renderer {
 
     if (!image) return;
 
-    // Make food images smaller (0.7x scale)
-    const foodScale = 0.7;
+    // Make food images smaller (0.7x scale for normal food, 0.35x for live food)
+    const isLiveFood = food_type === 'live';
+    const foodScale = isLiveFood ? 0.35 : 0.7;
     const scaledWidth = width * foodScale;
     const scaledHeight = height * foodScale;
     // Center the smaller food at original position
@@ -497,8 +498,6 @@ export class Renderer {
     this.drawShadow(x + width / 2, y + height, scaledWidth * 0.6, scaledHeight * 0.2);
 
     // Live food gets special visual treatment
-    const isLiveFood = food_type === 'live';
-
     if (isLiveFood) {
       // Pulsing animation for live food
       const pulse = Math.sin(elapsedTime * 0.005) * 0.3 + 0.7;
@@ -506,76 +505,45 @@ export class Renderer {
       const cy = y + height / 2;
       const planktonSeed = (x + y) * 0.01;
 
-      // Soft bioluminescent outer glow for zooplankton look
+      // Simple translucent body for zooplankton
       this.ctx.save();
-      this.ctx.globalAlpha = 0.55 * pulse;
-      const outerGlow = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, scaledWidth * 1.3);
-      outerGlow.addColorStop(0, '#66f7ff');
-      outerGlow.addColorStop(0.5, '#4ad8b8');
-      outerGlow.addColorStop(1, 'rgba(74, 216, 184, 0)');
-      this.ctx.fillStyle = outerGlow;
+      this.ctx.globalAlpha = 0.4 * pulse;
+      const bodyGlow = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, scaledWidth * 0.8);
+      bodyGlow.addColorStop(0, '#aaffff');
+      bodyGlow.addColorStop(0.6, '#6ad8d8');
+      bodyGlow.addColorStop(1, 'rgba(106, 216, 216, 0)');
+      this.ctx.fillStyle = bodyGlow;
       this.ctx.beginPath();
-      this.ctx.arc(cx, cy, scaledWidth * 1.3, 0, Math.PI * 2);
+      this.ctx.arc(cx, cy, scaledWidth * 0.8, 0, Math.PI * 2);
       this.ctx.fill();
       this.ctx.restore();
 
-      // Inner nucleus glow
+      // Simple appendages for zooplankton (4 appendages)
       this.ctx.save();
-      this.ctx.globalAlpha = 0.85 * pulse;
-      const innerGlow = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, scaledWidth * 0.7);
-      innerGlow.addColorStop(0, '#eaffff');
-      innerGlow.addColorStop(0.45, '#7cffe4');
-      innerGlow.addColorStop(1, 'rgba(124, 255, 228, 0)');
-      this.ctx.fillStyle = innerGlow;
-      this.ctx.beginPath();
-      this.ctx.arc(cx, cy, scaledWidth * 0.7, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.restore();
-
-      // Thin appendages to mimic plankton cilia
-      this.ctx.save();
-      this.ctx.lineWidth = 1.2;
-      this.ctx.strokeStyle = `rgba(180, 240, 255, ${0.5 * pulse})`;
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI * 2 * i) / 6 + pulse * 0.4;
-        const sway = Math.sin(elapsedTime * 0.003 + planktonSeed + i) * 4;
-        const length = scaledWidth * (0.6 + 0.2 * Math.sin(elapsedTime * 0.002 + i));
-        const startX = cx + Math.cos(angle) * (scaledWidth * 0.2);
-        const startY = cy + Math.sin(angle) * (scaledWidth * 0.2);
-        const ctrlX = cx + Math.cos(angle) * (length * 0.5) + sway;
-        const ctrlY = cy + Math.sin(angle) * (length * 0.5) - sway;
-        const endX = cx + Math.cos(angle) * length;
-        const endY = cy + Math.sin(angle) * length;
+      this.ctx.lineWidth = 0.8;
+      this.ctx.strokeStyle = `rgba(140, 220, 240, ${0.35 * pulse})`;
+      for (let i = 0; i < 4; i++) {
+        const angle = (Math.PI * 2 * i) / 4 + pulse * 0.3;
+        const sway = Math.sin(elapsedTime * 0.003 + planktonSeed + i) * 2;
+        const length = scaledWidth * 0.5;
+        const startX = cx + Math.cos(angle) * (scaledWidth * 0.3);
+        const startY = cy + Math.sin(angle) * (scaledWidth * 0.3);
+        const endX = cx + Math.cos(angle) * length + sway;
+        const endY = cy + Math.sin(angle) * length + sway * 0.5;
 
         this.ctx.beginPath();
         this.ctx.moveTo(startX, startY);
-        this.ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+        this.ctx.lineTo(endX, endY);
         this.ctx.stroke();
       }
       this.ctx.restore();
 
-      // Speckled body highlights
+      // Simple central highlight
       this.ctx.save();
-      this.ctx.fillStyle = `rgba(255, 255, 255, ${0.5 * pulse})`;
-      for (let i = 0; i < 5; i++) {
-        const jitterX = Math.sin(planktonSeed + i * 1.7 + elapsedTime * 0.004) * 2;
-        const jitterY = Math.cos(planktonSeed + i * 1.3 + elapsedTime * 0.003) * 2;
-        this.ctx.beginPath();
-        this.ctx.arc(cx + jitterX, cy + jitterY, scaledWidth * 0.1, 0, Math.PI * 2);
-        this.ctx.fill();
-      }
-      this.ctx.restore();
-
-      // Draw motion trail effect for live food
-      this.ctx.save();
-      this.ctx.globalAlpha = 0.25;
-      this.ctx.fillStyle = '#5fffd6';
-      for (let i = 0; i < 3; i++) {
-        const trailOffset = -i * 3;
-        this.ctx.beginPath();
-        this.ctx.arc(cx + trailOffset, cy, scaledWidth * 0.3 * (1 - i * 0.2), 0, Math.PI * 2);
-        this.ctx.fill();
-      }
+      this.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * pulse})`;
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy, scaledWidth * 0.15, 0, Math.PI * 2);
+      this.ctx.fill();
       this.ctx.restore();
     } else {
       // Normal food gets subtle glow
