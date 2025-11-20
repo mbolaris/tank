@@ -649,8 +649,8 @@ class PokerInteraction:
             winner_fish.energy = max(0, winner_fish.energy - winner_total_bet)
             loser_fish.energy = max(0, loser_fish.energy - loser_total_bet)
 
-            # Winner receives the pot
-            winner_fish.energy = winner_fish.energy + game_state.pot
+            # Calculate actual pot from the bets (more reliable than game_state.pot)
+            total_pot = winner_total_bet + loser_total_bet
 
             # House cut: winner pays percentage based on winner's size
             # Larger winners pay more: Size 0.35: 8%, Size 1.0: ~20%, Size 1.3: ~25%
@@ -663,12 +663,14 @@ class PokerInteraction:
                 POKER_HOUSE_CUT_SIZE_MULTIPLIER,
             )
 
-            net_gain = game_state.pot - winner_total_bet
+            net_gain = total_pot - winner_total_bet  # Winner's profit (loser's bet)
             house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
                 0, (winner_fish.size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
             )
             house_cut = net_gain * house_cut_percentage
-            winner_fish.energy = max(0, winner_fish.energy - house_cut)
+
+            # Winner receives the pot minus house cut
+            winner_fish.energy += (total_pot - house_cut)
 
             # For reporting purposes, energy_transferred is the loser's loss (what they bet)
             # This is used for display and statistics tracking
@@ -815,6 +817,12 @@ class PokerInteraction:
             reproduction_occurred = offspring is not None
 
         # Create result (using new format with backwards compatibility)
+        # Use calculated total_pot if winner exists, otherwise use game_state.pot
+        final_pot_value = (
+            winner_total_bet + loser_total_bet
+            if winner_id != -1
+            else game_state.pot
+        )
         self.result = PokerResult(
             player_hands=[self.hand1, self.hand2],
             player_ids=[self.fish1.fish_id, self.fish2.fish_id],
@@ -824,7 +832,7 @@ class PokerInteraction:
             loser_ids=[loser_id] if loser_id != -1 else [],
             won_by_fold=won_by_fold,
             total_rounds=total_rounds,
-            final_pot=game_state.pot,
+            final_pot=final_pot_value,
             button_position=button_position,
             players_folded=[game_state.player1_folded, game_state.player2_folded],
             reached_showdown=reached_showdown,
