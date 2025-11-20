@@ -175,7 +175,7 @@ export const PhylogeneticTree: React.FC = () => {
                 collapsible={true}
                 nodeSize={{ x: 280, y: 160 }}
                 separation={{ siblings: 1.8, nonSiblings: 2.4 }}
-                scaleExtent={{ min: 0.5, max: 2.5 }}
+                scaleExtent={{ min: 0.25, max: 2.5 }}
             />
         </div>
     );
