@@ -65,6 +65,8 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
     ? ((totalFishWins / stats.hands_played) * 100).toFixed(1)
     : '0.0';
 
+  const sortedPlayers = [...stats.players].sort((a, b) => b.energy - a.energy);
+
   return (
     <div style={styles.container}>
       <div style={styles.header}>
@@ -108,8 +110,8 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
       <div style={styles.detailsSection}>
         <h3 style={styles.sectionTitle}>Detailed Statistics</h3>
 
-        {/* Display all players */}
-        {stats.players.map((player) => (
+        {/* Display all players sorted by final energy */}
+        {sortedPlayers.map((player) => (
           <div key={player.player_id} style={styles.playerSection}>
             <h4 style={styles.playerName}>
               {player.is_standard ? '🤖' : '🐟'} {player.name}
