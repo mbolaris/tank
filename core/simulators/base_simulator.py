@@ -217,15 +217,113 @@ class BaseSimulator(ABC):
                 return True
         return False
 
+    def find_fish_groups_in_contact(self) -> List[List["Fish"]]:
+        """Find groups of fish that are all in contact with each other.
+
+        Uses a union-find approach to group fish that are within COLLISION_QUERY_RADIUS
+        of each other. Returns groups where poker games should be played.
+
+        Returns:
+            List of fish groups, where each group is a list of Fish in contact
+        """
+        from core.entities import Fish
+
+        # Get all fish entities
+        all_entities = self.get_all_entities()
+        fish_list = [e for e in all_entities if isinstance(e, Fish)]
+
+        if len(fish_list) < 2:
+            return []
+
+        # Build adjacency list of fish that are in collision range
+        fish_contacts = {fish: set() for fish in fish_list}
+
+        for i, fish1 in enumerate(fish_list):
+            # Use spatial grid to find nearby fish
+            nearby_entities = []
+            if self.environment is not None:
+                nearby_entities = self.environment.nearby_agents(
+                    fish1, radius=COLLISION_QUERY_RADIUS
+                )
+            else:
+                nearby_entities = fish_list
+
+            for fish2 in nearby_entities:
+                if fish2 == fish1 or not isinstance(fish2, Fish):
+                    continue
+
+                # Check if they're actually in collision range
+                if self.check_collision(fish1, fish2):
+                    fish_contacts[fish1].add(fish2)
+                    fish_contacts[fish2].add(fish1)
+
+        # Find connected components using DFS
+        visited = set()
+        groups = []
+
+        for fish in fish_list:
+            if fish in visited:
+                continue
+
+            # Start a new group with DFS
+            group = []
+            stack = [fish]
+
+            while stack:
+                current = stack.pop()
+                if current in visited:
+                    continue
+
+                visited.add(current)
+                group.append(current)
+
+                # Add all connected fish to the stack
+                for neighbor in fish_contacts[current]:
+                    if neighbor not in visited:
+                        stack.append(neighbor)
+
+            # Only add groups with 2 or more fish
+            if len(group) >= 2:
+                groups.append(group)
+
+        return groups
+
     def handle_fish_collisions(self) -> None:
         """Handle collisions involving fish.
 
         Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k)
         where k is the number of nearby entities (typically much smaller than n).
+
+        For fish-to-fish collisions, finds groups of fish in contact and initiates
+        multi-player poker games. For other collisions (food, crabs, jellyfish),
+        handles them individually.
         """
         from core.entities import Crab, Fish, Food, Jellyfish
 
-        # Get all fish entities
+        # First, handle fish-to-fish poker interactions as groups
+        fish_groups = self.find_fish_groups_in_contact()
+        processed_fish = set()
+
+        for group in fish_groups:
+            # Filter out fish that can't play poker (already processed, dead, etc.)
+            valid_fish = [f for f in group if f in self.get_all_entities() and f not in processed_fish]
+
+            if len(valid_fish) >= 2:
+                # Play multi-player poker with all fish in this group
+                poker = PokerInteraction(*valid_fish)
+                if poker.play_poker():
+                    # Handle poker result
+                    self.handle_poker_result(poker)
+
+                    # Check if any fish died from poker
+                    for fish in valid_fish:
+                        if fish.is_dead() and fish in self.get_all_entities():
+                            self.record_fish_death(fish)
+
+                # Mark all fish in group as processed
+                processed_fish.update(valid_fish)
+
+        # Now handle other collision types (food, crabs, jellyfish)
         all_entities = self.get_all_entities()
         fish_list = [e for e in all_entities if isinstance(e, Fish)]
 
@@ -235,7 +333,6 @@ class BaseSimulator(ABC):
                 continue
 
             # Use spatial grid to get nearby entities (within collision range)
-            # Typical fish size is ~30-50px, use generous radius for broad phase
             nearby_entities = []
             if self.environment is not None:
                 nearby_entities = self.environment.nearby_agents(
@@ -260,9 +357,7 @@ class BaseSimulator(ABC):
                     elif isinstance(other, Jellyfish):
                         if self.handle_fish_jellyfish_collision(fish, other):
                             break  # Fish died, stop checking collisions for it
-                    elif isinstance(other, Fish):
-                        if self.handle_fish_fish_collision(fish, other):
-                            break  # Fish died, stop checking collisions for it
+                    # Note: fish-to-fish collisions are already handled above in groups
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food.

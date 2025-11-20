@@ -24,28 +24,48 @@ if TYPE_CHECKING:
 
 @dataclass
 class PokerResult:
-    """Result of a poker game between two fish."""
+    """Result of a poker game between multiple fish."""
 
-    hand1: PokerHand
-    hand2: PokerHand
-    energy_transferred: float  # Amount loser lost (their total bet)
-    winner_actual_gain: float  # Amount winner gained (loser's bet minus house cut)
-    winner_id: int
-    loser_id: int
-    won_by_fold: bool  # True if winner won because opponent folded
+    player_hands: List[PokerHand]  # Hands of all players
+    player_ids: List[int]  # IDs of all players
+    energy_transferred: float  # Amount loser(s) lost combined
+    winner_actual_gain: float  # Amount winner gained (losers' bets minus house cut)
+    winner_id: int  # ID of the winning fish
+    loser_ids: List[int]  # IDs of all losing fish
+    won_by_fold: bool  # True if winner won because all opponents folded
     total_rounds: int  # Number of betting rounds completed
     final_pot: float  # Final pot size
-    button_position: int  # Which player had the button (1 or 2)
-    player1_folded: bool  # Did player 1 fold
-    player2_folded: bool  # Did player 2 fold
+    button_position: int  # Which player had the button (0-indexed)
+    players_folded: List[bool]  # Did each player fold
     reached_showdown: bool  # Did game reach showdown
     betting_history: List[Tuple[int, "BettingAction", float]]  # Betting actions taken
     reproduction_occurred: bool = False  # True if fish reproduced after poker
     offspring: Optional["Fish"] = None  # The baby fish created (if reproduction occurred)
 
+    # Legacy fields for backwards compatibility with 2-player games
+    @property
+    def hand1(self) -> Optional[PokerHand]:
+        return self.player_hands[0] if len(self.player_hands) > 0 else None
+
+    @property
+    def hand2(self) -> Optional[PokerHand]:
+        return self.player_hands[1] if len(self.player_hands) > 1 else None
+
+    @property
+    def loser_id(self) -> int:
+        return self.loser_ids[0] if len(self.loser_ids) > 0 else -1
+
+    @property
+    def player1_folded(self) -> bool:
+        return self.players_folded[0] if len(self.players_folded) > 0 else False
+
+    @property
+    def player2_folded(self) -> bool:
+        return self.players_folded[1] if len(self.players_folded) > 1 else False
+
 
 class PokerInteraction:
-    """Handles poker encounters between two fish."""
+    """Handles poker encounters between multiple fish."""
 
     # Minimum energy required to play poker
     MIN_ENERGY_TO_PLAY = 10.0
@@ -53,70 +73,96 @@ class PokerInteraction:
     # Default bet amount (used for blind sizing, not actual energy transfer)
     DEFAULT_BET_AMOUNT = 5.0
 
-    # Energy transfer is pot-based: winner takes the pot from loser
+    # Energy transfer is pot-based: winner takes the pot from losers
     # Then winner pays house cut based on winner's size (8-25% of pot)
 
     # Cooldown between poker games for the same fish (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
 
-    def __init__(self, fish1: "Fish", fish2: "Fish"):
+    def __init__(self, *fish: "Fish"):
         """
-        Initialize a poker interaction between two fish.
+        Initialize a poker interaction between multiple fish.
 
         Args:
-            fish1: First fish
-            fish2: Second fish
+            *fish: Variable number of Fish objects (minimum 2)
         """
-        self.fish1 = fish1
-        self.fish2 = fish2
-        self.hand1: Optional[PokerHand] = None
-        self.hand2: Optional[PokerHand] = None
+        if len(fish) < 2:
+            raise ValueError("Poker requires at least 2 fish")
+
+        self.fish_list = list(fish)
+        self.num_players = len(self.fish_list)
+        self.player_hands: List[Optional[PokerHand]] = [None] * self.num_players
         self.result: Optional[PokerResult] = None
 
         # Add poker cooldown tracking to fish if not present
-        if not hasattr(fish1, "poker_cooldown"):
-            fish1.poker_cooldown = 0
-        if not hasattr(fish2, "poker_cooldown"):
-            fish2.poker_cooldown = 0
+        for f in self.fish_list:
+            if not hasattr(f, "poker_cooldown"):
+                f.poker_cooldown = 0
 
         # Add button position tracking for positional play
         # Button rotates between players in consecutive games
-        if not hasattr(fish1, "last_button_position"):
-            fish1.last_button_position = 2  # Start with button position 2
-        if not hasattr(fish2, "last_button_position"):
-            fish2.last_button_position = 2
+        for f in self.fish_list:
+            if not hasattr(f, "last_button_position"):
+                f.last_button_position = 0  # Start with button position 0
+
+    # Legacy properties for backwards compatibility
+    @property
+    def fish1(self) -> "Fish":
+        return self.fish_list[0]
+
+    @property
+    def fish2(self) -> "Fish":
+        return self.fish_list[1] if self.num_players > 1 else self.fish_list[0]
+
+    @property
+    def hand1(self) -> Optional[PokerHand]:
+        return self.player_hands[0]
+
+    @hand1.setter
+    def hand1(self, value: Optional[PokerHand]) -> None:
+        self.player_hands[0] = value
+
+    @property
+    def hand2(self) -> Optional[PokerHand]:
+        return self.player_hands[1] if self.num_players > 1 else None
+
+    @hand2.setter
+    def hand2(self, value: Optional[PokerHand]) -> None:
+        if self.num_players > 1:
+            self.player_hands[1] = value
 
     def can_play_poker(self) -> bool:
         """
-        Check if both fish are willing and able to play poker.
+        Check if all fish are willing and able to play poker.
 
         Returns:
             True if poker game can proceed
         """
-        # Both fish must exist
-        if self.fish1 is None or self.fish2 is None:
+        # Need at least 2 fish
+        if len(self.fish_list) < 2:
             return False
 
-        # Can't play poker with yourself
-        if self.fish1.fish_id == self.fish2.fish_id:
+        # Check for duplicate fish IDs
+        fish_ids = [f.fish_id for f in self.fish_list]
+        if len(fish_ids) != len(set(fish_ids)):
             return False
 
-        # Both must have minimum energy
-        if self.fish1.energy < self.MIN_ENERGY_TO_PLAY:
-            return False
-        if self.fish2.energy < self.MIN_ENERGY_TO_PLAY:
-            return False
+        # All fish must have minimum energy
+        for fish in self.fish_list:
+            if fish.energy < self.MIN_ENERGY_TO_PLAY:
+                return False
 
-        # Both must be off cooldown
-        if self.fish1.poker_cooldown > 0:
-            return False
-        if self.fish2.poker_cooldown > 0:
-            return False
+        # All fish must be off cooldown
+        for fish in self.fish_list:
+            if fish.poker_cooldown > 0:
+                return False
 
         # Don't interrupt pregnant fish
-        if hasattr(self.fish1, "is_pregnant") and self.fish1.is_pregnant:
-            return False
-        return not (hasattr(self.fish2, "is_pregnant") and self.fish2.is_pregnant)
+        for fish in self.fish_list:
+            if hasattr(fish, "is_pregnant") and fish.is_pregnant:
+                return False
+
+        return True
 
     def calculate_bet_amount(self, base_bet: float = DEFAULT_BET_AMOUNT) -> float:
         """
@@ -124,7 +170,7 @@ class PokerInteraction:
 
         The bet is capped at the minimum of:
         - base_bet amount
-        - size-adjusted percentage of either fish's current energy
+        - size-adjusted percentage of any fish's current energy
         - Larger fish can bet more (15% at size 0.35, 25% at size 1.0, 30% at size 1.3)
 
         Args:
@@ -139,19 +185,19 @@ class PokerInteraction:
             POKER_BET_SIZE_MULTIPLIER,
         )
 
-        # Larger fish can bet a higher percentage of their energy
-        # Size 0.35: 15%, Size 1.0: 25%, Size 1.3: 30%
-        # Formula: 15% + (size - 0.35) * 15.8% gives range of 15-30%
-        fish1_bet_percentage = POKER_BET_MIN_PERCENTAGE + (
-            self.fish1.size - POKER_BET_MIN_SIZE
-        ) * POKER_BET_SIZE_MULTIPLIER
-        fish2_bet_percentage = POKER_BET_MIN_PERCENTAGE + (
-            self.fish2.size - POKER_BET_MIN_SIZE
-        ) * POKER_BET_SIZE_MULTIPLIER
+        # Calculate max bet for each fish based on size and energy
+        max_bets = []
+        for fish in self.fish_list:
+            # Larger fish can bet a higher percentage of their energy
+            # Size 0.35: 15%, Size 1.0: 25%, Size 1.3: 30%
+            # Formula: 15% + (size - 0.35) * 15.8% gives range of 15-30%
+            bet_percentage = POKER_BET_MIN_PERCENTAGE + (
+                fish.size - POKER_BET_MIN_SIZE
+            ) * POKER_BET_SIZE_MULTIPLIER
+            max_bets.append(fish.energy * bet_percentage)
 
-        max_bet_fish1 = self.fish1.energy * fish1_bet_percentage
-        max_bet_fish2 = self.fish2.energy * fish2_bet_percentage
-        return min(base_bet, max_bet_fish1, max_bet_fish2)
+        # Return the minimum of base_bet and all fish max bets
+        return min(base_bet, *max_bets)
 
     def try_post_poker_reproduction(
         self, winner_fish: "Fish", loser_fish: "Fish", energy_transferred: float
@@ -307,9 +353,188 @@ class PokerInteraction:
 
         return baby
 
+    def play_poker_multiplayer(self, bet_amount: float) -> bool:
+        """
+        Play a simplified multiplayer poker game (3+ players).
+
+        For multi-player games, we use a simpler format:
+        - All players ante the same amount
+        - Deal cards and community cards
+        - Evaluate hands at showdown (no betting rounds)
+        - Best hand wins the pot
+
+        Args:
+            bet_amount: Amount each player antes
+
+        Returns:
+            True if game completed successfully, False otherwise
+        """
+        # Each player antes the bet amount
+        for fish in self.fish_list:
+            fish.energy = max(0, fish.energy - bet_amount)
+
+        # Create deck and deal cards
+        from core.poker_interaction import Deck, PokerEngine
+
+        deck = Deck()
+
+        # Deal 2 hole cards to each player
+        player_hole_cards = []
+        for _ in range(self.num_players):
+            player_hole_cards.append(deck.deal(2))
+
+        # Deal community cards (flop, turn, river)
+        deck.deal(1)  # Burn
+        community_cards = deck.deal(3)  # Flop
+        deck.deal(1)  # Burn
+        community_cards.append(deck.deal_one())  # Turn
+        deck.deal(1)  # Burn
+        community_cards.append(deck.deal_one())  # River
+
+        # Evaluate each player's hand
+        self.player_hands = []
+        for hole_cards in player_hole_cards:
+            hand = PokerEngine.evaluate_hand(hole_cards, community_cards)
+            self.player_hands.append(hand)
+
+        # Find the winner (best hand)
+        best_hand_idx = 0
+        for i in range(1, self.num_players):
+            if self.player_hands[i].beats(self.player_hands[best_hand_idx]):
+                best_hand_idx = i
+
+        # Check for ties
+        tied_players = [best_hand_idx]
+        for i in range(self.num_players):
+            if i != best_hand_idx and self.player_hands[i].ties(self.player_hands[best_hand_idx]):
+                tied_players.append(i)
+
+        # Calculate pot and distribute winnings
+        total_pot = bet_amount * self.num_players
+        house_cut = 0.0
+
+        if len(tied_players) == 1:
+            # Single winner
+            winner_fish = self.fish_list[best_hand_idx]
+            winner_id = winner_fish.fish_id
+
+            # Calculate house cut based on winner's size
+            from core.constants import (
+                POKER_BET_MIN_SIZE,
+                POKER_HOUSE_CUT_MIN_PERCENTAGE,
+                POKER_HOUSE_CUT_SIZE_MULTIPLIER,
+            )
+
+            net_gain = total_pot - bet_amount  # Winner's profit (pot minus their ante)
+            house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
+                0, (winner_fish.size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
+            )
+            house_cut = net_gain * house_cut_percentage
+
+            # Winner gets pot minus house cut
+            winner_fish.energy += total_pot - house_cut
+
+            # Collect loser IDs
+            loser_ids = [self.fish_list[i].fish_id for i in range(self.num_players) if i != best_hand_idx]
+        else:
+            # Tie - split pot among tied players
+            split_amount = total_pot / len(tied_players)
+            for player_idx in tied_players:
+                self.fish_list[player_idx].energy += split_amount
+            winner_id = -1
+            loser_ids = []
+
+        # Set cooldowns for all players
+        for fish in self.fish_list:
+            fish.poker_cooldown = self.POKER_COOLDOWN
+
+        # Create result
+        self.result = PokerResult(
+            player_hands=self.player_hands,
+            player_ids=[f.fish_id for f in self.fish_list],
+            energy_transferred=bet_amount * (self.num_players - 1) if winner_id != -1 else 0.0,
+            winner_actual_gain=(total_pot - bet_amount - house_cut) if winner_id != -1 else 0.0,
+            winner_id=winner_id,
+            loser_ids=loser_ids,
+            won_by_fold=False,
+            total_rounds=4,  # Went to showdown (all 4 rounds)
+            final_pot=total_pot,
+            button_position=0,  # Not used in multiplayer
+            players_folded=[False] * self.num_players,
+            reached_showdown=True,
+            betting_history=[],
+            reproduction_occurred=False,
+            offspring=None,
+        )
+
+        # Record stats for each player
+        for i, fish in enumerate(self.fish_list):
+            if fish.fish_id == winner_id:
+                # Winner
+                fish.poker_stats.record_win(
+                    energy_won=total_pot - bet_amount - house_cut,
+                    house_cut=house_cut,
+                    hand_rank=self.player_hands[i].rank_value,
+                    won_at_showdown=True,
+                    on_button=False,
+                )
+            elif winner_id == -1:
+                # Tie
+                fish.poker_stats.record_tie(
+                    hand_rank=self.player_hands[i].rank_value,
+                    on_button=False,
+                )
+            else:
+                # Loser
+                fish.poker_stats.record_loss(
+                    energy_lost=bet_amount,
+                    hand_rank=self.player_hands[i].rank_value,
+                    folded=False,
+                    reached_showdown=True,
+                    on_button=False,
+                )
+
+        # Record in ecosystem if available
+        if self.fish_list[0].ecosystem is not None:
+            from core.algorithms import get_algorithm_index
+
+            # For multiplayer, we'll record the winner's algorithm
+            if winner_id != -1:
+                winner_fish = self.fish_list[best_hand_idx]
+                winner_algo_id = None
+                if winner_fish.genome.behavior_algorithm is not None:
+                    winner_algo_id = get_algorithm_index(winner_fish.genome.behavior_algorithm)
+
+                # For simplicity, record as multiple 2-player games (winner vs each loser)
+                for loser_idx in range(self.num_players):
+                    if loser_idx != best_hand_idx:
+                        loser_fish = self.fish_list[loser_idx]
+                        loser_algo_id = None
+                        if loser_fish.genome.behavior_algorithm is not None:
+                            loser_algo_id = get_algorithm_index(loser_fish.genome.behavior_algorithm)
+
+                        self.fish_list[0].ecosystem.record_poker_outcome(
+                            winner_id=winner_id,
+                            loser_id=loser_fish.fish_id,
+                            winner_algo_id=winner_algo_id,
+                            loser_algo_id=loser_algo_id,
+                            amount=bet_amount,
+                            winner_hand=self.player_hands[best_hand_idx],
+                            loser_hand=self.player_hands[loser_idx],
+                            house_cut=house_cut / (self.num_players - 1),  # Distribute house cut
+                            result=self.result,
+                            player1_algo_id=winner_algo_id,
+                            player2_algo_id=loser_algo_id,
+                        )
+
+        return True
+
     def play_poker(self, bet_amount: Optional[float] = None) -> bool:
         """
-        Play a multi-round poker game between the two fish with folding.
+        Play a poker game between all fish.
+
+        For 2 players: Full Texas Hold'em with betting rounds
+        For 3+ players: Simplified showdown poker (all players ante and reveal)
 
         Args:
             bet_amount: Amount to wager (uses calculated amount if None)
@@ -328,6 +553,11 @@ class PokerInteraction:
             # Ensure bet doesn't exceed what fish can afford
             bet_amount = self.calculate_bet_amount(bet_amount)
 
+        # For 3+ players, use simplified multiplayer poker
+        if self.num_players > 2:
+            return self.play_poker_multiplayer(bet_amount)
+
+        # For 2 players, use full Texas Hold'em poker
         # Determine aggression levels for each fish based on their genome
         # Map genome aggression (0.0-1.0) to poker aggression range (0.3-0.9)
         fish1_aggression = PokerEngine.AGGRESSION_LOW + (
@@ -575,25 +805,27 @@ class PokerInteraction:
             )
             reproduction_occurred = offspring is not None
 
-        # Create result
+        # Create result (using new format with backwards compatibility)
         self.result = PokerResult(
-            hand1=self.hand1,
-            hand2=self.hand2,
+            player_hands=[self.hand1, self.hand2],
+            player_ids=[self.fish1.fish_id, self.fish2.fish_id],
             energy_transferred=abs(energy_transferred),
             winner_actual_gain=abs(winner_actual_gain) if winner_id != -1 else 0.0,
             winner_id=winner_id,
-            loser_id=loser_id,
+            loser_ids=[loser_id] if loser_id != -1 else [],
             won_by_fold=won_by_fold,
             total_rounds=total_rounds,
             final_pot=game_state.pot,
             button_position=button_position,
-            player1_folded=game_state.player1_folded,
-            player2_folded=game_state.player2_folded,
+            players_folded=[game_state.player1_folded, game_state.player2_folded],
             reached_showdown=reached_showdown,
             betting_history=game_state.betting_history,
             reproduction_occurred=reproduction_occurred,
             offspring=offspring,
         )
+
+        # Update player_hands list for consistency
+        self.player_hands = [self.hand1, self.hand2]
 
         # Record individual fish poker statistics
         if winner_id == -1:
