@@ -173,8 +173,8 @@ export const PhylogeneticTree: React.FC = () => {
                 translate={translate} // Start in top center
                 zoomable={true}
                 collapsible={true}
-                nodeSize={{ x: 280, y: 160 }}
-                separation={{ siblings: 1.8, nonSiblings: 2.4 }}
+                nodeSize={{ x: 240, y: 160 }}
+                separation={{ siblings: 1.2, nonSiblings: 1.5 }}
                 scaleExtent={{ min: 0.25, max: 2.5 }}
             />
         </div>
