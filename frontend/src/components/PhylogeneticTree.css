@@ -1,0 +1,17 @@
+/* Style for the tree links */
+.rd3t-link {
+  stroke: #22d3ee !important;
+  stroke-width: 1.5px !important;
+}
+
+/* Optional: Add hover effect for nodes if desired */
+.rd3t-node circle {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  transition: all 0.3s ease;
+}
+
+.rd3t-node:hover circle {
+  stroke: #22d3ee;
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.6));
+}
