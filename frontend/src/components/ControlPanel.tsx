@@ -157,7 +157,7 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvalua
             <strong>Play Poker:</strong> Play poker against the top 3 fish
           </li>
           <li>
-            <strong>Auto-Evaluate Skill:</strong> Test top fish against standard algorithm (100 hands)
+            <strong>Auto-Evaluate Skill:</strong> Test top fish against standard algorithm (1000 hands)
           </li>
           <li>
             <strong>Add Food:</strong> Drop food into the tank
