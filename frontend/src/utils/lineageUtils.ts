@@ -20,6 +20,8 @@ export interface TreeNodeData {
   children: TreeNodeData[];
 }
 
+const ROOT_NODE_ID = 'root';
+
 export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | null => {
   if (!flatData || flatData.length === 0) {
     return null;
@@ -27,11 +29,17 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
 
   try {
     // Validate data structure before stratifying
-    const orphans: string[] = [];
-    const idSet = new Set(flatData.map(d => d.id));
+    const sanitizedData = flatData.map((record) => ({
+      ...record,
+      // Normalize any null/undefined parents to the root node
+      parent_id: record.parent_id ?? ROOT_NODE_ID,
+    }));
 
-    for (const record of flatData) {
-      if (record.parent_id !== 'root' && !idSet.has(record.parent_id)) {
+    const orphans: string[] = [];
+    const idSet = new Set([...sanitizedData.map((d) => d.id), ROOT_NODE_ID]);
+
+    for (const record of sanitizedData) {
+      if (record.parent_id !== ROOT_NODE_ID && !idSet.has(record.parent_id)) {
         orphans.push(`Fish ${record.id} has parent ${record.parent_id} which doesn't exist`);
       }
     }
@@ -47,9 +55,21 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
     // D3 Stratify converts flat list -> nested tree
     const strategy = stratify<FishRecord>()
       .id((d) => d.id)
-      .parentId((d) => d.parent_id === "root" ? null : d.parent_id);
+      .parentId((d) => (d.id === ROOT_NODE_ID ? null : d.parent_id));
 
-    const tree = strategy(flatData);
+    // D3-stratify requires exactly one root node. We add an explicit root so
+    // that multiple initial spawns share a common ancestor instead of causing
+    // a "multiple roots" error.
+    const rootNode: FishRecord = {
+      id: ROOT_NODE_ID,
+      parent_id: '',
+      generation: 0,
+      algorithm: 'Primordial Soup',
+      color: '#00ff00',
+      birth_time: 0,
+    };
+
+    const tree = strategy([rootNode, ...sanitizedData]);
 
     // React-D3-Tree expects a specific format (name, attributes, children)
     // We write a recursive mapper to convert the D3 node to the React component format
