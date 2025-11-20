@@ -21,7 +21,7 @@ class TestMovementStrategy:
         try:
             strategy.move(fish)
             success = True
-        except Exception as e:
+        except Exception:
             success = False
 
         assert success
@@ -43,7 +43,7 @@ class TestAlgorithmicMovement:
             for _ in range(10):
                 strategy.move(fish)
             success = True
-        except Exception as e:
+        except Exception:
             success = False
 
         assert success
@@ -61,7 +61,7 @@ class TestAlgorithmicMovement:
             for _ in range(10):
                 strategy.move(fish)
             success = True
-        except Exception as e:
+        except Exception:
             success = False
 
         assert success
@@ -85,7 +85,7 @@ class TestAlgorithmicMovement:
                 for fish in fish_list:
                     strategy.move(fish)
             success = True
-        except Exception as e:
+        except Exception:
             success = False
 
         assert success, "Algorithmic movement should work consistently over many iterations"

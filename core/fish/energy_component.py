@@ -16,8 +16,6 @@ from core.constants import (
     LOW_ENERGY_THRESHOLD,
     MOVEMENT_ENERGY_COST,
     SAFE_ENERGY_THRESHOLD,
-    SHARP_TURN_DOT_THRESHOLD,
-    SHARP_TURN_ENERGY_COST,
     STARVATION_THRESHOLD,
 )
 from core.math_utils import Vector2

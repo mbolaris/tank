@@ -29,6 +29,7 @@ from core.constants import (
     FISH_MEMORY_LEARNING_RATE,
     FISH_MEMORY_MAX_PER_TYPE,
     FISH_TOP_MARGIN,
+    FOOD_TYPES,
     FRAME_RATE,
     INITIAL_ENERGY_RATIO,
     LIFE_STAGE_MATURE_MAX,
@@ -37,9 +38,7 @@ from core.constants import (
     PLANT_PRODUCTION_CHANCE,
     PREDATOR_ENCOUNTER_WINDOW,
     TARGET_POPULATION,
-    FOOD_TYPES,
 )
-
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -438,7 +437,7 @@ class Fish(Agent):
                 self.generation,
                 parent_ids=parent_ids,
                 algorithm_id=algorithm_id,
-                color=color_hex
+                color=color_hex,
             )
 
         self.last_direction: Optional[Vector2] = (
@@ -1297,8 +1296,15 @@ class Jellyfish(Agent):
     ENERGY_DECAY_RATE = 0.5  # Energy lost per frame (slower than fish metabolism)
     POKER_AGGRESSION = 0.4  # Fixed conservative poker strategy (0.0-1.0)
 
-    def __init__(self, environment: 'Environment', x: float, y: float,
-                 jellyfish_id: int = 0, screen_width: int = 800, screen_height: int = 600) -> None:
+    def __init__(
+        self,
+        environment: "Environment",
+        x: float,
+        y: float,
+        jellyfish_id: int = 0,
+        screen_width: int = 800,
+        screen_height: int = 600,
+    ) -> None:
         """Initialize a jellyfish.
 
         Args:

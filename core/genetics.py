@@ -318,7 +318,10 @@ class Genome:
 
         # Handle poker strategy algorithm (betting decisions evolve independently)
         poker_strategy_algorithm = None
-        if parent1.poker_strategy_algorithm is not None or parent2.poker_strategy_algorithm is not None:
+        if (
+            parent1.poker_strategy_algorithm is not None
+            or parent2.poker_strategy_algorithm is not None
+        ):
             from core.poker_strategy_algorithms import crossover_poker_strategies
 
             poker_strategy_algorithm = crossover_poker_strategies(
@@ -538,7 +541,10 @@ class Genome:
 
         # Handle poker strategy algorithm inheritance (for betting decisions)
         poker_strategy_algorithm = None
-        if parent1.poker_strategy_algorithm is not None or parent2.poker_strategy_algorithm is not None:
+        if (
+            parent1.poker_strategy_algorithm is not None
+            or parent2.poker_strategy_algorithm is not None
+        ):
             from core.poker_strategy_algorithms import crossover_poker_strategies
 
             poker_strategy_algorithm = crossover_poker_strategies(

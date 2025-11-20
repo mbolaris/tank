@@ -6,9 +6,10 @@ The jellyfish uses a fixed conservative strategy and serves as a benchmark for
 evaluating fish poker performance.
 """
 
-from typing import Optional, TYPE_CHECKING
 from dataclasses import dataclass
-from core.poker_interaction import PokerEngine, PokerHand, BettingAction
+from typing import TYPE_CHECKING, Optional
+
+from core.poker_interaction import PokerEngine, PokerHand
 
 if TYPE_CHECKING:
     from core.entities import Fish, Jellyfish
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
 @dataclass
 class JellyfishPokerResult:
     """Result of a poker game between a fish and jellyfish."""
+
     fish_hand: PokerHand
     jellyfish_hand: PokerHand
     energy_transferred: float
@@ -46,7 +48,7 @@ class JellyfishPokerInteraction:
     # Cooldown between poker games (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
 
-    def __init__(self, fish: 'Fish', jellyfish: 'Jellyfish'):
+    def __init__(self, fish: "Fish", jellyfish: "Jellyfish"):
         """
         Initialize a poker interaction between a fish and jellyfish.
 
@@ -61,11 +63,11 @@ class JellyfishPokerInteraction:
         self.result: Optional[JellyfishPokerResult] = None
 
         # Add poker cooldown tracking to fish if not present
-        if not hasattr(fish, 'poker_cooldown'):
+        if not hasattr(fish, "poker_cooldown"):
             fish.poker_cooldown = 0
 
         # Add button position tracking
-        if not hasattr(fish, 'last_button_position'):
+        if not hasattr(fish, "last_button_position"):
             fish.last_button_position = 2
 
     def can_play_poker(self) -> bool:
@@ -96,10 +98,7 @@ class JellyfishPokerInteraction:
             return False
 
         # Don't interrupt pregnant fish
-        if hasattr(self.fish, 'is_pregnant') and self.fish.is_pregnant:
-            return False
-
-        return True
+        return not (hasattr(self.fish, "is_pregnant") and self.fish.is_pregnant)
 
     def calculate_bet_amount(self, base_bet: float = DEFAULT_BET_AMOUNT) -> float:
         """
@@ -142,6 +141,7 @@ class JellyfishPokerInteraction:
 
         # Jellyfish uses fixed conservative strategy
         from core.entities import Jellyfish
+
         jellyfish_aggression = Jellyfish.POKER_AGGRESSION
 
         # Rotate button position
@@ -155,7 +155,7 @@ class JellyfishPokerInteraction:
             player2_energy=self.jellyfish.energy,
             player1_aggression=fish_aggression,
             player2_aggression=jellyfish_aggression,
-            button_position=button_position
+            button_position=button_position,
         )
 
         # Assign hands based on button position
@@ -170,10 +170,10 @@ class JellyfishPokerInteraction:
 
         # Determine winner
         if game_state.player1_folded:
-            fish_won = (button_position != 1)  # If fish is player1 and folded, fish lost
+            fish_won = button_position != 1  # If fish is player1 and folded, fish lost
             won_by_fold = True
         elif game_state.player2_folded:
-            fish_won = (button_position == 1)  # If fish is player1 and opponent folded, fish won
+            fish_won = button_position == 1  # If fish is player1 and opponent folded, fish won
             won_by_fold = True
         else:
             # Showdown - compare hands
@@ -199,7 +199,7 @@ class JellyfishPokerInteraction:
             # Fish wins
             energy_transferred = winnings / 2  # Half of winnings (since fish paid half the pot)
             self.fish.energy += energy_transferred
-            self.jellyfish.energy -= (total_pot / 2 - energy_transferred)
+            self.jellyfish.energy -= total_pot / 2 - energy_transferred
         else:
             # Jellyfish wins
             energy_transferred = -(total_pot / 2)  # Fish loses their contribution
@@ -220,10 +220,14 @@ class JellyfishPokerInteraction:
             total_rounds=game_state.current_round.value,
             final_pot=total_pot,
             button_position=button_position,
-            fish_folded=game_state.player1_folded if button_position == 1 else game_state.player2_folded,
-            jellyfish_folded=game_state.player2_folded if button_position == 1 else game_state.player1_folded,
+            fish_folded=(
+                game_state.player1_folded if button_position == 1 else game_state.player2_folded
+            ),
+            jellyfish_folded=(
+                game_state.player2_folded if button_position == 1 else game_state.player1_folded
+            ),
             reached_showdown=not won_by_fold,
-            fish_id=self.fish.fish_id
+            fish_id=self.fish.fish_id,
         )
 
         # Record in ecosystem if available
@@ -233,7 +237,7 @@ class JellyfishPokerInteraction:
                 fish_won=fish_won,
                 energy_transferred=abs(energy_transferred),
                 fish_hand_rank=self.result.fish_hand.rank_value,
-                won_by_fold=won_by_fold
+                won_by_fold=won_by_fold,
             )
 
         return True

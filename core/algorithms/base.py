@@ -423,7 +423,9 @@ class BehaviorAlgorithm(ABC):
             # Get parameter-specific mutation config
             if use_parameter_specific:
                 param_type = classify_parameter(key)
-                config = PARAMETER_MUTATION_CONFIG.get(param_type, PARAMETER_MUTATION_CONFIG["default"])
+                config = PARAMETER_MUTATION_CONFIG.get(
+                    param_type, PARAMETER_MUTATION_CONFIG["default"]
+                )
                 effective_rate = config["base_rate"] * adaptive_factor
                 effective_strength = config["strength"] * adaptive_factor
             else:
