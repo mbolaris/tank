@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI):
 
         logger.info("Starting simulation...")
         try:
-            simulation.start()
+            simulation.start(start_paused=True)
             logger.info("Simulation started successfully!")
         except Exception as e:
             logger.error(f"Failed to start simulation: {e}", exc_info=True)

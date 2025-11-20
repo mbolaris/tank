@@ -1,8 +1,13 @@
 """Data models for WebSocket communication."""
 
+import sys
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
+
+# Ensure consistent module aliasing whether imported as `models` or `backend.models`
+sys.modules.setdefault("models", sys.modules[__name__])
+sys.modules.setdefault("backend.models", sys.modules[__name__])
 
 
 class EntityData(BaseModel):
@@ -23,6 +28,7 @@ class EntityData(BaseModel):
     energy: Optional[float] = None
     generation: Optional[int] = None
     age: Optional[int] = None
+    species: Optional[str] = None
     genome_data: Optional[Dict[str, Any]] = None
 
     # Food-specific fields

@@ -60,6 +60,7 @@ class SimulationRunner:
         self.websocket_update_interval = 2  # Send every 2 frames
         self.frames_since_websocket_update = 0
         self._cached_state: Optional[SimulationUpdate] = None
+        self._cached_state_frame: Optional[int] = None
 
         # Human poker game management
         self.human_poker_game: Optional[HumanPokerGame] = None
@@ -77,6 +78,19 @@ class SimulationRunner:
             Dictionary with success=False and error message
         """
         return {"success": False, "error": error_msg}
+
+    def _invalidate_state_cache(self) -> None:
+        """Clear cached state so the next request rebuilds fresh data."""
+
+        self._cached_state = None
+        self._cached_state_frame = None
+        self.frames_since_websocket_update = 0
+
+    @property
+    def engine(self):
+        """Expose the underlying simulation engine for compatibility/testing."""
+
+        return self.world.engine
 
     def _create_fish_player_data(self, fish: Fish, include_aggression: bool = False) -> Dict[str, Any]:
         """Create fish player data dictionary.
@@ -101,9 +115,20 @@ class SimulationRunner:
 
         return player_data
 
-    def start(self):
-        """Start the simulation in a background thread."""
+    def start(self, start_paused: bool = False):
+        """Start the simulation in a background thread.
+
+        Args:
+            start_paused: Whether to keep the simulation paused after starting.
+                Defaults to False to allow immediate frame progression in tests
+                and headless runs. The backend can override to start paused
+                until WebSocket broadcasting is ready.
+        """
+
         if not self.running:
+            # Override the initial paused state based on caller preference
+            self.world.paused = start_paused
+
             self.running = True
             self.thread = threading.Thread(target=self._run_loop, daemon=True)
             self.thread.start()
@@ -159,6 +184,12 @@ class SimulationRunner:
         Returns:
             SimulationUpdate with current entities and stats
         """
+        current_frame = self.world.frame_count
+
+        # Fast path: if the simulation hasn't advanced, reuse the cached state
+        if self._cached_state is not None and current_frame == self._cached_state_frame:
+            return self._cached_state
+
         # Check if we should rebuild state this frame
         self.frames_since_websocket_update += 1
         should_rebuild = self.frames_since_websocket_update >= self.websocket_update_interval
@@ -287,6 +318,7 @@ class SimulationRunner:
 
             # Cache the state for reuse
             self._cached_state = state
+            self._cached_state_frame = current_frame
             return state
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntityData]:
@@ -326,11 +358,29 @@ class SimulationRunner:
                         "pattern_type": entity.genome.pattern_type,
                     }
 
+                # Map sprite/genome data to a friendly species label for the frontend
+                species_label = None
+                sprite_name = getattr(entity, "species", "")
+                if "george" in sprite_name:
+                    species_label = "solo"
+                elif "school" in sprite_name:
+                    species_label = "schooling"
+
+                if species_label is None and hasattr(entity, "genome"):
+                    algo_id = getattr(entity.genome.behavior_algorithm, "algorithm_id", "").lower()
+                    if "neural" in algo_id:
+                        species_label = "neural"
+                    elif "school" in algo_id:
+                        species_label = "schooling"
+                    else:
+                        species_label = "algorithmic"
+
                 return EntityData(
                     type="fish",
                     energy=entity.energy,
                     generation=entity.generation if hasattr(entity, "generation") else 0,
                     age=entity.age if hasattr(entity, "age") else 0,
+                    species=species_label,
                     genome_data=genome_data,
                     **base_data,
                 )
@@ -394,7 +444,8 @@ class SimulationRunner:
                     screen_height=SCREEN_HEIGHT,
                 )
                 food.pos.y = 0
-                self.world.entities_list.append(food)
+                self.world.add_entity(food)
+                self._invalidate_state_cache()
 
             elif command == "spawn_fish":
                 # Spawn a new fish at random position
@@ -429,6 +480,7 @@ class SimulationRunner:
                     self.world.add_entity(new_fish)
                     fish_count = len([e for e in self.world.entities_list if isinstance(e, entities.Fish)])
                     logger.info(f"Successfully spawned new fish at ({x}, {y}). Total fish count: {fish_count}")
+                    self._invalidate_state_cache()
                 except Exception as e:
                     logger.error(f"Error spawning fish: {e}", exc_info=True)
 
@@ -446,16 +498,20 @@ class SimulationRunner:
                 )
                 self.world.add_entity(jellyfish)
                 logger.info(f"Spawned jellyfish at ({x}, {y})")
+                self._invalidate_state_cache()
 
             elif command == "pause":
                 self.world.pause()
+                self._invalidate_state_cache()
 
             elif command == "resume":
                 self.world.resume()
+                self._invalidate_state_cache()
 
             elif command == "reset":
                 # Reset simulation
                 self.world.reset()
+                self._invalidate_state_cache()
 
             elif command == "start_poker":
                 # Start a new poker game with top 3 fish
