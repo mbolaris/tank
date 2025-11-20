@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
-    from core.poker_interaction import BettingAction
+    from core.poker.core.engine import BettingAction
 
 
 @dataclass
@@ -88,7 +88,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker_interaction import BettingAction
+        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -142,7 +142,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker_interaction import BettingAction
+        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -199,7 +199,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker_interaction import BettingAction
+        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -255,7 +255,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker_interaction import BettingAction
+        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -332,7 +332,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker_interaction import BettingAction
+        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -385,7 +385,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker_interaction import BettingAction
+        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -405,6 +405,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
 
 
+# Registry of all strategy classes
 ALL_POKER_STRATEGIES = [
     TightAggressiveStrategy,
     LooseAggressiveStrategy,

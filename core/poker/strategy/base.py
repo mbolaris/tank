@@ -49,16 +49,7 @@ class OpponentModel:
     def update_from_game(
         self, won: bool, folded: bool, raised: bool, called: bool, aggression: float, frame: int
     ) -> None:
-        """Update model based on observed behavior.
-
-        Args:
-            won: Whether opponent won this hand
-            folded: Whether opponent folded
-            raised: Whether opponent raised
-            called: Whether opponent called
-            aggression: Opponent's aggression level this game
-            frame: Current frame
-        """
+        """Update model based on observed behavior."""
         self.games_played += 1
         if won:
             self.hands_won += 1
@@ -137,11 +128,7 @@ class PokerStrategyEngine:
     OPPONENT_AGGRESSIVE_MODIFIER = -0.1  # -10% aggression vs aggressive players
 
     def __init__(self, fish: "Fish"):
-        """Initialize the poker strategy engine.
-
-        Args:
-            fish: The fish this engine manages strategy for
-        """
+        """Initialize the poker strategy engine."""
         self.fish = fish
 
         # Opponent models (fish_id -> OpponentModel)
@@ -153,14 +140,7 @@ class PokerStrategyEngine:
         self.bluff_frequency = 0.2  # Base bluff frequency
 
     def get_opponent_model(self, opponent_id: int) -> OpponentModel:
-        """Get or create opponent model.
-
-        Args:
-            opponent_id: Fish ID of opponent
-
-        Returns:
-            OpponentModel for this opponent
-        """
+        """Get or create opponent model."""
         if opponent_id not in self.opponent_models:
             self.opponent_models[opponent_id] = OpponentModel(fish_id=opponent_id)
         return self.opponent_models[opponent_id]
@@ -175,29 +155,12 @@ class PokerStrategyEngine:
         aggression: float,
         frame: int,
     ) -> None:
-        """Update our model of an opponent's playing style.
-
-        Args:
-            opponent_id: Fish ID of opponent
-            won: Whether opponent won
-            folded: Whether opponent folded
-            raised: Whether opponent raised
-            called: Whether opponent called
-            aggression: Opponent's aggression level
-            frame: Current frame
-        """
+        """Update our model of an opponent's playing style."""
         model = self.get_opponent_model(opponent_id)
         model.update_from_game(won, folded, raised, called, aggression, frame)
 
     def evaluate_starting_hand_strength(self, hole_cards: List[Tuple[str, str]]) -> float:
-        """Evaluate the strength of starting hole cards (0.0-1.0).
-
-        Args:
-            hole_cards: List of (rank, suit) tuples for hole cards
-
-        Returns:
-            Hand strength from 0.0 (trash) to 1.0 (premium)
-        """
+        """Evaluate the strength of starting hole cards (0.0-1.0)."""
         if len(hole_cards) != 2:
             return 0.5
 
@@ -269,16 +232,7 @@ class PokerStrategyEngine:
         position_on_button: bool,
         opponent_id: Optional[int] = None,
     ) -> bool:
-        """Decide whether to play this starting hand.
-
-        Args:
-            hole_cards: Starting hole cards
-            position_on_button: True if on button (late position)
-            opponent_id: Optional opponent ID for opponent modeling
-
-        Returns:
-            True if should play this hand, False if should fold pre-flop
-        """
+        """Decide whether to play this starting hand."""
         hand_strength = self.evaluate_starting_hand_strength(hole_cards)
 
         # Determine hand selection range based on position and learning
@@ -317,17 +271,7 @@ class PokerStrategyEngine:
         opponent_id: Optional[int] = None,
         hand_strength: float = 0.5,
     ) -> float:
-        """Calculate aggression level adjusted for position and opponent.
-
-        Args:
-            base_aggression: Fish's base aggression from genome
-            position_on_button: True if on button
-            opponent_id: Optional opponent ID
-            hand_strength: Strength of current hand (0.0-1.0)
-
-        Returns:
-            Adjusted aggression level
-        """
+        """Calculate aggression level adjusted for position and opponent."""
         adjusted = base_aggression
 
         # Position adjustment
@@ -361,17 +305,7 @@ class PokerStrategyEngine:
         pot_size: float = 0.0,
         hand_strength: float = 0.0,
     ) -> bool:
-        """Decide whether to bluff in this situation.
-
-        Args:
-            position_on_button: True if on button
-            opponent_id: Optional opponent ID
-            pot_size: Current pot size
-            hand_strength: Current hand strength (lower = more likely to bluff)
-
-        Returns:
-            True if should attempt a bluff
-        """
+        """Decide whether to bluff in this situation."""
         # Base bluff frequency
         bluff_chance = self.bluff_frequency
 
@@ -407,15 +341,7 @@ class PokerStrategyEngine:
         bluffed: bool,
         opponent_id: Optional[int] = None,
     ) -> None:
-        """Update strategy based on poker game outcome.
-
-        Args:
-            won: Whether we won the hand
-            hand_strength: Strength of our hand
-            position_on_button: Whether we were on button
-            bluffed: Whether we bluffed
-            opponent_id: Opponent's fish ID
-        """
+        """Update strategy based on poker game outcome."""
         learning_rate = 0.05
 
         if won:
@@ -446,11 +372,7 @@ class PokerStrategyEngine:
                 )
 
     def get_strategy_summary(self) -> Dict[str, Any]:
-        """Get summary of current poker strategy.
-
-        Returns:
-            Dictionary with strategy parameters
-        """
+        """Get summary of current poker strategy."""
         return {
             "hand_selection_tightness": self.hand_selection_tightness,
             "positional_awareness": self.positional_awareness,
@@ -462,14 +384,7 @@ class PokerStrategyEngine:
         }
 
     def get_opponent_summary(self, opponent_id: int) -> Dict[str, Any]:
-        """Get summary of opponent model.
-
-        Args:
-            opponent_id: Fish ID of opponent
-
-        Returns:
-            Dictionary with opponent statistics
-        """
+        """Get summary of opponent model."""
         if opponent_id not in self.opponent_models:
             return {}
 

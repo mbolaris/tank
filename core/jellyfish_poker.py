@@ -9,7 +9,7 @@ evaluating fish poker performance.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-from core.poker_interaction import PokerEngine, PokerHand
+from core.poker.core import PokerEngine, PokerHand
 
 if TYPE_CHECKING:
     from core.entities import Fish, Jellyfish

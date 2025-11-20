@@ -390,7 +390,7 @@ class Fish(Agent):
         self.learning_system = BehavioralLearningSystem(self.genome)
 
         # NEW: Poker strategy engine (advanced poker decision-making)
-        from core.poker_strategy import PokerStrategyEngine
+        from core.poker.strategy.base import PokerStrategyEngine
 
         self.poker_strategy = PokerStrategyEngine(self)
 
