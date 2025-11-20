@@ -7,16 +7,24 @@ export const colors = {
   bgPrimary: 'linear-gradient(145deg, rgba(30,41,59,0.92), rgba(15,23,42,0.95))',
   bgSecondary: 'rgba(51,65,85,0.4)',
   bgDark: '#0f172a',
+  bgLight: '#1e293b',
+  bgDarker: '#0f172a',
 
   // Text colors
   textPrimary: '#e2e8f0',
   textSecondary: '#94a3b8',
   textTertiary: '#cbd5e1',
+  text: '#e2e8f0',
 
   // Border colors
   borderPrimary: 'rgba(148,163,184,0.18)',
   borderSecondary: 'rgba(148,163,184,0.1)',
   borderTertiary: 'rgba(148,163,184,0.08)',
+  border: 'rgba(148,163,184,0.18)',
+
+  // Primary/accent colors
+  primary: '#3b82f6',
+  accent: '#fbbf24',
 
   // Status colors
   success: '#4ade80',

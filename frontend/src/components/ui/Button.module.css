@@ -1,0 +1,55 @@
+.button {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 10px 25px rgba(15,23,42,0.45);
+  color: #ffffff;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(15,23,42,0.6);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary {
+  background-color: #3b82f6;
+}
+
+.success {
+  background-color: #10b981;
+}
+
+.secondary {
+  background-color: #8b5cf6;
+}
+
+.danger {
+  background-color: #ef4444;
+}
+
+.special {
+  background-color: #f59e0b;
+}
+
+.poker {
+  background-color: #8b5cf6;
+  font-weight: bold;
+}
+
+.evaluate {
+  background-color: #06b6d4;
+  font-weight: bold;
+}

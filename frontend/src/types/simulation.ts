@@ -140,7 +140,7 @@ export interface SimulationUpdate {
 }
 
 export interface Command {
-  command: 'add_food' | 'spawn_fish' | 'spawn_jellyfish' | 'pause' | 'resume' | 'reset';
+  command: 'add_food' | 'spawn_fish' | 'spawn_jellyfish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_action' | 'auto_evaluate_poker';
   data?: Record<string, unknown>;
 }
 
@@ -168,38 +168,57 @@ export interface PokerPlayer {
   hand?: string[];
 }
 
+export interface PokerGamePlayer {
+  player_id: string;
+  name: string;
+  energy: number;
+  current_bet: number;
+  total_bet: number;
+  folded: boolean;
+  is_human: boolean;
+  algorithm?: string;
+  hole_cards: string[];
+}
+
 export interface PokerGameState {
   game_id: string;
-  current_round: string;
   pot: number;
-  current_bet: number;
-  players: PokerPlayer[];
+  current_round: string;
   community_cards: string[];
-  dealer_position: number;
-  active_player: number;
+  current_player: string;
+  is_your_turn: boolean;
   game_over: boolean;
-  winner?: string;
-  winning_hand?: string;
-  message?: string;
+  message: string;
+  winner: string | null;
+  players: PokerGamePlayer[];
+  your_cards: string[];
+  call_amount: number;
+  min_raise: number;
 }
 
 // Auto-Evaluation Stats
 export interface AutoEvaluatePlayerStats {
+  player_id: string;
   name: string;
-  balance: number;
+  is_standard: boolean;
+  fish_id?: number;
+  fish_generation?: number;
+  energy: number;
   hands_won: number;
   hands_lost: number;
-  total_winnings: number;
+  total_energy_won: number;
+  total_energy_lost: number;
+  net_energy: number;
   win_rate: number;
 }
 
 export interface AutoEvaluateStats {
   hands_played: number;
   hands_remaining: number;
-  game_over: boolean;
-  winner: string;
-  reason: string;
   players: AutoEvaluatePlayerStats[];
+  game_over: boolean;
+  winner: string | null;
+  reason: string;
 }
 
 // Command Response Types
