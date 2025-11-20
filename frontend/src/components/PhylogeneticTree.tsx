@@ -84,20 +84,20 @@ export const PhylogeneticTree: React.FC = () => {
   // Custom node renderer to color-code by fish color
   const renderCustomNode = ({ nodeDatum, toggleNode }: CustomNodeElementProps) => {
     const treeNode = nodeDatum as unknown as TreeNodeData;
-    const labelWidth = 160;
-    const labelHeight = 54;
+    const labelWidth = 200;
+    const labelHeight = 68;
     return (
       <g>
         <circle
-          r={12}
+          r={14}
           fill={treeNode.nodeColor || '#34d399'}
           stroke="#fff"
-          strokeWidth="1.5"
+          strokeWidth="2"
           onClick={toggleNode}
           style={{ cursor: 'pointer' }}
         />
         <rect
-          x={18}
+          x={22}
           y={-labelHeight / 2}
           rx={8}
           ry={8}
@@ -105,23 +105,24 @@ export const PhylogeneticTree: React.FC = () => {
           height={labelHeight}
           fill="#0f172a"
           stroke="#22d3ee"
-          strokeWidth={0.5}
-          opacity={0.9}
+          strokeWidth={1.5}
+          opacity={0.95}
         />
         <text
-          fill="#e2e8f0"
-          x={28}
-          dy="-.2em"
-          fontSize="13px"
+          fill="#f1f5f9"
+          x={34}
+          dy="-.3em"
+          fontSize="16px"
+          fontWeight="500"
           style={{ pointerEvents: 'none' }}
         >
           {treeNode.attributes?.Algo || 'Unknown algo'}
         </text>
         <text
-          fill="#94a3b8"
-          x={28}
-          dy="1.1em"
-          fontSize="11px"
+          fill="#cbd5e1"
+          x={34}
+          dy="1.3em"
+          fontSize="13px"
           style={{ pointerEvents: 'none' }}
         >
           ID: {treeNode.attributes?.ID}
@@ -164,11 +165,11 @@ export const PhylogeneticTree: React.FC = () => {
         translate={translate} // Start in top center
         zoomable={true}
         collapsible={true}
-        nodeSize={{ x: 220, y: 140 }}
-        separation={{ siblings: 1.6, nonSiblings: 2 }}
+        nodeSize={{ x: 280, y: 160 }}
+        separation={{ siblings: 1.8, nonSiblings: 2.4 }}
         scaleExtent={{ min: 0.5, max: 2.5 }}
         styles={{
-          links: { stroke: '#22d3ee', strokeWidth: 1.2 },
+          links: { stroke: '#22d3ee', strokeWidth: 1.5 },
           nodes: { node: { circle: { filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' } } },
         }}
       />
