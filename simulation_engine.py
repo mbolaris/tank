@@ -502,11 +502,17 @@ class SimulationEngine(BaseSimulator):
             # Format loser(s)
             if num_players == 2:
                 # 2-player game: show single loser
-                message = f"Fish #{result.winner_id} beats Fish #{result.loser_id} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+                message = (
+                    f"Fish #{result.winner_id} beats Fish #{result.loser_id} "
+                    f"with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+                )
             else:
                 # Multi-player game: show all losers
                 loser_list = ", ".join(f"#{lid}" for lid in result.loser_ids)
-                message = f"Fish #{result.winner_id} beats Fish {loser_list} with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+                message = (
+                    f"Fish #{result.winner_id} beats Fish {loser_list} "
+                    f"with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+                )
 
         # Extract hand descriptions for the event record
         # For 2-player games, use legacy approach; for multi-player, use first player vs first loser
@@ -763,7 +769,10 @@ class SimulationEngine(BaseSimulator):
                     "reproduction_rate": stats.get_reproduction_rate(),
                     "avg_lifespan": stats.get_avg_lifespan(),
                     "main_death_cause": main_death_cause,
-                    "reason": f"Low reproduction rate ({stats.get_reproduction_rate():.2%}), main death: {main_death_cause}",
+                    "reason": (
+                        f"Low reproduction rate ({stats.get_reproduction_rate():.2%}), "
+                        f"main death: {main_death_cause}"
+                    ),
                 }
             )
 
@@ -799,9 +808,8 @@ class SimulationEngine(BaseSimulator):
         logger.info(f"Real Time: {stats.get('elapsed_real_time', 0):.1f}s")
         logger.info(f"Simulation Speed: {stats.get('simulation_speed', 0):.2f}x")
         logger.info("-" * SEPARATOR_WIDTH)
-        logger.info(
-            f"Population: {stats.get('total_population', 0)}/{self.ecosystem.max_population if self.ecosystem else 'N/A'}"
-        )
+        max_pop = self.ecosystem.max_population if self.ecosystem else 'N/A'
+        logger.info(f"Population: {stats.get('total_population', 0)}/{max_pop}")
         logger.info(f"Generation: {stats.get('current_generation', 0)}")
         logger.info(f"Total Births: {stats.get('total_births', 0)}")
         logger.info(f"Total Deaths: {stats.get('total_deaths', 0)}")

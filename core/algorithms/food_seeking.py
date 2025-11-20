@@ -806,7 +806,10 @@ class AggressiveHunter(BehaviorAlgorithm):
                 if distance < 80:
                     return direction.x * self.parameters["strike_speed"], direction.y * self.parameters["strike_speed"]
                 else:
-                    return direction.x * self.parameters["pursuit_speed"], direction.y * self.parameters["pursuit_speed"]
+                    return (
+                        direction.x * self.parameters["pursuit_speed"],
+                        direction.y * self.parameters["pursuit_speed"],
+                    )
 
         # No food visible - check last known location
         if self.last_food_pos and is_critical:
