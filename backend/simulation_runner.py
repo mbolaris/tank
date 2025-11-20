@@ -569,7 +569,7 @@ class SimulationRunner:
                     # Create auto-evaluation game with multiple fish
                     game_id = str(uuid.uuid4())
                     standard_energy = data.get("standard_energy", 500.0) if data else 500.0
-                    max_hands = data.get("max_hands", 100) if data else 100
+                    max_hands = data.get("max_hands", 1000) if data else 1000
 
                     self.auto_evaluate_game = AutoEvaluatePokerGame(
                         game_id=game_id,
