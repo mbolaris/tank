@@ -16,6 +16,8 @@ from core.constants import (
     CRAB_IDLE_CONSUMPTION,
     CRAB_INITIAL_ENERGY,
     DEFAULT_AGENT_SIZE,
+    DIRECTION_CHANGE_ENERGY_BASE,
+    DIRECTION_CHANGE_SIZE_MULTIPLIER,
     ENERGY_MATE_SEARCH_COST,
     ENERGY_MAX_DEFAULT,
     ENERGY_MODERATE_MULTIPLIER,
@@ -975,18 +977,34 @@ class Fish(Agent):
                 self.ecosystem.record_food_eaten(algorithm_id)
 
     def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
-        """Apply an energy penalty for sharp 180-degree turns."""
+        """Apply an energy penalty for direction changes, scaled by turn angle and fish size.
+
+        The energy cost increases with:
+        - Sharper turns (more angle change)
+        - Larger fish size (bigger fish use more energy to turn)
+        """
         if self.vel.length_squared() == 0:
             self.last_direction = None
             return
 
         new_direction = self.vel.normalize()
 
-        if (
-            previous_direction is not None
-            and previous_direction.dot(new_direction) <= ENERGY_MATE_SEARCH_COST
-        ):
-            self.energy = max(0, self.energy - ENERGY_MOVEMENT_BASE_COST)
+        if previous_direction is not None:
+            # Calculate dot product (-1 = 180° turn, 0 = 90° turn, 1 = no turn)
+            dot_product = previous_direction.dot(new_direction)
+
+            # Convert to turn intensity (0 = no turn, 1 = slight turn, 2 = 180° turn)
+            # Formula: (1 - dot_product) gives us 0 to 2 range
+            turn_intensity = 1 - dot_product
+
+            # Only apply cost if there's a noticeable direction change
+            if turn_intensity > 0.1:  # Threshold to ignore tiny wobbles
+                # Base energy cost scaled by turn intensity and fish size
+                # Larger fish (size > 1.0) pay more, smaller fish (size < 1.0) pay less
+                size_factor = self.size ** DIRECTION_CHANGE_SIZE_MULTIPLIER
+                energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
+
+                self.energy = max(0, self.energy - energy_cost)
 
         self.last_direction = new_direction
 

@@ -91,8 +91,12 @@ class EnergyComponent:
         metabolism = self.base_metabolism * time_modifier
 
         # Additional cost for movement - scales with body size (larger fish use more energy to move)
+        # Size scaling is non-linear: larger fish use disproportionately more energy
         if velocity.length() > 0:
-            movement_cost = MOVEMENT_ENERGY_COST * velocity.length() / speed * size
+            from core.constants import MOVEMENT_SIZE_MULTIPLIER
+
+            size_factor = size**MOVEMENT_SIZE_MULTIPLIER
+            movement_cost = MOVEMENT_ENERGY_COST * velocity.length() / speed * size_factor
             metabolism += movement_cost
 
         # Apply life stage modifiers to metabolism (not existence cost)
