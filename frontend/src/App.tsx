@@ -151,7 +151,6 @@ function App() {
                   {isConnected ? 'Connected' : 'Waiting'}
                 </p>
               </div>
-            </div>
             <Canvas state={state} width={800} height={600} />
             <div className="canvas-glow" aria-hidden />
           </div>
