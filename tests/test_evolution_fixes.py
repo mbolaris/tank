@@ -113,7 +113,8 @@ def test_same_algorithm_parameter_blending():
     print()
 
     # Create offspring (no mutation for cleaner test)
-    offspring = crossover_algorithms(algo1, algo2, mutation_rate=0.0, mutation_strength=0.0)
+    # Set algorithm_switch_rate=0.0 to ensure no random algorithm switching
+    offspring = crossover_algorithms(algo1, algo2, mutation_rate=0.0, mutation_strength=0.0, algorithm_switch_rate=0.0)
 
     print(
         f"Offspring: speed={offspring.parameters['speed_multiplier']:.2f}, "

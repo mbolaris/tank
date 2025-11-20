@@ -358,16 +358,21 @@ def _crossover_algorithms_base(
                 # Blend numeric parameters based on strategy
                 if blend_strategy == "weighted":
                     # Weighted average
-                    offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
+                    offspring_value = val1 * parent1_weight + val2 * parent2_weight
                 elif blend_strategy == "average_or_select":
                     # 50% average, 50% random selection
                     if random.random() < 0.5:
-                        offspring.parameters[param_key] = (val1 + val2) / 2.0
+                        offspring_value = (val1 + val2) / 2.0
                     else:
-                        offspring.parameters[param_key] = val1 if random.random() < 0.5 else val2
+                        offspring_value = val1 if random.random() < 0.5 else val2
                 else:
                     # Default to weighted
-                    offspring.parameters[param_key] = val1 * parent1_weight + val2 * parent2_weight
+                    offspring_value = val1 * parent1_weight + val2 * parent2_weight
+
+                # Clamp offspring value to parent range to handle floating-point inaccuracies
+                parent_min = min(val1, val2)
+                parent_max = max(val1, val2)
+                offspring.parameters[param_key] = max(min(offspring_value, parent_max), parent_min)
 
             elif param_key in parent1_algorithm.parameters:
                 # Only parent1 has this parameter
