@@ -7,6 +7,7 @@ export interface FishRecord {
   generation: number;
   color: string;
   birth_time?: number;
+  is_alive?: boolean;
 }
 
 export interface TreeNodeData {
@@ -15,12 +16,46 @@ export interface TreeNodeData {
     Algo: string;
     ID: string;
     Gen: number;
+    IsAlive: boolean;
   };
   nodeColor: string;
   children: TreeNodeData[];
 }
 
 const ROOT_NODE_ID = 'root';
+
+/**
+ * Recursively remove dead fish that have no children (dead-end branches).
+ * This prunes the tree to only show lineages that have living descendants or contributed to them.
+ */
+const pruneDeadLeaves = (node: TreeNodeData, isRoot: boolean = false): TreeNodeData | null => {
+  // Recursively prune children first
+  if (node.children && node.children.length > 0) {
+    const prunedChildren = node.children
+      .map(child => pruneDeadLeaves(child, false))
+      .filter((child): child is TreeNodeData => child !== null);
+
+    node.children = prunedChildren;
+  }
+
+  // Keep root node always
+  if (isRoot) {
+    return node;
+  }
+
+  // Keep alive fish
+  if (node.attributes.IsAlive) {
+    return node;
+  }
+
+  // Keep dead fish that have children (they contributed to the lineage)
+  if (node.children && node.children.length > 0) {
+    return node;
+  }
+
+  // Remove dead fish with no children (dead-end branches)
+  return null;
+};
 
 export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | null => {
   if (!flatData || flatData.length === 0) {
@@ -80,6 +115,7 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
           Algo: node.data.algorithm,
           ID: node.data.id,
           Gen: node.data.generation,
+          IsAlive: node.data.is_alive ?? false,
         },
         // Custom property to pass color to the renderer
         nodeColor: node.data.color,
@@ -88,7 +124,11 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
     };
 
     const result = mapper(tree);
-    return result;
+
+    // Prune dead fish that have no children (dead-end branches)
+    const prunedResult = pruneDeadLeaves(result, true);
+
+    return prunedResult;
   } catch (error) {
     console.error('Phylogenetic tree error:', error);
     console.error('Data that caused error:', flatData);

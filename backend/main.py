@@ -250,9 +250,16 @@ async def get_lineage():
         List of lineage records with parent-child relationships for tree visualization
     """
     try:
-        # Get lineage data from ecosystem manager
-        lineage_data = simulation.world.ecosystem.get_lineage_data()
-        logger.info(f"Lineage API: Returning {len(lineage_data)} lineage records")
+        # Get alive fish IDs from current entities
+        from core.entities import Fish
+        alive_fish_ids = {
+            fish.fish_id for fish in simulation.world.entities_list
+            if isinstance(fish, Fish)
+        }
+
+        # Get lineage data from ecosystem manager with alive status
+        lineage_data = simulation.world.ecosystem.get_lineage_data(alive_fish_ids)
+        logger.info(f"Lineage API: Returning {len(lineage_data)} lineage records ({len(alive_fish_ids)} alive)")
         if len(lineage_data) == 0:
             logger.warning("Lineage API: lineage_log is empty! This should contain records for all fish ever born.")
             logger.warning(
