@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\shared\\bolaris\\tank\\restart_servers.ps1\")",
+      "Bash(powershell:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c \"c:\\shared\\bolaris\\tank\\start.bat\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix UI flickering by hiding empty PokerLeaderboard\n\nPreviously, the PokerLeaderboard component would alternate between\nshowing a placeholder message and the actual leaderboard table when\nthere were no fish with poker stats. This caused constant layout\nshifting and UI flickering.\n\nNow the component returns null when there''s no data, preventing any\nlayout shift. The leaderboard will only appear once fish have actually\nplayed poker games and have stats to display.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(cmd /c \"c:\\shared\\bolaris\\tank\\kill_port_8000.bat\")",
+      "Bash(netstat:*)",
+      "Bash(xargs:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

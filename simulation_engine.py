@@ -906,10 +906,13 @@ class SimulationEngine(BaseSimulator):
             logger.info(f"{report}")
 
             # Save to file
-            with open("algorithm_performance_report.txt", "w") as f:
+            import os
+            os.makedirs("logs", exist_ok=True)
+            report_path = os.path.join("logs", "algorithm_performance_report.txt")
+            with open(report_path, "w") as f:
                 f.write(report)
             logger.info("")
-            logger.info("Report saved to: algorithm_performance_report.txt")
+            logger.info(f"Report saved to: {report_path}")
 
             # Export JSON stats if requested
             if export_json:
