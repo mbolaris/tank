@@ -1281,10 +1281,26 @@ class EcosystemManager:
         """
         return self.jellyfish_poker_stats.get(fish_id)
 
-    def get_lineage_data(self) -> List[Dict[str, Any]]:
+    def get_lineage_data(self, alive_fish_ids: Optional[set[int]] = None) -> List[Dict[str, Any]]:
         """Get complete lineage data for phylogenetic tree visualization.
 
+        Args:
+            alive_fish_ids: Set of fish IDs that are currently alive
+
         Returns:
-            List of lineage records with parent-child relationships
+            List of lineage records with parent-child relationships and alive status
         """
-        return self.lineage_log
+        if alive_fish_ids is None:
+            alive_fish_ids = set()
+
+        # Add is_alive flag to each lineage record
+        enriched_lineage = []
+        for record in self.lineage_log:
+            fish_id = int(record["id"]) if record["id"] != "root" else -1
+            enriched_record = {
+                **record,
+                "is_alive": fish_id in alive_fish_ids
+            }
+            enriched_lineage.append(enriched_record)
+
+        return enriched_lineage
