@@ -55,7 +55,7 @@ const FOOD_TYPE_IMAGES: Record<string, string[]> = {
   energy: ['food_energy1.png', 'food_energy2.png'],
   rare: ['food_rare1.png', 'food_rare2.png'],
   nectar: ['food_vitamin1.png', 'food_vitamin2.png'],
-  live: ['food_energy1.png', 'food_energy2.png'], // Live food uses energy images but with special effects
+  live: ['food_live1.png', 'food_live2.png'], // Live food uses energy images but with special effects
 };
 
 // Default food images for unknown types
