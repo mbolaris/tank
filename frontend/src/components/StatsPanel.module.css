@@ -3,38 +3,6 @@
   color: #94a3b8;
 }
 
-.summaryCard {
-  background: rgba(51,65,85,0.4);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(148,163,184,0.1);
-}
-
-.summaryGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.summaryItem {
-  text-align: center;
-}
-
-.summaryLabel {
-  font-size: 11px;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-
-.summaryValue {
-  font-size: 24px;
-  font-weight: 700;
-  color: #e2e8f0;
-}
-
 .gridRow {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -46,19 +14,34 @@
   /* Individual stat rows - no styling needed as StatRow component handles it */
 }
 
-.subsection {
-  margin-bottom: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(148,163,184,0.15);
+.highlightGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.subsectionLabel {
+.highlightCard {
+  background: rgba(30, 41, 59, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.highlightLabel {
   font-size: 11px;
-  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  color: #94a3b8;
+  margin-bottom: 4px;
   font-weight: 600;
+}
+
+.highlightValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2e8f0;
 }
 
 .noPokerGames {

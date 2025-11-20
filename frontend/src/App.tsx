@@ -13,6 +13,7 @@ import { PhylogeneticTree } from './components/PhylogeneticTree';
 import { PokerGame } from './components/PokerGame';
 import { AutoEvaluateDisplay } from './components/AutoEvaluateDisplay';
 import type { PokerGameState, AutoEvaluateStats } from './types/simulation';
+import { getEnergyColor } from './utils/energy';
 import './App.css';
 
 function App() {
@@ -130,6 +131,16 @@ function App() {
                 <p className="canvas-value">
                   {state?.stats?.fish_count ?? 0}
                   <span> fish</span>
+                </p>
+              </div>
+              <div>
+                <p className="canvas-label">Energy</p>
+                <p
+                  className="canvas-value"
+                  style={{ color: getEnergyColor(state?.stats?.total_energy ?? 0) }}
+                >
+                  {state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}
+                  <span>total</span>
                 </p>
               </div>
               <div>
