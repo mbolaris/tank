@@ -35,7 +35,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.models import Command
 from backend.simulation_runner import SimulationRunner
-
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
 # Global simulation runner

@@ -3,8 +3,8 @@
 import logging
 import threading
 import time
-from typing import Any, Dict, Optional
 import uuid
+from typing import Any, Dict, Optional
 
 from backend.models import (
     EntityData,
@@ -15,11 +15,11 @@ from backend.models import (
     StatsData,
 )
 from core import entities, movement_strategy
-from core.constants import FRAME_RATE, FILES, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
+from core.auto_evaluate_poker import AutoEvaluatePokerGame
+from core.constants import FILES, FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
 from core.entities import Fish
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
 # Use absolute imports assuming tank/ is in PYTHONPATH
 from core.tank_world import TankWorld, TankWorldConfig

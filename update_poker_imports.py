@@ -5,10 +5,7 @@ This script updates all imports from the old scattered poker modules to the new
 organized poker package structure.
 """
 
-import os
-import re
 from pathlib import Path
-
 
 # Mapping of old imports to new imports
 IMPORT_MAPPINGS = {
@@ -45,7 +42,7 @@ IMPORT_MAPPINGS = {
 def update_file_imports(file_path: Path) -> bool:
     """Update imports in a single file. Returns True if file was modified."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             content = f.read()
 
         original_content = content
