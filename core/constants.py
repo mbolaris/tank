@@ -52,7 +52,7 @@ AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500  # Reduce spawn rate above this total e
 AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500  # Further reduce spawn rate above this total energy
 AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 15  # Reduce spawn rate above this fish count
 AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 20  # Further reduce spawn rate above this fish count
-LIVE_FOOD_SPAWN_CHANCE = 0.2  # 20% of auto-spawned food will be live/active
+LIVE_FOOD_SPAWN_CHANCE = 0.4  # 40% of auto-spawned food will be live/active
 
 # Food type definitions with nutrient properties
 FOOD_TYPES = {

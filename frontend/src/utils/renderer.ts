@@ -55,6 +55,7 @@ const FOOD_TYPE_IMAGES: Record<string, string[]> = {
   energy: ['food_energy1.png', 'food_energy2.png'],
   rare: ['food_rare1.png', 'food_rare2.png'],
   nectar: ['food_vitamin1.png', 'food_vitamin2.png'],
+  live: ['food_energy1.png', 'food_energy2.png'], // Live food uses energy images but with special effects
 };
 
 // Default food images for unknown types
@@ -495,24 +496,90 @@ export class Renderer {
     // Draw subtle shadow
     this.drawShadow(x + width / 2, y + height, scaledWidth * 0.6, scaledHeight * 0.2);
 
-    // Add subtle glow to food
-    this.ctx.save();
-    this.ctx.globalAlpha = 0.2;
-    const gradient = this.ctx.createRadialGradient(
-      x + width / 2,
-      y + height / 2,
-      0,
-      x + width / 2,
-      y + height / 2,
-      scaledWidth * 0.6
-    );
-    gradient.addColorStop(0, '#ffeb3b');
-    gradient.addColorStop(1, 'rgba(255, 235, 59, 0)');
-    this.ctx.fillStyle = gradient;
-    this.ctx.beginPath();
-    this.ctx.arc(x + width / 2, y + height / 2, scaledWidth * 0.6, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.restore();
+    // Live food gets special visual treatment
+    const isLiveFood = food_type === 'live';
+
+    if (isLiveFood) {
+      // Pulsing animation for live food
+      const pulse = Math.sin(elapsedTime * 0.005) * 0.3 + 0.7;
+
+      // Bright pulsing outer glow (cyan/green to indicate "alive")
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.6 * pulse;
+      const outerGlow = this.ctx.createRadialGradient(
+        x + width / 2,
+        y + height / 2,
+        0,
+        x + width / 2,
+        y + height / 2,
+        scaledWidth * 1.2
+      );
+      outerGlow.addColorStop(0, '#00ffff');
+      outerGlow.addColorStop(0.5, '#00ff88');
+      outerGlow.addColorStop(1, 'rgba(0, 255, 136, 0)');
+      this.ctx.fillStyle = outerGlow;
+      this.ctx.beginPath();
+      this.ctx.arc(x + width / 2, y + height / 2, scaledWidth * 1.2, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
+
+      // Inner bright glow
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.8 * pulse;
+      const innerGlow = this.ctx.createRadialGradient(
+        x + width / 2,
+        y + height / 2,
+        0,
+        x + width / 2,
+        y + height / 2,
+        scaledWidth * 0.8
+      );
+      innerGlow.addColorStop(0, '#ffffff');
+      innerGlow.addColorStop(0.4, '#00ffcc');
+      innerGlow.addColorStop(1, 'rgba(0, 255, 204, 0)');
+      this.ctx.fillStyle = innerGlow;
+      this.ctx.beginPath();
+      this.ctx.arc(x + width / 2, y + height / 2, scaledWidth * 0.8, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
+
+      // Draw motion trail effect for live food
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.3;
+      this.ctx.fillStyle = '#00ffaa';
+      for (let i = 0; i < 3; i++) {
+        const trailOffset = -i * 3;
+        this.ctx.beginPath();
+        this.ctx.arc(
+          x + width / 2 + trailOffset,
+          y + height / 2,
+          (scaledWidth * 0.4) * (1 - i * 0.2),
+          0,
+          Math.PI * 2
+        );
+        this.ctx.fill();
+      }
+      this.ctx.restore();
+    } else {
+      // Normal food gets subtle glow
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.2;
+      const gradient = this.ctx.createRadialGradient(
+        x + width / 2,
+        y + height / 2,
+        0,
+        x + width / 2,
+        y + height / 2,
+        scaledWidth * 0.6
+      );
+      gradient.addColorStop(0, '#ffeb3b');
+      gradient.addColorStop(1, 'rgba(255, 235, 59, 0)');
+      this.ctx.fillStyle = gradient;
+      this.ctx.beginPath();
+      this.ctx.arc(x + width / 2, y + height / 2, scaledWidth * 0.6, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
+    }
 
     // Food images don't flip
     this.drawImage(image, x + offsetX, y + offsetY, scaledWidth, scaledHeight, false);
