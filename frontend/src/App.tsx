@@ -153,43 +153,42 @@ function App() {
               </div>
             <Canvas state={state} width={800} height={600} />
             <div className="canvas-glow" aria-hidden />
-          </div>
-          <EcosystemStats stats={state?.stats ?? null} />
-          <PokerEvents
-            events={state?.poker_events ?? []}
-            currentFrame={state?.frame ?? 0}
-          />
-          <PokerLeaderboard leaderboard={state?.poker_leaderboard ?? []} />
-          <div style={{ marginTop: '20px' }}>
-            <h2 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '20px' }}>
-              Phylogenetic Tree
-            </h2>
-            <PhylogeneticTree />
-          </div>
-
-          {/* Poker Game */}
-          {showPokerGame && (
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
-              <PokerGame
-                onClose={handleClosePoker}
-                onAction={handlePokerAction}
-                gameState={pokerGameState}
-                loading={pokerLoading}
-              />
+            <EcosystemStats stats={state?.stats ?? null} />
+            <PokerEvents
+              events={state?.poker_events ?? []}
+              currentFrame={state?.frame ?? 0}
+            />
+            <PokerLeaderboard leaderboard={state?.poker_leaderboard ?? []} />
+            <div style={{ marginTop: '20px' }}>
+              <h2 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '20px' }}>
+                Phylogenetic Tree
+              </h2>
+              <PhylogeneticTree />
             </div>
-          )}
 
-          {/* Auto-Evaluation Display */}
-          {showAutoEvaluate && (
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
-              <AutoEvaluateDisplay
-                stats={autoEvaluateStats}
-                onClose={handleCloseAutoEvaluate}
-                loading={autoEvaluateLoading}
-              />
-            </div>
-          )}
-        </div>
+            {/* Poker Game */}
+            {showPokerGame && (
+              <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
+                <PokerGame
+                  onClose={handleClosePoker}
+                  onAction={handlePokerAction}
+                  gameState={pokerGameState}
+                  loading={pokerLoading}
+                />
+              </div>
+            )}
+
+            {/* Auto-Evaluation Display */}
+            {showAutoEvaluate && (
+              <div style={{ marginTop: '20px', width: '100%', maxWidth: '820px' }}>
+                <AutoEvaluateDisplay
+                  stats={autoEvaluateStats}
+                  onClose={handleCloseAutoEvaluate}
+                  loading={autoEvaluateLoading}
+                />
+              </div>
+            )}
+          </div>
 
         <div className="sidebar">
           <ControlPanel
