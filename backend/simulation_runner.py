@@ -388,8 +388,12 @@ class SimulationRunner:
 
             # Get recent poker events
             poker_events = []
-            recent_events = self.world.get_recent_poker_events(max_age_frames=180)
+            recent_events = self.world.engine.poker_events
             for event in recent_events:
+                # Filter out evaluation events if any slipped in
+                if "Standard Algorithm" in event["message"] or "Auto-eval" in event["message"]:
+                    continue
+                    
                 poker_events.append(
                     PokerEventData(
                         frame=event["frame"],
@@ -399,7 +403,7 @@ class SimulationRunner:
                         loser_hand=event["loser_hand"],
                         energy_transferred=event["energy_transferred"],
                         message=event["message"],
-                        is_jellyfish=event.get("is_jellyfish", False),
+                        is_jellyfish=event["is_jellyfish"],
                     )
                 )
 
@@ -417,7 +421,15 @@ class SimulationRunner:
             with self.auto_eval_lock:
                 if self.auto_eval_stats:
                     try:
-                        auto_eval_stats = AutoEvaluateStats(**self.auto_eval_stats)
+                        # Optimization: Truncate history to last 50 entries to prevent payload explosion
+                        # The full history is preserved in self.auto_eval_history for the final report
+                        stats_copy = self.auto_eval_stats.copy()
+                        if "performance_history" in stats_copy:
+                            history = stats_copy["performance_history"]
+                            if len(history) > 50:
+                                stats_copy["performance_history"] = history[-50:]
+
+                        auto_eval_stats = AutoEvaluateStats(**stats_copy)
                     except Exception:
                         logger.error("Failed to serialize auto evaluation stats", exc_info=True)
 

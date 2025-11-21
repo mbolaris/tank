@@ -235,7 +235,7 @@ class AutoEvaluatePokerGame:
         for i in active_players:
             player = self.players[i]
             hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
-            logger.info(f"Auto-eval {self.game_id}: {player.name}: {hand}")
+            logger.debug(f"Auto-eval {self.game_id}: {player.name}: {hand}")
 
             if best_hand is None or hand.beats(best_hand):
                 best_hand = hand
@@ -288,7 +288,7 @@ class AutoEvaluatePokerGame:
         # Can't call - must fold
         if call_amount > player.energy:
             player.folded = True
-            logger.info(f"Auto-eval {self.game_id}: {player.name} folds (insufficient energy)")
+            logger.debug(f"Auto-eval {self.game_id}: {player.name} folds (insufficient energy)")
             return
 
         # Determine action based on player type
@@ -327,23 +327,23 @@ class AutoEvaluatePokerGame:
         # Execute action
         if action == BettingAction.FOLD:
             player.folded = True
-            logger.info(f"Auto-eval {self.game_id}: {player.name} folds")
+            logger.debug(f"Auto-eval {self.game_id}: {player.name} folds")
 
         elif action == BettingAction.CHECK:
-            logger.info(f"Auto-eval {self.game_id}: {player.name} checks")
+            logger.debug(f"Auto-eval {self.game_id}: {player.name} checks")
 
         elif action == BettingAction.CALL:
             if call_amount > player.energy:
                 call_amount = player.energy
             self._player_bet(player_index, call_amount)
-            logger.info(f"Auto-eval {self.game_id}: {player.name} calls {call_amount:.1f}")
+            logger.debug(f"Auto-eval {self.game_id}: {player.name} calls {call_amount:.1f}")
 
         elif action == BettingAction.RAISE:
             total_amount = call_amount + amount
             if total_amount > player.energy:
                 total_amount = player.energy
             self._player_bet(player_index, total_amount)
-            logger.info(f"Auto-eval {self.game_id}: {player.name} raises {total_amount:.1f}")
+            logger.debug(f"Auto-eval {self.game_id}: {player.name} raises {total_amount:.1f}")
 
     def _play_betting_round(self):
         """Play one betting round."""
@@ -462,13 +462,13 @@ class AutoEvaluatePokerGame:
                 self.game_over = True
                 if len(active_players) == 1:
                     self.winner = active_players[0].name
-                    logger.info(
+                    logger.debug(
                         f"Auto-eval {self.game_id}: {self.winner} wins - "
                         f"all other players out of energy after {self.hands_played} hands"
                     )
                 else:
                     # All players out of energy (shouldn't happen with proper starting energy)
-                    logger.info(
+                    logger.debug(
                         f"Auto-eval {self.game_id}: All players out of energy after {self.hands_played} hands"
                     )
                 break

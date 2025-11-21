@@ -247,7 +247,7 @@ class HumanPokerGame:
                 continue
 
             hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
-            logger.info(f"Player {player.name}: {hand}")
+            logger.debug(f"Player {player.name}: {hand}")
 
             if best_hand is None or hand.beats(best_hand):
                 best_hand = hand

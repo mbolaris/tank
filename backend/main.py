@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 
 # Set up logging with more detail
 logging.basicConfig(
-    level=logging.DEBUG,  # Changed to DEBUG for more detailed logs
+    level=logging.INFO,  # Changed to INFO to reduce log noise
     format="%(levelname)s:%(name)s:%(message)s",
 )
 logger = logging.getLogger(__name__)
@@ -139,6 +139,8 @@ async def broadcast_updates():
     logger.info("broadcast_updates: Simulation unpaused")
 
     frame_count = 0
+    last_sent_frame = -1
+
     try:
         while True:
             try:
@@ -159,6 +161,14 @@ async def broadcast_updates():
                         )
                         await asyncio.sleep(1 / FRAME_RATE)
                         continue
+
+                    # Optimization: Don't send duplicate frames
+                    # The simulation runner updates at 15 FPS (every 2 frames), but we loop at 30 FPS
+                    if state.frame == last_sent_frame:
+                        await asyncio.sleep(1 / FRAME_RATE)
+                        continue
+
+                    last_sent_frame = state.frame
 
                     try:
                         # Convert to JSON
