@@ -87,10 +87,13 @@ class TimeSystem:
         brightness = self.get_brightness()
 
         if time_of_day < 0.25:  # Night to dawn
-            # Dark blue tint
-            r = int(20 * brightness)
-            g = int(20 * brightness)
-            b = int(40 * brightness)
+            # Interpolate from midnight dark blue to dawn start
+            # Midnight (0.0): (20, 20, 40)
+            # Dawn Start (0.25): (100, 100, 120) - matches start of next block
+            progress = time_of_day / 0.25
+            r = int((20 + 80 * progress) * brightness)
+            g = int((20 + 80 * progress) * brightness)
+            b = int((40 + 80 * progress) * brightness)
         elif time_of_day < 0.5:  # Dawn to noon
             # Warm morning light
             progress = (time_of_day - 0.25) / 0.25
