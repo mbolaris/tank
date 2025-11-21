@@ -23,6 +23,7 @@ from core.constants import (
     MATING_QUERY_RADIUS,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
+    POKER_ACTIVITY_ENABLED,
 )
 from core.fish_poker import PokerInteraction
 from core.jellyfish_poker import JellyfishPokerInteraction
@@ -173,21 +174,22 @@ class BaseSimulator(ABC):
             bool: True if fish1 died from the collision, False otherwise
         """
         # Fish-to-fish poker interaction
-        poker = PokerInteraction(fish1, fish2)
-        if poker.play_poker():
-            # Handle poker result (can be overridden by subclasses)
-            self.handle_poker_result(poker)
+        if POKER_ACTIVITY_ENABLED:
+            poker = PokerInteraction(fish1, fish2)
+            if poker.play_poker():
+                # Handle poker result (can be overridden by subclasses)
+                self.handle_poker_result(poker)
 
-            # Check if either fish died from poker
-            fish1_died = False
-            if fish1.is_dead() and fish1 in self.get_all_entities():
-                self.record_fish_death(fish1)
-                fish1_died = True
+                # Check if either fish died from poker
+                fish1_died = False
+                if fish1.is_dead() and fish1 in self.get_all_entities():
+                    self.record_fish_death(fish1)
+                    fish1_died = True
 
-            if fish2.is_dead() and fish2 in self.get_all_entities():
-                self.record_fish_death(fish2)
+                if fish2.is_dead() and fish2 in self.get_all_entities():
+                    self.record_fish_death(fish2)
 
-            return fish1_died
+                return fish1_died
         return False
 
     def handle_fish_jellyfish_collision(self, fish: "Agent", jellyfish: "Agent") -> bool:
@@ -201,26 +203,27 @@ class BaseSimulator(ABC):
             bool: True if fish died from the collision, False otherwise
         """
         # Fish-to-jellyfish poker interaction
-        poker = JellyfishPokerInteraction(fish, jellyfish)
-        if poker.play_poker():
-            # Add jellyfish poker event if available
-            if (
-                hasattr(self, "add_jellyfish_poker_event")
-                and poker.result is not None
-                and poker.result.fish_hand is not None
-                and poker.result.jellyfish_hand is not None
-            ):
-                self.add_jellyfish_poker_event(
-                    fish_id=poker.result.fish_id,
-                    fish_won=poker.result.fish_won,
-                    fish_hand=poker.result.fish_hand.description,
-                    jellyfish_hand=poker.result.jellyfish_hand.description,
-                    energy_transferred=abs(poker.result.energy_transferred),
-                )
-            # Check if fish died from poker
-            if fish.is_dead() and fish in self.get_all_entities():
-                self.record_fish_death(fish)
-                return True
+        if POKER_ACTIVITY_ENABLED:
+            poker = JellyfishPokerInteraction(fish, jellyfish)
+            if poker.play_poker():
+                # Add jellyfish poker event if available
+                if (
+                    hasattr(self, "add_jellyfish_poker_event")
+                    and poker.result is not None
+                    and poker.result.fish_hand is not None
+                    and poker.result.jellyfish_hand is not None
+                ):
+                    self.add_jellyfish_poker_event(
+                        fish_id=poker.result.fish_id,
+                        fish_won=poker.result.fish_won,
+                        fish_hand=poker.result.fish_hand.description,
+                        jellyfish_hand=poker.result.jellyfish_hand.description,
+                        energy_transferred=abs(poker.result.energy_transferred),
+                    )
+                # Check if fish died from poker
+                if fish.is_dead() and fish in self.get_all_entities():
+                    self.record_fish_death(fish)
+                    return True
         return False
 
     def find_fish_groups_in_contact(self) -> List[List["Fish"]]:
@@ -403,7 +406,7 @@ class BaseSimulator(ABC):
                 # Filter out fish that already played (just in case)
                 valid_fish = [f for f in group if f not in processed_fish]
                 
-                if len(valid_fish) >= 2:
+                if len(valid_fish) >= 2 and POKER_ACTIVITY_ENABLED:
                     poker = PokerInteraction(*valid_fish)
                     if poker.play_poker():
                         self.handle_poker_result(poker)

@@ -343,3 +343,6 @@ DEFAULT_API_PORT = 8000  # Default port for FastAPI backend
 
 # UI Display Constants
 SEPARATOR_WIDTH = 60  # Width of separator lines in console output
+
+# Feature Flags
+POKER_ACTIVITY_ENABLED = True  # Enable poker activity
