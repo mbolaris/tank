@@ -1,91 +1,119 @@
 .player {
-  padding: 12px;
-  background-color: #1e293b;
-  border-radius: 8px;
-  border: 1px solid rgba(148,163,184,0.18);
+    padding: 4px 8px;
+    background-color: #1e293b;
+    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 63px;
 }
 
 .active {
-  border: 2px solid #fbbf24;
-  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
 }
 
 .folded {
-  opacity: 0.5;
+    opacity: 0.5;
 }
 
 .opponentName {
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: #3b82f6;
+    font-size: 12px;
+    font-weight: bold;
+    color: #3b82f6;
+    min-width: 60px;
 }
 
 .opponentInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
 }
 
 .opponentCards {
-  display: flex;
-  gap: 4px;
+    display: flex;
+    gap: 4px;
 }
 
 .opponentStats {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.bet {
-  color: #fbbf24;
-  font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #94a3b8;
 }
 
 .foldedLabel {
-  color: #ef4444;
-  font-weight: bold;
+    color: #ef4444;
+    font-weight: bold;
+    font-size: 10px;
+}
+
+.bet {
+    color: #fbbf24;
+    font-weight: bold;
+    font-size: 11px;
 }
 
 .humanPlayer {
-  padding: 16px;
-  background-color: #0f172a;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border: 2px solid #3b82f6;
+    padding: 8px;
+    background-color: #0f172a;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 2px solid #3b82f6;
 }
 
 .playerInfo {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
 }
 
 .playerName {
-  font-size: 18px;
-  font-weight: bold;
-  color: #3b82f6;
+    font-size: 14px;
+    font-weight: bold;
+    color: #3b82f6;
 }
 
 .playerStats {
-  font-size: 14px;
-  color: #94a3b8;
-  text-align: right;
+    font-size: 11px;
+    color: #94a3b8;
+    text-align: right;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chipStackContainer {
+    display: inline-block;
+}
+
+.energyText {
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.currentBet {
+    color: #fbbf24;
+    font-weight: bold;
+    font-size: 11px;
 }
 
 .yourCards {
-  margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .cardsLabel {
-  font-size: 14px;
-  color: #94a3b8;
-  margin-bottom: 8px;
+    font-size: 11px;
+    color: #94a3b8;
 }
 
 .cardsContainer {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
+    display: flex;
+    gap: 6px;
 }

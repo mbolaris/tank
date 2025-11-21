@@ -4,16 +4,18 @@
 
 import { useState } from 'react';
 import type { Command } from '../types/simulation';
-import { Panel, Button } from './ui';
+import { Button } from './ui';
 import styles from './ControlPanel.module.css';
 
 interface ControlPanelProps {
     onCommand: (command: Command) => void;
     isConnected: boolean;
     onPlayPoker?: () => void;
+    showTree?: boolean;
+    onToggleTree?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, onToggleTree }: ControlPanelProps) {
     const [isPaused, setIsPaused] = useState(false);
 
     const handleAddFood = () => {
@@ -46,60 +48,55 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPan
     };
 
     return (
-        <Panel title="Controls">
-            <div className={styles.status}>
-                <div
-                    className={styles.statusDot}
-                    style={{
-                        backgroundColor: isConnected ? '#4ade80' : '#ef4444',
-                    }}
-                />
-                <span className={styles.statusText}>
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                </span>
-            </div>
+        <div className={styles.buttons}>
+            <Button
+                onClick={handlePlayPoker}
+                disabled={!isConnected}
+                variant="poker"
+            >
+                🃏 Play Poker
+            </Button>
 
-            <div className={styles.buttons}>
-                <Button
-                    onClick={handlePlayPoker}
-                    disabled={!isConnected}
-                    variant="poker"
-                >
-                    🃏 Play Poker
-                </Button>
+            <Button
+                onClick={handleAddFood}
+                disabled={!isConnected}
+                variant="primary"
+            >
+                🍔 Add Food
+            </Button>
 
-                <Button
-                    onClick={handleAddFood}
-                    disabled={!isConnected}
-                    variant="primary"
-                >
-                    🍔 Add Food
-                </Button>
+            <Button
+                onClick={handleSpawnFish}
+                disabled={!isConnected}
+                variant="success"
+            >
+                🐟 Spawn Fish
+            </Button>
 
-                <Button
-                    onClick={handleSpawnFish}
-                    disabled={!isConnected}
-                    variant="success"
-                >
-                    🐟 Spawn Fish
-                </Button>
+            <Button
+                onClick={handlePause}
+                disabled={!isConnected}
+                variant="secondary"
+            >
+                {isPaused ? '▶️ Resume' : '⏸️ Pause'}
+            </Button>
 
-                <Button
-                    onClick={handlePause}
-                    disabled={!isConnected}
-                    variant="secondary"
-                >
-                    {isPaused ? '▶️ Resume' : '⏸️ Pause'}
-                </Button>
+            <Button
+                onClick={handleReset}
+                disabled={!isConnected}
+                variant="danger"
+            >
+                🔄 Reset
+            </Button>
 
+            {onToggleTree && (
                 <Button
-                    onClick={handleReset}
-                    disabled={!isConnected}
-                    variant="danger"
+                    onClick={onToggleTree}
+                    variant={showTree ? 'primary' : 'secondary'}
                 >
-                    🔄 Reset
+                    {showTree ? 'Hide Tree' : '🌳 Show Tree'}
                 </Button>
-            </div>
-        </Panel>
+            )}
+        </div>
     );
 }

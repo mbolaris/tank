@@ -2,7 +2,8 @@
  * Poker components barrel export
  */
 
-export { PlayingCard } from './PlayingCard';
-export { PokerPlayer } from './PokerPlayer';
 export { PokerTable } from './PokerTable';
+export { PokerPlayer } from './PokerPlayer';
 export { PokerActions } from './PokerActions';
+export { PlayingCard } from './PlayingCard';
+export { PokerChip, ChipStack } from './PokerChip';

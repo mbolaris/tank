@@ -19,8 +19,8 @@ function PerformanceChart({
 
     const sortedHistory = [...history].sort((a, b) => a.hand - b.hand);
     const width = 1088;
-    const height = 400;
-    const padding = 50;
+    const height = 280;
+    const padding = 40;
     const maxHand = Math.max(...sortedHistory.map((h) => h.hand), 1);
     const minHand = Math.min(...sortedHistory.map((h) => h.hand));
     const handRange = maxHand - minHand || 1;
@@ -73,10 +73,10 @@ function PerformanceChart({
             <div style={styles.chartHeader}>
                 <div>
                     <div style={styles.chartTitle}>
-                        Top 3 Fish vs Static Algorithm
+                        Evolution Performance Tracking
                     </div>
                     <div style={styles.chartSubtitle}>
-                        Average net energy over time - tracking evolution improvement
+                        Comparing top 3 evolved fish vs baseline algorithm
                     </div>
                 </div>
                 <div style={styles.chartLegend}>
@@ -162,12 +162,11 @@ export function AutoEvaluateDisplay({
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h2 style={styles.title}>Static Poker Benchmark</h2>
+                <h2 style={styles.title}>📊 Evolution Benchmark</h2>
             </div>
 
             <p style={styles.helperText}>
-                Tracking how the top 3 fish perform on average versus the static evaluation algorithm.
-                This helps visualize improvement as the population evolves over time.
+                Measuring improvement: Top 3 fish play poker against a static baseline algorithm to track how the population evolves over time.
             </p>
 
             <PerformanceChart history={stats.performance_history ?? []} />
@@ -179,7 +178,7 @@ const styles = {
     container: {
         backgroundColor: colors.bgDark,
         borderRadius: '12px',
-        padding: '20px',
+        padding: '12px',
         border: `2px solid ${colors.primary}`,
         boxShadow: '0 0 20px rgba(0, 255, 0, 0.2)',
         width: '100%',
@@ -189,52 +188,52 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '20px',
+        marginBottom: '12px',
         borderBottom: `1px solid ${colors.border}`,
-        paddingBottom: '12px',
+        paddingBottom: '8px',
     },
     title: {
         margin: 0,
-        fontSize: '24px',
+        fontSize: '20px',
         color: colors.primary,
     },
     helperText: {
-        margin: '0 0 20px 0',
+        margin: '0 0 12px 0',
         color: colors.textSecondary,
         lineHeight: 1.5,
-        fontSize: '14px',
+        fontSize: '13px',
     },
     loading: {
-        padding: '40px',
+        padding: '24px',
         textAlign: 'center' as const,
-        fontSize: '16px',
+        fontSize: '14px',
     },
     loadingSubtext: {
-        marginTop: '12px',
+        marginTop: '8px',
         color: colors.textSecondary,
-        fontSize: '14px',
+        fontSize: '13px',
     },
     chartWrapper: {
         backgroundColor: colors.bgLight,
         border: `1px solid ${colors.border}`,
         borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '24px',
+        padding: '12px',
+        marginBottom: '0',
     },
     chartHeader: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '16px',
+        marginBottom: '12px',
     },
     chartTitle: {
         color: colors.primary,
         fontWeight: 700,
-        fontSize: '18px',
+        fontSize: '16px',
     },
     chartSubtitle: {
         color: colors.textSecondary,
-        fontSize: '13px',
+        fontSize: '12px',
         marginTop: '4px',
     },
     chartSvg: {
