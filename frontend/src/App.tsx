@@ -22,6 +22,10 @@ function App() {
     const [showPokerGame, setShowPokerGame] = useState(false);
     const [pokerLoading, setPokerLoading] = useState(false);
 
+    const maxGeneration = state?.stats
+        ? state.stats.max_generation ?? state.stats.generation ?? 0
+        : 0;
+
     // Auto-evaluation state
     const [autoEvaluateStats, setAutoEvaluateStats] = useState<AutoEvaluateStats | null>(null);
     const [showAutoEvaluate, setShowAutoEvaluate] = useState(false);
@@ -131,6 +135,9 @@ function App() {
                                 <p className="canvas-value">
                                     {state?.stats?.fish_count ?? 0}
                                     <span> fish</span>
+                                    {state?.stats && (
+                                        <span className="canvas-subvalue">Max Gen {maxGeneration}</span>
+                                    )}
                                 </p>
                             </div>
                             <div>
@@ -141,6 +148,12 @@ function App() {
                                 >
                                     {state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}
                                     <span>total</span>
+                                </p>
+                            </div>
+                            <div>
+                                <p className="canvas-label">Time</p>
+                                <p className="canvas-value">
+                                    {state?.stats?.time ?? '—'}
                                 </p>
                             </div>
                             <div>

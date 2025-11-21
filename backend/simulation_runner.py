@@ -264,6 +264,9 @@ class SimulationRunner:
                 frame=self.world.frame_count,
                 population=stats.get("total_population", 0),
                 generation=stats.get("current_generation", 0),
+                max_generation=stats.get(
+                    "max_generation", stats.get("current_generation", 0)
+                ),
                 births=stats.get("total_births", 0),
                 deaths=stats.get("total_deaths", 0),
                 capacity=stats.get("capacity_usage", "0%"),

@@ -487,9 +487,12 @@ class EcosystemManager:
 
             total_energy = sum(e.energy for e in entities if isinstance(e, Fish))
 
+        alive_generations = [g for g, s in self.generation_stats.items() if s.population > 0]
+
         return {
             "total_population": total_pop,
             "current_generation": self.current_generation,
+            "max_generation": max(alive_generations) if alive_generations else 0,
             "total_births": self.total_births,
             "total_deaths": self.total_deaths,
             "carrying_capacity": self.max_population,
