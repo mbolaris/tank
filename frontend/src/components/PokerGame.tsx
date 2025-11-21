@@ -100,7 +100,7 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
                         />
 
                         {/* Action Buttons - Right next to cards */}
-                        {!gameState.game_over && (
+                        {!gameState.game_over ? (
                             <PokerActions
                                 isYourTurn={gameState.is_your_turn}
                                 callAmount={gameState.call_amount}
@@ -113,6 +113,18 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
                                 onCall={handleCall}
                                 onRaise={handleRaise}
                             />
+                        ) : (
+                            /* Play Again / Cash Out buttons - Same position as action buttons */
+                            <div className={styles.inlineGameOverButtons}>
+                                {!gameState.session_over && (
+                                    <button onClick={onNewRound} className={styles.inlinePlayAgainButton} disabled={loading}>
+                                        {loading ? 'Dealing...' : 'Play Again'}
+                                    </button>
+                                )}
+                                <button onClick={onClose} className={styles.inlineCashOutButton}>
+                                    {gameState.session_over ? 'Exit' : 'Cash Out'}
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -163,20 +175,11 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
                             ))
                         }
                     </div>
-                    <div className={styles.gameOverButtons}>
-                        {!gameState.session_over ? (
-                            <button onClick={onNewRound} className={styles.playAgainButton} disabled={loading}>
-                                {loading ? 'Dealing...' : 'Play Again'}
-                            </button>
-                        ) : (
-                            <div className={styles.sessionOverMessage}>
-                                {humanPlayer && humanPlayer.energy > 100 ? 'Great session! You made profit!' : 'Better luck next time!'}
-                            </div>
-                        )}
-                        <button onClick={onClose} className={styles.exitButton}>
-                            {gameState.session_over ? 'Exit' : 'Cash Out'}
-                        </button>
-                    </div>
+                    {gameState.session_over && (
+                        <div className={styles.sessionOverMessage}>
+                            {humanPlayer && humanPlayer.energy > 100 ? 'Great session! You made profit!' : 'Better luck next time!'}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -4,6 +4,7 @@
     justify-content: flex-start;
     align-items: center;
     min-height: 44px;
+    min-width: 300px;
     padding: 8px 12px;
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
     border-radius: 8px;
@@ -150,6 +151,7 @@
     color: #94a3b8;
     text-align: center;
     font-style: italic;
+    min-width: 200px;
 }
 
 .waitingDots {
