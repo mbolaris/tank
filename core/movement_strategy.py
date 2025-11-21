@@ -84,9 +84,21 @@ class AlgorithmicMovement(MovementStrategy):
             # Calculate poker behavior weight based on context
             poker_weight = 0.0
             if other_fish and len(other_fish) > 0:
-                # Find nearest fish
-                nearest_fish = min(other_fish, key=lambda f: (f.pos - sprite.pos).length())
-                distance = (nearest_fish.pos - sprite.pos).length()
+                # Find nearest fish manually to avoid lambda and Vector2 overhead
+                nearest_dist_sq = float("inf")
+                
+                sprite_x = sprite.pos.x
+                sprite_y = sprite.pos.y
+                
+                for f in other_fish:
+                    dx = f.pos.x - sprite_x
+                    dy = f.pos.y - sprite_y
+                    dist_sq = dx * dx + dy * dy
+                    if dist_sq < nearest_dist_sq:
+                        nearest_dist_sq = dist_sq
+                
+                import math
+                distance = math.sqrt(nearest_dist_sq)
 
                 # Poker is more relevant when fish are nearby (within 200 units)
                 # Weight increases as fish get closer

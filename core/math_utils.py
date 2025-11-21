@@ -10,6 +10,8 @@ import math
 class Vector2:
     """A 2D vector class for mathematical operations."""
 
+    __slots__ = ("x", "y")
+
     def __init__(self, x=0, y=0):
         self.x = float(x)
         self.y = float(y)
@@ -27,13 +29,13 @@ class Vector2:
         return Vector2(self.x / scalar, self.y / scalar)
 
     def length(self):
-        return math.sqrt(self.x**2 + self.y**2)
+        return math.sqrt(self.x * self.x + self.y * self.y)
 
     def length_squared(self):
-        return self.x**2 + self.y**2
+        return self.x * self.x + self.y * self.y
 
     def normalize(self):
-        length = self.length()
+        length = math.sqrt(self.x * self.x + self.y * self.y)
         if length == 0:
             return Vector2(0, 0)
         return Vector2(self.x / length, self.y / length)
@@ -51,7 +53,7 @@ class Vector2:
 
     def __eq__(self, other):
         """Check if two vectors are equal."""
-        if not isinstance(other, Vector2):
+        if other.__class__ is not Vector2:
             return False
         return abs(self.x - other.x) < 1e-9 and abs(self.y - other.y) < 1e-9
 
