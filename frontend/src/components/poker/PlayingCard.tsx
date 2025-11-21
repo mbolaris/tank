@@ -34,13 +34,29 @@ export function PlayingCard({ card, size = 'medium', faceDown = false }: Playing
         return (
             <div className={`${styles.card} ${sizeClass} ${styles.back}`}>
                 <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
-                    {/* Card border */}
-                    <rect x="2" y="2" width="96" height="136" rx="8" fill="#1a4d8f" stroke="#0d2847" strokeWidth="2" />
+                    {/* Card background */}
+                    <rect x="2" y="2" width="96" height="136" rx="8" fill="#1a3a6e" stroke="#0d2847" strokeWidth="2" />
 
-                    {/* Decorative pattern */}
-                    <circle cx="50" cy="70" r="30" fill="none" stroke="#2d6bb3" strokeWidth="2" opacity="0.6" />
-                    <circle cx="50" cy="70" r="20" fill="none" stroke="#2d6bb3" strokeWidth="1.5" opacity="0.4" />
-                    <circle cx="50" cy="70" r="10" fill="none" stroke="#2d6bb3" strokeWidth="1" opacity="0.3" />
+                    {/* White border inset */}
+                    <rect x="8" y="8" width="84" height="124" rx="4" fill="none" stroke="#c9a227" strokeWidth="1.5" />
+
+                    {/* Inner pattern area */}
+                    <rect x="12" y="12" width="76" height="116" rx="2" fill="#1e4785" />
+
+                    {/* Diamond lattice pattern */}
+                    <defs>
+                        <pattern id="cardPattern" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+                            <path d="M8 0 L16 8 L8 16 L0 8 Z" fill="none" stroke="#2d6bb3" strokeWidth="0.8" opacity="0.6" />
+                        </pattern>
+                    </defs>
+                    <rect x="12" y="12" width="76" height="116" rx="2" fill="url(#cardPattern)" />
+
+                    {/* Center ornament */}
+                    <ellipse cx="50" cy="70" rx="18" ry="24" fill="#1a3a6e" stroke="#c9a227" strokeWidth="1.5" />
+                    <ellipse cx="50" cy="70" rx="12" ry="16" fill="none" stroke="#c9a227" strokeWidth="1" opacity="0.7" />
+
+                    {/* Small diamond in center */}
+                    <path d="M50 58 L58 70 L50 82 L42 70 Z" fill="#c9a227" opacity="0.8" />
                 </svg>
             </div>
         );
