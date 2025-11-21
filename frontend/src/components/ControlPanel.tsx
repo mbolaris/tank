@@ -11,10 +11,10 @@ interface ControlPanelProps {
   onCommand: (command: Command) => void;
   isConnected: boolean;
   onPlayPoker?: () => void;
-  onAutoEvaluatePoker?: () => void;
+  onRunBenchmark?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvaluatePoker }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, onPlayPoker, onRunBenchmark }: ControlPanelProps) {
   const [isPaused, setIsPaused] = useState(false);
 
   const handleAddFood = () => {
@@ -40,19 +40,15 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvalua
     setIsPaused(false);
   };
 
-  const handleSpawnJellyfish = () => {
-    onCommand({ command: 'spawn_jellyfish' });
-  };
-
   const handlePlayPoker = () => {
     if (onPlayPoker) {
       onPlayPoker();
     }
   };
 
-  const handleAutoEvaluatePoker = () => {
-    if (onAutoEvaluatePoker) {
-      onAutoEvaluatePoker();
+  const handleRunBenchmark = () => {
+    if (onRunBenchmark) {
+      onRunBenchmark();
     }
   };
 
@@ -80,11 +76,11 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvalua
         </Button>
 
         <Button
-          onClick={handleAutoEvaluatePoker}
+          onClick={handleRunBenchmark}
           disabled={!isConnected}
           variant="evaluate"
         >
-          📊 Auto-Evaluate Skill
+          📊 Benchmark vs Static
         </Button>
 
         <Button
@@ -101,14 +97,6 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvalua
           variant="success"
         >
           🐟 Spawn Fish
-        </Button>
-
-        <Button
-          onClick={handleSpawnJellyfish}
-          disabled={!isConnected}
-          variant="special"
-        >
-          🎰 Spawn Poker Jellyfish
         </Button>
 
         <Button
@@ -135,16 +123,13 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onAutoEvalua
             <strong>Play Poker:</strong> Play poker against the top 3 fish
           </li>
           <li>
-            <strong>Auto-Evaluate Skill:</strong> Test top fish against standard algorithm (1000 hands)
+            <strong>Benchmark vs Static:</strong> Runs a series between the top 3 fish and the static standard player
           </li>
           <li>
             <strong>Add Food:</strong> Drop food into the tank
           </li>
           <li>
             <strong>Spawn Fish:</strong> Add a new fish with random genetics
-          </li>
-          <li>
-            <strong>Spawn Poker Jellyfish:</strong> Add a static poker evaluator that plays fish
           </li>
           <li>
             <strong>Pause:</strong> Pause/resume the simulation

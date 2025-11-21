@@ -9,7 +9,6 @@ interface PokerEvent {
   loser_hand: string;
   energy_transferred: number;
   message: string;
-  is_jellyfish?: boolean;
 }
 
 interface PokerEventsProps {
@@ -22,7 +21,7 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
     <section className="poker-events" aria-label="Recent poker activity">
       <div className="poker-events__header">
         <h2>Poker Activity</h2>
-        <span>Latest clashes between fish and jellyfish</span>
+        <span>Latest clashes between top fish at the table</span>
       </div>
       {events.length === 0 ? (
         <p className="poker-events__empty">No poker activity yet.</p>
@@ -34,16 +33,14 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
             .map((event, index) => {
               const age = currentFrame - event.frame;
               const isTie = event.winner_id === -1;
-              const isJellyfish = event.is_jellyfish ?? false;
               const fading = Math.max(0.35, 1 - Math.max(0, age - 90) / 90);
 
               return (
                 <div
                   key={`${event.frame}-${index}`}
-                  className={`poker-events__item ${isTie ? 'tie' : ''} ${isJellyfish ? 'jellyfish' : ''}`}
+                  className={`poker-events__item ${isTie ? 'tie' : ''}`}
                   style={{ opacity: fading }}
                 >
-                  {isJellyfish && <span className="poker-events__jellyfish-icon">🪼 </span>}
                   {event.message}
                   {!isTie && event.energy_transferred > 0 && (
                     <span className="poker-events__energy-loss">
