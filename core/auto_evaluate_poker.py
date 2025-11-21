@@ -1,4 +1,3 @@
-"""
 """Auto-evaluation poker game for testing fish poker skills.
 
 This module manages automated poker games where multiple fish play against
