@@ -140,7 +140,7 @@ export interface SimulationUpdate {
 }
 
 export interface Command {
-  command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_action' | 'standard_poker_series';
+  command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_action' | 'poker_new_round' | 'standard_poker_series';
   data?: Record<string, unknown>;
 }
 
@@ -188,6 +188,8 @@ export interface PokerGameState {
   current_player: string;
   is_your_turn: boolean;
   game_over: boolean;
+  session_over: boolean;
+  hands_played: number;
   message: string;
   winner: string | null;
   players: PokerGamePlayer[];

@@ -20,6 +20,15 @@
     margin: 0;
     font-size: 20px;
     color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.handCounter {
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: normal;
 }
 
 .closeButton {
@@ -51,6 +60,7 @@
 .humanSection {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
     margin-bottom: 8px;
     flex-wrap: wrap;
@@ -86,7 +96,50 @@
     font-size: 14px;
 }
 
-.newGameButton {
+.standings {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background-color: #0f172a;
+    border-radius: 6px;
+}
+
+.standingRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.standingRank {
+    color: #64748b;
+    width: 24px;
+}
+
+.standingName {
+    flex: 1;
+    color: #e2e8f0;
+}
+
+.standingEnergy {
+    color: #fbbf24;
+    font-weight: bold;
+}
+
+.gameOverButtons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.newRoundButton {
+    padding: 10px 24px;
+    font-size: 14px;
+}
+
+.quitButton {
     padding: 10px 24px;
     font-size: 14px;
 }
