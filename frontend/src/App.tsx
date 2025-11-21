@@ -73,6 +73,25 @@ function App() {
         setPokerGameState(null);
     };
 
+    const handleNewRound = async () => {
+        try {
+            setPokerLoading(true);
+            const response = await sendCommandWithResponse({
+                command: 'poker_new_round',
+                data: {},
+            });
+            if (response.success === false) {
+                alert(response.error || 'Failed to start new round');
+            } else if (response.state) {
+                setPokerGameState(response.state);
+            }
+        } catch {
+            alert('Failed to start new round. Please try again.');
+        } finally {
+            setPokerLoading(false);
+        }
+    };
+
     const pokerStats = state?.stats?.poker_stats;
     const minutesElapsed = state ? state.frame / 30 / 60 : 0;
     const gamesPerMinute = minutesElapsed > 0 && pokerStats
@@ -138,6 +157,7 @@ function App() {
                         <PokerGame
                             onClose={handleClosePoker}
                             onAction={handlePokerAction}
+                            onNewRound={handleNewRound}
                             gameState={pokerGameState}
                             loading={pokerLoading}
                         />

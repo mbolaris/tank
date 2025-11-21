@@ -10,11 +10,12 @@ import styles from './PokerGame.module.css';
 interface PokerGameProps {
     onClose: () => void;
     onAction: (action: string, amount?: number) => void;
+    onNewRound: () => void;
     gameState: PokerGameState | null;
     loading: boolean;
 }
 
-export function PokerGame({ onClose, onAction, gameState, loading }: PokerGameProps) {
+export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }: PokerGameProps) {
     if (!gameState) {
         return (
             <div className={styles.container}>
@@ -55,7 +56,10 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h2 className={styles.title}>Poker Game</h2>
+                <h2 className={styles.title}>
+                    Poker Game
+                    <span className={styles.handCounter}>Hand #{gameState.hands_played}</span>
+                </h2>
                 <button onClick={onClose} className={styles.closeButton}>×</button>
             </div>
 
@@ -118,19 +122,41 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
                 <div className={styles.message}>{gameState.message}</div>
             )}
 
-            {/* Game Over */}
+            {/* Game Over - Show after hand ends */}
             {gameState.game_over && (
                 <div className={styles.gameOver}>
-                    <h3 className={styles.gameOverTitle}>Game Over!</h3>
+                    <h3 className={styles.gameOverTitle}>
+                        {gameState.session_over ? 'Session Over!' : 'Hand Complete!'}
+                    </h3>
                     <p className={styles.gameOverMessage}>
                         {gameState.winner === 'You'
                             ? `Congratulations! You won ${gameState.pot.toFixed(1)} energy!`
                             : `${gameState.winner} won the pot of ${gameState.pot.toFixed(1)} energy.`
                         }
                     </p>
-                    <Button onClick={onClose} variant="success" className={styles.newGameButton}>
-                        Close
-                    </Button>
+                    {/* Show player standings */}
+                    <div className={styles.standings}>
+                        {gameState.players
+                            .sort((a, b) => b.energy - a.energy)
+                            .map((player, i) => (
+                                <div key={player.player_id} className={styles.standingRow}>
+                                    <span className={styles.standingRank}>#{i + 1}</span>
+                                    <span className={styles.standingName}>{player.name}</span>
+                                    <span className={styles.standingEnergy}>{player.energy.toFixed(0)} energy</span>
+                                </div>
+                            ))
+                        }
+                    </div>
+                    <div className={styles.gameOverButtons}>
+                        {!gameState.session_over && (
+                            <Button onClick={onNewRound} variant="success" className={styles.newRoundButton} disabled={loading}>
+                                {loading ? 'Starting...' : 'Next Hand'}
+                            </Button>
+                        )}
+                        <Button onClick={onClose} variant="secondary" className={styles.quitButton}>
+                            {gameState.session_over ? 'Close' : 'Quit Session'}
+                        </Button>
+                    </div>
                 </div>
             )}
         </div>

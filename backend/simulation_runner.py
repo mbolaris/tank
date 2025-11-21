@@ -703,6 +703,16 @@ class SimulationRunner:
                 result = self.human_poker_game.handle_action("human", action, amount)
                 return result
 
+            elif command == "poker_new_round":
+                # Start a new hand in the current poker session
+                if not self.human_poker_game:
+                    logger.warning("New round requested but no game active")
+                    return self._create_error_response("No poker game active")
+
+                logger.info("Starting new poker hand...")
+                result = self.human_poker_game.start_new_hand()
+                return result
+
             elif command == "standard_poker_series":
                 # Run standard benchmark poker series with top 3 fish vs static player
                 logger.info("Starting standard poker benchmark series...")

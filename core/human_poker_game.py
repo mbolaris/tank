@@ -54,13 +54,17 @@ class HumanPokerGameState:
     deck: Deck
     betting_history: List[Dict[str, Any]] = field(default_factory=list)
     winner_index: Optional[int] = None
-    game_over: bool = False
+    game_over: bool = False  # Current hand is over
+    session_over: bool = False  # Entire session is over (quit or 1 player left)
     message: str = ""
     actions_this_round: int = 0  # Track actions per betting round
+    hands_played: int = 0  # Track total hands played in session
 
 
 class HumanPokerGame:
     """Manages a poker game between a human player and AI fish opponents."""
+
+    STARTING_ENERGY = 100.0  # All players start with 100 energy
 
     def __init__(
         self,
@@ -74,7 +78,7 @@ class HumanPokerGame:
 
         Args:
             game_id: Unique identifier for this game
-            human_energy: Starting energy for human player
+            human_energy: Starting energy for human player (ignored, all start with 100)
             ai_fish: List of AI fish dictionaries with keys: fish_id, name, energy, algorithm, aggression
             small_blind: Small blind amount
             big_blind: Big blind amount
@@ -83,7 +87,7 @@ class HumanPokerGame:
         self.small_blind = small_blind
         self.big_blind = big_blind
 
-        # Create players list (human + 3 AI)
+        # Create players list (human + 3 AI) - all start with 100 energy
         self.players: List[PlayerState] = []
 
         # Add human player
@@ -91,18 +95,18 @@ class HumanPokerGame:
             PlayerState(
                 player_id="human",
                 name="You",
-                energy=human_energy,
+                energy=self.STARTING_ENERGY,
                 is_human=True,
             )
         )
 
-        # Add AI fish players
+        # Add AI fish players - all start with 100 energy
         for i, fish in enumerate(ai_fish[:3]):  # Limit to 3 AI opponents
             self.players.append(
                 PlayerState(
                     player_id=f"ai_{i}",
                     name=fish.get("name", f"Fish {i+1}"),
-                    energy=fish.get("energy", 100.0),
+                    energy=self.STARTING_ENERGY,
                     fish_id=fish.get("fish_id"),
                     algorithm=fish.get("algorithm", "Unknown"),
                     aggression=fish.get("aggression", 0.5),
@@ -120,6 +124,8 @@ class HumanPokerGame:
         self.betting_history: List[Dict[str, Any]] = []
         self.winner_index: Optional[int] = None
         self.game_over = False
+        self.session_over = False
+        self.hands_played = 0
         self.message = ""
         self.actions_this_round = 0  # Track actions per betting round
 
@@ -143,26 +149,52 @@ class HumanPokerGame:
         self.winner_index = None
         self.game_over = False
         self.actions_this_round = 0
+        self.hands_played += 1
 
-        # Post blinds
-        # In multi-player: player after button posts small blind, next player posts big blind
-        small_blind_index = (self.button_index + 1) % len(self.players)
-        big_blind_index = (self.button_index + 2) % len(self.players)
+        # Post blinds - skip players with no energy
+        small_blind_index = self._get_next_active_player(self.button_index)
+        big_blind_index = self._get_next_active_player(small_blind_index)
 
         self._player_bet(small_blind_index, self.small_blind)
         self._player_bet(big_blind_index, self.big_blind)
 
         # First to act is player after big blind
-        self.current_player_index = (self.button_index + 3) % len(self.players)
+        self.current_player_index = self._get_next_active_player(big_blind_index)
 
-        self.message = f"New hand started! Blinds: {self.small_blind}/{self.big_blind}"
+        self.message = f"Hand #{self.hands_played} - Blinds: {self.small_blind}/{self.big_blind}"
         logger.info(
-            f"Game {self.game_id}: Started new hand. Button at index {self.button_index}, "
+            f"Game {self.game_id}: Started hand #{self.hands_played}. Button at index {self.button_index}, "
             f"current player: {self.current_player_index}"
         )
 
         # Process AI actions if first player to act is AI
         self._process_ai_turns()
+
+    def _get_next_active_player(self, from_index: int) -> int:
+        """Get the next player with energy > 0 after the given index."""
+        next_index = (from_index + 1) % len(self.players)
+        attempts = 0
+        while self.players[next_index].energy <= 0 and attempts < len(self.players):
+            next_index = (next_index + 1) % len(self.players)
+            attempts += 1
+        return next_index
+
+    def _count_players_with_energy(self) -> int:
+        """Count how many players have energy > 0."""
+        return sum(1 for p in self.players if p.energy > 0)
+
+    def _check_session_over(self):
+        """Check if the session should end (only 1 player with energy)."""
+        players_with_energy = self._count_players_with_energy()
+        if players_with_energy <= 1:
+            self.session_over = True
+            # Find the winner (the one with energy)
+            for i, player in enumerate(self.players):
+                if player.energy > 0:
+                    self.message = f"{player.name} wins the session with {player.energy:.1f} energy after {self.hands_played} hands!"
+                    break
+            else:
+                self.message = f"Session ended after {self.hands_played} hands - all players are out!"
 
     def _player_bet(self, player_index: int, amount: float):
         """Record a player's bet.
@@ -240,6 +272,7 @@ class HumanPokerGame:
             winner.energy += self.pot
             self.message = f"{winner.name} wins {self.pot:.1f} energy!"
             self.game_over = True
+            self._check_session_over()
             return
 
         # Evaluate hands
@@ -266,6 +299,38 @@ class HumanPokerGame:
             winner.energy += self.pot
             self.message = f"{winner.name} wins {self.pot:.1f} energy with {best_hand}!"
             self.game_over = True
+            self._check_session_over()
+
+    def start_new_hand(self) -> Dict[str, Any]:
+        """Start a new hand after the previous one ends.
+
+        Returns:
+            Dictionary with success status and game state
+        """
+        if self.session_over:
+            return {
+                "success": False,
+                "error": "Session is over - only 1 player has energy remaining",
+                "state": self.get_state(),
+            }
+
+        if not self.game_over:
+            return {
+                "success": False,
+                "error": "Current hand is not over yet",
+                "state": self.get_state(),
+            }
+
+        # Move button to next player with energy
+        self.button_index = self._get_next_active_player(self.button_index)
+
+        # Start new hand
+        self._start_hand()
+
+        return {
+            "success": True,
+            "state": self.get_state(),
+        }
 
     def _is_betting_complete(self) -> bool:
         """Check if betting is complete for the current round.
@@ -538,6 +603,8 @@ class HumanPokerGame:
             "current_player": current_player.name,
             "is_your_turn": current_player.is_human,
             "game_over": self.game_over,
+            "session_over": self.session_over,
+            "hands_played": self.hands_played,
             "message": self.message,
             "winner": (
                 self.players[self.winner_index].name if self.winner_index is not None else None

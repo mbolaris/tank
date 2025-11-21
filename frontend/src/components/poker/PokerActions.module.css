@@ -2,7 +2,10 @@
     display: flex;
     gap: 8px;
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap;
+    min-height: 44px;
+    min-width: 340px;
 }
 
 .actionButton {
