@@ -48,6 +48,14 @@
     margin-bottom: 12px;
 }
 
+.humanSection {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
 .message {
     padding: 8px;
     background-color: #1e293b;

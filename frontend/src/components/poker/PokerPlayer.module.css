@@ -58,24 +58,13 @@
 }
 
 .humanPlayer {
-    padding: 8px;
-    background-color: #0f172a;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    border: 2px solid #3b82f6;
-}
-
-.playerInfo {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
-}
-
-.playerName {
-    font-size: 14px;
-    font-weight: bold;
-    color: #3b82f6;
+    gap: 12px;
+    padding: 8px 12px;
+    background-color: #1e293b;
+    border-radius: 8px;
+    border: 2px solid #3b82f6;
 }
 
 .playerStats {
@@ -105,12 +94,6 @@
 .yourCards {
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-
-.cardsLabel {
-    font-size: 11px;
-    color: #94a3b8;
 }
 
 .cardsContainer {

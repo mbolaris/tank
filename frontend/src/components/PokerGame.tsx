@@ -78,38 +78,40 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
                 ))}
             </div>
 
-            {/* Human Player */}
+            {/* Human Player Section - Cards, Chips, and Actions side by side */}
             {humanPlayer && (
-                <PokerPlayer
-                    name="You"
-                    energy={humanPlayer.energy}
-                    currentBet={humanPlayer.current_bet}
-                    folded={humanPlayer.folded}
-                    isActive={false}
-                    isHuman={true}
-                    cards={gameState.your_cards}
-                />
+                <div className={styles.humanSection}>
+                    <PokerPlayer
+                        name="You"
+                        energy={humanPlayer.energy}
+                        currentBet={humanPlayer.current_bet}
+                        folded={humanPlayer.folded}
+                        isActive={false}
+                        isHuman={true}
+                        cards={gameState.your_cards}
+                    />
+
+                    {/* Action Buttons */}
+                    {!gameState.game_over && (
+                        <PokerActions
+                            isYourTurn={gameState.is_your_turn}
+                            callAmount={gameState.call_amount}
+                            minRaise={gameState.min_raise}
+                            maxRaise={humanPlayer?.energy || 0}
+                            loading={loading}
+                            currentPlayer={gameState.current_player}
+                            onFold={handleFold}
+                            onCheck={handleCheck}
+                            onCall={handleCall}
+                            onRaise={handleRaise}
+                        />
+                    )}
+                </div>
             )}
 
             {/* Game Message */}
             {gameState.message && (
                 <div className={styles.message}>{gameState.message}</div>
-            )}
-
-            {/* Action Buttons */}
-            {!gameState.game_over && (
-                <PokerActions
-                    isYourTurn={gameState.is_your_turn}
-                    callAmount={gameState.call_amount}
-                    minRaise={gameState.min_raise}
-                    maxRaise={humanPlayer?.energy || 0}
-                    loading={loading}
-                    currentPlayer={gameState.current_player}
-                    onFold={handleFold}
-                    onCheck={handleCheck}
-                    onCall={handleCall}
-                    onRaise={handleRaise}
-                />
             )}
 
             {/* Game Over */}

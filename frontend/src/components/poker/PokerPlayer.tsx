@@ -30,24 +30,22 @@ export function PokerPlayer({
     if (isHuman) {
         return (
             <div className={styles.humanPlayer}>
-                <div className={styles.playerInfo}>
-                    <div className={styles.playerName}>You</div>
-                    <div className={styles.playerStats}>
-                        <div className={styles.chipStackContainer}>
-                            <ChipStack totalValue={Math.floor(energy)} size="medium" />
-                        </div>
-                        <div className={styles.energyText}>{energy.toFixed(1)} ⚡</div>
-                        {currentBet > 0 && <div className={styles.currentBet}>Bet: {currentBet.toFixed(1)}</div>}
-                    </div>
-                </div>
-
+                {/* Cards on the left */}
                 <div className={styles.yourCards}>
-                    <div className={styles.cardsLabel}>Your Cards:</div>
                     <div className={styles.cardsContainer}>
                         {cards.map((card, idx) => (
                             <PlayingCard key={idx} card={card} size="small" />
                         ))}
                     </div>
+                </div>
+
+                {/* Chips and stats to the right of cards */}
+                <div className={styles.playerStats}>
+                    <div className={styles.chipStackContainer}>
+                        <ChipStack totalValue={Math.floor(energy)} size="medium" />
+                    </div>
+                    <div className={styles.energyText}>{energy.toFixed(1)} ⚡</div>
+                    {currentBet > 0 && <div className={styles.currentBet}>Bet: {currentBet.toFixed(1)}</div>}
                 </div>
             </div>
         );
