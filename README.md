@@ -83,73 +83,80 @@ Built with **React + FastAPI + WebSocket**:
 
 ## 🚀 Running the Simulation
 
-### Installation
+### Prerequisites
+
+- **Python 3.8+**
+- **Node 18+** (for the React/Vite frontend)
+- Recommended: create a virtual environment before installing Python dependencies
+
+### Install dependencies
 
 #### Windows (PowerShell)
 
 ```powershell
-# Create and activate virtual environment (recommended)
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# Run the setup script
-.\setup-windows.ps1
-
-# Or manually install dependencies
+# Core + developer tooling (pytest, black, ruff, mypy)
 python -m pip install --upgrade pip
-python -m pip install -e .
+python -m pip install -e .[dev]
 
-# Install frontend dependencies (in frontend\ directory)
+# OPTIONAL: AI Code Evolution dependencies
+python -m pip install -e .[ai]
+
+# Frontend dependencies (run from the frontend/ directory)
 cd frontend
 npm install
-
-# OPTIONAL: Install AI Code Evolution dependencies
-pip install -e ".[ai]"
 ```
 
 #### Linux/Mac
 
 ```bash
-# Create and activate virtual environment (recommended)
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install Python dependencies
-pip install -e .
+# Core + developer tooling (pytest, black, ruff, mypy)
+pip install -e .[dev]
 
-# Install frontend dependencies (in frontend/ directory)
+# OPTIONAL: AI Code Evolution dependencies
+pip install -e .[ai]
+
+# Frontend dependencies (run from the frontend/ directory)
 cd frontend
 npm install
-
-# OPTIONAL: Install AI Code Evolution dependencies
-pip install -e ".[ai]"
 ```
 
 ### Start the Simulation (Web UI)
 
 ```bash
-# Terminal 1: Start the backend server
+# Terminal 1: Start the backend server (FastAPI + WebSockets)
 python main.py
 
-# Terminal 2: Start the React frontend (in frontend/ directory)
+# Terminal 2: Start the React frontend (from frontend/)
 cd frontend
 npm run dev
 
-# Open http://localhost:3000 in your browser
+# Open http://localhost:3000
 ```
 
-The backend runs on port 8000, frontend on port 3000. The frontend connects to the backend via WebSocket for real-time updates.
+The backend listens on port **8000** by default; the frontend proxies WebSocket traffic to it during development.
+
+You can also launch the backend via the installed console script:
+
+```bash
+fishtank
+```
 
 ### Headless Mode (Fast, Stats-Only)
 
-Run simulations 10-300x faster than realtime without visualization for testing or data collection:
+Run simulations 10-300x faster than realtime without visualization for testing or data collection. Defaults: `--max-frames 10000`, `--stats-interval 300`.
 
 ```bash
 # Quick test run
 python main.py --headless --max-frames 1000
 
 # Long simulation with periodic stats
-python main.py --headless --max-frames 100000 --stats-interval 3000
+python main.py --headless --max-frames 100000 --stats-interval 1000
 
 # Deterministic simulation (for testing)
 python main.py --headless --max-frames 1000 --seed 42
@@ -204,56 +211,37 @@ See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for complete guide and `docs/PROOF_OF_A
 
 ```
 tank/
-├── main.py                  # Entry point (web server or headless)
-├── tank_world.py            # TankWorld wrapper with config & RNG management
-├── simulation_engine.py     # Core headless simulation engine
-├── backend/                 # FastAPI backend
-│   ├── main.py             # WebSocket server
-│   ├── simulation_runner.py # Threaded simulation runner
-│   └── models.py           # Pydantic data models
-├── frontend/               # React frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── hooks/          # Custom hooks (WebSocket)
-│   │   └── utils/          # Rendering utilities
-│   └── package.json
-├── core/                   # Shared simulation logic
-│   ├── entities.py         # Fish, Plant, Food, Crab, Jellyfish entities
-│   ├── genetics.py         # Genome system & inheritance
-│   ├── ecosystem.py        # Population tracking & statistics
-│   ├── enhanced_statistics.py # Comprehensive stats for LLM export
-│   ├── registry.py         # Algorithm source mapping for AI agent
-│   ├── time_system.py      # Day/night cycle management
-│   ├── environment.py      # Spatial queries & collision detection
-│   ├── movement_strategy.py # AlgorithmicMovement implementation
-│   ├── fish_poker.py       # Poker minigame with genome-based aggression
-│   ├── jellyfish_poker.py  # Jellyfish poker interactions
-│   ├── algorithms/         # Behavior algorithm library
-│   │   ├── food_seeking.py # 14 food-seeking algorithms
-│   │   ├── predator_avoidance.py # 10 predator avoidance algorithms
-│   │   ├── schooling.py    # 10 schooling algorithms
-│   │   ├── energy_management.py # 8 energy management algorithms
-│   │   ├── territory.py    # 8 territory/exploration algorithms
-│   │   └── poker.py        # 8 poker interaction algorithms
-│   └── constants.py        # Configuration parameters
-├── scripts/                # Automation scripts
-│   ├── ai_code_evolution_agent.py # AI-powered algorithm improver
-│   └── demo_evolution_loop.sh # Demo: continuous improvement loop
-├── tests/                  # Test suite
-│   ├── test_simulation.py  # Integration test
-│   ├── test_parity.py      # Determinism test
-│   └── ...
-├── docs/                   # Additional documentation
-│   ├── ARCHITECTURE.md     # Architecture details
-│   ├── ALGORITHMIC_EVOLUTION.md # Algorithm evolution guide
-│   ├── AI_CODE_EVOLUTION_WORKFLOW.md # AI-powered improvement guide
-│   ├── PROOF_OF_AI_IMPROVEMENT.md # Real-world improvement example
-│   ├── DEPLOYMENT_GUIDE.md # Deployment instructions
-│   └── HEADLESS_MODE.md    # Headless mode documentation
+├── main.py                  # CLI entry point (web or headless)
+├── backend/                 # FastAPI app + WebSocket bridge
+│   ├── main.py              # API and WebSocket server
+│   ├── simulation_runner.py # Threaded simulation runner for the UI
+│   └── models.py            # Pydantic schemas shared with the frontend
+├── frontend/                # React + Vite frontend (npm run dev)
+│   └── src/                 # Components, hooks, rendering utilities
+├── core/                    # Shared simulation logic
+│   ├── tank_world.py        # Simulation wrapper with config + RNG
+│   ├── simulation_engine.py # Headless engine used by both modes
+│   ├── movement_strategy.py # Movement orchestration + collision helpers
+│   ├── entities.py          # Fish, plants, food, crab, jellyfish entities
+│   ├── entity_factory.py    # Object pooling + entity construction
+│   ├── ecosystem.py         # Population tracking & statistics
+│   ├── enhanced_statistics.py # Extended stats for JSON export
+│   ├── registry.py          # Algorithm source mapping for AI agent
+│   ├── algorithms/          # Behavior algorithm library (58 strategies)
+│   ├── poker/               # Shared poker utilities and scoring
+│   ├── simulators/          # Benchmarks and batch headless runners
+│   ├── time_system.py       # Day/night cycle management
+│   ├── environment.py       # Spatial queries & collision detection
+│   ├── collision_system.py  # Collision resolution helpers
+│   ├── math_utils.py        # Geometry and numeric helpers
+│   └── constants.py         # Configuration parameters
+├── scripts/                 # Automation scripts (AI code evolution, demos)
+├── tests/                   # Test suite (determinism, integration)
+├── docs/                    # Architecture + feature documentation
 ├── BEHAVIOR_DEVELOPMENT_GUIDE.md # Guide for creating behaviors
-├── EVOLUTION_EXAMPLE.md    # Example evolution scenarios
-├── QUICK_REFERENCE.md      # Quick command reference
-└── README.md               # This file
+├── EVOLUTION_EXAMPLE.md     # Example evolution scenarios
+├── QUICK_REFERENCE.md       # Quick command reference
+└── README.md                # This file
 ```
 
 ## 🎮 Web UI Controls
