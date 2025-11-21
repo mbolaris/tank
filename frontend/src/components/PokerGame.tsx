@@ -2,6 +2,7 @@
  * Interactive poker game component
  */
 
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { PokerTable, PokerPlayer, PokerActions } from './poker';
 import type { PokerGameState } from '../types/simulation';
 import styles from './PokerGame.module.css';
@@ -10,11 +11,100 @@ interface PokerGameProps {
     onClose: () => void;
     onAction: (action: string, amount?: number) => void;
     onNewRound: () => void;
+    onGetAutopilotAction: () => Promise<{ success: boolean; action: string; amount: number }>;
     gameState: PokerGameState | null;
     loading: boolean;
 }
 
-export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }: PokerGameProps) {
+const AUTOPILOT_ACTION_DELAY = 1200; // ms between actions for enjoyable pace
+const AUTOPILOT_NEW_ROUND_DELAY = 2000; // ms before starting new hand
+
+export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction, gameState, loading }: PokerGameProps) {
+    const [autopilot, setAutopilot] = useState(false);
+    const autopilotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isProcessingRef = useRef(false);
+
+    // Autopilot logic
+    const processAutopilot = useCallback(async () => {
+        if (!autopilot || !gameState || isProcessingRef.current) return;
+
+        isProcessingRef.current = true;
+
+        try {
+            const result = await onGetAutopilotAction();
+
+            if (!result.success || !autopilot) {
+                isProcessingRef.current = false;
+                return;
+            }
+
+            const { action, amount } = result;
+
+            if (action === 'exit') {
+                // Session over, turn off autopilot
+                setAutopilot(false);
+            } else if (action === 'new_round') {
+                // Start new hand after delay
+                autopilotTimerRef.current = setTimeout(() => {
+                    if (autopilot) {
+                        onNewRound();
+                    }
+                    isProcessingRef.current = false;
+                }, AUTOPILOT_NEW_ROUND_DELAY);
+                return;
+            } else if (action === 'wait') {
+                // Not our turn, wait and check again
+                autopilotTimerRef.current = setTimeout(() => {
+                    isProcessingRef.current = false;
+                }, 500);
+                return;
+            } else {
+                // Execute the action (fold, check, call, raise)
+                onAction(action, amount);
+            }
+        } catch (error) {
+            console.error('Autopilot error:', error);
+        }
+
+        isProcessingRef.current = false;
+    }, [autopilot, gameState, onGetAutopilotAction, onAction, onNewRound]);
+
+    // Run autopilot on game state changes
+    useEffect(() => {
+        if (!autopilot || loading) return;
+
+        // Clear any existing timer
+        if (autopilotTimerRef.current) {
+            clearTimeout(autopilotTimerRef.current);
+        }
+
+        // Schedule next autopilot action
+        autopilotTimerRef.current = setTimeout(() => {
+            processAutopilot();
+        }, AUTOPILOT_ACTION_DELAY);
+
+        return () => {
+            if (autopilotTimerRef.current) {
+                clearTimeout(autopilotTimerRef.current);
+            }
+        };
+    }, [autopilot, gameState, loading, processAutopilot]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (autopilotTimerRef.current) {
+                clearTimeout(autopilotTimerRef.current);
+            }
+        };
+    }, []);
+
+    // Turn off autopilot when session ends
+    useEffect(() => {
+        if (gameState?.session_over) {
+            setAutopilot(false);
+        }
+    }, [gameState?.session_over]);
     if (!gameState) {
         return (
             <div className={styles.container}>
@@ -64,7 +154,21 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
                         <div className={styles.headerMessage}>{gameState.message}</div>
                     )}
                 </div>
-                <button onClick={onClose} className={styles.closeButton}>×</button>
+                <div className={styles.headerRight}>
+                    <label className={styles.autopilotToggle}>
+                        <input
+                            type="checkbox"
+                            checked={autopilot}
+                            onChange={(e) => setAutopilot(e.target.checked)}
+                            disabled={gameState.session_over}
+                        />
+                        <span className={styles.autopilotSlider}></span>
+                        <span className={styles.autopilotLabel}>
+                            {autopilot ? '🤖 Auto' : 'Auto'}
+                        </span>
+                    </label>
+                    <button onClick={onClose} className={styles.closeButton}>×</button>
+                </div>
             </div>
 
             {/* Pot and Community Cards */}

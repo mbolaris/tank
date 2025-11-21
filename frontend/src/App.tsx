@@ -92,6 +92,14 @@ function App() {
         }
     };
 
+    const handleGetAutopilotAction = async () => {
+        const response = await sendCommandWithResponse({
+            command: 'poker_autopilot_action',
+            data: {},
+        });
+        return response as { success: boolean; action: string; amount: number };
+    };
+
     const pokerStats = state?.stats?.poker_stats;
     const minutesElapsed = state ? state.frame / 30 / 60 : 0;
     const gamesPerMinute = minutesElapsed > 0 && pokerStats
@@ -167,6 +175,7 @@ function App() {
                             onClose={handleClosePoker}
                             onAction={handlePokerAction}
                             onNewRound={handleNewRound}
+                            onGetAutopilotAction={handleGetAutopilotAction}
                             gameState={pokerGameState}
                             loading={pokerLoading}
                         />

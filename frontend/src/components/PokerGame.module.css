@@ -36,6 +36,71 @@
     flex: 1;
 }
 
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Autopilot toggle switch */
+.autopilotToggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.autopilotToggle input {
+    display: none;
+}
+
+.autopilotSlider {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: rgba(100, 116, 139, 0.4);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.autopilotSlider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.autopilotToggle input:checked + .autopilotSlider {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.autopilotToggle input:checked + .autopilotSlider::before {
+    transform: translateX(16px);
+}
+
+.autopilotToggle input:disabled + .autopilotSlider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.autopilotLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.autopilotToggle input:checked ~ .autopilotLabel {
+    color: #22c55e;
+}
+
 .headerMessage {
     font-size: 13px;
     color: #fbbf24;

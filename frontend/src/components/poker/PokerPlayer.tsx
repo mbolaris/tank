@@ -98,11 +98,9 @@ function renderPattern(
 
 function FishAvatar({
     fishId,
-    generation,
     genomeData,
 }: {
     fishId?: number;
-    generation?: number;
     genomeData?: FishGenomeData;
 }) {
     const fishParams = buildFishParams(genomeData);
@@ -149,7 +147,6 @@ export function PokerPlayer({
     isActive,
     isHuman,
     fishId,
-    generation,
     genomeData,
     cards = [],
 }: PokerPlayerProps) {
@@ -187,7 +184,7 @@ export function PokerPlayer({
 
     return (
         <div className={playerClass} title={name}>
-            <FishAvatar fishId={fishId} generation={generation} genomeData={genomeData} />
+            <FishAvatar fishId={fishId} genomeData={genomeData} />
             <div className={styles.opponentInfo}>
                 <div className={styles.opponentCards}>
                     {showActualCards ? (

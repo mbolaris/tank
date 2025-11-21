@@ -735,6 +735,61 @@ class SimulationRunner:
                 result = self.human_poker_game.start_new_hand()
                 return result
 
+            elif command == "poker_autopilot_action":
+                # Get AI-recommended action for human player (autopilot mode)
+                if not self.human_poker_game:
+                    logger.warning("Autopilot action requested but no game active")
+                    return self._create_error_response("No poker game active")
+
+                game = self.human_poker_game
+
+                # If game is over, return new_round action
+                if game.game_over:
+                    if game.session_over:
+                        return {"success": True, "action": "exit", "amount": 0}
+                    return {"success": True, "action": "new_round", "amount": 0}
+
+                # If not human's turn, wait
+                human_player = game.players[0]  # Human is always index 0
+                if game.current_player_index != 0:
+                    return {"success": True, "action": "wait", "amount": 0}
+
+                # Use the same AI logic as fish opponents
+                from core.poker.core import PokerEngine
+
+                hand = PokerEngine.evaluate_hand(human_player.hole_cards, game.community_cards)
+                call_amount = game._get_call_amount(0)
+                active_bets = [p.current_bet for p in game.players if not p.folded]
+                opponent_bet = max(active_bets) if active_bets else 0.0
+
+                action, bet_amount = PokerEngine.decide_action(
+                    hand=hand,
+                    current_bet=human_player.current_bet,
+                    opponent_bet=opponent_bet,
+                    pot=game.pot,
+                    player_energy=human_player.energy,
+                    aggression=0.5,  # Medium aggression for autopilot
+                    hole_cards=human_player.hole_cards,
+                    community_cards=game.community_cards,
+                    position_on_button=(game.current_player_index == game.button_index),
+                )
+
+                # Convert BettingAction enum to string
+                action_str = action.name.lower()
+
+                # Handle check vs call
+                if action_str == "check" and call_amount > 0:
+                    action_str = "call"
+                    bet_amount = call_amount
+                elif action_str == "call":
+                    bet_amount = call_amount
+                elif action_str == "raise":
+                    # bet_amount is the raise amount on top of call
+                    pass
+
+                logger.info(f"Autopilot recommends: {action_str}, amount: {bet_amount}")
+                return {"success": True, "action": action_str, "amount": bet_amount}
+
             elif command == "standard_poker_series":
                 # Run standard benchmark poker series with top 3 fish vs static player
                 logger.info("Starting standard poker benchmark series...")
