@@ -1,40 +1,162 @@
 .actions {
     display: flex;
     gap: 8px;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-    flex-wrap: wrap;
     min-height: 44px;
-    min-width: 340px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border-radius: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.actionsActive {
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 12px rgba(251, 191, 36, 0.15); }
+    50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.25); }
 }
 
 .actionButton {
-    padding: 8px 16px;
+    padding: 10px 18px;
     font-size: 14px;
-    font-weight: bold;
-    min-width: 100px;
+    font-weight: 700;
+    min-width: 90px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.foldButton {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.foldButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    transform: translateY(-1px);
+}
+
+.checkButton {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 2px 8px rgba(71, 85, 105, 0.3);
+}
+
+.checkButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    transform: translateY(-1px);
+}
+
+.callButton {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.callButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    transform: translateY(-1px);
+}
+
+.raiseButton {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.raiseButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    transform: translateY(-1px);
+}
+
+.actionButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
 }
 
 .raiseInputContainer {
     display: flex;
     gap: 8px;
     align-items: center;
-    flex-wrap: wrap;
 }
 
 .raiseInput {
-    padding: 8px;
-    font-size: 14px;
+    padding: 10px 12px;
+    font-size: 16px;
+    font-weight: 600;
     border-radius: 6px;
-    border: 2px solid rgba(148, 163, 184, 0.18);
+    border: 2px solid rgba(34, 197, 94, 0.5);
     background-color: #0f172a;
-    color: #e2e8f0;
-    width: 100px;
+    color: #22c55e;
+    width: 90px;
+    text-align: center;
+}
+
+.raiseInput:focus {
+    outline: none;
+    border-color: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+}
+
+.confirmButton {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.confirmButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+}
+
+.cancelButton {
+    background: transparent;
+    border: 1px solid #4b5563;
+    color: #9ca3af;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.cancelButton:hover {
+    border-color: #6b7280;
+    color: #e5e7eb;
 }
 
 .waitingMessage {
-    padding: 8px;
+    padding: 10px 16px;
     font-size: 14px;
-    color: #fbbf24;
+    color: #94a3b8;
     text-align: center;
+    font-style: italic;
+}
+
+.waitingDots {
+    animation: blink 1.4s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }

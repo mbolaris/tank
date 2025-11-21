@@ -62,9 +62,21 @@
     align-items: center;
     gap: 12px;
     padding: 8px 12px;
-    background-color: #1e293b;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     border-radius: 8px;
     border: 2px solid #3b82f6;
+    transition: all 0.3s ease;
+}
+
+.humanPlayer.humanActive {
+    border-color: #fbbf24;
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(251, 191, 36, 0.05);
+    animation: yourTurnPulse 2s ease-in-out infinite;
+}
+
+@keyframes yourTurnPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(251, 191, 36, 0.05); }
+    50% { box-shadow: 0 0 24px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.08); }
 }
 
 .playerStats {

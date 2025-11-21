@@ -2,7 +2,6 @@
  * Interactive poker game component
  */
 
-import { Button } from './ui';
 import { PokerTable, PokerPlayer, PokerActions } from './poker';
 import type { PokerGameState } from '../types/simulation';
 import styles from './PokerGame.module.css';
@@ -86,33 +85,42 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
                 ))}
             </div>
 
-            {/* Human Player Section - Cards, Chips, and Actions side by side */}
+            {/* Human Player Section - Cards | Controls | Quit Button */}
             {humanPlayer && (
                 <div className={styles.humanSection}>
-                    <PokerPlayer
-                        name="You"
-                        energy={humanPlayer.energy}
-                        currentBet={humanPlayer.current_bet}
-                        folded={humanPlayer.folded}
-                        isActive={false}
-                        isHuman={true}
-                        cards={gameState.your_cards}
-                    />
-
-                    {/* Action Buttons */}
-                    {!gameState.game_over && (
-                        <PokerActions
-                            isYourTurn={gameState.is_your_turn}
-                            callAmount={gameState.call_amount}
-                            minRaise={gameState.min_raise}
-                            maxRaise={humanPlayer?.energy || 0}
-                            loading={loading}
-                            currentPlayer={gameState.current_player}
-                            onFold={handleFold}
-                            onCheck={handleCheck}
-                            onCall={handleCall}
-                            onRaise={handleRaise}
+                    <div className={styles.playerAndControls}>
+                        <PokerPlayer
+                            name="You"
+                            energy={humanPlayer.energy}
+                            currentBet={humanPlayer.current_bet}
+                            folded={humanPlayer.folded}
+                            isActive={gameState.is_your_turn}
+                            isHuman={true}
+                            cards={gameState.your_cards}
                         />
+
+                        {/* Action Buttons - Right next to cards */}
+                        {!gameState.game_over && (
+                            <PokerActions
+                                isYourTurn={gameState.is_your_turn}
+                                callAmount={gameState.call_amount}
+                                minRaise={gameState.min_raise}
+                                maxRaise={humanPlayer?.energy || 0}
+                                loading={loading}
+                                currentPlayer={gameState.current_player}
+                                onFold={handleFold}
+                                onCheck={handleCheck}
+                                onCall={handleCall}
+                                onRaise={handleRaise}
+                            />
+                        )}
+                    </div>
+
+                    {/* Quit Button - Far right */}
+                    {!gameState.game_over && (
+                        <button onClick={onClose} className={styles.quitGameButton}>
+                            Quit
+                        </button>
                     )}
                 </div>
             )}
@@ -124,38 +132,50 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
 
             {/* Game Over - Show after hand ends */}
             {gameState.game_over && (
-                <div className={styles.gameOver}>
-                    <h3 className={styles.gameOverTitle}>
-                        {gameState.session_over ? 'Session Over!' : 'Hand Complete!'}
-                    </h3>
-                    <p className={styles.gameOverMessage}>
-                        {gameState.winner === 'You'
-                            ? `Congratulations! You won ${gameState.pot.toFixed(1)} energy!`
-                            : `${gameState.winner} won the pot of ${gameState.pot.toFixed(1)} energy.`
-                        }
-                    </p>
+                <div className={`${styles.gameOver} ${gameState.winner === 'You' ? styles.winnerGlow : ''}`}>
+                    <div className={styles.resultBanner}>
+                        {gameState.winner === 'You' ? (
+                            <>
+                                <span className={styles.winEmoji}>&#127881;</span>
+                                <h3 className={styles.winTitle}>YOU WIN!</h3>
+                                <span className={styles.winEmoji}>&#127881;</span>
+                            </>
+                        ) : (
+                            <h3 className={styles.loseTitle}>{gameState.winner} wins</h3>
+                        )}
+                    </div>
+                    <div className={styles.potWon}>
+                        <span className={styles.potAmount}>+{gameState.pot.toFixed(0)}</span>
+                        <span className={styles.potLabel}>energy</span>
+                    </div>
                     {/* Show player standings */}
                     <div className={styles.standings}>
                         {gameState.players
                             .sort((a, b) => b.energy - a.energy)
                             .map((player, i) => (
-                                <div key={player.player_id} className={styles.standingRow}>
-                                    <span className={styles.standingRank}>#{i + 1}</span>
-                                    <span className={styles.standingName}>{player.name}</span>
-                                    <span className={styles.standingEnergy}>{player.energy.toFixed(0)} energy</span>
+                                <div key={player.player_id} className={`${styles.standingRow} ${player.is_human ? styles.humanStanding : ''}`}>
+                                    <span className={styles.standingRank}>
+                                        {i === 0 ? '&#128081;' : `#${i + 1}`}
+                                    </span>
+                                    <span className={styles.standingName}>{player.is_human ? 'You' : player.name}</span>
+                                    <span className={styles.standingEnergy}>{player.energy.toFixed(0)}</span>
                                 </div>
                             ))
                         }
                     </div>
                     <div className={styles.gameOverButtons}>
-                        {!gameState.session_over && (
-                            <Button onClick={onNewRound} variant="success" className={styles.newRoundButton} disabled={loading}>
-                                {loading ? 'Starting...' : 'Next Hand'}
-                            </Button>
+                        {!gameState.session_over ? (
+                            <button onClick={onNewRound} className={styles.playAgainButton} disabled={loading}>
+                                {loading ? 'Dealing...' : 'Play Again'}
+                            </button>
+                        ) : (
+                            <div className={styles.sessionOverMessage}>
+                                {humanPlayer && humanPlayer.energy > 100 ? 'Great session! You made profit!' : 'Better luck next time!'}
+                            </div>
                         )}
-                        <Button onClick={onClose} variant="secondary" className={styles.quitButton}>
-                            {gameState.session_over ? 'Close' : 'Quit Session'}
-                        </Button>
+                        <button onClick={onClose} className={styles.exitButton}>
+                            {gameState.session_over ? 'Exit' : 'Cash Out'}
+                        </button>
                     </div>
                 </div>
             )}

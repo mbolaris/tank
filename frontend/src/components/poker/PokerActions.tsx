@@ -3,7 +3,6 @@
  */
 
 import { useState } from 'react';
-import { Button } from '../ui';
 import styles from './PokerActions.module.css';
 
 interface PokerActionsProps {
@@ -47,11 +46,13 @@ export function PokerActions({
     setRaiseAmount(minRaise);
   };
 
+  const actionsClass = `${styles.actions} ${isYourTurn ? styles.actionsActive : ''}`;
+
   if (!isYourTurn) {
     return (
       <div className={styles.actions}>
         <div className={styles.waitingMessage}>
-          Waiting for {currentPlayer}...
+          Waiting for <strong>{currentPlayer}</strong><span className={styles.waitingDots}>...</span>
         </div>
       </div>
     );
@@ -59,7 +60,7 @@ export function PokerActions({
 
   if (showRaiseInput) {
     return (
-      <div className={styles.actions}>
+      <div className={actionsClass}>
         <div className={styles.raiseInputContainer}>
           <input
             type="number"
@@ -67,68 +68,62 @@ export function PokerActions({
             onChange={(e) => setRaiseAmount(Number(e.target.value))}
             min={minRaise}
             max={maxRaise}
-            step={minRaise}
+            step={1}
             className={styles.raiseInput}
           />
-          <Button
+          <button
             onClick={handleRaise}
             disabled={loading || raiseAmount < minRaise}
-            variant="success"
-            className={styles.actionButton}
+            className={styles.confirmButton}
           >
-            Confirm {raiseAmount.toFixed(1)}
-          </Button>
-          <Button
+            Bet {raiseAmount.toFixed(0)}
+          </button>
+          <button
             onClick={() => setShowRaiseInput(false)}
-            variant="secondary"
-            className={styles.actionButton}
+            className={styles.cancelButton}
           >
             Cancel
-          </Button>
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.actions}>
-      <Button
+    <div className={actionsClass}>
+      <button
         onClick={onFold}
         disabled={loading}
-        variant="danger"
-        className={styles.actionButton}
+        className={`${styles.actionButton} ${styles.foldButton}`}
       >
         Fold
-      </Button>
+      </button>
 
       {callAmount === 0 ? (
-        <Button
+        <button
           onClick={onCheck}
           disabled={loading}
-          variant="secondary"
-          className={styles.actionButton}
+          className={`${styles.actionButton} ${styles.checkButton}`}
         >
           Check
-        </Button>
+        </button>
       ) : (
-        <Button
+        <button
           onClick={onCall}
           disabled={loading}
-          variant="primary"
-          className={styles.actionButton}
+          className={`${styles.actionButton} ${styles.callButton}`}
         >
-          Call {callAmount.toFixed(1)}
-        </Button>
+          Call {callAmount.toFixed(0)}
+        </button>
       )}
 
-      <Button
+      <button
         onClick={handleShowRaise}
         disabled={loading}
-        variant="success"
-        className={styles.actionButton}
+        className={`${styles.actionButton} ${styles.raiseButton}`}
       >
         {callAmount > 0 ? 'Raise' : 'Bet'}
-      </Button>
+      </button>
     </div>
   );
 }
