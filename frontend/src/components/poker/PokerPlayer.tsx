@@ -28,8 +28,9 @@ export function PokerPlayer({
     const playerClass = `${styles.player} ${folded ? styles.folded : ''} ${isActive ? styles.active : ''}`;
 
     if (isHuman) {
+        const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''}`;
         return (
-            <div className={styles.humanPlayer}>
+            <div className={humanClass}>
                 {/* Cards on the left */}
                 <div className={styles.yourCards}>
                     <div className={styles.cardsContainer}>
