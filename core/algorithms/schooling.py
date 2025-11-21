@@ -375,7 +375,7 @@ class BoidsBehavior(BehaviorAlgorithm):
         in_danger = predator_distance < 200
 
         # Check for food opportunities
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         food_distance = nearest_food and (nearest_food.pos - fish.pos).length() or float("inf")
         food_nearby = food_distance < 100
 
@@ -488,7 +488,7 @@ class DynamicSchooler(BehaviorAlgorithm):
                 threat_level = 1.0 - (pred_distance / self.parameters["danger_threshold"])
 
         # Check for food opportunities
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         food_opportunity = 0
         if nearest_food:
             food_distance = (nearest_food.pos - fish.pos).length()

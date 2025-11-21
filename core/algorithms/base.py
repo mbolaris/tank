@@ -458,12 +458,31 @@ class BehaviorAlgorithm(ABC):
         raise NotImplementedError("Subclasses must implement random_instance")
 
 
-def _find_nearest(self, fish: "Fish", agent_type) -> Optional[Any]:
-    """Find nearest agent of given type."""
+def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] = None) -> Optional[Any]:
+    """Find nearest agent of given type within optional distance limit.
+    
+    Args:
+        fish: The fish searching for agents
+        agent_type: Type of agent to search for
+        max_distance: Optional maximum detection distance (None = unlimited)
+    
+    Returns:
+        Nearest agent within range, or None if no agents found/in range
+    """
     agents = fish.environment.get_agents_of_type(agent_type)
     if not agents:
         return None
-    return min(agents, key=lambda a: (a.pos - fish.pos).length())
+    
+    # Find nearest agent
+    nearest = min(agents, key=lambda a: (a.pos - fish.pos).length())
+    
+    # Check if within detection range
+    if max_distance is not None:
+        distance = (nearest.pos - fish.pos).length()
+        if distance > max_distance:
+            return None
+    
+    return nearest
 
 
 def _safe_normalize(self, vector: Vector2) -> Vector2:
@@ -514,7 +533,36 @@ def _get_predator_threat(
     return nearest_predator, distance, escape_direction
 
 
+def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
+    """Find nearest food within time-based detection range.
+    
+    Fish have reduced ability to detect food at night due to lower visibility.
+    Detection range is modified by time of day:
+    - Night: 25% of base range
+    - Dawn/Dusk: 75% of base range
+    - Day: 100% of base range
+    
+    Args:
+        fish: The fish searching for food
+    
+    Returns:
+        Nearest food within detection range, or None if no food detected
+    """
+    from core.constants import BASE_FOOD_DETECTION_RANGE
+    from core.entities import Food
+    
+    # Calculate effective detection range based on time of day
+    max_distance = BASE_FOOD_DETECTION_RANGE
+    if fish.environment.time_system is not None:
+        detection_modifier = fish.environment.time_system.get_detection_range_modifier()
+        max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+    
+    # Use the updated _find_nearest with max_distance parameter
+    return self._find_nearest(fish, Food, max_distance)
+
+
 # Inject helper methods into base class
 BehaviorAlgorithm._find_nearest = _find_nearest
 BehaviorAlgorithm._safe_normalize = _safe_normalize
 BehaviorAlgorithm._get_predator_threat = _get_predator_threat
+BehaviorAlgorithm._find_nearest_food = _find_nearest_food

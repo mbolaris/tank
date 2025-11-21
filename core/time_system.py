@@ -115,6 +115,33 @@ class TimeSystem:
 
         return (r, g, b)
 
+    def get_detection_range_modifier(self) -> float:
+        """Get detection range modifier based on time of day.
+
+        Fish have reduced ability to detect food at night due to lower visibility.
+
+        Returns:
+            Float multiplier for detection range:
+            - Night (0.0-0.25, 0.75-1.0): 0.25 (25% range)
+            - Dawn (0.25-0.35): 0.75 (75% range)
+            - Dusk (0.65-0.75): 0.75 (75% range)
+            - Day (0.35-0.65): 1.0 (100% range)
+        """
+        time_of_day = self.get_time_of_day()
+
+        # Night: very limited detection
+        if time_of_day < 0.25 or time_of_day > 0.75:
+            return 0.25
+        # Dawn: transitioning to full visibility
+        elif time_of_day < 0.35:
+            return 0.75
+        # Day: full detection range
+        elif time_of_day < 0.65:
+            return 1.0
+        # Dusk: transitioning to limited visibility
+        else:
+            return 0.75
+
     def get_time_string(self) -> str:
         """Get a human-readable time string.
 

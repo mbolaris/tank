@@ -55,7 +55,7 @@ class PanicFlee(BehaviorAlgorithm):
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < 0.7:
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.7, direction.y * 0.7
@@ -93,7 +93,7 @@ class StealthyAvoider(BehaviorAlgorithm):
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < 0.7:
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 direction = nearest_food.pos - fish.pos
                 if direction.length() > 0:
@@ -156,7 +156,7 @@ class FreezeResponse(BehaviorAlgorithm):
             self.is_frozen = False
 
         # Seek food aggressively when not frozen
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
 
@@ -281,7 +281,7 @@ class VerticalEscaper(BehaviorAlgorithm):
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < 0.7:
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.6, direction.y * 0.6
@@ -322,7 +322,7 @@ class GroupDefender(BehaviorAlgorithm):
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < 0.7:
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.6, direction.y * 0.6
@@ -365,7 +365,7 @@ class SpiralEscape(BehaviorAlgorithm):
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < 0.7:
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.6, direction.y * 0.6
@@ -405,7 +405,7 @@ class BorderHugger(BehaviorAlgorithm):
         # Seek food when safe
         energy_ratio = fish.energy / fish.max_energy
         if energy_ratio < 0.7:
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.6, direction.y * 0.6
@@ -444,7 +444,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
 
         # CRITICAL FIX: Seek food when not fleeing from predators
         energy_ratio = fish.energy / fish.max_energy
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             food_distance = (nearest_food.pos - fish.pos).length()
             # Seek food more aggressively when hungry
@@ -511,7 +511,7 @@ class DistanceKeeper(BehaviorAlgorithm):
             elif distance > effective_safe_distance * 1.5:
                 # Safe enough - can focus on food if hungry
                 if energy_ratio < 0.6:
-                    nearest_food = self._find_nearest(fish, Food)
+                    nearest_food = self._find_nearest_food(fish)
                     if nearest_food and (nearest_food.pos - fish.pos).length() < 150:
                         # Food nearby and relatively safe
                         food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
@@ -526,7 +526,7 @@ class DistanceKeeper(BehaviorAlgorithm):
                 )
 
         # No predator - search for food
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * 0.6, direction.y * 0.6

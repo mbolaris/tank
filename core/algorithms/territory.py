@@ -93,7 +93,7 @@ class RandomExplorer(BehaviorAlgorithm):
 
         # Check for important stimuli
         nearest_predator = self._find_nearest(fish, Crab)
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
 
         # Predator avoidance
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 120:
@@ -289,7 +289,7 @@ class RoutePatroller(BehaviorAlgorithm):
 
         # Check for threats and opportunities
         nearest_predator = self._find_nearest(fish, Crab)
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
 
         # Interrupt patrol for immediate threats
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 100:
@@ -384,7 +384,7 @@ class NomadicWanderer(BehaviorAlgorithm):
 
         # Check for threats and opportunities
         nearest_predator = self._find_nearest(fish, Crab)
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
 
         # Immediate threat response
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 110:

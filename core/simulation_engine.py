@@ -131,7 +131,7 @@ class SimulationEngine(BaseSimulator):
     def setup(self) -> None:
         """Setup the simulation."""
         # Initialize managers
-        self.environment = environment.Environment(self.entities_list, SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.environment = environment.Environment(self.entities_list, SCREEN_WIDTH, SCREEN_HEIGHT, self.time_system)
         self.ecosystem = EcosystemManager(max_population=MAX_POPULATION)
 
         self.create_initial_entities()

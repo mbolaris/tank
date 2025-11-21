@@ -55,7 +55,7 @@ class EnergyConserver(BehaviorAlgorithm):
 
         # IMPROVEMENT: When critical, must act even if conserving
         if is_critical:
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 food_distance = (nearest_food.pos - fish.pos).length()
                 # Must pursue food aggressively when critical
@@ -72,7 +72,7 @@ class EnergyConserver(BehaviorAlgorithm):
             return direction.x * flee_speed, direction.y * flee_speed
 
         # Only pursue very close food when in conservation mode
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             food_distance = (nearest_food.pos - fish.pos).length()
             # IMPROVEMENT: Expand pursuit range when low energy
@@ -124,7 +124,7 @@ class BurstSwimmer(BehaviorAlgorithm):
 
         # Check environment
         nearest_predator = self._find_nearest(fish, Crab)
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
 
         predator_nearby = nearest_predator and (nearest_predator.pos - fish.pos).length() < 150
         food_nearby = nearest_food and (nearest_food.pos - fish.pos).length() < 100
@@ -259,7 +259,7 @@ class EnergyBalancer(BehaviorAlgorithm):
         energy_ratio = fish.get_energy_ratio()
 
         # IMPROVEMENT: More aggressive food seeking when energy is low
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
 
         # Critical energy: must seek food aggressively
         if is_critical and nearest_food:
@@ -341,7 +341,7 @@ class StarvationPreventer(BehaviorAlgorithm):
         # IMPROVEMENT: Multi-level urgency system
         if is_critical:
             # CRITICAL: Maximum urgency, ignore predators unless extremely close
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
 
             # Check for remembered food locations if no visible food
             if not nearest_food and hasattr(fish, "get_remembered_food_locations"):
@@ -371,7 +371,7 @@ class StarvationPreventer(BehaviorAlgorithm):
 
         elif is_low or energy_ratio < self.parameters["critical_threshold"]:
             # LOW: High urgency, some predator avoidance
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 nearest_predator = self._find_nearest(fish, Crab)
                 # Flee if predator is close
@@ -446,7 +446,7 @@ class AdaptivePacer(BehaviorAlgorithm):
 
         # Check environment for context
         nearest_predator = self._find_nearest(fish, Crab)
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
 
         vx, vy = 0, 0
 

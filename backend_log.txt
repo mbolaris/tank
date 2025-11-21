@@ -1,0 +1,44 @@
+INFO:backend.main:Windows detected - configuring asyncio event loop policy
+INFO:backend.main:Set WindowsProactorEventLoopPolicy for asyncio
+INFO:__main__:============================================================
+INFO:__main__:FISH TANK SIMULATION - WEB SERVER
+INFO:__main__:============================================================
+INFO:__main__:
+INFO:__main__:Starting FastAPI backend server...
+INFO:__main__:Open http://localhost:3000 in your browser
+INFO:__main__:API docs available at http://localhost:8000/docs
+INFO:__main__:
+INFO:__main__:Press Ctrl+C to stop the server
+INFO:__main__:============================================================
+INFO:__main__:
+INFO:     Started server process [19480]
+INFO:     Waiting for application startup.
+INFO:backend.main:============================================================
+INFO:backend.main:LIFESPAN STARTUP: Beginning initialization
+INFO:backend.main:Platform: Windows 11
+INFO:backend.main:Python: 3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)]
+INFO:backend.main:============================================================
+INFO:backend.main:Starting simulation...
+INFO:backend.simulation_runner:Simulation loop: Starting
+INFO:backend.main:Simulation started successfully!
+INFO:backend.main:Starting broadcast task...
+INFO:backend.main:Broadcast task started successfully!
+INFO:backend.main:LIFESPAN STARTUP: Complete - yielding control to app
+INFO:backend.main:broadcast_updates: Task started
+INFO:backend.main:broadcast_updates: Simulation unpaused
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8000): [winerror 10048] only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:backend.main:LIFESPAN SHUTDOWN: Received shutdown signal
+INFO:backend.main:LIFESPAN SHUTDOWN: Cleaning up resources...
+INFO:backend.main:Stopping simulation...
+INFO:backend.simulation_runner:Simulation loop: Ended after 1 frames
+INFO:backend.main:Simulation stopped!
+INFO:backend.main:Cancelling broadcast task...
+INFO:backend.main:broadcast_updates: Task cancelled during sleep
+INFO:backend.main:broadcast_updates: Task cancelled (outer handler)
+INFO:backend.main:broadcast_updates: Task ended
+INFO:backend.main:Broadcast task cancelled!
+INFO:backend.main:LIFESPAN SHUTDOWN: Complete
+INFO:backend.main:============================================================
+INFO:     Application shutdown complete.

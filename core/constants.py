@@ -261,6 +261,11 @@ PROXIMITY_BOOST_MULTIPLIER = 0.5  # Multiplier for proximity boost
 URGENCY_BOOST_CRITICAL = 0.3  # Speed boost when energy is critical
 URGENCY_BOOST_LOW = 0.15  # Speed boost when energy is low
 
+# Food Detection Range (affected by time of day)
+BASE_FOOD_DETECTION_RANGE = 400.0  # Base detection range during daytime (pixels)
+# Actual range = BASE_FOOD_DETECTION_RANGE * time_system.get_detection_range_modifier()
+# Night: 100 pixels (25%), Dawn/Dusk: 300 pixels (75%), Day: 400 pixels (100%)
+
 # Movement Calculation Constants
 MOVEMENT_ESCAPE_DIRECT_WEIGHT = 0.7  # Weight of direct escape direction
 MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT = 0.3  # Weight of perpendicular escape component

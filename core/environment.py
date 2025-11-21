@@ -6,7 +6,7 @@ for agents in the simulation.
 
 import math
 from collections import defaultdict
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Type
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Type
 
 from core.entities import Agent
 
@@ -156,7 +156,7 @@ class Environment:
     """
 
     def __init__(
-        self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600
+        self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600, time_system: Optional[Any] = None
     ):
         """
         Initialize the environment.
@@ -165,10 +165,12 @@ class Environment:
             agents (Iterable[Agent], optional): A collection of agents. Defaults to None.
             width (int): Width of the environment in pixels. Defaults to 800.
             height (int): Height of the environment in pixels. Defaults to 600.
+            time_system (TimeSystem, optional): Time system for day/night cycle effects
         """
         self.agents = agents
         self.width = width
         self.height = height
+        self.time_system = time_system
 
         # Initialize spatial grid for fast proximity queries
         self.spatial_grid = SpatialGrid(width, height, cell_size=150)

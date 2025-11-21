@@ -103,7 +103,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
             return direction.x * flee_speed, direction.y * flee_speed
 
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
 
@@ -201,7 +201,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         # IMPROVEMENT: Critical energy mode - must find food NOW
         if is_critical:
             # Desperate - must eat even with some predator risk
-            nearest_food = self._find_nearest(fish, Food)
+            nearest_food = self._find_nearest_food(fish)
             if nearest_food:
                 # If predator is blocking food, try to path around it
                 if predator_nearby:
@@ -222,7 +222,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.3, direction.y * 1.3
 
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             # Graduated urgency based on energy level
             if energy_ratio < self.parameters["urgency_threshold"]:
@@ -269,7 +269,7 @@ class OpportunisticFeeder(BehaviorAlgorithm):
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.3, direction.y * 1.3
 
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
             # IMPROVEMENT: Expand pursuit when hungry
@@ -426,7 +426,7 @@ class AmbushFeeder(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
             if distance < self.parameters["strike_distance"]:
@@ -472,7 +472,7 @@ class PatrolFeeder(BehaviorAlgorithm):
                 return direction.x * 1.3, direction.y * 1.3
 
         # Check for nearby food first - EXPANDED detection
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         detection_range = 200 if is_desperate else 150  # INCREASED from 100
         if nearest_food and (nearest_food.pos - fish.pos).length() < detection_range:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
@@ -531,7 +531,7 @@ class SurfaceSkimmer(BehaviorAlgorithm):
         target_y = SCREEN_HEIGHT * self.parameters["preferred_depth"]
 
         # Look for food - IMPROVED to actively pursue
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             food_dist = (nearest_food.pos - fish.pos).length()
             # IMPROVEMENT: Dive for food if desperate or food is reasonably close
@@ -580,7 +580,7 @@ class BottomFeeder(BehaviorAlgorithm):
         target_y = SCREEN_HEIGHT * self.parameters["preferred_depth"]
         vy = (target_y - fish.pos.y) / 100
 
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         vx = 0
         if nearest_food:
             vx = (nearest_food.pos.x - fish.pos.x) / 100
@@ -616,7 +616,7 @@ class ZigZagForager(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Check for nearby food
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food and (nearest_food.pos - fish.pos).length() < 80:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x, direction.y
@@ -666,7 +666,7 @@ class CircularHunter(BehaviorAlgorithm):
             flee_speed = 1.2 if is_desperate else 1.4
             return direction.x * flee_speed, direction.y * flee_speed
 
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if not nearest_food:
             # CRITICAL FIX: Actively explore instead of stopping!
             # Slowly change direction for more exploration coverage
@@ -744,7 +744,7 @@ class FoodMemorySeeker(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
         # Look for current food
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             # Remember this location
             if len(self.food_memory_locations) < 5:
@@ -796,7 +796,7 @@ class AggressiveHunter(BehaviorAlgorithm):
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.4, direction.y * 1.4
 
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
             self.last_food_pos = Vector2(nearest_food.pos.x, nearest_food.pos.y)
@@ -868,7 +868,7 @@ class SpiralForager(BehaviorAlgorithm):
                 return direction.x * 1.3, direction.y * 1.3
 
         # Always check for food first
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
             # Abandon spiral to pursue food
@@ -936,7 +936,7 @@ class CooperativeForager(BehaviorAlgorithm):
             return direction.x * 1.3, direction.y * 1.3
 
         # Look for food directly first - EXPANDED range
-        nearest_food = self._find_nearest(fish, Food)
+        nearest_food = self._find_nearest_food(fish)
         detection_range = 150 if is_desperate else 100  # INCREASED from 80
         if nearest_food and (nearest_food.pos - fish.pos).length() < detection_range:
             # NEW: Broadcast food found signal (if social)
