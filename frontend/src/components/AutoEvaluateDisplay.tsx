@@ -132,11 +132,9 @@ function PerformanceChart({
 
 export function AutoEvaluateDisplay({
   stats,
-  onClose,
   loading,
 }: {
   stats: AutoEvaluateStats | null;
-  onClose: () => void;
   loading: boolean;
 }) {
   if (loading && !stats) {
@@ -144,9 +142,6 @@ export function AutoEvaluateDisplay({
       <div style={styles.container}>
         <div style={styles.header}>
           <h2 style={styles.title}>Running benchmark...</h2>
-          <button onClick={onClose} style={styles.closeButton}>
-            ×
-          </button>
         </div>
         <div style={styles.loading}>
           <p>
@@ -166,9 +161,6 @@ export function AutoEvaluateDisplay({
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>Static Poker Benchmark</h2>
-        <button onClick={onClose} style={styles.closeButton}>
-          ×
-        </button>
       </div>
 
       <p style={styles.helperText}>
@@ -177,12 +169,6 @@ export function AutoEvaluateDisplay({
       </p>
 
       <PerformanceChart history={stats.performance_history ?? []} />
-
-      <div style={styles.actions}>
-        <button onClick={onClose} style={styles.closeActionButton}>
-          Close
-        </button>
-      </div>
     </div>
   );
 }
@@ -215,14 +201,6 @@ const styles = {
     color: colors.textSecondary,
     lineHeight: 1.5,
     fontSize: '14px',
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    color: colors.text,
-    fontSize: '32px',
-    cursor: 'pointer',
-    padding: '0 8px',
   },
   loading: {
     padding: '40px',
@@ -279,16 +257,5 @@ const styles = {
     borderRadius: '4px',
     display: 'inline-block',
     border: `1px solid ${colors.border}`,
-  },
-  actions: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginTop: '20px',
-  },
-  closeActionButton: {
-    ...commonStyles.button,
-    backgroundColor: colors.buttonPrimary,
-    padding: '12px 32px',
-    fontSize: '16px',
   },
 } as const;
