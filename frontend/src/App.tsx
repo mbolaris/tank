@@ -2,16 +2,14 @@
  * Main App component
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
 import { StatsPanel } from './components/StatsPanel';
-import PokerEvents from './components/PokerEvents';
-import { PokerLeaderboard } from './components/PokerLeaderboard';
 import { PhylogeneticTree } from './components/PhylogeneticTree';
 import { PokerGame } from './components/PokerGame';
-import { AutoEvaluateDisplay } from './components/AutoEvaluateDisplay';
+import { PokerDashboard } from './components/PokerDashboard';
 import type { PokerGameState } from './types/simulation';
 import { getEnergyColor } from './utils/energy';
 import './App.css';
@@ -78,15 +76,8 @@ function App() {
 
     return (
         <div className="app">
-            <header className="header">
-                <h1 className="title">Tank World</h1>
-                <p className="subtitle">
-                    An ecosystem where fish play Poker for energy and an autonomous AI rewrites their source code to ensure survival.
-                </p>
-            </header>
-
             <main className="main">
-                <div className="canvas-section">
+                <div className="top-section">
                     <div className="canvas-wrapper">
                         <div className="canvas-meta">
                             <div>
@@ -132,11 +123,21 @@ function App() {
                         <Canvas state={state} width={1088} height={612} />
                         <div className="canvas-glow" aria-hidden />
                     </div>
-                    <PokerEvents
-                        events={state?.poker_events ?? []}
-                        currentFrame={state?.frame ?? 0}
-                    />
-                    <PokerLeaderboard leaderboard={state?.poker_leaderboard ?? []} />
+
+                    <div className="controls-compact">
+                        <ControlPanel
+                            onCommand={sendCommand}
+                            isConnected={isConnected}
+                            onPlayPoker={handleStartPoker}
+                        />
+                        <StatsPanel stats={state?.stats ?? null} />
+                    </div>
+                </div>
+
+                <div className="canvas-section">
+
+                    <PokerDashboard state={state} />
+
                     <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
                         <h2 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '20px' }}>
                             Phylogenetic Tree
@@ -155,25 +156,6 @@ function App() {
                             />
                         </div>
                     )}
-
-                    {/* Auto-Evaluation Display */}
-                    {state?.auto_evaluation && (
-                        <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                            <AutoEvaluateDisplay
-                                stats={state.auto_evaluation}
-                                loading={false}
-                            />
-                        </div>
-                    )}
-                </div>
-
-                <div className="sidebar">
-                    <ControlPanel
-                        onCommand={sendCommand}
-                        isConnected={isConnected}
-                        onPlayPoker={handleStartPoker}
-                    />
-                    <StatsPanel stats={state?.stats ?? null} />
                 </div>
             </main>
 

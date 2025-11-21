@@ -6,7 +6,10 @@
     color: white;
     font-family: 'Courier New', monospace;
     max-width: 1140px;
-    margin: 10px;
+    /* margin: 10px; Removed to fit in dashboard grid */
+    height: 100%;
+    /* Fill container height */
+    box-sizing: border-box;
 }
 
 .pokerLeaderboard h3 {

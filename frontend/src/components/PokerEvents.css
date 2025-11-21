@@ -1,75 +1,246 @@
 .poker-events {
-  width: 100%;
-  max-width: 820px;
-  padding: 20px 24px;
-  border-radius: 24px;
-  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.95));
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 25px 45px rgba(2, 6, 23, 0.75);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+    width: 100%;
+    max-width: 820px;
+    padding: 24px;
+    border-radius: 24px;
+    /* Glassmorphism background */
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transition: all 0.3s ease;
+    height: 100%;
+    /* Fill container height */
+    box-sizing: border-box;
+}
+
+.poker-events:hover {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .poker-events__header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.poker-events__title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.poker-events__icon {
+    font-size: 20px;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
 }
 
 .poker-events__header h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #f8fafc;
+    font-size: 20px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: -0.02em;
+    margin: 0;
+    background: linear-gradient(to right, #f8fafc, #cbd5e1);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.poker-events__header span {
-  font-size: 13px;
-  color: #94a3b8;
+.poker-events__subtitle {
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-left: 34px;
+    /* Align with title text */
 }
 
 .poker-events__list {
-  max-height: 240px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-right: 4px;
+    /* max-height: 300px; Removed to allow filling height */
+    flex: 1;
+    /* Take remaining space */
+    min-height: 300px;
+    /* Minimum height */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 8px;
+    /* Custom Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
-.poker-events__empty {
-  font-size: 14px;
-  color: #cbd5f5;
-  padding: 12px 0 4px;
-  text-align: center;
-  opacity: 0.8;
+.poker-events__list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.poker-events__list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.poker-events__list::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+}
+
+.poker-events__empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+    gap: 12px;
+    color: #64748b;
+}
+
+.poker-events__empty-icon {
+    font-size: 32px;
+    opacity: 0.5;
+    margin-bottom: 8px;
+}
+
+.poker-events__empty-state p {
+    font-size: 15px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.poker-events__empty-sub {
+    font-size: 13px;
+    opacity: 0.7;
 }
 
 .poker-events__item {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  background: rgba(21, 128, 61, 0.12);
-  font-size: 14px;
-  line-height: 1.4;
-  color: #bbf7d0;
-  transition: opacity 0.5s ease;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.3s ease;
+    position: relative;
+    /* overflow: hidden; Removed to allow content to expand */
 }
 
+/* Win Style */
+.poker-events__item:not(.tie):not(.jellyfish) {
+    border-left: 3px solid #10b981;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, rgba(30, 41, 59, 0.4) 100%);
+}
+
+/* Tie Style */
 .poker-events__item.tie {
-  border-color: rgba(250, 204, 21, 0.5);
-  background: rgba(202, 138, 4, 0.12);
-  color: #fef9c3;
+    border-left: 3px solid #f59e0b;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, rgba(30, 41, 59, 0.4) 100%);
 }
 
-.poker-events__energy-loss {
-  color: #ff4444;
-  font-weight: 600;
+/* Jellyfish Style */
+.poker-events__item.jellyfish {
+    border-left: 3px solid #a855f7;
+    background: linear-gradient(90deg, rgba(168, 85, 247, 0.05) 0%, rgba(30, 41, 59, 0.4) 100%);
+}
+
+.event-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.event-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    /* Allow header items to wrap */
+}
+
+.event-badge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.event-badge.win {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.event-badge.tie {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.event-badge.jellyfish {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.event-hand {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.event-energy {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 700;
+    color: #34d399;
+    text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+}
+
+.event-details {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #94a3b8;
+    flex-wrap: wrap;
+    /* Allow details to wrap */
+}
+
+.winner-name {
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+.loser-name {
+    color: #cbd5e1;
+}
+
+.vs-text {
+    font-size: 11px;
+    text-transform: uppercase;
+    opacity: 0.6;
+    font-weight: 700;
 }
 
 @media (max-width: 768px) {
-  .poker-events {
-    padding: 16px;
-  }
+    .poker-events {
+        padding: 16px;
+    }
+
+    .poker-events__header h2 {
+        font-size: 18px;
+    }
 }

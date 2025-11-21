@@ -20,43 +20,38 @@ body {
     flex-direction: column;
 }
 
-.header {
-    padding: 32px 24px 24px;
-    background: linear-gradient(125deg, rgba(14, 39, 80, 0.95), rgba(3, 11, 24, 0.9));
-    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-    text-align: center;
-    box-shadow: 0 20px 45px rgba(2, 6, 23, 0.8);
-}
-
-.title {
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #f1f5f9;
-}
-
-.subtitle {
-    font-size: 14px;
-    color: #cbd5e1;
-}
-
 .main {
-    flex: 1;
-    display: flex;
-    gap: 32px;
-    padding: 32px clamp(16px, 5vw, 48px);
-    max-width: 1600px;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.canvas-section {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 32px clamp(16px, 5vw, 48px);
+    width: 100%;
+}
+
+.top-section {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    max-width: 1600px;
+    width: 100%;
+}
+
+.controls-compact {
+    display: flex;
+    flex-direction: column;
     gap: 16px;
-    position: relative;
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.canvas-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 1600px;
 }
 
 .canvas-wrapper {
@@ -99,7 +94,7 @@ body {
     padding-bottom: 4px;
 }
 
-.canvas-meta > div {
+.canvas-meta>div {
     flex: 1;
     min-width: 0;
 }
@@ -159,16 +154,6 @@ body {
     background: rgba(120, 53, 15, 0.15);
 }
 
-.sidebar {
-    width: 320px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    position: sticky;
-    top: 32px;
-    align-self: flex-start;
-}
-
 .footer {
     padding: 16px;
     text-align: center;
@@ -180,13 +165,14 @@ body {
 
 /* Responsive design */
 @media (max-width: 1200px) {
-    .main {
+    .top-section {
         flex-direction: column;
+        align-items: center;
     }
 
-    .sidebar {
+    .controls-compact {
         width: 100%;
-        position: static;
+        max-width: 1140px;
     }
 
     .canvas-meta {
@@ -195,24 +181,8 @@ body {
 }
 
 @media (max-width: 768px) {
-    .header {
-        padding: 16px;
-    }
-
-    .title {
-        font-size: 24px;
-    }
-
-    .subtitle {
-        font-size: 12px;
-    }
-
     .main {
         padding: 16px;
-    }
-
-    .sidebar {
-        flex-direction: column;
     }
 
     .canvas-wrapper {

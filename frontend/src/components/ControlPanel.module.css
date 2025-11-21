@@ -1,42 +1,23 @@
 .status {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
 }
 
 .statusDot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 8px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
 }
 
 .statusText {
-  font-size: 14px;
+    font-size: 14px;
 }
 
 .buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.help {
-  margin-top: 24px;
-  padding: 16px;
-  background-color: #0f172a;
-  border-radius: 6px;
-}
-
-.helpTitle {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.helpList {
-  margin: 0;
-  padding-left: 20px;
-  font-size: 13px;
-  line-height: 1.6;
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    flex-wrap: wrap;
 }
