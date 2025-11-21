@@ -110,19 +110,15 @@ function FishAvatar({
 
     if (!fishParams) {
         return (
-            <div className={styles.avatarWrapper}>
-                <div className={styles.avatarCircle}>
-                    <img src={DEFAULT_FISH_IMAGE} alt={label} className={styles.avatarImage} />
-                </div>
-                <div className={styles.avatarLabel}>
-                    <span className={styles.avatarName}>{label}</span>
-                    {generation !== undefined && <span className={styles.avatarGen}>Gen {generation}</span>}
-                </div>
+            <div className={styles.avatarCircle}>
+                <img src={DEFAULT_FISH_IMAGE} alt={label} className={styles.avatarImage} />
             </div>
         );
     }
 
     const baseSize = 90;
+    const padding = 15;
+    const viewBoxSize = baseSize + padding * 2;
     const fishPath = getFishPath(fishParams, baseSize);
     const eyePos = getEyePosition(fishParams, baseSize);
     const eyeRadius = 3 * fishParams.eye_size;
@@ -133,20 +129,14 @@ function FishAvatar({
     const gradientId = `fish-pattern-${fishId ?? 'ai'}`;
 
     return (
-        <div className={styles.avatarWrapper}>
-            <div className={styles.avatarCircle}>
-                <svg viewBox={`0 0 ${baseSize} ${baseSize}`} className={styles.avatarSvg} aria-hidden>
-                    <path d={fishPath} fill={baseColor} stroke={strokeColor} strokeWidth={2} />
-                    {fishParams.pattern_intensity > 0.05 &&
-                        renderPattern(fishParams, patternColor, baseSize, gradientId)}
-                    <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius} fill="#ffffff" />
-                    <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius * 0.5} fill="#0f172a" />
-                </svg>
-            </div>
-            <div className={styles.avatarLabel}>
-                <span className={styles.avatarName}>{label}</span>
-                {generation !== undefined && <span className={styles.avatarGen}>Gen {generation}</span>}
-            </div>
+        <div className={styles.avatarCircle}>
+            <svg viewBox={`${-padding} ${-padding} ${viewBoxSize} ${viewBoxSize}`} className={styles.avatarSvg} aria-hidden>
+                <path d={fishPath} fill={baseColor} stroke={strokeColor} strokeWidth={2} />
+                {fishParams.pattern_intensity > 0.05 &&
+                    renderPattern(fishParams, patternColor, baseSize, gradientId)}
+                <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius} fill="#ffffff" />
+                <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius * 0.5} fill="#0f172a" />
+            </svg>
         </div>
     );
 }

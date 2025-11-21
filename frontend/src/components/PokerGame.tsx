@@ -55,10 +55,15 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h2 className={styles.title}>
-                    Poker Game
-                    <span className={styles.handCounter}>Hand #{gameState.hands_played}</span>
-                </h2>
+                <div className={styles.headerLeft}>
+                    <h2 className={styles.title}>
+                        Poker Game
+                        <span className={styles.handCounter}>Hand #{gameState.hands_played}</span>
+                    </h2>
+                    {gameState.message && (
+                        <div className={styles.headerMessage}>{gameState.message}</div>
+                    )}
+                </div>
                 <button onClick={onClose} className={styles.closeButton}>×</button>
             </div>
 
@@ -140,49 +145,51 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
                 </div>
             )}
 
-            {/* Game Message */}
-            {gameState.message && (
-                <div className={styles.message}>{gameState.message}</div>
-            )}
 
-            {/* Game Over - Show after hand ends */}
-            {gameState.game_over && (
-                <div className={`${styles.gameOver} ${gameState.winner === 'You' ? styles.winnerGlow : ''}`}>
-                    <div className={styles.resultBanner}>
-                        {gameState.winner === 'You' ? (
-                            <>
-                                <span className={styles.winEmoji}>&#127881;</span>
-                                <h3 className={styles.winTitle}>YOU WIN!</h3>
-                                <span className={styles.winEmoji}>&#127881;</span>
-                            </>
-                        ) : (
-                            <h3 className={styles.loseTitle}>{gameState.winner} wins</h3>
-                        )}
+            {/* Game Over - Compact result banner */}
+            {gameState.game_over && !gameState.session_over && (
+                <div className={`${styles.gameOverBanner} ${gameState.winner === 'You' ? styles.winBanner : styles.loseBanner}`}>
+                    <div className={styles.resultInfo}>
+                        <span className={styles.resultIcon}>{gameState.winner === 'You' ? '🏆' : '💀'}</span>
+                        <span className={styles.resultText}>
+                            {gameState.winner === 'You' ? 'You win' : `${gameState.winner} wins`}
+                        </span>
+                        <span className={styles.resultPot}>+{gameState.pot.toFixed(0)} ⚡</span>
                     </div>
-                    <div className={styles.potWon}>
-                        <span className={styles.potAmount}>+{gameState.pot.toFixed(0)}</span>
-                        <span className={styles.potLabel}>energy</span>
-                    </div>
-                    {/* Show player standings */}
-                    <div className={styles.standings}>
+                    <div className={styles.chipStandings}>
                         {gameState.players
                             .sort((a, b) => b.energy - a.energy)
-                            .map((player, i) => (
-                                <div key={player.player_id} className={`${styles.standingRow} ${player.is_human ? styles.humanStanding : ''}`}>
-                                    <span className={styles.standingRank}>
-                                        {i === 0 ? '&#128081;' : `#${i + 1}`}
-                                    </span>
-                                    <span className={styles.standingName}>{player.is_human ? 'You' : player.name}</span>
-                                    <span className={styles.standingEnergy}>{player.energy.toFixed(0)}</span>
+                            .map((player) => (
+                                <div key={player.player_id} className={`${styles.chipStanding} ${player.is_human ? styles.youChip : ''} ${player.energy <= 0 ? styles.eliminatedChip : ''}`}>
+                                    <span className={styles.chipName}>{player.is_human ? 'You' : player.name.split('_')[0]}</span>
+                                    <span className={styles.chipEnergy}>{player.energy <= 0 ? 'OUT' : player.energy.toFixed(0)}</span>
                                 </div>
                             ))
                         }
                     </div>
-                    {gameState.session_over && (
-                        <div className={styles.sessionOverMessage}>
-                            {humanPlayer && humanPlayer.energy > 100 ? 'Great session! You made profit!' : 'Better luck next time!'}
-                        </div>
-                    )}
+                </div>
+            )}
+
+            {/* Session Over - Final results */}
+            {gameState.session_over && (
+                <div className={styles.sessionOverBanner}>
+                    <div className={styles.sessionOverHeader}>
+                        <span className={styles.sessionOverIcon}>🎰</span>
+                        <span className={styles.sessionOverTitle}>Session Complete</span>
+                        <span className={styles.sessionOverHands}>{gameState.hands_played} hands played</span>
+                    </div>
+                    <div className={styles.finalStandings}>
+                        {gameState.players
+                            .sort((a, b) => b.energy - a.energy)
+                            .map((player, index) => (
+                                <div key={player.player_id} className={`${styles.finalStanding} ${index === 0 ? styles.sessionWinner : ''} ${player.energy <= 0 ? styles.eliminated : ''}`}>
+                                    <span className={styles.finalRank}>{index === 0 ? '👑' : `#${index + 1}`}</span>
+                                    <span className={styles.finalName}>{player.is_human ? 'You' : player.name}</span>
+                                    <span className={styles.finalEnergy}>{player.energy <= 0 ? 'Eliminated' : `${player.energy.toFixed(0)} ⚡`}</span>
+                                </div>
+                            ))
+                        }
+                    </div>
                 </div>
             )}
         </div>

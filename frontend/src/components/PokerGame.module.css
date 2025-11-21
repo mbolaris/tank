@@ -1,9 +1,22 @@
 .container {
-    background-color: #0f172a;
+    background:
+        /* Felt texture pattern */
+        radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.05) 2px,
+            rgba(0, 0, 0, 0.05) 4px
+        ),
+        linear-gradient(135deg, #1a472a 0%, #0d5c2a 30%, #0a4d22 70%, #083d1a 100%);
     border-radius: 12px;
     padding: 12px;
-    border: 2px solid #3b82f6;
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+    border: 3px solid #8b4513;
+    box-shadow:
+        0 0 20px rgba(0, 100, 0, 0.4),
+        inset 0 0 60px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
     width: 100%;
 }
 
@@ -12,14 +25,32 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     padding-bottom: 8px;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.headerMessage {
+    font-size: 13px;
+    color: #fbbf24;
+    font-weight: 600;
+    padding: 4px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 .title {
     margin: 0;
     font-size: 20px;
-    color: #3b82f6;
+    color: #fbbf24;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -102,19 +133,20 @@
     color: #3b82f6;
 }
 
-.gameOver {
-    padding: 16px;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-radius: 12px;
-    text-align: center;
-    border: 2px solid #3b82f6;
-    animation: slideIn 0.3s ease-out;
+/* Compact game over banner */
+.gameOverBanner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-radius: 8px;
+    animation: slideIn 0.25s ease-out;
 }
 
 @keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-6px);
     }
     to {
         opacity: 1;
@@ -122,111 +154,188 @@
     }
 }
 
-.winnerGlow {
-    border-color: #fbbf24;
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.3), inset 0 0 30px rgba(251, 191, 36, 0.05);
+.winBanner {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.4);
 }
 
-.resultBanner {
+.loseBanner {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.1) 0%, rgba(100, 116, 139, 0.08) 100%);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.resultInfo {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
+}
+
+.resultIcon {
+    font-size: 20px;
+}
+
+.resultText {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.winBanner .resultText {
+    color: #fbbf24;
+}
+
+.resultPot {
+    font-size: 14px;
+    font-weight: 700;
+    color: #22c55e;
+    padding: 3px 8px;
+    background: rgba(34, 197, 94, 0.15);
+    border-radius: 4px;
+}
+
+.chipStandings {
+    display: flex;
     gap: 12px;
-    margin-bottom: 8px;
 }
 
-.winEmoji {
+.chipStanding {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+    min-width: 60px;
+}
+
+.youChip {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.chipName {
+    font-size: 10px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.youChip .chipName {
+    color: #fbbf24;
+}
+
+.chipEnergy {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.eliminatedChip {
+    opacity: 0.5;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.eliminatedChip .chipEnergy {
+    color: #ef4444;
+    font-size: 10px;
+}
+
+/* Session Over Banner */
+.sessionOverBanner {
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(34, 197, 94, 0.08) 100%);
+    border: 2px solid rgba(251, 191, 36, 0.4);
+    border-radius: 10px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.sessionOverHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sessionOverIcon {
     font-size: 24px;
-    animation: bounce 0.6s ease infinite alternate;
 }
 
-@keyframes bounce {
-    from { transform: translateY(0); }
-    to { transform: translateY(-4px); }
-}
-
-.winTitle {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-}
-
-.loseTitle {
-    margin: 0;
+.sessionOverTitle {
     font-size: 18px;
+    font-weight: 700;
+    color: #fbbf24;
+}
+
+.sessionOverHands {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-left: auto;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.finalStandings {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.finalStanding {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+}
+
+.sessionWinner {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.eliminated {
+    opacity: 0.6;
+}
+
+.finalRank {
+    font-size: 16px;
+    min-width: 28px;
+    text-align: center;
+}
+
+.finalName {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.sessionWinner .finalName {
+    color: #fbbf24;
+}
+
+.eliminated .finalName {
     color: #94a3b8;
 }
 
-.potWon {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 6px;
-    margin-bottom: 12px;
-}
-
-.potAmount {
-    font-size: 28px;
-    font-weight: 800;
+.finalEnergy {
+    font-size: 14px;
+    font-weight: 700;
     color: #22c55e;
 }
 
-.potLabel {
-    font-size: 14px;
-    color: #64748b;
-}
-
-.standings {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 16px;
-    padding: 10px;
-    background-color: #0f172a;
-    border-radius: 8px;
-}
-
-.standingRow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-}
-
-.standingRow:hover {
-    background-color: rgba(59, 130, 246, 0.1);
-}
-
-.humanStanding {
-    background-color: rgba(59, 130, 246, 0.15);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.standingRank {
-    color: #64748b;
-    width: 28px;
-    font-size: 14px;
-}
-
-.standingName {
-    flex: 1;
-    color: #e2e8f0;
-    font-weight: 500;
-}
-
-.standingEnergy {
+.sessionWinner .finalEnergy {
     color: #fbbf24;
-    font-weight: bold;
-    min-width: 40px;
-    text-align: right;
+}
+
+.eliminated .finalEnergy {
+    color: #ef4444;
+    font-weight: 500;
 }
 
 .gameOverButtons {
