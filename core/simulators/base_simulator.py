@@ -300,44 +300,25 @@ class BaseSimulator(ABC):
         Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k)
         where k is the number of nearby entities (typically much smaller than n).
 
-        For fish-to-fish collisions, finds groups of fish in contact and initiates
-        multi-player poker games. For other collisions (food, crabs, jellyfish),
-        handles them individually.
+        OPTIMIZATION: Merged poker group finding and general collision handling
+        into a single pass to halve the number of spatial queries.
         """
         from core.entities import Crab, Fish, Food, Jellyfish
 
-        # First, handle fish-to-fish poker interactions as groups
-        fish_groups = self.find_fish_groups_in_contact()
-        processed_fish = set()
-
-        for group in fish_groups:
-            # Filter out fish that can't play poker (already processed, dead, etc.)
-            valid_fish = [
-                f for f in group if f in self.get_all_entities() and f not in processed_fish
-            ]
-
-            if len(valid_fish) >= 2:
-                # Play multi-player poker with all fish in this group
-                poker = PokerInteraction(*valid_fish)
-                if poker.play_poker():
-                    # Handle poker result
-                    self.handle_poker_result(poker)
-
-                    # Check if any fish died from poker
-                    for fish in valid_fish:
-                        if fish.is_dead() and fish in self.get_all_entities():
-                            self.record_fish_death(fish)
-
-                # Mark all fish in group as processed
-                processed_fish.update(valid_fish)
-
-        # Now handle other collision types (food, crabs, jellyfish)
+        # Get all entities once
         all_entities = self.get_all_entities()
         fish_list = [e for e in all_entities if isinstance(e, Fish)]
+        
+        # Data structures for poker groups
+        fish_contacts = {fish: set() for fish in fish_list}
+        
+        # Track which fish have been removed (e.g. eaten) to avoid processing them further
+        removed_fish = set()
 
-        for fish in list(fish_list):
-            # Check if fish is still in simulation (may have been removed)
-            if fish not in self.get_all_entities():
+        # Single pass over all fish
+        for fish in fish_list:
+            # Skip if fish was already removed in this frame
+            if fish in removed_fish or fish not in self.get_all_entities():
                 continue
 
             # Use spatial grid to get nearby entities (within collision range)
@@ -348,24 +329,92 @@ class BaseSimulator(ABC):
                 )
             else:
                 # Fallback to checking all entities if no environment
-                nearby_entities = [e for e in self.get_all_entities() if e != fish]
+                nearby_entities = [e for e in all_entities if e != fish]
 
-            for other in list(nearby_entities):
+            for other in nearby_entities:
                 if other == fish:
                     continue
+                
+                # Skip if other entity was removed
+                if other not in self.get_all_entities():
+                    continue
 
+                # Check collision
                 if self.check_collision(fish, other):
-                    if isinstance(other, Crab):
+                    if isinstance(other, Fish):
+                        # Record contact for poker group finding
+                        fish_contacts[fish].add(other)
+                        # Note: We don't add to other's set here to avoid double processing,
+                        # or we can rely on the fact that we'll process 'other' later.
+                        # Actually, for undirected graph, it's safer to add both ways 
+                        # but we iterate all fish anyway.
+                        # Let's just add to current fish's contacts.
+                        
+                    elif isinstance(other, Crab):
                         if self.handle_fish_crab_collision(fish, other):
+                            removed_fish.add(fish)
                             break  # Fish died, stop checking collisions for it
+                            
                     elif isinstance(other, Food):
-                        # Check if food still exists (may have been eaten by another fish)
-                        if other in self.get_all_entities():
-                            self.handle_fish_food_collision(fish, other)
+                        self.handle_fish_food_collision(fish, other)
+                        
                     elif isinstance(other, Jellyfish):
                         if self.handle_fish_jellyfish_collision(fish, other):
+                            removed_fish.add(fish)
                             break  # Fish died, stop checking collisions for it
-                    # Note: fish-to-fish collisions are already handled above in groups
+
+        # After processing all collisions, handle poker groups
+        # Build full adjacency graph (make it symmetric)
+        for fish, contacts in fish_contacts.items():
+            for contact in contacts:
+                if contact in fish_contacts:
+                    fish_contacts[contact].add(fish)
+
+        # Find connected components using DFS
+        visited = set()
+        processed_fish = set() # For poker game tracking
+
+        for fish in fish_list:
+            if fish in visited or fish in removed_fish or fish not in self.get_all_entities():
+                continue
+
+            # Start a new group with DFS
+            group = []
+            stack = [fish]
+            
+            # Valid group members must be alive and in simulation
+            while stack:
+                current = stack.pop()
+                if current in visited:
+                    continue
+                
+                visited.add(current)
+                if current not in removed_fish and current in self.get_all_entities():
+                    group.append(current)
+
+                # Add all connected fish to the stack
+                if current in fish_contacts:
+                    for neighbor in fish_contacts[current]:
+                        if neighbor not in visited:
+                            stack.append(neighbor)
+
+            # Play poker if group has 2+ fish
+            if len(group) >= 2:
+                # Filter out fish that already played (just in case)
+                valid_fish = [f for f in group if f not in processed_fish]
+                
+                if len(valid_fish) >= 2:
+                    poker = PokerInteraction(*valid_fish)
+                    if poker.play_poker():
+                        self.handle_poker_result(poker)
+                        
+                        # Check deaths
+                        for f in valid_fish:
+                            if f.is_dead() and f in self.get_all_entities():
+                                self.record_fish_death(f)
+                                removed_fish.add(f)
+                    
+                    processed_fish.update(valid_fish)
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food.

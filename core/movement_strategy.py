@@ -121,14 +121,27 @@ class AlgorithmicMovement(MovementStrategy):
         target_vy = desired_vy * sprite.speed
 
         # Smoothly interpolate toward desired velocity
-        sprite.vel.x += (target_vx - sprite.vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
-        sprite.vel.y += (target_vy - sprite.vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
+        # Original: sprite.vel.x += (target_vx - sprite.vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
+        # Original: sprite.vel.y += (target_vy - sprite.vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
+        
+        # Optimize: Avoid creating new Vector2 objects for simple arithmetic
+        # We can modify sprite.vel directly
+        dx = (target_vx - sprite.vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
+        dy = (target_vy - sprite.vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
+        
+        sprite.vel.x += dx
+        sprite.vel.y += dy
 
         # Normalize velocity to maintain consistent speed
-        vel_length = sprite.vel.length()
-        if vel_length > 0:
+        # Use optimized in-place normalization if available
+        vel_length_sq = sprite.vel.length_squared()
+        if vel_length_sq > 0:
             # Allow some variation in speed based on algorithm output
-            target_speed = min(sprite.speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER, vel_length)
-            sprite.vel = sprite.vel.normalize() * target_speed
+            # Only normalize if speed exceeds max allowed
+            max_speed = sprite.speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER
+            if vel_length_sq > max_speed * max_speed:
+                # Normalize and scale in one step
+                scale = max_speed / (vel_length_sq ** 0.5)
+                sprite.vel.mul_inplace(scale)
 
         super().move(sprite)
