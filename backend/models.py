@@ -113,6 +113,42 @@ class PokerStatsData(BaseModel):
     avg_fold_rate: str = "0.0%"
 
 
+class AutoEvaluatePlayerStats(BaseModel):
+    """Player statistics from an auto-evaluation poker series."""
+
+    player_id: str
+    name: str
+    is_standard: bool
+    fish_id: Optional[int] = None
+    fish_generation: Optional[int] = None
+    energy: float
+    hands_won: int
+    hands_lost: int
+    total_energy_won: float
+    total_energy_lost: float
+    net_energy: float
+    win_rate: Optional[float] = None
+
+
+class PokerPerformanceSnapshot(BaseModel):
+    """Net energy snapshot for all players after a hand."""
+
+    hand: int
+    players: List[Dict[str, Any]]
+
+
+class AutoEvaluateStats(BaseModel):
+    """Aggregate stats for a static benchmark run."""
+
+    hands_played: int
+    hands_remaining: int
+    players: List[AutoEvaluatePlayerStats]
+    game_over: bool
+    winner: Optional[str]
+    reason: str
+    performance_history: List[PokerPerformanceSnapshot] = []
+
+
 class StatsData(BaseModel):
     """Ecosystem statistics."""
 
@@ -142,6 +178,7 @@ class SimulationUpdate(BaseModel):
     stats: StatsData
     poker_events: List[PokerEventData] = []
     poker_leaderboard: List[PokerLeaderboardEntry] = []
+    auto_evaluation: Optional[AutoEvaluateStats] = None
 
 
 class Command(BaseModel):

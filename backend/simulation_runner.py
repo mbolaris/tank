@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 from backend.models import (
     EntityData,
+    AutoEvaluateStats,
     PokerEventData,
     PokerLeaderboardEntry,
     PokerStatsData,
@@ -67,6 +68,14 @@ class SimulationRunner:
 
         # Static benchmark poker series management
         self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
+
+        # Ongoing auto-evaluation against static baseline
+        self.auto_eval_history: list[dict[str, Any]] = []
+        self.auto_eval_stats: Optional[dict[str, Any]] = None
+        self.auto_eval_running: bool = False
+        self.auto_eval_interval_seconds = 120.0
+        self.last_auto_eval_time = 0.0
+        self.auto_eval_lock = threading.Lock()
 
     def _create_error_response(self, error_msg: str) -> Dict[str, Any]:
         """Create a standardized error response.
@@ -160,6 +169,8 @@ class SimulationRunner:
                                 )
                                 # Continue running even if update fails
 
+                    self._start_auto_evaluation_if_needed()
+
                     # Maintain frame rate
                     elapsed = time.time() - loop_start
                     sleep_time = max(0, self.frame_time - elapsed)
@@ -174,6 +185,102 @@ class SimulationRunner:
             logger.error(f"Simulation loop: Fatal error, loop exiting: {e}", exc_info=True)
         finally:
             logger.info(f"Simulation loop: Ended after {frame_count} frames")
+
+    def _start_auto_evaluation_if_needed(self) -> None:
+        """Periodically benchmark top fish against the static evaluator."""
+
+        now = time.time()
+        if self.auto_eval_running or (now - self.last_auto_eval_time) < self.auto_eval_interval_seconds:
+            return
+
+        with self.lock:
+            fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+            leaderboard = self.world.ecosystem.get_poker_leaderboard(
+                fish_list=fish_list, limit=3, sort_by="net_energy"
+            )
+
+        if not leaderboard:
+            return
+
+        fish_players = []
+        for i, entry in enumerate(leaderboard):
+            fish = next(
+                (f for f in fish_list if f.fish_id == entry["fish_id"]),
+                fish_list[i] if i < len(fish_list) else None,
+            )
+            if fish is None:
+                continue
+
+            fish_name = f"{entry['algorithm'][:15]} (Gen {entry['generation']}) #{entry['fish_id']}"
+            fish_players.append(
+                {
+                    "name": fish_name,
+                    "fish_id": fish.fish_id,
+                    "generation": fish.generation,
+                    "poker_strategy": fish.genome.poker_strategy_algorithm,
+                }
+            )
+
+        if not fish_players:
+            return
+
+        self.auto_eval_running = True
+        threading.Thread(
+            target=self._run_auto_evaluation,
+            args=(fish_players,),
+            name="auto_eval_thread",
+            daemon=True,
+        ).start()
+
+    def _run_auto_evaluation(self, fish_players: list[dict[str, Any]]):
+        """Execute a background auto-evaluation series."""
+
+        try:
+            game_id = str(uuid.uuid4())
+            standard_energy = 500.0
+            max_hands = 300
+
+            auto_eval = AutoEvaluatePokerGame(
+                game_id=game_id,
+                fish_players=fish_players,
+                standard_energy=standard_energy,
+                max_hands=max_hands,
+                small_blind=5.0,
+                big_blind=10.0,
+            )
+
+            final_stats = auto_eval.run_evaluation()
+
+            with self.auto_eval_lock:
+                starting_hand = self.auto_eval_history[-1]["hand"] if self.auto_eval_history else 0
+                extended_history = [
+                    {**snapshot, "hand": snapshot["hand"] + starting_hand}
+                    for snapshot in final_stats.performance_history
+                ]
+                self.auto_eval_history.extend(extended_history)
+
+                players_with_win_rate = []
+                for player in final_stats.players:
+                    hands_played = final_stats.hands_played or 1
+                    win_rate = round((player.get("hands_won", 0) / hands_played) * 100, 1)
+                    players_with_win_rate.append({**player, "win_rate": win_rate})
+
+                self.auto_eval_stats = {
+                    "hands_played": final_stats.hands_played,
+                    "hands_remaining": final_stats.hands_remaining,
+                    "game_over": final_stats.game_over,
+                    "winner": final_stats.winner,
+                    "reason": final_stats.reason,
+                    "players": players_with_win_rate,
+                    "performance_history": list(self.auto_eval_history),
+                }
+
+            self._invalidate_state_cache()
+        except Exception as e:
+            logger.error(f"Auto-evaluation thread failed: {e}", exc_info=True)
+        finally:
+            self.last_auto_eval_time = time.time()
+            self.auto_eval_running = False
 
     def get_state(self) -> SimulationUpdate:
         """Get current simulation state for WebSocket broadcast.
@@ -306,6 +413,14 @@ class SimulationRunner:
                 )
                 poker_leaderboard = [PokerLeaderboardEntry(**entry) for entry in leaderboard_data]
 
+            auto_eval_stats: Optional[AutoEvaluateStats] = None
+            with self.auto_eval_lock:
+                if self.auto_eval_stats:
+                    try:
+                        auto_eval_stats = AutoEvaluateStats(**self.auto_eval_stats)
+                    except Exception:
+                        logger.error("Failed to serialize auto evaluation stats", exc_info=True)
+
             state = SimulationUpdate(
                 frame=self.world.frame_count,
                 elapsed_time=(
@@ -317,6 +432,7 @@ class SimulationRunner:
                 stats=stats_data,
                 poker_events=poker_events,
                 poker_leaderboard=poker_leaderboard,
+                auto_evaluation=auto_eval_stats,
             )
 
             # Cache the state for reuse

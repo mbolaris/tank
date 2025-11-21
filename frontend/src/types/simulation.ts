@@ -4,7 +4,7 @@
 
 export interface EntityData {
   id: number;
-  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle';
+  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'jellyfish';
   x: number;
   y: number;
   width: number;
@@ -136,6 +136,7 @@ export interface SimulationUpdate {
   stats: StatsData;
   poker_events: PokerEventData[];
   poker_leaderboard: PokerLeaderboardEntry[];
+  auto_evaluation?: AutoEvaluateStats;
 }
 
 export interface Command {

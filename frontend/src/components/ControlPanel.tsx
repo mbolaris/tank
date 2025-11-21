@@ -11,10 +11,9 @@ interface ControlPanelProps {
   onCommand: (command: Command) => void;
   isConnected: boolean;
   onPlayPoker?: () => void;
-  onRunBenchmark?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, onPlayPoker, onRunBenchmark }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, onPlayPoker }: ControlPanelProps) {
   const [isPaused, setIsPaused] = useState(false);
 
   const handleAddFood = () => {
@@ -46,12 +45,6 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onRunBenchma
     }
   };
 
-  const handleRunBenchmark = () => {
-    if (onRunBenchmark) {
-      onRunBenchmark();
-    }
-  };
-
   return (
     <Panel title="Controls">
       <div className={styles.status}>
@@ -73,14 +66,6 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onRunBenchma
           variant="poker"
         >
           🃏 Play Poker
-        </Button>
-
-        <Button
-          onClick={handleRunBenchmark}
-          disabled={!isConnected}
-          variant="evaluate"
-        >
-          📊 Benchmark vs Static
         </Button>
 
         <Button
@@ -121,9 +106,6 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, onRunBenchma
         <ul className={styles.helpList}>
           <li>
             <strong>Play Poker:</strong> Play poker against the top 3 fish
-          </li>
-          <li>
-            <strong>Benchmark vs Static:</strong> Runs a series between the top 3 fish and the static standard player
           </li>
           <li>
             <strong>Add Food:</strong> Drop food into the tank

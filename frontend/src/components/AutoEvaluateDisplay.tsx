@@ -146,6 +146,32 @@ export function AutoEvaluateDisplay({
   const fishPlayers = stats.players.filter((p) => !p.is_standard);
   const standardWon = stats.winner === standardPlayer?.name;
 
+  const playerMap = new Map<string, AutoEvaluatePlayerStats>();
+  stats.players.forEach((player) => {
+    playerMap.set(player.player_id, player);
+  });
+
+  (stats.performance_history ?? []).forEach((snapshot) => {
+    snapshot.players.forEach((player) => {
+      if (!playerMap.has(player.player_id)) {
+          playerMap.set(player.player_id, {
+            player_id: player.player_id,
+            name: player.name,
+            is_standard: player.is_standard,
+            energy: player.energy,
+            hands_won: 0,
+            hands_lost: 0,
+            total_energy_won: 0,
+            total_energy_lost: 0,
+          net_energy: player.net_energy,
+          win_rate: 0,
+        });
+      }
+    });
+  });
+
+  const chartPlayers = Array.from(playerMap.values());
+
   // Calculate aggregate fish stats
   const totalFishWins = fishPlayers.reduce((sum, p) => sum + p.hands_won, 0);
   const totalFishEnergy = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0);
@@ -163,6 +189,12 @@ export function AutoEvaluateDisplay({
           ×
         </button>
       </div>
+
+      <p style={styles.helperText}>
+        Top leaderboard fish are automatically benchmarked against the static evaluation
+        player every few minutes. The chart below shows how the current contenders compare
+        to the static baseline over time.
+      </p>
 
       {/* Winner Announcement */}
       <div
@@ -208,7 +240,7 @@ export function AutoEvaluateDisplay({
 
       <PerformanceChart
         history={stats.performance_history ?? []}
-        players={stats.players}
+        players={chartPlayers}
       />
 
       {/* Detailed Stats */}
@@ -299,6 +331,12 @@ const styles = {
     margin: 0,
     fontSize: '24px',
     color: colors.primary,
+  },
+  helperText: {
+    margin: '0 0 16px 0',
+    color: colors.textSecondary,
+    lineHeight: 1.5,
+    fontSize: '14px',
   },
   closeButton: {
     background: 'none',
