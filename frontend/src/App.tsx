@@ -2,7 +2,7 @@
  * Main App component
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Canvas } from './components/Canvas';
 import { ControlPanel } from './components/ControlPanel';
@@ -12,7 +12,7 @@ import { PokerLeaderboard } from './components/PokerLeaderboard';
 import { PhylogeneticTree } from './components/PhylogeneticTree';
 import { PokerGame } from './components/PokerGame';
 import { AutoEvaluateDisplay } from './components/AutoEvaluateDisplay';
-import type { PokerGameState, AutoEvaluateStats } from './types/simulation';
+import type { PokerGameState } from './types/simulation';
 import { getEnergyColor } from './utils/energy';
 import './App.css';
 
@@ -26,10 +26,13 @@ function App() {
         ? state.stats.max_generation ?? state.stats.generation ?? 0
         : 0;
 
-    // Benchmark series state
-    const [benchmarkStats, setBenchmarkStats] = useState<AutoEvaluateStats | null>(null);
-    const [showBenchmark, setShowBenchmark] = useState(false);
-    const [benchmarkLoading, setBenchmarkLoading] = useState(false);
+    const [autoEvalHidden, setAutoEvalHidden] = useState(false);
+
+    useEffect(() => {
+        if (state?.auto_evaluation) {
+            setAutoEvalHidden(false);
+        }
+    }, [state?.auto_evaluation]);
 
     const handleStartPoker = async () => {
         try {
@@ -79,35 +82,6 @@ function App() {
     const handleClosePoker = () => {
         setShowPokerGame(false);
         setPokerGameState(null);
-    };
-
-    const handleRunBenchmark = async () => {
-        try {
-            setBenchmarkLoading(true);
-            setShowBenchmark(true);
-
-            const response = await sendCommandWithResponse({
-                command: 'standard_poker_series',
-                data: { standard_energy: 500, max_hands: 1000 },
-            });
-
-            if (response.success === false) {
-                alert(response.error || 'Failed to run benchmark series');
-                setShowBenchmark(false);
-            } else if (response.stats) {
-                setBenchmarkStats(response.stats);
-            }
-        } catch {
-            alert('Failed to run benchmark series. Please try again.');
-            setShowBenchmark(false);
-        } finally {
-            setBenchmarkLoading(false);
-        }
-    };
-
-    const handleCloseBenchmark = () => {
-        setShowBenchmark(false);
-        setBenchmarkStats(null);
     };
 
     return (
@@ -191,12 +165,12 @@ function App() {
                     )}
 
                     {/* Auto-Evaluation Display */}
-                    {showBenchmark && (
+                    {state?.auto_evaluation && !autoEvalHidden && (
                         <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
                             <AutoEvaluateDisplay
-                                stats={benchmarkStats}
-                                onClose={handleCloseBenchmark}
-                                loading={benchmarkLoading}
+                                stats={state.auto_evaluation}
+                                onClose={() => setAutoEvalHidden(true)}
+                                loading={false}
                             />
                         </div>
                     )}
@@ -207,7 +181,6 @@ function App() {
                         onCommand={sendCommand}
                         isConnected={isConnected}
                         onPlayPoker={handleStartPoker}
-                        onRunBenchmark={handleRunBenchmark}
                     />
                     <StatsPanel stats={state?.stats ?? null} />
                 </div>
