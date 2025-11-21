@@ -3,34 +3,37 @@
     padding: 8px;
     background-color: #0f172a;
     border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
 }
 
 .topRow {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    align-items: center;
+    gap: 16px;
 }
 
 .potArea {
     flex: 0 0 auto;
-    margin-right: 12px;
+    text-align: center;
+    min-width: 80px;
 }
 
 .communityCardsArea {
     flex: 1 1 auto;
 }
 
-.pot {
-    text-align: center;
-    margin-bottom: 6px;
+.communityCardsLabel {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-bottom: 4px;
 }
 
 .potLabel {
     font-size: 10px;
     color: #94a3b8;
+    margin-bottom: 2px;
+}
+
+.potChips {
     margin-bottom: 2px;
 }
 
@@ -43,8 +46,7 @@
 .communityCards {
     display: flex;
     gap: 6px;
-    justify-content: center;
-    flex-wrap: wrap;
+    justify-content: flex-start;
 }
 
 .noCards {
