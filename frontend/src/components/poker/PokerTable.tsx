@@ -14,8 +14,8 @@ interface PokerTableProps {
 export function PokerTable({ pot, communityCards }: PokerTableProps) {
     return (
         <div className={styles.table}>
-            {/* Felt background */}
-            <div className={styles.felt}>
+            {/* Pot and Community Cards side by side */}
+            <div className={styles.topRow}>
                 {/* Pot display */}
                 <div className={styles.potArea}>
                     <div className={styles.potLabel}>POT</div>
