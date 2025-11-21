@@ -290,7 +290,7 @@ def test_static_vs_poker_conservative():
     return results
 
 
-def test_comprehensive_analysis(all_results: List[PokerComparisonResults]):
+def comprehensive_analysis(all_results: List[PokerComparisonResults]):
     """Provide comprehensive analysis of standard algorithm vs fish performance."""
     print("\n" + "=" * 80)
     print("COMPREHENSIVE ANALYSIS: Standard Algorithm vs Fish Behaviors")
@@ -443,7 +443,7 @@ IMPORTANT: In tournament format, movement behaviors have NO effect on poker skil
     results.append(test_static_vs_poker_conservative())
 
     # Comprehensive analysis
-    test_comprehensive_analysis(results)
+    comprehensive_analysis(results)
 
     print("\n" + "=" * 80)
     print("✓ ALL TESTS PASSED!")
