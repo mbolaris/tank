@@ -48,7 +48,7 @@ export function PokerTable({ pot, communityCards, currentRound }: PokerTableProp
                     <div className={styles.potChips}>
                         <ChipStack totalValue={Math.floor(pot)} size="medium" />
                     </div>
-                    <div className={styles.potAmount}>{pot.toFixed(1)} ⚡</div>
+                    <div className={styles.potAmount}>{Math.floor(pot)} ⚡</div>
                 </div>
 
                 {/* Community cards area */}

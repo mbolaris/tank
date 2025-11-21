@@ -128,6 +128,8 @@ class HumanPokerGame:
         self.hands_played = 0
         self.message = ""
         self.actions_this_round = 0  # Track actions per betting round
+        self.big_blind_index = 0  # Track big blind position for BB option
+        self.big_blind_has_option = False  # BB gets option to raise if no raises pre-flop
 
         # Deal cards and post blinds
         self._start_hand()
@@ -153,13 +155,14 @@ class HumanPokerGame:
 
         # Post blinds - skip players with no energy
         small_blind_index = self._get_next_active_player(self.button_index)
-        big_blind_index = self._get_next_active_player(small_blind_index)
+        self.big_blind_index = self._get_next_active_player(small_blind_index)
+        self.big_blind_has_option = True  # BB gets option to raise if no raises pre-flop
 
         self._player_bet(small_blind_index, self.small_blind)
-        self._player_bet(big_blind_index, self.big_blind)
+        self._player_bet(self.big_blind_index, self.big_blind)
 
         # First to act is player after big blind
-        self.current_player_index = self._get_next_active_player(big_blind_index)
+        self.current_player_index = self._get_next_active_player(self.big_blind_index)
 
         self.message = f"Hand #{self.hands_played} - Blinds: {self.small_blind}/{self.big_blind}"
         logger.info(
@@ -191,7 +194,7 @@ class HumanPokerGame:
             # Find the winner (the one with energy)
             for i, player in enumerate(self.players):
                 if player.energy > 0:
-                    self.message = f"{player.name} wins the session with {player.energy:.1f} energy after {self.hands_played} hands!"
+                    self.message = f"{player.name} wins the session with {player.energy:.0f} energy after {self.hands_played} hands!"
                     break
             else:
                 self.message = f"Session ended after {self.hands_played} hands - all players are out!"
@@ -221,7 +224,10 @@ class HumanPokerGame:
             Amount needed to call
         """
         player = self.players[player_index]
-        max_bet = max(p.current_bet for p in self.players if not p.folded)
+        active_bets = [p.current_bet for p in self.players if not p.folded]
+        if not active_bets:
+            return 0.0
+        max_bet = max(active_bets)
         return max_bet - player.current_bet
 
     def _advance_round(self):
@@ -257,9 +263,22 @@ class HumanPokerGame:
 
         # First to act post-flop is player after button
         self.current_player_index = (self.button_index + 1) % len(self.players)
-        # Skip folded players
-        while self.players[self.current_player_index].folded:
+        # Skip folded players and all-in players (with loop guard to prevent infinite loop)
+        attempts = 0
+        while attempts < len(self.players):
+            player = self.players[self.current_player_index]
+            # Player can act if not folded and has energy
+            if not player.folded and player.energy > 0:
+                break
             self.current_player_index = (self.current_player_index + 1) % len(self.players)
+            attempts += 1
+
+        # Safety check: if no players can act, end the hand (all folded or all-in)
+        if attempts >= len(self.players):
+            logger.warning("No players can act - going to showdown")
+            self.current_round = BettingRound.SHOWDOWN
+            self._showdown()
+            return
 
     def _showdown(self):
         """Determine winner at showdown."""
@@ -270,7 +289,7 @@ class HumanPokerGame:
             self.winner_index = self.players.index(active_players[0])
             winner = self.players[self.winner_index]
             winner.energy += self.pot
-            self.message = f"{winner.name} wins {self.pot:.1f} energy!"
+            self.message = f"{winner.name} wins {self.pot:.0f} energy!"
             self.game_over = True
             self._check_session_over()
             return
@@ -297,7 +316,7 @@ class HumanPokerGame:
             self.winner_index = best_player_index
             winner = self.players[best_player_index]
             winner.energy += self.pot
-            self.message = f"{winner.name} wins {self.pot:.1f} energy with {best_hand}!"
+            self.message = f"{winner.name} wins {self.pot:.0f} energy with {best_hand}!"
             self.game_over = True
             self._check_session_over()
 
@@ -338,9 +357,10 @@ class HumanPokerGame:
         Returns:
             True if all active players have matched the current bet
         """
-        active_players = [p for p in self.players if not p.folded]
+        active_players = [p for p in self.players if not p.folded and p.energy > 0]
 
-        if len(active_players) == 1:
+        # If no active players or only one, betting is complete
+        if len(active_players) <= 1:
             return True
 
         # Get max bet
@@ -351,29 +371,55 @@ class HumanPokerGame:
             if player.current_bet < max_bet:
                 return False
 
-        # Also ensure all players have had a chance to act this round
+        # Pre-flop special case: big blind gets option to raise even if all call
+        if self.current_round == BettingRound.PRE_FLOP and self.big_blind_has_option:
+            bb_player = self.players[self.big_blind_index]
+            # BB still has option if they haven't acted yet (only posted blind)
+            # and no one has raised above the big blind
+            if not bb_player.folded and bb_player.energy > 0:
+                # Check if max bet is still just the big blind (no raises)
+                if max_bet <= self.big_blind + 0.01:  # epsilon for float comparison
+                    return False
+
+        # Ensure all players have had a chance to act this round
         return self.actions_this_round >= len(active_players)
 
     def _next_player(self):
         """Move to the next active player."""
         original_index = self.current_player_index
 
-        while True:
-            self.current_player_index = (self.current_player_index + 1) % len(self.players)
+        # Guard against infinite loops - max iterations is number of players * 2
+        max_iterations = len(self.players) * 2
+        iterations = 0
 
-            # If we've looped back to start and betting is complete, advance round
-            if self.current_player_index == original_index or self._is_betting_complete():
-                if self._is_betting_complete():
-                    self._advance_round()
+        while True:
+            iterations += 1
+            if iterations > max_iterations:
+                logger.error(
+                    f"_next_player exceeded {max_iterations} iterations - forcing round advance. "
+                    f"Game state: round={self.current_round}, player_idx={self.current_player_index}"
+                )
+                self._advance_round()
                 return
 
-            # Skip folded players and all-in players
+            self.current_player_index = (self.current_player_index + 1) % len(self.players)
+
+            # If betting is complete, advance round
+            if self._is_betting_complete():
+                self._advance_round()
+                return
+
+            # If we've looped back to start without finding someone to act, advance round
+            if self.current_player_index == original_index:
+                self._advance_round()
+                return
+
+            # Skip folded players and all-in players (energy = 0)
             player = self.players[self.current_player_index]
             if not player.folded and player.energy > 0:
-                # Check if this player needs to act
-                call_amount = self._get_call_amount(self.current_player_index)
-                if call_amount > 0 or len(self.betting_history) < len(self.players):
-                    return
+                # This player can act - they need to if there's a bet to call
+                # or if not everyone has acted yet this round
+                return
 
     def handle_action(self, player_id: str, action: str, amount: float = 0.0) -> Dict[str, Any]:
         """Handle a player action.
@@ -405,6 +451,10 @@ class HumanPokerGame:
 
         call_amount = self._get_call_amount(self.current_player_index)
 
+        # Clear big blind option if BB is acting
+        if self.current_player_index == self.big_blind_index:
+            self.big_blind_has_option = False
+
         # Process action
         if action == "fold":
             current_player.folded = True
@@ -424,10 +474,11 @@ class HumanPokerGame:
                 self._showdown()
 
         elif action == "check":
-            if call_amount > 0:
+            # Use small epsilon for floating point comparison
+            if call_amount > 0.01:
                 return {
                     "success": False,
-                    "error": f"Cannot check - must call {call_amount:.1f} or fold",
+                    "error": f"Cannot check - must call {call_amount:.0f} or fold",
                     "state": self.get_state(),
                 }
             self.betting_history.append(
@@ -459,7 +510,7 @@ class HumanPokerGame:
                 }
             )
             self.actions_this_round += 1
-            self.message = f"{current_player.name} calls {call_amount:.1f}"
+            self.message = f"{current_player.name} calls {call_amount:.0f}"
 
         elif action in ["raise", "bet"]:
             if amount <= 0:
@@ -484,7 +535,9 @@ class HumanPokerGame:
             )
             # Reset action counter on raise - others need to respond
             self.actions_this_round = 1
-            self.message = f"{current_player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.1f}"
+            # Clear big blind option since there was a raise
+            self.big_blind_has_option = False
+            self.message = f"{current_player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.0f}"
 
         else:
             return {
@@ -507,7 +560,22 @@ class HumanPokerGame:
 
     def _process_ai_turns(self):
         """Process AI player actions until it's the human's turn or game is over."""
+        # Guard against infinite loops - max iterations based on reasonable game actions
+        # In worst case: 4 players * 4 rounds * 10 actions per round = 160 actions
+        max_iterations = 200
+        iterations = 0
+
         while not self.game_over and not self.players[self.current_player_index].is_human:
+            iterations += 1
+            if iterations > max_iterations:
+                logger.error(
+                    f"_process_ai_turns exceeded {max_iterations} iterations - breaking to prevent hang. "
+                    f"Game state: round={self.current_round}, player_idx={self.current_player_index}"
+                )
+                # Force game over to prevent hang
+                self.game_over = True
+                self.message = "Game ended due to error - please start a new hand"
+                break
             self._process_ai_action_internal()
 
     def _process_ai_action_internal(self):
@@ -518,15 +586,22 @@ class HumanPokerGame:
             self._next_player()
             return
 
+        # Clear big blind option if BB is acting
+        if self.current_player_index == self.big_blind_index:
+            self.big_blind_has_option = False
+
         # Evaluate hand
         hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
         call_amount = self._get_call_amount(self.current_player_index)
 
         # Use PokerEngine to decide action
+        active_bets = [p.current_bet for p in self.players if not p.folded]
+        opponent_bet = max(active_bets) if active_bets else 0.0
+
         action, bet_amount = PokerEngine.decide_action(
             hand=hand,
             current_bet=player.current_bet,
-            opponent_bet=max(p.current_bet for p in self.players if not p.folded),
+            opponent_bet=opponent_bet,
             pot=self.pot,
             player_energy=player.energy,
             aggression=player.aggression,
@@ -560,7 +635,7 @@ class HumanPokerGame:
                 {"player": player.name, "action": "call", "amount": call_amount}
             )
             self.actions_this_round += 1
-            self.message = f"{player.name} calls {call_amount:.1f}"
+            self.message = f"{player.name} calls {call_amount:.0f}"
 
         elif action == BettingAction.RAISE:
             total_amount = call_amount + bet_amount
@@ -576,8 +651,10 @@ class HumanPokerGame:
             )
             # Reset action counter on raise - others need to respond
             self.actions_this_round = 1
+            # Clear big blind option since there was a raise
+            self.big_blind_has_option = False
             self.message = (
-                f"{player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.1f}"
+                f"{player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.0f}"
             )
 
         # Move to next player
@@ -597,7 +674,7 @@ class HumanPokerGame:
 
         return {
             "game_id": self.game_id,
-            "pot": round(self.pot, 1),
+            "pot": int(self.pot),
             "current_round": self.current_round.name,
             "community_cards": [str(card) for card in self.community_cards],
             "current_player": current_player.name,
@@ -613,9 +690,9 @@ class HumanPokerGame:
                 {
                     "player_id": p.player_id,
                     "name": p.name,
-                    "energy": round(p.energy, 1),
-                    "current_bet": round(p.current_bet, 1),
-                    "total_bet": round(p.total_bet, 1),
+                    "energy": int(p.energy),
+                    "current_bet": int(p.current_bet),
+                    "total_bet": int(p.total_bet),
                     "folded": p.folded,
                     "is_human": p.is_human,
                     "algorithm": p.algorithm,
@@ -629,6 +706,6 @@ class HumanPokerGame:
                 for p in self.players
             ],
             "your_cards": [str(card) for card in human_player.hole_cards],
-            "call_amount": round(self._get_call_amount(0), 1) if not human_player.folded else 0,
-            "min_raise": round(self.big_blind, 1),
+            "call_amount": int(self._get_call_amount(0)) if not human_player.folded else 0,
+            "min_raise": int(self.big_blind),
         }
