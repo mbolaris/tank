@@ -60,7 +60,11 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
             </div>
 
             {/* Pot and Community Cards */}
-            <PokerTable pot={gameState.pot} communityCards={gameState.community_cards} />
+            <PokerTable
+                pot={gameState.pot}
+                communityCards={gameState.community_cards}
+                currentRound={gameState.current_round}
+            />
 
             {/* AI Players */}
             <div className={styles.opponentsSection}>
