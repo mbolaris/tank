@@ -65,8 +65,8 @@ class SimulationRunner:
         # Human poker game management
         self.human_poker_game: Optional[HumanPokerGame] = None
 
-        # Auto-evaluation poker game management
-        self.auto_evaluate_game: Optional[AutoEvaluatePokerGame] = None
+        # Static benchmark poker series management
+        self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
 
     def _create_error_response(self, error_msg: str) -> Dict[str, Any]:
         """Create a standardized error response.
@@ -487,22 +487,6 @@ class SimulationRunner:
                 except Exception as e:
                     logger.error(f"Error spawning fish: {e}", exc_info=True)
 
-            elif command == "spawn_jellyfish":
-                # Spawn jellyfish at center of tank
-                x = SCREEN_WIDTH // 2
-                y = SCREEN_HEIGHT // 2
-                jellyfish = entities.Jellyfish(
-                    self.world.environment,
-                    x=x,
-                    y=y,
-                    jellyfish_id=0,  # Could track count if needed
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
-                )
-                self.world.add_entity(jellyfish)
-                logger.info(f"Spawned jellyfish at ({x}, {y})")
-                self._invalidate_state_cache()
-
             elif command == "pause":
                 self.world.pause()
                 self._invalidate_state_cache()
@@ -591,16 +575,16 @@ class SimulationRunner:
                 result = self.human_poker_game.handle_action("human", action, amount)
                 return result
 
-            elif command == "auto_evaluate_poker":
-                # Start auto-evaluation poker game with top 3 fish vs standard algorithm
-                logger.info("Starting auto-evaluation poker game...")
+            elif command == "standard_poker_series":
+                # Run standard benchmark poker series with top 3 fish vs static player
+                logger.info("Starting standard poker benchmark series...")
                 try:
                     # Get top fish from leaderboard
                     fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
 
                     if len(fish_list) < 1:
-                        logger.warning("No fish available for auto-evaluation")
-                        return self._create_error_response("Need at least 1 fish to run auto-evaluation")
+                        logger.warning("No fish available for benchmark series")
+                        return self._create_error_response("Need at least 1 fish to run benchmark series")
 
                     # Get top 3 fish from leaderboard
                     num_fish = min(3, len(fish_list))
@@ -632,12 +616,12 @@ class SimulationRunner:
                             "poker_strategy": fish.genome.poker_strategy_algorithm,
                         })
 
-                    # Create auto-evaluation game with multiple fish
+                    # Create benchmark series with multiple fish
                     game_id = str(uuid.uuid4())
                     standard_energy = data.get("standard_energy", 500.0) if data else 500.0
                     max_hands = data.get("max_hands", 1000) if data else 1000
 
-                    self.auto_evaluate_game = AutoEvaluatePokerGame(
+                    self.standard_poker_series = AutoEvaluatePokerGame(
                         game_id=game_id,
                         fish_players=fish_players,
                         standard_energy=standard_energy,
@@ -647,11 +631,11 @@ class SimulationRunner:
                     )
 
                     logger.info(
-                        f"Created auto-evaluation game {game_id} with {len(fish_players)} fish vs Standard"
+                        f"Created standard series {game_id} with {len(fish_players)} fish vs Standard"
                     )
 
-                    # Run the evaluation (this will complete all hands)
-                    final_stats = self.auto_evaluate_game.run_evaluation()
+                    # Run the series (this will complete all hands)
+                    final_stats = self.standard_poker_series.run_evaluation()
 
                     # Convert stats to dict for JSON serialization
                     stats_dict = {
@@ -661,10 +645,11 @@ class SimulationRunner:
                         "winner": final_stats.winner,
                         "reason": final_stats.reason,
                         "players": final_stats.players,  # List of all player stats
+                        "performance_history": final_stats.performance_history,
                     }
 
                     logger.info(
-                        f"Auto-evaluation complete: {final_stats.winner} wins after {final_stats.hands_played} hands!"
+                        f"Standard series complete: {final_stats.winner} after {final_stats.hands_played} hands!"
                     )
 
                     # Return the final stats to the frontend
@@ -674,5 +659,5 @@ class SimulationRunner:
                     }
 
                 except Exception as e:
-                    logger.error(f"Error running auto-evaluation: {e}", exc_info=True)
-                    return self._create_error_response(f"Failed to run auto-evaluation: {str(e)}")
+                    logger.error(f"Error running benchmark series: {e}", exc_info=True)
+                    return self._create_error_response(f"Failed to run benchmark series: {str(e)}")

@@ -4,7 +4,7 @@
 
 export interface EntityData {
   id: number;
-  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'jellyfish';
+  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle';
   x: number;
   y: number;
   width: number;
@@ -39,8 +39,6 @@ export interface EntityData {
   // Plant-specific
   plant_type?: number;
 
-  // Jellyfish-specific
-  jellyfish_id?: number;
 }
 
 export interface PokerEventData {
@@ -141,7 +139,7 @@ export interface SimulationUpdate {
 }
 
 export interface Command {
-  command: 'add_food' | 'spawn_fish' | 'spawn_jellyfish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_action' | 'auto_evaluate_poker';
+  command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_action' | 'standard_poker_series';
   data?: Record<string, unknown>;
 }
 
@@ -213,6 +211,17 @@ export interface AutoEvaluatePlayerStats {
   win_rate: number;
 }
 
+export interface PokerPerformanceSnapshot {
+  hand: number;
+  players: {
+    player_id: string;
+    name: string;
+    is_standard: boolean;
+    energy: number;
+    net_energy: number;
+  }[];
+}
+
 export interface AutoEvaluateStats {
   hands_played: number;
   hands_remaining: number;
@@ -220,6 +229,7 @@ export interface AutoEvaluateStats {
   game_over: boolean;
   winner: string | null;
   reason: string;
+  performance_history?: PokerPerformanceSnapshot[];
 }
 
 // Command Response Types

@@ -63,17 +63,6 @@
   color: #fef9c3;
 }
 
-.poker-events__item.jellyfish {
-  border-color: rgba(147, 51, 234, 0.5);
-  background: rgba(107, 33, 168, 0.15);
-  color: #e9d5ff;
-}
-
-.poker-events__jellyfish-icon {
-  font-size: 16px;
-  margin-right: 4px;
-}
-
 .poker-events__energy-loss {
   color: #ff4444;
   font-weight: 600;

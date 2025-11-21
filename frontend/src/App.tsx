@@ -26,10 +26,10 @@ function App() {
         ? state.stats.max_generation ?? state.stats.generation ?? 0
         : 0;
 
-    // Auto-evaluation state
-    const [autoEvaluateStats, setAutoEvaluateStats] = useState<AutoEvaluateStats | null>(null);
-    const [showAutoEvaluate, setShowAutoEvaluate] = useState(false);
-    const [autoEvaluateLoading, setAutoEvaluateLoading] = useState(false);
+    // Benchmark series state
+    const [benchmarkStats, setBenchmarkStats] = useState<AutoEvaluateStats | null>(null);
+    const [showBenchmark, setShowBenchmark] = useState(false);
+    const [benchmarkLoading, setBenchmarkLoading] = useState(false);
 
     const handleStartPoker = async () => {
         try {
@@ -47,7 +47,7 @@ function App() {
             } else if (response.state) {
                 setPokerGameState(response.state);
             }
-        } catch (error) {
+        } catch {
             alert('Failed to start poker game. Please try again.');
             setShowPokerGame(false);
         } finally {
@@ -69,7 +69,7 @@ function App() {
             } else if (response.state) {
                 setPokerGameState(response.state);
             }
-        } catch (error) {
+        } catch {
             alert('Failed to send action. Please try again.');
         } finally {
             setPokerLoading(false);
@@ -81,33 +81,33 @@ function App() {
         setPokerGameState(null);
     };
 
-    const handleAutoEvaluatePoker = async () => {
+    const handleRunBenchmark = async () => {
         try {
-            setAutoEvaluateLoading(true);
-            setShowAutoEvaluate(true);
+            setBenchmarkLoading(true);
+            setShowBenchmark(true);
 
             const response = await sendCommandWithResponse({
-                command: 'auto_evaluate_poker',
+                command: 'standard_poker_series',
                 data: { standard_energy: 500, max_hands: 1000 },
             });
 
             if (response.success === false) {
-                alert(response.error || 'Failed to run auto-evaluation');
-                setShowAutoEvaluate(false);
+                alert(response.error || 'Failed to run benchmark series');
+                setShowBenchmark(false);
             } else if (response.stats) {
-                setAutoEvaluateStats(response.stats);
+                setBenchmarkStats(response.stats);
             }
-        } catch (error) {
-            alert('Failed to run auto-evaluation. Please try again.');
-            setShowAutoEvaluate(false);
+        } catch {
+            alert('Failed to run benchmark series. Please try again.');
+            setShowBenchmark(false);
         } finally {
-            setAutoEvaluateLoading(false);
+            setBenchmarkLoading(false);
         }
     };
 
-    const handleCloseAutoEvaluate = () => {
-        setShowAutoEvaluate(false);
-        setAutoEvaluateStats(null);
+    const handleCloseBenchmark = () => {
+        setShowBenchmark(false);
+        setBenchmarkStats(null);
     };
 
     return (
@@ -191,12 +191,12 @@ function App() {
                     )}
 
                     {/* Auto-Evaluation Display */}
-                    {showAutoEvaluate && (
+                    {showBenchmark && (
                         <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
                             <AutoEvaluateDisplay
-                                stats={autoEvaluateStats}
-                                onClose={handleCloseAutoEvaluate}
-                                loading={autoEvaluateLoading}
+                                stats={benchmarkStats}
+                                onClose={handleCloseBenchmark}
+                                loading={benchmarkLoading}
                             />
                         </div>
                     )}
@@ -207,7 +207,7 @@ function App() {
                         onCommand={sendCommand}
                         isConnected={isConnected}
                         onPlayPoker={handleStartPoker}
-                        onAutoEvaluatePoker={handleAutoEvaluatePoker}
+                        onRunBenchmark={handleRunBenchmark}
                     />
                     <StatsPanel stats={state?.stats ?? null} />
                 </div>

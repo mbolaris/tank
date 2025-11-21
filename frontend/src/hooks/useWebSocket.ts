@@ -36,7 +36,7 @@ export function useWebSocket() {
             responseCallbacksRef.current.forEach((callback) => callback(data));
             responseCallbacksRef.current.clear();
           }
-        } catch (error) {
+        } catch {
           // Silently ignore parse errors - malformed data
         }
       };
@@ -58,15 +58,19 @@ export function useWebSocket() {
       };
 
       wsRef.current = ws;
-    } catch (error) {
+    } catch {
       setIsConnected(false);
     }
   }, []);
 
-  // Store connect function in ref
-  connectRef.current = connect;
+  // Store connect function in ref without mutating during render
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
+    // WebSocket setup synchronizes with external server state
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     connect();
 
     return () => {

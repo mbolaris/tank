@@ -1,48 +1,136 @@
 /**
- * Auto-evaluation poker results display component
+ * Static poker benchmark display component
  */
 
+import type {
+  AutoEvaluatePlayerStats,
+  AutoEvaluateStats,
+  PokerPerformanceSnapshot,
+} from '../types/simulation';
 import { colors, commonStyles } from '../styles/theme';
 
-interface PlayerStats {
-  player_id: string;
-  name: string;
-  is_standard: boolean;
-  fish_id?: number;
-  fish_generation?: number;
-  energy: number;
-  hands_won: number;
-  hands_lost: number;
-  total_energy_won: number;
-  total_energy_lost: number;
-  net_energy: number;
+const palette = ['#22c55e', '#38bdf8', '#a855f7', '#f97316'];
+
+function PerformanceChart({
+  history,
+  players,
+}: {
+  history: PokerPerformanceSnapshot[];
+  players: AutoEvaluatePlayerStats[];
+}) {
+  if (!history || history.length === 0) {
+    return null;
+  }
+
+  const sortedHistory = [...history].sort((a, b) => a.hand - b.hand);
+  const width = 820;
+  const height = 280;
+  const padding = 40;
+  const maxHand = Math.max(...sortedHistory.map((h) => h.hand), 1);
+  const allValues = sortedHistory.flatMap((h) => h.players.map((p) => p.net_energy));
+  const minValue = Math.min(0, ...allValues);
+  const maxValue = Math.max(0, ...allValues);
+  const range = maxValue - minValue || 1;
+
+  const scaleX = (hand: number) =>
+    padding + (hand / maxHand) * (width - padding * 2);
+  const scaleY = (value: number) =>
+    height - padding - ((value - minValue) / range) * (height - padding * 2);
+
+  const playerOrder = [...players].sort(
+    (a, b) => Number(a.is_standard) - Number(b.is_standard)
+  );
+
+  return (
+    <div style={styles.chartWrapper}>
+      <div style={styles.chartHeader}>
+        <div>
+          <div style={styles.chartTitle}>Performance over time</div>
+          <div style={styles.chartSubtitle}>
+            Net energy vs starting stack across hands
+          </div>
+        </div>
+        <div style={styles.chartLegend}>
+          {playerOrder.map((player, index) => {
+            const color = palette[index % palette.length];
+            return (
+              <div key={player.player_id} style={styles.legendItem}>
+                <span
+                  style={{
+                    ...styles.legendSwatch,
+                    backgroundColor: color,
+                  }}
+                />
+                <span>
+                  {player.is_standard ? 'Static standard' : player.name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <svg width={width} height={height} style={styles.chartSvg}>
+        <line
+          x1={padding}
+          y1={scaleY(0)}
+          x2={width - padding}
+          y2={scaleY(0)}
+          stroke={colors.border}
+          strokeDasharray="4 4"
+        />
+        {playerOrder.map((player, index) => {
+          const color = palette[index % palette.length];
+          const pathD = sortedHistory
+            .map((point, pointIndex) => {
+              const playerPoint = point.players.find(
+                (p) => p.player_id === player.player_id
+              );
+              const value = playerPoint ? playerPoint.net_energy : 0;
+              const x = scaleX(point.hand);
+              const y = scaleY(value);
+              return `${pointIndex === 0 ? 'M' : 'L'}${x},${y}`;
+            })
+            .join(' ');
+
+          return (
+            <path
+              key={player.player_id}
+              d={pathD}
+              fill="none"
+              stroke={color}
+              strokeWidth={2.5}
+              opacity={player.is_standard ? 0.85 : 1}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
 }
 
-interface AutoEvaluateStats {
-  hands_played: number;
-  hands_remaining: number;
-  players: PlayerStats[];
-  game_over: boolean;
-  winner: string | null;
-  reason: string;
-}
-
-interface AutoEvaluateDisplayProps {
+export function AutoEvaluateDisplay({
+  stats,
+  onClose,
+  loading,
+}: {
   stats: AutoEvaluateStats | null;
   onClose: () => void;
   loading: boolean;
-}
-
-export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDisplayProps) {
+}) {
   if (loading && !stats) {
     return (
       <div style={styles.container}>
         <div style={styles.header}>
-          <h2 style={styles.title}>Auto-Evaluating Poker Skill...</h2>
-          <button onClick={onClose} style={styles.closeButton}>×</button>
+          <h2 style={styles.title}>Running static benchmark...</h2>
+          <button onClick={onClose} style={styles.closeButton}>
+            ×
+          </button>
         </div>
         <div style={styles.loading}>
-          <p>Running automated poker evaluation with multiple fish vs standard algorithm...</p>
+          <p>
+            Playing a regular series with the leaderboard&apos;s top three fish vs
+            the static standard player.
+          </p>
           <p style={styles.loadingSubtext}>This may take a moment...</p>
         </div>
       </div>
@@ -54,8 +142,8 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
   }
 
   const isTie = stats.winner === 'Tie';
-  const standardPlayer = stats.players.find(p => p.is_standard);
-  const fishPlayers = stats.players.filter(p => !p.is_standard);
+  const standardPlayer = stats.players.find((p) => p.is_standard);
+  const fishPlayers = stats.players.filter((p) => !p.is_standard);
   const standardWon = stats.winner === standardPlayer?.name;
 
   // Calculate aggregate fish stats
@@ -70,15 +158,23 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2 style={styles.title}>Auto-Evaluation Results</h2>
-        <button onClick={onClose} style={styles.closeButton}>×</button>
+        <h2 style={styles.title}>Static Poker Benchmark</h2>
+        <button onClick={onClose} style={styles.closeButton}>
+          ×
+        </button>
       </div>
 
       {/* Winner Announcement */}
-      <div style={{
-        ...styles.winnerSection,
-        backgroundColor: standardWon ? colors.buttonDanger : (isTie ? colors.bgLight : colors.buttonSuccess),
-      }}>
+      <div
+        style={{
+          ...styles.winnerSection,
+          backgroundColor: standardWon
+            ? colors.buttonDanger
+            : isTie
+              ? colors.bgLight
+              : colors.buttonSuccess,
+        }}
+      >
         <h3 style={styles.winnerTitle}>
           {isTie ? '🤝 Tie Game!' : `🏆 ${stats.winner} Wins!`}
         </h3>
@@ -97,14 +193,23 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
         </div>
         <div style={styles.summaryCard}>
           <div style={styles.summaryLabel}>Fish Net Energy</div>
-          <div style={{
-            ...styles.summaryValue,
-            color: totalFishEnergy >= 0 ? colors.buttonSuccess : colors.danger,
-          }}>
-            {totalFishEnergy >= 0 ? '+' : ''}{totalFishEnergy}
+          <div
+            style={{
+              ...styles.summaryValue,
+              color:
+                totalFishEnergy >= 0 ? colors.buttonSuccess : colors.danger,
+            }}
+          >
+            {totalFishEnergy >= 0 ? '+' : ''}
+            {totalFishEnergy}
           </div>
         </div>
       </div>
+
+      <PerformanceChart
+        history={stats.performance_history ?? []}
+        players={stats.players}
+      />
 
       {/* Detailed Stats */}
       <div style={styles.detailsSection}>
@@ -143,12 +248,18 @@ export function AutoEvaluateDisplay({ stats, onClose, loading }: AutoEvaluateDis
               </div>
               <div style={styles.statRow}>
                 <span style={styles.statLabel}>Net Profit:</span>
-                <span style={{
-                  ...styles.statValue,
-                  color: player.net_energy >= 0 ? colors.buttonSuccess : colors.danger,
-                  fontWeight: 'bold',
-                }}>
-                  {player.net_energy >= 0 ? '+' : ''}{player.net_energy} ⚡
+                <span
+                  style={{
+                    ...styles.statValue,
+                    color:
+                      player.net_energy >= 0
+                        ? colors.buttonSuccess
+                        : colors.danger,
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {player.net_energy >= 0 ? '+' : ''}
+                  {player.net_energy} ⚡
                 </span>
               </div>
             </div>
@@ -247,6 +358,51 @@ const styles = {
     fontWeight: 'bold',
     color: colors.primary,
   },
+  chartWrapper: {
+    backgroundColor: colors.bgLight,
+    border: `1px solid ${colors.border}`,
+    borderRadius: '8px',
+    padding: '12px',
+    marginBottom: '24px',
+  },
+  chartHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '12px',
+  },
+  chartTitle: {
+    color: colors.primary,
+    fontWeight: 700,
+    fontSize: '16px',
+  },
+  chartSubtitle: {
+    color: colors.textSecondary,
+    fontSize: '13px',
+  },
+  chartSvg: {
+    width: '100%',
+  },
+  chartLegend: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap' as const,
+    justifyContent: 'flex-end',
+  },
+  legendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    color: colors.text,
+    fontSize: '13px',
+  },
+  legendSwatch: {
+    width: '14px',
+    height: '14px',
+    borderRadius: '4px',
+    display: 'inline-block',
+    border: `1px solid ${colors.border}`,
+  },
   detailsSection: {
     marginBottom: '24px',
   },
@@ -294,4 +450,4 @@ const styles = {
     padding: '12px 32px',
     fontSize: '16px',
   },
-};
+} as const;

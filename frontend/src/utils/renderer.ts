@@ -520,13 +520,14 @@ export class Renderer {
         });
         break;
 
-      case 2: // Solid (darker overlay)
+      case 2: { // Solid (darker overlay)
         const path = new Path2D(getFishPath(params, baseSize));
         ctx.globalAlpha = opacity * 0.5;
         ctx.fill(path);
         break;
+      }
 
-      case 3: // Gradient
+      case 3: { // Gradient
         const gradient = ctx.createLinearGradient(0, 0, width, 0);
         gradient.addColorStop(0, color);
         gradient.addColorStop(1, 'transparent');
@@ -534,6 +535,7 @@ export class Renderer {
         const gradPath = new Path2D(getFishPath(params, baseSize));
         ctx.fill(gradPath);
         break;
+      }
     }
 
     ctx.restore();

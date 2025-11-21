@@ -1,5 +1,5 @@
 """
-Auto-evaluation poker game for testing fish poker skills.
+"""Auto-evaluation poker game for testing fish poker skills.
 
 This module manages automated poker games where multiple fish play against
 a standard poker evaluation algorithm for 1000 hands or until one player
@@ -35,6 +35,7 @@ class EvalPlayerState:
     total_bet: float = 0.0
     folded: bool = False
     is_standard: bool = False  # True if this is the standard algorithm player
+    starting_energy: float = 0.0
     # For fish player
     poker_strategy: Optional[PokerStrategyAlgorithm] = None
     fish_id: Optional[int] = None
@@ -56,6 +57,7 @@ class AutoEvaluateStats:
     game_over: bool = False
     winner: Optional[str] = None
     reason: str = ""
+    performance_history: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class AutoEvaluatePokerGame:
@@ -93,7 +95,7 @@ class AutoEvaluatePokerGame:
         # With 4 players, blinds rotate, so each player posts SB+BB every 4 hands
         # Minimum energy needed: (SB + BB) * (max_hands / num_players) * 2
         min_energy_needed = (small_blind + big_blind) * (max_hands / len(fish_players) + 1) * 2
-        starting_energy = max(500.0, min_energy_needed)
+        starting_energy = max(standard_energy, min_energy_needed)
 
         for i, fish_data in enumerate(fish_players):
             self.players.append(
@@ -101,6 +103,7 @@ class AutoEvaluatePokerGame:
                     player_id=f"fish_{i}",
                     name=fish_data["name"],
                     energy=starting_energy,
+                    starting_energy=starting_energy,
                     poker_strategy=fish_data["poker_strategy"],
                     fish_id=fish_data.get("fish_id"),
                     fish_generation=fish_data.get("generation"),
@@ -115,6 +118,7 @@ class AutoEvaluatePokerGame:
                 name="Standard Algorithm",
                 energy=starting_energy,
                 is_standard=True,
+                starting_energy=starting_energy,
             )
         )
 
@@ -128,6 +132,7 @@ class AutoEvaluatePokerGame:
         self.game_over = False
         self.winner: Optional[str] = None
         self.last_hand_message = ""
+        self.performance_history: List[Dict[str, Any]] = []
 
     def get_players(self) -> List[EvalPlayerState]:
         """Get list of players."""
@@ -413,6 +418,29 @@ class AutoEvaluatePokerGame:
         if self.current_round != BettingRound.SHOWDOWN:
             self._showdown()
 
+        # Capture performance snapshot after each hand
+        self._record_hand_performance()
+
+    def _record_hand_performance(self):
+        """Record net energy performance for all players after a hand."""
+        snapshot: Dict[str, Any] = {
+            "hand": self.hands_played,
+            "players": [],
+        }
+
+        for player in self.players:
+            snapshot["players"].append(
+                {
+                    "player_id": player.player_id,
+                    "name": player.name,
+                    "is_standard": player.is_standard,
+                    "energy": round(player.energy, 1),
+                    "net_energy": round(player.energy - player.starting_energy, 1),
+                }
+            )
+
+        self.performance_history.append(snapshot)
+
     def run_evaluation(self) -> AutoEvaluateStats:
         """Run the full evaluation (max_hands or until only one player remains).
 
@@ -422,6 +450,9 @@ class AutoEvaluatePokerGame:
         logger.info(
             f"Auto-eval {self.game_id}: Starting evaluation with {len(self.players)} players"
         )
+
+        # Baseline snapshot before any hands are played
+        self._record_hand_performance()
 
         while self.hands_played < self.max_hands:
             # Check how many players can still play (have energy >= big blind)
@@ -492,4 +523,5 @@ class AutoEvaluatePokerGame:
                 if self.hands_played >= self.max_hands
                 else f"Game ended after {self.hands_played} hands"
             ),
+            performance_history=self.performance_history,
         )
