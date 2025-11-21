@@ -67,73 +67,55 @@ body {
     opacity: 0.7;
 }
 
-.canvas-meta {
+.canvas-meta-compact {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 4px;
-}
-
-.canvas-meta>div {
-    flex: 1;
-    min-width: 0;
-}
-
-.canvas-label {
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #94a3b8;
-    margin-bottom: 4px;
-}
-
-.canvas-value {
-    font-size: clamp(18px, 3vw, 26px);
-    font-weight: 700;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 12px;
+    font-size: 14px;
     color: #e0f2fe;
 }
 
-.canvas-value span {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(226, 232, 240, 0.7);
-    margin-left: 6px;
-}
-
-.canvas-value .canvas-subvalue {
-    display: block;
-    margin-left: 0;
-    margin-top: 4px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgba(226, 232, 240, 0.85);
-}
-
-.canvas-status {
+.status-badge {
     font-weight: 600;
-    font-size: 18px;
-    padding: 6px 12px;
+    font-size: 12px;
+    padding: 3px 10px;
     border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     border: 1px solid transparent;
 }
 
-.canvas-status.online {
+.status-badge.online {
     color: #4ade80;
     border-color: rgba(74, 222, 128, 0.5);
     background: rgba(22, 163, 74, 0.1);
 }
 
-.canvas-status.offline {
+.status-badge.offline {
     color: #fbbf24;
     border-color: rgba(251, 191, 36, 0.4);
     background: rgba(120, 53, 15, 0.15);
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.meta-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.meta-sub {
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-left: 4px;
 }
 
 .footer {
@@ -166,8 +148,9 @@ body {
         max-width: 1140px;
     }
 
-    .canvas-meta {
-        gap: 8px;
+    .canvas-meta-compact {
+        gap: 12px;
+        flex-wrap: wrap;
     }
 }
 

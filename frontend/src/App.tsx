@@ -105,43 +105,27 @@ function App() {
                 {/* Tank simulation */}
                 <div className="top-section">
                     <div className="canvas-wrapper">
-                        <div className="canvas-meta">
-                            <div>
-                                <p className="canvas-label">Status</p>
-                                <p className={`canvas-status ${isConnected ? 'online' : 'offline'}`}>
-                                    {isConnected ? 'Connected' : 'Waiting'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="canvas-label">Simulation</p>
-                                <p className="canvas-value">
-                                    {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}{' '}
-                                    <span>frames</span>
-                                </p>
-                            </div>
-                            <div>
-                                <p className="canvas-label">Population</p>
-                                <p className="canvas-value">
-                                    {state?.stats?.fish_count ?? 0}
-                                    <span> fish</span>
-                                    {state?.stats && (
-                                        <span className="canvas-subvalue">Max Gen {maxGeneration}</span>
-                                    )}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="canvas-label">Energy</p>
-                                <p className="canvas-value" style={{ color: getEnergyColor(state?.stats?.total_energy ?? 0) }}>
-                                    {state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}
-                                    <span>total</span>
-                                </p>
-                            </div>
-                            <div>
-                                <p className="canvas-label">Time</p>
-                                <p className="canvas-value">
-                                    {state?.stats?.time ?? '—'}
-                                </p>
-                            </div>
+                        <div className="canvas-meta-compact">
+                            <span className={`status-badge ${isConnected ? 'online' : 'offline'}`}>
+                                {isConnected ? 'Connected' : 'Waiting'}
+                            </span>
+                            <span className="meta-item">
+                                <span className="meta-label">Sim</span>
+                                {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'} frames
+                            </span>
+                            <span className="meta-item">
+                                <span className="meta-label">Pop</span>
+                                {state?.stats?.fish_count ?? 0} fish
+                                <span className="meta-sub">Gen {maxGeneration}</span>
+                            </span>
+                            <span className="meta-item" style={{ color: getEnergyColor(state?.stats?.total_energy ?? 0) }}>
+                                <span className="meta-label">Energy</span>
+                                {state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}
+                            </span>
+                            <span className="meta-item">
+                                <span className="meta-label">Time</span>
+                                {state?.stats?.time ?? '—'}
+                            </span>
                         </div>
                         <Canvas state={state} width={1088} height={612} />
                         <div className="canvas-glow" aria-hidden />

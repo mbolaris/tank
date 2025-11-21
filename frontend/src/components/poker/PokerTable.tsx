@@ -35,14 +35,13 @@ export function PokerTable({ pot, communityCards, currentRound }: PokerTableProp
 
     return (
         <div className={styles.table}>
-            {/* Round indicator */}
-            <div className={styles.roundIndicator}>
-                <span className={styles.roundName}>{roundInfo.name}</span>
-                <span className={styles.roundCards}>{roundInfo.cards}</span>
-            </div>
-
-            {/* Pot and Community Cards side by side */}
+            {/* Phase, Pot, and Community Cards all side by side */}
             <div className={styles.topRow}>
+                {/* Round indicator */}
+                <div className={styles.roundIndicator}>
+                    <span className={styles.roundName}>{roundInfo.name}</span>
+                    <span className={styles.roundCards}>{roundInfo.cards}</span>
+                </div>
                 {/* Pot display */}
                 <div className={styles.potArea}>
                     <div className={styles.potLabel}>POT</div>
