@@ -22,10 +22,8 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
         <section className="poker-events" aria-label="Recent poker activity">
             <div className="poker-events__header">
                 <div className="poker-events__title-row">
-                    <span className="poker-events__icon">♠️</span>
-                    <h2>Poker Activity</h2>
+                    <h2>Recent Activity</h2>
                 </div>
-                <span className="poker-events__subtitle">Live high-stakes action from the tank</span>
             </div>
 
             {events.length === 0 ? (

@@ -130,21 +130,30 @@ function App() {
                             </span>
                             <span className="meta-item">
                                 <span className="meta-label">Sim</span>
-                                {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'} frames
+                                <span className="meta-value-wide">{state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}</span>
+                                <span>frames</span>
                             </span>
                             <span className="meta-item">
                                 <span className="meta-label">Pop</span>
-                                {state?.stats?.fish_count ?? 0} fish
+                                <span className="meta-value">{state?.stats?.fish_count ?? 0}</span>
+                                <span>fish</span>
                                 <span className="meta-sub">Gen {maxGeneration}</span>
                             </span>
                             <span className="meta-item" style={{ color: getEnergyColor(state?.stats?.total_energy ?? 0) }}>
                                 <span className="meta-label">Energy</span>
-                                {state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}
+                                <span className="meta-value-wide">{state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}</span>
                             </span>
                             <span className="meta-item">
                                 <span className="meta-label">Time</span>
-                                {state?.stats?.time ?? '—'}
+                                <span>{state?.stats?.time ?? '—'}</span>
                             </span>
+                            {pokerStats && (
+                                <span className="meta-item" style={{ color: '#a78bfa' }}>
+                                    <span className="meta-label">Poker</span>
+                                    <span className="meta-value">{pokerStats.total_games.toLocaleString()}</span>
+                                    <span>games</span>
+                                </span>
+                            )}
                         </div>
                         <Canvas state={state} width={1088} height={612} />
                         <div className="canvas-glow" aria-hidden />
@@ -171,76 +180,8 @@ function App() {
                     </div>
                 )}
 
-                {/* Poker Stats */}
-                {pokerStats && (
-                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                        <div style={{
-                            backgroundColor: '#0f172a',
-                            borderRadius: '12px',
-                            padding: '20px',
-                            border: '1px solid #334155'
-                        }}>
-                            <h3 style={{ color: '#3b82f6', marginBottom: '16px', fontSize: '18px' }}>
-                                🎰 Poker Statistics
-                            </h3>
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                                gap: '16px'
-                            }}>
-                                <div style={{
-                                    padding: '12px',
-                                    backgroundColor: '#1e293b',
-                                    borderRadius: '8px',
-                                    border: '1px solid #334155'
-                                }}>
-                                    <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Activity Rate</p>
-                                    <p style={{ color: '#3b82f6', fontSize: '24px', fontWeight: 'bold' }}>{gamesPerMinute}</p>
-                                    <p style={{ color: '#64748b', fontSize: '11px' }}>Games / Minute</p>
-                                </div>
-                                <div style={{
-                                    padding: '12px',
-                                    backgroundColor: '#1e293b',
-                                    borderRadius: '8px',
-                                    border: '1px solid #334155'
-                                }}>
-                                    <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Total Games</p>
-                                    <p style={{ color: '#e2e8f0', fontSize: '24px', fontWeight: 'bold' }}>
-                                        {pokerStats.total_games.toLocaleString()}
-                                    </p>
-                                    <p style={{ color: '#64748b', fontSize: '11px' }}>Lifetime Hands Dealt</p>
-                                </div>
-                                <div style={{
-                                    padding: '12px',
-                                    backgroundColor: '#1e293b',
-                                    borderRadius: '8px',
-                                    border: '1px solid #334155'
-                                }}>
-                                    <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Economy Volume</p>
-                                    <p style={{ color: '#e2e8f0', fontSize: '24px', fontWeight: 'bold' }}>
-                                        {Math.round(pokerStats.total_energy_won).toLocaleString()}⚡
-                                    </p>
-                                    <p style={{ color: '#64748b', fontSize: '11px' }}>Total Energy Exchanged</p>
-                                </div>
-                                <div style={{
-                                    padding: '12px',
-                                    backgroundColor: '#1e293b',
-                                    borderRadius: '8px',
-                                    border: '1px solid #334155'
-                                }}>
-                                    <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Avg Win Rate</p>
-                                    <p style={{ color: '#e2e8f0', fontSize: '24px', fontWeight: 'bold' }}>
-                                        {pokerStats.win_rate_pct ?? "0%"}
-                                    </p>
-                                    <p style={{ color: '#64748b', fontSize: '11px' }}>Population Skill Level</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Leaderboard & Activity - Side by side (optional) */}
-                {showLeaderboard && state?.poker_leaderboard && state?.poker_events && (
+                {/* Poker Dashboard - Stats, Leaderboard & Activity combined */}
+                {(pokerStats || (state?.poker_leaderboard && state?.poker_events)) && (
                     <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
                         <div style={{
                             display: 'flex',
@@ -248,65 +189,131 @@ function App() {
                             alignItems: 'center',
                             marginBottom: '12px'
                         }}>
-                            <h3 style={{ color: '#3b82f6', fontSize: '18px' }}>
-                                🏆 Leaderboard & Activity
+                            <h3 style={{ color: '#3b82f6', fontSize: '18px', margin: 0 }}>
+                                Poker Dashboard
                             </h3>
+                            {showLeaderboard && (
+                                <button
+                                    onClick={() => setShowLeaderboard(false)}
+                                    style={{
+                                        padding: '6px 12px',
+                                        backgroundColor: '#1e293b',
+                                        color: '#94a3b8',
+                                        border: '1px solid #475569',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    Collapse
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Compact Stats Row */}
+                        {pokerStats && (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gap: '12px',
+                                marginBottom: showLeaderboard ? '16px' : '0'
+                            }}>
+                                <div style={{
+                                    padding: '12px 16px',
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '10px',
+                                    border: '1px solid #334155',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>Rate</span>
+                                    <span style={{ color: '#3b82f6', fontSize: '20px', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>{gamesPerMinute}/m</span>
+                                </div>
+                                <div style={{
+                                    padding: '12px 16px',
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '10px',
+                                    border: '1px solid #334155',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>Games</span>
+                                    <span style={{ color: '#e2e8f0', fontSize: '20px', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>{pokerStats.total_games.toLocaleString()}</span>
+                                </div>
+                                <div style={{
+                                    padding: '12px 16px',
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '10px',
+                                    border: '1px solid #334155',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>Volume</span>
+                                    <span style={{ color: '#fbbf24', fontSize: '20px', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>{Math.round(pokerStats.total_energy_won).toLocaleString()}⚡</span>
+                                </div>
+                                <div style={{
+                                    padding: '12px 16px',
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '10px',
+                                    border: '1px solid #334155',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>Avg Win</span>
+                                    <span style={{ color: '#4ade80', fontSize: '20px', fontWeight: 'bold', fontVariantNumeric: 'tabular-nums' }}>{pokerStats.win_rate_pct ?? "0%"}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Leaderboard & Activity Grid */}
+                        {showLeaderboard && state?.poker_leaderboard && state?.poker_events && (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '16px'
+                            }}>
+                                <div style={{
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    border: '1px solid #334155'
+                                }}>
+                                    <PokerLeaderboard leaderboard={state.poker_leaderboard} />
+                                </div>
+                                <div style={{
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    border: '1px solid #334155'
+                                }}>
+                                    <PokerEvents events={state.poker_events} currentFrame={state.frame} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Expand button when collapsed */}
+                        {!showLeaderboard && state?.poker_leaderboard && (
                             <button
-                                onClick={() => setShowLeaderboard(false)}
+                                onClick={() => setShowLeaderboard(true)}
                                 style={{
-                                    padding: '6px 12px',
+                                    marginTop: '12px',
+                                    padding: '8px 16px',
                                     backgroundColor: '#1e293b',
-                                    color: '#94a3b8',
+                                    color: '#3b82f6',
                                     border: '1px solid #475569',
-                                    borderRadius: '6px',
+                                    borderRadius: '8px',
                                     cursor: 'pointer',
-                                    fontSize: '12px'
+                                    fontWeight: 600,
+                                    fontSize: '13px'
                                 }}
                             >
-                                Hide
+                                Show Leaderboard & Activity
                             </button>
-                        </div>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '16px'
-                        }}>
-                            <div style={{
-                                backgroundColor: '#0f172a',
-                                borderRadius: '12px',
-                                padding: '16px',
-                                border: '1px solid #334155'
-                            }}>
-                                <PokerLeaderboard leaderboard={state.poker_leaderboard} />
-                            </div>
-                            <div style={{
-                                backgroundColor: '#0f172a',
-                                borderRadius: '12px',
-                                padding: '16px',
-                                border: '1px solid #334155'
-                            }}>
-                                <PokerEvents events={state.poker_events} currentFrame={state.frame} />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {!showLeaderboard && state?.poker_leaderboard && (
-                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                        <button
-                            onClick={() => setShowLeaderboard(true)}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#1e293b',
-                                color: '#3b82f6',
-                                border: '1px solid #475569',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                            }}
-                        >
-                            Show Leaderboard & Activity
-                        </button>
+                        )}
                     </div>
                 )}
 

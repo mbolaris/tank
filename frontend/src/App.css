@@ -101,6 +101,22 @@ body {
     align-items: center;
     gap: 6px;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.meta-value {
+    display: inline-block;
+    min-width: 5ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.meta-value-wide {
+    display: inline-block;
+    min-width: 8ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .meta-label {
