@@ -124,6 +124,12 @@ function App() {
                     <div className="canvas-wrapper">
                         <div className="canvas-meta">
                             <div>
+                                <p className="canvas-label">Status</p>
+                                <p className={`canvas-status ${isConnected ? 'online' : 'offline'}`}>
+                                    {isConnected ? 'Connected' : 'Waiting'}
+                                </p>
+                            </div>
+                            <div>
                                 <p className="canvas-label">Simulation</p>
                                 <p className="canvas-value">
                                     {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}{' '}
@@ -154,12 +160,6 @@ function App() {
                                 <p className="canvas-label">Time</p>
                                 <p className="canvas-value">
                                     {state?.stats?.time ?? '—'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="canvas-label">Status</p>
-                                <p className={`canvas-status ${isConnected ? 'online' : 'offline'}`}>
-                                    {isConnected ? 'Connected' : 'Waiting'}
                                 </p>
                             </div>
                         </div>

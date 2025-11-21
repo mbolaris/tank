@@ -91,10 +91,17 @@ body {
 }
 
 .canvas-meta {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
+    display: flex;
+    gap: 10px;
     margin-bottom: 20px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.canvas-meta > div {
+    flex: 1;
+    min-width: 0;
 }
 
 .canvas-label {
@@ -183,7 +190,7 @@ body {
     }
 
     .canvas-meta {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 8px;
     }
 }
 
