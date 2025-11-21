@@ -112,17 +112,39 @@ class SimulationRunner:
             Dictionary with fish player data
         """
         algo_name = fish.genome.behavior_algorithm.algorithm_id
+        genome_data = self._get_fish_genome_data(fish)
         player_data = {
             "fish_id": fish.fish_id,
             "name": f"{algo_name[:15]} (Gen {fish.generation})",
+            "generation": fish.generation,
             "energy": fish.energy,
             "algorithm": algo_name,
+            "genome_data": genome_data,
         }
 
         if include_aggression:
             player_data["aggression"] = getattr(fish.genome, "aggression", 0.5)
 
         return player_data
+
+    def _get_fish_genome_data(self, fish: Fish) -> Optional[Dict[str, Any]]:
+        """Extract visual genome data for a fish to mirror tank rendering."""
+
+        if not hasattr(fish, "genome"):
+            return None
+
+        return {
+            "speed": fish.genome.speed_modifier,
+            "size": getattr(fish, "size", getattr(fish.genome, "size_modifier", 1.0)),
+            "color_hue": fish.genome.color_hue,
+            "template_id": fish.genome.template_id,
+            "fin_size": fish.genome.fin_size,
+            "tail_size": fish.genome.tail_size,
+            "body_aspect": fish.genome.body_aspect,
+            "eye_size": fish.genome.eye_size,
+            "pattern_intensity": fish.genome.pattern_intensity,
+            "pattern_type": fish.genome.pattern_type,
+        }
 
     def start(self, start_paused: bool = False):
         """Start the simulation in a background thread.
