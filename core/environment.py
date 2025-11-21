@@ -81,19 +81,18 @@ class SpatialGrid:
 
     def get_cells_in_radius(self, x: float, y: float, radius: float) -> List[Tuple[int, int]]:
         """Get all grid cells that intersect with a circular radius."""
-        cells = []
-
         # Calculate the range of cells to check
         min_col = max(0, int((x - radius) / self.cell_size))
         max_col = min(self.cols - 1, int((x + radius) / self.cell_size))
         min_row = max(0, int((y - radius) / self.cell_size))
         max_row = min(self.rows - 1, int((y + radius) / self.cell_size))
 
-        for col in range(min_col, max_col + 1):
-            for row in range(min_row, max_row + 1):
-                cells.append((col, row))
-
-        return cells
+        # Pre-allocate list size if possible or just use list comprehension which is faster than append loop
+        return [
+            (col, row)
+            for col in range(min_col, max_col + 1)
+            for row in range(min_row, max_row + 1)
+        ]
 
     def query_radius(self, agent: Agent, radius: float) -> List[Agent]:
         """
@@ -105,20 +104,37 @@ class SpatialGrid:
         if not hasattr(agent, "pos"):
             return []
 
-        candidates = []
-        cells = self.get_cells_in_radius(agent.pos.x, agent.pos.y, radius)
-
-        # Collect all agents from relevant cells
-        for cell in cells:
-            candidates.extend(self.grid[cell])
-
-        # Filter by actual distance and exclude the querying agent
+        # Local variable access is faster
+        agent_pos_x = agent.pos.x
+        agent_pos_y = agent.pos.y
         radius_sq = radius * radius
+        
+        # Calculate cell range directly
+        cell_size = self.cell_size
+        min_col = max(0, int((agent_pos_x - radius) / cell_size))
+        max_col = min(self.cols - 1, int((agent_pos_x + radius) / cell_size))
+        min_row = max(0, int((agent_pos_y - radius) / cell_size))
+        max_row = min(self.rows - 1, int((agent_pos_y + radius) / cell_size))
+
+        # Collect candidates using fast C-implemented extend
+        candidates = []
+        grid = self.grid
+        
+        # Iterate ranges directly to avoid creating intermediate list of cells
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                # Direct access to defaultdict is faster than checking 'in'
+                # accessing missing key creates empty set, extend handles empty set efficiently
+                candidates.extend(grid[(col, row)])
+        
+        # Filter using list comprehension (faster than explicit for loop)
+        # and optimized math (multiplication instead of exponentiation)
         return [
             other
             for other in candidates
-            if other != agent
-            and (other.pos.x - agent.pos.x) ** 2 + (other.pos.y - agent.pos.y) ** 2 <= radius_sq
+            if other is not agent
+            and (other.pos.x - agent_pos_x) * (other.pos.x - agent_pos_x) + 
+                (other.pos.y - agent_pos_y) * (other.pos.y - agent_pos_y) <= radius_sq
         ]
 
     def clear(self):
