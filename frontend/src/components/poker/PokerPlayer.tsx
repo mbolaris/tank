@@ -51,13 +51,26 @@ export function PokerPlayer({
         );
     }
 
+    // Check if we should show actual cards (showdown) or card backs
+    const showActualCards = cards.length > 0 && cards[0] !== '??';
+
     return (
         <div className={playerClass}>
             <div className={styles.opponentName}>{name}</div>
             <div className={styles.opponentInfo}>
                 <div className={styles.opponentCards}>
-                    <PlayingCard card="BACK" size="small" faceDown={true} />
-                    <PlayingCard card="BACK" size="small" faceDown={true} />
+                    {showActualCards ? (
+                        // Show actual cards during showdown
+                        cards.map((card, idx) => (
+                            <PlayingCard key={idx} card={card} size="small" />
+                        ))
+                    ) : (
+                        // Show card backs during normal play
+                        <>
+                            <PlayingCard card="BACK" size="small" faceDown={true} />
+                            <PlayingCard card="BACK" size="small" faceDown={true} />
+                        </>
+                    )}
                 </div>
                 <div className={styles.opponentStats}>
                     <div className={styles.chipStackContainer}>

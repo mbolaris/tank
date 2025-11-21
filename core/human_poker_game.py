@@ -56,6 +56,7 @@ class HumanPokerGameState:
     winner_index: Optional[int] = None
     game_over: bool = False
     message: str = ""
+    actions_this_round: int = 0  # Track actions per betting round
 
 
 class HumanPokerGame:
@@ -120,6 +121,7 @@ class HumanPokerGame:
         self.winner_index: Optional[int] = None
         self.game_over = False
         self.message = ""
+        self.actions_this_round = 0  # Track actions per betting round
 
         # Deal cards and post blinds
         self._start_hand()
@@ -140,6 +142,7 @@ class HumanPokerGame:
         self.betting_history = []
         self.winner_index = None
         self.game_over = False
+        self.actions_this_round = 0
 
         # Post blinds
         # In multi-player: player after button posts small blind, next player posts big blind
@@ -215,9 +218,10 @@ class HumanPokerGame:
             self._showdown()
             return
 
-        # Reset current bets for new round
+        # Reset current bets and action counter for new round
         for player in self.players:
             player.current_bet = 0.0
+        self.actions_this_round = 0
 
         # First to act post-flop is player after button
         self.current_player_index = (self.button_index + 1) % len(self.players)
@@ -282,8 +286,8 @@ class HumanPokerGame:
             if player.current_bet < max_bet:
                 return False
 
-        # Also ensure all players have had a chance to act
-        return len(self.betting_history) >= len(active_players)
+        # Also ensure all players have had a chance to act this round
+        return self.actions_this_round >= len(active_players)
 
     def _next_player(self):
         """Move to the next active player."""
@@ -346,6 +350,7 @@ class HumanPokerGame:
                     "amount": 0.0,
                 }
             )
+            self.actions_this_round += 1
             self.message = f"{current_player.name} folds"
 
             # Check if only one player left
@@ -367,6 +372,7 @@ class HumanPokerGame:
                     "amount": 0.0,
                 }
             )
+            self.actions_this_round += 1
             self.message = f"{current_player.name} checks"
 
         elif action == "call":
@@ -387,6 +393,7 @@ class HumanPokerGame:
                     "amount": call_amount,
                 }
             )
+            self.actions_this_round += 1
             self.message = f"{current_player.name} calls {call_amount:.1f}"
 
         elif action in ["raise", "bet"]:
@@ -410,6 +417,8 @@ class HumanPokerGame:
                     "amount": total_amount,
                 }
             )
+            # Reset action counter on raise - others need to respond
+            self.actions_this_round = 1
             self.message = f"{current_player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.1f}"
 
         else:
@@ -465,6 +474,7 @@ class HumanPokerGame:
         if action == BettingAction.FOLD:
             player.folded = True
             self.betting_history.append({"player": player.name, "action": "fold", "amount": 0.0})
+            self.actions_this_round += 1
             self.message = f"{player.name} folds"
             # Check if only one player left
             active_players = [p for p in self.players if not p.folded]
@@ -474,6 +484,7 @@ class HumanPokerGame:
 
         elif action == BettingAction.CHECK:
             self.betting_history.append({"player": player.name, "action": "check", "amount": 0.0})
+            self.actions_this_round += 1
             self.message = f"{player.name} checks"
 
         elif action == BettingAction.CALL:
@@ -483,6 +494,7 @@ class HumanPokerGame:
             self.betting_history.append(
                 {"player": player.name, "action": "call", "amount": call_amount}
             )
+            self.actions_this_round += 1
             self.message = f"{player.name} calls {call_amount:.1f}"
 
         elif action == BettingAction.RAISE:
@@ -497,6 +509,8 @@ class HumanPokerGame:
                     "amount": total_amount,
                 }
             )
+            # Reset action counter on raise - others need to respond
+            self.actions_this_round = 1
             self.message = (
                 f"{player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.1f}"
             )
