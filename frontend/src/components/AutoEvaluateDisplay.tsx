@@ -18,7 +18,7 @@ function PerformanceChart({
   }
 
   const sortedHistory = [...history].sort((a, b) => a.hand - b.hand);
-  const width = 820;
+  const width = 1088;
   const height = 400;
   const padding = 50;
   const maxHand = Math.max(...sortedHistory.map((h) => h.hand), 1);
@@ -181,7 +181,7 @@ const styles = {
     border: `2px solid ${colors.primary}`,
     boxShadow: '0 0 20px rgba(0, 255, 0, 0.2)',
     width: '100%',
-    maxWidth: '820px',
+    maxWidth: '1088px',
   },
   header: {
     display: 'flex',
