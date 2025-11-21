@@ -119,6 +119,7 @@ class StatsData(BaseModel):
     frame: int
     population: int
     generation: int
+    max_generation: int
     births: int
     deaths: int
     capacity: str

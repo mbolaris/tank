@@ -117,6 +117,7 @@ export interface StatsData {
   frame: number;
   population: number;
   generation: number;
+  max_generation: number;
   births: number;
   deaths: number;
   capacity: string;

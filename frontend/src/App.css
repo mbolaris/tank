@@ -118,6 +118,17 @@ body {
     margin-left: 6px;
 }
 
+.canvas-value .canvas-subvalue {
+    display: block;
+    margin-left: 0;
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.85);
+}
+
 .canvas-status {
     font-weight: 600;
     font-size: 18px;
