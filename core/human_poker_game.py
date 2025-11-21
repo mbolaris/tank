@@ -34,7 +34,9 @@ class PlayerState:
     is_human: bool = False
     # For AI players
     fish_id: Optional[int] = None
+    generation: Optional[int] = None
     algorithm: Optional[str] = None
+    genome_data: Optional[Dict[str, Any]] = None
     aggression: float = 0.5
 
 
@@ -108,7 +110,9 @@ class HumanPokerGame:
                     name=fish.get("name", f"Fish {i+1}"),
                     energy=self.STARTING_ENERGY,
                     fish_id=fish.get("fish_id"),
+                    generation=fish.get("generation"),
                     algorithm=fish.get("algorithm", "Unknown"),
+                    genome_data=fish.get("genome_data"),
                     aggression=fish.get("aggression", 0.5),
                     is_human=False,
                 )
@@ -695,7 +699,10 @@ class HumanPokerGame:
                     "total_bet": int(p.total_bet),
                     "folded": p.folded,
                     "is_human": p.is_human,
+                    "fish_id": p.fish_id,
+                    "generation": p.generation,
                     "algorithm": p.algorithm,
+                    "genome_data": p.genome_data,
                     # Show hole cards for human player or during showdown
                     "hole_cards": (
                         [str(card) for card in p.hole_cards]

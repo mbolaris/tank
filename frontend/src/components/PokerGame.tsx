@@ -75,6 +75,9 @@ export function PokerGame({ onClose, onAction, onNewRound, gameState, loading }:
                     <PokerPlayer
                         key={player.player_id}
                         name={player.name}
+                        fishId={player.fish_id}
+                        generation={player.generation}
+                        genomeData={player.genome_data}
                         energy={player.energy}
                         currentBet={player.current_bet}
                         folded={player.folded}

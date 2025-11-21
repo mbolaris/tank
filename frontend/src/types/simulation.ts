@@ -2,6 +2,20 @@
  * TypeScript types for simulation data
  */
 
+export interface FishGenomeData {
+  speed: number;
+  size: number;
+  color_hue: number;
+  // Visual traits for parametric fish templates
+  template_id: number;
+  fin_size: number;
+  tail_size: number;
+  body_aspect: number;
+  eye_size: number;
+  pattern_intensity: number;
+  pattern_type: number;
+}
+
 export interface EntityData {
   id: number;
   type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'jellyfish';
@@ -19,19 +33,7 @@ export interface EntityData {
   species?: 'solo' | 'algorithmic' | 'neural' | 'schooling';
   generation?: number;
   age?: number;
-  genome_data?: {
-    speed: number;
-    size: number;
-    color_hue: number;
-    // Visual traits for parametric fish templates
-    template_id: number;
-    fin_size: number;
-    tail_size: number;
-    body_aspect: number;
-    eye_size: number;
-    pattern_intensity: number;
-    pattern_type: number;
-  };
+  genome_data?: FishGenomeData;
 
   // Food-specific
   food_type?: string;
@@ -176,7 +178,10 @@ export interface PokerGamePlayer {
   total_bet: number;
   folded: boolean;
   is_human: boolean;
+  fish_id?: number;
+  generation?: number;
   algorithm?: string;
+  genome_data?: FishGenomeData;
   hole_cards: string[];
 }
 
