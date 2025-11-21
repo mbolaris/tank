@@ -55,7 +55,7 @@ export function PokerGame({ onClose, onAction, gameState, loading }: PokerGamePr
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h2 className={styles.title}>Poker Game - {gameState.current_round}</h2>
+                <h2 className={styles.title}>Poker Game</h2>
                 <button onClick={onClose} className={styles.closeButton}>×</button>
             </div>
 
