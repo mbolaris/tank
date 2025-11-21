@@ -26,14 +26,6 @@ function App() {
         ? state.stats.max_generation ?? state.stats.generation ?? 0
         : 0;
 
-    const [autoEvalHidden, setAutoEvalHidden] = useState(false);
-
-    useEffect(() => {
-        if (state?.auto_evaluation) {
-            setAutoEvalHidden(false);
-        }
-    }, [state?.auto_evaluation]);
-
     const handleStartPoker = async () => {
         try {
             setPokerLoading(true);
@@ -165,11 +157,10 @@ function App() {
                     )}
 
                     {/* Auto-Evaluation Display */}
-                    {state?.auto_evaluation && !autoEvalHidden && (
+                    {state?.auto_evaluation && (
                         <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
                             <AutoEvaluateDisplay
                                 stats={state.auto_evaluation}
-                                onClose={() => setAutoEvalHidden(true)}
                                 loading={false}
                             />
                         </div>
