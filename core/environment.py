@@ -171,6 +171,9 @@ class Environment:
         self.width = width
         self.height = height
         self.time_system = time_system
+        
+        # Performance: Cache detection range modifier (updated once per frame)
+        self._cached_detection_modifier: float = 1.0
 
         # Initialize spatial grid for fast proximity queries
         self.spatial_grid = SpatialGrid(width, height, cell_size=150)
@@ -188,6 +191,24 @@ class Environment:
         from core.fish_communication import FishCommunicationSystem
 
         self.communication_system = FishCommunicationSystem(max_signals=50, decay_rate=0.05)
+    
+    def update_detection_modifier(self) -> None:
+        """Update cached detection range modifier from time system.
+        
+        Should be called once per frame to avoid repeated time_system calls.
+        """
+        if self.time_system is not None:
+            self._cached_detection_modifier = self.time_system.get_detection_range_modifier()
+        else:
+            self._cached_detection_modifier = 1.0
+    
+    def get_detection_modifier(self) -> float:
+        """Get cached detection range modifier.
+        
+        Returns:
+            Float multiplier for detection range (0.25-1.0)
+        """
+        return self._cached_detection_modifier
 
     def rebuild_spatial_grid(self):
         """Rebuild the spatial grid from scratch. Call when agents are added/removed."""

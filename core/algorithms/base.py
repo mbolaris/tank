@@ -461,6 +461,8 @@ class BehaviorAlgorithm(ABC):
 def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] = None) -> Optional[Any]:
     """Find nearest agent of given type within optional distance limit.
     
+    Performance optimized to use squared distances for comparisons.
+    
     Args:
         fish: The fish searching for agents
         agent_type: Type of agent to search for
@@ -473,16 +475,29 @@ def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] 
     if not agents:
         return None
     
-    # Find nearest agent
-    nearest = min(agents, key=lambda a: (a.pos - fish.pos).length())
-    
-    # Check if within detection range
+    # Performance: Use squared distances to avoid expensive sqrt operations
     if max_distance is not None:
-        distance = (nearest.pos - fish.pos).length()
-        if distance > max_distance:
-            return None
-    
-    return nearest
+        max_distance_sq = max_distance * max_distance
+        
+        # Find nearest using squared distances
+        min_dist_sq = float('inf')
+        nearest = None
+        fish_pos = fish.pos
+        
+        for agent in agents:
+            # Squared distance calculation (no sqrt needed)
+            dx = agent.pos.x - fish_pos.x
+            dy = agent.pos.y - fish_pos.y
+            dist_sq = dx * dx + dy * dy
+            
+            if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
+                min_dist_sq = dist_sq
+                nearest = agent
+        
+        return nearest
+    else:
+        # No distance limit - use simple min with lambda
+        return min(agents, key=lambda a: (a.pos - fish.pos).length())
 
 
 def _safe_normalize(self, vector: Vector2) -> Vector2:
@@ -551,11 +566,9 @@ def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
     from core.constants import BASE_FOOD_DETECTION_RANGE
     from core.entities import Food
     
-    # Calculate effective detection range based on time of day
-    max_distance = BASE_FOOD_DETECTION_RANGE
-    if fish.environment.time_system is not None:
-        detection_modifier = fish.environment.time_system.get_detection_range_modifier()
-        max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+    # Performance: Use cached detection modifier from environment (updated once per frame)
+    detection_modifier = fish.environment.get_detection_modifier()
+    max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
     
     # Use the updated _find_nearest with max_distance parameter
     return self._find_nearest(fish, Food, max_distance)

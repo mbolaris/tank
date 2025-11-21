@@ -244,6 +244,10 @@ class SimulationEngine(BaseSimulator):
         self.time_system.update()
         time_modifier = self.time_system.get_activity_modifier()
         time_of_day = self.time_system.get_time_of_day()
+        
+        # Performance: Update cached detection modifier once per frame
+        if self.environment is not None:
+            self.environment.update_detection_modifier()
 
         new_entities: List[entities.Agent] = []
 
