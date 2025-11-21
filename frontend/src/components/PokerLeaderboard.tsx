@@ -14,7 +14,7 @@ export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard 
 
   return (
     <div className={styles.pokerLeaderboard}>
-      <h3>🏆 Poker Leaderboard - Top Players</h3>
+      <h3>Top Players</h3>
       <div className={styles.leaderboardTable}>
         <table>
           <thead>
