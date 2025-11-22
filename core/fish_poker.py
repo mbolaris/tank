@@ -13,13 +13,16 @@ Features:
 """
 
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
+from core.entities import LifeStage
 from core.poker.core import BettingAction, PokerEngine, PokerHand
+from core.poker.strategy.base import PokerStrategyEngine
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.fish.poker_stats_component import FishPokerStats
 
 
 @dataclass
@@ -64,6 +67,96 @@ class PokerResult:
         return self.players_folded[1] if len(self.players_folded) > 1 else False
 
 
+@dataclass
+class PokerParticipant:
+    """Tracks poker-specific state for a fish without storing it on the fish."""
+
+    fish: "Fish"
+    strategy: PokerStrategyEngine
+    stats: "FishPokerStats"
+    cooldown: int = 0
+    last_button_position: int = 0
+    last_cooldown_age: int = 0
+
+    def sync_with_age(self) -> None:
+        """Reduce cooldown based on the fish's current age."""
+
+        age = getattr(self.fish, "age", 0)
+        if age > self.last_cooldown_age:
+            self.cooldown = max(0, self.cooldown - (age - self.last_cooldown_age))
+            self.last_cooldown_age = age
+
+    def start_cooldown(self, frames: int) -> None:
+        self.sync_with_age()
+        self.cooldown = max(self.cooldown, frames)
+        self.last_cooldown_age = getattr(self.fish, "age", self.last_cooldown_age)
+
+
+_POKER_PARTICIPANTS: dict[int, PokerParticipant] = {}
+
+
+def _get_participant(fish: "Fish") -> PokerParticipant:
+    """Return cached poker state for a fish, creating it if needed."""
+
+    from core.fish.poker_stats_component import FishPokerStats
+
+    participant = _POKER_PARTICIPANTS.get(fish.fish_id)
+    if participant is None or participant.fish is not fish:
+        participant = PokerParticipant(
+            fish=fish,
+            strategy=PokerStrategyEngine(fish),
+            stats=FishPokerStats(),
+            last_cooldown_age=getattr(fish, "age", 0),
+        )
+        _POKER_PARTICIPANTS[fish.fish_id] = participant
+    participant.fish = fish
+    participant.sync_with_age()
+    return participant
+
+
+def should_offer_post_poker_reproduction(
+    fish: "Fish", opponent: "Fish", is_winner: bool, energy_gained: float = 0.0
+) -> bool:
+    """Decide whether to offer reproduction after a poker game."""
+
+    from core.constants import (
+        POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
+        POST_POKER_REPRODUCTION_LOSER_PROB,
+        POST_POKER_REPRODUCTION_WINNER_PROB,
+    )
+
+    if fish.energy < POST_POKER_REPRODUCTION_ENERGY_THRESHOLD:
+        return False
+
+    if fish.is_pregnant or fish.reproduction_cooldown > 0:
+        return False
+
+    if fish.life_stage.value < LifeStage.ADULT.value:
+        return False
+
+    if fish.species != opponent.species:
+        return False
+
+    opponent_fitness = 0.0
+    if opponent.genome is not None:
+        opponent_fitness += min(opponent.genome.fitness_score / 100.0, 1.0) * 0.3
+
+        energy_ratio = opponent.energy / opponent.max_energy if opponent.max_energy > 0 else 0
+        opponent_fitness += energy_ratio * 0.2
+
+        if fish.genome is not None:
+            compatibility = fish.genome.calculate_mate_compatibility(opponent.genome)
+            opponent_fitness += compatibility * 0.3
+
+        if not is_winner:
+            opponent_fitness += 0.2
+
+    base_prob = POST_POKER_REPRODUCTION_WINNER_PROB if is_winner else POST_POKER_REPRODUCTION_LOSER_PROB
+    final_prob = base_prob * (0.5 + opponent_fitness)
+
+    return random.random() < final_prob
+
+
 class PokerInteraction:
     """Handles poker encounters between multiple fish."""
 
@@ -90,20 +183,10 @@ class PokerInteraction:
             raise ValueError("Poker requires at least 2 fish")
 
         self.fish_list = list(fish)
+        self.participants = [_get_participant(f) for f in self.fish_list]
         self.num_players = len(self.fish_list)
         self.player_hands: List[Optional[PokerHand]] = [None] * self.num_players
         self.result: Optional[PokerResult] = None
-
-        # Add poker cooldown tracking to fish if not present
-        for f in self.fish_list:
-            if not hasattr(f, "poker_cooldown"):
-                f.poker_cooldown = 0
-
-        # Add button position tracking for positional play
-        # Button rotates between players in consecutive games
-        for f in self.fish_list:
-            if not hasattr(f, "last_button_position"):
-                f.last_button_position = 0  # Start with button position 0
 
     # Legacy properties for backwards compatibility
     @property
@@ -153,8 +236,9 @@ class PokerInteraction:
                 return False
 
         # All fish must be off cooldown
-        for fish in self.fish_list:
-            if fish.poker_cooldown > 0:
+        for participant in self.participants:
+            participant.sync_with_age()
+            if participant.cooldown > 0:
                 return False
 
         # Don't interrupt pregnant fish
@@ -236,13 +320,13 @@ class PokerInteraction:
             return None
 
         # Check if winner wants to reproduce
-        winner_wants = winner_fish.should_offer_post_poker_reproduction(
-            loser_fish, is_winner=True, energy_gained=energy_transferred
+        winner_wants = should_offer_post_poker_reproduction(
+            winner_fish, loser_fish, is_winner=True, energy_gained=energy_transferred
         )
 
         # Check if loser wants to reproduce
-        loser_wants = loser_fish.should_offer_post_poker_reproduction(
-            winner_fish, is_winner=False, energy_gained=-energy_transferred
+        loser_wants = should_offer_post_poker_reproduction(
+            loser_fish, winner_fish, is_winner=False, energy_gained=-energy_transferred
         )
 
         # Both must agree to reproduce
@@ -300,8 +384,8 @@ class PokerInteraction:
         total_baby_energy = winner_energy_transfer + loser_energy_transfer
 
         # Parents pay the energy cost
-        winner_fish.energy -= winner_energy_transfer
-        loser_fish.energy -= loser_energy_transfer
+        winner_fish.modify_energy(-winner_energy_transfer)
+        loser_fish.modify_energy(-loser_energy_transfer)
 
         # Set reproduction cooldown for both parents
         winner_fish.reproduction_cooldown = REPRODUCTION_COOLDOWN
@@ -439,7 +523,7 @@ class PokerInteraction:
             house_cut = net_gain * house_cut_percentage
 
             # Winner gets pot minus house cut
-            winner_fish.energy += total_pot - house_cut
+            winner_fish.modify_energy(total_pot - house_cut)
 
             # Collect loser IDs
             loser_ids = [
@@ -449,13 +533,13 @@ class PokerInteraction:
             # Tie - split pot among tied players
             split_amount = total_pot / len(tied_players)
             for player_idx in tied_players:
-                self.fish_list[player_idx].energy += split_amount
+                self.fish_list[player_idx].modify_energy(split_amount)
             winner_id = -1
             loser_ids = []
 
         # Set cooldowns for all players
-        for fish in self.fish_list:
-            fish.poker_cooldown = self.POKER_COOLDOWN
+        for participant in self.participants:
+            participant.start_cooldown(self.POKER_COOLDOWN)
 
         # Create result
         self.result = PokerResult(
@@ -478,9 +562,10 @@ class PokerInteraction:
 
         # Record stats for each player
         for i, fish in enumerate(self.fish_list):
+            participant = self.participants[i]
             if fish.fish_id == winner_id:
                 # Winner
-                fish.poker_stats.record_win(
+                participant.stats.record_win(
                     energy_won=total_pot - bet_amount - house_cut,
                     house_cut=house_cut,
                     hand_rank=self.player_hands[i].rank_value,
@@ -489,13 +574,13 @@ class PokerInteraction:
                 )
             elif winner_id == -1:
                 # Tie
-                fish.poker_stats.record_tie(
+                participant.stats.record_tie(
                     hand_rank=self.player_hands[i].rank_value,
                     on_button=False,
                 )
             else:
                 # Loser
-                fish.poker_stats.record_loss(
+                participant.stats.record_loss(
                     energy_lost=bet_amount,
                     hand_rank=self.player_hands[i].rank_value,
                     folded=False,
@@ -571,6 +656,9 @@ class PokerInteraction:
         # For 2 players, use full Texas Hold'em poker
         # Determine aggression levels for each fish based on their genome
         # Map genome aggression (0.0-1.0) to poker aggression range (0.3-0.9)
+        participant1 = self.participants[0]
+        participant2 = self.participants[1]
+
         fish1_aggression = PokerEngine.AGGRESSION_LOW + (
             self.fish1.genome.aggression
             * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
@@ -582,9 +670,9 @@ class PokerInteraction:
 
         # Rotate button position for positional play
         # Button alternates between 1 and 2
-        button_position = 2 if self.fish1.last_button_position == 1 else 1
-        self.fish1.last_button_position = button_position
-        self.fish2.last_button_position = button_position
+        button_position = 2 if participant1.last_button_position == 1 else 1
+        participant1.last_button_position = button_position
+        participant2.last_button_position = button_position
 
         # Get poker strategy algorithms from fish genomes (if available)
         player1_strategy = (
@@ -684,7 +772,7 @@ class PokerInteraction:
             house_cut = min(net_gain * house_cut_percentage, net_gain)
 
             # Winner receives the pot minus house cut
-            winner_fish.energy += (total_pot - house_cut)
+            winner_fish.modify_energy(total_pot - house_cut)
 
             # For reporting purposes, energy_transferred is the loser's loss (what they bet)
             # This is used for display and statistics tracking
@@ -697,8 +785,8 @@ class PokerInteraction:
             winner_actual_gain = 0.0
 
         # Set cooldowns
-        self.fish1.poker_cooldown = self.POKER_COOLDOWN
-        self.fish2.poker_cooldown = self.POKER_COOLDOWN
+        participant1.start_cooldown(self.POKER_COOLDOWN)
+        participant2.start_cooldown(self.POKER_COOLDOWN)
 
         # Count rounds played
         total_rounds = int(game_state.current_round) if game_state.current_round < 4 else 4
@@ -740,8 +828,11 @@ class PokerInteraction:
                 winner_bluffed = won_by_fold and winner_hand_strength < POKER_WEAK_HAND_THRESHOLD
                 loser_bluffed = False  # Loser didn't bluff if they lost
 
+                winner_participant = participant1 if winner_id == self.fish1.fish_id else participant2
+                loser_participant = participant2 if winner_participant is participant1 else participant1
+
                 # Winner learns from victory
-                winner_fish.poker_strategy.learn_from_poker_outcome(
+                winner_participant.strategy.learn_from_poker_outcome(
                     won=True,
                     hand_strength=winner_hand_strength,
                     position_on_button=winner_on_button,
@@ -750,7 +841,7 @@ class PokerInteraction:
                 )
 
                 # Loser learns from defeat
-                loser_fish.poker_strategy.learn_from_poker_outcome(
+                loser_participant.strategy.learn_from_poker_outcome(
                     won=False,
                     hand_strength=loser_hand_strength,
                     position_on_button=loser_on_button,
@@ -759,7 +850,7 @@ class PokerInteraction:
                 )
 
                 # Update opponent models for both fish
-                winner_fish.poker_strategy.update_opponent_model(
+                winner_participant.strategy.update_opponent_model(
                     opponent_id=loser_fish.fish_id,
                     won=False,  # From winner's perspective, opponent lost
                     folded=(
@@ -775,7 +866,7 @@ class PokerInteraction:
                     frame=winner_fish.ecosystem.frame_count if winner_fish.ecosystem else 0,
                 )
 
-                loser_fish.poker_strategy.update_opponent_model(
+                loser_participant.strategy.update_opponent_model(
                     opponent_id=winner_fish.fish_id,
                     won=True,  # From loser's perspective, opponent won
                     folded=False,
@@ -864,11 +955,11 @@ class PokerInteraction:
             fish1_on_button = button_position == 1
             fish2_on_button = button_position == 2
             if self.hand1 is not None:
-                self.fish1.poker_stats.record_tie(
+                participant1.stats.record_tie(
                     hand_rank=self.hand1.rank_value, on_button=fish1_on_button
                 )
             if self.hand2 is not None:
-                self.fish2.poker_stats.record_tie(
+                participant2.stats.record_tie(
                     hand_rank=self.hand2.rank_value, on_button=fish2_on_button
                 )
         else:
@@ -877,6 +968,8 @@ class PokerInteraction:
             loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
             winner_hand = self.hand1 if winner_id == self.fish1.fish_id else self.hand2
             loser_hand = self.hand2 if winner_id == self.fish1.fish_id else self.hand1
+            winner_participant = participant1 if winner_id == self.fish1.fish_id else participant2
+            loser_participant = participant2 if winner_participant is participant1 else participant1
 
             # Determine button positions
             winner_on_button = (
@@ -886,7 +979,7 @@ class PokerInteraction:
 
             # Record winner stats
             if winner_hand is not None:
-                winner_fish.poker_stats.record_win(
+                winner_participant.stats.record_win(
                     energy_won=winner_actual_gain,
                     house_cut=house_cut,
                     hand_rank=winner_hand.rank_value,
@@ -896,7 +989,7 @@ class PokerInteraction:
 
             # Record loser stats
             if loser_hand is not None:
-                loser_fish.poker_stats.record_loss(
+                loser_participant.stats.record_loss(
                     energy_lost=energy_transferred,
                     hand_rank=loser_hand.rank_value,
                     folded=(

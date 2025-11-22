@@ -48,6 +48,7 @@ from core.poker.strategy import (
     crossover_poker_strategies,
     get_random_poker_strategy,
 )
+from core.poker.table import PokerTable
 
 __all__ = [
     # Core
@@ -79,4 +80,5 @@ __all__ = [
     "ALL_POKER_STRATEGIES",
     "get_random_poker_strategy",
     "crossover_poker_strategies",
+    "PokerTable",
 ]
