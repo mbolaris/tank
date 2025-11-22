@@ -176,10 +176,9 @@ function App() {
                                                     const isPositive = energyTransfer > 0;
                                                     const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
                                                     const prefix = isPositive ? '+' : '';
-                                                    const direction = isPositive ? '🌱→⚡🐟' : '🐟→⚡🌱';
                                                     return (
                                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
-                                                            <span style={{ fontSize: 12 }}>{direction}</span>
+                                                            <span style={{ fontSize: 12 }}>🌱→⚡🐟</span>
                                                             <span style={{ color, fontWeight: 600 }}>{prefix}{energyTransfer.toFixed(0)}</span>
                                                         </span>
                                                     );
