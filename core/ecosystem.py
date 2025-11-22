@@ -652,7 +652,19 @@ class EcosystemManager:
             return []
 
         # Filter to only fish with poker games played
-        poker_fish = [f for f in fish_list if isinstance(f, Fish) and f.poker_stats.total_games > 0]
+        poker_fish = []
+        for fish in fish_list:
+            if not isinstance(fish, Fish):
+                continue
+
+            # Ensure poker stats exist for legacy fish instances
+            if not hasattr(fish, "poker_stats") or fish.poker_stats is None:
+                from core.fish.poker_stats_component import FishPokerStats
+
+                fish.poker_stats = FishPokerStats()
+
+            if fish.poker_stats.total_games > 0:
+                poker_fish.append(fish)
 
         # Sort by the requested metric
         if sort_by == "net_energy":
