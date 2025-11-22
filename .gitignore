@@ -63,6 +63,7 @@ simulation_output*.txt
 final_test.txt
 *.log
 logs/
+data/
 CODEBASE_ANALYSIS.md
 
 # Frontend build artifacts
