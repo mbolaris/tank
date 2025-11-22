@@ -102,6 +102,7 @@ class PokerStatsPayload:
     total_games: int
     total_fish_games: int
     total_plant_games: int
+    total_plant_energy_transferred: float
     total_wins: int
     total_losses: int
     total_ties: int

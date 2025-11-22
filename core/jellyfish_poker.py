@@ -42,9 +42,6 @@ class JellyfishPokerInteraction:
     # Default bet amount
     DEFAULT_BET_AMOUNT = 5.0
 
-    # House cut percentage
-    HOUSE_CUT_PERCENTAGE = 0.05  # 5% house cut
-
     # Cooldown between poker games (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
 
@@ -190,9 +187,10 @@ class JellyfishPokerInteraction:
                 )
 
         # Calculate energy transfer
+        # NO house cut for fish vs jellyfish games - fish keep 100% of winnings
         total_pot = game_state.pot
-        house_cut = total_pot * self.HOUSE_CUT_PERCENTAGE
-        winnings = total_pot - house_cut
+        house_cut = 0.0
+        winnings = total_pot
 
         # Transfer energy
         if fish_won:

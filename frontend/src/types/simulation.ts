@@ -124,6 +124,7 @@ export interface PokerStatsData {
     total_games: number;
     total_fish_games?: number;
     total_plant_games?: number;
+    total_plant_energy_transferred?: number;
     total_wins: number;
     total_losses: number;
     total_ties: number;

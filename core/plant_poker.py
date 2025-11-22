@@ -49,9 +49,6 @@ class PlantPokerInteraction:
     # Default bet amount
     DEFAULT_BET_AMOUNT = 8.0
 
-    # House cut percentage (slightly lower than fish-fish poker)
-    HOUSE_CUT_PERCENTAGE = 0.05
-
     # Cooldown between poker games (in frames)
     POKER_COOLDOWN = 90  # 3 seconds at 30fps
 
@@ -201,9 +198,10 @@ class PlantPokerInteraction:
                 )
 
         # Calculate energy transfer
+        # NO house cut for fish vs plant games - fish keep 100% of winnings
         total_pot = game_state.pot
-        house_cut = total_pot * self.HOUSE_CUT_PERCENTAGE
-        winnings = total_pot - house_cut
+        house_cut = 0.0
+        winnings = total_pot
 
         # Transfer energy
         if fish_won:

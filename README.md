@@ -53,7 +53,7 @@ Fish can play poker against each other and against jellyfish for energy rewards!
 
 - **Automatic**: Fish play when they collide and have >10 energy
 - **5-Card Draw**: Standard poker hand rankings
-- **Energy Stakes**: Winner takes energy from loser (with house cut)
+- **Energy Stakes**: Winner takes energy from loser (house cut only for fish-vs-fish)
 - **Evolving Poker Strategies**: Fish use genome-based poker aggression that evolves across generations!
   - Each fish's poker playing style is determined by their genome's aggression trait
   - Evolutionary pressure: Fish with optimal poker aggression win more energy and reproduce more
@@ -268,7 +268,7 @@ AUTO_FOOD_ENABLED = True  # Enable/disable automatic food
 POKER_ENABLED = True
 POKER_MIN_ENERGY = 10.0  # Minimum energy to play poker
 POKER_BASE_STAKE = 5.0   # Base energy stake for poker
-POKER_HOUSE_CUT_PERCENTAGE = 10  # House takes 10% of winnings
+POKER_HOUSE_CUT_PERCENTAGE = 10  # House cut for fish-vs-fish games (8-25% scaled by winner size)
 ```
 
 Key entity parameters in `core/entities.py`:

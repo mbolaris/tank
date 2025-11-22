@@ -175,7 +175,7 @@ function PerformanceChart({
                 <path
                     d={fishPath}
                     fill="none"
-                    stroke="#22c55e"
+                    stroke="#a78bfa"
                     strokeWidth={2}
                 />
 
@@ -202,7 +202,7 @@ function PerformanceChart({
                 {/* Legend */}
                 <g transform={`translate(${width - padding.right - 200}, ${padding.top})`}>
                     <rect x={0} y={0} width={190} height={hasPlantLine ? 64 : 44} fill="rgba(15,23,42,0.8)" rx={4} />
-                    <line x1={10} y1={14} x2={30} y2={14} stroke="#22c55e" strokeWidth={2} />
+                    <line x1={10} y1={14} x2={30} y2={14} stroke="#a78bfa" strokeWidth={2} />
                     <text x={36} y={18} fill={colors.text} fontSize={11}>Evolved Fish (avg)</text>
                     {hasPlantLine && (
                         <>

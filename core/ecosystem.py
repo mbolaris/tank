@@ -71,6 +71,7 @@ class EcosystemManager:
         # Track aggregate totals for fish-vs-fish and fish-vs-plant games
         self.total_fish_poker_games: int = 0
         self.total_plant_poker_games: int = 0
+        self.total_plant_poker_energy_transferred: float = 0.0  # Total energy transferred in fish-plant poker
 
         # Note: We no longer load persisted totals to ensure stats reset on simulation restart
         # This matches user expectation that stats reflect the current simulation run only
@@ -648,6 +649,7 @@ class EcosystemManager:
             "total_games": total_games,
             "total_fish_games": self.total_fish_poker_games,
             "total_plant_games": self.total_plant_poker_games,
+            "total_plant_energy_transferred": self.total_plant_poker_energy_transferred,
             "total_wins": total_wins,
             "total_losses": total_losses,
             "total_ties": total_ties,
@@ -1356,14 +1358,18 @@ class EcosystemManager:
         stats = self.jellyfish_poker_stats[fish_id]
         stats.total_games += 1
 
+        # Aggregate total plant games and energy transferred
+        # Track net energy flow: positive = fish winning from plants, negative = fish losing to plants
         if fish_won:
             stats.wins += 1
             stats.total_energy_won += energy_transferred
+            self.total_plant_poker_energy_transferred += energy_transferred  # Positive: plant → fish
             if won_by_fold:
                 stats.wins_by_fold += 1
         else:
             stats.losses += 1
             stats.total_energy_lost += energy_transferred
+            self.total_plant_poker_energy_transferred -= energy_transferred  # Negative: fish → plant
             if won_by_fold:
                 stats.losses_by_fold += 1
 
@@ -1372,7 +1378,7 @@ class EcosystemManager:
         stats._total_hand_rank += fish_hand_rank
         stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
 
-        # Aggregate total plant games
+        # Increment total plant games counter
         self.total_plant_poker_games += 1
         try:
             self._save_poker_totals()

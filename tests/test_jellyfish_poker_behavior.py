@@ -232,20 +232,17 @@ def test_jellyfish_poker_applies_house_cut():
     result = poker.play_poker()
 
     if result:
-        # Total energy should decrease due to house cut
+        # Total energy should REMAIN CONSTANT (no house cut for fish vs jellyfish)
         # Fish starts with 100, Jellyfish starts with 1000 (INITIAL_ENERGY)
         total_initial = 100.0 + 1000.0  # = 1100.0
         total_after = fish.energy + jellyfish.energy
+        
+        # Energy should be conserved (zero-sum game) - fish keep 100% of winnings
         assert (
-            total_after < total_initial
-        ), f"Total energy should decrease due to house cut: {total_after} >= {total_initial}"
+            abs(total_after - total_initial) < 0.01
+        ), f"Total energy should be conserved (no house cut): {total_after} vs {total_initial}"
 
-        # House cut should be 5%
-        energy_lost = total_initial - total_after
-        # The energy lost should be approximately 5% of the pot
-        # (allowing for some rounding)
-        print(f"Energy lost to house: {energy_lost}")
-        assert energy_lost > 0, "Some energy should be lost to house cut"
+        print(f"Energy conserved: {total_initial:.2f} -> {total_after:.2f} (zero-sum game)")
 
 
 def test_jellyfish_can_win_and_lose():

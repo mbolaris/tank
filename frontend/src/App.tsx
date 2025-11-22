@@ -160,7 +160,7 @@ function App() {
                                     return (
                                         <span className="meta-item" style={{ color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <span style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span className="meta-label">Poker</span>
+                                                <span className="meta-label">Poker</span>
                                             </span>
                                             <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -171,6 +171,19 @@ function App() {
                                                     <span style={{ width: 10, height: 10, borderRadius: 6, background: '#4ade80', display: 'inline-block' }} />
                                                     <span style={{ color: '#4ade80' }}>{plantGames}</span>
                                                 </span>
+                                                {plantGames > 0 && (() => {
+                                                    const energyTransfer = state?.stats?.poker_stats?.total_plant_energy_transferred || 0;
+                                                    const isPositive = energyTransfer > 0;
+                                                    const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
+                                                    const prefix = isPositive ? '+' : '';
+                                                    const direction = isPositive ? '🌱→⚡🐟' : '🐟→⚡🌱';
+                                                    return (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
+                                                            <span style={{ fontSize: 12 }}>{direction}</span>
+                                                            <span style={{ color, fontWeight: 600 }}>{prefix}{energyTransfer.toFixed(0)}</span>
+                                                        </span>
+                                                    );
+                                                })()}
                                             </span>
                                         </span>
                                     );

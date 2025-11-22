@@ -479,6 +479,7 @@ class SimulationRunner:
             total_games=poker_stats_dict.get("total_games", 0),
             total_fish_games=poker_stats_dict.get("total_fish_games", 0),
             total_plant_games=poker_stats_dict.get("total_plant_games", 0),
+            total_plant_energy_transferred=poker_stats_dict.get("total_plant_energy_transferred", 0.0),
             total_wins=poker_stats_dict.get("total_wins", 0),
             total_losses=poker_stats_dict.get("total_losses", 0),
             total_ties=poker_stats_dict.get("total_ties", 0),
