@@ -305,65 +305,78 @@ class BaseSimulator(ABC):
 
         OPTIMIZATION: Merged poker group finding and general collision handling
         into a single pass to halve the number of spatial queries.
+
+        Performance optimizations:
+        - Pre-fetch type references outside loop
+        - Use type() instead of isinstance() for common cases
+        - Cache get_all_entities() result
+        - Use set membership for removed_fish checks
         """
         from core.entities import Crab, Fish, Food, Jellyfish
 
-        # Get all entities once
+        # Performance: Cache all_entities and avoid repeated calls
         all_entities = self.get_all_entities()
-        fish_list = [e for e in all_entities if isinstance(e, Fish)]
-        
+        all_entities_set = set(all_entities)  # O(1) membership test
+
+        # Performance: Build fish list with type() check first (faster for exact match)
+        fish_list = [e for e in all_entities if type(e) is Fish or isinstance(e, Fish)]
+
+        if not fish_list:
+            return
+
         # Data structures for poker groups
         fish_contacts = {fish: set() for fish in fish_list}
-        
+
         # Track which fish have been removed (e.g. eaten) to avoid processing them further
-        removed_fish = set()
+        removed_fish: set = set()
+
+        # Performance: Cache environment and check_collision references
+        environment = self.environment
+        check_collision = self.check_collision
 
         # Single pass over all fish
         for fish in fish_list:
             # Skip if fish was already removed in this frame
-            if fish in removed_fish or fish not in self.get_all_entities():
+            if fish in removed_fish or fish not in all_entities_set:
                 continue
 
             # Use spatial grid to get nearby entities (within collision range)
-            nearby_entities = []
-            if self.environment is not None:
-                nearby_entities = self.environment.nearby_agents(
-                    fish, radius=COLLISION_QUERY_RADIUS
-                )
+            if environment is not None:
+                nearby_entities = environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
             else:
                 # Fallback to checking all entities if no environment
-                nearby_entities = [e for e in all_entities if e != fish]
+                nearby_entities = [e for e in all_entities if e is not fish]
 
             for other in nearby_entities:
-                if other == fish:
+                if other is fish:
                     continue
-                
+
                 # Skip if other entity was removed
-                if other not in self.get_all_entities():
+                if other not in all_entities_set:
                     continue
 
                 # Check collision
-                if self.check_collision(fish, other):
-                    if isinstance(other, Fish):
+                if check_collision(fish, other):
+                    # Performance: Use type() for exact match first
+                    other_type = type(other)
+
+                    if other_type is Fish:
                         # Record contact for poker group finding
                         fish_contacts[fish].add(other)
-                        # Note: We don't add to other's set here to avoid double processing,
-                        # or we can rely on the fact that we'll process 'other' later.
-                        # Actually, for undirected graph, it's safer to add both ways 
-                        # but we iterate all fish anyway.
-                        # Let's just add to current fish's contacts.
-                        
-                    elif isinstance(other, Crab):
+
+                    elif other_type is Crab or isinstance(other, Crab):
                         if self.handle_fish_crab_collision(fish, other):
                             removed_fish.add(fish)
+                            all_entities_set.discard(fish)
                             break  # Fish died, stop checking collisions for it
-                            
-                    elif isinstance(other, Food):
+
+                    elif other_type is Food or isinstance(other, Food):
                         self.handle_fish_food_collision(fish, other)
-                        
-                    elif isinstance(other, Jellyfish):
+
+                    elif other_type is Jellyfish or isinstance(other, Jellyfish):
                         if self.handle_fish_jellyfish_collision(fish, other):
                             removed_fish.add(fish)
+                            all_entities_set.discard(fish)
                             break  # Fish died, stop checking collisions for it
 
         # After processing all collisions, handle poker groups
@@ -374,30 +387,31 @@ class BaseSimulator(ABC):
                     fish_contacts[contact].add(fish)
 
         # Find connected components using DFS
-        visited = set()
-        processed_fish = set() # For poker game tracking
+        visited: set = set()
+        processed_fish: set = set()  # For poker game tracking
 
         for fish in fish_list:
-            if fish in visited or fish in removed_fish or fish not in self.get_all_entities():
+            if fish in visited or fish in removed_fish or fish not in all_entities_set:
                 continue
 
             # Start a new group with DFS
             group = []
             stack = [fish]
-            
+
             # Valid group members must be alive and in simulation
             while stack:
                 current = stack.pop()
                 if current in visited:
                     continue
-                
+
                 visited.add(current)
-                if current not in removed_fish and current in self.get_all_entities():
+                if current not in removed_fish and current in all_entities_set:
                     group.append(current)
 
                 # Add all connected fish to the stack
-                if current in fish_contacts:
-                    for neighbor in fish_contacts[current]:
+                contacts = fish_contacts.get(current)
+                if contacts:
+                    for neighbor in contacts:
                         if neighbor not in visited:
                             stack.append(neighbor)
 
@@ -405,65 +419,91 @@ class BaseSimulator(ABC):
             if len(group) >= 2:
                 # Filter out fish that already played (just in case)
                 valid_fish = [f for f in group if f not in processed_fish]
-                
+
                 if len(valid_fish) >= 2 and POKER_ACTIVITY_ENABLED:
                     poker = PokerInteraction(*valid_fish)
                     if poker.play_poker():
                         self.handle_poker_result(poker)
-                        
+
                         # Check deaths
                         for f in valid_fish:
-                            if f.is_dead() and f in self.get_all_entities():
+                            if f.is_dead() and f in all_entities_set:
                                 self.record_fish_death(f)
                                 removed_fish.add(f)
-                    
+                                all_entities_set.discard(f)
+
                     processed_fish.update(valid_fish)
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food.
 
         Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k).
+
+        Performance optimizations:
+        - Use set for entity membership tracking
+        - Cache method references
         """
         from core.entities import Crab, Food
 
         all_entities = self.get_all_entities()
-        food_list = [e for e in all_entities if isinstance(e, Food)]
+        all_entities_set = set(all_entities)
 
-        for food in list(food_list):
+        # Performance: Use type() check first
+        food_list = [e for e in all_entities if type(e) is Food or isinstance(e, Food)]
+
+        if not food_list:
+            return
+
+        # Performance: Cache references
+        environment = self.environment
+        check_collision = self.check_collision
+
+        for food in food_list:
             # Check if food is still in simulation (may have been eaten)
-            if food not in self.get_all_entities():
+            if food not in all_entities_set:
                 continue
 
             # Use spatial grid for nearby entity lookup
-            nearby_entities = []
-            if self.environment is not None:
-                nearby_entities = self.environment.nearby_agents(
-                    food, radius=COLLISION_QUERY_RADIUS
-                )
+            if environment is not None:
+                nearby_entities = environment.nearby_agents(food, radius=COLLISION_QUERY_RADIUS)
             else:
                 # Fallback to checking all entities if no environment
-                nearby_entities = [e for e in self.get_all_entities() if e != food]
+                nearby_entities = [e for e in all_entities if e is not food]
 
-            for other in list(nearby_entities):
-                if other == food:
+            for other in nearby_entities:
+                if other is food:
                     continue
 
-                if self.check_collision(food, other):
+                if check_collision(food, other):
                     # Fish-food collisions are handled in handle_fish_collisions()
-                    if isinstance(other, Crab):
+                    if type(other) is Crab or isinstance(other, Crab):
                         other.eat_food(food)
                         food.get_eaten()
                         self.remove_entity(food)
+                        all_entities_set.discard(food)
                         break
 
     def handle_reproduction(self) -> None:
         """Handle fish reproduction by finding mates.
 
         Uses spatial queries to only check nearby fish for mating compatibility.
+
+        Performance optimizations:
+        - Cache method references
+        - Early termination on successful mating
         """
         from core.entities import Fish
 
-        fish_list = [e for e in self.get_all_entities() if isinstance(e, Fish)]
+        all_entities = self.get_all_entities()
+
+        # Performance: Use type() check first
+        fish_list = [e for e in all_entities if type(e) is Fish or isinstance(e, Fish)]
+
+        if len(fish_list) < 2:
+            return  # Need at least 2 fish for reproduction
+
+        # Performance: Cache environment reference
+        environment = self.environment
 
         # Try to mate fish that are ready
         for fish in fish_list:
@@ -471,18 +511,17 @@ class BaseSimulator(ABC):
                 continue
 
             # Use spatial grid to find nearby fish (mating typically happens at close range)
-            nearby_fish = []
-            if self.environment is not None:
-                nearby_fish = self.environment.nearby_agents_by_type(
+            if environment is not None:
+                nearby_fish = environment.nearby_agents_by_type(
                     fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
                 )
             else:
                 # Fallback to checking all fish if no environment
-                nearby_fish = [f for f in fish_list if f != fish]
+                nearby_fish = [f for f in fish_list if f is not fish]
 
             # Look for nearby compatible mates
             for potential_mate in nearby_fish:
-                if potential_mate == fish:
+                if potential_mate is fish:
                     continue
 
                 # Attempt mating

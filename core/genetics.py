@@ -167,17 +167,21 @@ class Genome:
     ):
         """Update fitness score based on life events.
 
+        Performance: Combined into single addition to reduce attribute access.
+
         Args:
             food_eaten: Number of food items consumed
             survived_frames: Frames survived this update
             reproductions: Number of successful reproductions
             energy_ratio: Current energy / max energy ratio
         """
-        # Fitness components
-        self.fitness_score += food_eaten * 2.0  # Eating is valuable
-        self.fitness_score += survived_frames * 0.01  # Survival matters
-        self.fitness_score += reproductions * 50.0  # Reproduction is highly valuable
-        self.fitness_score += energy_ratio * 0.1  # Maintaining energy is good
+        # Performance: Single addition instead of multiple increments
+        self.fitness_score += (
+            food_eaten * 2.0  # Eating is valuable
+            + survived_frames * 0.01  # Survival matters
+            + reproductions * 50.0  # Reproduction is highly valuable
+            + energy_ratio * 0.1  # Maintaining energy is good
+        )
 
     def calculate_mate_compatibility(self, other: "Genome") -> float:
         """Calculate compatibility score with potential mate (0.0-1.0).
@@ -243,37 +247,36 @@ class Genome:
             New genome with weighted parent contributions plus mutations
         """
         # Clamp weight to valid range
-        parent1_weight = max(0.0, min(1.0, parent1_weight))
+        if parent1_weight < 0.0:
+            parent1_weight = 0.0
+        elif parent1_weight > 1.0:
+            parent1_weight = 1.0
         parent2_weight = 1.0 - parent1_weight
 
         # Adaptive mutation rates based on population stress
-        adaptive_mutation_rate = mutation_rate * (1.0 + population_stress * 2.0)
-        adaptive_mutation_strength = mutation_strength * (1.0 + population_stress * 1.5)
-        adaptive_mutation_rate = min(0.4, adaptive_mutation_rate)
-        adaptive_mutation_strength = min(0.25, adaptive_mutation_strength)
+        stress_factor = 1.0 + population_stress * 2.0
+        adaptive_mutation_rate = min(0.4, mutation_rate * stress_factor)
+        adaptive_mutation_strength = min(0.25, mutation_strength * (1.0 + population_stress * 1.5))
+
+        # Performance: Cache random functions to avoid attribute lookup in inner function
+        _random = random.random
+        _gauss = random.gauss
 
         def weighted_inherit(val1: float, val2: float, min_val: float, max_val: float) -> float:
-            """Inherit trait using weighted average plus mutation.
-
-            Args:
-                val1: Parent 1 trait value
-                val2: Parent 2 trait value
-                min_val: Minimum allowed value
-                max_val: Maximum allowed value
-
-            Returns:
-                Weighted inherited trait value
-            """
+            """Inherit trait using weighted average plus mutation (optimized)."""
             # Weighted average based on parent contributions
             inherited = val1 * parent1_weight + val2 * parent2_weight
 
             # Apply mutation
-            if random.random() < adaptive_mutation_rate:
-                mutation = random.gauss(0, adaptive_mutation_strength)
-                inherited += mutation
+            if _random() < adaptive_mutation_rate:
+                inherited += _gauss(0, adaptive_mutation_strength)
 
-            # Clamp to valid range
-            return max(min_val, min(max_val, inherited))
+            # Clamp to valid range - use if/elif instead of min/max for performance
+            if inherited < min_val:
+                return min_val
+            if inherited > max_val:
+                return max_val
+            return inherited
 
         # Handle behavior algorithm with weighted crossover
         algorithm = None
@@ -442,14 +445,20 @@ class Genome:
         """
         # IMPROVEMENT: Adaptive mutation rates - increase when population is stressed
         # This allows faster evolution when the population is struggling
-        adaptive_mutation_rate = mutation_rate * (1.0 + population_stress * 2.0)  # Up to 3x higher
-        adaptive_mutation_strength = mutation_strength * (
-            1.0 + population_stress * 1.5
-        )  # Up to 2.5x stronger
+        stress_factor = 1.0 + population_stress * 2.0
+        adaptive_mutation_rate = min(0.4, mutation_rate * stress_factor)  # Max 40%
+        adaptive_mutation_strength = min(
+            0.25, mutation_strength * (1.0 + population_stress * 1.5)
+        )  # Max 25%
 
-        # Clamp to reasonable ranges
-        adaptive_mutation_rate = min(0.4, adaptive_mutation_rate)  # Max 40% mutation rate
-        adaptive_mutation_strength = min(0.25, adaptive_mutation_strength)  # Max 25% strength
+        # Performance: Cache random functions to avoid attribute lookup in inner function
+        _random = random.random
+        _gauss = random.gauss
+
+        # Performance: Pre-check crossover mode once
+        is_averaging = crossover_mode == GeneticCrossoverMode.AVERAGING
+        is_recombination = crossover_mode == GeneticCrossoverMode.RECOMBINATION
+        is_dominant = crossover_mode == GeneticCrossoverMode.DOMINANT_RECESSIVE
 
         def inherit_trait(
             val1: float,
@@ -458,51 +467,40 @@ class Genome:
             max_val: float,
             dominant_gene: Optional[int] = None,
         ) -> float:
-            """Inherit a trait from parents with possible mutation.
-
-            Args:
-                val1: Parent 1 trait value
-                val2: Parent 2 trait value
-                min_val: Minimum allowed value
-                max_val: Maximum allowed value
-                dominant_gene: If set (0 or 1), that parent's gene is dominant
-
-            Returns:
-                Inherited trait value
-            """
+            """Inherit a trait from parents with possible mutation (optimized)."""
             # Choose inheritance method based on crossover mode
-            if crossover_mode == GeneticCrossoverMode.AVERAGING:
-                # Original method: average of parents
-                inherited = (val1 + val2) / 2.0
+            if is_averaging:
+                inherited = (val1 + val2) * 0.5
 
-            elif crossover_mode == GeneticCrossoverMode.RECOMBINATION:
+            elif is_recombination:
                 # Gene recombination: randomly choose from each parent
-                inherited = val1 if random.random() < 0.5 else val2
+                inherited = val1 if _random() < 0.5 else val2
                 # Add some blending
-                inherited = inherited * 0.7 + ((val1 + val2) / 2.0) * 0.3
+                inherited = inherited * 0.7 + (val1 + val2) * 0.15
 
-            elif crossover_mode == GeneticCrossoverMode.DOMINANT_RECESSIVE:
+            elif is_dominant:
                 # Dominant/recessive genes
                 if dominant_gene is not None:
                     # Dominant gene takes precedence
-                    dominant_val = val1 if dominant_gene == 0 else val2
-                    recessive_val = val2 if dominant_gene == 0 else val1
-                    # 75% dominant, 25% recessive expression
-                    inherited = dominant_val * 0.75 + recessive_val * 0.25
+                    if dominant_gene == 0:
+                        inherited = val1 * 0.75 + val2 * 0.25
+                    else:
+                        inherited = val2 * 0.75 + val1 * 0.25
                 else:
-                    # No dominance, use random selection
-                    inherited = val1 if random.random() < 0.5 else val2
+                    inherited = val1 if _random() < 0.5 else val2
             else:
-                # Default to averaging
-                inherited = (val1 + val2) / 2.0
+                inherited = (val1 + val2) * 0.5
 
             # Apply mutation (using adaptive rates)
-            if random.random() < adaptive_mutation_rate:
-                mutation = random.gauss(0, adaptive_mutation_strength)
-                inherited += mutation
+            if _random() < adaptive_mutation_rate:
+                inherited += _gauss(0, adaptive_mutation_strength)
 
-            # Clamp to valid range
-            return max(min_val, min(max_val, inherited))
+            # Clamp to valid range - use if/elif for performance
+            if inherited < min_val:
+                return min_val
+            if inherited > max_val:
+                return max_val
+            return inherited
 
         # Handle behavior algorithm inheritance with CROSSOVER from BOTH parents!
         algorithm = None

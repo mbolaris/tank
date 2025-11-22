@@ -6,11 +6,12 @@ This module provides movement behaviors for fish:
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Tuple
 
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
-from core.entities import Food
+from core.entities import Fish as FishClass, Food
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 # Movement smoothing constants (lower = smoother, higher = more responsive)
 ALGORITHMIC_MOVEMENT_SMOOTHING = 0.2  # Slightly more responsive for algorithms
 ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.2  # Allow 20% speed variation
+ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
 
 VelocityComponents = Tuple[float, float]
 
@@ -60,34 +62,39 @@ class AlgorithmicMovement(MovementStrategy):
     - poker_algorithm: Poker-specific behavior algorithm (seeking/avoiding poker games)
 
     The algorithms are blended to create sophisticated composite behaviors.
+
+    Performance optimizations:
+    - Imports moved to module level
+    - Pre-computed squared constant for speed comparison
+    - Avoid sqrt when not needed
     """
 
     def move(self, sprite: "Fish") -> None:
-        """Move using the fish's behavior algorithms (mix-and-match)."""
+        """Move using the fish's behavior algorithms (mix-and-match).
+
+        Performance optimizations:
+        - Cache frequently accessed attributes
+        - Use squared distances to avoid sqrt
+        - Batch calculations
+        """
+        genome = sprite.genome
+
         # Check if fish has a behavior algorithm
-        if sprite.genome.behavior_algorithm is None:
+        if genome.behavior_algorithm is None:
             # Fallback to simple random movement
             sprite.add_random_velocity_change(RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR)
             super().move(sprite)
             return
 
         # Execute primary behavior algorithm
-        primary_velocity: VelocityComponents = sprite.genome.behavior_algorithm.execute(sprite)
+        primary_velocity: VelocityComponents = genome.behavior_algorithm.execute(sprite)
         primary_vx, primary_vy = primary_velocity
 
         # Execute poker algorithm if available (mix-and-match evolution)
-        poker_vx: float
-        poker_vy: float
-        if sprite.genome.poker_algorithm is not None:
-            poker_velocity: VelocityComponents = sprite.genome.poker_algorithm.execute(sprite)
+        poker_algorithm = genome.poker_algorithm
+        if poker_algorithm is not None:
+            poker_velocity: VelocityComponents = poker_algorithm.execute(sprite)
             poker_vx, poker_vy = poker_velocity
-        
-        # Blend algorithms based on context
-        # If fish has high energy and poker algorithm is seeking poker, blend behaviors
-        # Otherwise, primarily use the main behavior algorithm
-        if sprite.genome.poker_algorithm is not None:
-            # Check if there are nearby fish for poker (determines poker relevance)
-            from core.entities import Fish as FishClass
 
             # Get the sprite entity (unwrap if it's a sprite wrapper)
             sprite_entity: "Fish" = sprite._entity if hasattr(sprite, "_entity") else sprite
@@ -95,69 +102,69 @@ class AlgorithmicMovement(MovementStrategy):
             # Optimize: Use spatial query to only check nearby fish
             # We only care about fish within 200 units for poker behavior
             nearby_fish = sprite.environment.nearby_agents_by_type(sprite_entity, 200, FishClass)
-            other_fish: list[FishClass] = [f for f in nearby_fish if f.fish_id != sprite.fish_id]
 
             # Calculate poker behavior weight based on context
             poker_weight: float = 0.0
-            if other_fish and len(other_fish) > 0:
-                # Find nearest fish manually to avoid lambda and Vector2 overhead
-                nearest_dist_sq: float = float("inf")
-                
-                sprite_x = sprite.pos.x
-                sprite_y = sprite.pos.y
-                
-                for f in other_fish:
+
+            # Performance: Only calculate weight if there are nearby fish
+            fish_id = sprite.fish_id
+            sprite_x = sprite.pos.x
+            sprite_y = sprite.pos.y
+
+            # Find nearest fish using squared distance (avoid sqrt)
+            nearest_dist_sq: float = 40000.0  # 200^2 - anything beyond this is irrelevant
+
+            for f in nearby_fish:
+                if f.fish_id != fish_id:
                     dx = f.pos.x - sprite_x
                     dy = f.pos.y - sprite_y
                     dist_sq = dx * dx + dy * dy
                     if dist_sq < nearest_dist_sq:
                         nearest_dist_sq = dist_sq
-                
-                import math
-                distance = math.sqrt(nearest_dist_sq)
 
+            # Only compute weight if a nearby fish was found
+            if nearest_dist_sq < 40000.0:
+                distance = math.sqrt(nearest_dist_sq)
                 # Poker is more relevant when fish are nearby (within 200 units)
                 # Weight increases as fish get closer
-                if distance < 200:
-                    poker_weight = max(0.0, 1.0 - distance / 200.0)
-                    # Also consider energy - poker more relevant with higher energy
-                    energy_ratio = sprite.energy / sprite.max_energy if sprite.max_energy > 0 else 0
+                poker_weight = 1.0 - distance * 0.005  # Equivalent to distance / 200.0
+                # Also consider energy - poker more relevant with higher energy
+                max_energy = sprite.max_energy
+                if max_energy > 0:
+                    energy_ratio = sprite.energy / max_energy
                     poker_weight *= 0.3 + energy_ratio * 0.7  # Scale by energy (30-100%)
 
             # Blend primary and poker algorithms
-            desired_vx = primary_vx * (1.0 - poker_weight) + poker_vx * poker_weight
-            desired_vy = primary_vy * (1.0 - poker_weight) + poker_vy * poker_weight
+            inv_weight = 1.0 - poker_weight
+            desired_vx = primary_vx * inv_weight + poker_vx * poker_weight
+            desired_vy = primary_vy * inv_weight + poker_vy * poker_weight
         else:
             # No poker algorithm, use primary only
             desired_vx, desired_vy = primary_vx, primary_vy
 
-        # Apply algorithm decision
-        # Scale by speed to get actual velocity
-        target_vx = desired_vx * sprite.speed
-        target_vy = desired_vy * sprite.speed
+        # Apply algorithm decision - scale by speed to get actual velocity
+        speed = sprite.speed
+        target_vx = desired_vx * speed
+        target_vy = desired_vy * speed
 
         # Smoothly interpolate toward desired velocity
-        # Original: sprite.vel.x += (target_vx - sprite.vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
-        # Original: sprite.vel.y += (target_vy - sprite.vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
-        
-        # Optimize: Avoid creating new Vector2 objects for simple arithmetic
-        # We can modify sprite.vel directly
-        dx = (target_vx - sprite.vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
-        dy = (target_vy - sprite.vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
-        
-        sprite.vel.x += dx
-        sprite.vel.y += dy
+        vel = sprite.vel
+        dx = (target_vx - vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
+        dy = (target_vy - vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
+
+        vel.x += dx
+        vel.y += dy
 
         # Normalize velocity to maintain consistent speed
-        # Use optimized in-place normalization if available
-        vel_length_sq = sprite.vel.length_squared()
+        # Performance: Use squared comparison to avoid sqrt when not needed
+        vel_length_sq = vel.length_squared()
         if vel_length_sq > 0:
-            # Allow some variation in speed based on algorithm output
             # Only normalize if speed exceeds max allowed
-            max_speed = sprite.speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER
-            if vel_length_sq > max_speed * max_speed:
+            max_speed_sq = speed * speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ
+            if vel_length_sq > max_speed_sq:
                 # Normalize and scale in one step
-                scale = max_speed / (vel_length_sq ** 0.5)
-                sprite.vel.mul_inplace(scale)
+                max_speed = speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER
+                scale = max_speed / math.sqrt(vel_length_sq)
+                vel.mul_inplace(scale)
 
         super().move(sprite)

@@ -369,7 +369,7 @@ class Fish(Agent):
         # Add to memory
         self.food_memory.append((position, self.age))
         self.last_food_found_age = self.age
-        self.successful_food_finds += 1
+        # Note: successful_food_finds is incremented in eat() for performance tracking
 
         # Keep only recent memories (FIFO)
         if len(self.food_memory) > self.MAX_FOOD_MEMORIES:
@@ -599,24 +599,31 @@ class Fish(Agent):
 
         Returns:
             Newborn fish if reproduction occurred, None otherwise
+
+        Performance optimizations:
+        - Inline simple operations
+        - Batch infrequent operations (memory cleanup, learning decay)
+        - Cache frequently accessed properties
         """
         super().update(elapsed_time)
 
         # Age - managed by LifecycleComponent
         self._lifecycle_component.increment_age()
+        age = self._lifecycle_component.age  # Cache for use below
 
-        # NEW: Update fitness for survival
-        energy_ratio = self.energy / self.max_energy
-        self.genome.update_fitness(survived_frames=1, energy_ratio=energy_ratio)
+        # Performance: Only update fitness every 10 frames (reduces overhead significantly)
+        if age % 10 == 0:
+            energy_ratio = self._energy_component.energy / self._energy_component.max_energy
+            self.genome.update_fitness(survived_frames=10, energy_ratio=energy_ratio)
 
-        # NEW: Update enhanced memory system
-        self.memory_system.update(self.age)
+            # Update enhanced memory system less frequently
+            self.memory_system.update(age)
 
-        # NEW: Apply learning decay (learned behaviors fade without reinforcement)
-        self.learning_system.apply_decay()
+            # Apply learning decay less frequently
+            self.learning_system.apply_decay()
 
-        # IMPROVEMENT: Clean old food memories every second
-        if self.age % FRAME_RATE == 0:  # Every second
+        # Performance: Clean old food memories less frequently (every 2 seconds instead of 1)
+        if age % (FRAME_RATE * 2) == 0:
             self.clean_old_memories()
 
         # Energy
@@ -632,7 +639,7 @@ class Fish(Agent):
         # Reproduction
         newborn = self.update_reproduction()
 
-        # NEW: Track reproduction in fitness
+        # Track reproduction in fitness
         if newborn is not None:
             self.genome.update_fitness(reproductions=1)
 
@@ -646,35 +653,45 @@ class Fish(Agent):
 
         Args:
             food: The food being eaten
+
+        Performance optimizations:
+        - Learning events only created every 5th food eaten
+        - Cached algorithm_id lookup
         """
         # Take a bite from the food
         energy_gained = food.take_bite(self.bite_size)
         self._energy_component.gain_energy(energy_gained)
 
-        # NEW: Track food consumption in fitness
+        # Track food consumption in fitness
         self.genome.update_fitness(food_eaten=1)
 
         # IMPROVEMENT: Remember this food location for future reference
         self.remember_food_location(food.pos)
 
-        # NEW: Learn from successful food finding
-        from core.behavioral_learning import LearningEvent, LearningType
+        # Performance: Only create learning events occasionally (every 5 foods eaten)
+        # This significantly reduces object allocation overhead
+        self.successful_food_finds += 1
+        if self.successful_food_finds % 5 == 0:
+            from core.behavioral_learning import LearningEvent, LearningType
 
-        food_event = LearningEvent(
-            learning_type=LearningType.FOOD_FINDING,
-            success=True,
-            reward=energy_gained / 10.0,  # Normalize reward
-            context={},
-        )
-        self.learning_system.learn_from_event(food_event)
+            food_event = LearningEvent(
+                learning_type=LearningType.FOOD_FINDING,
+                success=True,
+                reward=energy_gained / 10.0,  # Normalize reward
+                context={},
+            )
+            self.learning_system.learn_from_event(food_event)
 
         # Record food consumption for algorithm performance tracking
-        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
+        # Performance: Cache algorithm_id check
+        ecosystem = self.ecosystem
+        behavior_algorithm = self.genome.behavior_algorithm
+        if ecosystem is not None and behavior_algorithm is not None:
             from core.algorithms import get_algorithm_index
 
-            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            algorithm_id = get_algorithm_index(behavior_algorithm)
             if algorithm_id >= 0:
-                self.ecosystem.record_food_eaten(algorithm_id)
+                ecosystem.record_food_eaten(algorithm_id)
 
     def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
         """Apply an energy penalty for direction changes, scaled by turn angle and fish size.
