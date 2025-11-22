@@ -366,8 +366,14 @@ def classify_parameter(param_name: str) -> str:
     return "default"
 
 
+class BehaviorStrategy(ABC):
+    """Marker base class for registrable behavior strategies."""
+
+    pass
+
+
 @dataclass
-class BehaviorAlgorithm(ABC):
+class BehaviorAlgorithm(BehaviorStrategy):
     """Base class for all behavior algorithms.
 
     Each algorithm has:
@@ -456,7 +462,6 @@ class BehaviorAlgorithm(ABC):
     def random_instance(cls) -> "BehaviorAlgorithm":
         """Create a random instance of this algorithm with random parameters."""
         raise NotImplementedError("Subclasses must implement random_instance")
-
 
 def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] = None) -> Optional[Any]:
     """Find nearest agent of given type within optional distance limit.

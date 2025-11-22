@@ -3,12 +3,49 @@
 This module provides a mapping from algorithm class names to their source file paths,
 enabling AI agents to identify which files to edit when improving underperforming behaviors.
 """
-
 import inspect
 import os
-from typing import Dict
+from importlib import import_module
+from pathlib import Path
+from typing import Dict, Iterable, List, Set, Type
 
-from core.algorithms import ALL_ALGORITHMS
+from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategy
+
+
+def _iter_algorithm_modules() -> Iterable[str]:
+    """Yield fully qualified algorithm module paths within core.algorithms."""
+
+    algorithms_dir = Path(__file__).resolve().parent / "algorithms"
+    for module_path in sorted(algorithms_dir.glob("*.py")):
+        stem = module_path.stem
+        if stem.startswith("__") or stem in {"base", "BEHAVIOR_TEMPLATE"}:
+            continue
+        yield f"core.algorithms.{stem}"
+
+
+def _discover_algorithms() -> List[Type[BehaviorStrategy]]:
+    """Dynamically import and collect behavior strategy classes."""
+
+    discovered: List[Type[BehaviorStrategy]] = []
+    seen: Set[Type[BehaviorStrategy]] = set()
+
+    for module_name in _iter_algorithm_modules():
+        module = import_module(module_name)
+        for _, obj in inspect.getmembers(module, inspect.isclass):
+            if not issubclass(obj, BehaviorStrategy) or obj in {
+                BehaviorStrategy,
+                BehaviorAlgorithm,
+            }:
+                continue
+            if obj in seen:
+                continue
+            seen.add(obj)
+            discovered.append(obj)
+
+    return discovered
+
+
+ALL_ALGORITHMS: List[Type[BehaviorStrategy]] = _discover_algorithms()
 
 
 def get_algorithm_source_map() -> Dict[str, str]:
