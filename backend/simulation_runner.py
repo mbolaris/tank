@@ -23,8 +23,10 @@ from core import entities, movement_strategy
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.constants import FILES, FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
 from core.entities import Fish
+from core.entities.fractal_plant import FractalPlant
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
+from core.plant_poker_strategy import PlantPokerStrategyAdapter
 
 # Use absolute imports assuming tank/ is in PYTHONPATH
 from core.tank_world import TankWorld, TankWorldConfig
@@ -136,6 +138,18 @@ class SimulationRunner:
 
         return player_data
 
+    def _create_plant_player_data(self, plant: FractalPlant) -> Dict[str, Any]:
+        """Create benchmark player metadata for a plant."""
+
+        return {
+            "plant_id": plant.plant_id,
+            "name": f"Plant #{plant.plant_id}",
+            "generation": getattr(plant, "age", 0),
+            "energy": plant.energy,
+            "species": "plant",
+            "poker_strategy": PlantPokerStrategyAdapter.from_genome(plant.genome),
+        }
+
     def _get_fish_genome_data(self, fish: Fish) -> Optional[Dict[str, Any]]:
         """Extract visual genome data for a fish to mirror tank rendering."""
 
@@ -229,9 +243,10 @@ class SimulationRunner:
             leaderboard = self.world.ecosystem.get_poker_leaderboard(
                 fish_list=fish_list, limit=3, sort_by="net_energy"
             )
+            plant_list = [e for e in self.world.entities_list if isinstance(e, FractalPlant)]
 
         if not leaderboard:
-            return
+            leaderboard = []
 
         fish_players = []
         for i, entry in enumerate(leaderboard):
@@ -253,17 +268,36 @@ class SimulationRunner:
             )
 
         if not fish_players:
+            # Still allow benchmarking if we have strong plants even when fish leaderboard is empty
+            pass
+
+        plant_players: list[Dict[str, Any]] = []
+        if plant_list:
+            ranked_plants = sorted(
+                plant_list,
+                key=lambda p: (
+                    getattr(p, "poker_wins", 0),
+                    getattr(p.genome, "fitness_score", 0.0),
+                    p.energy,
+                ),
+                reverse=True,
+            )
+            for plant in ranked_plants[:3]:
+                plant_players.append(self._create_plant_player_data(plant))
+
+        benchmark_players = fish_players + plant_players
+        if not benchmark_players:
             return
 
         self.auto_eval_running = True
         threading.Thread(
             target=self._run_auto_evaluation,
-            args=(fish_players,),
+            args=(benchmark_players,),
             name="auto_eval_thread",
             daemon=True,
         ).start()
 
-    def _run_auto_evaluation(self, fish_players: list[dict[str, Any]]):
+    def _run_auto_evaluation(self, benchmark_players: list[dict[str, Any]]):
         """Execute a background auto-evaluation series."""
 
         try:
@@ -273,7 +307,7 @@ class SimulationRunner:
 
             auto_eval = AutoEvaluatePokerGame(
                 game_id=game_id,
-                fish_players=fish_players,
+                player_pool=benchmark_players,
                 standard_energy=standard_energy,
                 max_hands=max_hands,
                 small_blind=5.0,
@@ -443,6 +477,8 @@ class SimulationRunner:
         poker_stats_dict = stats.get("poker_stats", {})
         poker_stats_payload = PokerStatsPayload(
             total_games=poker_stats_dict.get("total_games", 0),
+            total_fish_games=poker_stats_dict.get("total_fish_games", 0),
+            total_plant_games=poker_stats_dict.get("total_plant_games", 0),
             total_wins=poker_stats_dict.get("total_wins", 0),
             total_losses=poker_stats_dict.get("total_losses", 0),
             total_ties=poker_stats_dict.get("total_ties", 0),
@@ -932,7 +968,7 @@ class SimulationRunner:
 
                     self.standard_poker_series = AutoEvaluatePokerGame(
                         game_id=game_id,
-                        fish_players=fish_players,
+                        player_pool=fish_players,
                         standard_energy=standard_energy,
                         max_hands=max_hands,
                         small_blind=5.0,

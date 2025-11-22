@@ -39,6 +39,8 @@ class EvalPlayerState:
     poker_strategy: Optional[PokerStrategyAlgorithm] = None
     fish_id: Optional[int] = None
     fish_generation: Optional[int] = None
+    plant_id: Optional[int] = None
+    species: str = "fish"
     # Stats tracking
     hands_won: int = 0
     hands_lost: int = 0
@@ -65,7 +67,7 @@ class AutoEvaluatePokerGame:
     def __init__(
         self,
         game_id: str,
-        fish_players: List[Dict[str, Any]],
+        player_pool: List[Dict[str, Any]],
         standard_energy: float = 500.0,
         max_hands: int = 1000,
         small_blind: float = 5.0,
@@ -75,7 +77,10 @@ class AutoEvaluatePokerGame:
 
         Args:
             game_id: Unique identifier for this game
-            fish_players: List of dicts with keys: name, fish_id, generation, poker_strategy
+            player_pool: Benchmark players (fish and/or plants) containing
+                at least a "name" and "poker_strategy" key. Optional metadata
+                such as fish_id, plant_id, generation, or species is preserved
+                for downstream reporting.
             standard_energy: Starting energy for standard algorithm player
             max_hands: Maximum number of hands to play (default 1000)
             small_blind: Small blind amount
@@ -93,19 +98,21 @@ class AutoEvaluatePokerGame:
         # Add fish players - ensure they have enough energy to play all hands
         # With 4 players, blinds rotate, so each player posts SB+BB every 4 hands
         # Minimum energy needed: (SB + BB) * (max_hands / num_players) * 2
-        min_energy_needed = (small_blind + big_blind) * (max_hands / len(fish_players) + 1) * 2
+        min_energy_needed = (small_blind + big_blind) * (max_hands / len(player_pool) + 1) * 2
         starting_energy = max(standard_energy, min_energy_needed)
 
-        for i, fish_data in enumerate(fish_players):
+        for i, player_data in enumerate(player_pool):
             self.players.append(
                 EvalPlayerState(
                     player_id=f"fish_{i}",
-                    name=fish_data["name"],
+                    name=player_data["name"],
                     energy=starting_energy,
                     starting_energy=starting_energy,
-                    poker_strategy=fish_data["poker_strategy"],
-                    fish_id=fish_data.get("fish_id"),
-                    fish_generation=fish_data.get("generation"),
+                    poker_strategy=player_data["poker_strategy"],
+                    fish_id=player_data.get("fish_id"),
+                    fish_generation=player_data.get("generation"),
+                    plant_id=player_data.get("plant_id"),
+                    species=player_data.get("species", "fish"),
                     is_standard=False,
                 )
             )
@@ -433,6 +440,7 @@ class AutoEvaluatePokerGame:
                     "player_id": player.player_id,
                     "name": player.name,
                     "is_standard": player.is_standard,
+                    "species": getattr(player, "species", "fish"),
                     "energy": round(player.energy, 1),
                     "net_energy": round(player.energy - player.starting_energy, 1),
                 }
@@ -502,6 +510,8 @@ class AutoEvaluatePokerGame:
                     "is_standard": player.is_standard,
                     "fish_id": player.fish_id,
                     "fish_generation": player.fish_generation,
+                    "plant_id": player.plant_id,
+                    "species": player.species,
                     "energy": round(player.energy, 1),
                     "hands_won": player.hands_won,
                     "hands_lost": player.hands_lost,

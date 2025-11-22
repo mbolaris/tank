@@ -80,6 +80,29 @@ class EcosystemManager:
             self.total_fish_poker_games = self.total_fish_poker_games or 0
             self.total_plant_poker_games = self.total_plant_poker_games or 0
 
+        # Reproduction statistics tracking
+        self.reproduction_stats: ReproductionStats = ReproductionStats()
+
+        # Genetic diversity statistics tracking
+        self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
+
+        # Jellyfish poker leaderboard tracking
+        self.jellyfish_poker_stats: Dict[int, JellyfishPokerStats] = {}
+
+        # NEW: Enhanced statistics tracker (time series, correlations, extinctions, etc.)
+        from core.enhanced_statistics import EnhancedStatisticsTracker
+
+        self.enhanced_stats: EnhancedStatisticsTracker = EnhancedStatisticsTracker(
+            max_history_length=1000
+        )
+
+        # NEW: Lineage tracking for phylogenetic tree
+        # Each entry: {id, parent_id, generation, algorithm, color, birth_time}
+        self.lineage_log: List[Dict[str, Any]] = []
+
+        # Next available fish ID
+        self.next_fish_id: int = 0
+
     def _poker_totals_path(self) -> str:
         import os
 
@@ -105,29 +128,6 @@ class EcosystemManager:
         }
         with open(p, "w") as f:
             json.dump(data, f)
-
-        # Reproduction statistics tracking
-        self.reproduction_stats: ReproductionStats = ReproductionStats()
-
-        # Genetic diversity statistics tracking
-        self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
-
-        # Jellyfish poker leaderboard tracking
-        self.jellyfish_poker_stats: Dict[int, JellyfishPokerStats] = {}
-
-        # NEW: Enhanced statistics tracker (time series, correlations, extinctions, etc.)
-        from core.enhanced_statistics import EnhancedStatisticsTracker
-
-        self.enhanced_stats: EnhancedStatisticsTracker = EnhancedStatisticsTracker(
-            max_history_length=1000
-        )
-
-        # NEW: Lineage tracking for phylogenetic tree
-        # Each entry: {id, parent_id, generation, algorithm, color, birth_time}
-        self.lineage_log: List[Dict[str, Any]] = []
-
-        # Next available fish ID
-        self.next_fish_id: int = 0
 
     def _init_algorithm_stats(self) -> None:
         """Initialize algorithm stats for all algorithms."""

@@ -28,21 +28,31 @@ function PerformanceChart({
 
     // Calculate fish average and standard values for each hand
     const chartData = sortedHistory.map((snapshot) => {
-        const fishPlayers = snapshot.players.filter((p) => !p.is_standard);
+        const fishPlayers = snapshot.players.filter((p) => !p.is_standard && p.species !== 'plant');
+        const plantPlayers = snapshot.players.filter((p) => p.species === 'plant');
         const standardPlayer = snapshot.players.find((p) => p.is_standard);
 
         const fishAvg = fishPlayers.length > 0
             ? fishPlayers.reduce((sum, p) => sum + p.net_energy, 0) / fishPlayers.length
             : 0;
+        const plantAvg = plantPlayers.length > 0
+            ? plantPlayers.reduce((sum, p) => sum + p.net_energy, 0) / plantPlayers.length
+            : null;
 
         return {
             hand: snapshot.hand,
             fishAvg,
             standard: standardPlayer?.net_energy || 0,
+            plantAvg,
         };
     });
 
-    const allValues = chartData.flatMap((d) => [d.fishAvg, d.standard]);
+    const allValues = chartData.flatMap((d) => {
+        if (d.plantAvg === null) {
+            return [d.fishAvg, d.standard];
+        }
+        return [d.fishAvg, d.standard, d.plantAvg];
+    });
     const minValue = Math.min(0, ...allValues);
     const maxValue = Math.max(0, ...allValues);
     const range = maxValue - minValue || 1;
@@ -68,6 +78,18 @@ function PerformanceChart({
             return `${i === 0 ? 'M' : 'L'}${x},${y}`;
         })
         .join(' ');
+
+    const hasPlantLine = chartData.some((point) => point.plantAvg !== null);
+    const plantPath = hasPlantLine
+        ? chartData
+            .map((point, i) => {
+                const plantValue = point.plantAvg ?? 0;
+                const x = scaleX(point.hand);
+                const y = scaleY(plantValue);
+                return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+            })
+            .join(' ')
+        : '';
 
     // Y-axis ticks
     const yTicks = [minValue, 0, maxValue].filter((v, i, arr) => arr.indexOf(v) === i);
@@ -166,18 +188,60 @@ function PerformanceChart({
                     strokeDasharray="5 5"
                 />
 
+                {/* Plant average line */}
+                {hasPlantLine && (
+                    <path
+                        d={plantPath}
+                        fill="none"
+                        stroke="#84cc16"
+                        strokeWidth={2}
+                        strokeDasharray="3 4"
+                    />
+                )}
+
                 {/* Legend */}
-                <g transform={`translate(${width - padding.right - 180}, ${padding.top})`}>
-                    <rect x={0} y={0} width={170} height={44} fill="rgba(15,23,42,0.8)" rx={4} />
+                <g transform={`translate(${width - padding.right - 200}, ${padding.top})`}>
+                    <rect x={0} y={0} width={190} height={hasPlantLine ? 64 : 44} fill="rgba(15,23,42,0.8)" rx={4} />
                     <line x1={10} y1={14} x2={30} y2={14} stroke="#22c55e" strokeWidth={2} />
                     <text x={36} y={18} fill={colors.text} fontSize={11}>Evolved Fish (avg)</text>
-                    <line x1={10} y1={32} x2={30} y2={32} stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" />
-                    <text x={36} y={36} fill={colors.text} fontSize={11}>Static Baseline</text>
+                    {hasPlantLine && (
+                        <>
+                            <line x1={10} y1={32} x2={30} y2={32} stroke="#84cc16" strokeWidth={2} strokeDasharray="3 4" />
+                            <text x={36} y={36} fill={colors.text} fontSize={11}>Plants (avg)</text>
+                        </>
+                    )}
+                    <line
+                        x1={10}
+                        y1={hasPlantLine ? 50 : 32}
+                        x2={30}
+                        y2={hasPlantLine ? 50 : 32}
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                    />
+                    <text
+                        x={36}
+                        y={hasPlantLine ? 54 : 36}
+                        fill={colors.text}
+                        fontSize={11}
+                    >
+                        Static Baseline
+                    </text>
                 </g>
             </svg>
         </div>
     );
 }
+
+const getPlayerIcon = (player: AutoEvaluatePlayerStats): string => {
+    if (player.is_standard) {
+        return '🤖';
+    }
+    if (player.species === 'plant') {
+        return '🌿';
+    }
+    return '🐟';
+};
 
 function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isWinning: boolean }) {
     const netColor = player.net_energy >= 0 ? '#22c55e' : '#ef4444';
@@ -190,7 +254,7 @@ function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isW
             background: isWinning ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
         }}>
             <div style={styles.playerName}>
-                {player.is_standard ? '🤖' : '🐟'} {player.name}
+                {getPlayerIcon(player)} {player.name}
                 {genLabel && <span style={styles.genLabel}>{genLabel}</span>}
             </div>
             <div style={styles.playerStat}>
@@ -199,7 +263,7 @@ function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isW
             </div>
             <div style={styles.playerStat}>
                 <span style={styles.statLabel}>Win%</span>
-                <span style={styles.statValue}>{Math.round(player.win_rate)}%</span>
+                <span style={styles.statValue}>{Math.round(player.win_rate ?? 0)}%</span>
             </div>
             <div style={styles.playerStat}>
                 <span style={styles.statLabel}>Net</span>
@@ -242,11 +306,16 @@ export function AutoEvaluateDisplay({
         return null;
     }
 
-    const fishPlayers = stats.players.filter(p => !p.is_standard);
     const standardPlayer = stats.players.find(p => p.is_standard);
+    const nonStandardPlayers = stats.players.filter(p => !p.is_standard);
+    const fishPlayers = nonStandardPlayers.filter(p => p.species !== 'plant');
+    const plantPlayers = nonStandardPlayers.filter(p => p.species === 'plant');
+
     const fishTotalNet = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0);
+    const plantTotalNet = plantPlayers.reduce((sum, p) => sum + p.net_energy, 0);
     const standardNet = standardPlayer?.net_energy ?? 0;
-    const fishWinning = fishTotalNet > standardNet;
+    const fishWinning = fishPlayers.length > 0 && fishTotalNet > standardNet;
+    const plantWinning = plantPlayers.length > 0 && plantTotalNet > standardNet;
 
     // Sort players by net energy for display
     const sortedPlayers = [...stats.players].sort((a, b) => b.net_energy - a.net_energy);
@@ -271,7 +340,7 @@ export function AutoEvaluateDisplay({
                 <div style={styles.summaryItem}>
                     <span style={styles.summaryLabel}>Leader</span>
                     <span style={styles.summaryValue}>
-                        {leader?.is_standard ? '🤖' : '🐟'} {leader?.name}
+                        {leader ? getPlayerIcon(leader) : ''} {leader?.name}
                     </span>
                 </div>
                 <div style={styles.summaryItem}>
@@ -283,6 +352,17 @@ export function AutoEvaluateDisplay({
                         {fishWinning ? '+' : ''}{Math.round(fishTotalNet - standardNet)} ⚡
                     </span>
                 </div>
+                {plantPlayers.length > 0 && (
+                    <div style={styles.summaryItem}>
+                        <span style={styles.summaryLabel}>Plants vs Baseline</span>
+                        <span style={{
+                            ...styles.summaryValue,
+                            color: plantWinning ? '#84cc16' : '#ef4444',
+                        }}>
+                            {plantWinning ? '+' : ''}{Math.round(plantTotalNet - standardNet)} ⚡
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Player breakdown */}

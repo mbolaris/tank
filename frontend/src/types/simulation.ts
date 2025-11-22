@@ -118,6 +118,8 @@ export interface PokerLeaderboardEntry {
 
 export interface PokerStatsData {
   total_games: number;
+  total_fish_games?: number;
+  total_plant_games?: number;
   total_wins: number;
   total_losses: number;
   total_ties: number;
@@ -258,6 +260,8 @@ export interface AutoEvaluatePlayerStats {
   is_standard: boolean;
   fish_id?: number;
   fish_generation?: number;
+  plant_id?: number;
+  species?: 'fish' | 'plant';
   energy: number;
   hands_won: number;
   hands_lost: number;
@@ -273,6 +277,7 @@ export interface PokerPerformanceSnapshot {
     player_id: string;
     name: string;
     is_standard: boolean;
+    species?: 'fish' | 'plant';
     energy: number;
     net_energy: number;
   }[];

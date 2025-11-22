@@ -95,6 +95,8 @@ class EntitySnapshot:
 @dataclass(slots=True)
 class PokerStatsPayload:
     total_games: int
+    total_fish_games: int
+    total_plant_games: int
     total_wins: int
     total_losses: int
     total_ties: int

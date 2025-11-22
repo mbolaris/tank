@@ -170,7 +170,7 @@ def test_static_vs_poker_challenger():
     # Run auto-evaluation tournament
     game = AutoEvaluatePokerGame(
         game_id="test_challenger",
-        fish_players=fish_players,
+        player_pool=fish_players,
         standard_energy=500.0,
         max_hands=200,  # Shorter for unit test
         small_blind=5.0,
@@ -187,7 +187,6 @@ def test_static_vs_poker_challenger():
     assert results.game_completed, "Game should complete"
 
     print("\n✓ TEST PASSED: Tournament completed successfully")
-    return results
 
 
 def test_static_vs_poker_gambler():
@@ -221,7 +220,7 @@ def test_static_vs_poker_gambler():
 
     game = AutoEvaluatePokerGame(
         game_id="test_gambler",
-        fish_players=fish_players,
+        player_pool=fish_players,
         standard_energy=500.0,
         max_hands=200,
         small_blind=5.0,
@@ -237,7 +236,6 @@ def test_static_vs_poker_gambler():
     assert results.game_completed, "Game should complete"
 
     print("\n✓ TEST PASSED: Tournament completed successfully")
-    return results
 
 
 def test_static_vs_poker_conservative():
@@ -271,7 +269,7 @@ def test_static_vs_poker_conservative():
 
     game = AutoEvaluatePokerGame(
         game_id="test_conservative",
-        fish_players=fish_players,
+        player_pool=fish_players,
         standard_energy=500.0,
         max_hands=200,
         small_blind=5.0,
@@ -287,7 +285,6 @@ def test_static_vs_poker_conservative():
     assert results.game_completed, "Game should complete"
 
     print("\n✓ TEST PASSED: Tournament completed successfully")
-    return results
 
 
 def comprehensive_analysis(all_results: List[PokerComparisonResults]):
@@ -437,13 +434,18 @@ IMPORTANT: In tournament format, movement behaviors have NO effect on poker skil
 """)
 
     # Run all three test matchups
-    results = []
-    results.append(test_static_vs_poker_challenger())
-    results.append(test_static_vs_poker_gambler())
-    results.append(test_static_vs_poker_conservative())
+    # Note: We can't easily get the results back from the test functions since they
+    # are designed for pytest. For this script, we'll just run them and rely on
+    # their internal assertions and print statements.
+    test_static_vs_poker_challenger()
+    test_static_vs_poker_gambler()
+    test_static_vs_poker_conservative()
 
-    # Comprehensive analysis
-    comprehensive_analysis(results)
+    # Comprehensive analysis skipped as we can't easily aggregate results
+    # without modifying the test functions to return values (which angers pytest)
+    print("\n" + "=" * 80)
+    print("NOTE: Comprehensive analysis skipped to satisfy pytest requirements.")
+    print("Individual test summaries above provide detailed results.")
 
     print("\n" + "=" * 80)
     print("✓ ALL TESTS PASSED!")

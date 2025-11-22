@@ -131,6 +131,8 @@ class AutoEvaluatePlayerStats(BaseModel):
     is_standard: bool
     fish_id: Optional[int] = None
     fish_generation: Optional[int] = None
+    plant_id: Optional[int] = None
+    species: Optional[str] = "fish"
     energy: float
     hands_won: int
     hands_lost: int
