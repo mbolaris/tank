@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { SimulationUpdate, Command, CommandResponse } from '../types/simulation';
+import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate } from '../types/simulation';
 
 const WS_URL = 'ws://localhost:8000/ws';
 const WS_RECONNECT_DELAY = 3000; // 3 seconds
@@ -30,6 +30,8 @@ export function useWebSocket() {
 
           if (data.type === 'update') {
             setState(data as SimulationUpdate);
+          } else if (data.type === 'delta') {
+            setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
           } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
             // This is a command response (e.g., poker game state)
             // Call any pending callbacks
@@ -119,5 +121,31 @@ export function useWebSocket() {
     isConnected,
     sendCommand,
     sendCommandWithResponse,
+  };
+}
+
+function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
+  const entityMap = new Map(state.entities.map((e) => [e.id, { ...e }]));
+
+  delta.removed.forEach((id) => entityMap.delete(id));
+  delta.added.forEach((entity) => entityMap.set(entity.id, entity));
+
+  delta.updates.forEach((update) => {
+    const existing = entityMap.get(update.id);
+    if (existing) {
+      existing.x = update.x;
+      existing.y = update.y;
+      existing.vel_x = update.vel_x;
+      existing.vel_y = update.vel_y;
+    }
+  });
+
+  return {
+    ...state,
+    frame: delta.frame,
+    elapsed_time: delta.elapsed_time,
+    entities: Array.from(entityMap.values()),
+    poker_events: delta.poker_events?.length ? delta.poker_events : state.poker_events,
+    stats: delta.stats ?? state.stats,
   };
 }

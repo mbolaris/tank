@@ -6,14 +6,15 @@ import time
 import uuid
 from typing import Any, Dict, Optional
 
-from backend.models import (
-    EntityData,
-    AutoEvaluateStats,
-    PokerEventData,
-    PokerLeaderboardEntry,
-    PokerStatsData,
-    SimulationUpdate,
-    StatsData,
+from backend.state_payloads import (
+    AutoEvaluateStatsPayload,
+    DeltaStatePayload,
+    EntitySnapshot,
+    FullStatePayload,
+    PokerEventPayload,
+    PokerLeaderboardEntryPayload,
+    PokerStatsPayload,
+    StatsPayload,
 )
 from core import entities, movement_strategy
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
@@ -60,8 +61,11 @@ class SimulationRunner:
         # Cache state and only rebuild every N frames (reduces from 30 FPS to 15 FPS)
         self.websocket_update_interval = 2  # Send every 2 frames
         self.frames_since_websocket_update = 0
-        self._cached_state: Optional[SimulationUpdate] = None
+        self._cached_state: Optional[FullStatePayload | DeltaStatePayload] = None
         self._cached_state_frame: Optional[int] = None
+        self.delta_sync_interval = 30
+        self._last_full_frame: Optional[int] = None
+        self._last_entities: dict[int, EntitySnapshot] = {}
 
         # Human poker game management
         self.human_poker_game: Optional[HumanPokerGame] = None
@@ -94,6 +98,8 @@ class SimulationRunner:
         self._cached_state = None
         self._cached_state_frame = None
         self.frames_since_websocket_update = 0
+        self._last_full_frame = None
+        self._last_entities.clear()
 
     @property
     def engine(self):
@@ -304,185 +310,218 @@ class SimulationRunner:
             self.last_auto_eval_time = time.time()
             self.auto_eval_running = False
 
-    def get_state(self) -> SimulationUpdate:
+    def get_state(self, force_full: bool = False, allow_delta: bool = True):
         """Get current simulation state for WebSocket broadcast.
 
-        Uses caching to reduce serialization overhead - only rebuilds state
-        every N frames instead of every single frame.
-
-        Returns:
-            SimulationUpdate with current entities and stats
+        This method now supports delta compression to avoid sending the entire
+        world on every frame. A full state is sent every ``delta_sync_interval``
+        frames (or when ``force_full`` is True); intermediate frames only carry
+        position/velocity updates plus any added/removed entities.
         """
-        current_frame = self.world.frame_count
 
-        # Fast path: if the simulation hasn't advanced, reuse the cached state
+        current_frame = self.world.frame_count
+        elapsed_time = (
+            self.world.engine.elapsed_time
+            if hasattr(self.world.engine, "elapsed_time")
+            else self.world.frame_count * 33
+        )
+
+        # Fast path: identical frame reuse
         if self._cached_state is not None and current_frame == self._cached_state_frame:
             return self._cached_state
 
-        # Check if we should rebuild state this frame
         self.frames_since_websocket_update += 1
         should_rebuild = self.frames_since_websocket_update >= self.websocket_update_interval
 
-        # Return cached state if available and not time to rebuild
         if not should_rebuild and self._cached_state is not None:
             return self._cached_state
 
-        # Reset counter and rebuild state
         self.frames_since_websocket_update = 0
 
         with self.lock:
-            entities_data = []
-
-            # Convert entities to serializable format
-            for entity in self.world.entities_list:
-                entity_data = self._entity_to_data(entity)
-                if entity_data:
-                    entities_data.append(entity_data)
-
-            # Sort entities by z-order (background to foreground)
-            # This ensures castles and plants are rendered first (background)
-            z_order = {
-                'castle': 0,
-                'plant': 1,
-                'food': 2,
-                'crab': 3,
-                'fish': 4,
-                'jellyfish': 5,
-            }
-            entities_data.sort(key=lambda e: z_order.get(e.type, 999))
-
-            # Get ecosystem stats
-            stats = self.world.get_stats()
-
-            # Create poker stats data
-            poker_stats_dict = stats.get("poker_stats", {})
-            poker_stats_data = PokerStatsData(
-                total_games=poker_stats_dict.get("total_games", 0),
-                total_wins=poker_stats_dict.get("total_wins", 0),
-                total_losses=poker_stats_dict.get("total_losses", 0),
-                total_ties=poker_stats_dict.get("total_ties", 0),
-                total_energy_won=poker_stats_dict.get("total_energy_won", 0.0),
-                total_energy_lost=poker_stats_dict.get("total_energy_lost", 0.0),
-                net_energy=poker_stats_dict.get("net_energy", 0.0),
-                best_hand_rank=poker_stats_dict.get("best_hand_rank", 0),
-                best_hand_name=poker_stats_dict.get("best_hand_name", "None"),
-                # Advanced metrics
-                win_rate=poker_stats_dict.get("win_rate", 0.0),
-                win_rate_pct=poker_stats_dict.get("win_rate_pct", "0.0%"),
-                roi=poker_stats_dict.get("roi", 0.0),
-                vpip=poker_stats_dict.get("vpip", 0.0),
-                vpip_pct=poker_stats_dict.get("vpip_pct", "0.0%"),
-                bluff_success_rate=poker_stats_dict.get("bluff_success_rate", 0.0),
-                bluff_success_pct=poker_stats_dict.get("bluff_success_pct", "0.0%"),
-                button_win_rate=poker_stats_dict.get("button_win_rate", 0.0),
-                button_win_rate_pct=poker_stats_dict.get("button_win_rate_pct", "0.0%"),
-                off_button_win_rate=poker_stats_dict.get("off_button_win_rate", 0.0),
-                off_button_win_rate_pct=poker_stats_dict.get("off_button_win_rate_pct", "0.0%"),
-                positional_advantage=poker_stats_dict.get("positional_advantage", 0.0),
-                positional_advantage_pct=poker_stats_dict.get("positional_advantage_pct", "0.0%"),
-                aggression_factor=poker_stats_dict.get("aggression_factor", 0.0),
-                avg_hand_rank=poker_stats_dict.get("avg_hand_rank", 0.0),
-                total_folds=poker_stats_dict.get("total_folds", 0),
-                preflop_folds=poker_stats_dict.get("preflop_folds", 0),
-                postflop_folds=poker_stats_dict.get("postflop_folds", 0),
-                showdown_win_rate=poker_stats_dict.get("showdown_win_rate", "0.0%"),
-                avg_fold_rate=poker_stats_dict.get("avg_fold_rate", "0.0%"),
+            send_full = (
+                force_full
+                or not allow_delta
+                or self._last_full_frame is None
+                or (current_frame - self._last_full_frame) >= self.delta_sync_interval
             )
 
-            stats_data = StatsData(
-                frame=self.world.frame_count,
-                population=stats.get("total_population", 0),
-                generation=stats.get("current_generation", 0),
-                max_generation=stats.get(
-                    "max_generation", stats.get("current_generation", 0)
-                ),
-                births=stats.get("total_births", 0),
-                deaths=stats.get("total_deaths", 0),
-                capacity=stats.get("capacity_usage", "0%"),
-                time=stats.get("time_string", "Day"),
-                death_causes=stats.get("death_causes", {}),
-                fish_count=stats.get("fish_count", 0),
-                food_count=stats.get("food_count", 0),
-                plant_count=stats.get("plant_count", 0),
-                total_energy=stats.get("total_energy", 0.0),
-                poker_stats=poker_stats_data,
-            )
+            if send_full:
+                state = self._build_full_state(current_frame, elapsed_time)
+                self._last_full_frame = current_frame
+                self._last_entities = {entity.id: entity for entity in state.entities}
+            else:
+                entities = self._collect_entities()
+                current_entities = {entity.id: entity for entity in entities}
 
-            # Get recent poker events
-            poker_events = []
-            recent_events = self.world.engine.poker_events
-            for event in recent_events:
-                # Filter out evaluation events if any slipped in
-                if "Standard Algorithm" in event["message"] or "Auto-eval" in event["message"]:
-                    continue
-                    
-                poker_events.append(
-                    PokerEventData(
-                        frame=event["frame"],
-                        winner_id=event["winner_id"],
-                        loser_id=event["loser_id"],
-                        winner_hand=event["winner_hand"],
-                        loser_hand=event["loser_hand"],
-                        energy_transferred=event["energy_transferred"],
-                        message=event["message"],
-                        is_jellyfish=event["is_jellyfish"],
-                    )
+                added = [entity.to_full_dict() for eid, entity in current_entities.items() if eid not in self._last_entities]
+                removed = [eid for eid in self._last_entities if eid not in current_entities]
+                updates = [entity.to_delta_dict() for entity in entities]
+
+                poker_events = self._collect_poker_events()
+                state = DeltaStatePayload(
+                    frame=current_frame,
+                    elapsed_time=elapsed_time,
+                    updates=updates,
+                    added=added,
+                    removed=removed,
+                    poker_events=poker_events,
+                    stats=None,
                 )
 
-            # Get poker leaderboard
-            poker_leaderboard = []
-            if hasattr(self.world.ecosystem, "get_poker_leaderboard"):
-                # Get fish list from entities
-                fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
-                leaderboard_data = self.world.ecosystem.get_poker_leaderboard(
-                    fish_list=fish_list, limit=10, sort_by="net_energy"
-                )
-                poker_leaderboard = [PokerLeaderboardEntry(**entry) for entry in leaderboard_data]
+                self._last_entities = current_entities
 
-            auto_eval_stats: Optional[AutoEvaluateStats] = None
-            with self.auto_eval_lock:
-                if self.auto_eval_stats:
-                    try:
-                        # Optimization: Truncate history to last 50 entries to prevent payload explosion
-                        # The full history is preserved in self.auto_eval_history for the final report
-                        stats_copy = self.auto_eval_stats.copy()
-                        if "performance_history" in stats_copy:
-                            history = stats_copy["performance_history"]
-                            if len(history) > 50:
-                                stats_copy["performance_history"] = history[-50:]
-
-                        auto_eval_stats = AutoEvaluateStats(**stats_copy)
-                    except Exception:
-                        logger.error("Failed to serialize auto evaluation stats", exc_info=True)
-
-            state = SimulationUpdate(
-                frame=self.world.frame_count,
-                elapsed_time=(
-                    self.world.engine.elapsed_time
-                    if hasattr(self.world.engine, "elapsed_time")
-                    else self.world.frame_count * 33
-                ),
-                entities=entities_data,
-                stats=stats_data,
-                poker_events=poker_events,
-                poker_leaderboard=poker_leaderboard,
-                auto_evaluation=auto_eval_stats,
-            )
-
-            # Cache the state for reuse
             self._cached_state = state
             self._cached_state_frame = current_frame
             return state
 
-    def _entity_to_data(self, entity: entities.Agent) -> Optional[EntityData]:
-        """Convert an entity to EntityData.
+    def _build_full_state(self, frame: int, elapsed_time: int) -> FullStatePayload:
+        entities = self._collect_entities()
+        stats = self._collect_stats(frame)
+        poker_events = self._collect_poker_events()
+        poker_leaderboard = self._collect_poker_leaderboard()
+        auto_eval = self._collect_auto_eval()
 
-        Args:
-            entity: The entity to convert
+        return FullStatePayload(
+            frame=frame,
+            elapsed_time=elapsed_time,
+            entities=entities,
+            stats=stats,
+            poker_events=poker_events,
+            poker_leaderboard=poker_leaderboard,
+            auto_evaluation=auto_eval,
+        )
 
-        Returns:
-            EntityData or None if conversion failed
-        """
+    def _collect_entities(self) -> list[EntitySnapshot]:
+        entities_data: list[EntitySnapshot] = []
+        for entity in self.world.entities_list:
+            entity_data = self._entity_to_data(entity)
+            if entity_data:
+                entities_data.append(entity_data)
+
+        z_order = {
+            "castle": 0,
+            "plant": 1,
+            "food": 2,
+            "crab": 3,
+            "fish": 4,
+            "jellyfish": 5,
+        }
+        entities_data.sort(key=lambda e: z_order.get(e.type, 999))
+        return entities_data
+
+    def _collect_stats(self, frame: int) -> StatsPayload:
+        stats = self.world.get_stats()
+        poker_stats_dict = stats.get("poker_stats", {})
+        poker_stats_payload = PokerStatsPayload(
+            total_games=poker_stats_dict.get("total_games", 0),
+            total_wins=poker_stats_dict.get("total_wins", 0),
+            total_losses=poker_stats_dict.get("total_losses", 0),
+            total_ties=poker_stats_dict.get("total_ties", 0),
+            total_energy_won=poker_stats_dict.get("total_energy_won", 0.0),
+            total_energy_lost=poker_stats_dict.get("total_energy_lost", 0.0),
+            net_energy=poker_stats_dict.get("net_energy", 0.0),
+            best_hand_rank=poker_stats_dict.get("best_hand_rank", 0),
+            best_hand_name=poker_stats_dict.get("best_hand_name", "None"),
+            win_rate=poker_stats_dict.get("win_rate", 0.0),
+            win_rate_pct=poker_stats_dict.get("win_rate_pct", "0.0%"),
+            roi=poker_stats_dict.get("roi", 0.0),
+            vpip=poker_stats_dict.get("vpip", 0.0),
+            vpip_pct=poker_stats_dict.get("vpip_pct", "0.0%"),
+            bluff_success_rate=poker_stats_dict.get("bluff_success_rate", 0.0),
+            bluff_success_pct=poker_stats_dict.get("bluff_success_pct", "0.0%"),
+            button_win_rate=poker_stats_dict.get("button_win_rate", 0.0),
+            button_win_rate_pct=poker_stats_dict.get("button_win_rate_pct", "0.0%"),
+            off_button_win_rate=poker_stats_dict.get("off_button_win_rate", 0.0),
+            off_button_win_rate_pct=poker_stats_dict.get("off_button_win_rate_pct", "0.0%"),
+            positional_advantage=poker_stats_dict.get("positional_advantage", 0.0),
+            positional_advantage_pct=poker_stats_dict.get("positional_advantage_pct", "0.0%"),
+            aggression_factor=poker_stats_dict.get("aggression_factor", 0.0),
+            avg_hand_rank=poker_stats_dict.get("avg_hand_rank", 0.0),
+            total_folds=poker_stats_dict.get("total_folds", 0),
+            preflop_folds=poker_stats_dict.get("preflop_folds", 0),
+            postflop_folds=poker_stats_dict.get("postflop_folds", 0),
+            showdown_win_rate=poker_stats_dict.get("showdown_win_rate", "0.0%"),
+            avg_fold_rate=poker_stats_dict.get("avg_fold_rate", "0.0%"),
+        )
+
+        return StatsPayload(
+            frame=frame,
+            population=stats.get("total_population", 0),
+            generation=stats.get("current_generation", 0),
+            max_generation=stats.get("max_generation", stats.get("current_generation", 0)),
+            births=stats.get("total_births", 0),
+            deaths=stats.get("total_deaths", 0),
+            capacity=stats.get("capacity_usage", "0%"),
+            time=stats.get("time_string", "Day"),
+            death_causes=stats.get("death_causes", {}),
+            fish_count=stats.get("fish_count", 0),
+            food_count=stats.get("food_count", 0),
+            plant_count=stats.get("plant_count", 0),
+            total_energy=stats.get("total_energy", 0.0),
+            poker_stats=poker_stats_payload,
+        )
+
+    def _collect_poker_events(self) -> list[PokerEventPayload]:
+        poker_events: list[PokerEventPayload] = []
+        recent_events = self.world.engine.poker_events
+        for event in recent_events:
+            if "Standard Algorithm" in event["message"] or "Auto-eval" in event["message"]:
+                continue
+
+            poker_events.append(
+                PokerEventPayload(
+                    frame=event["frame"],
+                    winner_id=event["winner_id"],
+                    loser_id=event["loser_id"],
+                    winner_hand=event["winner_hand"],
+                    loser_hand=event["loser_hand"],
+                    energy_transferred=event["energy_transferred"],
+                    message=event["message"],
+                    is_jellyfish=event["is_jellyfish"],
+                )
+            )
+
+        return poker_events
+
+    def _collect_poker_leaderboard(self) -> list[PokerLeaderboardEntryPayload]:
+        if not hasattr(self.world.ecosystem, "get_poker_leaderboard"):
+            return []
+
+        fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+        leaderboard_data = self.world.ecosystem.get_poker_leaderboard(
+            fish_list=fish_list, limit=10, sort_by="net_energy"
+        )
+        return [PokerLeaderboardEntryPayload(**entry) for entry in leaderboard_data]
+
+    def _collect_auto_eval(self) -> Optional[AutoEvaluateStatsPayload]:
+        with self.auto_eval_lock:
+            if not self.auto_eval_stats:
+                return None
+
+            try:
+                stats_copy = self.auto_eval_stats.copy()
+                if "performance_history" in stats_copy:
+                    history = stats_copy["performance_history"]
+                    if len(history) > 50:
+                        stats_copy["performance_history"] = history[-50:]
+                allowed_keys = {
+                    "hands_played",
+                    "hands_remaining",
+                    "players",
+                    "game_over",
+                    "winner",
+                    "reason",
+                    "performance_history",
+                }
+                filtered = {k: v for k, v in stats_copy.items() if k in allowed_keys}
+                return AutoEvaluateStatsPayload(**filtered)
+            except Exception:
+                logger.error("Failed to serialize auto evaluation stats", exc_info=True)
+                return None
+
+    def _entity_to_data(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
+        """Convert an entity to a lightweight snapshot for serialization."""
         try:
             base_data = {
                 "id": id(entity),  # Use object id as unique identifier
@@ -528,7 +567,7 @@ class SimulationRunner:
                     else:
                         species_label = "algorithmic"
 
-                return EntityData(
+                return EntitySnapshot(
                     type="fish",
                     energy=entity.energy,
                     generation=entity.generation if hasattr(entity, "generation") else 0,
@@ -539,35 +578,35 @@ class SimulationRunner:
                 )
 
             elif isinstance(entity, entities.Food):
-                return EntityData(
+                return EntitySnapshot(
                     type="food",
                     food_type=entity.food_type if hasattr(entity, "food_type") else 0,
                     **base_data,
                 )
 
             elif isinstance(entity, entities.Plant):
-                return EntityData(
+                return EntitySnapshot(
                     type="plant",
                     plant_type=entity.plant_type if hasattr(entity, "plant_type") else 1,
                     **base_data,
                 )
 
             elif isinstance(entity, entities.Crab):
-                return EntityData(
+                return EntitySnapshot(
                     type="crab",
                     energy=entity.energy if hasattr(entity, "energy") else 100,
                     **base_data,
                 )
 
             elif isinstance(entity, entities.Castle):
-                return EntityData(type="castle", **base_data)
+                return EntitySnapshot(type="castle", **base_data)
 
             elif isinstance(entity, entities.Jellyfish):
-                return EntityData(
-                    type='jellyfish',
-                    energy=entity.energy if hasattr(entity, 'energy') else 1000,
-                    jellyfish_id=entity.jellyfish_id if hasattr(entity, 'jellyfish_id') else 0,
-                    **base_data
+                return EntitySnapshot(
+                    type="jellyfish",
+                    energy=entity.energy if hasattr(entity, "energy") else 1000,
+                    plant_type=getattr(entity, "jellyfish_id", 0),
+                    **base_data,
                 )
 
             return None
