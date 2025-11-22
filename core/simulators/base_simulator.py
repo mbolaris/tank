@@ -516,18 +516,50 @@ class BaseSimulator(ABC):
                 valid_fish = [f for f in group if f not in processed_fish]
 
                 if len(valid_fish) >= 2 and POKER_ACTIVITY_ENABLED:
-                    poker = PokerInteraction(*valid_fish)
-                    if poker.play_poker():
-                        self.handle_poker_result(poker)
+                    ready_fish = PokerInteraction.get_ready_players(valid_fish)
 
-                        # Check deaths
-                        for f in valid_fish:
-                            if f.is_dead() and f in all_entities_set:
-                                self.record_fish_death(f)
-                                removed_fish.add(f)
-                                all_entities_set.discard(f)
+                    if len(ready_fish) < 2:
+                        continue
 
-                    processed_fish.update(valid_fish)
+                    # Build poker groups only from ready fish that are directly touching
+                    ready_set = set(ready_fish)
+                    ready_visited: set = set()
+
+                    for start in ready_fish:
+                        if start in ready_visited:
+                            continue
+
+                        stack = [start]
+                        ready_group = []
+
+                        while stack:
+                            current = stack.pop()
+
+                            if current in ready_visited:
+                                continue
+
+                            ready_visited.add(current)
+                            ready_group.append(current)
+
+                            for neighbor in fish_contacts.get(current, ()):  # type: ignore[arg-type]
+                                if neighbor in ready_set and neighbor not in ready_visited:
+                                    stack.append(neighbor)
+
+                        if len(ready_group) < 2:
+                            continue
+
+                        poker = PokerInteraction(*ready_group)
+                        if poker.play_poker():
+                            self.handle_poker_result(poker)
+
+                            # Check deaths
+                            for f in ready_group:
+                                if f.is_dead() and f in all_entities_set:
+                                    self.record_fish_death(f)
+                                    removed_fish.add(f)
+                                    all_entities_set.discard(f)
+
+                        processed_fish.update(ready_group)
 
     def handle_food_collisions(self) -> None:
         """Handle collisions involving food.

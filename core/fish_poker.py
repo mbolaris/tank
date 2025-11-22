@@ -221,6 +221,29 @@ class PokerInteraction:
         if self.num_players > 1:
             self.player_hands[1] = value
 
+    @classmethod
+    def get_ready_players(cls, fish_list: List["Fish"]) -> List["Fish"]:
+        """Return fish that are eligible to play poker right now."""
+
+        ready_players = []
+
+        for fish in fish_list:
+            participant = _get_participant(fish)
+            participant.sync_with_age()
+
+            if fish.energy < cls.MIN_ENERGY_TO_PLAY:
+                continue
+
+            if participant.cooldown > 0:
+                continue
+
+            if hasattr(fish, "is_pregnant") and fish.is_pregnant:
+                continue
+
+            ready_players.append(fish)
+
+        return ready_players
+
     def can_play_poker(self) -> bool:
         """
         Check if all fish are willing and able to play poker.
