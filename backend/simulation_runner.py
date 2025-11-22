@@ -7,6 +7,8 @@ import time
 import uuid
 from typing import Any, Dict, Optional
 
+import orjson
+
 from backend.state_payloads import (
     AutoEvaluateStatsPayload,
     DeltaStatePayload,
@@ -383,6 +385,23 @@ class SimulationRunner:
         return await loop.run_in_executor(
             None, self.get_state, force_full, allow_delta
         )
+
+    def serialize_state(self, state: FullStatePayload | DeltaStatePayload) -> bytes:
+        """Serialize a state payload with fast JSON and log slow frames."""
+
+        start = time.perf_counter()
+        payload = state.to_dict() if hasattr(state, "to_dict") else state
+        serialized = orjson.dumps(payload)
+        duration_ms = (time.perf_counter() - start) * 1000
+
+        if duration_ms > 10:
+            logger.warning(
+                "serialize_state: Slow serialization %.2f ms for frame %s",
+                duration_ms,
+                getattr(state, "frame", "unknown"),
+            )
+
+        return serialized
 
     def _build_full_state(self, frame: int, elapsed_time: int) -> FullStatePayload:
         entities = self._collect_entities()
