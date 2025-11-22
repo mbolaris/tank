@@ -172,6 +172,24 @@ python main.py --headless --max-frames 10000 --export-stats results.json
 - Identical simulation behavior to web UI
 - **LLM-friendly stats export**: Export comprehensive JSON data including algorithm performance, evolution trends, and population dynamics for AI-assisted analysis
 
+## 🧹 Code Quality & Testing
+
+Keep changes safe by running the test and lint workflow locally:
+
+```bash
+# Run the full Python test suite (backend + simulation logic)
+pytest
+
+# Lint the core math helpers, plant verification script, and poker regression tests
+ruff check core/math_utils.py scripts/verify_plants_no_metabolic_cost.py tests/test_static_vs_fish_comparison.py tests/test_vector2.py
+```
+
+The `scripts/verify_plants_no_metabolic_cost.py` helper can also be used to spot-check plant energy behavior without launching the full UI:
+
+```bash
+python scripts/verify_plants_no_metabolic_cost.py  # Prints energy every 10 frames for a sample plant
+```
+
 ### 🤖 AI Code Evolution Workflow (NEW!)
 
 **Automatically improve fish behaviors using AI!** The simulation now includes an **AI Code Evolution Agent** that analyzes simulation data and generates algorithm improvements.
