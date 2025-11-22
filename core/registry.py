@@ -205,20 +205,4 @@ def get_algorithm_metadata() -> Dict[str, Dict[str, str]]:
     return metadata
 
 
-if __name__ == "__main__":
-    # Test the registry
-    print("Algorithm Source Mapping:")
-    print("=" * 80)
 
-    source_map = get_algorithm_source_map()
-    for class_name, file_path in sorted(source_map.items()):
-        print(f"{class_name:30s} -> {file_path}")
-
-    print("\n\nAlgorithm Metadata:")
-    print("=" * 80)
-
-    metadata = get_algorithm_metadata()
-    for algo_id, info in sorted(metadata.items()):
-        print(f"\n{algo_id}:")
-        for key, value in info.items():
-            print(f"  {key:15s}: {value}")
