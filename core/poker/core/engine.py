@@ -122,9 +122,16 @@ class PokerGameState:
         self.add_to_pot(amount)
 
     def deal_cards(self):
-        """Deal hole cards to both players."""
-        self.player1_hole_cards = self.deck.deal(2)
-        self.player2_hole_cards = self.deck.deal(2)
+        """Deal hole cards alternating between players (P1, P2, P1, P2)."""
+        self.player1_hole_cards = []
+        self.player2_hole_cards = []
+
+        # Card 1 to each player
+        self.player1_hole_cards.append(self.deck.deal_one())
+        self.player2_hole_cards.append(self.deck.deal_one())
+        # Card 2 to each player
+        self.player1_hole_cards.append(self.deck.deal_one())
+        self.player2_hole_cards.append(self.deck.deal_one())
 
     def deal_flop(self):
         """Deal the flop (3 community cards)."""
@@ -229,10 +236,11 @@ class PokerEngine:
         # Check for straight (including A-2-3-4-5)
         is_straight = False
         straight_high = 0
+        ranks_set = set(ranks)
         if ranks == list(range(ranks[0], ranks[0] - 5, -1)):
             is_straight = True
             straight_high = ranks[0]
-        elif ranks == [14, 5, 4, 3, 2]:  # Ace-low straight (wheel)
+        elif ranks_set == {14, 2, 3, 4, 5}:  # Ace-low straight (wheel) - robust set check
             is_straight = True
             straight_high = 5
 
@@ -501,10 +509,11 @@ class PokerEngine:
         # Calculate how much needs to be called
         call_amount = opponent_bet - current_bet
 
-        # Can't bet more than available energy
+        # TABLE STAKES RULE: If player cannot cover the full call, they go All-In
+        # Players are never forced to fold due to lack of funds - they call with what they have
         if call_amount > player_energy:
-            # Must fold if can't afford to call
-            return (BettingAction.FOLD, 0.0)
+            # All-in: call with remaining energy
+            return (BettingAction.CALL, player_energy)
 
         # Enhanced pre-flop decision making with starting hand evaluation
         is_preflop = community_cards is None or len(community_cards) == 0
@@ -773,6 +782,27 @@ class PokerEngine:
 
                 # Switch to other player
                 current_player = 2 if current_player == 1 else 1
+
+            # UNMATCHED BETS FIX (Side Pot Logic for Heads-Up)
+            # If one player is all-in for less than the other's current bet,
+            # return the excess to the richer player. This ensures Table Stakes rules.
+            if game_state.player1_current_bet != game_state.player2_current_bet:
+                min_bet = min(game_state.player1_current_bet, game_state.player2_current_bet)
+
+                # Refund the difference to the player with the larger bet
+                if game_state.player1_current_bet > min_bet:
+                    refund = game_state.player1_current_bet - min_bet
+                    game_state.player1_current_bet = min_bet
+                    game_state.player1_total_bet -= refund
+                    game_state.pot -= refund
+                    player1_remaining += refund  # Give money back to stack
+
+                elif game_state.player2_current_bet > min_bet:
+                    refund = game_state.player2_current_bet - min_bet
+                    game_state.player2_current_bet = min_bet
+                    game_state.player2_total_bet -= refund
+                    game_state.pot -= refund
+                    player2_remaining += refund  # Give money back to stack
 
         # Game is over - evaluate final hands at showdown
         game_state.current_round = BettingRound.SHOWDOWN
