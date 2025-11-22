@@ -153,9 +153,9 @@ function App() {
                             </span>
                             {pokerStats && (
                                 (() => {
-                                    const events = state?.poker_events || [];
-                                    const fishGames = events.filter((e: any) => !e.is_plant).length;
-                                    const plantGames = events.filter((e: any) => e.is_plant).length;
+                                    // Use aggregated totals from backend when available
+                                    const fishGames = state?.stats?.poker_stats?.total_fish_games ?? (state?.poker_events || []).filter((e: any) => !e.is_plant).length;
+                                    const plantGames = state?.stats?.poker_stats?.total_plant_games ?? (state?.poker_events || []).filter((e: any) => e.is_plant).length;
 
                                     return (
                                         <span className="meta-item" style={{ color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
