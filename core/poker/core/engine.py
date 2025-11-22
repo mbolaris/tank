@@ -171,11 +171,20 @@ class PokerGameState:
 
     def is_betting_complete(self) -> bool:
         """Check if betting is complete for current round."""
-        # Betting is complete if bets are equal and both players have acted
-        return (
-            self.player1_current_bet == self.player2_current_bet
-            and len([h for h in self.betting_history if h[0] in [1, 2]]) >= 2
-        )
+        """Check if betting is complete for current round.
+
+        Only consider the current round's state: if both players have
+        matched bets then betting for the round is complete. The
+        simulation loop handles the requirement that players must have
+        had an opportunity to act (e.g. `actions_this_round >= 2`).
+        """
+        # If bets aren't equal, betting is not complete
+        if self.player1_current_bet != self.player2_current_bet:
+            return False
+
+        # Bets are equal — consider the round complete. The engine's
+        # outer loop enforces the "both have acted" rule.
+        return True
 
     def get_winner_by_fold(self) -> Optional[int]:
         """Return winner if someone folded, None otherwise."""
