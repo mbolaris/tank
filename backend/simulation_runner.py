@@ -508,6 +508,7 @@ class SimulationRunner:
                     message=event["message"],
                     is_jellyfish=event.get("is_jellyfish", False),
                     is_plant=event.get("is_plant", False),
+                    plant_id=event.get("plant_id", None),
                 )
             )
 

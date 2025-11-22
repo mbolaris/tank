@@ -358,7 +358,7 @@ FRACTAL_PLANTS_ENABLED = True  # Enable fractal plant system
 # =============================================================================
 
 # Root Spot Configuration
-FRACTAL_PLANT_ROOT_SPOT_COUNT = 100  # Number of positions where plants can grow
+FRACTAL_PLANT_ROOT_SPOT_COUNT = 25  # Number of positions where plants can grow
 FRACTAL_PLANT_ROOT_Y_BASE = SCREEN_HEIGHT - 15  # Y position near tank bottom
 FRACTAL_PLANT_ROOT_Y_VARIANCE = 8  # Slight Y variation for natural look
 

@@ -162,6 +162,7 @@ class PokerEventPayload:
     message: str
     is_jellyfish: bool = False
     is_plant: bool = False
+    plant_id: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return _to_dict(self)

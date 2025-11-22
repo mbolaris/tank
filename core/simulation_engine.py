@@ -1197,6 +1197,8 @@ class SimulationEngine(BaseSimulator):
             "message": message,
             "is_jellyfish": False,  # Not a jellyfish
             "is_plant": True,  # New flag for plants
+            # Expose the actual plant id for frontend display
+            "plant_id": plant_id,
         }
 
         self.poker_events.append(event)

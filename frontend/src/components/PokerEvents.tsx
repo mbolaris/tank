@@ -71,14 +71,14 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                                     if (event.winner_id === -2) winnerName = "Jellyfish";
                                     if (event.loser_id === -2) loserName = "Jellyfish";
                                 } else if (isPlant) {
-                                    if (event.winner_id === -3) winnerName = `Plant #${Math.abs(event.winner_id)}`; // Plant IDs are positive in simulation but -3 here is just a flag check really
-                                    if (event.loser_id === -3) loserName = `Plant #${Math.abs(event.loser_id)}`;
-
-                                    // Actually, for plants we passed -3 as ID in backend? 
-                                    // No, we passed -3 as ID. But we also have plant_id in message.
-                                    // Let's just use the ID passed.
-                                    if (event.winner_id === -3) winnerName = "Plant";
-                                    if (event.loser_id === -3) loserName = "Plant";
+                                    // Backend now includes explicit `plant_id` when `is_plant` is true.
+                                    const pid = (event as any).plant_id;
+                                    if (event.winner_id === -3) {
+                                        winnerName = pid !== undefined ? `Plant #${pid}` : "Plant";
+                                    }
+                                    if (event.loser_id === -3) {
+                                        loserName = pid !== undefined ? `Plant #${pid}` : "Plant";
+                                    }
                                 }
 
                                 content = (

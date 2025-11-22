@@ -8,14 +8,14 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
-from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH, FRACTAL_PLANT_ROOT_SPOT_COUNT
 
 if TYPE_CHECKING:
     from core.entities.fractal_plant import FractalPlant
 
 
 # Root spot configuration
-ROOT_SPOT_COUNT = 100
+ROOT_SPOT_COUNT = FRACTAL_PLANT_ROOT_SPOT_COUNT if 'FRACTAL_PLANT_ROOT_SPOT_COUNT' in globals() else 25
 ROOT_SPOT_Y_BASE = SCREEN_HEIGHT - 40  # Position near tank bottom
 ROOT_SPOT_Y_VARIANCE = 8  # Slight y variation for natural look
 ROOT_SPOT_MIN_SPACING = 8  # Minimum pixels between spots

@@ -1123,14 +1123,7 @@ export class Renderer {
             nectarReady
         );
 
-        // Draw energy bar if available
-        if (plant.energy !== undefined && plant.max_energy !== undefined) {
-            const energyRatio = plant.energy / plant.max_energy;
-            const barWidth = width * sizeMultiplier;
-            const barX = x + width / 2 - barWidth / 2;
-            const barY = baseY - height * sizeMultiplier - 20;
-            this.drawPlantEnergyBar(barX, barY, barWidth, energyRatio);
-        }
+        // Plants no longer display an energy/health meter in the UI.
     }
 
     /**
@@ -1150,36 +1143,5 @@ export class Renderer {
         );
     }
 
-    /**
-     * Draw energy bar for fractal plants.
-     */
-    private drawPlantEnergyBar(x: number, y: number, width: number, energyRatio: number) {
-        const { ctx } = this;
-        const barHeight = 4;
-        const padding = 1;
-
-        ctx.save();
-
-        // Background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(x, y, width, barHeight);
-
-        // Energy fill
-        const fillWidth = Math.max(0, (width - padding * 2) * Math.min(1, energyRatio));
-
-        // Color based on energy level - green spectrum for plants
-        let fillColor: string;
-        if (energyRatio > 0.6) {
-            fillColor = '#4CAF50'; // Green
-        } else if (energyRatio > 0.3) {
-            fillColor = '#8BC34A'; // Light green
-        } else {
-            fillColor = '#CDDC39'; // Yellow-green
-        }
-
-        ctx.fillStyle = fillColor;
-        ctx.fillRect(x + padding, y + padding, fillWidth, barHeight - padding * 2);
-
-        ctx.restore();
-    }
+    // Note: plant energy bars intentionally removed per product request.
 }
