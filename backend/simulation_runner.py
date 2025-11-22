@@ -1,5 +1,6 @@
 """Background simulation runner thread."""
 
+import asyncio
 import logging
 import threading
 import time
@@ -374,6 +375,14 @@ class SimulationRunner:
             self._cached_state = state
             self._cached_state_frame = current_frame
             return state
+
+    async def get_state_async(self, force_full: bool = False, allow_delta: bool = True):
+        """Async wrapper to fetch simulation state without blocking the event loop."""
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, self.get_state, force_full, allow_delta
+        )
 
     def _build_full_state(self, frame: int, elapsed_time: int) -> FullStatePayload:
         entities = self._collect_entities()
@@ -915,3 +924,11 @@ class SimulationRunner:
                 except Exception as e:
                     logger.error(f"Error running benchmark series: {e}", exc_info=True)
                     return self._create_error_response(f"Failed to run benchmark series: {str(e)}")
+
+    async def handle_command_async(
+        self, command: str, data: Optional[Dict[str, Any]] = None
+    ):
+        """Async wrapper to route commands off the event loop thread."""
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.handle_command, command, data)
