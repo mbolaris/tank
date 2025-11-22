@@ -15,6 +15,9 @@ from core.constants import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
     FILES,
+    FRACTAL_PLANT_INITIAL_COUNT,
+    FRACTAL_PLANT_INITIAL_ENERGY,
+    FRACTAL_PLANTS_ENABLED,
     FRAME_RATE,
     MAX_DIVERSITY_SPAWN_ATTEMPTS,
     MAX_POKER_EVENTS,
@@ -29,6 +32,8 @@ from core.constants import (
 from core.ecosystem import EcosystemManager
 from core.entity_factory import create_initial_population
 from core.fish_poker import PokerInteraction
+from core.plant_genetics import PlantGenome
+from core.root_spots import RootSpotManager
 from core.simulators.base_simulator import BaseSimulator
 from core.time_system import TimeSystem
 
@@ -121,6 +126,9 @@ class SimulationEngine(BaseSimulator):
         self._cached_food_list: Optional[List[entities.Food]] = None
         self._cache_dirty = True
 
+        # Fractal plant system
+        self.root_spot_manager: Optional[RootSpotManager] = None
+
     @property
     def agents(self) -> AgentsWrapper:
         """Get agents wrapper for compatibility with tests."""
@@ -134,7 +142,15 @@ class SimulationEngine(BaseSimulator):
         self.environment = environment.Environment(self.entities_list, SCREEN_WIDTH, SCREEN_HEIGHT, self.time_system)
         self.ecosystem = EcosystemManager(max_population=MAX_POPULATION)
 
+        # Initialize fractal plant root spot manager
+        if FRACTAL_PLANTS_ENABLED:
+            self.root_spot_manager = RootSpotManager(SCREEN_WIDTH, SCREEN_HEIGHT)
+
         self.create_initial_entities()
+
+        # Create initial fractal plants
+        if FRACTAL_PLANTS_ENABLED and self.root_spot_manager is not None:
+            self.create_initial_fractal_plants()
 
     def create_initial_entities(self) -> None:
         """Create initial entities in the fish tank with multiple species."""
@@ -146,6 +162,90 @@ class SimulationEngine(BaseSimulator):
             self.environment, self.ecosystem, SCREEN_WIDTH, SCREEN_HEIGHT, rng=self.rng
         )
         self.entities_list.extend(population)
+
+    def create_initial_fractal_plants(self) -> None:
+        """Create initial fractal plants at random root spots."""
+        if self.root_spot_manager is None or self.environment is None:
+            return
+
+        from core.entities.fractal_plant import FractalPlant
+
+        for _ in range(FRACTAL_PLANT_INITIAL_COUNT):
+            # Get a random empty root spot
+            spot = self.root_spot_manager.get_random_empty_spot()
+            if spot is None:
+                break  # No more empty spots
+
+            # Create a random genome
+            genome = PlantGenome.create_random(rng=self.rng)
+
+            # Create the plant
+            plant = FractalPlant(
+                environment=self.environment,
+                genome=genome,
+                root_spot=spot,
+                initial_energy=FRACTAL_PLANT_INITIAL_ENERGY,
+                screen_width=SCREEN_WIDTH,
+                screen_height=SCREEN_HEIGHT,
+            )
+
+            # Claim the root spot
+            spot.claim(plant)
+
+            # Add to simulation
+            self.add_entity(plant)
+
+        logger.info(f"Created {self.root_spot_manager.get_occupied_count()} initial fractal plants")
+
+    def sprout_new_plant(self, parent_genome: PlantGenome, parent_x: float, parent_y: float) -> bool:
+        """Sprout a new fractal plant from a parent genome.
+
+        Called when fish consumes plant nectar.
+
+        Args:
+            parent_genome: The genome to inherit from (with mutations)
+            parent_x: X position of parent plant
+            parent_y: Y position of parent plant
+
+        Returns:
+            True if successfully sprouted, False if no space
+        """
+        if self.root_spot_manager is None or self.environment is None:
+            return False
+
+        from core.entities.fractal_plant import FractalPlant
+
+        # Find a suitable spot near the parent
+        spot = self.root_spot_manager.find_spot_for_sprouting(parent_x, parent_y)
+        if spot is None:
+            return False  # No available spots
+
+        # Create offspring genome with mutations
+        offspring_genome = PlantGenome.from_parent(
+            parent_genome,
+            mutation_rate=0.15,
+            mutation_strength=0.15,
+            rng=self.rng,
+        )
+
+        # Create the new plant
+        plant = FractalPlant(
+            environment=self.environment,
+            genome=offspring_genome,
+            root_spot=spot,
+            initial_energy=FRACTAL_PLANT_INITIAL_ENERGY * 0.5,  # Start smaller
+            screen_width=SCREEN_WIDTH,
+            screen_height=SCREEN_HEIGHT,
+        )
+
+        # Claim the root spot
+        spot.claim(plant)
+
+        # Add to simulation
+        self.add_entity(plant)
+
+        logger.debug(f"Sprouted new fractal plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f})")
+        return True
 
     # Implement abstract methods from BaseSimulator
     def get_all_entities(self) -> List[entities.Agent]:
@@ -217,6 +317,38 @@ class SimulationEngine(BaseSimulator):
             and e1.pos.y < e2.pos.y + e2.height
             and e1.pos.y + e1.height > e2.pos.y
         )
+
+    def handle_fish_food_collision(self, fish: entities.Agent, food: entities.Agent) -> None:
+        """Handle collision between a fish and food.
+
+        Overridden to handle PlantNectar consumption triggering plant sprouting.
+        """
+        from core.entities.fractal_plant import PlantNectar
+
+        # Check if this is plant nectar
+        if isinstance(food, PlantNectar) and FRACTAL_PLANTS_ENABLED:
+            # Fish consumes the nectar
+            fish.eat(food)
+
+            if food.is_consumed():
+                # Get the parent genome and trigger sprouting
+                parent_genome = food.consume()
+                parent_x = food.source_plant.pos.x if food.source_plant else food.pos.x
+                parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
+
+                # Try to sprout a new plant
+                self.sprout_new_plant(parent_genome, parent_x, parent_y)
+
+                # Remove the nectar
+                self.remove_entity(food)
+        else:
+            # Normal food handling
+            fish.eat(food)
+
+            # Only remove food if it's fully consumed
+            if food.is_fully_consumed():
+                food.get_eaten()
+                self.remove_entity(food)
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Handle the result of a poker game by logging to events list.
@@ -294,6 +426,28 @@ class SimulationEngine(BaseSimulator):
                 if entity.is_dead():
                     entities_to_remove.append(entity)
                     logger.info(f"Jellyfish #{entity.jellyfish_id} died at age {entity.age}")
+
+            elif FRACTAL_PLANTS_ENABLED and hasattr(entity, 'plant_id'):
+                # FractalPlant handling
+                from core.entities.fractal_plant import FractalPlant, PlantNectar
+
+                if isinstance(entity, FractalPlant):
+                    nectar = entity.update(self.frame_count, time_modifier, time_of_day)
+                    if nectar is not None:
+                        new_entities.append(nectar)
+
+                    # Remove dead plants
+                    if entity.is_dead():
+                        entity.die()  # Release root spot
+                        entities_to_remove.append(entity)
+                        logger.debug(f"FractalPlant #{entity.plant_id} died at age {entity.age}")
+
+                elif isinstance(entity, PlantNectar):
+                    entity.update(self.frame_count)
+
+                    # Check if nectar was consumed (handled in collision detection)
+                    if entity.is_consumed():
+                        entities_to_remove.append(entity)
 
             else:
                 entity.update(self.frame_count)

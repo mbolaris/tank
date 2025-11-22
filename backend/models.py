@@ -14,7 +14,7 @@ class EntityData(BaseModel):
     """Represents an entity in the simulation."""
 
     id: int
-    type: str  # 'fish', 'food', 'plant', 'crab', 'castle'
+    type: str  # 'fish', 'food', 'plant', 'crab', 'castle', 'fractal_plant', 'plant_nectar'
     x: float
     y: float
     width: float
@@ -34,8 +34,18 @@ class EntityData(BaseModel):
     # Food-specific fields
     food_type: Optional[str] = None
 
-    # Plant-specific fields
+    # Plant-specific fields (original static plants)
     plant_type: Optional[int] = None
+
+    # Fractal plant-specific fields
+    genome: Optional[Dict[str, Any]] = None  # L-system genome for rendering
+    max_energy: Optional[float] = None
+    size_multiplier: Optional[float] = None
+    iterations: Optional[int] = None
+    nectar_ready: Optional[bool] = None
+
+    # Plant nectar-specific fields
+    source_plant_id: Optional[int] = None
 
 
 class PokerEventData(BaseModel):

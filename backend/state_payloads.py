@@ -42,6 +42,14 @@ class EntitySnapshot:
     genome_data: Optional[Dict[str, Any]] = None
     food_type: Optional[str] = None
     plant_type: Optional[int] = None
+    # Fractal plant fields
+    genome: Optional[Dict[str, Any]] = None
+    max_energy: Optional[float] = None
+    size_multiplier: Optional[float] = None
+    iterations: Optional[int] = None
+    nectar_ready: Optional[bool] = None
+    # Plant nectar fields
+    source_plant_id: Optional[int] = None
 
     def to_full_dict(self) -> Dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -63,6 +71,12 @@ class EntitySnapshot:
                 "genome_data": self.genome_data,
                 "food_type": self.food_type,
                 "plant_type": self.plant_type,
+                "genome": self.genome,
+                "max_energy": self.max_energy,
+                "size_multiplier": self.size_multiplier,
+                "iterations": self.iterations,
+                "nectar_ready": self.nectar_ready,
+                "source_plant_id": self.source_plant_id,
             }
         )
 

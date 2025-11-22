@@ -637,6 +637,31 @@ class SimulationRunner:
                     **base_data,
                 )
 
+            elif isinstance(entity, entities.FractalPlant):
+                # Serialize fractal plant with its genome for L-system rendering
+                genome_dict = entity.genome.to_dict() if hasattr(entity, "genome") else None
+                return EntitySnapshot(
+                    type="fractal_plant",
+                    energy=entity.energy if hasattr(entity, "energy") else 0,
+                    max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100,
+                    genome=genome_dict,
+                    size_multiplier=entity.get_size_multiplier() if hasattr(entity, "get_size_multiplier") else 1.0,
+                    iterations=entity.get_fractal_iterations() if hasattr(entity, "get_fractal_iterations") else 3,
+                    nectar_ready=entity.nectar_cooldown == 0 and (
+                        entity.energy / entity.max_energy >= entity.genome.nectar_threshold_ratio
+                    ) if hasattr(entity, "nectar_cooldown") else False,
+                    age=entity.age if hasattr(entity, "age") else 0,
+                    **base_data,
+                )
+
+            elif isinstance(entity, entities.PlantNectar):
+                return EntitySnapshot(
+                    type="plant_nectar",
+                    energy=entity.energy if hasattr(entity, "energy") else 50,
+                    source_plant_id=entity.source_plant.plant_id if entity.source_plant else None,
+                    **base_data,
+                )
+
             return None
 
         except Exception as e:

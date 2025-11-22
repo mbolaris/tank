@@ -1265,6 +1265,55 @@ class EcosystemManager:
         stats._total_hand_rank += fish_hand_rank
         stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
 
+    def record_plant_poker_game(
+        self,
+        fish_id: int,
+        plant_id: int,
+        fish_won: bool,
+        energy_transferred: float,
+        fish_hand_rank: int,
+        plant_hand_rank: int,
+        won_by_fold: bool,
+    ) -> None:
+        """Record a poker game between a fish and a fractal plant.
+
+        Args:
+            fish_id: ID of the fish that played
+            plant_id: ID of the plant that played
+            fish_won: True if fish won, False if plant won
+            energy_transferred: Amount of energy transferred
+            fish_hand_rank: Rank of the fish's hand (0-9)
+            plant_hand_rank: Rank of the plant's hand (0-9)
+            won_by_fold: True if game ended by fold
+        """
+        # For now, we just track basic stats similar to jellyfish games
+        # This could be expanded to track plant-specific stats
+        if fish_id not in self.jellyfish_poker_stats:
+            self.jellyfish_poker_stats[fish_id] = JellyfishPokerStats(
+                fish_id=fish_id, fish_name=f"Fish #{fish_id}"
+            )
+
+        # Reuse jellyfish stats structure for plant games
+        # (could be separated into its own stats in the future)
+        stats = self.jellyfish_poker_stats[fish_id]
+        stats.total_games += 1
+
+        if fish_won:
+            stats.wins += 1
+            stats.total_energy_won += energy_transferred
+            if won_by_fold:
+                stats.wins_by_fold += 1
+        else:
+            stats.losses += 1
+            stats.total_energy_lost += energy_transferred
+            if won_by_fold:
+                stats.losses_by_fold += 1
+
+        # Update hand rank stats
+        stats.best_hand_rank = max(stats.best_hand_rank, fish_hand_rank)
+        stats._total_hand_rank += fish_hand_rank
+        stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
     def get_jellyfish_leaderboard(self, limit: int = 10) -> List[JellyfishPokerStats]:
         """Get the jellyfish poker leaderboard sorted by performance score.
 

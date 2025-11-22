@@ -27,6 +27,7 @@ from core.constants import (
 )
 from core.fish_poker import PokerInteraction
 from core.jellyfish_poker import JellyfishPokerInteraction
+from core.plant_poker import PlantPokerInteraction, check_fish_plant_poker_collision
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -128,6 +129,7 @@ class BaseSimulator(ABC):
         """Handle collisions between entities."""
         self.handle_fish_collisions()
         self.handle_food_collisions()
+        self.handle_fractal_plant_collisions()
 
     def handle_fish_crab_collision(self, fish: "Agent", crab: "Agent") -> bool:
         """Handle collision between a fish and a crab (predator).
@@ -225,6 +227,97 @@ class BaseSimulator(ABC):
                     self.record_fish_death(fish)
                     return True
         return False
+
+    def handle_fish_fractal_plant_collision(self, fish: "Agent", plant: "Agent") -> bool:
+        """Handle collision between a fish and a fractal plant (poker interaction).
+
+        Args:
+            fish: The fish entity
+            plant: The fractal plant entity
+
+        Returns:
+            bool: True if fish died from the collision, False otherwise
+        """
+        # Fish-to-plant poker interaction
+        if POKER_ACTIVITY_ENABLED:
+            poker = PlantPokerInteraction(fish, plant)
+            if poker.play_poker():
+                # Add plant poker event if available
+                if (
+                    hasattr(self, "add_plant_poker_event")
+                    and poker.result is not None
+                    and poker.result.fish_hand is not None
+                    and poker.result.plant_hand is not None
+                ):
+                    self.add_plant_poker_event(
+                        fish_id=poker.result.fish_id,
+                        plant_id=poker.result.plant_id,
+                        fish_won=poker.result.fish_won,
+                        fish_hand=poker.result.fish_hand.description,
+                        plant_hand=poker.result.plant_hand.description,
+                        energy_transferred=abs(poker.result.energy_transferred),
+                    )
+                # Check if fish died from poker
+                if fish.is_dead() and fish in self.get_all_entities():
+                    self.record_fish_death(fish)
+                    return True
+        return False
+
+    def handle_fractal_plant_collisions(self) -> None:
+        """Handle collisions involving fractal plants.
+
+        Fish can play poker against fractal plants to consume their energy.
+        Uses spatial partitioning for efficient collision detection.
+        """
+        from core.entities import Fish
+        from core.entities.fractal_plant import FractalPlant
+
+        all_entities = self.get_all_entities()
+        all_entities_set = set(all_entities)
+
+        # Find all fractal plants
+        plant_list = [e for e in all_entities if isinstance(e, FractalPlant)]
+
+        if not plant_list:
+            return
+
+        # Find all fish
+        fish_list = [e for e in all_entities if isinstance(e, Fish)]
+
+        if not fish_list:
+            return
+
+        # Performance: Cache references
+        environment = self.environment
+
+        for plant in plant_list:
+            if plant not in all_entities_set:
+                continue
+
+            if plant.is_dead():
+                continue
+
+            # Use spatial grid for nearby entity lookup
+            if environment is not None:
+                nearby_entities = environment.nearby_agents(plant, radius=COLLISION_QUERY_RADIUS)
+            else:
+                nearby_entities = fish_list
+
+            for fish in nearby_entities:
+                if not isinstance(fish, Fish):
+                    continue
+
+                # Check if they're close enough for poker
+                if check_fish_plant_poker_collision(fish, plant):
+                    # Try to play poker
+                    self.handle_fish_fractal_plant_collision(fish, plant)
+
+                    # Check if plant died from poker
+                    if plant.is_dead():
+                        plant.die()  # Release root spot
+                        self.remove_entity(plant)
+                        all_entities_set.discard(plant)
+                        break
 
     def find_fish_groups_in_contact(self) -> List[List["Fish"]]:
         """Find groups of fish that are all in contact with each other.
