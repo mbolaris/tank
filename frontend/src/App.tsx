@@ -156,6 +156,10 @@ function App() {
                                     <span className="meta-label">Poker</span>
                                     <span className="meta-value">{pokerStats.total_games.toLocaleString()}</span>
                                     <span>games</span>
+                                    {/* Show combined indicator if any plant poker events exist in recent events */}
+                                    {state?.poker_events && state.poker_events.some((e: any) => e.is_plant) && (
+                                        <span className="meta-sub" style={{ marginLeft: 8 }}>(fish+plant)</span>
+                                    )}
                                 </span>
                             )}
                         </div>
