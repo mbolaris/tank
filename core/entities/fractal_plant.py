@@ -123,6 +123,10 @@ class FractalPlant(Agent):
             FRACTAL_PLANT_BASE_WIDTH * size_multiplier,
             FRACTAL_PLANT_BASE_HEIGHT * size_multiplier,
         )
+        
+        # Anchor bottom of plant to root spot
+        self.pos.y = self.root_spot.y - self.height
+        self.rect.y = self.pos.y
 
     def update_position(self) -> None:
         """Plants are stationary - don't update position."""
@@ -298,17 +302,15 @@ class FractalPlant(Agent):
         Larger plants have more detailed fractals.
 
         Returns:
-            Number of iterations (1-5)
+            Number of iterations (1-3)
         """
         size = self.get_size_multiplier()
-        if size < 0.5:
-            return 2
-        elif size < 0.8:
-            return 3
-        elif size < 1.2:
-            return 4
+        if size < 0.6:
+            return 1  # Tiny plants: minimal detail
+        elif size < 1.0:
+            return 2  # Medium plants: some branching
         else:
-            return 5
+            return 3  # Large plants: full detail (but not excessive)
 
     def get_poker_aggression(self) -> float:
         """Get poker aggression level.

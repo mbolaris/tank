@@ -359,7 +359,7 @@ FRACTAL_PLANTS_ENABLED = True  # Enable fractal plant system
 
 # Root Spot Configuration
 FRACTAL_PLANT_ROOT_SPOT_COUNT = 100  # Number of positions where plants can grow
-FRACTAL_PLANT_ROOT_Y_BASE = SCREEN_HEIGHT - 40  # Y position near tank bottom
+FRACTAL_PLANT_ROOT_Y_BASE = SCREEN_HEIGHT - 15  # Y position near tank bottom
 FRACTAL_PLANT_ROOT_Y_VARIANCE = 8  # Slight Y variation for natural look
 
 # Plant Energy System
@@ -371,7 +371,7 @@ FRACTAL_PLANT_DEATH_ENERGY = 5.0  # Energy threshold for death
 
 # Plant Dimensions
 FRACTAL_PLANT_BASE_WIDTH = 60  # Base width in pixels
-FRACTAL_PLANT_BASE_HEIGHT = 100  # Base height in pixels
+FRACTAL_PLANT_BASE_HEIGHT = 65  # Base height in pixels
 
 # Plant Poker Configuration
 FRACTAL_PLANT_POKER_COOLDOWN = 90  # 3 seconds at 30fps
@@ -385,15 +385,15 @@ FRACTAL_PLANT_SPROUTING_CHANCE = 0.8  # Chance to sprout when nectar consumed
 FRACTAL_PLANT_INITIAL_COUNT = 5  # Number of plants to start with
 
 # Plant Energy Collection (Passive Growth)
-FRACTAL_PLANT_BASE_ENERGY_RATE = 0.02  # Base energy gain per frame
-FRACTAL_PLANT_GROWTH_FACTOR = 0.5  # Compound growth rate modifier
+FRACTAL_PLANT_BASE_ENERGY_RATE = 0.008  # Base energy gain per frame
+FRACTAL_PLANT_GROWTH_FACTOR = 0.3  # Compound growth rate modifier
 FRACTAL_PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
 FRACTAL_PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk
 FRACTAL_PLANT_NIGHT_MODIFIER = 0.3  # Energy collection at night
 
 # L-System Fractal Rendering
-FRACTAL_PLANT_MIN_ITERATIONS = 2  # Minimum L-system iterations (small plants)
-FRACTAL_PLANT_MAX_ITERATIONS = 5  # Maximum L-system iterations (large plants)
+FRACTAL_PLANT_MIN_ITERATIONS = 1  # Minimum L-system iterations (small plants)
+FRACTAL_PLANT_MAX_ITERATIONS = 3  # Maximum L-system iterations (large plants)
 FRACTAL_PLANT_DEFAULT_ANGLE = 25.0  # Default branching angle (degrees)
 FRACTAL_PLANT_DEFAULT_LENGTH_RATIO = 0.7  # Default length reduction per iteration
 
