@@ -258,6 +258,6 @@ class Castle(Agent):
             screen_height: Height of simulation area
         """
         super().__init__(environment, x, y, 0, screen_width, screen_height)
-        # Make castle larger (3x default size)
-        self.width = 150.0
-        self.height = 150.0
+        # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
+        # Use set_size to keep the collision rect in sync
+        self.set_size(225.0, 225.0)
