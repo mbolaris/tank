@@ -1,15 +1,55 @@
-"""Algorithm registry for mapping behavior classes to source files.
+"""Algorithm registry utilities.
 
-This module provides a mapping from algorithm class names to their source file paths,
-enabling AI agents to identify which files to edit when improving underperforming behaviors.
+This module discovers behavior algorithms dynamically and exposes helpers for
+introspecting where they live on disk. It now includes a registry class that
+automatically loads any new algorithms without manual imports.
 """
+import importlib
 import inspect
 import os
+import pkgutil
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, Iterable, List, Set, Type
+from typing import Dict, Iterable, List, Optional, Set, Type
 
+from core import algorithms
 from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategy
+
+
+class AlgorithmRegistry:
+    """Dynamic registry for behavior strategies."""
+
+    _strategies: Dict[str, Type[BehaviorStrategy]] = {}
+
+    @classmethod
+    def load_algorithms(cls) -> None:
+        """Scan ``core.algorithms`` for strategies and register them by name."""
+
+        package_path = algorithms.__path__
+
+        for _, name, _ in pkgutil.iter_modules(package_path):
+            module = importlib.import_module(f"core.algorithms.{name}")
+
+            for attribute_name in dir(module):
+                attribute = getattr(module, attribute_name)
+
+                if (
+                    inspect.isclass(attribute)
+                    and issubclass(attribute, BehaviorStrategy)
+                    and attribute is not BehaviorStrategy
+                ):
+                    key = attribute.name() if hasattr(attribute, "name") else name
+                    cls._strategies[key] = attribute
+
+    @classmethod
+    def get(cls, name: str) -> Optional[Type[BehaviorStrategy]]:
+        """Retrieve a registered behavior strategy class by name."""
+
+        return cls._strategies.get(name)
+
+
+# Populate the registry on import so callers can immediately request strategies.
+AlgorithmRegistry.load_algorithms()
 
 
 def _iter_algorithm_modules() -> Iterable[str]:
