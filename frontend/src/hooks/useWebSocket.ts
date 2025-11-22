@@ -19,6 +19,7 @@ export function useWebSocket() {
   const connect = useCallback(() => {
     try {
       const ws = new WebSocket(WS_URL);
+      ws.binaryType = 'arraybuffer';
 
       ws.onopen = () => {
         setIsConnected(true);
@@ -26,7 +27,14 @@ export function useWebSocket() {
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
+          // Handle binary data (ArrayBuffer) from orjson
+          let jsonString: string;
+          if (event.data instanceof ArrayBuffer) {
+            jsonString = new TextDecoder().decode(event.data);
+          } else {
+            jsonString = event.data;
+          }
+          const data = JSON.parse(jsonString);
 
           if (data.type === 'update') {
             setState(data as SimulationUpdate);
