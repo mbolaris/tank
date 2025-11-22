@@ -16,7 +16,11 @@
 }
 
 .folded {
-    opacity: 0.5;
+    opacity: 0.6;
+}
+
+.folded .energyText {
+    opacity: 1.67; /* Counter the parent's 0.6 opacity: 1/0.6 ≈ 1.67 */
 }
 
 
@@ -147,8 +151,10 @@
 }
 
 .energyText {
-    font-weight: 600;
-    font-size: 11px;
+    font-weight: 700;
+    font-size: 14px;
+    color: #22c55e;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .currentBet {

@@ -143,10 +143,15 @@ class HumanPokerGame:
         # Reset deck and deal hole cards
         self.deck.reset()
         for player in self.players:
-            player.hole_cards = self.deck.deal(2)
             player.current_bet = 0.0
             player.total_bet = 0.0
-            player.folded = False
+            # Players with no energy are eliminated - mark them as folded
+            if player.energy <= 0:
+                player.hole_cards = []
+                player.folded = True
+            else:
+                player.hole_cards = self.deck.deal(2)
+                player.folded = False
 
         self.community_cards = []
         self.pot = 0.0

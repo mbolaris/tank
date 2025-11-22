@@ -2,7 +2,7 @@
  * Interactive poker game component
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PokerTable, PokerPlayer, PokerActions } from './poker';
 import type { PokerGameState } from '../types/simulation';
 import styles from './PokerGame.module.css';
@@ -16,88 +16,65 @@ interface PokerGameProps {
     loading: boolean;
 }
 
-const AUTOPILOT_ACTION_DELAY = 1200; // ms between actions for enjoyable pace
-const AUTOPILOT_NEW_ROUND_DELAY = 2000; // ms before starting new hand
+const AUTOPILOT_POLL_INTERVAL = 1000; // ms between autopilot checks
+const AUTOPILOT_NEW_ROUND_DELAY = 1500; // ms before starting new hand
 
 export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction, gameState, loading }: PokerGameProps) {
     const [autopilot, setAutopilot] = useState(false);
-    const autopilotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isProcessingRef = useRef(false);
+    const lastActionTimeRef = useRef(0);
 
-    // Autopilot logic
-    const processAutopilot = useCallback(async () => {
-        if (!autopilot || !gameState || isProcessingRef.current) return;
-
-        isProcessingRef.current = true;
-
-        try {
-            const result = await onGetAutopilotAction();
-
-            if (!result.success || !autopilot) {
-                isProcessingRef.current = false;
-                return;
-            }
-
-            const { action, amount } = result;
-
-            if (action === 'exit') {
-                // Session over, turn off autopilot
-                setAutopilot(false);
-            } else if (action === 'new_round') {
-                // Start new hand after delay
-                autopilotTimerRef.current = setTimeout(() => {
-                    if (autopilot) {
-                        onNewRound();
-                    }
-                    isProcessingRef.current = false;
-                }, AUTOPILOT_NEW_ROUND_DELAY);
-                return;
-            } else if (action === 'wait') {
-                // Not our turn, wait and check again
-                autopilotTimerRef.current = setTimeout(() => {
-                    isProcessingRef.current = false;
-                }, 500);
-                return;
-            } else {
-                // Execute the action (fold, check, call, raise)
-                onAction(action, amount);
-            }
-        } catch (error) {
-            console.error('Autopilot error:', error);
-        }
-
-        isProcessingRef.current = false;
-    }, [autopilot, gameState, onGetAutopilotAction, onAction, onNewRound]);
-
-    // Run autopilot on game state changes
+    // Autopilot polling effect
     useEffect(() => {
-        if (!autopilot || loading) return;
+        if (!autopilot || !gameState) return;
 
-        // Clear any existing timer
-        if (autopilotTimerRef.current) {
-            clearTimeout(autopilotTimerRef.current);
-        }
+        const pollAutopilot = async () => {
+            // Skip if already processing or loading
+            if (isProcessingRef.current || loading) return;
 
-        // Schedule next autopilot action
-        autopilotTimerRef.current = setTimeout(() => {
-            processAutopilot();
-        }, AUTOPILOT_ACTION_DELAY);
+            // Enforce minimum delay between actions
+            const now = Date.now();
+            if (now - lastActionTimeRef.current < AUTOPILOT_POLL_INTERVAL) return;
 
-        return () => {
-            if (autopilotTimerRef.current) {
-                clearTimeout(autopilotTimerRef.current);
+            isProcessingRef.current = true;
+
+            try {
+                const result = await onGetAutopilotAction();
+
+                if (!result.success) {
+                    isProcessingRef.current = false;
+                    return;
+                }
+
+                const { action, amount } = result;
+
+                if (action === 'exit') {
+                    setAutopilot(false);
+                } else if (action === 'new_round') {
+                    // Delay before new round for readability
+                    await new Promise(resolve => setTimeout(resolve, AUTOPILOT_NEW_ROUND_DELAY));
+                    lastActionTimeRef.current = Date.now();
+                    onNewRound();
+                } else if (action === 'wait') {
+                    // Not our turn, just wait for next poll
+                } else {
+                    // Execute the action (fold, check, call, raise)
+                    lastActionTimeRef.current = Date.now();
+                    onAction(action, amount);
+                }
+            } catch (error) {
+                console.error('Autopilot error:', error);
             }
-        };
-    }, [autopilot, gameState, loading, processAutopilot]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (autopilotTimerRef.current) {
-                clearTimeout(autopilotTimerRef.current);
-            }
+            isProcessingRef.current = false;
         };
-    }, []);
+
+        // Poll immediately and then on interval
+        pollAutopilot();
+        const intervalId = setInterval(pollAutopilot, 500);
+
+        return () => clearInterval(intervalId);
+    }, [autopilot, gameState, loading, onGetAutopilotAction, onAction, onNewRound]);
 
     // Turn off autopilot when session ends
     useEffect(() => {
@@ -149,24 +126,13 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                     <h2 className={styles.title}>
                         Poker Game
                         <span className={styles.handCounter}>Hand #{gameState.hands_played}</span>
+                        <span className={styles.phaseIndicator}>{gameState.current_round?.replace('_', '-') || 'Starting'}</span>
                     </h2>
                     {gameState.message && (
                         <div className={styles.headerMessage}>{gameState.message}</div>
                     )}
                 </div>
                 <div className={styles.headerRight}>
-                    <label className={styles.autopilotToggle}>
-                        <input
-                            type="checkbox"
-                            checked={autopilot}
-                            onChange={(e) => setAutopilot(e.target.checked)}
-                            disabled={gameState.session_over}
-                        />
-                        <span className={styles.autopilotSlider}></span>
-                        <span className={styles.autopilotLabel}>
-                            {autopilot ? '🤖 Auto' : 'Auto'}
-                        </span>
-                    </label>
                     <button onClick={onClose} className={styles.closeButton}>×</button>
                 </div>
             </div>
@@ -175,7 +141,15 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
             <PokerTable
                 pot={gameState.pot}
                 communityCards={gameState.community_cards}
-                currentRound={gameState.current_round}
+                resultBanner={gameState.game_over && !gameState.session_over ? (
+                    <div className={`${styles.resultBanner} ${gameState.winner === 'You' ? styles.winBanner : styles.loseBanner}`}>
+                        <span className={styles.resultIcon}>{gameState.winner === 'You' ? '🏆' : '💀'}</span>
+                        <span className={styles.resultText}>
+                            {gameState.winner === 'You' ? 'You win' : `${gameState.winner} wins`}
+                        </span>
+                        <span className={styles.resultPot}>+{gameState.pot.toFixed(0)} ⚡</span>
+                    </div>
+                ) : undefined}
             />
 
             {/* AI Players */}
@@ -226,53 +200,32 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                                 onRaise={handleRaise}
                             />
                         ) : (
-                            /* Play Again / Cash Out buttons - Same position as action buttons */
-                            <div className={styles.inlineGameOverButtons}>
-                                {!gameState.session_over && (
-                                    <button onClick={onNewRound} className={styles.inlinePlayAgainButton} disabled={loading}>
-                                        {loading ? 'Dealing...' : 'Play Again'}
-                                    </button>
-                                )}
-                                <button onClick={onClose} className={styles.inlineCashOutButton}>
-                                    {gameState.session_over ? 'Exit' : 'Cash Out'}
+                            /* Play Again button - Same position as action buttons */
+                            !gameState.session_over && (
+                                <button onClick={onNewRound} className={styles.inlinePlayAgainButton} disabled={loading}>
+                                    {loading ? 'Dealing...' : 'Play Again'}
                                 </button>
-                            </div>
+                            )
                         )}
                     </div>
 
-                    {/* Quit Button - Far right */}
-                    {!gameState.game_over && (
-                        <button onClick={onClose} className={styles.quitGameButton}>
-                            Quit
+                    {/* Autopilot + Cash Out - Far right */}
+                    <div className={styles.controlsRight}>
+                        <button
+                            onClick={() => setAutopilot(!autopilot)}
+                            className={`${styles.autopilotButton} ${autopilot ? styles.autopilotActive : ''}`}
+                            disabled={gameState.session_over}
+                        >
+                            <span className={styles.autopilotIcon}>🤖</span>
+                            <span className={styles.autopilotText}>{autopilot ? 'AUTO ON' : 'AUTO'}</span>
                         </button>
-                    )}
-                </div>
-            )}
-
-
-            {/* Game Over - Compact result banner */}
-            {gameState.game_over && !gameState.session_over && (
-                <div className={`${styles.gameOverBanner} ${gameState.winner === 'You' ? styles.winBanner : styles.loseBanner}`}>
-                    <div className={styles.resultInfo}>
-                        <span className={styles.resultIcon}>{gameState.winner === 'You' ? '🏆' : '💀'}</span>
-                        <span className={styles.resultText}>
-                            {gameState.winner === 'You' ? 'You win' : `${gameState.winner} wins`}
-                        </span>
-                        <span className={styles.resultPot}>+{gameState.pot.toFixed(0)} ⚡</span>
-                    </div>
-                    <div className={styles.chipStandings}>
-                        {gameState.players
-                            .sort((a, b) => b.energy - a.energy)
-                            .map((player) => (
-                                <div key={player.player_id} className={`${styles.chipStanding} ${player.is_human ? styles.youChip : ''} ${player.energy <= 0 ? styles.eliminatedChip : ''}`}>
-                                    <span className={styles.chipName}>{player.is_human ? 'You' : player.name.split('_')[0]}</span>
-                                    <span className={styles.chipEnergy}>{player.energy <= 0 ? 'OUT' : player.energy.toFixed(0)}</span>
-                                </div>
-                            ))
-                        }
+                        <button onClick={onClose} className={styles.cashOutButton}>
+                            💰 Cash Out
+                        </button>
                     </div>
                 </div>
             )}
+
 
             {/* Session Over - Final results */}
             {gameState.session_over && (

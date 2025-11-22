@@ -9,39 +9,15 @@ import styles from './PokerTable.module.css';
 interface PokerTableProps {
     pot: number;
     communityCards: string[];
-    currentRound?: string;
+    resultBanner?: React.ReactNode;
 }
 
-// Helper to get round display name
-function getRoundDisplay(round?: string): { name: string; cards: string } {
-    switch (round) {
-        case 'PRE_FLOP':
-            return { name: 'Pre-Flop', cards: '0 cards' };
-        case 'FLOP':
-            return { name: 'Flop', cards: '3 cards' };
-        case 'TURN':
-            return { name: 'Turn', cards: '4 cards' };
-        case 'RIVER':
-            return { name: 'River', cards: '5 cards' };
-        case 'SHOWDOWN':
-            return { name: 'Showdown', cards: 'All cards revealed' };
-        default:
-            return { name: round || 'Starting', cards: '' };
-    }
-}
-
-export function PokerTable({ pot, communityCards, currentRound }: PokerTableProps) {
-    const roundInfo = getRoundDisplay(currentRound);
+export function PokerTable({ pot, communityCards, resultBanner }: PokerTableProps) {
 
     return (
         <div className={styles.table}>
-            {/* Phase, Pot, and Community Cards all side by side */}
+            {/* Pot, Community Cards, Phase all side by side */}
             <div className={styles.topRow}>
-                {/* Round indicator */}
-                <div className={styles.roundIndicator}>
-                    <span className={styles.roundName}>{roundInfo.name}</span>
-                    <span className={styles.roundCards}>{roundInfo.cards}</span>
-                </div>
                 {/* Pot display */}
                 <div className={styles.potArea}>
                     <div className={styles.potLabel}>POT</div>
@@ -65,6 +41,15 @@ export function PokerTable({ pot, communityCards, currentRound }: PokerTableProp
                         ))}
                     </div>
                 </div>
+
+                {/* Right side: Result banner only (phase is now in header) */}
+                {resultBanner && (
+                    <div className={styles.rightArea}>
+                        <div className={styles.resultArea}>
+                            {resultBanner}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
