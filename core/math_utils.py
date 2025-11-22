@@ -131,5 +131,40 @@ class Vector2:
             self.y = (self.y / length) * max_length
         return self
 
+    @staticmethod
+    def distance_squared(x1: float, y1: float, x2: float, y2: float) -> float:
+        """Calculate squared distance between two points without allocating Vector2 objects.
+        
+        This is a performance optimization for hot paths where we only need to compare
+        distances or don't need the actual distance value.
+        
+        Args:
+            x1, y1: First point coordinates
+            x2, y2: Second point coordinates
+            
+        Returns:
+            Squared distance between the points
+        """
+        dx = x2 - x1
+        dy = y2 - y1
+        return dx * dx + dy * dy
+    
+    @staticmethod
+    def distance(x1: float, y1: float, x2: float, y2: float) -> float:
+        """Calculate distance between two points without allocating Vector2 objects.
+        
+        This is a performance optimization for hot paths.
+        
+        Args:
+            x1, y1: First point coordinates
+            x2, y2: Second point coordinates
+            
+        Returns:
+            Distance between the points
+        """
+        dx = x2 - x1
+        dy = y2 - y1
+        return math.sqrt(dx * dx + dy * dy)
+
 
 __all__ = ["Vector2"]

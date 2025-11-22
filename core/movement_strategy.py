@@ -116,11 +116,11 @@ class AlgorithmicMovement(MovementStrategy):
 
             for f in nearby_fish:
                 if f.fish_id != fish_id:
-                    dx = f.pos.x - sprite_x
-                    dy = f.pos.y - sprite_y
-                    dist_sq = dx * dx + dy * dy
+                    # Use static method to avoid Vector2 allocation
+                    dist_sq = Vector2.distance_squared(sprite_x, sprite_y, f.pos.x, f.pos.y)
                     if dist_sq < nearest_dist_sq:
                         nearest_dist_sq = dist_sq
+
 
             # Only compute weight if a nearby fish was found
             if nearest_dist_sq < 40000.0:

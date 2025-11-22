@@ -481,19 +481,20 @@ def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] 
         return None
     
     # Performance: Use squared distances to avoid expensive sqrt operations
+    # Also use static Vector2.distance_squared to avoid Vector2 allocations
+    fish_x = fish.pos.x
+    fish_y = fish.pos.y
+    
     if max_distance is not None:
         max_distance_sq = max_distance * max_distance
         
         # Find nearest using squared distances
         min_dist_sq = float('inf')
         nearest = None
-        fish_pos = fish.pos
         
         for agent in agents:
-            # Squared distance calculation (no sqrt needed)
-            dx = agent.pos.x - fish_pos.x
-            dy = agent.pos.y - fish_pos.y
-            dist_sq = dx * dx + dy * dy
+            # Use static method - no Vector2 allocation
+            dist_sq = Vector2.distance_squared(fish_x, fish_y, agent.pos.x, agent.pos.y)
             
             if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
                 min_dist_sq = dist_sq
@@ -501,8 +502,17 @@ def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] 
         
         return nearest
     else:
-        # No distance limit - use simple min with lambda
-        return min(agents, key=lambda a: (a.pos - fish.pos).length())
+        # No distance limit - find closest using squared distances
+        min_dist_sq = float('inf')
+        nearest = None
+        
+        for agent in agents:
+            dist_sq = Vector2.distance_squared(fish_x, fish_y, agent.pos.x, agent.pos.y)
+            if dist_sq < min_dist_sq:
+                min_dist_sq = dist_sq
+                nearest = agent
+        
+        return nearest
 
 
 def _safe_normalize(self, vector: Vector2) -> Vector2:
