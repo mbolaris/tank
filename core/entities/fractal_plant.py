@@ -5,7 +5,6 @@ collect energy passively, produce nectar for reproduction, and
 can play poker against fish.
 """
 
-import random
 from typing import TYPE_CHECKING, Optional
 
 from core.entities.base import Agent
@@ -202,25 +201,21 @@ class FractalPlant(Agent):
         # Reduce energy production if neighboring root slots are occupied.
         # If both adjacent slots are full -> -50%, if one is full -> -25%.
         reduction_factor = 1.0
-        try:
-            if self.root_spot is not None and hasattr(self.root_spot, "manager") and self.root_spot.manager is not None:
-                manager = self.root_spot.manager
-                left_spot = manager.get_spot_by_id(self.root_spot.spot_id - 1)
-                right_spot = manager.get_spot_by_id(self.root_spot.spot_id + 1)
+        if self.root_spot is not None and getattr(self.root_spot, "manager", None) is not None:
+            manager = self.root_spot.manager
+            left_spot = manager.get_spot_by_id(self.root_spot.spot_id - 1)
+            right_spot = manager.get_spot_by_id(self.root_spot.spot_id + 1)
 
-                occupied_count = 0
-                if left_spot is not None and left_spot.occupied:
-                    occupied_count += 1
-                if right_spot is not None and right_spot.occupied:
-                    occupied_count += 1
+            occupied_count = 0
+            if left_spot is not None and left_spot.occupied:
+                occupied_count += 1
+            if right_spot is not None and right_spot.occupied:
+                occupied_count += 1
 
-                if occupied_count == 2:
-                    reduction_factor = 0.5
-                elif occupied_count == 1:
-                    reduction_factor = 0.75
-        except Exception:
-            # Keep safe default if any unexpected issue occurs
-            reduction_factor = 1.0
+            if occupied_count == 2:
+                reduction_factor = 0.5
+            elif occupied_count == 1:
+                reduction_factor = 0.75
 
         energy_gain *= reduction_factor
 
