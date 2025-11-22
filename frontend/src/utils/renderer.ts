@@ -610,9 +610,9 @@ export class Renderer {
       this.ctx.save();
       this.ctx.globalAlpha = 0.4 * pulse;
       const bodyGlow = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, scaledWidth * 0.8);
-      bodyGlow.addColorStop(0, '#aaffff');
-      bodyGlow.addColorStop(0.6, '#6ad8d8');
-      bodyGlow.addColorStop(1, 'rgba(106, 216, 216, 0)');
+      bodyGlow.addColorStop(0, '#aaffaa');
+      bodyGlow.addColorStop(0.6, '#6ad86a');
+      bodyGlow.addColorStop(1, 'rgba(106, 216, 106, 0)');
       this.ctx.fillStyle = bodyGlow;
       this.ctx.beginPath();
       this.ctx.arc(cx, cy, scaledWidth * 0.8, 0, Math.PI * 2);
@@ -622,7 +622,7 @@ export class Renderer {
       // Simple appendages for zooplankton (4 appendages)
       this.ctx.save();
       this.ctx.lineWidth = 0.8;
-      this.ctx.strokeStyle = `rgba(140, 220, 240, ${0.35 * pulse})`;
+      this.ctx.strokeStyle = `rgba(140, 220, 140, ${0.35 * pulse})`;
       for (let i = 0; i < 4; i++) {
         const angle = (Math.PI * 2 * i) / 4 + pulse * 0.3;
         const sway = Math.sin(elapsedTime * 0.003 + planktonSeed + i) * 2;
