@@ -11,25 +11,17 @@ with their own aggression parameters and decision-making logic.
 """
 
 import random
-import sys
 from typing import Dict, List
 
-sys.path.insert(0, "/home/user/tank")
-
-from core.algorithms.poker import (
-    PokerChallenger,
-    PokerConservative,
-    PokerGambler,
-)
+from core.algorithms.poker import PokerChallenger, PokerConservative, PokerGambler
 from core.auto_evaluate_poker import AutoEvaluatePokerGame, AutoEvaluateStats
-from core.genetics import Genome
 from core.poker.strategy.implementations import (
-    TightAggressiveStrategy,
-    LooseAggressiveStrategy,
     BalancedStrategy,
-    TightPassiveStrategy,
+    LooseAggressiveStrategy,
     LoosePassiveStrategy,
     ManiacStrategy,
+    TightAggressiveStrategy,
+    TightPassiveStrategy,
 )
 
 
@@ -83,7 +75,7 @@ class PokerComparisonResults:
         print(f"Game completed: {self.game_completed}")
         print()
         print("Performance Statistics:")
-        print(f"  Standard Algorithm:")
+        print("  Standard Algorithm:")
         print(f"    Net energy: {self.standard_net_energy:+.1f}")
         print(f"    Win rate: {self.standard_win_rate:.1f}%")
         print()
@@ -111,9 +103,9 @@ def create_fish_player_config(
     """Create a fish player configuration for auto-evaluation.
 
     Args:
-        behavior_class: The behavior algorithm class (e.g., PokerChallenger)
+      behavior_class: The behavior algorithm class (e.g., PokerChallenger)
         fish_id: Unique ID for the fish
-        poker_strategy_class: Poker strategy class to use. If None, uses BalancedStrategy.
+      poker_strategy_class: Poker strategy class to use. If None, uses BalancedStrategy.
 
     Returns:
         Dictionary with fish player configuration
@@ -123,8 +115,6 @@ def create_fish_player_config(
 
     # Create a poker strategy instance for this fish
     poker_strategy = poker_strategy_class()
-
-    behavior_name = behavior_class.__name__ if behavior_class else "None"
     strategy_name = poker_strategy.strategy_id
 
     return {
@@ -303,7 +293,7 @@ def comprehensive_analysis(all_results: List[PokerComparisonResults]):
 
     print(f"\nTotal hands played across all tournaments: {total_hands}")
     print(f"Number of different fish behavior types tested: {len(all_results)}")
-    print(f"\nAverage Performance:")
+    print("\nAverage Performance:")
     print(f"  Standard Algorithm: {avg_standard_net:+.1f} net energy")
     print(f"  Fish Players: {avg_fish_net:+.1f} net energy")
 
