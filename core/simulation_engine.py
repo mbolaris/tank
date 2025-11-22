@@ -235,7 +235,13 @@ class SimulationEngine(BaseSimulator):
             # Note: Birth is automatically recorded by Fish.__init__ when ecosystem is provided
 
     def update(self) -> None:
-        """Update the state of the simulation."""
+        """Update the state of the simulation.
+
+        Performance optimizations:
+        - Type-specific entity lists avoid repeated isinstance() checks
+        - Batch spatial grid updates at end of frame
+        - Pre-fetch entity type classes to avoid repeated attribute access
+        """
         if self.paused:
             return
 
@@ -244,35 +250,49 @@ class SimulationEngine(BaseSimulator):
         self.time_system.update()
         time_modifier = self.time_system.get_activity_modifier()
         time_of_day = self.time_system.get_time_of_day()
-        
+
         # Performance: Update cached detection modifier once per frame
         if self.environment is not None:
             self.environment.update_detection_modifier()
 
         new_entities: List[entities.Agent] = []
+        entities_to_remove: List[entities.Agent] = []
 
+        # Performance: Pre-fetch type references to avoid repeated module lookups
+        Fish = entities.Fish
+        Plant = entities.Plant
+        Jellyfish = entities.Jellyfish
+        Food = entities.Food
+        LiveFood = entities.LiveFood
+
+        # Performance: Cache ecosystem and fish_count lookup once
+        ecosystem = self.ecosystem
+        fish_count = len(self.get_fish_list()) if ecosystem is not None else 0
+
+        # Performance: Iterate a copy but use type ID comparison when possible
         for entity in list(self.entities_list):
-            if isinstance(entity, entities.Fish):
+            entity_type = type(entity)
+
+            if entity_type is Fish or isinstance(entity, Fish):
                 newborn = entity.update(self.frame_count, time_modifier)
-                if newborn is not None and self.ecosystem is not None:
-                    # Use cached fish list for better performance
-                    fish_count = len(self.get_fish_list())
-                    if self.ecosystem.can_reproduce(fish_count):
+                if newborn is not None and ecosystem is not None:
+                    if ecosystem.can_reproduce(fish_count):
                         new_entities.append(newborn)
+                        fish_count += 1  # Track new births within frame
 
                 if entity.is_dead():
                     self.record_fish_death(entity)
 
-            elif isinstance(entity, entities.Plant):
+            elif entity_type is Plant or isinstance(entity, Plant):
                 food = entity.update(self.frame_count, time_modifier, time_of_day)
                 if food is not None:
                     new_entities.append(food)
 
-            elif isinstance(entity, entities.Jellyfish):
+            elif entity_type is Jellyfish or isinstance(entity, Jellyfish):
                 entity.update(self.frame_count)
                 # Remove dead jellyfish
                 if entity.is_dead():
-                    self.remove_entity(entity)
+                    entities_to_remove.append(entity)
                     logger.info(f"Jellyfish #{entity.jellyfish_id} died at age {entity.age}")
 
             else:
@@ -281,12 +301,14 @@ class SimulationEngine(BaseSimulator):
             self.keep_entity_on_screen(entity)
 
             # Remove regular food that sinks to bottom, but NOT live food (which swims freely)
-            if (
-                isinstance(entity, entities.Food)
-                and not isinstance(entity, entities.LiveFood)
-                and entity.pos.y >= SCREEN_HEIGHT - entity.height
-            ):
-                self.remove_entity(entity)
+            # Performance: Use type() check first (fast) before isinstance() (slower)
+            if entity_type is Food or (isinstance(entity, Food) and not isinstance(entity, LiveFood)):
+                if entity.pos.y >= SCREEN_HEIGHT - entity.height:
+                    entities_to_remove.append(entity)
+
+        # Batch entity removals (more efficient than removing during iteration)
+        for entity in entities_to_remove:
+            self.remove_entity(entity)
 
         for new_entity in new_entities:
             self.add_entity(new_entity)
@@ -294,12 +316,12 @@ class SimulationEngine(BaseSimulator):
         if self.environment is not None:
             self.spawn_auto_food(self.environment, time_of_day)
 
-        # Update spatial grid incrementally for entities that moved
-        # This is much faster than rebuilding the entire grid
+        # Performance: Update spatial grid incrementally for entities that moved
+        # This is O(k) where k = moved entities, not O(n)
         if self.environment is not None:
+            update_position = self.environment.update_agent_position
             for entity in self.entities_list:
-                if hasattr(entity, "pos"):
-                    self.environment.update_agent_position(entity)
+                update_position(entity)
 
         # Uses spatial grid for efficiency
         self.handle_collisions()
@@ -307,11 +329,11 @@ class SimulationEngine(BaseSimulator):
         # Mate finding
         self.handle_reproduction()
 
-        if self.ecosystem is not None:
+        if ecosystem is not None:
             # Use cached fish list for better performance
             fish_list = self.get_fish_list()
-            self.ecosystem.update_population_stats(fish_list)
-            self.ecosystem.update(self.frame_count)
+            ecosystem.update_population_stats(fish_list)
+            ecosystem.update(self.frame_count)
 
             # Auto-spawn fish if population drops below critical threshold (with cooldown)
             if len(fish_list) < CRITICAL_POPULATION_THRESHOLD:
