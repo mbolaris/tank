@@ -418,6 +418,66 @@ def test_interleaved_dealing():
     return True
 
 
+def test_finalize_pot_distribution():
+    """Test that finalize_pot correctly distributes the pot including split pots."""
+    print("=" * 60)
+    print("TEST: Finalize Pot Distribution")
+    print("=" * 60)
+
+    # Test 1: Player 1 wins by having better hand
+    state1 = PokerGameState(small_blind=5.0, big_blind=10.0, button_position=1)
+    state1.pot = 100.0
+    state1.player1_hole_cards = [Card(Rank.ACE, Suit.HEARTS), Card(Rank.ACE, Suit.CLUBS)]
+    state1.player2_hole_cards = [Card(Rank.KING, Suit.HEARTS), Card(Rank.KING, Suit.CLUBS)]
+    state1.community_cards = [
+        Card(Rank.TWO, Suit.DIAMONDS),
+        Card(Rank.THREE, Suit.SPADES),
+        Card(Rank.FOUR, Suit.HEARTS),
+        Card(Rank.SEVEN, Suit.CLUBS),
+        Card(Rank.NINE, Suit.DIAMONDS),
+    ]
+
+    payout1, payout2 = PokerEngine.finalize_pot(state1)
+    print(f"  Test 1: P1 has Aces, P2 has Kings")
+    print(f"  Pot: {state1.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
+    assert payout1 == 100.0 and payout2 == 0.0, f"P1 should win full pot, got ({payout1}, {payout2})"
+    print("  ✓ Player 1 wins entire pot with better hand")
+
+    # Test 2: Player 2 wins by fold
+    state2 = PokerGameState(small_blind=5.0, big_blind=10.0, button_position=1)
+    state2.pot = 50.0
+    state2.player1_folded = True
+
+    payout1, payout2 = PokerEngine.finalize_pot(state2)
+    print(f"\n  Test 2: P1 folded")
+    print(f"  Pot: {state2.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
+    assert payout1 == 0.0 and payout2 == 50.0, f"P2 should win by fold, got ({payout1}, {payout2})"
+    print("  ✓ Player 2 wins pot when Player 1 folds")
+
+    # Test 3: Split pot (both play the board)
+    state3 = PokerGameState(small_blind=5.0, big_blind=10.0, button_position=1)
+    state3.pot = 100.0
+    state3.player1_hole_cards = [Card(Rank.TWO, Suit.SPADES), Card(Rank.THREE, Suit.SPADES)]
+    state3.player2_hole_cards = [Card(Rank.FOUR, Suit.HEARTS), Card(Rank.SIX, Suit.HEARTS)]
+    # Broadway straight on board - both players play the board
+    state3.community_cards = [
+        Card(Rank.TEN, Suit.CLUBS),
+        Card(Rank.JACK, Suit.DIAMONDS),
+        Card(Rank.QUEEN, Suit.HEARTS),
+        Card(Rank.KING, Suit.SPADES),
+        Card(Rank.ACE, Suit.CLUBS),
+    ]
+
+    payout1, payout2 = PokerEngine.finalize_pot(state3)
+    print(f"\n  Test 3: Both play the board (Broadway straight)")
+    print(f"  Pot: {state3.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
+    assert payout1 == 50.0 and payout2 == 50.0, f"Pot should be split 50/50, got ({payout1}, {payout2})"
+    print("  ✓ Pot is split equally on tie (no money vanishes)")
+
+    print("\nPASSED: Finalize pot distribution working correctly\n")
+    return True
+
+
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("TEXAS HOLD'EM RULES TEST SUITE")
@@ -434,6 +494,7 @@ if __name__ == "__main__":
         ("Table Stakes All-In", test_table_stakes_all_in),
         ("Unmatched Bets Refund", test_unmatched_bets_refund),
         ("Interleaved Dealing", test_interleaved_dealing),
+        ("Finalize Pot Distribution", test_finalize_pot_distribution),
     ]
 
     results = []

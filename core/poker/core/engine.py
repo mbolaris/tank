@@ -825,6 +825,9 @@ class PokerEngine:
     ) -> Tuple[float, float]:
         """
         Resolve a poker bet between two hands with proper kicker comparison.
+
+        Returns deltas (profit/loss) for each player. For actual pot distribution,
+        use finalize_pot() instead.
         """
         # Determine winner using proper hand comparison including kickers
         if hand1.beats(hand2):
@@ -836,6 +839,49 @@ class PokerEngine:
         else:
             # Tie (same rank and kickers) - no money changes hands
             return (0.0, 0.0)
+
+    @staticmethod
+    def finalize_pot(game_state: PokerGameState) -> Tuple[float, float]:
+        """
+        Determines the final payout from the pot to Player 1 and Player 2.
+
+        This method examines the game state (folds, hand rankings) and returns
+        the actual pot distribution. For ties, the pot is split equally.
+
+        Args:
+            game_state: The completed poker game state
+
+        Returns:
+            Tuple[float, float]: (Amount to Player 1, Amount to Player 2)
+        """
+        # 1. Check if someone folded (Pot goes to the survivor)
+        winner_by_fold = game_state.get_winner_by_fold()
+        if winner_by_fold == 1:
+            return (game_state.pot, 0.0)
+        elif winner_by_fold == 2:
+            return (0.0, game_state.pot)
+
+        # 2. If no fold, ensure hands are evaluated
+        if not game_state.player1_hand:
+            game_state.player1_hand = PokerEngine.evaluate_hand(
+                game_state.player1_hole_cards, game_state.community_cards
+            )
+        if not game_state.player2_hand:
+            game_state.player2_hand = PokerEngine.evaluate_hand(
+                game_state.player2_hole_cards, game_state.community_cards
+            )
+
+        # 3. Compare Hands
+        if game_state.player1_hand.beats(game_state.player2_hand):
+            # Player 1 wins entire pot
+            return (game_state.pot, 0.0)
+        elif game_state.player2_hand.beats(game_state.player1_hand):
+            # Player 2 wins entire pot
+            return (0.0, game_state.pot)
+        else:
+            # TIE (Split Pot): Divide pot equally
+            half_pot = game_state.pot / 2
+            return (half_pot, half_pot)
 
     @staticmethod
     def simulate_game(
