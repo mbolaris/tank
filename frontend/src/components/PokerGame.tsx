@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { PokerTable, PokerPlayer, PokerActions } from './poker';
+import { PokerTable, PokerPlayer, PokerActions, FishAvatar } from './poker';
 import type { PokerGameState } from '../types/simulation';
 import styles from './PokerGame.module.css';
 
@@ -119,6 +119,11 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
     const humanPlayer = gameState.players.find(p => p.is_human);
     const aiPlayers = gameState.players.filter(p => !p.is_human);
 
+    // Find winner player data for the result banner
+    const winnerPlayer = gameState.winner === 'You'
+        ? humanPlayer
+        : aiPlayers.find(p => p.name === gameState.winner);
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -143,7 +148,15 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                 communityCards={gameState.community_cards}
                 resultBanner={gameState.game_over && !gameState.session_over ? (
                     <div className={`${styles.resultBanner} ${gameState.winner === 'You' ? styles.winBanner : styles.loseBanner}`}>
-                        <span className={styles.resultIcon}>{gameState.winner === 'You' ? '🏆' : '💀'}</span>
+                        {gameState.winner === 'You' ? (
+                            <span className={styles.resultIcon}>🏆</span>
+                        ) : (
+                            <FishAvatar
+                                fishId={winnerPlayer?.fish_id}
+                                genomeData={winnerPlayer?.genome_data}
+                                size="small"
+                            />
+                        )}
                         <span className={styles.resultText}>
                             {gameState.winner === 'You' ? 'You win' : `${gameState.winner} wins`}
                         </span>
