@@ -62,6 +62,7 @@ algorithm_performance_report.txt
 simulation_output*.txt
 final_test.txt
 *.log
+logs/
 CODEBASE_ANALYSIS.md
 
 # Frontend build artifacts
