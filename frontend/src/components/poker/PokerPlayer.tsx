@@ -168,11 +168,11 @@ export function PokerPlayer({
                 {/* Chips and stats to the right of cards */}
                 <div className={styles.playerStats}>
                     <div className={styles.chipStackContainer}>
-                        <ChipStack totalValue={Math.floor(energy)} size="medium" />
-                        <div className={styles.energyText}>{Math.floor(energy)} ⚡</div>
+                        <ChipStack totalValue={Math.round(energy)} size="medium" />
+                        <div className={styles.energyText}>{Math.round(energy)} ⚡</div>
                     </div>
                     <div className={currentBet > 0 ? styles.currentBet : styles.betHidden}>
-                        {currentBet > 0 ? `🪙 ${Math.floor(currentBet)}` : ''}
+                        {currentBet > 0 ? `🪙 ${Math.round(currentBet)}` : ''}
                     </div>
                 </div>
             </div>
@@ -202,11 +202,11 @@ export function PokerPlayer({
                 </div>
                 <div className={styles.opponentStats}>
                     <div className={styles.chipWithTotal}>
-                        <ChipStack totalValue={Math.floor(energy)} size="small" />
-                        <div className={styles.energyText}>{Math.floor(energy)} ⚡</div>
+                        <ChipStack totalValue={Math.round(energy)} size="small" />
+                        <div className={styles.energyText}>{Math.round(energy)} ⚡</div>
                     </div>
                     <div className={currentBet > 0 ? styles.bet : styles.betHidden}>
-                        {currentBet > 0 ? `🪙 ${Math.floor(currentBet)}` : ''}
+                        {currentBet > 0 ? `🪙 ${Math.round(currentBet)}` : ''}
                     </div>
                     {folded && <div className={styles.foldedLabel}>FOLDED</div>}
                 </div>

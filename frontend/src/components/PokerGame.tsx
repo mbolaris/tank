@@ -147,7 +147,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                         <span className={styles.resultText}>
                             {gameState.winner === 'You' ? 'You win' : `${gameState.winner} wins`}
                         </span>
-                        <span className={styles.resultPot}>+{gameState.pot.toFixed(0)} ⚡</span>
+                        <span className={styles.resultPot}>+{Math.round(gameState.pot)} ⚡</span>
                     </div>
                 ) : undefined}
             />
@@ -242,7 +242,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                                 <div key={player.player_id} className={`${styles.finalStanding} ${index === 0 ? styles.sessionWinner : ''} ${player.energy <= 0 ? styles.eliminated : ''}`}>
                                     <span className={styles.finalRank}>{index === 0 ? '👑' : `#${index + 1}`}</span>
                                     <span className={styles.finalName}>{player.is_human ? 'You' : player.name}</span>
-                                    <span className={styles.finalEnergy}>{player.energy <= 0 ? 'Eliminated' : `${player.energy.toFixed(0)} ⚡`}</span>
+                                    <span className={styles.finalEnergy}>{player.energy <= 0 ? 'Eliminated' : `${Math.round(player.energy)} ⚡`}</span>
                                 </div>
                             ))
                         }

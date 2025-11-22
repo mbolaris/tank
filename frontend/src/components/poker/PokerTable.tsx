@@ -22,9 +22,9 @@ export function PokerTable({ pot, communityCards, resultBanner }: PokerTableProp
                 <div className={styles.potArea}>
                     <div className={styles.potLabel}>POT</div>
                     <div className={styles.potChips}>
-                        <ChipStack totalValue={Math.floor(pot)} size="medium" />
+                        <ChipStack totalValue={Math.round(pot)} size="medium" />
                     </div>
-                    <div className={styles.potAmount}>{Math.floor(pot)} ⚡</div>
+                    <div className={styles.potAmount}>{Math.round(pot)} ⚡</div>
                 </div>
 
                 {/* Community cards area */}
