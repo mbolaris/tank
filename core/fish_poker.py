@@ -14,7 +14,7 @@ Features:
 
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from core.entities import LifeStage
 from core.poker.core import BettingAction, PokerEngine, PokerHand
@@ -92,7 +92,7 @@ class PokerParticipant:
         self.last_cooldown_age = getattr(self.fish, "age", self.last_cooldown_age)
 
 
-_POKER_PARTICIPANTS: dict[int, PokerParticipant] = {}
+_POKER_PARTICIPANTS: Dict[int, PokerParticipant] = {}
 
 
 def _get_participant(fish: "Fish") -> PokerParticipant:
