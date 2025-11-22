@@ -152,15 +152,30 @@ function App() {
                                 <span>{state?.stats?.time ?? '—'}</span>
                             </span>
                             {pokerStats && (
-                                <span className="meta-item" style={{ color: '#a78bfa' }}>
-                                    <span className="meta-label">Poker</span>
-                                    <span className="meta-value">{pokerStats.total_games.toLocaleString()}</span>
-                                    <span>games</span>
-                                    {/* Show combined indicator if any plant poker events exist in recent events */}
-                                    {state?.poker_events && state.poker_events.some((e: any) => e.is_plant) && (
-                                        <span className="meta-sub" style={{ marginLeft: 8 }}>(fish+plant)</span>
-                                    )}
-                                </span>
+                                (() => {
+                                    const events = state?.poker_events || [];
+                                    const fishGames = events.filter((e: any) => !e.is_plant).length;
+                                    const plantGames = events.filter((e: any) => e.is_plant).length;
+
+                                    return (
+                                        <span className="meta-item" style={{ color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <span style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span className="meta-label">Poker</span>
+                                                <span className="meta-value">{pokerStats.total_games.toLocaleString()}</span>
+                                            </span>
+                                            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                                    <span style={{ width: 10, height: 10, borderRadius: 6, background: '#a78bfa', display: 'inline-block' }} />
+                                                    <span style={{ color: '#a78bfa' }}>{fishGames}</span>
+                                                </span>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                                    <span style={{ width: 10, height: 10, borderRadius: 6, background: '#4ade80', display: 'inline-block' }} />
+                                                    <span style={{ color: '#4ade80' }}>{plantGames}</span>
+                                                </span>
+                                            </span>
+                                        </span>
+                                    );
+                                })()
                             )}
                         </div>
                         <Canvas state={state} width={1088} height={612} />
