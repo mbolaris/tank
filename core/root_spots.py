@@ -38,6 +38,8 @@ class RootSpot:
     y: float
     occupied: bool = False
     occupant: Optional["FractalPlant"] = field(default=None, repr=False)
+    # Back-reference to the manager that created this spot (set by RootSpotManager)
+    manager: Optional["RootSpotManager"] = field(default=None, repr=False)
 
     def claim(self, plant: "FractalPlant") -> bool:
         """Claim this spot for a plant.
@@ -103,6 +105,8 @@ class RootSpotManager:
             y = ROOT_SPOT_Y_BASE + y_offset
 
             spot = RootSpot(spot_id=i, x=x, y=y)
+            # Keep a back-reference so plants can inspect neighboring spots
+            spot.manager = self
             self.spots.append(spot)
 
     def get_random_empty_spot(self) -> Optional[RootSpot]:

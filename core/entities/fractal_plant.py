@@ -199,6 +199,31 @@ class FractalPlant(Agent):
         # Day = 1.0, Dawn/Dusk = 0.7, Night = 0.3
         energy_gain = base_rate * growth_factor * time_modifier
 
+        # Reduce energy production if neighboring root slots are occupied.
+        # If both adjacent slots are full -> -50%, if one is full -> -25%.
+        reduction_factor = 1.0
+        try:
+            if self.root_spot is not None and hasattr(self.root_spot, "manager") and self.root_spot.manager is not None:
+                manager = self.root_spot.manager
+                left_spot = manager.get_spot_by_id(self.root_spot.spot_id - 1)
+                right_spot = manager.get_spot_by_id(self.root_spot.spot_id + 1)
+
+                occupied_count = 0
+                if left_spot is not None and left_spot.occupied:
+                    occupied_count += 1
+                if right_spot is not None and right_spot.occupied:
+                    occupied_count += 1
+
+                if occupied_count == 2:
+                    reduction_factor = 0.5
+                elif occupied_count == 1:
+                    reduction_factor = 0.75
+        except Exception:
+            # Keep safe default if any unexpected issue occurs
+            reduction_factor = 1.0
+
+        energy_gain *= reduction_factor
+
         self.energy = min(self.max_energy, self.energy + energy_gain)
 
     def _try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:
