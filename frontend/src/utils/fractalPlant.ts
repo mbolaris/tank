@@ -54,6 +54,7 @@ interface PlantRenderCache {
     // sizeMultiplier is no longer needed in cache as we scale the context
     segments: FractalSegment[];
     leaves: FractalLeaf[];
+    sortedSegments: FractalSegment[];
 }
 
 // Module-level cache keyed by plant x-position
@@ -279,6 +280,7 @@ export function renderFractalPlant(
 
     let segments: FractalSegment[];
     let leaves: FractalLeaf[];
+    let sortedSegments: FractalSegment[];
 
     // Only regenerate geometry when iterations change (size is handled by scaling)
     const needsRegeneration =
@@ -314,15 +316,18 @@ export function renderFractalPlant(
 
         segments = result.segments;
         leaves = result.leaves;
+        const sortedSegments = [...segments].sort((a, b) => a.depth - b.depth);
 
         plantCache.set(cacheKey, {
             iterations,
             segments,
             leaves,
+            sortedSegments,
         });
     } else {
         segments = cached!.segments;
         leaves = cached!.leaves;
+        sortedSegments = cached!.sortedSegments;
     }
 
     // Apply gentle swaying animation (reduced from 3 to 1 degree)
@@ -368,8 +373,6 @@ export function renderFractalPlant(
     ctx.restore();
 
     // Draw stem segments (back to front by depth)
-    const sortedSegments = [...segments].sort((a, b) => a.depth - b.depth);
-
     for (const seg of sortedSegments) {
         // Main stem stroke
         ctx.beginPath();
