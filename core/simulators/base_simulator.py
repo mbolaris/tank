@@ -24,6 +24,7 @@ from core.constants import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
     POKER_ACTIVITY_ENABLED,
+    FRACTAL_PLANT_POKER_COLLISION_DISTANCE,
 )
 from core.fish_poker import PokerInteraction
 from core.jellyfish_poker import JellyfishPokerInteraction
@@ -308,7 +309,7 @@ class BaseSimulator(ABC):
                     continue
 
                 # Check if they're close enough for poker
-                if check_fish_plant_poker_collision(fish, plant):
+                if check_fish_plant_poker_collision(fish, plant, FRACTAL_PLANT_POKER_COLLISION_DISTANCE):
                     # Try to play poker
                     self.handle_fish_fractal_plant_collision(fish, plant)
 

@@ -17,16 +17,18 @@ if TYPE_CHECKING:
 
 
 # Plant lifecycle constants (can be moved to constants.py later)
-FRACTAL_PLANT_INITIAL_ENERGY = 20.0
-FRACTAL_PLANT_MAX_ENERGY = 150.0
-FRACTAL_PLANT_MIN_SIZE = 0.3
-FRACTAL_PLANT_MAX_SIZE = 1.5
-FRACTAL_PLANT_BASE_WIDTH = 60
-FRACTAL_PLANT_BASE_HEIGHT = 100
-FRACTAL_PLANT_POKER_COOLDOWN = 90  # 3 seconds at 30fps
-FRACTAL_PLANT_MIN_POKER_ENERGY = 15.0
-FRACTAL_PLANT_DEATH_ENERGY = 5.0  # Dies below this energy
-FRACTAL_PLANT_NECTAR_COOLDOWN = 300  # 10 seconds between nectar production
+from core.constants import (
+    FRACTAL_PLANT_BASE_HEIGHT,
+    FRACTAL_PLANT_BASE_WIDTH,
+    FRACTAL_PLANT_DEATH_ENERGY,
+    FRACTAL_PLANT_INITIAL_ENERGY,
+    FRACTAL_PLANT_MAX_ENERGY,
+    FRACTAL_PLANT_MAX_SIZE,
+    FRACTAL_PLANT_MIN_POKER_ENERGY,
+    FRACTAL_PLANT_MIN_SIZE,
+    FRACTAL_PLANT_NECTAR_COOLDOWN,
+    FRACTAL_PLANT_POKER_COOLDOWN,
+)
 
 
 class FractalPlant(Agent):
@@ -107,6 +109,9 @@ class FractalPlant(Agent):
 
         # Poker state
         self.last_button_position = 2
+
+        # Rendering stability
+        self._cached_iterations = 1  # Cache iterations to prevent flickering
 
         # Update size based on initial energy
         self._update_size()
@@ -305,12 +310,26 @@ class FractalPlant(Agent):
             Number of iterations (1-3)
         """
         size = self.get_size_multiplier()
-        if size < 0.6:
-            return 1  # Tiny plants: minimal detail
-        elif size < 1.0:
-            return 2  # Medium plants: some branching
-        else:
-            return 3  # Large plants: full detail (but not excessive)
+        
+        # Use hysteresis to prevent flickering between iteration levels
+        # Only upgrade when well past the threshold, downgrade when well below
+        
+        target_iterations = 1
+        if size >= 1.0:
+            target_iterations = 3
+        elif size >= 0.6:
+            target_iterations = 2
+            
+        # Apply hysteresis
+        if target_iterations > self._cached_iterations:
+            # Upgrade requires being 10% past the threshold to prevent rapid switching
+            if (target_iterations == 2 and size > 0.65) or (target_iterations == 3 and size > 1.05):
+                self._cached_iterations = target_iterations
+        elif target_iterations < self._cached_iterations:
+            # Downgrade is immediate to reflect energy loss, but we respect the thresholds
+            self._cached_iterations = target_iterations
+            
+        return self._cached_iterations
 
     def get_poker_aggression(self) -> float:
         """Get poker aggression level.
@@ -350,7 +369,9 @@ class FractalPlant(Agent):
         }
 
 
-class PlantNectar(Agent):
+from core.entities.resources import Food
+
+class PlantNectar(Food):
     """Nectar produced by fractal plants.
 
     When consumed by fish, triggers plant reproduction at a nearby root spot.
@@ -383,11 +404,22 @@ class PlantNectar(Agent):
             screen_width: Screen width
             screen_height: Screen height
         """
-        super().__init__(environment, x, y, 0, screen_width, screen_height)
+        super().__init__(
+            environment,
+            x,
+            y,
+            source_plant=source_plant,
+            food_type="nectar",
+            allow_stationary_types=True,
+            screen_width=screen_width,
+            screen_height=screen_height,
+        )
 
         self.source_plant = source_plant
         self.parent_genome = source_plant.genome  # Reference to parent genome
+        # Override energy from Food init (which uses default 90.0 from constants)
         self.energy = self.NECTAR_ENERGY
+        self.max_energy = self.NECTAR_ENERGY
 
         self.set_size(self.NECTAR_SIZE, self.NECTAR_SIZE)
 
@@ -418,6 +450,22 @@ class PlantNectar(Agent):
             True if fully consumed
         """
         return self.energy <= 0
+
+    def take_bite(self, bite_size: float) -> float:
+        """Take a bite from the nectar.
+
+        Overrides Food.take_bite to trigger reproduction logic when fully consumed.
+        """
+        consumed = super().take_bite(bite_size)
+        
+        # If fully consumed (or close enough), trigger reproduction logic
+        if self.energy <= 0.1:
+            self.energy = 0
+            # Logic for reproduction is handled by the consumer (Fish)
+            # But we need to ensure the consumer knows this is special nectar
+            pass
+            
+        return consumed
 
     def consume(self) -> "PlantGenome":
         """Consume this nectar.

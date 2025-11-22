@@ -288,7 +288,13 @@ def check_fish_plant_poker_collision(
     Returns:
         True if they can interact
     """
-    dx = fish.pos.x - plant.pos.x
-    dy = fish.pos.y - plant.pos.y
+    # Calculate centers
+    fish_cx = fish.pos.x + fish.width / 2
+    fish_cy = fish.pos.y + fish.height / 2
+    plant_cx = plant.pos.x + plant.width / 2
+    plant_cy = plant.pos.y + plant.height / 2
+
+    dx = fish_cx - plant_cx
+    dy = fish_cy - plant_cy
     distance_sq = dx * dx + dy * dy
     return distance_sq <= collision_distance * collision_distance
