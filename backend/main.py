@@ -153,7 +153,7 @@ async def broadcast_updates():
                         )
 
                     try:
-                        # Get current state
+                        # Get current state (delta compression handled by runner)
                         state = simulation.get_state()
                     except Exception as e:
                         logger.error(
@@ -162,8 +162,6 @@ async def broadcast_updates():
                         await asyncio.sleep(1 / FRAME_RATE)
                         continue
 
-                    # Optimization: Don't send duplicate frames
-                    # The simulation runner updates at 15 FPS (every 2 frames), but we loop at 30 FPS
                     if state.frame == last_sent_frame:
                         await asyncio.sleep(1 / FRAME_RATE)
                         continue
@@ -171,8 +169,7 @@ async def broadcast_updates():
                     last_sent_frame = state.frame
 
                     try:
-                        # Convert to JSON
-                        state_json = state.model_dump_json()
+                        state_json = state.to_json() if hasattr(state, "to_json") else json.dumps(state)
                     except Exception as e:
                         logger.error(
                             f"broadcast_updates: Error serializing state to JSON: {e}", exc_info=True
@@ -241,7 +238,7 @@ async def root():
 @app.get("/health")
 async def health():
     """Health check endpoint."""
-    stats = simulation.get_state()
+    stats = simulation.get_state(force_full=True, allow_delta=False)
     return JSONResponse(
         {
             "status": "healthy",
