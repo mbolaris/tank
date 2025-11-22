@@ -4,6 +4,7 @@
 
 import type {
     AutoEvaluateStats,
+    AutoEvaluatePlayerStats,
     PokerPerformanceSnapshot,
 } from '../types/simulation';
 import { colors } from '../styles/theme';
@@ -19,8 +20,8 @@ function PerformanceChart({
 
     const sortedHistory = [...history].sort((a, b) => a.hand - b.hand);
     const width = 1088;
-    const height = 280;
-    const padding = 40;
+    const height = 180;
+    const padding = { top: 20, right: 40, bottom: 35, left: 55 };
     const maxHand = Math.max(...sortedHistory.map((h) => h.hand), 1);
     const minHand = Math.min(...sortedHistory.map((h) => h.hand));
     const handRange = maxHand - minHand || 1;
@@ -47,9 +48,9 @@ function PerformanceChart({
     const range = maxValue - minValue || 1;
 
     const scaleX = (hand: number) =>
-        padding + ((hand - minHand) / handRange) * (width - padding * 2);
+        padding.left + ((hand - minHand) / handRange) * (width - padding.left - padding.right);
     const scaleY = (value: number) =>
-        height - padding - ((value - minValue) / range) * (height - padding * 2);
+        height - padding.bottom - ((value - minValue) / range) * (height - padding.top - padding.bottom);
 
     // Generate paths for fish average and standard
     const fishPath = chartData
@@ -68,55 +69,92 @@ function PerformanceChart({
         })
         .join(' ');
 
+    // Y-axis ticks
+    const yTicks = [minValue, 0, maxValue].filter((v, i, arr) => arr.indexOf(v) === i);
+
     return (
         <div style={styles.chartWrapper}>
-            <div style={styles.chartHeader}>
-                <div>
-                    <div style={styles.chartTitle}>
-                        Evolution Performance Tracking
-                    </div>
-                    <div style={styles.chartSubtitle}>
-                        Comparing top 3 evolved fish vs baseline algorithm
-                    </div>
-                </div>
-                <div style={styles.chartLegend}>
-                    <div style={styles.legendItem}>
-                        <span
-                            style={{
-                                ...styles.legendSwatch,
-                                backgroundColor: '#22c55e',
-                            }}
-                        />
-                        <span>Top 3 Fish (Average)</span>
-                    </div>
-                    <div style={styles.legendItem}>
-                        <span
-                            style={{
-                                ...styles.legendSwatch,
-                                backgroundColor: '#ef4444',
-                            }}
-                        />
-                        <span>Static Algorithm</span>
-                    </div>
-                </div>
-            </div>
             <svg width={width} height={height} style={styles.chartSvg}>
-                {/* Zero line */}
+                {/* Y-axis */}
                 <line
-                    x1={padding}
-                    y1={scaleY(0)}
-                    x2={width - padding}
-                    y2={scaleY(0)}
+                    x1={padding.left}
+                    y1={padding.top}
+                    x2={padding.left}
+                    y2={height - padding.bottom}
                     stroke={colors.border}
-                    strokeDasharray="4 4"
+                    strokeWidth={1}
                 />
+                {/* X-axis */}
+                <line
+                    x1={padding.left}
+                    y1={height - padding.bottom}
+                    x2={width - padding.right}
+                    y2={height - padding.bottom}
+                    stroke={colors.border}
+                    strokeWidth={1}
+                />
+
+                {/* Y-axis ticks and labels */}
+                {yTicks.map((tick) => (
+                    <g key={tick}>
+                        <line
+                            x1={padding.left - 5}
+                            y1={scaleY(tick)}
+                            x2={padding.left}
+                            y2={scaleY(tick)}
+                            stroke={colors.border}
+                        />
+                        <text
+                            x={padding.left - 8}
+                            y={scaleY(tick)}
+                            fill={colors.textSecondary}
+                            fontSize={10}
+                            textAnchor="end"
+                            dominantBaseline="middle"
+                        >
+                            {tick >= 0 ? '+' : ''}{Math.round(tick)}
+                        </text>
+                        {/* Grid line */}
+                        <line
+                            x1={padding.left}
+                            y1={scaleY(tick)}
+                            x2={width - padding.right}
+                            y2={scaleY(tick)}
+                            stroke={tick === 0 ? colors.border : 'rgba(100,100,100,0.2)'}
+                            strokeDasharray={tick === 0 ? "4 4" : "2 4"}
+                        />
+                    </g>
+                ))}
+
+                {/* X-axis label */}
+                <text
+                    x={(width - padding.left - padding.right) / 2 + padding.left}
+                    y={height - 5}
+                    fill={colors.textSecondary}
+                    fontSize={11}
+                    textAnchor="middle"
+                >
+                    Hands Played
+                </text>
+
+                {/* Y-axis label */}
+                <text
+                    x={12}
+                    y={(height - padding.top - padding.bottom) / 2 + padding.top}
+                    fill={colors.textSecondary}
+                    fontSize={11}
+                    textAnchor="middle"
+                    transform={`rotate(-90, 12, ${(height - padding.top - padding.bottom) / 2 + padding.top})`}
+                >
+                    Net Energy
+                </text>
 
                 {/* Fish average line */}
                 <path
                     d={fishPath}
                     fill="none"
                     stroke="#22c55e"
-                    strokeWidth={3}
+                    strokeWidth={2}
                 />
 
                 {/* Standard algorithm line */}
@@ -124,10 +162,55 @@ function PerformanceChart({
                     d={standardPath}
                     fill="none"
                     stroke="#ef4444"
-                    strokeWidth={3}
+                    strokeWidth={2}
                     strokeDasharray="5 5"
                 />
+
+                {/* Legend */}
+                <g transform={`translate(${width - padding.right - 180}, ${padding.top})`}>
+                    <rect x={0} y={0} width={170} height={44} fill="rgba(15,23,42,0.8)" rx={4} />
+                    <line x1={10} y1={14} x2={30} y2={14} stroke="#22c55e" strokeWidth={2} />
+                    <text x={36} y={18} fill={colors.text} fontSize={11}>Evolved Fish (avg)</text>
+                    <line x1={10} y1={32} x2={30} y2={32} stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" />
+                    <text x={36} y={36} fill={colors.text} fontSize={11}>Static Baseline</text>
+                </g>
             </svg>
+        </div>
+    );
+}
+
+function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isWinning: boolean }) {
+    const netColor = player.net_energy >= 0 ? '#22c55e' : '#ef4444';
+    const genLabel = player.fish_generation !== undefined ? `Gen ${player.fish_generation}` : '';
+
+    return (
+        <div style={{
+            ...styles.playerRow,
+            borderLeft: isWinning ? '3px solid #22c55e' : '3px solid transparent',
+            background: isWinning ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
+        }}>
+            <div style={styles.playerName}>
+                {player.is_standard ? '🤖' : '🐟'} {player.name}
+                {genLabel && <span style={styles.genLabel}>{genLabel}</span>}
+            </div>
+            <div style={styles.playerStat}>
+                <span style={styles.statLabel}>W/L</span>
+                <span style={styles.statValue}>{player.hands_won}/{player.hands_lost}</span>
+            </div>
+            <div style={styles.playerStat}>
+                <span style={styles.statLabel}>Win%</span>
+                <span style={styles.statValue}>{Math.round(player.win_rate)}%</span>
+            </div>
+            <div style={styles.playerStat}>
+                <span style={styles.statLabel}>Net</span>
+                <span style={{ ...styles.statValue, color: netColor, fontWeight: 700 }}>
+                    {player.net_energy >= 0 ? '+' : ''}{Math.round(player.net_energy)}
+                </span>
+            </div>
+            <div style={styles.playerStat}>
+                <span style={styles.statLabel}>Stack</span>
+                <span style={styles.statValue}>{Math.round(player.energy)}</span>
+            </div>
         </div>
     );
 }
@@ -159,15 +242,59 @@ export function AutoEvaluateDisplay({
         return null;
     }
 
+    const fishPlayers = stats.players.filter(p => !p.is_standard);
+    const standardPlayer = stats.players.find(p => p.is_standard);
+    const fishTotalNet = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0);
+    const standardNet = standardPlayer?.net_energy ?? 0;
+    const fishWinning = fishTotalNet > standardNet;
+
+    // Sort players by net energy for display
+    const sortedPlayers = [...stats.players].sort((a, b) => b.net_energy - a.net_energy);
+    const leader = sortedPlayers[0];
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h2 style={styles.title}>📊 Evolution Benchmark</h2>
+                <h2 style={styles.title}>Evolution Benchmark</h2>
+                <div style={styles.headerStats}>
+                    <span style={styles.handsPlayed}>{stats.hands_played} hands</span>
+                    {stats.game_over ? (
+                        <span style={styles.gameOver}>Complete</span>
+                    ) : (
+                        <span style={styles.inProgress}>In Progress</span>
+                    )}
+                </div>
             </div>
 
-            <p style={styles.helperText}>
-                Measuring improvement: Top 3 fish play poker against a static baseline algorithm to track how the population evolves over time.
-            </p>
+            {/* Summary */}
+            <div style={styles.summary}>
+                <div style={styles.summaryItem}>
+                    <span style={styles.summaryLabel}>Leader</span>
+                    <span style={styles.summaryValue}>
+                        {leader?.is_standard ? '🤖' : '🐟'} {leader?.name}
+                    </span>
+                </div>
+                <div style={styles.summaryItem}>
+                    <span style={styles.summaryLabel}>Fish vs Baseline</span>
+                    <span style={{
+                        ...styles.summaryValue,
+                        color: fishWinning ? '#22c55e' : '#ef4444',
+                    }}>
+                        {fishWinning ? '+' : ''}{Math.round(fishTotalNet - standardNet)} ⚡
+                    </span>
+                </div>
+            </div>
+
+            {/* Player breakdown */}
+            <div style={styles.playersSection}>
+                {sortedPlayers.map((player, idx) => (
+                    <PlayerRow
+                        key={player.player_id}
+                        player={player}
+                        isWinning={idx === 0}
+                    />
+                ))}
+            </div>
 
             <PerformanceChart history={stats.performance_history ?? []} />
         </div>
@@ -179,8 +306,7 @@ const styles = {
         backgroundColor: colors.bgDark,
         borderRadius: '12px',
         padding: '12px',
-        border: `2px solid ${colors.primary}`,
-        boxShadow: '0 0 20px rgba(0, 255, 0, 0.2)',
+        border: `1px solid ${colors.border}`,
         width: '100%',
         maxWidth: '1088px',
     },
@@ -194,13 +320,96 @@ const styles = {
     },
     title: {
         margin: 0,
-        fontSize: '20px',
+        fontSize: '16px',
         color: colors.primary,
     },
-    helperText: {
-        margin: '0 0 12px 0',
+    headerStats: {
+        display: 'flex',
+        gap: '12px',
+        alignItems: 'center',
+    },
+    handsPlayed: {
         color: colors.textSecondary,
-        lineHeight: 1.5,
+        fontSize: '13px',
+    },
+    gameOver: {
+        color: '#22c55e',
+        fontSize: '12px',
+        fontWeight: 600,
+        padding: '2px 8px',
+        background: 'rgba(34, 197, 94, 0.15)',
+        borderRadius: '4px',
+    },
+    inProgress: {
+        color: '#3b82f6',
+        fontSize: '12px',
+        fontWeight: 600,
+        padding: '2px 8px',
+        background: 'rgba(59, 130, 246, 0.15)',
+        borderRadius: '4px',
+    },
+    summary: {
+        display: 'flex',
+        gap: '24px',
+        marginBottom: '12px',
+        padding: '8px 12px',
+        background: colors.bgLight,
+        borderRadius: '6px',
+    },
+    summaryItem: {
+        display: 'flex',
+        gap: '8px',
+        alignItems: 'center',
+    },
+    summaryLabel: {
+        color: colors.textSecondary,
+        fontSize: '12px',
+    },
+    summaryValue: {
+        color: colors.text,
+        fontSize: '13px',
+        fontWeight: 600,
+    },
+    playersSection: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        gap: '4px',
+        marginBottom: '12px',
+    },
+    playerRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '6px 12px',
+        borderRadius: '4px',
+    },
+    playerName: {
+        flex: '1 1 180px',
+        color: colors.text,
+        fontSize: '13px',
+        fontWeight: 500,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    genLabel: {
+        color: colors.textSecondary,
+        fontSize: '11px',
+        fontWeight: 400,
+    },
+    playerStat: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        minWidth: '60px',
+    },
+    statLabel: {
+        color: colors.textSecondary,
+        fontSize: '10px',
+        textTransform: 'uppercase' as const,
+    },
+    statValue: {
+        color: colors.text,
         fontSize: '13px',
     },
     loading: {
@@ -217,46 +426,9 @@ const styles = {
         backgroundColor: colors.bgLight,
         border: `1px solid ${colors.border}`,
         borderRadius: '8px',
-        padding: '12px',
-        marginBottom: '0',
-    },
-    chartHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '12px',
-    },
-    chartTitle: {
-        color: colors.primary,
-        fontWeight: 700,
-        fontSize: '16px',
-    },
-    chartSubtitle: {
-        color: colors.textSecondary,
-        fontSize: '12px',
-        marginTop: '4px',
+        padding: '8px',
     },
     chartSvg: {
         width: '100%',
-    },
-    chartLegend: {
-        display: 'flex',
-        gap: '16px',
-        flexWrap: 'wrap' as const,
-        justifyContent: 'flex-end',
-    },
-    legendItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        color: colors.text,
-        fontSize: '14px',
-    },
-    legendSwatch: {
-        width: '16px',
-        height: '16px',
-        borderRadius: '4px',
-        display: 'inline-block',
-        border: `1px solid ${colors.border}`,
     },
 } as const;
