@@ -6,6 +6,7 @@
 import type { EntityData } from '../types/simulation';
 import { ImageLoader } from './ImageLoader';
 import { getFishPath, getEyePosition, type FishParams } from './fishTemplates';
+import { renderFractalPlant as renderFractalPlantUtil, renderPlantNectar as renderPlantNectarUtil, type PlantGenomeData } from './fractalPlant';
 
 // Animation constants
 const IMAGE_CHANGE_RATE = 500; // milliseconds
@@ -344,6 +345,12 @@ export class Renderer {
         break;
       case 'jellyfish':
         this.renderJellyfish(entity, elapsedTime);
+        break;
+      case 'fractal_plant':
+        this.renderFractalPlant(entity, elapsedTime);
+        break;
+      case 'plant_nectar':
+        this.renderPlantNectar(entity, elapsedTime);
         break;
     }
   }
@@ -1071,5 +1078,109 @@ export class Renderer {
   private getAnimationFrame(elapsedTime: number, frameCount: number): number {
     if (frameCount <= 1) return 0;
     return Math.floor(elapsedTime / IMAGE_CHANGE_RATE) % frameCount;
+  }
+
+  /**
+   * Render an evolving fractal plant using L-system genetics.
+   */
+  private renderFractalPlant(plant: EntityData, elapsedTime: number) {
+    const { ctx } = this;
+    const { x, y, width, height } = plant;
+
+    // Get plant genome data
+    const genome = plant.genome as PlantGenomeData | undefined;
+    if (!genome) {
+      // Fallback: draw a simple stem if no genome
+      ctx.save();
+      ctx.strokeStyle = '#2d5a2d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y - height);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    // Get plant properties
+    const sizeMultiplier = plant.size_multiplier ?? 1.0;
+    const iterations = plant.iterations ?? 3;
+    const nectarReady = plant.nectar_ready ?? false;
+
+    // Position plant at its root spot (base is at y position)
+    const canvasHeight = ctx.canvas.height;
+    const seabedOffset = Math.max(40, canvasHeight * 0.08);
+    const baseY = Math.min(y, canvasHeight - seabedOffset);
+
+    // Render using the fractal plant utility
+    renderFractalPlantUtil(
+      ctx,
+      genome,
+      x + width / 2,  // Center X
+      baseY,          // Base Y (bottom of plant)
+      sizeMultiplier,
+      iterations,
+      elapsedTime,
+      nectarReady
+    );
+
+    // Draw energy bar if available
+    if (plant.energy !== undefined && plant.max_energy !== undefined) {
+      const energyRatio = plant.energy / plant.max_energy;
+      const barWidth = width * sizeMultiplier;
+      const barX = x + width / 2 - barWidth / 2;
+      const barY = baseY - height * sizeMultiplier - 20;
+      this.drawPlantEnergyBar(barX, barY, barWidth, energyRatio);
+    }
+  }
+
+  /**
+   * Render plant nectar (collectible item).
+   */
+  private renderPlantNectar(nectar: EntityData, elapsedTime: number) {
+    const { x, y, width, height } = nectar;
+
+    // Render using the plant nectar utility
+    renderPlantNectarUtil(
+      this.ctx,
+      x + width / 2,
+      y + height / 2,
+      width,
+      height,
+      elapsedTime
+    );
+  }
+
+  /**
+   * Draw energy bar for fractal plants.
+   */
+  private drawPlantEnergyBar(x: number, y: number, width: number, energyRatio: number) {
+    const { ctx } = this;
+    const barHeight = 4;
+    const padding = 1;
+
+    ctx.save();
+
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillRect(x, y, width, barHeight);
+
+    // Energy fill
+    const fillWidth = Math.max(0, (width - padding * 2) * Math.min(1, energyRatio));
+
+    // Color based on energy level - green spectrum for plants
+    let fillColor: string;
+    if (energyRatio > 0.6) {
+      fillColor = '#4CAF50'; // Green
+    } else if (energyRatio > 0.3) {
+      fillColor = '#8BC34A'; // Light green
+    } else {
+      fillColor = '#CDDC39'; // Yellow-green
+    }
+
+    ctx.fillStyle = fillColor;
+    ctx.fillRect(x + padding, y + padding, fillWidth, barHeight - padding * 2);
+
+    ctx.restore();
   }
 }

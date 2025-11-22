@@ -351,3 +351,51 @@ SEPARATOR_WIDTH = 60  # Width of separator lines in console output
 
 # Feature Flags
 POKER_ACTIVITY_ENABLED = True  # Enable poker activity
+FRACTAL_PLANTS_ENABLED = True  # Enable fractal plant system
+
+# =============================================================================
+# FRACTAL PLANT CONSTANTS
+# =============================================================================
+
+# Root Spot Configuration
+FRACTAL_PLANT_ROOT_SPOT_COUNT = 100  # Number of positions where plants can grow
+FRACTAL_PLANT_ROOT_Y_BASE = SCREEN_HEIGHT - 40  # Y position near tank bottom
+FRACTAL_PLANT_ROOT_Y_VARIANCE = 8  # Slight Y variation for natural look
+
+# Plant Energy System
+FRACTAL_PLANT_INITIAL_ENERGY = 20.0  # Starting energy for new plants
+FRACTAL_PLANT_MAX_ENERGY = 150.0  # Maximum energy capacity (base)
+FRACTAL_PLANT_MIN_SIZE = 0.3  # Minimum size multiplier
+FRACTAL_PLANT_MAX_SIZE = 1.5  # Maximum size multiplier
+FRACTAL_PLANT_DEATH_ENERGY = 5.0  # Energy threshold for death
+
+# Plant Dimensions
+FRACTAL_PLANT_BASE_WIDTH = 60  # Base width in pixels
+FRACTAL_PLANT_BASE_HEIGHT = 100  # Base height in pixels
+
+# Plant Poker Configuration
+FRACTAL_PLANT_POKER_COOLDOWN = 90  # 3 seconds at 30fps
+FRACTAL_PLANT_MIN_POKER_ENERGY = 15.0  # Minimum energy to play poker
+FRACTAL_PLANT_POKER_BET_RATIO = 0.15  # Max bet as ratio of energy
+
+# Plant Reproduction
+FRACTAL_PLANT_NECTAR_COOLDOWN = 300  # 10 seconds between nectar production
+FRACTAL_PLANT_NECTAR_ENERGY = 50.0  # Energy provided by nectar
+FRACTAL_PLANT_SPROUTING_CHANCE = 0.8  # Chance to sprout when nectar consumed
+FRACTAL_PLANT_INITIAL_COUNT = 5  # Number of plants to start with
+
+# Plant Energy Collection (Passive Growth)
+FRACTAL_PLANT_BASE_ENERGY_RATE = 0.02  # Base energy gain per frame
+FRACTAL_PLANT_GROWTH_FACTOR = 0.5  # Compound growth rate modifier
+FRACTAL_PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
+FRACTAL_PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk
+FRACTAL_PLANT_NIGHT_MODIFIER = 0.3  # Energy collection at night
+
+# L-System Fractal Rendering
+FRACTAL_PLANT_MIN_ITERATIONS = 2  # Minimum L-system iterations (small plants)
+FRACTAL_PLANT_MAX_ITERATIONS = 5  # Maximum L-system iterations (large plants)
+FRACTAL_PLANT_DEFAULT_ANGLE = 25.0  # Default branching angle (degrees)
+FRACTAL_PLANT_DEFAULT_LENGTH_RATIO = 0.7  # Default length reduction per iteration
+
+# Plant Collision Detection
+FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 50.0  # Distance for poker collision

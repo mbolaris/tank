@@ -16,9 +16,36 @@ export interface FishGenomeData {
   pattern_type: number;
 }
 
+/**
+ * Plant genome data for L-system fractal rendering.
+ */
+export interface PlantGenomeData {
+  axiom: string;
+  angle: number;
+  length_ratio: number;
+  branch_probability: number;
+  curve_factor: number;
+  color_hue: number;
+  color_saturation: number;
+  stem_thickness: number;
+  leaf_density: number;
+  aggression: number;
+  bluff_frequency: number;
+  risk_tolerance: number;
+  base_energy_rate: number;
+  growth_efficiency: number;
+  nectar_threshold_ratio: number;
+  fitness_score: number;
+  production_rules: Array<{
+    input: string;
+    output: string;
+    prob: number;
+  }>;
+}
+
 export interface EntityData {
   id: number;
-  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'jellyfish';
+  type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'jellyfish' | 'fractal_plant' | 'plant_nectar';
   x: number;
   y: number;
   width: number;
@@ -38,8 +65,18 @@ export interface EntityData {
   // Food-specific
   food_type?: string;
 
-  // Plant-specific
+  // Plant-specific (original static plants)
   plant_type?: number;
+
+  // Fractal plant-specific
+  genome?: PlantGenomeData;
+  max_energy?: number;
+  size_multiplier?: number;
+  iterations?: number;
+  nectar_ready?: boolean;
+
+  // Plant nectar-specific
+  source_plant_id?: number;
 
 }
 
