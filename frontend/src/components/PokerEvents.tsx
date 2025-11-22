@@ -10,6 +10,7 @@ interface PokerEvent {
     energy_transferred: number;
     message: string;
     is_jellyfish?: boolean;
+    is_plant?: boolean;
 }
 
 interface PokerEventsProps {
@@ -41,6 +42,7 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                             const age = currentFrame - event.frame;
                             const isTie = event.winner_id === -1;
                             const isJellyfish = event.is_jellyfish;
+                            const isPlant = event.is_plant;
 
                             // Calculate opacity based on age (fade out after 180 frames)
                             const fading = Math.max(0.4, 1 - Math.max(0, age - 120) / 60);
@@ -62,14 +64,28 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                                     </div>
                                 );
                             } else {
-                                const winnerName = isJellyfish && event.winner_id === -2 ? "Jellyfish" : `Fish #${event.winner_id}`;
-                                const loserName = isJellyfish && event.loser_id === -2 ? "Jellyfish" : `Fish #${event.loser_id}`;
+                                let winnerName = `Fish #${event.winner_id}`;
+                                let loserName = `Fish #${event.loser_id}`;
+
+                                if (isJellyfish) {
+                                    if (event.winner_id === -2) winnerName = "Jellyfish";
+                                    if (event.loser_id === -2) loserName = "Jellyfish";
+                                } else if (isPlant) {
+                                    if (event.winner_id === -3) winnerName = `Plant #${Math.abs(event.winner_id)}`; // Plant IDs are positive in simulation but -3 here is just a flag check really
+                                    if (event.loser_id === -3) loserName = `Plant #${Math.abs(event.loser_id)}`;
+
+                                    // Actually, for plants we passed -3 as ID in backend? 
+                                    // No, we passed -3 as ID. But we also have plant_id in message.
+                                    // Let's just use the ID passed.
+                                    if (event.winner_id === -3) winnerName = "Plant";
+                                    if (event.loser_id === -3) loserName = "Plant";
+                                }
 
                                 content = (
                                     <div className="event-content">
                                         <div className="event-header">
-                                            <span className={`event-badge ${isJellyfish ? 'jellyfish' : 'win'}`}>
-                                                {isJellyfish && event.winner_id === -2 ? 'JELLY' : 'WIN'}
+                                            <span className={`event-badge ${isJellyfish ? 'jellyfish' : isPlant ? 'plant' : 'win'}`}>
+                                                {isJellyfish ? 'JELLY' : isPlant ? 'PLANT' : 'WIN'}
                                             </span>
                                             <span className="event-hand">{event.winner_hand}</span>
                                             <span className="event-energy">+{event.energy_transferred.toFixed(1)}⚡</span>
@@ -86,7 +102,7 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                             return (
                                 <div
                                     key={`${event.frame}-${index}`}
-                                    className={`poker-events__item ${isTie ? 'tie' : ''} ${isJellyfish ? 'jellyfish' : ''}`}
+                                    className={`poker-events__item ${isTie ? 'tie' : ''} ${isJellyfish ? 'jellyfish' : ''} ${isPlant ? 'plant' : ''}`}
                                     style={{ opacity: fading }}
                                 >
                                     {content}

@@ -364,9 +364,9 @@ FRACTAL_PLANT_ROOT_Y_VARIANCE = 8  # Slight Y variation for natural look
 
 # Plant Energy System
 FRACTAL_PLANT_INITIAL_ENERGY = 20.0  # Starting energy for new plants
-FRACTAL_PLANT_MAX_ENERGY = 120.0  # Maximum energy capacity (base) - Reduced from 150.0
+FRACTAL_PLANT_MAX_ENERGY = 120.0  # Maximum energy capacity - Reduced for smaller plants
 FRACTAL_PLANT_MIN_SIZE = 0.3  # Minimum size multiplier
-FRACTAL_PLANT_MAX_SIZE = 1.2  # Maximum size multiplier - Reduced from 1.5
+FRACTAL_PLANT_MAX_SIZE = 1.0  # Maximum size multiplier - Reduced from 1.2
 FRACTAL_PLANT_DEATH_ENERGY = 5.0  # Energy threshold for death
 
 # Plant Dimensions
@@ -385,7 +385,7 @@ FRACTAL_PLANT_SPROUTING_CHANCE = 0.8  # Chance to sprout when nectar consumed
 FRACTAL_PLANT_INITIAL_COUNT = 5  # Number of plants to start with
 
 # Plant Energy Collection (Passive Growth)
-FRACTAL_PLANT_BASE_ENERGY_RATE = 0.004  # Base energy gain per frame - Reduced for slower growth
+FRACTAL_PLANT_BASE_ENERGY_RATE = 0.002  # Base energy gain per frame - Reduced for slower growth
 FRACTAL_PLANT_GROWTH_FACTOR = 0.3  # Compound growth rate modifier
 FRACTAL_PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
 FRACTAL_PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk

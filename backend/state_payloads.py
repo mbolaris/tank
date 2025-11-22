@@ -161,6 +161,7 @@ class PokerEventPayload:
     energy_transferred: float
     message: str
     is_jellyfish: bool = False
+    is_plant: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return _to_dict(self)

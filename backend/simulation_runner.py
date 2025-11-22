@@ -506,7 +506,8 @@ class SimulationRunner:
                     loser_hand=event["loser_hand"],
                     energy_transferred=event["energy_transferred"],
                     message=event["message"],
-                    is_jellyfish=event["is_jellyfish"],
+                    is_jellyfish=event.get("is_jellyfish", False),
+                    is_plant=event.get("is_plant", False),
                 )
             )
 

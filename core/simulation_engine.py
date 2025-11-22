@@ -1153,6 +1153,55 @@ class SimulationEngine(BaseSimulator):
                 self.export_stats_json(export_json)
 
 
+    def add_plant_poker_event(
+        self,
+        fish_id: int,
+        plant_id: int,
+        fish_won: bool,
+        fish_hand: str,
+        plant_hand: str,
+        energy_transferred: float,
+    ) -> None:
+        """Record a poker event between a fish and a plant.
+
+        Args:
+            fish_id: ID of the fish
+            plant_id: ID of the plant
+            fish_won: Whether the fish won
+            fish_hand: Description of fish's hand
+            plant_hand: Description of plant's hand
+            energy_transferred: Amount of energy transferred
+        """
+        # Determine winner/loser IDs
+        # Use -3 for Plant ID to distinguish from Fish (positive) and Jellyfish (-2)
+        if fish_won:
+            winner_id = fish_id
+            loser_id = -3  # Plant
+            winner_hand = fish_hand
+            loser_hand = plant_hand
+            message = f"Fish #{fish_id} beats Plant #{plant_id} with {fish_hand}! (+{energy_transferred:.1f}⚡)"
+        else:
+            winner_id = -3  # Plant
+            loser_id = fish_id
+            winner_hand = plant_hand
+            loser_hand = fish_hand
+            message = f"Plant #{plant_id} beats Fish #{fish_id} with {plant_hand}! (+{energy_transferred:.1f}⚡)"
+
+        event = {
+            "frame": self.frame_count,
+            "winner_id": winner_id,
+            "loser_id": loser_id,
+            "winner_hand": winner_hand,
+            "loser_hand": loser_hand,
+            "energy_transferred": energy_transferred,
+            "message": message,
+            "is_jellyfish": False,  # Not a jellyfish
+            "is_plant": True,  # New flag for plants
+        }
+
+        self.poker_events.append(event)
+
+
 class HeadlessSimulator(SimulationEngine):
     """Wrapper class for CI/testing with simplified interface.
 

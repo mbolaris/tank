@@ -299,8 +299,9 @@ class BaseSimulator(ABC):
                 continue
 
             # Use spatial grid for nearby entity lookup
+            # Use plant poker distance for query since we check poker collision below
             if environment is not None:
-                nearby_entities = environment.nearby_agents(plant, radius=COLLISION_QUERY_RADIUS)
+                nearby_entities = environment.nearby_agents(plant, radius=FRACTAL_PLANT_POKER_COLLISION_DISTANCE)
             else:
                 nearby_entities = fish_list
 

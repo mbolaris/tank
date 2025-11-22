@@ -316,7 +316,7 @@ export function renderFractalPlant(
 
         segments = result.segments;
         leaves = result.leaves;
-        const sortedSegments = [...segments].sort((a, b) => a.depth - b.depth);
+        sortedSegments = [...segments].sort((a, b) => a.depth - b.depth);
 
         plantCache.set(cacheKey, {
             iterations,
