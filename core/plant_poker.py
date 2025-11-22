@@ -251,13 +251,24 @@ class PlantPokerInteraction:
 
         # Record in ecosystem if available
         if self.fish.ecosystem is not None:
+            # Get hand ranks (may be None if folded early)
+            fish_hand_rank = (
+                self.result.fish_hand.rank_value
+                if self.result.fish_hand is not None
+                else 0
+            )
+            plant_hand_rank = (
+                self.result.plant_hand.rank_value
+                if self.result.plant_hand is not None
+                else 0
+            )
             self.fish.ecosystem.record_plant_poker_game(
                 fish_id=self.fish.fish_id,
                 plant_id=self.plant.plant_id,
                 fish_won=fish_won,
                 energy_transferred=abs(energy_transferred),
-                fish_hand_rank=self.result.fish_hand.rank_value,
-                plant_hand_rank=self.result.plant_hand.rank_value,
+                fish_hand_rank=fish_hand_rank,
+                plant_hand_rank=plant_hand_rank,
                 won_by_fold=won_by_fold,
             )
 
