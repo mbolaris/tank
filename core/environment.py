@@ -291,9 +291,45 @@ class Environment:
         Returns:
             List[Agent]: The agents of the specified type within the radius.
         """
-        # Use spatial grid for fast lookup, then filter by type
-        nearby = self.spatial_grid.query_radius(agent, radius)
-        return [other for other in nearby if isinstance(other, agent_class)]
+        # Optimized implementation:
+        # 1. Inline spatial grid logic to avoid function call overhead
+        # 2. Iterate grid cells directly to avoid creating intermediate candidate list
+        # 3. Check type BEFORE distance to avoid expensive math on wrong agents
+        
+        if not hasattr(agent, "pos"):
+            return []
+
+        # Local variables for speed
+        grid = self.spatial_grid
+        cell_size = grid.cell_size
+        agent_x = agent.pos.x
+        agent_y = agent.pos.y
+        
+        # Calculate cell range
+        min_col = max(0, int((agent_x - radius) / cell_size))
+        max_col = min(grid.cols - 1, int((agent_x + radius) / cell_size))
+        min_row = max(0, int((agent_y - radius) / cell_size))
+        max_row = min(grid.rows - 1, int((agent_y + radius) / cell_size))
+        
+        radius_sq = radius * radius
+        result = []
+        grid_dict = grid.grid
+        
+        # Iterate cells
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                # Iterate agents in cell
+                # accessing defaultdict with missing key creates empty set, which is fine
+                for other in grid_dict[(col, row)]:
+                    # Type check first (fast)
+                    if other is not agent and isinstance(other, agent_class):
+                        # Distance check second (slower)
+                        dx = other.pos.x - agent_x
+                        dy = other.pos.y - agent_y
+                        if dx*dx + dy*dy <= radius_sq:
+                            result.append(other)
+                            
+        return result
 
     # Convenient entity filtering helpers for improved code clarity
     def get_all_fish(self) -> List[Agent]:

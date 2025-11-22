@@ -30,6 +30,26 @@ class Vector2:
     def __truediv__(self, scalar: float) -> "Vector2":
         return Vector2(self.x / scalar, self.y / scalar)
 
+    def __iadd__(self, other: "Vector2") -> "Vector2":
+        self.x += other.x
+        self.y += other.y
+        return self
+
+    def __isub__(self, other: "Vector2") -> "Vector2":
+        self.x -= other.x
+        self.y -= other.y
+        return self
+
+    def __imul__(self, scalar: float) -> "Vector2":
+        self.x *= scalar
+        self.y *= scalar
+        return self
+
+    def __itruediv__(self, scalar: float) -> "Vector2":
+        self.x /= scalar
+        self.y /= scalar
+        return self
+
     def length(self) -> float:
         return math.sqrt(self.x * self.x + self.y * self.y)
 

@@ -39,7 +39,11 @@ class MovementStrategy:
         # Get the sprite entity (unwrap if it's a sprite wrapper)
         sprite_entity: "Fish" = sprite._entity if hasattr(sprite, "_entity") else sprite
 
-        for food in sprite.environment.get_agents_of_type(Food):
+        # Optimize: Use spatial query to only check nearby food
+        # Radius of 50 is sufficient for collision detection (fish size + food size)
+        nearby_food = sprite.environment.nearby_agents_by_type(sprite_entity, 50, Food)
+        
+        for food in nearby_food:
             # Get the food entity (unwrap if it's a sprite wrapper)
             food_entity: Food = food._entity if hasattr(food, "_entity") else food
 
@@ -85,8 +89,13 @@ class AlgorithmicMovement(MovementStrategy):
             # Check if there are nearby fish for poker (determines poker relevance)
             from core.entities import Fish as FishClass
 
-            all_fish: list[FishClass] = sprite.environment.get_agents_of_type(FishClass)
-            other_fish: list[FishClass] = [f for f in all_fish if f.fish_id != sprite.fish_id]
+            # Get the sprite entity (unwrap if it's a sprite wrapper)
+            sprite_entity: "Fish" = sprite._entity if hasattr(sprite, "_entity") else sprite
+
+            # Optimize: Use spatial query to only check nearby fish
+            # We only care about fish within 200 units for poker behavior
+            nearby_fish = sprite.environment.nearby_agents_by_type(sprite_entity, 200, FishClass)
+            other_fish: list[FishClass] = [f for f in nearby_fish if f.fish_id != sprite.fish_id]
 
             # Calculate poker behavior weight based on context
             poker_weight: float = 0.0
