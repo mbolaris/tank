@@ -160,8 +160,7 @@ function App() {
                                     return (
                                         <span className="meta-item" style={{ color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <span style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span className="meta-label">Poker</span>
-                                                <span className="meta-value">{pokerStats.total_games.toLocaleString()}</span>
+                                                    <span className="meta-label">Poker</span>
                                             </span>
                                             <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
