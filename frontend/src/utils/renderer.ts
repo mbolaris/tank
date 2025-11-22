@@ -79,6 +79,10 @@ const DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 // Default fish images for fallback rendering
 const DEFAULT_FISH_IMAGES = ['george1.png', 'george2.png'];
 
+// Minimum horizontal velocity magnitude before we flip the fish sprite.
+// This prevents tiny back-and-forth movement from rapidly changing direction.
+const MIN_FLIP_SPEED = 0.5;
+
 // Particle system for ambient water effects
 interface Particle {
     x: number;
@@ -94,6 +98,7 @@ export class Renderer {
     private particles: Particle[] = [];
     private initialized = false;
     private currentPalette: TimeOfDayPalette | null = null;
+    private entityFacingLeft: Map<number, boolean> = new Map();
 
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
@@ -355,6 +360,18 @@ export class Renderer {
         }
     }
 
+    private getStableFacingLeft(entityId: number, velX?: number): boolean {
+        const previousFacing = this.entityFacingLeft.get(entityId) ?? false;
+
+        if (velX === undefined || Math.abs(velX) < MIN_FLIP_SPEED) {
+            return previousFacing;
+        }
+
+        const facingLeft = velX < 0;
+        this.entityFacingLeft.set(entityId, facingLeft);
+        return facingLeft;
+    }
+
     private renderFish(fish: EntityData, elapsedTime: number) {
         const { ctx } = this;
         const { x, y, width, height, vel_x = 1, genome_data } = fish;
@@ -375,7 +392,7 @@ export class Renderer {
         const sizeModifier = genome_data?.size || 1.0;
         const scaledWidth = width * sizeModifier;
         const scaledHeight = height * sizeModifier;
-        const flipHorizontal = vel_x < 0;
+        const flipHorizontal = this.getStableFacingLeft(fish.id, vel_x);
 
         this.drawShadow(x + scaledWidth / 2, y + scaledHeight, scaledWidth * 0.8, scaledHeight * 0.3);
 
@@ -464,8 +481,8 @@ export class Renderer {
         const sizeModifier = fishParams.size;
         const scaledSize = baseSize * sizeModifier;
 
-        // Flip based on velocity direction
-        const flipHorizontal = vel_x < 0;
+        // Flip based on velocity direction with stability for low speeds
+        const flipHorizontal = this.getStableFacingLeft(fish.id, vel_x);
 
         // Draw soft shadow
         this.drawShadow(x + scaledSize / 2, y + scaledSize, scaledSize * 0.8, scaledSize * 0.3);
