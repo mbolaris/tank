@@ -141,6 +141,17 @@ export interface SimulationUpdate {
   auto_evaluation?: AutoEvaluateStats;
 }
 
+export interface DeltaUpdate {
+  type: 'delta';
+  frame: number;
+  elapsed_time: number;
+  updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y'>[];
+  added: EntityData[];
+  removed: number[];
+  poker_events: PokerEventData[];
+  stats?: StatsData;
+}
+
 export interface Command {
   command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_action' | 'poker_new_round' | 'standard_poker_series' | 'poker_autopilot_action';
   data?: Record<string, unknown>;
@@ -157,7 +168,7 @@ export interface ErrorMessage {
   message: string;
 }
 
-export type WebSocketMessage = SimulationUpdate | CommandAck | ErrorMessage;
+export type WebSocketMessage = SimulationUpdate | DeltaUpdate | CommandAck | ErrorMessage;
 
 // Poker Game State
 export interface PokerPlayer {

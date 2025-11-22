@@ -3,7 +3,7 @@
 import json
 import time
 
-from models import SimulationUpdate
+from state_payloads import FullStatePayload
 from simulation_runner import SimulationRunner
 
 
@@ -32,14 +32,10 @@ def test_state_serialization():
     runner.start()
     time.sleep(0.5)
 
-    state = runner.get_state()
-    assert isinstance(state, SimulationUpdate), "State should be SimulationUpdate"
+    state = runner.get_state(force_full=True, allow_delta=False)
+    assert isinstance(state, FullStatePayload), "State should be FullStatePayload"
 
-    # Test JSON serialization
-    json_str = state.model_dump_json()
-    assert len(json_str) > 0, "JSON should not be empty"
-
-    # Test JSON is valid
+    json_str = state.to_json()
     parsed = json.loads(json_str)
     assert "type" in parsed
     assert "frame" in parsed
@@ -58,7 +54,7 @@ def test_all_entity_types():
     runner.start()
     time.sleep(1)
 
-    state = runner.get_state()
+    state = runner.get_state(force_full=True, allow_delta=False)
     entity_types = {e.type for e in state.entities}
 
     expected_types = {"fish", "plant", "crab", "castle"}
@@ -91,10 +87,10 @@ def test_commands():
     time.sleep(0.5)
 
     # Test add_food
-    initial_food = runner.get_state().stats.food_count
+    initial_food = runner.get_state(force_full=True, allow_delta=False).stats.food_count
     runner.handle_command("add_food")
     time.sleep(0.3)
-    new_food = runner.get_state().stats.food_count
+    new_food = runner.get_state(force_full=True, allow_delta=False).stats.food_count
     assert new_food > initial_food, "Food count should increase"
 
     # Test pause
