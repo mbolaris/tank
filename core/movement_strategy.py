@@ -6,7 +6,7 @@ This module provides movement behaviors for fish:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 ALGORITHMIC_MOVEMENT_SMOOTHING = 0.2  # Slightly more responsive for algorithms
 ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.2  # Allow 20% speed variation
 
-VelocityComponents = tuple[float, float]
+VelocityComponents = Tuple[float, float]
 
 
 class MovementStrategy:
