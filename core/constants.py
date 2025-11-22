@@ -379,9 +379,9 @@ FRACTAL_PLANT_MIN_POKER_ENERGY = 15.0  # Minimum energy to play poker
 FRACTAL_PLANT_POKER_BET_RATIO = 0.15  # Max bet as ratio of energy
 
 # Plant Reproduction
-FRACTAL_PLANT_NECTAR_COOLDOWN = 300  # 10 seconds between nectar production
+FRACTAL_PLANT_NECTAR_COOLDOWN = 600  # 20 seconds between nectar production - Increased from 300
 FRACTAL_PLANT_NECTAR_ENERGY = 50.0  # Energy provided by nectar
-FRACTAL_PLANT_SPROUTING_CHANCE = 0.8  # Chance to sprout when nectar consumed
+FRACTAL_PLANT_SPROUTING_CHANCE = 0.5  # Chance to sprout when nectar consumed - Reduced from 0.8
 FRACTAL_PLANT_INITIAL_COUNT = 5  # Number of plants to start with
 
 # Plant Energy Collection (Passive Growth)
