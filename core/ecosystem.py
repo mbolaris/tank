@@ -4,6 +4,7 @@ This module manages population dynamics, statistics, and ecosystem health.
 """
 
 from collections import defaultdict
+import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
@@ -66,6 +67,44 @@ class EcosystemManager:
         # Poker statistics tracking
         self.poker_stats: Dict[int, PokerStats] = {}
         self._init_poker_stats()
+
+        # Track aggregate totals for fish-vs-fish and fish-vs-plant games
+        self.total_fish_poker_games: int = 0
+        self.total_plant_poker_games: int = 0
+
+        # Try to load persisted totals (survive resets/restarts)
+        try:
+            self._load_poker_totals()
+        except Exception:
+            # If loading fails, start from zero
+            self.total_fish_poker_games = self.total_fish_poker_games or 0
+            self.total_plant_poker_games = self.total_plant_poker_games or 0
+
+    def _poker_totals_path(self) -> str:
+        import os
+
+        os.makedirs("logs", exist_ok=True)
+        return os.path.join("logs", "poker_totals.json")
+
+    def _load_poker_totals(self) -> None:
+        import json
+        p = self._poker_totals_path()
+        if not os.path.exists(p):
+            return
+        with open(p, "r") as f:
+            data = json.load(f)
+        self.total_fish_poker_games = int(data.get("total_fish_poker_games", 0))
+        self.total_plant_poker_games = int(data.get("total_plant_poker_games", 0))
+
+    def _save_poker_totals(self) -> None:
+        import json
+        p = self._poker_totals_path()
+        data = {
+            "total_fish_poker_games": int(self.total_fish_poker_games),
+            "total_plant_poker_games": int(self.total_plant_poker_games),
+        }
+        with open(p, "w") as f:
+            json.dump(data, f)
 
         # Reproduction statistics tracking
         self.reproduction_stats: ReproductionStats = ReproductionStats()
@@ -517,6 +556,7 @@ class EcosystemManager:
         Returns:
             Dictionary with aggregated poker statistics
         """
+        # Aggregate across algorithm-specific poker stats
         total_games = sum(s.total_games for s in self.poker_stats.values())
         total_wins = sum(s.total_wins for s in self.poker_stats.values())
         total_losses = sum(s.total_losses for s in self.poker_stats.values())
@@ -527,6 +567,19 @@ class EcosystemManager:
         total_folds = sum(s.folds for s in self.poker_stats.values())
         total_showdowns = sum(s.showdown_count for s in self.poker_stats.values())
         total_won_at_showdown = sum(s.won_at_showdown for s in self.poker_stats.values())
+
+        # Also include games tracked in jellyfish_poker_stats (used for jellyfish and plant games)
+        # These stats are per-fish and represent fish vs jellyfish/plant games; aggregate them
+        total_games += sum(s.total_games for s in self.jellyfish_poker_stats.values())
+        total_wins += sum(s.wins for s in self.jellyfish_poker_stats.values())
+        total_losses += sum(s.losses for s in self.jellyfish_poker_stats.values())
+        total_ties += 0  # jellyfish/plant stats don't track ties separately here
+        total_energy_won += sum(s.total_energy_won for s in self.jellyfish_poker_stats.values())
+        total_energy_lost += sum(s.total_energy_lost for s in self.jellyfish_poker_stats.values())
+        total_house_cuts += sum(s.total_house_cuts for s in self.jellyfish_poker_stats.values() if hasattr(s, 'total_house_cuts'))
+        total_folds += sum(s.wins_by_fold + s.losses_by_fold for s in self.jellyfish_poker_stats.values())
+        total_showdowns += sum(s.showdown_count for s in self.jellyfish_poker_stats.values() if hasattr(s, 'showdown_count'))
+        total_won_at_showdown += sum(s.won_at_showdown for s in self.jellyfish_poker_stats.values() if hasattr(s, 'won_at_showdown'))
         total_won_by_fold = sum(s.won_by_fold for s in self.poker_stats.values())
 
         # Find best hand rank across all algorithms
@@ -598,6 +651,8 @@ class EcosystemManager:
 
         return {
             "total_games": total_games,
+            "total_fish_games": self.total_fish_poker_games,
+            "total_plant_games": self.total_plant_poker_games,
             "total_wins": total_wins,
             "total_losses": total_losses,
             "total_ties": total_ties,
@@ -937,6 +992,14 @@ class EcosystemManager:
                             stats.total_raises += 1
                         elif action == BettingAction.CALL:
                             stats.total_calls += 1
+
+        # Aggregate total fish-vs-fish games
+        # Only count algorithm-tracked games here (fish-vs-fish)
+        self.total_fish_poker_games += 1
+        try:
+            self._save_poker_totals()
+        except Exception:
+            pass
 
         # Record loser stats
         if loser_algo_id is not None and loser_algo_id in self.poker_stats:
@@ -1313,6 +1376,13 @@ class EcosystemManager:
         stats.best_hand_rank = max(stats.best_hand_rank, fish_hand_rank)
         stats._total_hand_rank += fish_hand_rank
         stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+        # Aggregate total plant games
+        self.total_plant_poker_games += 1
+        try:
+            self._save_poker_totals()
+        except Exception:
+            pass
 
     def get_jellyfish_leaderboard(self, limit: int = 10) -> List[JellyfishPokerStats]:
         """Get the jellyfish poker leaderboard sorted by performance score.
