@@ -81,6 +81,8 @@ class PokerGameState:
     small_blind: float
     big_blind: float
     deck: Deck
+    min_raise: float  # Minimum raise amount (Texas Hold'em rule)
+    last_raise_amount: float  # Size of the last raise (to calculate next min raise)
 
     def __init__(self, small_blind: float = 2.5, big_blind: float = 5.0, button_position: int = 1):
         self.current_round = BettingRound.PRE_FLOP
@@ -101,6 +103,9 @@ class PokerGameState:
         self.small_blind = small_blind
         self.big_blind = big_blind
         self.deck = Deck()
+        # Min raise starts at big blind and updates with each raise
+        self.min_raise = big_blind
+        self.last_raise_amount = big_blind  # BB counts as the first "raise" pre-flop
 
     def add_to_pot(self, amount: float):
         """Add money to the pot."""
@@ -152,6 +157,10 @@ class PokerGameState:
             # Reset current round bets
             self.player1_current_bet = 0.0
             self.player2_current_bet = 0.0
+
+            # Reset minimum raise to big blind for the new round
+            self.min_raise = self.big_blind
+            self.last_raise_amount = self.big_blind
 
     def is_betting_complete(self) -> bool:
         """Check if betting is complete for current round."""
@@ -697,11 +706,9 @@ class PokerEngine:
                         position_on_button=player_on_button,
                     )
 
-                # Record action
-                game_state.betting_history.append((current_player, action, bet_amount))
-
                 # Process action
                 if action == BettingAction.FOLD:
+                    game_state.betting_history.append((current_player, action, 0.0))
                     if current_player == 1:
                         game_state.player1_folded = True
                     else:
@@ -710,10 +717,11 @@ class PokerEngine:
 
                 elif action == BettingAction.CHECK:
                     # Check - no bet
-                    pass
+                    game_state.betting_history.append((current_player, action, 0.0))
 
                 elif action == BettingAction.CALL:
                     # Call - match opponent's bet
+                    game_state.betting_history.append((current_player, action, bet_amount))
                     game_state.player_bet(current_player, bet_amount)
                     if current_player == 1:
                         player1_remaining -= bet_amount
@@ -724,8 +732,30 @@ class PokerEngine:
                     # Raise - increase bet
                     # First call to match, then add raise amount
                     call_amount = opponent_bet - current_bet
-                    total_bet = call_amount + bet_amount
+
+                    # Enforce minimum raise rule (Texas Hold'em)
+                    # The raise amount must be at least the size of the last raise
+                    actual_raise = max(bet_amount, game_state.min_raise)
+
+                    # Cap raise at remaining energy after call
+                    max_raise = remaining_energy - call_amount
+                    if max_raise < game_state.min_raise:
+                        # Can't afford minimum raise - treat as all-in
+                        actual_raise = max(0, max_raise)
+                    else:
+                        actual_raise = min(actual_raise, max_raise)
+
+                    total_bet = call_amount + actual_raise
                     game_state.player_bet(current_player, total_bet)
+
+                    # Record the actual raise amount (after enforcement)
+                    game_state.betting_history.append((current_player, action, actual_raise))
+
+                    # Update minimum raise for next raise (min raise = this raise amount)
+                    if actual_raise > 0:
+                        game_state.last_raise_amount = actual_raise
+                        game_state.min_raise = actual_raise
+
                     if current_player == 1:
                         player1_remaining -= total_bet
                     else:
