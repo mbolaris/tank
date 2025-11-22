@@ -548,6 +548,17 @@ class PokerInteraction:
         for participant in self.participants:
             participant.start_cooldown(self.POKER_COOLDOWN)
 
+        # Visual effects
+        if winner_id != -1:
+            winner_fish = self.fish_list[best_hand_idx]
+            winner_fish.set_poker_effect("won", total_pot - bet_amount - house_cut)
+            for i, fish in enumerate(self.fish_list):
+                if i != best_hand_idx:
+                    fish.set_poker_effect("lost", bet_amount)
+        else:
+            for fish in self.fish_list:
+                fish.set_poker_effect("tie")
+
         # Create result
         self.result = PokerResult(
             player_hands=self.player_hands,
@@ -706,6 +717,9 @@ class PokerInteraction:
             player2_strategy=player2_strategy,  # Evolving poker strategy
         )
 
+        # Play the poker game
+
+
         # Store hands
         self.hand1 = game_state.player1_hand
         self.hand2 = game_state.player2_hand
@@ -794,6 +808,17 @@ class PokerInteraction:
         # Set cooldowns
         participant1.start_cooldown(self.POKER_COOLDOWN)
         participant2.start_cooldown(self.POKER_COOLDOWN)
+
+        # Visual effects
+        if winner_id != -1:
+            # Winner gets green "won" effect
+            winner_fish.set_poker_effect("won", winner_actual_gain)
+            # Loser gets red "lost" effect
+            loser_fish.set_poker_effect("lost", energy_transferred)
+        else:
+            # Tie effect
+            self.fish1.set_poker_effect("tie")
+            self.fish2.set_poker_effect("tie")
 
         # Count rounds played
         total_rounds = int(game_state.current_round) if game_state.current_round < 4 else 4

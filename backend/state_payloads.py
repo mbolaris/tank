@@ -50,6 +50,8 @@ class EntitySnapshot:
     nectar_ready: Optional[bool] = None
     # Plant nectar fields
     source_plant_id: Optional[int] = None
+    # Poker effects
+    poker_effect_state: Optional[Dict[str, Any]] = None
 
     def to_full_dict(self) -> Dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -76,7 +78,9 @@ class EntitySnapshot:
                 "size_multiplier": self.size_multiplier,
                 "iterations": self.iterations,
                 "nectar_ready": self.nectar_ready,
+                "nectar_ready": self.nectar_ready,
                 "source_plant_id": self.source_plant_id,
+                "poker_effect_state": self.poker_effect_state,
             }
         )
 
@@ -89,6 +93,7 @@ class EntitySnapshot:
             "y": self.y,
             "vel_x": self.vel_x,
             "vel_y": self.vel_y,
+            "poker_effect_state": self.poker_effect_state,
         }
 
 

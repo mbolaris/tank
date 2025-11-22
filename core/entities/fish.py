@@ -195,6 +195,24 @@ class Fish(Agent):
             self.vel.normalize() if self.vel.length_squared() > 0 else None
         )
 
+        # Visual effects for poker
+        self.poker_effect_state: Optional[Dict[str, Any]] = None
+        self.poker_effect_timer: int = 0
+
+    def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15) -> None:
+        """Set a visual effect for poker status.
+
+        Args:
+            status: 'playing', 'won', 'lost', 'tie'
+            amount: Amount won or lost (for display)
+            duration: How long to show the effect in frames
+        """
+        self.poker_effect_state = {
+            "status": status,
+            "amount": amount,
+        }
+        self.poker_effect_timer = duration
+
     # Energy properties for backward compatibility
     @property
     def energy(self) -> float:
@@ -642,6 +660,12 @@ class Fish(Agent):
         # Track reproduction in fitness
         if newborn is not None:
             self.genome.update_fitness(reproductions=1)
+
+        # Update poker visual effects
+        if self.poker_effect_timer > 0:
+            self.poker_effect_timer -= 1
+            if self.poker_effect_timer <= 0:
+                self.poker_effect_state = None
 
         return newborn
 

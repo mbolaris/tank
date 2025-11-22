@@ -224,6 +224,12 @@ class PlantPokerInteraction:
         self.fish.poker_cooldown = self.POKER_COOLDOWN
         self.plant.poker_cooldown = self.POKER_COOLDOWN
 
+        # Visual effects on fish
+        if fish_won:
+            self.fish.set_poker_effect("won", abs(energy_transferred))
+        else:
+            self.fish.set_poker_effect("lost", abs(energy_transferred))
+
         # Store result
         self.result = PlantPokerResult(
             fish_hand=self.fish_hand,

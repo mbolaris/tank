@@ -640,6 +640,7 @@ class SimulationRunner:
                     age=entity.age if hasattr(entity, "age") else 0,
                     species=species_label,
                     genome_data=genome_data,
+                    poker_effect_state=entity.poker_effect_state if hasattr(entity, "poker_effect_state") else None,
                     **base_data,
                 )
 

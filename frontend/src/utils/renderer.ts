@@ -395,6 +395,49 @@ export class Renderer {
         if (fish.energy !== undefined) {
             this.drawEnhancedEnergyBar(x, y - 12, scaledWidth, fish.energy);
         }
+
+        if (fish.poker_effect_state) {
+            this.renderPokerStatus(x + scaledWidth / 2, y - 25, fish.poker_effect_state);
+        }
+    }
+
+    private renderPokerStatus(x: number, y: number, state: { status: string; amount: number }) {
+        const { ctx } = this;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 20px Arial';
+
+        // Draw background bubble
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.beginPath();
+        ctx.roundRect(x - 30, y - 15, 60, 30, 15);
+        ctx.fill();
+
+        let color = '#ffffff';
+        let text = '';
+
+        switch (state.status) {
+            case 'won':
+                color = '#4ade80'; // Green
+                text = `+${state.amount.toFixed(0)}`;
+                break;
+            case 'lost':
+                color = '#f87171'; // Red
+                text = `-${state.amount.toFixed(0)}`;
+                break;
+            case 'tie':
+                color = '#fbbf24'; // Amber
+                text = 'TIE';
+                break;
+        }
+
+        // Just text, no icons
+        ctx.fillStyle = color;
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText(text, x, y);
+
+        ctx.restore();
     }
 
     private renderSVGFish(fish: EntityData) {
@@ -487,6 +530,10 @@ export class Renderer {
         // Draw enhanced energy bar
         if (fish.energy !== undefined) {
             this.drawEnhancedEnergyBar(x, y - 12, scaledSize, fish.energy);
+        }
+
+        if (fish.poker_effect_state) {
+            this.renderPokerStatus(x + scaledSize / 2, y - 25, fish.poker_effect_state);
         }
     }
 

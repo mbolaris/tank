@@ -9,151 +9,154 @@ const WS_URL = 'ws://localhost:8000/ws';
 const WS_RECONNECT_DELAY = 3000; // 3 seconds
 
 export function useWebSocket() {
-  const [state, setState] = useState<SimulationUpdate | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const connectRef = useRef<(() => void) | null>(null);
-  const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
+    const [state, setState] = useState<SimulationUpdate | null>(null);
+    const [isConnected, setIsConnected] = useState(false);
+    const wsRef = useRef<WebSocket | null>(null);
+    const reconnectTimeoutRef = useRef<number | null>(null);
+    const connectRef = useRef<(() => void) | null>(null);
+    const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
 
-  const connect = useCallback(() => {
-    try {
-      const ws = new WebSocket(WS_URL);
-      ws.binaryType = 'arraybuffer';
-
-      ws.onopen = () => {
-        setIsConnected(true);
-      };
-
-      ws.onmessage = (event) => {
+    const connect = useCallback(() => {
         try {
-          // Handle binary data (ArrayBuffer) from orjson
-          let jsonString: string;
-          if (event.data instanceof ArrayBuffer) {
-            jsonString = new TextDecoder().decode(event.data);
-          } else {
-            jsonString = event.data;
-          }
-          const data = JSON.parse(jsonString);
+            const ws = new WebSocket(WS_URL);
+            ws.binaryType = 'arraybuffer';
 
-          if (data.type === 'update') {
-            setState(data as SimulationUpdate);
-          } else if (data.type === 'delta') {
-            setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
-          } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
-            // This is a command response (e.g., poker game state)
-            // Call any pending callbacks
-            responseCallbacksRef.current.forEach((callback) => callback(data));
-            responseCallbacksRef.current.clear();
-          }
+            ws.onopen = () => {
+                setIsConnected(true);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    // Handle binary data (ArrayBuffer) from orjson
+                    let jsonString: string;
+                    if (event.data instanceof ArrayBuffer) {
+                        jsonString = new TextDecoder().decode(event.data);
+                    } else {
+                        jsonString = event.data;
+                    }
+                    const data = JSON.parse(jsonString);
+
+                    if (data.type === 'update') {
+                        setState(data as SimulationUpdate);
+                    } else if (data.type === 'delta') {
+                        setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
+                    } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
+                        // This is a command response (e.g., poker game state)
+                        // Call any pending callbacks
+                        responseCallbacksRef.current.forEach((callback) => callback(data));
+                        responseCallbacksRef.current.clear();
+                    }
+                } catch {
+                    // Silently ignore parse errors - malformed data
+                }
+            };
+
+            ws.onerror = () => {
+                // Connection error will be handled by onclose
+            };
+
+            ws.onclose = () => {
+                setIsConnected(false);
+                wsRef.current = null;
+
+                // Attempt to reconnect after delay
+                reconnectTimeoutRef.current = window.setTimeout(() => {
+                    if (connectRef.current) {
+                        connectRef.current();
+                    }
+                }, WS_RECONNECT_DELAY);
+            };
+
+            wsRef.current = ws;
         } catch {
-          // Silently ignore parse errors - malformed data
+            setIsConnected(false);
         }
-      };
+    }, []);
 
-      ws.onerror = () => {
-        // Connection error will be handled by onclose
-      };
+    // Store connect function in ref without mutating during render
+    useEffect(() => {
+        connectRef.current = connect;
+    }, [connect]);
 
-      ws.onclose = () => {
-        setIsConnected(false);
-        wsRef.current = null;
+    useEffect(() => {
+        // WebSocket setup synchronizes with external server state
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        connect();
 
-        // Attempt to reconnect after delay
-        reconnectTimeoutRef.current = window.setTimeout(() => {
-          if (connectRef.current) {
-            connectRef.current();
-          }
-        }, WS_RECONNECT_DELAY);
-      };
+        return () => {
+            // Cleanup on unmount
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+    }, [connect]);
 
-      wsRef.current = ws;
-    } catch {
-      setIsConnected(false);
-    }
-  }, []);
+    const sendCommand = useCallback((command: Command) => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify(command));
+        }
+    }, []);
 
-  // Store connect function in ref without mutating during render
-  useEffect(() => {
-    connectRef.current = connect;
-  }, [connect]);
+    const sendCommandWithResponse = useCallback((command: Command): Promise<CommandResponse> => {
+        return new Promise((resolve, reject) => {
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                // Add a callback to handle the response
+                const callbackId = Math.random().toString(36);
+                responseCallbacksRef.current.set(callbackId, (data) => {
+                    resolve(data);
+                });
 
-  useEffect(() => {
-    // WebSocket setup synchronizes with external server state
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    connect();
+                // Set a timeout in case response never comes
+                setTimeout(() => {
+                    if (responseCallbacksRef.current.has(callbackId)) {
+                        responseCallbacksRef.current.delete(callbackId);
+                        reject(new Error('Command timeout'));
+                    }
+                }, 10000); // 10 second timeout
 
-    return () => {
-      // Cleanup on unmount
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [connect]);
-
-  const sendCommand = useCallback((command: Command) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(command));
-    }
-  }, []);
-
-  const sendCommandWithResponse = useCallback((command: Command): Promise<CommandResponse> => {
-    return new Promise((resolve, reject) => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        // Add a callback to handle the response
-        const callbackId = Math.random().toString(36);
-        responseCallbacksRef.current.set(callbackId, (data) => {
-          resolve(data);
+                wsRef.current.send(JSON.stringify(command));
+            } else {
+                reject(new Error('WebSocket not connected'));
+            }
         });
+    }, []);
 
-        // Set a timeout in case response never comes
-        setTimeout(() => {
-          if (responseCallbacksRef.current.has(callbackId)) {
-            responseCallbacksRef.current.delete(callbackId);
-            reject(new Error('Command timeout'));
-          }
-        }, 10000); // 10 second timeout
-
-        wsRef.current.send(JSON.stringify(command));
-      } else {
-        reject(new Error('WebSocket not connected'));
-      }
-    });
-  }, []);
-
-  return {
-    state,
-    isConnected,
-    sendCommand,
-    sendCommandWithResponse,
-  };
+    return {
+        state,
+        isConnected,
+        sendCommand,
+        sendCommandWithResponse,
+    };
 }
 
 function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
-  const entityMap = new Map(state.entities.map((e) => [e.id, { ...e }]));
+    const entityMap = new Map(state.entities.map((e) => [e.id, { ...e }]));
 
-  delta.removed.forEach((id) => entityMap.delete(id));
-  delta.added.forEach((entity) => entityMap.set(entity.id, entity));
+    delta.removed.forEach((id) => entityMap.delete(id));
+    delta.added.forEach((entity) => entityMap.set(entity.id, entity));
 
-  delta.updates.forEach((update) => {
-    const existing = entityMap.get(update.id);
-    if (existing) {
-      existing.x = update.x;
-      existing.y = update.y;
-      existing.vel_x = update.vel_x;
-      existing.vel_y = update.vel_y;
-    }
-  });
+    delta.updates.forEach((update) => {
+        const existing = entityMap.get(update.id);
+        if (existing) {
+            existing.x = update.x;
+            existing.y = update.y;
+            existing.vel_x = update.vel_x;
+            existing.vel_y = update.vel_y;
+            if (update.poker_effect_state !== undefined) {
+                existing.poker_effect_state = update.poker_effect_state;
+            }
+        }
+    });
 
-  return {
-    ...state,
-    frame: delta.frame,
-    elapsed_time: delta.elapsed_time,
-    entities: Array.from(entityMap.values()),
-    poker_events: delta.poker_events?.length ? delta.poker_events : state.poker_events,
-    stats: delta.stats ?? state.stats,
-  };
+    return {
+        ...state,
+        frame: delta.frame,
+        elapsed_time: delta.elapsed_time,
+        entities: Array.from(entityMap.values()),
+        poker_events: delta.poker_events?.length ? delta.poker_events : state.poker_events,
+        stats: delta.stats ?? state.stats,
+    };
 }

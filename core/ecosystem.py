@@ -72,13 +72,8 @@ class EcosystemManager:
         self.total_fish_poker_games: int = 0
         self.total_plant_poker_games: int = 0
 
-        # Try to load persisted totals (survive resets/restarts)
-        try:
-            self._load_poker_totals()
-        except Exception:
-            # If loading fails, start from zero
-            self.total_fish_poker_games = self.total_fish_poker_games or 0
-            self.total_plant_poker_games = self.total_plant_poker_games or 0
+        # Note: We no longer load persisted totals to ensure stats reset on simulation restart
+        # This matches user expectation that stats reflect the current simulation run only
 
         # Reproduction statistics tracking
         self.reproduction_stats: ReproductionStats = ReproductionStats()
