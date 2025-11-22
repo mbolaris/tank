@@ -100,15 +100,22 @@ def _get_participant(fish: "Fish") -> PokerParticipant:
 
     from core.fish.poker_stats_component import FishPokerStats
 
+    # Ensure fish has poker_stats
+    if not hasattr(fish, "poker_stats") or fish.poker_stats is None:
+        fish.poker_stats = FishPokerStats()
+
     participant = _POKER_PARTICIPANTS.get(fish.fish_id)
     if participant is None or participant.fish is not fish:
         participant = PokerParticipant(
             fish=fish,
             strategy=PokerStrategyEngine(fish),
-            stats=FishPokerStats(),
+            stats=fish.poker_stats,  # Use the fish's actual stats object
             last_cooldown_age=getattr(fish, "age", 0),
         )
         _POKER_PARTICIPANTS[fish.fish_id] = participant
+    
+    # Always update the stats reference in case the fish object was recreated/reloaded
+    participant.stats = fish.poker_stats
     participant.fish = fish
     participant.sync_with_age()
     return participant
@@ -978,28 +985,30 @@ class PokerInteraction:
             loser_on_button = not winner_on_button
 
             # Record winner stats
-            if winner_hand is not None:
-                winner_participant.stats.record_win(
-                    energy_won=winner_actual_gain,
-                    house_cut=house_cut,
-                    hand_rank=winner_hand.rank_value,
-                    won_at_showdown=reached_showdown,
-                    on_button=winner_on_button,
-                )
+            # Even if hand is None, record the win
+            winner_hand_rank = winner_hand.rank_value if winner_hand is not None else 0
+            winner_participant.stats.record_win(
+                energy_won=winner_actual_gain,
+                house_cut=house_cut,
+                hand_rank=winner_hand_rank,
+                won_at_showdown=reached_showdown,
+                on_button=winner_on_button,
+            )
 
             # Record loser stats
-            if loser_hand is not None:
-                loser_participant.stats.record_loss(
-                    energy_lost=energy_transferred,
-                    hand_rank=loser_hand.rank_value,
-                    folded=(
-                        game_state.player1_folded
-                        if loser_id == self.fish1.fish_id
-                        else game_state.player2_folded
-                    ),
-                    reached_showdown=reached_showdown,
-                    on_button=loser_on_button,
-                )
+            # Even if hand is None, record the loss
+            loser_hand_rank = loser_hand.rank_value if loser_hand is not None else 0
+            loser_participant.stats.record_loss(
+                energy_lost=energy_transferred,
+                hand_rank=loser_hand_rank,
+                folded=(
+                    game_state.player1_folded
+                    if loser_id == self.fish1.fish_id
+                    else game_state.player2_folded
+                ),
+                reached_showdown=reached_showdown,
+                on_button=loser_on_button,
+            )
 
         # Record in ecosystem if available (including ties)
         if self.fish1.ecosystem is not None:

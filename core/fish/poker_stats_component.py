@@ -154,15 +154,7 @@ class FishPokerStats:
         won_at_showdown: bool,
         on_button: bool,
     ) -> None:
-        """Record a poker win.
-
-        Args:
-            energy_won: Energy gained from winning
-            house_cut: House cut paid from winnings
-            hand_rank: Rank of the winning hand (0-9)
-            won_at_showdown: True if won at showdown, False if opponent folded
-            on_button: True if this fish was on the button
-        """
+        """Record a poker win."""
         self.total_games += 1
         self.wins += 1
         self.total_energy_won += energy_won
