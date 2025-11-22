@@ -305,7 +305,7 @@ class HumanPokerGame:
 
         # Evaluate hands
         best_hand: Optional[PokerHand] = None
-        best_player_index: Optional[int] = None
+        winning_player_indices: list[int] = []
 
         for i, player in enumerate(self.players):
             if player.folded:
@@ -316,16 +316,27 @@ class HumanPokerGame:
 
             if best_hand is None or hand.beats(best_hand):
                 best_hand = hand
-                best_player_index = i
+                winning_player_indices = [i]
             elif hand.ties(best_hand):
-                # Handle ties - split pot (simplified: first player wins for now)
-                pass
+                winning_player_indices.append(i)
 
-        if best_player_index is not None:
-            self.winner_index = best_player_index
-            winner = self.players[best_player_index]
-            winner.energy += self.pot
-            self.message = f"{winner.name} wins {self.pot:.0f} energy with {best_hand}!"
+        if winning_player_indices:
+            split_amount = self.pot / len(winning_player_indices)
+            for idx in winning_player_indices:
+                self.players[idx].energy += split_amount
+
+            # Preserve legacy single-winner field for UI by picking the first winner
+            self.winner_index = winning_player_indices[0]
+
+            if len(winning_player_indices) == 1:
+                winner = self.players[self.winner_index]
+                self.message = f"{winner.name} wins {self.pot:.0f} energy with {best_hand}!"
+            else:
+                winners = ", ".join(self.players[idx].name for idx in winning_player_indices)
+                self.message = (
+                    f"Hand ends in a tie - {winners} split {self.pot:.0f} energy with {best_hand}!"
+                )
+
             self.game_over = True
             self._check_session_over()
 
