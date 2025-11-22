@@ -186,23 +186,57 @@ class JellyfishPokerInteraction:
                     not game_state.player1_hand.beats(game_state.player2_hand)
                 )
 
-        # Calculate energy transfer
+        # Calculate energy transfer properly using game state bets
         # NO house cut for fish vs jellyfish games - fish keep 100% of winnings
         total_pot = game_state.pot
-        house_cut = 0.0
-        winnings = total_pot
 
-        # Transfer energy
-        if fish_won:
-            # Fish wins
-            energy_transferred = winnings / 2  # Half of winnings (since fish paid half the pot)
-            self.fish.energy += energy_transferred
-            self.jellyfish.energy -= total_pot / 2 - energy_transferred
+        # Get each player's total bets from the game state
+        if button_position == 1:
+            # Fish is player1
+            fish_bet = game_state.player1_total_bet
+            jellyfish_bet = game_state.player2_total_bet
         else:
-            # Jellyfish wins
-            energy_transferred = -(total_pot / 2)  # Fish loses their contribution
-            self.fish.energy += energy_transferred
-            self.jellyfish.energy += winnings / 2
+            # Jellyfish is player1
+            fish_bet = game_state.player2_total_bet
+            jellyfish_bet = game_state.player1_total_bet
+
+        # First, deduct bets from both players
+        self.fish.energy -= fish_bet
+        self.jellyfish.energy -= jellyfish_bet
+
+        # Then, award pot to winner (or split on tie)
+        if won_by_fold:
+            # Winner takes pot
+            if fish_won:
+                self.fish.energy += total_pot
+                energy_transferred = total_pot - fish_bet  # Net gain for fish
+            else:
+                self.jellyfish.energy += total_pot
+                energy_transferred = -fish_bet  # Net loss for fish
+        else:
+            # Showdown - check for tie
+            if button_position == 1:
+                p1_hand = game_state.player1_hand
+                p2_hand = game_state.player2_hand
+            else:
+                p1_hand = game_state.player2_hand
+                p2_hand = game_state.player1_hand
+
+            fish_hand = p1_hand if button_position == 1 else p2_hand
+            jelly_hand = p2_hand if button_position == 1 else p1_hand
+
+            if fish_hand.ties(jelly_hand):
+                # Tie - split pot
+                self.fish.energy += total_pot / 2
+                self.jellyfish.energy += total_pot / 2
+                energy_transferred = (total_pot / 2) - fish_bet
+                fish_won = False  # No clear winner on tie
+            elif fish_won:
+                self.fish.energy += total_pot
+                energy_transferred = total_pot - fish_bet
+            else:
+                self.jellyfish.energy += total_pot
+                energy_transferred = -fish_bet
 
         # Set poker cooldown for both
         self.fish.poker_cooldown = self.POKER_COOLDOWN
