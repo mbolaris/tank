@@ -17,6 +17,12 @@ def _compact_dict(data: Dict[str, Any]) -> Dict[str, Any]:
     return {k: v for k, v in data.items() if v is not None}
 
 
+def _to_dict(dataclass_obj: Any) -> Dict[str, Any]:
+    """Dictionary representation for slot-based dataclasses without __dict__."""
+
+    return {field.name: getattr(dataclass_obj, field.name) for field in dataclass_obj.__dataclass_fields__.values()}
+
+
 @dataclass(slots=True)
 class EntitySnapshot:
     """Minimal snapshot of an entity for client rendering."""
@@ -105,7 +111,7 @@ class PokerStatsPayload:
     avg_fold_rate: str = "0.0%"
 
     def to_dict(self) -> Dict[str, Any]:
-        return self.__dict__
+        return _to_dict(self)
 
 
 @dataclass(slots=True)
@@ -126,7 +132,7 @@ class StatsPayload:
     poker_stats: PokerStatsPayload
 
     def to_dict(self) -> Dict[str, Any]:
-        data = self.__dict__.copy()
+        data = _to_dict(self)
         data["poker_stats"] = self.poker_stats.to_dict()
         return data
 
@@ -143,7 +149,7 @@ class PokerEventPayload:
     is_jellyfish: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
-        return self.__dict__
+        return _to_dict(self)
 
 
 @dataclass(slots=True)
@@ -172,7 +178,7 @@ class PokerLeaderboardEntryPayload:
     skill_trend: str = "stable"
 
     def to_dict(self) -> Dict[str, Any]:
-        return self.__dict__
+        return _to_dict(self)
 
 
 @dataclass(slots=True)
@@ -186,7 +192,7 @@ class AutoEvaluateStatsPayload:
     performance_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
-        return self.__dict__
+        return _to_dict(self)
 
 
 @dataclass(slots=True)
