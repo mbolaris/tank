@@ -1,0 +1,782 @@
+"""Fish entity logic and genetics handling."""
+
+import random
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+from core.constants import (
+    DIRECTION_CHANGE_ENERGY_BASE,
+    DIRECTION_CHANGE_SIZE_MULTIPLIER,
+    ENERGY_MAX_DEFAULT,
+    ENERGY_MODERATE_MULTIPLIER,
+    FISH_BASE_HEIGHT,
+    FISH_BASE_WIDTH,
+    FISH_FOOD_MEMORY_DECAY,
+    FISH_LAST_EVENT_INITIAL_AGE,
+    FISH_MAX_FOOD_MEMORIES,
+    FISH_MEMORY_DECAY_RATE,
+    FISH_MEMORY_LEARNING_RATE,
+    FISH_MEMORY_MAX_PER_TYPE,
+    FISH_TOP_MARGIN,
+    FRAME_RATE,
+    INITIAL_ENERGY_RATIO,
+    LIFE_STAGE_MATURE_MAX,
+    PREDATOR_ENCOUNTER_WINDOW,
+    TARGET_POPULATION,
+)
+from core.entities.base import Agent, LifeStage
+from core.math_utils import Vector2
+
+if TYPE_CHECKING:
+    from core.ecosystem import EcosystemManager
+    from core.environment import Environment
+    from core.genetics import Genome
+    from core.movement_strategy import MovementStrategy
+
+class Fish(Agent):
+    """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
+
+    Attributes:
+        genome: Genetic traits
+        energy: Current energy level
+        max_energy: Maximum energy capacity
+        age: Age in frames
+        max_age: Maximum lifespan in frames
+        life_stage: Current life stage
+        generation: Generation number
+        fish_id: Unique identifier
+        is_pregnant: Whether fish is carrying offspring
+        pregnancy_timer: Frames until birth
+        reproduction_cooldown: Frames until can reproduce again
+        species: Fish species identifier
+    """
+
+    def __init__(
+        self,
+        environment: "Environment",
+        movement_strategy: "MovementStrategy",
+        species: str,
+        x: float,
+        y: float,
+        speed: float,
+        genome: Optional["Genome"] = None,
+        generation: int = 0,
+        fish_id: Optional[int] = None,
+        ecosystem: Optional["EcosystemManager"] = None,
+        screen_width: int = 800,
+        screen_height: int = 600,
+        initial_energy: Optional[float] = None,
+        parent_id: Optional[int] = None,
+    ) -> None:
+        """Initialize a fish with genetics and life systems.
+
+        Args:
+            environment: The environment the fish lives in
+            movement_strategy: Movement behavior strategy
+            species: Species identifier (e.g., 'fish1.png')
+            x: Initial x position
+            y: Initial y position
+            speed: Base speed
+            genome: Genetic traits (random if None)
+            generation: Generation number
+            fish_id: Unique ID (assigned by ecosystem if None)
+            ecosystem: Ecosystem manager for tracking
+            screen_width: Width of simulation area
+            screen_height: Height of simulation area
+            initial_energy: Override initial energy (for reproduction energy transfer)
+        """
+        # Import here to avoid circular dependency
+        from core.genetics import Genome
+
+        # Genetics
+        self.genome: Genome = genome if genome is not None else Genome.random()
+        self.generation: int = generation
+        self.species: str = species
+
+        # Life cycle - managed by LifecycleComponent for better code organization
+        from core.fish.lifecycle_component import LifecycleComponent
+
+        max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.max_energy)  # Hardier fish live longer
+        self._lifecycle_component = LifecycleComponent(max_age, self.genome.size_modifier)
+
+        # Energy & metabolism - managed by EnergyComponent for better code organization
+        from core.fish.energy_component import EnergyComponent
+
+        max_energy = ENERGY_MAX_DEFAULT * self.genome.max_energy
+        base_metabolism = ENERGY_MODERATE_MULTIPLIER * self.genome.metabolism_rate
+        # Use custom initial energy if provided (for reproduction), otherwise use default ratio
+        if initial_energy is not None:
+            self._energy_component = EnergyComponent(
+                max_energy, base_metabolism, initial_energy_ratio=0.0
+            )
+            self._energy_component.energy = initial_energy
+        else:
+            self._energy_component = EnergyComponent(
+                max_energy, base_metabolism, INITIAL_ENERGY_RATIO
+            )
+
+        # Backward compatibility: expose energy and max_energy as properties
+        # This allows existing code to access fish.energy and fish.max_energy directly
+
+        # Predator tracking (for death attribution)
+        self.last_predator_encounter_age: int = FISH_LAST_EVENT_INITIAL_AGE
+
+        # Reproduction - managed by ReproductionComponent for better code organization
+        from core.fish.reproduction_component import ReproductionComponent
+
+        self._reproduction_component = ReproductionComponent()
+
+        # Backward compatibility: expose reproduction attributes as properties
+
+        # IMPROVEMENT: Memory and learning system (legacy - kept for compatibility)
+        self.food_memory: List[Tuple[Vector2, int]] = (
+            []
+        )  # (position, age_when_found) for food hotspots
+        self.last_food_found_age: int = FISH_LAST_EVENT_INITIAL_AGE
+        self.successful_food_finds: int = 0  # Track learning success
+        self.MAX_FOOD_MEMORIES = FISH_MAX_FOOD_MEMORIES
+        self.FOOD_MEMORY_DECAY = FISH_FOOD_MEMORY_DECAY
+
+        # NEW: Enhanced memory system
+        from core.fish_memory import FishMemorySystem
+
+        self.memory_system = FishMemorySystem(
+            max_memories_per_type=FISH_MEMORY_MAX_PER_TYPE,
+            decay_rate=FISH_MEMORY_DECAY_RATE,
+            learning_rate=FISH_MEMORY_LEARNING_RATE,
+        )
+
+        # NEW: Behavioral learning system (learn from experience within lifetime)
+        from core.behavioral_learning import BehavioralLearningSystem
+
+        self.learning_system = BehavioralLearningSystem(self.genome)
+
+        # NEW: Poker strategy engine (advanced poker decision-making)
+        from core.poker.strategy.base import PokerStrategyEngine
+
+        self.poker_strategy = PokerStrategyEngine(self)
+
+        # NEW: Individual poker statistics tracking (for leaderboards)
+        from core.fish.poker_stats_component import FishPokerStats
+
+        self.poker_stats = FishPokerStats()
+
+        # ID tracking
+        self.ecosystem: Optional[EcosystemManager] = ecosystem
+        if fish_id is None and ecosystem is not None:
+            self.fish_id: int = ecosystem.get_next_fish_id()
+        else:
+            self.fish_id: int = fish_id if fish_id is not None else 0
+
+        # Visual attributes (for rendering, but stored in entity)
+        # Size is now managed by lifecycle component, but keep reference for rendering
+        self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
+        self.base_height: int = FISH_BASE_HEIGHT
+        self.movement_strategy: MovementStrategy = movement_strategy
+
+        # Apply genetic modifiers to speed
+        modified_speed = speed * self.genome.speed_modifier
+
+        super().__init__(environment, x, y, modified_speed, screen_width, screen_height)
+
+        # Record birth
+        if ecosystem is not None:
+            # Get algorithm ID if fish has a behavior algorithm
+            algorithm_id = None
+            if self.genome.behavior_algorithm is not None:
+                from core.algorithms import get_algorithm_index
+
+                algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+
+            # Get color as hex string for phylogenetic tree
+            r, g, b = self.genome.get_color_tint()
+            color_hex = f"#{r:02x}{g:02x}{b:02x}"
+
+            # Record birth with parent lineage
+            parent_ids = [parent_id] if parent_id is not None else None
+            ecosystem.record_birth(
+                self.fish_id,
+                self.generation,
+                parent_ids=parent_ids,
+                algorithm_id=algorithm_id,
+                color=color_hex,
+            )
+
+        self.last_direction: Optional[Vector2] = (
+            self.vel.normalize() if self.vel.length_squared() > 0 else None
+        )
+
+    # Energy properties for backward compatibility
+    @property
+    def energy(self) -> float:
+        """Current energy level (read-only property delegating to EnergyComponent)."""
+        return self._energy_component.energy
+
+    @energy.setter
+    def energy(self, value: float) -> None:
+        """Set energy level (setter for backward compatibility)."""
+        self._energy_component.energy = value
+
+    @property
+    def max_energy(self) -> float:
+        """Maximum energy capacity (read-only property delegating to EnergyComponent)."""
+        return self._energy_component.max_energy
+
+    # Reproduction properties for backward compatibility
+    @property
+    def is_pregnant(self) -> bool:
+        """Whether fish is currently pregnant (delegating to ReproductionComponent)."""
+        return self._reproduction_component.is_pregnant
+
+    @is_pregnant.setter
+    def is_pregnant(self, value: bool) -> None:
+        """Set pregnancy state (setter for backward compatibility)."""
+        self._reproduction_component.is_pregnant = value
+
+    @property
+    def pregnancy_timer(self) -> int:
+        """Frames until birth (delegating to ReproductionComponent)."""
+        return self._reproduction_component.pregnancy_timer
+
+    @pregnancy_timer.setter
+    def pregnancy_timer(self, value: int) -> None:
+        """Set pregnancy timer (setter for backward compatibility)."""
+        self._reproduction_component.pregnancy_timer = value
+
+    @property
+    def reproduction_cooldown(self) -> int:
+        """Frames until can reproduce again (delegating to ReproductionComponent)."""
+        return self._reproduction_component.reproduction_cooldown
+
+    @reproduction_cooldown.setter
+    def reproduction_cooldown(self, value: int) -> None:
+        """Set reproduction cooldown (setter for backward compatibility)."""
+        self._reproduction_component.reproduction_cooldown = value
+
+    @property
+    def mate_genome(self) -> Optional["Genome"]:
+        """Mate's genome stored for offspring (delegating to ReproductionComponent)."""
+        return self._reproduction_component.mate_genome
+
+    @mate_genome.setter
+    def mate_genome(self, value: Optional["Genome"]) -> None:
+        """Set mate genome (setter for backward compatibility)."""
+        self._reproduction_component.mate_genome = value
+
+    # Lifecycle properties for backward compatibility
+    @property
+    def age(self) -> int:
+        """Current age in frames (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.age
+
+    @property
+    def max_age(self) -> int:
+        """Maximum age/lifespan (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.max_age
+
+    @property
+    def life_stage(self) -> LifeStage:
+        """Current life stage (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.life_stage
+
+    @property
+    def size(self) -> float:
+        """Current size multiplier (read-only property delegating to LifecycleComponent)."""
+        return self._lifecycle_component.size
+
+    @property
+    def bite_size(self) -> float:
+        """Calculate the size of a bite this fish can take.
+
+        Bite size scales with fish size.
+        """
+        # Base bite size is 20.0 energy units
+        # Scales with size (larger fish take bigger bites)
+        return 20.0 * self.size
+
+    def update_life_stage(self) -> None:
+        """Update life stage based on age (delegates to LifecycleComponent)."""
+        self._lifecycle_component.update_life_stage()
+
+    def consume_energy(self, time_modifier: float = 1.0) -> None:
+        """Consume energy based on metabolism and activity.
+
+        Delegates to EnergyComponent for cleaner code organization.
+
+        Args:
+            time_modifier: Modifier for time-based effects (e.g., day/night)
+        """
+        self._energy_component.consume_energy(
+            self.vel, self.speed, self.life_stage, time_modifier, self.size
+        )
+
+    def is_starving(self) -> bool:
+        """Check if fish is starving (low energy).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is below starvation threshold
+        """
+        return self._energy_component.is_starving()
+
+    def is_critical_energy(self) -> bool:
+        """Check if fish is in critical energy state (emergency survival mode).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is critically low
+        """
+        return self._energy_component.is_critical_energy()
+
+    def is_low_energy(self) -> bool:
+        """Check if fish has low energy (should prioritize food).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is low
+        """
+        return self._energy_component.is_low_energy()
+
+    def is_safe_energy(self) -> bool:
+        """Check if fish has safe energy level (can explore/breed).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            bool: True if energy is at a safe level
+        """
+        return self._energy_component.is_safe_energy()
+
+    def get_energy_ratio(self) -> float:
+        """Get energy as a ratio of max energy (0.0-1.0).
+
+        Delegates to EnergyComponent.
+
+        Returns:
+            float: Energy ratio between 0.0 and 1.0
+        """
+        return self._energy_component.get_energy_ratio()
+
+    def remember_food_location(self, position: Vector2) -> None:
+        """Remember a food location for future reference.
+
+        Args:
+            position: Position where food was found
+        """
+        # Add to memory
+        self.food_memory.append((position, self.age))
+        self.last_food_found_age = self.age
+        self.successful_food_finds += 1
+
+        # Keep only recent memories (FIFO)
+        if len(self.food_memory) > self.MAX_FOOD_MEMORIES:
+            self.food_memory.pop(0)
+
+    def get_remembered_food_locations(self) -> List[Vector2]:
+        """Get list of remembered food locations (excluding expired memories).
+
+        Returns:
+            List of Vector2 positions where food was previously found
+        """
+        current_memories = []
+        for position, found_age in self.food_memory:
+            # Only keep memories that haven't decayed
+            if self.age - found_age < self.FOOD_MEMORY_DECAY:
+                current_memories.append(position)
+
+        return current_memories
+
+    def clean_old_memories(self) -> None:
+        """Remove expired food memories."""
+        self.food_memory = [
+            (pos, age) for pos, age in self.food_memory if self.age - age < self.FOOD_MEMORY_DECAY
+        ]
+
+    def is_dead(self) -> bool:
+        """Check if fish should die."""
+        return self.energy <= 0 or self.age >= self.max_age
+
+    def get_death_cause(self) -> str:
+        """Get the cause of death.
+
+        Note: Fish that run out of energy after a recent predator encounter
+        (within PREDATOR_ENCOUNTER_WINDOW) count as predation deaths.
+        Otherwise, energy depletion counts as starvation.
+        """
+        if self.energy <= 0:
+            # Check if there was a recent predator encounter
+            if self.age - self.last_predator_encounter_age <= PREDATOR_ENCOUNTER_WINDOW:
+                return "predation"  # Death after conflict
+            else:
+                return "starvation"  # Death without recent conflict
+        elif self.age >= self.max_age:
+            return "old_age"
+        return "unknown"
+
+    def mark_predator_encounter(self, escaped: bool = False, damage_taken: float = 0.0) -> None:
+        """Mark that this fish has encountered a predator.
+
+        This is used to determine death attribution - if the fish dies from
+        energy depletion shortly after this encounter, it counts as predation.
+
+        Args:
+            escaped: Whether the fish successfully escaped
+            damage_taken: Amount of damage/energy lost
+        """
+        self.last_predator_encounter_age = self.age
+
+        # NEW: Learn from predator encounter
+        from core.behavioral_learning import LearningEvent, LearningType
+
+        predator_event = LearningEvent(
+            learning_type=LearningType.PREDATOR_AVOIDANCE,
+            success=escaped,
+            reward=max(0.0, 1.0 - damage_taken / 10.0),  # Higher reward if less damage
+            context={"damage": damage_taken},
+        )
+        self.learning_system.learn_from_event(predator_event)
+
+    def can_reproduce(self) -> bool:
+        """Check if fish can reproduce.
+
+        Delegates to ReproductionComponent.
+
+        Returns:
+            bool: True if fish can reproduce
+        """
+        return self._reproduction_component.can_reproduce(self.life_stage, self.energy)
+
+    def should_offer_post_poker_reproduction(
+        self, opponent: "Fish", is_winner: bool, energy_gained: float = 0.0
+    ) -> bool:
+        """Decide whether to offer reproduction after a poker game.
+
+        This implements voluntary sexual reproduction where fish can choose to
+        reproduce with poker opponents based on multiple factors.
+
+        Args:
+            opponent: The fish we just played poker with
+            is_winner: True if this fish won the poker game
+            energy_gained: Energy won/lost in poker (positive for winners)
+
+        Returns:
+            bool: True if fish wants to offer reproduction
+        """
+        from core.constants import (
+            POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
+            POST_POKER_REPRODUCTION_LOSER_PROB,
+            POST_POKER_REPRODUCTION_WINNER_PROB,
+        )
+
+        # Must have enough energy
+        if self.energy < POST_POKER_REPRODUCTION_ENERGY_THRESHOLD:
+            return False
+
+        # Can't reproduce if pregnant or on cooldown
+        if self.is_pregnant or self.reproduction_cooldown > 0:
+            return False
+
+        # Must be adult
+        if self.life_stage.value < LifeStage.ADULT.value:
+            return False
+
+        # Must be same species
+        if self.species != opponent.species:
+            return False
+
+        # Calculate opponent's fitness appeal
+        opponent_fitness = 0.0
+        if opponent.genome is not None:
+            # Consider opponent's fitness score
+            opponent_fitness += min(opponent.genome.fitness_score / 100.0, 1.0) * 0.3
+
+            # Consider opponent's energy level (healthy mates are attractive)
+            energy_ratio = opponent.energy / opponent.max_energy if opponent.max_energy > 0 else 0
+            opponent_fitness += energy_ratio * 0.2
+
+            # Consider genetic compatibility
+            if self.genome is not None:
+                compatibility = self.genome.calculate_mate_compatibility(opponent.genome)
+                opponent_fitness += compatibility * 0.3
+
+            # Winners are more attractive (they proved their fitness)
+            if not is_winner:  # If we lost, opponent won
+                opponent_fitness += 0.2
+
+        # Base probability depends on whether we won or lost
+        base_prob = (
+            POST_POKER_REPRODUCTION_WINNER_PROB if is_winner else POST_POKER_REPRODUCTION_LOSER_PROB
+        )
+
+        # Modify probability based on opponent's fitness
+        final_prob = base_prob * (0.5 + opponent_fitness)
+
+        # Random decision
+        return random.random() < final_prob
+
+    def try_mate(self, other: "Fish") -> bool:
+        """Attempt to mate with another fish.
+
+        Delegates to ReproductionComponent for cleaner code organization.
+
+        Args:
+            other: Potential mate
+
+        Returns:
+            True if mating successful
+        """
+        # Check if both can reproduce and are same species
+        if not (self.can_reproduce() and other.can_reproduce()):
+            return False
+
+        if self.species != other.species:
+            return False
+
+        # Calculate distance to mate
+        distance = (self.pos - other.pos).length()
+
+        # Attempt mating through reproduction component
+        mating_successful = self._reproduction_component.attempt_mating(
+            self.genome,
+            other.genome,
+            self.energy,
+            self.max_energy,
+            other.energy,
+            other.max_energy,
+            distance,
+        )
+
+        if not mating_successful:
+            return False
+
+        # Other fish also goes on cooldown
+        other.reproduction_cooldown = self._reproduction_component.REPRODUCTION_COOLDOWN
+
+        # Energy cost for reproduction (reduced to prevent post-mating starvation)
+        self.energy -= self._reproduction_component.REPRODUCTION_ENERGY_COST
+
+        # Record successful reproduction in ecosystem
+        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
+            from core.algorithms import get_algorithm_index
+
+            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            if algorithm_id >= 0:
+                self.ecosystem.record_reproduction(algorithm_id)
+
+        return True
+
+    def update_reproduction(self) -> Optional["Fish"]:
+        """Update reproduction state and potentially give birth.
+
+        Delegates state updates to ReproductionComponent for cleaner code organization.
+
+        Returns:
+            Newborn fish if birth occurred, None otherwise
+        """
+        # Update reproduction state (cooldown and pregnancy timer)
+        should_give_birth = self._reproduction_component.update_state()
+
+        if not should_give_birth:
+            return None
+
+        # Calculate population stress for adaptive mutations
+        population_stress = 0.0
+        if self.ecosystem is not None:
+            # Stress increases when population is low or death rate is high
+            fish_count = len([e for e in self.environment.agents if isinstance(e, Fish)])
+            target_population = TARGET_POPULATION  # Desired stable population
+            population_ratio = fish_count / target_population if target_population > 0 else 1.0
+
+            # Stress is higher when population is below target (inverse relationship)
+            if population_ratio < 1.0:
+                population_stress = (
+                    1.0 - population_ratio
+                ) * 0.8  # 0-80% stress from low population
+
+            # Add stress from recent death rate if available
+            if hasattr(self.ecosystem, "recent_death_rate"):
+                death_rate_stress = min(0.4, self.ecosystem.recent_death_rate)  # Up to 40% stress
+                population_stress = min(1.0, population_stress + death_rate_stress)
+
+        # Generate offspring genome using reproduction component
+        offspring_genome, energy_transfer_fraction = self._reproduction_component.give_birth(
+            self.genome, population_stress
+        )
+
+        # Calculate energy to transfer to baby (parent loses this energy)
+        energy_to_transfer = self.energy * energy_transfer_fraction
+        self.energy -= energy_to_transfer  # Parent pays the energy cost
+
+        # Create offspring near parent
+        offset_x = random.uniform(-30, 30)
+        offset_y = random.uniform(-30, 30)
+        baby_x = self.pos.x + offset_x
+        baby_y = self.pos.y + offset_y
+
+        # Clamp to screen
+        baby_x = max(0, min(self.screen_width - 50, baby_x))
+        baby_y = max(0, min(self.screen_height - 50, baby_y))
+
+        # Create baby fish with transferred energy
+        # Baby gets ONLY the energy transferred from parent (no free energy!)
+        baby = Fish(
+            environment=self.environment,
+            movement_strategy=self.movement_strategy.__class__(),  # Same strategy type
+            species=self.species,  # Same species
+            x=baby_x,
+            y=baby_y,
+            speed=self.speed / self.genome.speed_modifier,  # Base speed
+            genome=offspring_genome,
+            generation=self.generation + 1,
+            ecosystem=self.ecosystem,
+            screen_width=self.screen_width,
+            screen_height=self.screen_height,
+            initial_energy=energy_to_transfer,  # Baby gets only transferred energy
+            parent_id=self.fish_id,  # Track lineage for phylogenetic tree
+        )
+
+        return baby
+
+    def handle_screen_edges(self) -> None:
+        """Handle the fish hitting the edge of the screen with top margin for energy bar visibility."""
+        # Horizontal boundaries - reverse velocity and clamp position
+        if self.pos.x < 0:
+            self.pos.x = 0
+            self.vel.x = abs(self.vel.x)  # Bounce right
+        elif self.pos.x + self.width > self.screen_width:
+            self.pos.x = self.screen_width - self.width
+            self.vel.x = -abs(self.vel.x)  # Bounce left
+
+        # Vertical boundaries with top margin for energy bar visibility
+        if self.pos.y < FISH_TOP_MARGIN:
+            self.pos.y = FISH_TOP_MARGIN
+            self.vel.y = abs(self.vel.y)  # Bounce down
+        elif self.pos.y + self.height > self.screen_height:
+            self.pos.y = self.screen_height - self.height
+            self.vel.y = -abs(self.vel.y)  # Bounce up
+
+    def update(self, elapsed_time: int, time_modifier: float = 1.0) -> Optional["Fish"]:
+        """Update the fish state.
+
+        Args:
+            elapsed_time: Time elapsed since start
+            time_modifier: Time-based modifier (e.g., for day/night)
+
+        Returns:
+            Newborn fish if reproduction occurred, None otherwise
+        """
+        super().update(elapsed_time)
+
+        # Age - managed by LifecycleComponent
+        self._lifecycle_component.increment_age()
+
+        # NEW: Update fitness for survival
+        energy_ratio = self.energy / self.max_energy
+        self.genome.update_fitness(survived_frames=1, energy_ratio=energy_ratio)
+
+        # NEW: Update enhanced memory system
+        self.memory_system.update(self.age)
+
+        # NEW: Apply learning decay (learned behaviors fade without reinforcement)
+        self.learning_system.apply_decay()
+
+        # IMPROVEMENT: Clean old food memories every second
+        if self.age % FRAME_RATE == 0:  # Every second
+            self.clean_old_memories()
+
+        # Poker cooldown
+        if hasattr(self, "poker_cooldown") and self.poker_cooldown > 0:
+            self.poker_cooldown -= 1
+
+        # Energy
+        self.consume_energy(time_modifier)
+
+        previous_direction = self.last_direction
+
+        # Movement (algorithms handle critical energy internally)
+        self.movement_strategy.move(self)
+
+        self._apply_turn_energy_cost(previous_direction)
+
+        # Reproduction
+        newborn = self.update_reproduction()
+
+        # NEW: Track reproduction in fitness
+        if newborn is not None:
+            self.genome.update_fitness(reproductions=1)
+
+        return newborn
+
+    def eat(self, food: "Food") -> None:
+        """Eat food and gain energy.
+
+        Delegates energy gain to EnergyComponent for cleaner code organization.
+        Now supports partial consumption (taking bites).
+
+        Args:
+            food: The food being eaten
+        """
+        # Take a bite from the food
+        energy_gained = food.take_bite(self.bite_size)
+        self._energy_component.gain_energy(energy_gained)
+
+        # NEW: Track food consumption in fitness
+        self.genome.update_fitness(food_eaten=1)
+
+        # IMPROVEMENT: Remember this food location for future reference
+        self.remember_food_location(food.pos)
+
+        # NEW: Learn from successful food finding
+        from core.behavioral_learning import LearningEvent, LearningType
+
+        food_event = LearningEvent(
+            learning_type=LearningType.FOOD_FINDING,
+            success=True,
+            reward=energy_gained / 10.0,  # Normalize reward
+            context={},
+        )
+        self.learning_system.learn_from_event(food_event)
+
+        # Record food consumption for algorithm performance tracking
+        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
+            from core.algorithms import get_algorithm_index
+
+            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            if algorithm_id >= 0:
+                self.ecosystem.record_food_eaten(algorithm_id)
+
+    def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
+        """Apply an energy penalty for direction changes, scaled by turn angle and fish size.
+
+        The energy cost increases with:
+        - Sharper turns (more angle change)
+        - Larger fish size (bigger fish use more energy to turn)
+        """
+        if self.vel.length_squared() == 0:
+            self.last_direction = None
+            return
+
+        new_direction = self.vel.normalize()
+
+        if previous_direction is not None:
+            # Calculate dot product (-1 = 180° turn, 0 = 90° turn, 1 = no turn)
+            dot_product = previous_direction.dot(new_direction)
+
+            # Convert to turn intensity (0 = no turn, 1 = slight turn, 2 = 180° turn)
+            # Formula: (1 - dot_product) gives us 0 to 2 range
+            turn_intensity = 1 - dot_product
+
+            # Only apply cost if there's a noticeable direction change
+            if turn_intensity > 0.1:  # Threshold to ignore tiny wobbles
+                # Base energy cost scaled by turn intensity and fish size
+                # Larger fish (size > 1.0) pay more, smaller fish (size < 1.0) pay less
+                size_factor = self.size ** DIRECTION_CHANGE_SIZE_MULTIPLIER
+                energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
+
+                self.energy = max(0, self.energy - energy_cost)
+
+        self.last_direction = new_direction
+
+
