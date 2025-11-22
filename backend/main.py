@@ -154,7 +154,7 @@ async def broadcast_updates():
 
                     try:
                         # Get current state (delta compression handled by runner)
-                        state = simulation.get_state()
+                        state = await simulation.get_state_async()
                     except Exception as e:
                         logger.error(
                             f"broadcast_updates: Error getting simulation state: {e}", exc_info=True
@@ -238,7 +238,7 @@ async def root():
 @app.get("/health")
 async def health():
     """Health check endpoint."""
-    stats = simulation.get_state(force_full=True, allow_delta=False)
+    stats = await simulation.get_state_async(force_full=True, allow_delta=False)
     return JSONResponse(
         {
             "status": "healthy",
@@ -310,7 +310,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     logger.info(f"WebSocket: Client {client_id} sent command: {command.command}")
 
                     # Handle command
-                    result = simulation.handle_command(command.command, command.data)
+                    result = await simulation.handle_command_async(command.command, command.data)
 
                     # Send response
                     if result is not None:
