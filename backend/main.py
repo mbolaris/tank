@@ -5,6 +5,7 @@ import json
 import logging
 import platform
 import sys
+import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Set
@@ -169,7 +170,15 @@ async def broadcast_updates():
                     last_sent_frame = state.frame
 
                     try:
-                        state_json = state.to_json() if hasattr(state, "to_json") else json.dumps(state)
+                        serialize_start = time.perf_counter()
+                        state_payload = simulation.serialize_state(state)
+                        serialize_ms = (time.perf_counter() - serialize_start) * 1000
+                        if serialize_ms > 10:
+                            logger.warning(
+                                "broadcast_updates: Serialization exceeded budget %.2f ms (frame %s)",
+                                serialize_ms,
+                                state.frame,
+                            )
                     except Exception as e:
                         logger.error(
                             f"broadcast_updates: Error serializing state to JSON: {e}", exc_info=True
@@ -179,14 +188,23 @@ async def broadcast_updates():
 
                     # Broadcast to all clients
                     disconnected = set()
+                    send_start = time.perf_counter()
                     for client in list(connected_clients):  # Copy to avoid modification during iteration
                         try:
-                            await client.send_text(state_json)
+                            await client.send_bytes(state_payload)
                         except Exception as e:
                             logger.warning(
                                 f"broadcast_updates: Error sending to client, marking for removal: {e}"
                             )
                             disconnected.add(client)
+
+                    send_ms = (time.perf_counter() - send_start) * 1000
+                    if send_ms > 10:
+                        logger.warning(
+                            "broadcast_updates: Broadcasting to %s clients took %.2f ms",
+                            len(connected_clients),
+                            send_ms,
+                        )
 
                     # Remove disconnected clients
                     if disconnected:
