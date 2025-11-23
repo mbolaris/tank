@@ -190,13 +190,21 @@ class FractalPlant(Agent):
         # Base rate from genome
         base_rate = self.genome.base_energy_rate
 
+        # Variant-specific bonuses (resolve merge conflicts between genome description
+        # and runtime behavior by applying the promised perks here)
+        variant_bonus = 1.0
+        if self.genome.fractal_type == "mandelbrot":
+            variant_bonus = 1.1  # 10% more passive energy for Mandelbrot blooms
+        elif self.genome.fractal_type == "codex_max":
+            variant_bonus = 1.08  # Slight efficiency edge for Codex Max plants
+
         # Compound growth factor: more energy = faster collection
         # Uses sqrt to prevent runaway growth
         growth_factor = 1.0 + (self.energy / self.max_energy) ** 0.5 * 0.5
 
         # Time of day affects photosynthesis
         # Day = 1.0, Dawn/Dusk = 0.7, Night = 0.3
-        energy_gain = base_rate * growth_factor * time_modifier
+        energy_gain = base_rate * growth_factor * variant_bonus * time_modifier
 
         # Reduce energy production if neighboring root slots are occupied.
         # If both adjacent slots are full -> -50%, if one is full -> -25%.
@@ -218,13 +226,6 @@ class FractalPlant(Agent):
                 reduction_factor = 0.75
 
         energy_gain *= reduction_factor
-
-        # Special variants have a small energy collection bonus
-        variant_type = getattr(self.genome, "fractal_type", "lsystem")
-        if variant_type == "mandelbrot":
-            energy_gain *= 1.1
-        elif variant_type == "codex_max":
-            energy_gain *= 1.12
 
         self.energy = min(self.max_energy, self.energy + energy_gain)
 
