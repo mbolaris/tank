@@ -4,9 +4,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate } from '../types/simulation';
-
-const WS_URL = 'ws://localhost:8000/ws';
-const WS_RECONNECT_DELAY = 3000; // 3 seconds
+import { config } from '../config';
 
 export function useWebSocket() {
     const [state, setState] = useState<SimulationUpdate | null>(null);
@@ -18,7 +16,7 @@ export function useWebSocket() {
 
     const connect = useCallback(() => {
         try {
-            const ws = new WebSocket(WS_URL);
+            const ws = new WebSocket(config.wsUrl);
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = () => {
@@ -64,7 +62,7 @@ export function useWebSocket() {
                     if (connectRef.current) {
                         connectRef.current();
                     }
-                }, WS_RECONNECT_DELAY);
+                }, config.wsReconnectDelay);
             };
 
             wsRef.current = ws;
@@ -129,6 +127,10 @@ export function useWebSocket() {
         isConnected,
         sendCommand,
         sendCommandWithResponse,
+        /** Current server URL for display */
+        serverUrl: config.serverDisplay,
+        /** Current tank ID (from state) */
+        tankId: state?.tank_id ?? null,
     };
 }
 
@@ -153,6 +155,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
 
     return {
         ...state,
+        tank_id: delta.tank_id ?? state.tank_id,
         frame: delta.frame,
         elapsed_time: delta.elapsed_time,
         entities: Array.from(entityMap.values()),

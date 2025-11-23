@@ -196,6 +196,7 @@ export interface StatsData {
 
 export interface SimulationUpdate {
     type: 'update';
+    tank_id?: string;  // Tank World Net identifier
     frame: number;
     elapsed_time: number;
     entities: EntityData[];
@@ -207,6 +208,7 @@ export interface SimulationUpdate {
 
 export interface DeltaUpdate {
     type: 'delta';
+    tank_id?: string;  // Tank World Net identifier
     frame: number;
     elapsed_time: number;
     updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
