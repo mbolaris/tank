@@ -8,7 +8,7 @@ import sys
 import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from typing import Set
+from typing import Dict, Optional, Set
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,16 +36,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.models import Command
 from backend.simulation_manager import SimulationManager
+from backend.tank_registry import TankRegistry, CreateTankRequest
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
-# Global simulation manager (handles simulation + client tracking)
-# In Tank World Net, this will be replaced with a registry of managers
-simulation_manager = SimulationManager(
-    tank_name="Local Tank",
-    tank_description="A local fish tank simulation",
-)
+# Global tank registry - manages multiple tank simulations for Tank World Net
+tank_registry = TankRegistry(create_default=True)
 
-# Backwards-compatible aliases
+# Backwards-compatible aliases for the default tank
+simulation_manager = tank_registry.default_tank
 simulation = simulation_manager.runner
 connected_clients = simulation_manager.connected_clients
 
@@ -68,28 +66,34 @@ def _handle_task_exception(task: asyncio.Task) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
-    broadcast_task = None
     try:
         # Startup
         logger.info("=" * 60)
         logger.info("LIFESPAN STARTUP: Beginning initialization")
         logger.info(f"Platform: {platform.system()} {platform.release()}")
         logger.info(f"Python: {sys.version}")
+        logger.info(f"Tank registry has {tank_registry.tank_count} tank(s)")
         logger.info("=" * 60)
 
-        logger.info("Starting simulation...")
+        # Start all tanks in the registry
+        logger.info("Starting all tank simulations...")
         try:
-            simulation.start(start_paused=True)
-            logger.info("Simulation started successfully!")
+            for manager in tank_registry:
+                manager.start(start_paused=True)
+                logger.info(f"Tank {manager.tank_id[:8]} started")
         except Exception as e:
-            logger.error(f"Failed to start simulation: {e}", exc_info=True)
+            logger.error(f"Failed to start simulations: {e}", exc_info=True)
             raise
 
-        # Start broadcast task with exception callback
-        logger.info("Starting broadcast task...")
-        broadcast_task = asyncio.create_task(broadcast_updates(), name="broadcast_updates")
-        broadcast_task.add_done_callback(_handle_task_exception)
-        logger.info("Broadcast task started successfully!")
+        # Start broadcast tasks for all tanks
+        logger.info("Starting broadcast tasks...")
+        try:
+            for manager in tank_registry:
+                await start_broadcast_for_tank(manager)
+                logger.info(f"Broadcast task started for tank {manager.tank_id[:8]}")
+        except Exception as e:
+            logger.error(f"Failed to start broadcast tasks: {e}", exc_info=True)
+            raise
 
         logger.info("LIFESPAN STARTUP: Complete - yielding control to app")
         yield
@@ -101,22 +105,23 @@ async def lifespan(app: FastAPI):
     finally:
         # Shutdown
         logger.info("LIFESPAN SHUTDOWN: Cleaning up resources...")
-        try:
-            logger.info("Stopping simulation...")
-            simulation.stop()
-            logger.info("Simulation stopped!")
-        except Exception as e:
-            logger.error(f"Error stopping simulation: {e}", exc_info=True)
 
-        if broadcast_task:
+        # Stop all broadcast tasks
+        logger.info("Stopping broadcast tasks...")
+        for tank_id in list(_broadcast_tasks.keys()):
             try:
-                logger.info("Cancelling broadcast task...")
-                broadcast_task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await broadcast_task
-                logger.info("Broadcast task cancelled!")
+                await stop_broadcast_for_tank(tank_id)
+                logger.info(f"Broadcast task stopped for tank {tank_id[:8]}")
             except Exception as e:
-                logger.error(f"Error cancelling broadcast task: {e}", exc_info=True)
+                logger.error(f"Error stopping broadcast for tank {tank_id[:8]}: {e}", exc_info=True)
+
+        # Stop all simulations
+        logger.info("Stopping all simulations...")
+        try:
+            tank_registry.stop_all()
+            logger.info("All simulations stopped!")
+        except Exception as e:
+            logger.error(f"Error stopping simulations: {e}", exc_info=True)
 
         logger.info("LIFESPAN SHUTDOWN: Complete")
         logger.info("=" * 60)
@@ -135,14 +140,19 @@ app.add_middleware(
 )
 
 
-async def broadcast_updates():
-    """Broadcast simulation updates to all connected clients."""
-    logger.info("broadcast_updates: Task started")
+async def broadcast_updates_for_tank(manager: SimulationManager):
+    """Broadcast simulation updates to all clients connected to a specific tank.
+
+    Args:
+        manager: The SimulationManager to broadcast updates for
+    """
+    tank_id = manager.tank_id
+    logger.info("broadcast_updates[%s]: Task started", tank_id[:8])
 
     # Unpause simulation now that broadcast task is ready
     # This prevents initial fish from aging before the frontend sees them
-    simulation.world.paused = False
-    logger.info("broadcast_updates: Simulation unpaused")
+    manager.world.paused = False
+    logger.info("broadcast_updates[%s]: Simulation unpaused", tank_id[:8])
 
     frame_count = 0
     last_sent_frame = -1
@@ -151,20 +161,26 @@ async def broadcast_updates():
         while True:
             try:
                 frame_count += 1
+                clients = manager.connected_clients
 
-                if connected_clients:
+                if clients:
                     if frame_count % 60 == 0:  # Log every 60 frames (~2 seconds)
                         logger.debug(
-                            f"broadcast_updates: Frame {frame_count}, clients: {len(connected_clients)}"
+                            "broadcast_updates[%s]: Frame %d, clients: %d",
+                            tank_id[:8],
+                            frame_count,
+                            len(clients),
                         )
 
                     try:
                         # Get current state (delta compression handled by manager)
-                        # Using simulation_manager ensures tank_id is included
-                        state = await simulation_manager.get_state_async()
+                        state = await manager.get_state_async()
                     except Exception as e:
                         logger.error(
-                            f"broadcast_updates: Error getting simulation state: {e}", exc_info=True
+                            "broadcast_updates[%s]: Error getting simulation state: %s",
+                            tank_id[:8],
+                            e,
+                            exc_info=True,
                         )
                         await asyncio.sleep(1 / FRAME_RATE)
                         continue
@@ -177,54 +193,66 @@ async def broadcast_updates():
 
                     try:
                         serialize_start = time.perf_counter()
-                        state_payload = simulation_manager.serialize_state(state)
+                        state_payload = manager.serialize_state(state)
                         serialize_ms = (time.perf_counter() - serialize_start) * 1000
                         if serialize_ms > 10:
                             logger.warning(
-                                "broadcast_updates: Serialization exceeded budget %.2f ms (frame %s)",
+                                "broadcast_updates[%s]: Serialization exceeded budget %.2f ms (frame %s)",
+                                tank_id[:8],
                                 serialize_ms,
                                 state.frame,
                             )
                     except Exception as e:
                         logger.error(
-                            f"broadcast_updates: Error serializing state to JSON: {e}", exc_info=True
+                            "broadcast_updates[%s]: Error serializing state to JSON: %s",
+                            tank_id[:8],
+                            e,
+                            exc_info=True,
                         )
                         await asyncio.sleep(1 / FRAME_RATE)
                         continue
 
-                    # Broadcast to all clients
+                    # Broadcast to all clients of this tank
                     disconnected = set()
                     send_start = time.perf_counter()
-                    for client in list(connected_clients):  # Copy to avoid modification during iteration
+                    for client in list(clients):  # Copy to avoid modification during iteration
                         try:
                             await client.send_bytes(state_payload)
                         except Exception as e:
                             logger.warning(
-                                f"broadcast_updates: Error sending to client, marking for removal: {e}"
+                                "broadcast_updates[%s]: Error sending to client, marking for removal: %s",
+                                tank_id[:8],
+                                e,
                             )
                             disconnected.add(client)
 
                     send_ms = (time.perf_counter() - send_start) * 1000
                     if send_ms > 10:
                         logger.warning(
-                            "broadcast_updates: Broadcasting to %s clients took %.2f ms",
-                            len(connected_clients),
+                            "broadcast_updates[%s]: Broadcasting to %s clients took %.2f ms",
+                            tank_id[:8],
+                            len(clients),
                             send_ms,
                         )
 
                     # Remove disconnected clients
                     if disconnected:
                         logger.info(
-                            f"broadcast_updates: Removing {len(disconnected)} disconnected clients"
+                            "broadcast_updates[%s]: Removing %d disconnected clients",
+                            tank_id[:8],
+                            len(disconnected),
                         )
-                        connected_clients.difference_update(disconnected)
+                        clients.difference_update(disconnected)
 
             except asyncio.CancelledError:
-                logger.info("broadcast_updates: Task cancelled")
+                logger.info("broadcast_updates[%s]: Task cancelled", tank_id[:8])
                 raise
             except Exception as e:
                 logger.error(
-                    f"broadcast_updates: Unexpected error in main loop: {e}", exc_info=True
+                    "broadcast_updates[%s]: Unexpected error in main loop: %s",
+                    tank_id[:8],
+                    e,
+                    exc_info=True,
                 )
                 # Continue running even if there's an error
                 await asyncio.sleep(1 / FRAME_RATE)
@@ -234,17 +262,57 @@ async def broadcast_updates():
             try:
                 await asyncio.sleep(1 / FRAME_RATE)
             except asyncio.CancelledError:
-                logger.info("broadcast_updates: Task cancelled during sleep")
+                logger.info("broadcast_updates[%s]: Task cancelled during sleep", tank_id[:8])
                 raise
 
     except asyncio.CancelledError:
-        logger.info("broadcast_updates: Task cancelled (outer handler)")
+        logger.info("broadcast_updates[%s]: Task cancelled (outer handler)", tank_id[:8])
         raise
     except Exception as e:
-        logger.error(f"broadcast_updates: Fatal error, task exiting: {e}", exc_info=True)
+        logger.error(
+            "broadcast_updates[%s]: Fatal error, task exiting: %s",
+            tank_id[:8],
+            e,
+            exc_info=True,
+        )
         raise
     finally:
-        logger.info("broadcast_updates: Task ended")
+        logger.info("broadcast_updates[%s]: Task ended", tank_id[:8])
+
+
+# Track broadcast tasks per tank
+_broadcast_tasks: Dict[str, asyncio.Task] = {}
+
+
+async def start_broadcast_for_tank(manager: SimulationManager) -> asyncio.Task:
+    """Start a broadcast task for a tank.
+
+    Args:
+        manager: The SimulationManager to broadcast for
+
+    Returns:
+        The asyncio Task for the broadcast loop
+    """
+    task = asyncio.create_task(
+        broadcast_updates_for_tank(manager),
+        name=f"broadcast_{manager.tank_id[:8]}",
+    )
+    task.add_done_callback(_handle_task_exception)
+    _broadcast_tasks[manager.tank_id] = task
+    return task
+
+
+async def stop_broadcast_for_tank(tank_id: str) -> None:
+    """Stop the broadcast task for a tank.
+
+    Args:
+        tank_id: The tank ID to stop broadcasting for
+    """
+    task = _broadcast_tasks.pop(tank_id, None)
+    if task:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 
 @app.get("/")
@@ -252,9 +320,17 @@ async def root():
     """Root endpoint."""
     return JSONResponse(
         {
-            "message": "Fish Tank Simulation API",
-            "version": "1.0.0",
-            "endpoints": {"websocket": "/ws", "health": "/health"},
+            "message": "Fish Tank Simulation API - Tank World Net",
+            "version": "2.0.0",
+            "tank_count": tank_registry.tank_count,
+            "default_tank_id": tank_registry.default_tank_id,
+            "endpoints": {
+                "websocket": "/ws",
+                "websocket_tank": "/ws/{tank_id}",
+                "health": "/health",
+                "tanks": "/api/tanks",
+                "tank_info": "/api/tank/info",
+            },
         }
     )
 
@@ -275,12 +351,166 @@ async def health():
 
 @app.get("/api/tank/info")
 async def get_tank_info():
-    """Get information about this tank.
+    """Get information about the default tank.
 
     Returns tank metadata for network registration and discovery.
-    This endpoint will be used by Tank World Net for tank registration.
+    This endpoint is kept for backwards compatibility.
     """
     return JSONResponse(simulation_manager.get_status())
+
+
+# =============================================================================
+# Tank World Net - Multi-Tank API Endpoints
+# =============================================================================
+
+
+@app.get("/api/tanks")
+async def list_tanks(include_private: bool = False):
+    """List all tanks in the registry.
+
+    Args:
+        include_private: If True, include non-public tanks
+
+    Returns:
+        List of tank status objects
+    """
+    tanks = tank_registry.list_tanks(include_private=include_private)
+    return JSONResponse({
+        "tanks": tanks,
+        "count": len(tanks),
+        "default_tank_id": tank_registry.default_tank_id,
+    })
+
+
+@app.post("/api/tanks")
+async def create_tank(
+    name: str,
+    description: str = "",
+    seed: Optional[int] = None,
+    owner: Optional[str] = None,
+    is_public: bool = True,
+    allow_transfers: bool = False,
+):
+    """Create a new tank simulation.
+
+    Args:
+        name: Human-readable name for the tank
+        description: Description of the tank
+        seed: Optional random seed for deterministic behavior
+        owner: Optional owner identifier
+        is_public: Whether the tank is publicly visible
+        allow_transfers: Whether to allow entity transfers
+
+    Returns:
+        The created tank's status
+    """
+    try:
+        manager = tank_registry.create_tank(
+            name=name,
+            description=description,
+            seed=seed,
+            owner=owner,
+            is_public=is_public,
+            allow_transfers=allow_transfers,
+        )
+
+        # Start the simulation
+        manager.start(start_paused=True)
+
+        # Start broadcast task for the new tank
+        await start_broadcast_for_tank(manager)
+
+        logger.info(f"Created new tank via API: {manager.tank_id[:8]} ({name})")
+
+        return JSONResponse(manager.get_status(), status_code=201)
+    except Exception as e:
+        logger.error(f"Error creating tank: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/tanks/{tank_id}")
+async def get_tank(tank_id: str):
+    """Get information about a specific tank.
+
+    Args:
+        tank_id: The unique tank identifier
+
+    Returns:
+        Tank status or 404 if not found
+    """
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse(
+            {"error": f"Tank not found: {tank_id}"},
+            status_code=404,
+        )
+    return JSONResponse(manager.get_status())
+
+
+@app.delete("/api/tanks/{tank_id}")
+async def delete_tank(tank_id: str):
+    """Delete a tank from the registry.
+
+    Args:
+        tank_id: The tank ID to delete
+
+    Returns:
+        Success message or 404 if not found
+    """
+    # Don't allow deleting the default tank
+    if tank_id == tank_registry.default_tank_id and tank_registry.tank_count == 1:
+        return JSONResponse(
+            {"error": "Cannot delete the last remaining tank"},
+            status_code=400,
+        )
+
+    # Stop broadcast first
+    await stop_broadcast_for_tank(tank_id)
+
+    # Remove from registry
+    if tank_registry.remove_tank(tank_id):
+        logger.info(f"Deleted tank via API: {tank_id[:8]}")
+        return JSONResponse({"message": f"Tank {tank_id} deleted"})
+    else:
+        return JSONResponse(
+            {"error": f"Tank not found: {tank_id}"},
+            status_code=404,
+        )
+
+
+@app.get("/api/tanks/{tank_id}/lineage")
+async def get_tank_lineage(tank_id: str):
+    """Get phylogenetic lineage data for a specific tank.
+
+    Args:
+        tank_id: The tank ID to get lineage for
+
+    Returns:
+        List of lineage records or 404 if tank not found
+    """
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse(
+            {"error": f"Tank not found: {tank_id}"},
+            status_code=404,
+        )
+
+    try:
+        from core.entities import Fish
+        alive_fish_ids = {
+            fish.fish_id for fish in manager.world.entities_list
+            if isinstance(fish, Fish)
+        }
+        lineage_data = manager.world.ecosystem.get_lineage_data(alive_fish_ids)
+        return JSONResponse(lineage_data)
+    except Exception as e:
+        logger.error(f"Error getting lineage data for tank {tank_id[:8]}: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# =============================================================================
+# Legacy Endpoints (for backwards compatibility)
+# =============================================================================
 
 
 @app.get("/api/lineage")
@@ -313,38 +543,42 @@ async def get_lineage():
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time simulation updates."""
+async def handle_websocket_connection(websocket: WebSocket, manager: SimulationManager):
+    """Handle a WebSocket connection for a specific tank.
+
+    Args:
+        websocket: The WebSocket connection
+        manager: The SimulationManager for this connection
+    """
     client_id = id(websocket)
-    logger.info(f"WebSocket: New connection attempt from client {client_id}")
+    tank_id = manager.tank_id[:8]
 
     try:
         await websocket.accept()
-        logger.info(f"WebSocket: Accepted connection from client {client_id}")
+        logger.info(f"WebSocket[{tank_id}]: Accepted connection from client {client_id}")
     except Exception as e:
-        logger.error(f"WebSocket: Error accepting connection from client {client_id}: {e}", exc_info=True)
+        logger.error(f"WebSocket[{tank_id}]: Error accepting connection from client {client_id}: {e}", exc_info=True)
         return
 
-    simulation_manager.add_client(websocket)
-    logger.info(f"WebSocket: Client {client_id} added. Total clients: {simulation_manager.client_count}")
+    manager.add_client(websocket)
+    logger.info(f"WebSocket[{tank_id}]: Client {client_id} added. Total clients: {manager.client_count}")
 
     try:
         while True:
             try:
                 # Receive messages from client
-                logger.debug(f"WebSocket: Waiting for message from client {client_id}")
+                logger.debug(f"WebSocket[{tank_id}]: Waiting for message from client {client_id}")
                 data = await websocket.receive_text()
-                logger.debug(f"WebSocket: Received message from client {client_id}: {data[:100]}...")
+                logger.debug(f"WebSocket[{tank_id}]: Received message from client {client_id}: {data[:100]}...")
 
                 try:
                     # Parse command
                     command_data = json.loads(data)
                     command = Command(**command_data)
-                    logger.info(f"WebSocket: Client {client_id} sent command: {command.command}")
+                    logger.info(f"WebSocket[{tank_id}]: Client {client_id} sent command: {command.command}")
 
-                    # Handle command
-                    result = await simulation.handle_command_async(command.command, command.data)
+                    # Handle command using the manager's runner
+                    result = await manager.handle_command_async(command.command, command.data)
 
                     # Send response
                     if result is not None:
@@ -355,33 +589,68 @@ async def websocket_endpoint(websocket: WebSocket):
                         await websocket.send_json(
                             {"type": "ack", "command": command.command, "status": "success"}
                         )
-                    logger.debug(f"WebSocket: Sent response to client {client_id}")
+                    logger.debug(f"WebSocket[{tank_id}]: Sent response to client {client_id}")
 
                 except json.JSONDecodeError as e:
-                    logger.warning(f"WebSocket: Invalid JSON from client {client_id}: {e}")
+                    logger.warning(f"WebSocket[{tank_id}]: Invalid JSON from client {client_id}: {e}")
                     await websocket.send_json({"type": "error", "message": f"Invalid JSON: {str(e)}"})
                 except Exception as e:
-                    logger.error(f"WebSocket: Error handling command from client {client_id}: {e}", exc_info=True)
+                    logger.error(f"WebSocket[{tank_id}]: Error handling command from client {client_id}: {e}", exc_info=True)
                     await websocket.send_json({"type": "error", "message": str(e)})
 
             except WebSocketDisconnect:
                 # Re-raise to be handled by outer exception handler
                 raise
             except asyncio.CancelledError:
-                logger.info(f"WebSocket: Connection cancelled for client {client_id}")
+                logger.info(f"WebSocket[{tank_id}]: Connection cancelled for client {client_id}")
                 raise
             except Exception as e:
-                logger.error(f"WebSocket: Error in message loop for client {client_id}: {e}", exc_info=True)
+                logger.error(f"WebSocket[{tank_id}]: Error in message loop for client {client_id}: {e}", exc_info=True)
                 break
 
     except WebSocketDisconnect as e:
         disconnect_code = e.code if hasattr(e, 'code') else 'unknown'
-        logger.info(f"WebSocket: Client {client_id} disconnected normally (code: {disconnect_code})")
+        logger.info(f"WebSocket[{tank_id}]: Client {client_id} disconnected normally (code: {disconnect_code})")
     except Exception as e:
-        logger.error(f"WebSocket: Unexpected error for client {client_id}: {e}", exc_info=True)
+        logger.error(f"WebSocket[{tank_id}]: Unexpected error for client {client_id}: {e}", exc_info=True)
     finally:
-        simulation_manager.remove_client(websocket)
-        logger.info(f"WebSocket: Client {client_id} removed. Total clients: {simulation_manager.client_count}")
+        manager.remove_client(websocket)
+        logger.info(f"WebSocket[{tank_id}]: Client {client_id} removed. Total clients: {manager.client_count}")
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for the default tank (backwards compatible)."""
+    client_id = id(websocket)
+    logger.info(f"WebSocket: New connection attempt from client {client_id} (default tank)")
+
+    manager = tank_registry.default_tank
+    if manager is None:
+        logger.error(f"WebSocket: No default tank available for client {client_id}")
+        await websocket.close(code=1011, reason="No default tank available")
+        return
+
+    await handle_websocket_connection(websocket, manager)
+
+
+@app.websocket("/ws/{tank_id}")
+async def websocket_tank_endpoint(websocket: WebSocket, tank_id: str):
+    """WebSocket endpoint for a specific tank.
+
+    Args:
+        websocket: The WebSocket connection
+        tank_id: The tank ID to connect to
+    """
+    client_id = id(websocket)
+    logger.info(f"WebSocket: New connection attempt from client {client_id} for tank {tank_id[:8]}")
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        logger.warning(f"WebSocket: Tank {tank_id[:8]} not found for client {client_id}")
+        await websocket.close(code=4004, reason=f"Tank not found: {tank_id}")
+        return
+
+    await handle_websocket_connection(websocket, manager)
 
 
 if __name__ == "__main__":
