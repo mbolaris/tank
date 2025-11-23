@@ -23,7 +23,7 @@ def _to_dict(dataclass_obj: Any) -> Dict[str, Any]:
     return {field.name: getattr(dataclass_obj, field.name) for field in dataclass_obj.__dataclass_fields__.values()}
 
 
-@dataclass(slots=True)
+@dataclass
 class EntitySnapshot:
     """Minimal snapshot of an entity for client rendering."""
 
@@ -113,7 +113,7 @@ class EntitySnapshot:
         }
 
 
-@dataclass(slots=True)
+@dataclass
 class PokerStatsPayload:
     total_games: int
     total_fish_games: int
@@ -152,7 +152,7 @@ class PokerStatsPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class StatsPayload:
     frame: int
     population: int
@@ -178,7 +178,7 @@ class StatsPayload:
         return data
 
 
-@dataclass(slots=True)
+@dataclass
 class PokerEventPayload:
     frame: int
     winner_id: int
@@ -195,7 +195,7 @@ class PokerEventPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class PokerLeaderboardEntryPayload:
     rank: int
     fish_id: int
@@ -224,7 +224,7 @@ class PokerLeaderboardEntryPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class AutoEvaluateStatsPayload:
     hands_played: int
     hands_remaining: int
@@ -238,7 +238,7 @@ class AutoEvaluateStatsPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class FullStatePayload:
     """Full snapshot with complete entity data."""
 
@@ -273,7 +273,7 @@ class FullStatePayload:
         return json.dumps(self.to_dict(), separators=(",", ":"))
 
 
-@dataclass(slots=True)
+@dataclass
 class DeltaStatePayload:
     """Delta update that only carries incremental changes."""
 
