@@ -87,11 +87,12 @@ class PlantPokerInteraction:
         if self.plant.is_dead():
             return False
 
-        # Both must have minimum energy
+        # Fish must have minimum energy (10)
         if self.fish.energy < self.MIN_ENERGY_TO_PLAY:
             return False
-        if self.plant.energy < self.MIN_ENERGY_TO_PLAY:
-            return False
+        
+        # Plants can play poker at any energy level (0 min)
+        # This allows fish to "harvest" even small plants
 
         # Both must be off cooldown
         if self.fish.poker_cooldown > 0:

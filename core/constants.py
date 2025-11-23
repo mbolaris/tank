@@ -375,7 +375,7 @@ FRACTAL_PLANT_BASE_HEIGHT = 65  # Base height in pixels
 
 # Plant Poker Configuration
 FRACTAL_PLANT_POKER_COOLDOWN = 90  # 3 seconds at 30fps
-FRACTAL_PLANT_MIN_POKER_ENERGY = 15.0  # Minimum energy to play poker
+FRACTAL_PLANT_MIN_POKER_ENERGY = 0.0  # Plants can always play poker (no min energy)
 FRACTAL_PLANT_POKER_BET_RATIO = 0.15  # Max bet as ratio of energy
 
 # Plant Reproduction
