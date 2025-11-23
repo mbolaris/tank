@@ -236,6 +236,48 @@ class PlantGenome:
         return g
 
     @classmethod
+    def create_sonnet_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+        """Create a Sonnet 4.5 plant - elegant botanical fern with coral/terracotta hues.
+
+        This variant uses proper L-system rules that produce actual plant-like
+        structures (ferns, bushes, trees) rather than abstract mathematical fractals.
+        The aesthetic emphasizes organic beauty, natural branching patterns, and
+        graceful asymmetry - representing the thoughtful, balanced nature of Sonnet.
+        """
+        rng = rng or random
+        g = cls(
+            axiom="X",  # Use X axiom for fern-like growth
+            angle=rng.uniform(22.0, 28.0),  # Tighter angles for elegant fronds
+            length_ratio=rng.uniform(0.65, 0.75),  # Balanced reduction for visible structure
+            branch_probability=rng.uniform(0.85, 0.95),
+            curve_factor=rng.uniform(0.12, 0.22),  # Natural curvature
+            color_hue=rng.uniform(0.02, 0.08),  # Coral/terracotta range
+            color_saturation=rng.uniform(0.65, 0.85),
+            stem_thickness=rng.uniform(0.9, 1.2),
+            leaf_density=rng.uniform(0.7, 0.95),  # Dense foliage
+            aggression=rng.uniform(0.3, 0.5),  # Balanced poker style
+            bluff_frequency=rng.uniform(0.1, 0.25),
+            risk_tolerance=rng.uniform(0.35, 0.55),
+            base_energy_rate=rng.uniform(0.025, 0.045),
+            growth_efficiency=rng.uniform(1.0, 1.4),
+            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
+            fractal_type="sonnet",
+        )
+        # Classic botanical L-system rules that produce fern-like structures
+        # These create natural, organic branching patterns
+        g._production_rules = [
+            # Primary fern frond pattern - creates elegant recursive branching
+            ("X", "F+[[X]-X]-F[-FX]+X", 0.55),
+            # Secondary pattern - more upright growth
+            ("X", "F-[[X]+X]+F[+FX]-X", 0.35),
+            # Simple elongation for variety
+            ("X", "FX", 0.10),
+            # Stem extension
+            ("F", "FF", 1.0),
+        ]
+        return g
+
+    @classmethod
     def from_parent(
         cls,
         parent: "PlantGenome",
@@ -260,6 +302,8 @@ class PlantGenome:
             color_min, color_max = 0.65, 0.90  # Violet range
         elif parent.fractal_type == "gpt":
             color_min, color_max = 0.45, 0.58  # Cyan range
+        elif parent.fractal_type == "sonnet":
+            color_min, color_max = 0.0, 0.12  # Coral/terracotta range
         else:
             color_min, color_max = 0.20, 0.50  # Green range for lsystem
 
