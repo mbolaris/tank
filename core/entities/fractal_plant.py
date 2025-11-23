@@ -249,14 +249,17 @@ class FractalPlant(Agent):
         self.nectar_produced += 1
         self.genome.update_fitness(nectar_produced=1)
 
-        # Nectar spawns in the top 25% of the plant
-        # pos.y is top of plant, pos.y + height is bottom/base
-        
-        # Randomize vertical position within top 25%
-        relative_y_offset_pct = random.uniform(0.0, 0.25)
-        
+        # Nectar spawns in the top 25% of the plant visual
+        # pos.y is top of bounding box, pos.y + height is bottom/base
+        # Plant grows upward from base, so top 25% = 75-100% up from base
+
+        # relative_y_offset_pct represents how far UP from base (0.75-1.0 = top 25%)
+        relative_y_offset_pct = random.uniform(0.75, 0.95)
+
         nectar_x = self.pos.x + self.width / 2
-        nectar_y = self.pos.y + self.height * relative_y_offset_pct
+        # Position from base going up: base_y - (height * offset_from_base)
+        base_y = self.pos.y + self.height
+        nectar_y = base_y - self.height * relative_y_offset_pct
 
         # Import here to avoid circular imports
         from core.entities.fractal_plant import PlantNectar
@@ -468,10 +471,11 @@ class PlantNectar(Food):
     def update_position(self) -> None:
         """Nectar stays attached to its source plant in the top 25%."""
         if self.source_plant is not None and not self.source_plant.is_dead():
-            # Stay in top 25% of plant (randomized per instance)
-            # pos.y is top of plant, pos.y + height is bottom/base
+            # Stay in top 25% of plant visual
+            # relative_y_offset_pct is how far UP from base (0.75-1.0 = top 25%)
+            base_y = self.source_plant.pos.y + self.source_plant.height
             self.pos.x = self.source_plant.pos.x + self.source_plant.width / 2 - self.width / 2
-            self.pos.y = self.source_plant.pos.y + self.source_plant.height * self.relative_y_offset_pct - self.height / 2
+            self.pos.y = base_y - self.source_plant.height * self.relative_y_offset_pct - self.height / 2
 
     def update(self, elapsed_time: int) -> None:
         """Update nectar state."""
