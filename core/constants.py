@@ -363,7 +363,8 @@ FRACTAL_PLANT_ROOT_Y_BASE = SCREEN_HEIGHT - 15  # Y position near tank bottom
 FRACTAL_PLANT_ROOT_Y_VARIANCE = 8  # Slight Y variation for natural look
 
 # Plant Energy System
-FRACTAL_PLANT_INITIAL_ENERGY = 20.0  # Starting energy for new plants
+FRACTAL_PLANT_INITIAL_ENERGY = 20.0  # Starting energy for new sprouted plants
+FRACTAL_PLANT_MATURE_ENERGY = 120.0  # Starting energy for initial mature plants (100% of max)
 FRACTAL_PLANT_MAX_ENERGY = 120.0  # Maximum energy capacity - Reduced for smaller plants
 FRACTAL_PLANT_MIN_SIZE = 0.3  # Minimum size multiplier
 FRACTAL_PLANT_MAX_SIZE = 1.0  # Maximum size multiplier - Reduced from 1.2
@@ -382,7 +383,7 @@ FRACTAL_PLANT_POKER_BET_RATIO = 0.15  # Max bet as ratio of energy
 FRACTAL_PLANT_NECTAR_COOLDOWN = 600  # 20 seconds between nectar production - Increased from 300
 FRACTAL_PLANT_NECTAR_ENERGY = 50.0  # Energy provided by nectar
 FRACTAL_PLANT_SPROUTING_CHANCE = 0.5  # Chance to sprout when nectar consumed - Reduced from 0.8
-FRACTAL_PLANT_INITIAL_COUNT = 5  # Number of plants to start with
+FRACTAL_PLANT_INITIAL_COUNT = 3  # Number of plants to start with
 
 # Plant Energy Collection (Passive Growth)
 FRACTAL_PLANT_BASE_ENERGY_RATE = 0.002  # Base energy gain per frame - Reduced for slower growth

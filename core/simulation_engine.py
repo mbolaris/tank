@@ -17,6 +17,7 @@ from core.constants import (
     FILES,
     FRACTAL_PLANT_INITIAL_COUNT,
     FRACTAL_PLANT_INITIAL_ENERGY,
+    FRACTAL_PLANT_MATURE_ENERGY,
     FRACTAL_PLANTS_ENABLED,
     FRAME_RATE,
     MAX_DIVERSITY_SPAWN_ATTEMPTS,
@@ -290,12 +291,12 @@ class SimulationEngine(BaseSimulator):
             variant = self._pick_balanced_variant()
             genome = self._create_variant_genome(variant)
 
-            # Create the plant
+            # Create the plant with full energy (mature)
             plant = FractalPlant(
                 environment=self.environment,
                 genome=genome,
                 root_spot=spot,
-                initial_energy=FRACTAL_PLANT_INITIAL_ENERGY,
+                initial_energy=FRACTAL_PLANT_MATURE_ENERGY,
                 screen_width=SCREEN_WIDTH,
                 screen_height=SCREEN_HEIGHT,
             )
@@ -603,12 +604,26 @@ class SimulationEngine(BaseSimulator):
             ecosystem.update_population_stats(fish_list)
             ecosystem.update(self.frame_count)
 
-            # Auto-spawn fish if population drops below critical threshold (with cooldown)
-            if len(fish_list) < CRITICAL_POPULATION_THRESHOLD:
+            # Auto-spawn fish based on population level (more likely at low populations)
+            fish_count = len(fish_list)
+            if fish_count < MAX_POPULATION:
                 frames_since_last_spawn = self.frame_count - self.last_emergency_spawn_frame
                 if frames_since_last_spawn >= EMERGENCY_SPAWN_COOLDOWN:
-                    self.spawn_emergency_fish()
-                    self.last_emergency_spawn_frame = self.frame_count
+                    # Calculate spawn probability: very high at low populations, low at high populations
+                    # At 0 fish: 100% chance, at CRITICAL_POPULATION_THRESHOLD: ~50%, at MAX_POPULATION: 0%
+                    if fish_count < CRITICAL_POPULATION_THRESHOLD:
+                        # Emergency mode: always spawn
+                        spawn_probability = 1.0
+                    else:
+                        # Gradual decrease: use inverse square for steeper drop-off
+                        # population_ratio goes from 0 (at critical) to 1 (at max)
+                        population_ratio = (fish_count - CRITICAL_POPULATION_THRESHOLD) / (MAX_POPULATION - CRITICAL_POPULATION_THRESHOLD)
+                        # Inverse curve: high probability at low populations, drops quickly
+                        spawn_probability = (1.0 - population_ratio) ** 2 * 0.3  # Max 30% at critical threshold
+
+                    if self.rng.random() < spawn_probability:
+                        self.spawn_emergency_fish()
+                        self.last_emergency_spawn_frame = self.frame_count
 
         # Rebuild caches at end of frame if dirty
         if self._cache_dirty:
