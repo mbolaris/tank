@@ -26,7 +26,7 @@ class HandRank(IntEnum):
     ROYAL_FLUSH = 9
 
 
-@dataclass(slots=True)
+@dataclass
 class PokerHand:
     """Represents a poker hand and its rank with kickers."""
 
