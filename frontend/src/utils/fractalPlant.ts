@@ -1506,7 +1506,8 @@ function drawCodexSegment(
     sizeMultiplier: number,
     stroke: string,
     accent: string,
-    striate: boolean
+    striate: boolean,
+    detailScale: number
 ): void {
     const sx1 = segment.x1 * sizeMultiplier;
     const sy1 = segment.y1 * sizeMultiplier;
@@ -1520,22 +1521,23 @@ function drawCodexSegment(
     const ny = dx / length;
 
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = segment.thickness * sizeMultiplier * 0.6;
+    ctx.lineWidth = segment.thickness * sizeMultiplier * (0.45 + 0.3 * detailScale);
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(sx1, sy1);
     ctx.lineTo(sx2, sy2);
     ctx.stroke();
 
-    if (!striate || ctx.lineWidth < 2) {
+    if (!striate || ctx.lineWidth < 2 || detailScale < 0.45) {
         return;
     }
 
     ctx.strokeStyle = accent;
-    ctx.lineWidth = Math.max(1, ctx.lineWidth * 0.35);
-    const stripes = Math.max(2, Math.floor(length / Math.max(6, ctx.lineWidth * 2)));
-    for (let i = 0; i < stripes; i++) {
-        const t = i / stripes;
+    ctx.lineWidth = Math.max(1, ctx.lineWidth * (0.25 + 0.25 * detailScale));
+    const stripeBase = Math.max(2, Math.floor((length / Math.max(6, ctx.lineWidth * 2)) * detailScale));
+    const cappedStripes = Math.min(10, stripeBase);
+    for (let i = 0; i < cappedStripes; i++) {
+        const t = i / cappedStripes;
         const offset = (i % 2 === 0 ? 1 : -1) * ctx.lineWidth * 0.45;
         const px = sx1 + dx * t;
         const py = sy1 + dy * t;
@@ -1606,6 +1608,9 @@ function renderGptCodexPlant(
         sortedSegments = cached!.sortedSegments;
     }
 
+    const complexityScore = segments.length + leaves.length * 0.5;
+    const detailScale = Math.max(0.35, Math.min(1, 500 / Math.max(1, complexityScore)));
+
     const swayPrimary = Math.sin(elapsedTime * 0.0008 + plantId * 0.4) * 2.5;
     const swaySecondary = Math.sin(elapsedTime * 0.0014 + plantId * 0.7) * 1.5;
     const sway = swayPrimary + swaySecondary;
@@ -1630,14 +1635,26 @@ function renderGptCodexPlant(
         const isRoot = seg.kind === 'root';
         const stroke = isRoot ? rootColor : trunkColor;
         const accent = isRoot ? rootColor : barkAccent;
-        drawCodexSegment(ctx, seg, sizeMultiplier, stroke, accent, seg.thickness * sizeMultiplier > 3);
+        drawCodexSegment(
+            ctx,
+            seg,
+            sizeMultiplier,
+            stroke,
+            accent,
+            seg.thickness * sizeMultiplier > 3,
+            detailScale
+        );
     }
 
     // Pulsing nectar nodes along junctions
     if (nectarReady) {
         const pulse = 0.6 + 0.4 * (Math.sin(elapsedTime * 0.006 + plantId) * 0.5 + 0.5);
         ctx.fillStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.45 * pulse})`;
-        for (let i = 0; i < sortedSegments.length; i += Math.max(3, Math.floor(sortedSegments.length / 14))) {
+        const nodeStride = Math.max(
+            4,
+            Math.floor(sortedSegments.length / 14) * Math.max(1, Math.round(1 / detailScale))
+        );
+        for (let i = 0; i < sortedSegments.length; i += nodeStride) {
             const seg = sortedSegments[i];
             const px = (seg.x2 + seg.x1) * 0.5 * sizeMultiplier;
             const py = (seg.y2 + seg.y1) * 0.5 * sizeMultiplier;
@@ -1649,7 +1666,9 @@ function renderGptCodexPlant(
 
     // Broad leaves with subtle oscillation
     const leafSway = Math.sin(elapsedTime * 0.001 + plantId * 0.3) * 6;
-    for (const leaf of leaves) {
+    const leafStep = Math.max(1, Math.round(1 / detailScale));
+    for (let i = 0; i < leaves.length; i += leafStep) {
+        const leaf = leaves[i];
         ctx.save();
         ctx.translate(leaf.x * sizeMultiplier, leaf.y * sizeMultiplier);
         ctx.rotate(((leaf.angle + leafSway) * Math.PI) / 180);
