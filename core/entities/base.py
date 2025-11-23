@@ -104,6 +104,9 @@ class Agent:
         self.width: float = DEFAULT_AGENT_SIZE  # Default size
         self.height: float = DEFAULT_AGENT_SIZE
 
+        # Whether this entity should block fractal plant root spots beneath it
+        self.blocks_root_spots: bool = False
+
         # Test compatibility attributes
         self.rect: Rect = Rect(x, y, self.width, self.height)
         self.image: Optional[object] = None  # Placeholder for test compatibility
@@ -258,6 +261,7 @@ class Castle(Agent):
             screen_height: Height of simulation area
         """
         super().__init__(environment, x, y, 0, screen_width, screen_height)
+        self.blocks_root_spots = True
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
         # Use set_size to keep the collision rect in sync
         self.set_size(225.0, 225.0)

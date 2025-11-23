@@ -154,6 +154,7 @@ class SimulationEngine(BaseSimulator):
 
         # Create initial fractal plants
         if FRACTAL_PLANTS_ENABLED and self.root_spot_manager is not None:
+            self._block_root_spots_with_obstacles()
             self.create_initial_fractal_plants()
 
     def create_initial_entities(self) -> None:
@@ -166,6 +167,15 @@ class SimulationEngine(BaseSimulator):
             self.environment, self.ecosystem, SCREEN_WIDTH, SCREEN_HEIGHT, rng=self.rng
         )
         self.entities_list.extend(population)
+
+    def _block_root_spots_with_obstacles(self) -> None:
+        """Prevent plants from spawning where static obstacles live."""
+
+        if self.root_spot_manager is None:
+            return
+
+        for entity in self.entities_list:
+            self.root_spot_manager.block_spots_for_entity(entity, padding=10.0)
 
     def _get_fractal_variant_counts(self) -> Dict[str, int]:
         """Count how many plants of each LLM variant are present."""
@@ -325,6 +335,9 @@ class SimulationEngine(BaseSimulator):
         # Add to spatial grid incrementally
         if self.environment:
             self.environment.add_agent_to_grid(entity)
+        # Prevent future plants from spawning under blocking obstacles
+        if self.root_spot_manager:
+            self.root_spot_manager.block_spots_for_entity(entity, padding=10.0)
         # Invalidate cached lists
         self._cache_dirty = True
 
