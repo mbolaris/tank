@@ -50,6 +50,8 @@ class EntitySnapshot:
     nectar_ready: Optional[bool] = None
     # Plant nectar fields
     source_plant_id: Optional[int] = None
+    source_plant_x: Optional[float] = None
+    source_plant_y: Optional[float] = None
     # Poker effects
     poker_effect_state: Optional[Dict[str, Any]] = None
 
@@ -78,8 +80,9 @@ class EntitySnapshot:
                 "size_multiplier": self.size_multiplier,
                 "iterations": self.iterations,
                 "nectar_ready": self.nectar_ready,
-                "nectar_ready": self.nectar_ready,
                 "source_plant_id": self.source_plant_id,
+                "source_plant_x": self.source_plant_x,
+                "source_plant_y": self.source_plant_y,
                 "poker_effect_state": self.poker_effect_state,
             }
         )

@@ -248,9 +248,10 @@ class FractalPlant(Agent):
         self.nectar_produced += 1
         self.genome.update_fitness(nectar_produced=1)
 
-        # Nectar spawns at top of plant
+        # Nectar spawns in the top 25% of the plant
+        # pos.y is top of plant, pos.y + height is bottom/base
         nectar_x = self.pos.x + self.width / 2
-        nectar_y = self.pos.y - self.height
+        nectar_y = self.pos.y + self.height * 0.20  # 20% from top (within top 25%)
 
         # Import here to avoid circular imports
         from core.entities.fractal_plant import PlantNectar
@@ -448,11 +449,12 @@ class PlantNectar(Food):
         self.set_size(self.NECTAR_SIZE, self.NECTAR_SIZE)
 
     def update_position(self) -> None:
-        """Nectar stays attached to its source plant."""
+        """Nectar stays attached to its source plant in the top 25%."""
         if self.source_plant is not None and not self.source_plant.is_dead():
-            # Stay at top of plant
+            # Stay in top 25% of plant (20% from top)
+            # pos.y is top of plant, pos.y + height is bottom/base
             self.pos.x = self.source_plant.pos.x + self.source_plant.width / 2 - self.width / 2
-            self.pos.y = self.source_plant.pos.y - self.source_plant.height - self.height
+            self.pos.y = self.source_plant.pos.y + self.source_plant.height * 0.20 - self.height / 2
 
     def update(self, elapsed_time: int) -> None:
         """Update nectar state."""
@@ -506,7 +508,7 @@ class PlantNectar(Food):
         Returns:
             State dictionary
         """
-        return {
+        result = {
             "type": "plant_nectar",
             "x": self.pos.x,
             "y": self.pos.y,
@@ -515,3 +517,8 @@ class PlantNectar(Food):
             "energy": self.energy,
             "source_plant_id": self.source_plant.plant_id if self.source_plant else None,
         }
+        # Add source plant position for sway synchronization
+        if self.source_plant:
+            result["source_plant_x"] = self.source_plant.pos.x + self.source_plant.width / 2
+            result["source_plant_y"] = self.source_plant.pos.y + self.source_plant.height
+        return result

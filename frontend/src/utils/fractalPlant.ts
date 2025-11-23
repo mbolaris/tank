@@ -2112,6 +2112,10 @@ function renderSonnetPlant(
 
 /**
  * Render plant nectar (the collectible item).
+ *
+ * @param sourcePlantId - ID of the parent plant (for sway seed)
+ * @param sourcePlantX - X position of the parent plant's center base
+ * @param sourcePlantY - Y position of the parent plant's base
  */
 export function renderPlantNectar(
     ctx: CanvasRenderingContext2D,
@@ -2119,7 +2123,10 @@ export function renderPlantNectar(
     y: number,
     width: number,
     height: number,
-    elapsedTime: number
+    elapsedTime: number,
+    sourcePlantId?: number,
+    sourcePlantX?: number,
+    sourcePlantY?: number
 ): void {
     ctx.save();
 
@@ -2127,6 +2134,42 @@ export function renderPlantNectar(
     const pulse = 1 + Math.sin(elapsedTime * 0.008) * 0.15;
     const size = Math.min(width, height) * pulse;
 
+    let drawX = x;
+    let drawY = y;
+
+    // Apply sway offset if we have parent plant info
+    // This makes the nectar sway in sync with its parent plant
+    if (sourcePlantId !== undefined && sourcePlantX !== undefined && sourcePlantY !== undefined) {
+        // Calculate sway using the same formula as the plant renderer
+        const plantSeed = sourcePlantId * 17 + sourcePlantX * 0.5 + sourcePlantY * 0.3;
+        const primarySway = Math.sin(elapsedTime * 0.0005 + plantSeed * 0.01) * 5;
+        const secondarySway = Math.sin(elapsedTime * 0.0012 + plantSeed * 0.02) * 2.5;
+        const tertiarySway = Math.sin(elapsedTime * 0.0008 + plantSeed * 0.015) * 1.5;
+        const swayAngle = primarySway + secondarySway + tertiarySway;
+        const swayRad = (swayAngle * Math.PI) / 180;
+
+        // Calculate the distance from plant base to nectar
+        const distanceFromBase = sourcePlantY - y;  // Positive since nectar is above base
+
+        // Apply rotation offset: the nectar moves horizontally based on sway angle and distance
+        // sin(angle) * distance gives the horizontal offset at the tip
+        const swayOffsetX = Math.sin(swayRad) * distanceFromBase;
+        // cos(angle) gives small vertical adjustment (negligible for small angles)
+        const swayOffsetY = (1 - Math.cos(swayRad)) * distanceFromBase;
+
+        drawX = x + swayOffsetX;
+        drawY = y - swayOffsetY;
+    }
+
+    drawNectarDroplet(ctx, drawX, drawY, size);
+
+    ctx.restore();
+}
+
+/**
+ * Draw the nectar droplet at the given position.
+ */
+function drawNectarDroplet(ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void {
     // Glow effect
     const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 1.5);
     gradient.addColorStop(0, 'rgba(255, 230, 120, 0.9)');
@@ -2149,8 +2192,6 @@ export function renderPlantNectar(
     ctx.arc(x - size * 0.15, y - size * 0.15, size * 0.2, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255, 255, 220, 0.8)';
     ctx.fill();
-
-    ctx.restore();
 }
 
 /**

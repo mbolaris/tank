@@ -649,6 +649,26 @@ class SimulationRunner:
                     **base_data,
                 )
 
+            elif isinstance(entity, entities.PlantNectar):
+                # PlantNectar check must come BEFORE Food check since PlantNectar extends Food
+                # Include source plant position for sway synchronization in frontend
+                # Use id(source_plant) to match the plant's entity id in the frontend
+                source_plant_id = None
+                source_plant_x = None
+                source_plant_y = None
+                if entity.source_plant:
+                    source_plant_id = id(entity.source_plant)  # Must match plant's entity id
+                    source_plant_x = entity.source_plant.pos.x + entity.source_plant.width / 2
+                    source_plant_y = entity.source_plant.pos.y + entity.source_plant.height
+                return EntitySnapshot(
+                    type="plant_nectar",
+                    energy=entity.energy if hasattr(entity, "energy") else 50,
+                    source_plant_id=source_plant_id,
+                    source_plant_x=source_plant_x,
+                    source_plant_y=source_plant_y,
+                    **base_data,
+                )
+
             elif isinstance(entity, entities.Food):
                 return EntitySnapshot(
                     type="food",
@@ -695,14 +715,6 @@ class SimulationRunner:
                         entity.energy / entity.max_energy >= entity.genome.nectar_threshold_ratio
                     ) if hasattr(entity, "nectar_cooldown") else False,
                     age=entity.age if hasattr(entity, "age") else 0,
-                    **base_data,
-                )
-
-            elif isinstance(entity, entities.PlantNectar):
-                return EntitySnapshot(
-                    type="plant_nectar",
-                    energy=entity.energy if hasattr(entity, "energy") else 50,
-                    source_plant_id=entity.source_plant.plant_id if entity.source_plant else None,
                     **base_data,
                 )
 

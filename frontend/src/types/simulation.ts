@@ -90,6 +90,8 @@ export interface EntityData {
 
     // Plant nectar-specific
     source_plant_id?: number;
+    source_plant_x?: number;
+    source_plant_y?: number;
 
 }
 
