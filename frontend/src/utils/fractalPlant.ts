@@ -16,14 +16,14 @@ export interface PlantGenomeData {
     stem_thickness: number;
     leaf_density: number;
     fractal_type?:
-        | 'lsystem'
-        | 'mandelbrot'
-        | 'claude'
-        | 'antigravity'
-        | 'gpt'
-        | 'gpt_codex'
-        | 'gemini'
-        | 'sonnet';
+    | 'lsystem'
+    | 'cosmic_fern'
+    | 'claude'
+    | 'antigravity'
+    | 'gpt'
+    | 'gpt_codex'
+    | 'gemini'
+    | 'sonnet';
     production_rules: Array<{
         input: string;
         output: string;
@@ -885,7 +885,11 @@ export function renderFractalPlant(
     nectarReady: boolean = false
 ): void {
     const fractalType = genome.fractal_type ?? 'lsystem';
-    if (fractalType === 'mandelbrot') {
+    // Cosmic Fern uses standard L-system rendering, so we let it fall through
+    if (fractalType === 'cosmic_fern') {
+        // Fall through to default L-system renderer
+    } else if ((fractalType as any) === 'mandelbrot') {
+        // Legacy support or if we want to keep the code for reference
         renderMandelbrotPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
         return;
     }

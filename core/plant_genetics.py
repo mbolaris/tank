@@ -15,7 +15,7 @@ class PlantGenome:
 
     Supports multiple LLM-themed fractal variants for the beauty contest:
     - lsystem: Traditional L-system fractals (green)
-    - mandelbrot: Mandelbrot set fractals (purple)
+    - cosmic_fern: Complex fern structures (cosmic purple/violet)
     - claude: Golden Julia set spirals (amber/gold)
     - antigravity: Inverted growth patterns (violet)
     - gpt: Neural network-inspired patterns (cyan/electric blue)
@@ -130,28 +130,33 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_mandelbrot_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
-        """Create a Mandelbrot set plant - deep purples with mathematical beauty."""
+    def create_cosmic_fern_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+        """Create a Cosmic Fern plant - deep space colors with complex fern structure."""
         rng = rng or random
         g = cls(
-            axiom="F",
-            angle=rng.uniform(20.0, 35.0),
-            length_ratio=rng.uniform(0.6, 0.8),
-            branch_probability=rng.uniform(0.7, 0.95),
-            curve_factor=rng.uniform(0.05, 0.2),
-            color_hue=rng.uniform(0.55, 0.75),  # Purple range
-            color_saturation=rng.uniform(0.6, 1.0),
-            stem_thickness=rng.uniform(0.9, 1.3),
-            leaf_density=rng.uniform(0.4, 0.8),
-            aggression=rng.uniform(0.2, 0.6),
-            bluff_frequency=rng.uniform(0.05, 0.25),
-            risk_tolerance=rng.uniform(0.3, 0.7),
-            base_energy_rate=rng.uniform(0.02, 0.045),
-            growth_efficiency=rng.uniform(0.9, 1.4),
-            nectar_threshold_ratio=rng.uniform(0.6, 0.85),
-            fractal_type="mandelbrot",
+            axiom="X",
+            angle=rng.uniform(20.0, 30.0),
+            length_ratio=rng.uniform(0.55, 0.65),
+            branch_probability=rng.uniform(0.88, 0.98),
+            curve_factor=rng.uniform(0.1, 0.2),
+            color_hue=rng.uniform(0.7, 0.85),  # Deep Purple/Violet/Cosmic range
+            color_saturation=rng.uniform(0.8, 1.0),
+            stem_thickness=rng.uniform(0.8, 1.2),
+            leaf_density=rng.uniform(0.6, 0.9),
+            aggression=rng.uniform(0.3, 0.6),
+            bluff_frequency=rng.uniform(0.1, 0.3),
+            risk_tolerance=rng.uniform(0.4, 0.7),
+            base_energy_rate=rng.uniform(0.025, 0.045),
+            growth_efficiency=rng.uniform(1.0, 1.4),
+            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
+            fractal_type="cosmic_fern",
         )
-        g._production_rules = g._generate_default_rules()
+        # Complex 3D fern rules
+        g._production_rules = [
+            ("X", "F-[[X]+X]+F[+FX]-X", 0.6),
+            ("X", "F+[[X]-X]-F[-FX]+X", 0.4),
+            ("F", "FF", 1.0),
+        ]
         return g
 
     @classmethod
@@ -365,8 +370,8 @@ class PlantGenome:
         # Determine color mutation range based on variant to preserve identity
         if parent.fractal_type == "claude":
             color_min, color_max = 0.05, 0.18  # Golden range
-        elif parent.fractal_type == "mandelbrot":
-            color_min, color_max = 0.50, 0.80  # Purple range
+        elif parent.fractal_type == "cosmic_fern":
+            color_min, color_max = 0.65, 0.90  # Cosmic purple/violet range
         elif parent.fractal_type == "antigravity":
             color_min, color_max = 0.65, 0.90  # Violet range
         elif parent.fractal_type == "gpt":

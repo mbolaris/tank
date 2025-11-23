@@ -124,14 +124,12 @@ class SimulationEngine(BaseSimulator):
         # Performance: Cached entity type lists to avoid repeated filtering
         self._cached_fish_list: Optional[List[entities.Fish]] = None
         self._cached_food_list: Optional[List[entities.Food]] = None
-        self._cache_dirty = True
-
         # Fractal plant system
         self.root_spot_manager: Optional[RootSpotManager] = None
 
         # LLM beauty contest variants (kept in deterministic order)
         self._fractal_variants = [
-            "mandelbrot",
+            "cosmic_fern",
             "claude",
             "antigravity",
             "gpt",
@@ -141,12 +139,6 @@ class SimulationEngine(BaseSimulator):
             "lsystem",
         ]
 
-    @property
-    def agents(self) -> AgentsWrapper:
-        """Get agents wrapper for compatibility with tests."""
-        if self._agents_wrapper is None:
-            self._agents_wrapper = AgentsWrapper(self.entities_list)
-        return self._agents_wrapper
 
     def setup(self) -> None:
         """Setup the simulation."""
@@ -217,7 +209,7 @@ class SimulationEngine(BaseSimulator):
         """Create a genome for the selected variant, honoring lineage when possible."""
 
         variant_factories = {
-            "mandelbrot": PlantGenome.create_mandelbrot_variant,
+            "cosmic_fern": PlantGenome.create_cosmic_fern_variant,
             "claude": PlantGenome.create_claude_variant,
             "antigravity": PlantGenome.create_antigravity_variant,
             "gpt": PlantGenome.create_gpt_variant,
