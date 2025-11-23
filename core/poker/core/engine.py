@@ -32,7 +32,7 @@ from core.constants import (
     POKER_WEAK_ENERGY_FRACTION,
     POKER_WEAK_POT_MULTIPLIER,
 )
-from core.poker.core.cards import Card, Deck, Rank, Suit
+from core.poker.core.cards import Card, Deck, Rank, Suit, get_card
 from core.poker.core.hand import HandRank, PokerHand
 
 if TYPE_CHECKING:
@@ -210,25 +210,13 @@ class PokerEngine:
         POKER_AGGRESSION_MEDIUM as AGGRESSION_MEDIUM,
     )
 
+    # Pre-computed rank names for fast lookup (index 0-14, only 2-14 valid)
+    _RANK_NAMES = ("", "", "2", "3", "4", "5", "6", "7", "8", "9", "Ten", "Jack", "Queen", "King", "Ace")
+
     @staticmethod
     def _rank_name(rank: int) -> str:
         """Get the name of a rank."""
-        names = {
-            2: "2",
-            3: "3",
-            4: "4",
-            5: "5",
-            6: "6",
-            7: "7",
-            8: "8",
-            9: "9",
-            10: "Ten",
-            11: "Jack",
-            12: "Queen",
-            13: "King",
-            14: "Ace",
-        }
-        return names.get(rank, str(rank))
+        return PokerEngine._RANK_NAMES[rank] if 2 <= rank <= 14 else str(rank)
 
     @staticmethod
     def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
@@ -444,8 +432,8 @@ class PokerEngine:
         n_cards = len(all_cards_int)
 
         def make_pokerhand_from_ints(hand_type, rank_value, description, card_ints, primary_ranks, kickers):
-            # Build Card objects for the returned PokerHand
-            cards = [Card(Rank(r), Suit(s)) for r, s in card_ints]
+            # Build Card objects using pre-cached cards
+            cards = [get_card(r, s) for r, s in card_ints]
             return PokerHand(
                 hand_type=hand_type,
                 rank_value=rank_value,
@@ -524,9 +512,9 @@ class PokerEngine:
             is_straight = True
             straight_high = 5
 
-        # Helper to build Card objects only for the final return
+        # Helper to build Card objects using pre-cached cards
         def make_cards():
-            return [Card(Rank(r), Suit(s)) for r, s in zip(ranks, suits)]
+            return [get_card(r, s) for r, s in zip(ranks, suits)]
 
         # Evaluate hand type
         if is_straight and is_flush:
