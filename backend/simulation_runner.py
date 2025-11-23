@@ -60,8 +60,6 @@ class SimulationRunner:
 
         # Target frame rate
         self.fps = FRAME_RATE
-        # Target frame rate
-        self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
         self.fast_forward = False
 
@@ -826,7 +824,8 @@ class SimulationRunner:
                 self.fast_forward = enabled
                 logger.info(f"Fast forward {'enabled' if enabled else 'disabled'}")
 
-
+            elif command == "start_poker":
+                # Start a new poker game with top 3 fish
                 logger.info("Starting human poker game...")
                 try:
                     # Get top 3 fish from leaderboard

@@ -249,11 +249,13 @@ class FullStatePayload:
     poker_leaderboard: List[PokerLeaderboardEntryPayload]
     auto_evaluation: Optional[AutoEvaluateStatsPayload] = None
     type: str = "update"
+    tank_id: Optional[str] = None  # Tank World Net identifier
 
     def to_dict(self) -> Dict[str, Any]:
         return _compact_dict(
             {
                 "type": self.type,
+                "tank_id": self.tank_id,
                 "frame": self.frame,
                 "elapsed_time": self.elapsed_time,
                 "entities": [e.to_full_dict() for e in self.entities],
@@ -282,11 +284,13 @@ class DeltaStatePayload:
     poker_events: List[PokerEventPayload]
     stats: Optional[StatsPayload]
     type: str = "delta"
+    tank_id: Optional[str] = None  # Tank World Net identifier
 
     def to_dict(self) -> Dict[str, Any]:
         return _compact_dict(
             {
                 "type": self.type,
+                "tank_id": self.tank_id,
                 "frame": self.frame,
                 "elapsed_time": self.elapsed_time,
                 "updates": self.updates,

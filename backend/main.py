@@ -35,14 +35,19 @@ if platform.system() == "Windows":
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.models import Command
-from backend.simulation_runner import SimulationRunner
+from backend.simulation_manager import SimulationManager
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
-# Global simulation runner
-simulation = SimulationRunner()
+# Global simulation manager (handles simulation + client tracking)
+# In Tank World Net, this will be replaced with a registry of managers
+simulation_manager = SimulationManager(
+    tank_name="Local Tank",
+    tank_description="A local fish tank simulation",
+)
 
-# Connected WebSocket clients
-connected_clients: Set[WebSocket] = set()
+# Backwards-compatible aliases
+simulation = simulation_manager.runner
+connected_clients = simulation_manager.connected_clients
 
 
 def _handle_task_exception(task: asyncio.Task) -> None:
@@ -154,8 +159,9 @@ async def broadcast_updates():
                         )
 
                     try:
-                        # Get current state (delta compression handled by runner)
-                        state = await simulation.get_state_async()
+                        # Get current state (delta compression handled by manager)
+                        # Using simulation_manager ensures tank_id is included
+                        state = await simulation_manager.get_state_async()
                     except Exception as e:
                         logger.error(
                             f"broadcast_updates: Error getting simulation state: {e}", exc_info=True
@@ -171,7 +177,7 @@ async def broadcast_updates():
 
                     try:
                         serialize_start = time.perf_counter()
-                        state_payload = simulation.serialize_state(state)
+                        state_payload = simulation_manager.serialize_state(state)
                         serialize_ms = (time.perf_counter() - serialize_start) * 1000
                         if serialize_ms > 10:
                             logger.warning(
@@ -267,6 +273,16 @@ async def health():
     )
 
 
+@app.get("/api/tank/info")
+async def get_tank_info():
+    """Get information about this tank.
+
+    Returns tank metadata for network registration and discovery.
+    This endpoint will be used by Tank World Net for tank registration.
+    """
+    return JSONResponse(simulation_manager.get_status())
+
+
 @app.get("/api/lineage")
 async def get_lineage():
     """Get phylogenetic lineage data for all fish.
@@ -310,8 +326,8 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"WebSocket: Error accepting connection from client {client_id}: {e}", exc_info=True)
         return
 
-    connected_clients.add(websocket)
-    logger.info(f"WebSocket: Client {client_id} added to connected_clients. Total clients: {len(connected_clients)}")
+    simulation_manager.add_client(websocket)
+    logger.info(f"WebSocket: Client {client_id} added. Total clients: {simulation_manager.client_count}")
 
     try:
         while True:
@@ -364,8 +380,8 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket: Unexpected error for client {client_id}: {e}", exc_info=True)
     finally:
-        connected_clients.discard(websocket)
-        logger.info(f"WebSocket: Client {client_id} removed. Total clients: {len(connected_clients)}")
+        simulation_manager.remove_client(websocket)
+        logger.info(f"WebSocket: Client {client_id} removed. Total clients: {simulation_manager.client_count}")
 
 
 if __name__ == "__main__":
