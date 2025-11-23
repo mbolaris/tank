@@ -315,7 +315,9 @@ class PlantGenome:
             branch_probability=mutate_float(parent.branch_probability, 0.6, 1.0),
             curve_factor=mutate_float(parent.curve_factor, 0.0, 0.3),
             # Visual traits
-            color_hue=mutate_float(parent.color_hue, 0.2, 0.5),
+            # Allow broader hues so special variants (e.g., Mandelbrot or Codex Max)
+            # keep their distinctive palettes when reproducing.
+            color_hue=mutate_float(parent.color_hue, 0.2, 0.8),
             color_saturation=mutate_float(parent.color_saturation, 0.4, 1.0),
             stem_thickness=mutate_float(parent.stem_thickness, 0.5, 1.5),
             leaf_density=mutate_float(parent.leaf_density, 0.3, 1.0),
