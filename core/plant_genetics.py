@@ -144,11 +144,15 @@ class PlantGenome:
             fractal_type="lsystem",
             # Random floral traits - favor psychedelic patterns
             floral_type=rng.choice([
-                # Psychedelic patterns
+                # Classic floral patterns (common)
+                "rose", "rose", "rose",
+                "dahlia", "dahlia",
+                "chrysanthemum", "chrysanthemum",
+                "sunflower", "sunflower",
+                # Psychedelic patterns (uncommon)
                 "spiral", "julia", "vortex", "starburst", "hypno",
-                "spiral", "julia", "vortex", "starburst", "hypno",
-                # Fractal (mandelbrot only)
-                "mandelbrot", "mandelbrot", "sunflower",
+                # Fractal (rare)
+                "mandelbrot",
             ]),
             floral_petals=rng.randint(3, 12),
             floral_layers=rng.randint(2, 5),
