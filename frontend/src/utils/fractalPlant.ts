@@ -893,18 +893,7 @@ export function renderFractalPlant(
         renderMandelbrotPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
         return;
     }
-    if (fractalType === 'claude') {
-        renderClaudePlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
-        return;
-    }
-    if (fractalType === 'antigravity') {
-        renderAntigravityPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
-        return;
-    }
-    if (fractalType === 'gpt') {
-        renderGptPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
-        return;
-    }
+    // claude, antigravity, and gpt fall through to default L-system renderer
     if (fractalType === 'gpt_codex') {
         renderGptCodexPlant(
             ctx,
