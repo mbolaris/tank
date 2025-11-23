@@ -674,16 +674,14 @@ export function renderFractalPlant(
     }
 
     // Apply organic multi-frequency swaying similar to raster plant sprites
+    // The root stays fixed at (x, y) - only rotation is applied so the plant sways
+    // naturally with its base anchored
     const plantSeed = plantId * 17 + x * 0.5 + y * 0.3;
     const primarySway = Math.sin(elapsedTime * 0.0005 + plantSeed * 0.01) * 5;
     const secondarySway = Math.sin(elapsedTime * 0.0012 + plantSeed * 0.02) * 2.5;
     const tertiarySway = Math.sin(elapsedTime * 0.0008 + plantSeed * 0.015) * 1.5;
     const swayAngle = primarySway + secondarySway + tertiarySway;
     const swayRad = (swayAngle * Math.PI) / 180;
-    const swayOffset = Math.sin(elapsedTime * 0.0006 + plantSeed * 0.012) * 6;
-
-    // Rotate around the actual plant base so roots stay anchored
-    // We use the fixed y position as the pivot, ignoring any drooping branches
 
     // Get colors from genome
     const stemColor = hslToRgb(genome.color_hue, genome.color_saturation * 0.8, 0.25);
@@ -693,12 +691,12 @@ export function renderFractalPlant(
     ctx.save();
 
     // Apply transformations:
-    // 1. Translate to plant position
-    ctx.translate(x + swayOffset, y);
-    // 2. Scale based on size multiplier
-    ctx.scale(sizeMultiplier, sizeMultiplier);
-    // 3. Apply sway rotation
+    // 1. Translate to plant root position (fixed point)
+    ctx.translate(x, y);
+    // 2. Apply sway rotation around the root
     ctx.rotate(swayRad);
+    // 3. Scale based on size multiplier
+    ctx.scale(sizeMultiplier, sizeMultiplier);
 
     // Note: We don't translate back because we want to draw relative to (0,0)
     // which is now at (x,y) with rotation and scaling applied.
