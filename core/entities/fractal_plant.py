@@ -30,6 +30,13 @@ from core.constants import (
 )
 
 
+# Runtime bonuses per fractal variant to mirror the documented perks
+VARIANT_ENERGY_BONUS = {
+    "mandelbrot": 1.1,  # 10% more passive energy
+    "codex_max": 1.08,  # Slight efficiency edge
+}
+
+
 class FractalPlant(Agent):
     """A fractal plant entity with evolving L-system genetics.
 
@@ -190,13 +197,8 @@ class FractalPlant(Agent):
         # Base rate from genome
         base_rate = self.genome.base_energy_rate
 
-        # Variant-specific bonuses (resolve merge conflicts between genome description
-        # and runtime behavior by applying the promised perks here)
-        variant_bonus = 1.0
-        if self.genome.fractal_type == "mandelbrot":
-            variant_bonus = 1.1  # 10% more passive energy for Mandelbrot blooms
-        elif self.genome.fractal_type == "codex_max":
-            variant_bonus = 1.08  # Slight efficiency edge for Codex Max plants
+        # Variant-specific bonuses keep runtime behavior aligned with genome docs
+        variant_bonus = VARIANT_ENERGY_BONUS.get(self.genome.fractal_type, 1.0)
 
         # Compound growth factor: more energy = faster collection
         # Uses sqrt to prevent runaway growth
