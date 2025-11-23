@@ -219,6 +219,13 @@ class FractalPlant(Agent):
 
         energy_gain *= reduction_factor
 
+        # Special variants have a small energy collection bonus
+        variant_type = getattr(self.genome, "fractal_type", "lsystem")
+        if variant_type == "mandelbrot":
+            energy_gain *= 1.1
+        elif variant_type == "codex_max":
+            energy_gain *= 1.12
+
         self.energy = min(self.max_energy, self.energy + energy_gain)
 
     def _try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:

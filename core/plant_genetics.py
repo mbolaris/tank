@@ -36,6 +36,9 @@ class PlantGenome:
         growth_efficiency: How much energy converts to size (0.5-1.5)
         nectar_threshold_ratio: Energy ratio to produce nectar (0.6-0.9)
 
+    Fractal Variants:
+        fractal_type: Rendering style for the plant's fractal (e.g., 'lsystem', 'mandelbrot', 'codex_max')
+
     Fitness:
         fitness_score: Accumulated fitness over lifetime
     """
@@ -62,6 +65,9 @@ class PlantGenome:
     base_energy_rate: float = 0.02
     growth_efficiency: float = 1.0
     nectar_threshold_ratio: float = 0.75
+
+    # Variant traits
+    fractal_type: str = "lsystem"
 
     # Fitness tracking
     fitness_score: float = field(default=0.0)
@@ -192,9 +198,83 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.01, 0.04),
             growth_efficiency=rng.uniform(0.6, 1.4),
             nectar_threshold_ratio=rng.uniform(0.6, 0.9),
+            fractal_type="lsystem",
         )
 
         # Generate production rules based on branch_probability
+        genome._production_rules = genome._generate_default_rules()
+
+        return genome
+
+    @classmethod
+    def create_mandelbrot_variant(
+        cls, rng: Optional["random.Random"] = None
+    ) -> "PlantGenome":
+        """Create a Mandelbrot-inspired plant genome.
+
+        This variant signals the renderer to use a Mandelbrot set visualization
+        and slightly boosts base energy traits to reflect its special status.
+        """
+        import random as random_module
+
+        rng = rng or random_module
+
+        genome = cls(
+            axiom="F",
+            angle=rng.uniform(20.0, 35.0),
+            length_ratio=rng.uniform(0.6, 0.8),
+            branch_probability=rng.uniform(0.7, 0.95),
+            curve_factor=rng.uniform(0.05, 0.2),
+            color_hue=rng.uniform(0.55, 0.75),
+            color_saturation=rng.uniform(0.6, 1.0),
+            stem_thickness=rng.uniform(0.9, 1.3),
+            leaf_density=rng.uniform(0.4, 0.8),
+            aggression=rng.uniform(0.2, 0.6),
+            bluff_frequency=rng.uniform(0.05, 0.25),
+            risk_tolerance=rng.uniform(0.3, 0.7),
+            base_energy_rate=rng.uniform(0.02, 0.045),
+            growth_efficiency=rng.uniform(0.9, 1.4),
+            nectar_threshold_ratio=rng.uniform(0.6, 0.85),
+            fractal_type="mandelbrot",
+        )
+
+        genome._production_rules = genome._generate_default_rules()
+
+        return genome
+
+    @classmethod
+    def create_codex_max_variant(
+        cls, rng: Optional["random.Random"] = None
+    ) -> "PlantGenome":
+        """Create a GPT-5.1-Codex-Max inspired fractal genome.
+
+        This variant leans into phyllotaxis spirals and glassy leaves to match
+        the Codex aesthetic while granting a modest efficiency edge.
+        """
+
+        import random as random_module
+
+        rng = rng or random_module
+
+        genome = cls(
+            axiom="F",
+            angle=rng.uniform(18.0, 32.0),
+            length_ratio=rng.uniform(0.62, 0.8),
+            branch_probability=rng.uniform(0.72, 0.95),
+            curve_factor=rng.uniform(0.08, 0.22),
+            color_hue=rng.uniform(0.5, 0.68),
+            color_saturation=rng.uniform(0.55, 0.95),
+            stem_thickness=rng.uniform(0.85, 1.25),
+            leaf_density=rng.uniform(0.45, 0.85),
+            aggression=rng.uniform(0.25, 0.65),
+            bluff_frequency=rng.uniform(0.05, 0.25),
+            risk_tolerance=rng.uniform(0.35, 0.75),
+            base_energy_rate=rng.uniform(0.022, 0.048),
+            growth_efficiency=rng.uniform(1.0, 1.5),
+            nectar_threshold_ratio=rng.uniform(0.58, 0.82),
+            fractal_type="codex_max",
+        )
+
         genome._production_rules = genome._generate_default_rules()
 
         return genome
@@ -247,6 +327,7 @@ class PlantGenome:
             base_energy_rate=mutate_float(parent.base_energy_rate, 0.01, 0.05),
             growth_efficiency=mutate_float(parent.growth_efficiency, 0.5, 1.5),
             nectar_threshold_ratio=mutate_float(parent.nectar_threshold_ratio, 0.6, 0.9),
+            fractal_type=parent.fractal_type,
             # Reset fitness
             fitness_score=0.0,
         )
@@ -384,6 +465,7 @@ class PlantGenome:
             "growth_efficiency": self.growth_efficiency,
             "nectar_threshold_ratio": self.nectar_threshold_ratio,
             "fitness_score": self.fitness_score,
+            "fractal_type": self.fractal_type,
             "production_rules": [
                 {"input": inp, "output": out, "prob": prob}
                 for inp, out, prob in self._production_rules
@@ -422,6 +504,7 @@ class PlantGenome:
             growth_efficiency=data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.75),
             fitness_score=data.get("fitness_score", 0.0),
+            fractal_type=data.get("fractal_type", "lsystem"),
         )
 
         if rules:
