@@ -176,9 +176,17 @@ class SimulationEngine(BaseSimulator):
             if spot is None:
                 break  # No more empty spots
 
-            # Create a random genome, occasionally using the Mandelbrot variant
-            if self.rng.random() < 0.25:
+            # LLM Battle: spawn diverse variants for the beauty contest
+            # Each variant has equal chance to compete fairly
+            variant_roll = self.rng.random()
+            if variant_roll < 0.20:
                 genome = PlantGenome.create_mandelbrot_variant(rng=self.rng)
+            elif variant_roll < 0.40:
+                genome = PlantGenome.create_claude_variant(rng=self.rng)
+            elif variant_roll < 0.60:
+                genome = PlantGenome.create_antigravity_variant(rng=self.rng)
+            elif variant_roll < 0.80:
+                genome = PlantGenome.create_gpt_variant(rng=self.rng)
             else:
                 genome = PlantGenome.create_random(rng=self.rng)
 
