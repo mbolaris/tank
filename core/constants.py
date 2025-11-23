@@ -374,7 +374,7 @@ FRACTAL_PLANT_BASE_WIDTH = 60  # Base width in pixels
 FRACTAL_PLANT_BASE_HEIGHT = 65  # Base height in pixels
 
 # Plant Poker Configuration
-FRACTAL_PLANT_POKER_COOLDOWN = 90  # 3 seconds at 30fps
+FRACTAL_PLANT_POKER_COOLDOWN = 30  # 1 second at 30fps (reduced for more frequent games)
 FRACTAL_PLANT_MIN_POKER_ENERGY = 0.0  # Plants can always play poker (no min energy)
 FRACTAL_PLANT_POKER_BET_RATIO = 0.15  # Max bet as ratio of energy
 
@@ -398,4 +398,4 @@ FRACTAL_PLANT_DEFAULT_ANGLE = 25.0  # Default branching angle (degrees)
 FRACTAL_PLANT_DEFAULT_LENGTH_RATIO = 0.7  # Default length reduction per iteration
 
 # Plant Collision Detection
-FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 100.0  # Distance for poker collision - Increased for center-to-center check
+FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 150.0  # Distance for poker collision - Increased for easier detection
