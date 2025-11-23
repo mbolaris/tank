@@ -44,55 +44,49 @@ class PlantGenome:
     """
 
     # L-System parameters
-    axiom: str = "F"
-    angle: float = 25.0
-    length_ratio: float = 0.7
-    branch_probability: float = 0.85
-    curve_factor: float = 0.1
+    def create_claude_variant(
+        cls, rng: Optional["random.Random"] = None
+    ) -> "PlantGenome":
+        """Create a Claude-inspired plant genome with golden spiral aesthetics.
 
-    # Visual traits
-    color_hue: float = 0.33  # Green by default
-    color_saturation: float = 0.7
-    stem_thickness: float = 1.0
-    leaf_density: float = 0.6
+        The Claude variant features a Julia set fractal with golden/amber colors,
+        representing warmth, creativity, and thoughtful analysis. It uses the
+        golden ratio in its visual proportions and has enhanced energy traits
+        reflecting Claude's helpful and efficient nature.
+        """
+        import random as random_module
 
-    # Poker traits
-    aggression: float = 0.4
-    bluff_frequency: float = 0.15
-    risk_tolerance: float = 0.5
+        rng = rng or random_module
 
-    # Energy traits
-    base_energy_rate: float = 0.02
-    growth_efficiency: float = 1.0
-    nectar_threshold_ratio: float = 0.75
+        # Golden ratio for proportions
+        phi = 1.618033988749895
 
-    # Variant traits
-    fractal_type: str = "lsystem"
+        genome = cls(
+            axiom="F",
+            # Golden angle (137.5 degrees) for Fibonacci spiral aesthetics
+            angle=rng.uniform(32.0, 42.0),
+            # Length ratio based on inverse golden ratio
+            length_ratio=rng.uniform(0.58, 0.68),
+            branch_probability=rng.uniform(0.75, 0.95),
+            # Higher curve factor for elegant spiraling
+            curve_factor=rng.uniform(0.15, 0.28),
+            # Golden/amber spectrum (warm, creative)
+            color_hue=rng.uniform(0.08, 0.14),
+            color_saturation=rng.uniform(0.75, 0.95),
+            stem_thickness=rng.uniform(0.85, 1.2),
+            leaf_density=rng.uniform(0.5, 0.85),
+            # Balanced poker traits (thoughtful, analytical)
+            aggression=rng.uniform(0.35, 0.55),
+            bluff_frequency=rng.uniform(0.08, 0.22),
+            risk_tolerance=rng.uniform(0.4, 0.65),
+            # Enhanced energy traits (helpful, efficient)
+            base_energy_rate=rng.uniform(0.025, 0.048),
+            growth_efficiency=rng.uniform(1.0, 1.45),
+            nectar_threshold_ratio=rng.uniform(0.55, 0.8),
+            fractal_type="claude",
+        )
 
-    # Fitness tracking
-    fitness_score: float = field(default=0.0)
-
-    # Production rules stored as tuples for immutability in dataclass
-    # Format: List of (input_char, output_string, probability)
-    _production_rules: List[Tuple[str, str, float]] = field(default_factory=list)
-
-    def __post_init__(self):
-        """Initialize production rules if not set."""
-        if not self._production_rules:
-            self._production_rules = self._generate_default_rules()
-
-    def _generate_default_rules(self) -> List[Tuple[str, str, float]]:
-        """Generate default L-system production rules based on traits."""
-        # Base rule: F -> FF-[-F+F+F]+[+F-F-F]
-        # This creates a tree-like branching structure
-        rules = []
-
-        # Main branching rule with probability based on branch_probability
-        if self.branch_probability > 0.8:
-            # Dense branching
-            rules.append(("F", "FF-[-F+F+F]+[+F-F-F]", 0.7))
-            rules.append(("F", "F[-F][+F]", 0.3))
-        elif self.branch_probability > 0.6:
+        genome._production_rules = genome._generate_default_rules()
             # Medium branching
             rules.append(("F", "F[-F]+F", 0.5))
             rules.append(("F", "F[+F]-F", 0.5))
@@ -207,6 +201,51 @@ class PlantGenome:
         return genome
 
     @classmethod
+    def create_antigravity_variant(
+        cls, rng: Optional["random.Random"] = None
+    ) -> "PlantGenome":
+        """Create the Antigravity LLM signature plant.
+
+        A high-tech, defying-physics plant structure with unique branching and
+        vibrant colors.
+        """
+        import random as random_module
+
+        rng = rng or random_module
+
+        # Antigravity plants are bold, efficient, and slightly aggressive
+        genome = cls(
+            axiom="X",  # Start with a complex bud
+            angle=rng.uniform(18.0, 25.0),
+            length_ratio=0.6,
+            branch_probability=0.9,
+            curve_factor=0.15,
+            # Vibrant Purple/Blue/Neon hues
+            color_hue=rng.uniform(0.7, 0.85),
+            color_saturation=0.9,
+            stem_thickness=1.2,
+            leaf_density=0.8,
+            # High stats for the contest
+            aggression=0.7,
+            bluff_frequency=0.3,
+            risk_tolerance=0.8,
+            base_energy_rate=0.035,
+            growth_efficiency=1.2,
+            nectar_threshold_ratio=0.7,
+            fractal_type="antigravity",
+        )
+
+        # Custom rules for Antigravity
+        # X -> F-[[X]+X]+F[+FX]-X
+        # F -> FF
+        genome._production_rules = [
+            ("X", "F-[[X]+X]+F[+FX]-X", 1.0),
+            ("F", "FF", 1.0),
+        ]
+
+        return genome
+
+    @classmethod
     def create_mandelbrot_variant(
         cls, rng: Optional["random.Random"] = None
     ) -> "PlantGenome":
@@ -243,6 +282,7 @@ class PlantGenome:
         return genome
 
     @classmethod
+<<<<<<< Updated upstream
     def create_claude_variant(
         cls, rng: Optional["random.Random"] = None
     ) -> "PlantGenome":
@@ -258,11 +298,21 @@ class PlantGenome:
         - Julia set spiral patterns (elegant mathematical beauty)
         - Fibonacci-inspired leaf arrangements
         - Glowing particle effects (representing ideas)
+=======
+    def create_antigravity_variant(
+        cls, rng: Optional["random.Random"] = None
+    ) -> "PlantGenome":
+        """Create the Antigravity LLM signature plant.
+
+        A high-tech, defying-physics plant structure with
+        unique branching and vibrant colors.
+>>>>>>> Stashed changes
         """
         import random as random_module
 
         rng = rng or random_module
 
+<<<<<<< Updated upstream
         # Golden ratio for proportions
         phi = 1.618033988749895
 
@@ -292,6 +342,37 @@ class PlantGenome:
         )
 
         genome._production_rules = genome._generate_default_rules()
+=======
+        # Antigravity plants are bold, efficient, and slightly aggressive
+        genome = cls(
+            axiom="X",  # Start with a complex bud
+            angle=rng.uniform(18.0, 25.0),
+            length_ratio=0.6,
+            branch_probability=0.9,
+            curve_factor=0.15,
+            # Vibrant Purple/Blue/Neon hues
+            color_hue=rng.uniform(0.7, 0.85),
+            color_saturation=0.9,
+            stem_thickness=1.2,
+            leaf_density=0.8,
+            # High stats for the contest
+            aggression=0.7,
+            bluff_frequency=0.3,
+            risk_tolerance=0.8,
+            base_energy_rate=0.035,
+            growth_efficiency=1.2,
+            nectar_threshold_ratio=0.7,
+            fractal_type="antigravity",
+        )
+
+        # Custom rules for Antigravity
+        # X -> F-[[X]+X]+F[+FX]-X
+        # F -> FF
+        genome._production_rules = [
+            ("X", "F-[[X]+X]+F[+FX]-X", 1.0),
+            ("F", "FF", 1.0),
+        ]
+>>>>>>> Stashed changes
 
         return genome
 
