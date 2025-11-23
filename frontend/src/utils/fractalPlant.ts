@@ -147,6 +147,60 @@ function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): H
     }
 
     ctx.putImageData(imageData, 0, 0);
+
+    // Mask the harsh square into an organic blossom silhouette
+    ctx.save();
+    ctx.beginPath();
+    const centerX = size / 2;
+    const centerY = size * 0.58;
+    const baseRadius = size * 0.45;
+    // Create a wavy outline reminiscent of overlapping leaves
+    for (let i = 0; i <= 80; i++) {
+        const t = (i / 80) * Math.PI * 2;
+        const ripple = Math.sin(t * 3) * 0.1 + Math.sin(t * 6) * 0.05;
+        const radius = baseRadius * (0.82 + ripple);
+        const x = centerX + Math.cos(t) * radius;
+        const y = centerY + Math.sin(t) * radius * 0.9;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.closePath();
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    // Add a subtle leaf-vein impression to tie back to plants
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.strokeStyle = `rgba(255, 255, 255, 0.08)`;
+    ctx.lineWidth = 2;
+    for (let branch = -2; branch <= 2; branch++) {
+        const offset = branch * 0.22 * baseRadius;
+        ctx.beginPath();
+        ctx.moveTo(centerX + offset * 0.2, centerY + baseRadius * 0.05);
+        ctx.quadraticCurveTo(
+            centerX + offset * 0.6,
+            centerY - baseRadius * 0.2,
+            centerX + offset,
+            centerY - baseRadius * 0.6
+        );
+        ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Soft edge halo to blend into the water background
+    const halo = ctx.createRadialGradient(centerX, centerY - baseRadius * 0.3, baseRadius * 0.2, centerX, centerY, baseRadius);
+    halo.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+    halo.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = halo;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - baseRadius * 0.1, baseRadius, 0, Math.PI * 2);
+    ctx.fill();
+
     return canvas;
 }
 
@@ -612,21 +666,52 @@ function renderMandelbrotPlant(
     ctx.translate(x, y);
     ctx.rotate((sway * Math.PI) / 180);
 
-    // Draw glowing stem anchor
+    // Draw glowing stem anchor with a subtle vine curl
     const [sr, sg, sb] = hslToRgbTuple(genome.color_hue ?? 0.6, genome.color_saturation ?? 0.85, 0.35);
-    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.4);
-    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.55)`);
-    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.05)`);
+    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.45);
+    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.7)`);
+    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.1)`);
     ctx.fillStyle = stemGradient;
-    ctx.fillRect(-width * 0.08, -height, width * 0.16, height);
+    ctx.fillRect(-width * 0.07, -height * 0.95, width * 0.14, height * 0.95);
+
+    ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, 0.35)`;
+    ctx.lineWidth = width * 0.04;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, -height * 0.1);
+    ctx.quadraticCurveTo(width * 0.12, -height * 0.4, 0, -height * 0.7);
+    ctx.stroke();
+
+    // Leaf fronds hugging the Mandelbrot bloom
+    ctx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, 0.35)`;
+    for (let i = -2; i <= 2; i++) {
+        const angle = (i * 12 * Math.PI) / 180;
+        const leafHeight = height * 0.18 + Math.abs(i) * 4;
+        ctx.save();
+        ctx.translate(0, -height * 0.35 + i * 10);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.ellipse(
+            width * 0.14,
+            -leafHeight * 0.15,
+            width * 0.12,
+            leafHeight,
+            12 * (Math.PI / 180),
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+        ctx.restore();
+    }
 
     // Draw Mandelbrot texture
     ctx.drawImage(texture, -width / 2, -height, width, height);
 
-    // Highlight aura
-    const [ar, ag, ab] = hslToRgbTuple(genome.color_hue ?? 0.6, genome.color_saturation ?? 0.85, 0.6);
-    const aura = ctx.createRadialGradient(0, -height * 0.8, 10, 0, -height * 0.8, width * 0.6);
-    aura.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, 0.35)`);
+    // Highlight aura with a softer botanical glow
+    const [ar, ag, ab] = hslToRgbTuple(genome.color_hue ?? 0.6, genome.color_saturation ?? 0.85, 0.58);
+    const aura = ctx.createRadialGradient(0, -height * 0.8, 12, 0, -height * 0.82, width * 0.7);
+    aura.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, 0.28)`);
+    aura.addColorStop(0.4, `rgba(${ar}, ${ag}, ${ab}, 0.12)`);
     aura.addColorStop(1, `rgba(${ar}, ${ag}, ${ab}, 0)`);
     ctx.fillStyle = aura;
     ctx.fillRect(-width / 2, -height, width, height);
