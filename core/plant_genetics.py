@@ -50,11 +50,11 @@ class PlantGenome:
     fractal_type: str = "lsystem"
 
     # Floral/nectar fractal traits - determines how nectar looks
-    floral_type: str = "rose"  # rose, mandelbrot, dahlia, sunflower, chrysanthemum
+    floral_type: str = "spiral"  # spiral, julia, vortex, starburst, hypno, rose, mandelbrot, dahlia, sunflower, chrysanthemum
     floral_petals: int = 5  # Number of petals/lobes (3-12)
     floral_layers: int = 3  # Depth/layers of the flower (1-5)
     floral_spin: float = 0.3  # Rotation/spiral factor (0-1)
-    floral_hue: float = 0.95  # Base color hue (0-1), defaults to red/pink
+    floral_hue: float = 0.12  # Base color hue (0-1), defaults to amber/gold
     floral_saturation: float = 0.8  # Color saturation (0-1)
 
     # Fitness tracking
@@ -142,15 +142,16 @@ class PlantGenome:
             growth_efficiency=rng.uniform(0.6, 1.4),
             nectar_threshold_ratio=rng.uniform(0.6, 0.9),
             fractal_type="lsystem",
-            # Random floral traits - favor psychedelic patterns
+            # Random floral traits - favor psychedelic patterns over flowers
             floral_type=rng.choice([
-                # Classic floral patterns (common)
-                "rose", "rose", "rose",
-                "dahlia", "dahlia",
-                "chrysanthemum", "chrysanthemum",
-                "sunflower", "sunflower",
-                # Psychedelic patterns (uncommon)
-                "spiral", "julia", "vortex", "starburst", "hypno",
+                # Psychedelic patterns (common)
+                "spiral", "spiral", "spiral",
+                "julia", "julia",
+                "vortex", "vortex",
+                "starburst", "starburst",
+                "hypno", "hypno",
+                # Classic floral patterns (rare)
+                "rose", "dahlia", "chrysanthemum", "sunflower",
                 # Fractal (rare)
                 "mandelbrot",
             ]),
@@ -612,11 +613,11 @@ class PlantGenome:
             fitness_score=data.get("fitness_score", 0.0),
             fractal_type=data.get("fractal_type", "lsystem"),
             # Floral traits
-            floral_type=data.get("floral_type", "rose"),
+            floral_type=data.get("floral_type", "spiral"),
             floral_petals=data.get("floral_petals", 5),
             floral_layers=data.get("floral_layers", 3),
             floral_spin=data.get("floral_spin", 0.3),
-            floral_hue=data.get("floral_hue", 0.95),
+            floral_hue=data.get("floral_hue", 0.12),
             floral_saturation=data.get("floral_saturation", 0.8),
         )
         if rules:

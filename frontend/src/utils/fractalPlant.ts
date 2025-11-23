@@ -2192,11 +2192,12 @@ function drawFloralFractal(
     elapsedTime: number,
     genome?: FloralGenome
 ): void {
-    const type = genome?.floral_type ?? 'rose';
+    const type = genome?.floral_type ?? 'spiral';
     const petals = genome?.floral_petals ?? 5;
     const layers = genome?.floral_layers ?? 3;
     const spin = genome?.floral_spin ?? 0.3;
-    const hue = genome?.floral_hue ?? 0.95;
+    // Default to amber/gold (0.12) instead of pink (0.95)
+    const hue = genome?.floral_hue ?? 0.12;
     const saturation = genome?.floral_saturation ?? 0.8;
 
     switch (type) {
@@ -2212,7 +2213,6 @@ function drawFloralFractal(
         case 'chrysanthemum':
             drawChrysanthemum(ctx, x, y, size, petals, layers, spin, hue, saturation, elapsedTime);
             break;
-        // Psychedelic fractals
         case 'spiral':
             drawSpiralFractal(ctx, x, y, size, petals, layers, spin, hue, saturation, elapsedTime);
             break;
