@@ -154,48 +154,45 @@ function App() {
                                         <span style={{ color: '#4ade80' }}>{state?.stats?.plant_energy ? Math.round(state.stats.plant_energy).toLocaleString() : '0'}</span>
                                     </span>
                                 </span>
-                            </span>
-                            <span className="meta-item">
-                                <span className="meta-label">Time</span>
-                                <span>{state?.stats?.time ?? '—'}</span>
+                                {state?.stats?.poker_stats?.total_plant_games > 0 && (() => {
+                                    const energyTransfer = state?.stats?.poker_stats?.total_plant_energy_transferred || 0;
+                                    const isPositive = energyTransfer > 0;
+                                    const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
+                                    const prefix = isPositive ? '+' : '';
+                                    return (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
+                                            <span style={{ fontSize: 12 }}>🌱⚡→🐟</span>
+                                            <span style={{ color, fontWeight: 600 }}>{prefix}{energyTransfer.toFixed(0)}</span>
+                                        </span>
+                                    );
+                                })()}
                             </span>
                             {pokerStats && (
                                 (() => {
-                                    // Use aggregated totals from backend when available
                                     const fishGames = state?.stats?.poker_stats?.total_fish_games ?? (state?.poker_events || []).filter((e: any) => !e.is_plant).length;
                                     const plantGames = state?.stats?.poker_stats?.total_plant_games ?? (state?.poker_events || []).filter((e: any) => e.is_plant).length;
 
                                     return (
-                                        <span className="meta-item" style={{ color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <span style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span className="meta-label">Poker</span>
-                                            </span>
+                                        <span className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <span className="meta-label">Poker</span>
                                             <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                                    <span style={{ width: 10, height: 10, borderRadius: 6, background: '#a78bfa', display: 'inline-block' }} />
-                                                    <span style={{ color: '#a78bfa' }}>{fishGames}</span>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                    <span style={{ fontSize: 10 }}>🐟</span>
+                                                    <span style={{ color: '#3b82f6' }}>{fishGames}</span>
                                                 </span>
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                                    <span style={{ width: 10, height: 10, borderRadius: 6, background: '#4ade80', display: 'inline-block' }} />
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                    <span style={{ fontSize: 10 }}>🌱</span>
                                                     <span style={{ color: '#4ade80' }}>{plantGames}</span>
                                                 </span>
-                                                {plantGames > 0 && (() => {
-                                                    const energyTransfer = state?.stats?.poker_stats?.total_plant_energy_transferred || 0;
-                                                    const isPositive = energyTransfer > 0;
-                                                    const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
-                                                    const prefix = isPositive ? '+' : '';
-                                                    return (
-                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
-                                                            <span style={{ fontSize: 12 }}>🌱⚡→🐟</span>
-                                                            <span style={{ color, fontWeight: 600 }}>{prefix}{energyTransfer.toFixed(0)}</span>
-                                                        </span>
-                                                    );
-                                                })()}
                                             </span>
                                         </span>
                                     );
                                 })()
                             )}
+                            <span className="meta-item">
+                                <span className="meta-label">Time</span>
+                                <span>{state?.stats?.time ?? '—'}</span>
+                            </span>
                         </div>
                         <Canvas state={state} width={1088} height={612} />
                         <div className="canvas-glow" aria-hidden />
