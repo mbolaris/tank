@@ -255,8 +255,8 @@ class FractalPlant(Agent):
         # We need to offset from the visual tree top, not the bounding box
 
         # Use a fixed offset from the TOP of the bounding box (where branches are)
-        # Random position in top 30% of the visual tree (which is upper portion of bbox)
-        top_offset_pct = random.uniform(0.05, 0.35)  # 5-35% down from top of bbox
+        # Random position in top 15% of the visual tree (which is upper portion of bbox)
+        top_offset_pct = random.uniform(0.02, 0.15)  # 2-15% down from top of bbox
 
         nectar_x = self.pos.x + self.width / 2
         nectar_y = self.pos.y + self.height * top_offset_pct
