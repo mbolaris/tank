@@ -656,16 +656,36 @@ class SimulationRunner:
                 source_plant_id = None
                 source_plant_x = None
                 source_plant_y = None
+                floral_type = None
+                floral_petals = None
+                floral_layers = None
+                floral_spin = None
+                floral_hue = None
+                floral_saturation = None
                 if entity.source_plant:
                     source_plant_id = id(entity.source_plant)  # Must match plant's entity id
                     source_plant_x = entity.source_plant.pos.x + entity.source_plant.width / 2
                     source_plant_y = entity.source_plant.pos.y + entity.source_plant.height
+                    # Get floral genome from parent plant
+                    genome = entity.source_plant.genome
+                    floral_type = genome.floral_type
+                    floral_petals = genome.floral_petals
+                    floral_layers = genome.floral_layers
+                    floral_spin = genome.floral_spin
+                    floral_hue = genome.floral_hue
+                    floral_saturation = genome.floral_saturation
                 return EntitySnapshot(
                     type="plant_nectar",
                     energy=entity.energy if hasattr(entity, "energy") else 50,
                     source_plant_id=source_plant_id,
                     source_plant_x=source_plant_x,
                     source_plant_y=source_plant_y,
+                    floral_type=floral_type,
+                    floral_petals=floral_petals,
+                    floral_layers=floral_layers,
+                    floral_spin=floral_spin,
+                    floral_hue=floral_hue,
+                    floral_saturation=floral_saturation,
                     **base_data,
                 )
 

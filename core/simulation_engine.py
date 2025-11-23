@@ -224,7 +224,13 @@ class SimulationEngine(BaseSimulator):
         The selection prefers underrepresented variants so every LLM gets
         spotlight time, while also making sure the requesting variant
         remains in the candidate pool to stay represented.
+
+        Green lsystem plants get a 50% bias to maintain a verdant tank.
         """
+
+        # 50% chance to pick green lsystem for a more natural look
+        if self.rng.random() < 0.5:
+            return "lsystem"
 
         counts = self._get_fractal_variant_counts()
         min_count = min(counts.values()) if counts else 0

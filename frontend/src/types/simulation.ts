@@ -92,6 +92,13 @@ export interface EntityData {
     source_plant_id?: number;
     source_plant_x?: number;
     source_plant_y?: number;
+    // Floral genome for nectar rendering
+    floral_type?: string;  // rose, mandelbrot, dahlia, sunflower, chrysanthemum
+    floral_petals?: number;
+    floral_layers?: number;
+    floral_spin?: number;
+    floral_hue?: number;
+    floral_saturation?: number;
 
 }
 

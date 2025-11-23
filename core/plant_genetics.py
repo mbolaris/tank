@@ -49,6 +49,14 @@ class PlantGenome:
     # Variant traits
     fractal_type: str = "lsystem"
 
+    # Floral/nectar fractal traits - determines how nectar looks
+    floral_type: str = "rose"  # rose, mandelbrot, dahlia, sunflower, chrysanthemum
+    floral_petals: int = 5  # Number of petals/lobes (3-12)
+    floral_layers: int = 3  # Depth/layers of the flower (1-5)
+    floral_spin: float = 0.3  # Rotation/spiral factor (0-1)
+    floral_hue: float = 0.95  # Base color hue (0-1), defaults to red/pink
+    floral_saturation: float = 0.8  # Color saturation (0-1)
+
     # Fitness tracking
     fitness_score: float = field(default=0.0)
 
@@ -134,6 +142,20 @@ class PlantGenome:
             growth_efficiency=rng.uniform(0.6, 1.4),
             nectar_threshold_ratio=rng.uniform(0.6, 0.9),
             fractal_type="lsystem",
+            # Random floral traits - favor psychedelic patterns
+            floral_type=rng.choice([
+                # Psychedelic patterns
+                "spiral", "julia", "vortex", "starburst", "hypno",
+                "spiral", "julia", "vortex", "starburst", "hypno",
+                # Fractal (mandelbrot only)
+                "mandelbrot", "mandelbrot", "sunflower",
+            ]),
+            floral_petals=rng.randint(3, 12),
+            floral_layers=rng.randint(2, 5),
+            floral_spin=rng.uniform(0.3, 1.0),  # More spin for animation
+            # Full rainbow of colors
+            floral_hue=rng.uniform(0.0, 1.0),
+            floral_saturation=rng.uniform(0.7, 1.0),
         )
         g._production_rules = g._generate_default_rules()
         return g
@@ -412,6 +434,22 @@ class PlantGenome:
         else:
             color_min, color_max = 0.20, 0.50  # Green range for lsystem
 
+        # Floral type can rarely mutate to a different type
+        floral_type = parent.floral_type
+        if rng.random() < mutation_rate * 0.3:
+            floral_type = rng.choice([
+                # Psychedelic patterns
+                "spiral", "julia", "vortex", "starburst", "hypno",
+                "spiral", "julia", "vortex", "starburst", "hypno",
+                # Fractal (mandelbrot only)
+                "mandelbrot", "mandelbrot", "sunflower",
+            ])
+
+        def mutate_int(val: int, min_val: int, max_val: int) -> int:
+            if rng.random() < mutation_rate:
+                val += rng.choice([-1, 1])
+            return max(min_val, min(max_val, val))
+
         offspring = cls(
             axiom=parent.axiom,
             angle=mutate_float(parent.angle, 15.0, 45.0),
@@ -429,6 +467,13 @@ class PlantGenome:
             growth_efficiency=mutate_float(parent.growth_efficiency, 0.5, 1.5),
             nectar_threshold_ratio=mutate_float(parent.nectar_threshold_ratio, 0.6, 0.9),
             fractal_type=parent.fractal_type,  # Preserve variant type
+            # Inherit and mutate floral traits
+            floral_type=floral_type,
+            floral_petals=mutate_int(parent.floral_petals, 3, 12),
+            floral_layers=mutate_int(parent.floral_layers, 1, 5),
+            floral_spin=mutate_float(parent.floral_spin, 0.0, 1.0),
+            floral_hue=mutate_float(parent.floral_hue, 0.0, 1.0),
+            floral_saturation=mutate_float(parent.floral_saturation, 0.5, 1.0),
             fitness_score=0.0,
         )
 
@@ -526,6 +571,13 @@ class PlantGenome:
             "nectar_threshold_ratio": self.nectar_threshold_ratio,
             "fitness_score": self.fitness_score,
             "fractal_type": self.fractal_type,
+            # Floral traits
+            "floral_type": self.floral_type,
+            "floral_petals": self.floral_petals,
+            "floral_layers": self.floral_layers,
+            "floral_spin": self.floral_spin,
+            "floral_hue": self.floral_hue,
+            "floral_saturation": self.floral_saturation,
             "production_rules": [
                 {"input": inp, "output": out, "prob": prob}
                 for inp, out, prob in self._production_rules
@@ -556,6 +608,13 @@ class PlantGenome:
             nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.75),
             fitness_score=data.get("fitness_score", 0.0),
             fractal_type=data.get("fractal_type", "lsystem"),
+            # Floral traits
+            floral_type=data.get("floral_type", "rose"),
+            floral_petals=data.get("floral_petals", 5),
+            floral_layers=data.get("floral_layers", 3),
+            floral_spin=data.get("floral_spin", 0.3),
+            floral_hue=data.get("floral_hue", 0.95),
+            floral_saturation=data.get("floral_saturation", 0.8),
         )
         if rules:
             g._production_rules = rules

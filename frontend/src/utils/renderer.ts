@@ -1195,9 +1195,14 @@ export class Renderer {
      * Render plant nectar (collectible item).
      */
     private renderPlantNectar(nectar: EntityData, elapsedTime: number) {
-        const { x, y, width, height, source_plant_id, source_plant_x, source_plant_y } = nectar;
+        const {
+            x, y, width, height,
+            source_plant_id, source_plant_x, source_plant_y,
+            floral_type, floral_petals, floral_layers,
+            floral_spin, floral_hue, floral_saturation
+        } = nectar;
 
-        // Render using the plant nectar utility with sway parameters
+        // Render using the plant nectar utility with sway and floral genome parameters
         renderPlantNectarUtil(
             this.ctx,
             x + width / 2,
@@ -1207,7 +1212,15 @@ export class Renderer {
             elapsedTime,
             source_plant_id,
             source_plant_x,
-            source_plant_y
+            source_plant_y,
+            {
+                floral_type,
+                floral_petals,
+                floral_layers,
+                floral_spin,
+                floral_hue,
+                floral_saturation
+            }
         );
     }
 

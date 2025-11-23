@@ -52,6 +52,13 @@ class EntitySnapshot:
     source_plant_id: Optional[int] = None
     source_plant_x: Optional[float] = None
     source_plant_y: Optional[float] = None
+    # Floral genome for nectar rendering
+    floral_type: Optional[str] = None
+    floral_petals: Optional[int] = None
+    floral_layers: Optional[int] = None
+    floral_spin: Optional[float] = None
+    floral_hue: Optional[float] = None
+    floral_saturation: Optional[float] = None
     # Poker effects
     poker_effect_state: Optional[Dict[str, Any]] = None
 
@@ -83,6 +90,12 @@ class EntitySnapshot:
                 "source_plant_id": self.source_plant_id,
                 "source_plant_x": self.source_plant_x,
                 "source_plant_y": self.source_plant_y,
+                "floral_type": self.floral_type,
+                "floral_petals": self.floral_petals,
+                "floral_layers": self.floral_layers,
+                "floral_spin": self.floral_spin,
+                "floral_hue": self.floral_hue,
+                "floral_saturation": self.floral_saturation,
                 "poker_effect_state": self.poker_effect_state,
             }
         )

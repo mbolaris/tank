@@ -249,17 +249,21 @@ class FractalPlant(Agent):
         self.nectar_produced += 1
         self.genome.update_fitness(nectar_produced=1)
 
-        # Nectar spawns in the top 25% of the plant visual
+        # Nectar spawns in the upper portion of the plant visual
+        # The visual plant only fills about 50-70% of the bounding box height
         # pos.y is top of bounding box, pos.y + height is bottom/base
-        # Plant grows upward from base, so top 25% = 75-100% up from base
+        # We need to offset from the visual tree top, not the bounding box
 
-        # relative_y_offset_pct represents how far UP from base (0.75-1.0 = top 25%)
-        relative_y_offset_pct = random.uniform(0.75, 0.95)
+        # Use a fixed offset from the TOP of the bounding box (where branches are)
+        # Random position in top 30% of the visual tree (which is upper portion of bbox)
+        top_offset_pct = random.uniform(0.05, 0.35)  # 5-35% down from top of bbox
 
         nectar_x = self.pos.x + self.width / 2
-        # Position from base going up: base_y - (height * offset_from_base)
+        nectar_y = self.pos.y + self.height * top_offset_pct
+
+        # Store as distance from base for update_position compatibility
         base_y = self.pos.y + self.height
-        nectar_y = base_y - self.height * relative_y_offset_pct
+        relative_y_offset_pct = (base_y - nectar_y) / self.height
 
         # Import here to avoid circular imports
         from core.entities.fractal_plant import PlantNectar
@@ -469,10 +473,10 @@ class PlantNectar(Food):
         self.set_size(self.NECTAR_SIZE, self.NECTAR_SIZE)
 
     def update_position(self) -> None:
-        """Nectar stays attached to its source plant in the top 25%."""
+        """Nectar stays attached to its source plant in the upper portion."""
         if self.source_plant is not None and not self.source_plant.is_dead():
-            # Stay in top 25% of plant visual
-            # relative_y_offset_pct is how far UP from base (0.75-1.0 = top 25%)
+            # relative_y_offset_pct is how far UP from base (0.65-0.95 = upper portion)
+            # Calculate position from base going up
             base_y = self.source_plant.pos.y + self.source_plant.height
             self.pos.x = self.source_plant.pos.x + self.source_plant.width / 2 - self.width / 2
             self.pos.y = base_y - self.source_plant.height * self.relative_y_offset_pct - self.height / 2
