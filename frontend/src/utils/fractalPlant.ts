@@ -354,9 +354,14 @@ export function renderFractalPlant(
         sortedSegments = cached!.sortedSegments;
     }
 
-    // Apply gentle swaying animation (reduced from 3 to 1 degree)
-    const swayAngle = Math.sin(elapsedTime * 0.001 + x * 0.01) * 1.0;
+    // Apply organic multi-frequency swaying similar to raster plant sprites
+    const plantSeed = plantId * 17 + x * 0.5 + y * 0.3;
+    const primarySway = Math.sin(elapsedTime * 0.0005 + plantSeed * 0.01) * 5;
+    const secondarySway = Math.sin(elapsedTime * 0.0012 + plantSeed * 0.02) * 2.5;
+    const tertiarySway = Math.sin(elapsedTime * 0.0008 + plantSeed * 0.015) * 1.5;
+    const swayAngle = primarySway + secondarySway + tertiarySway;
     const swayRad = (swayAngle * Math.PI) / 180;
+    const swayOffset = Math.sin(elapsedTime * 0.0006 + plantSeed * 0.012) * 6;
 
     // Rotate around the actual plant base so roots stay anchored
     // We use the fixed y position as the pivot, ignoring any drooping branches
@@ -370,7 +375,7 @@ export function renderFractalPlant(
 
     // Apply transformations:
     // 1. Translate to plant position
-    ctx.translate(x, y);
+    ctx.translate(x + swayOffset, y);
     // 2. Scale based on size multiplier
     ctx.scale(sizeMultiplier, sizeMultiplier);
     // 3. Apply sway rotation
