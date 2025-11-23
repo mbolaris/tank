@@ -161,84 +161,92 @@ class PlantGenome:
 
     @classmethod
     def create_claude_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
-        """Create a Claude plant - golden Julia spirals with Fibonacci aesthetics."""
+        """Create a Claude variant - Radiant helix with sunburst whorls."""
         rng = rng or random
         g = cls(
-            axiom="F",
-            angle=rng.uniform(32.0, 42.0),
-            length_ratio=rng.uniform(0.58, 0.68),
-            branch_probability=rng.uniform(0.75, 0.95),
-            curve_factor=rng.uniform(0.15, 0.28),
-            color_hue=rng.uniform(0.08, 0.14),  # Golden/amber range
-            color_saturation=rng.uniform(0.75, 0.95),
-            stem_thickness=rng.uniform(0.85, 1.2),
-            leaf_density=rng.uniform(0.5, 0.85),
-            aggression=rng.uniform(0.35, 0.55),
-            bluff_frequency=rng.uniform(0.08, 0.22),
-            risk_tolerance=rng.uniform(0.4, 0.65),
-            base_energy_rate=rng.uniform(0.025, 0.048),
-            growth_efficiency=rng.uniform(1.0, 1.45),
-            nectar_threshold_ratio=rng.uniform(0.55, 0.8),
+            axiom="X",
+            angle=rng.uniform(18.0, 24.0),
+            length_ratio=rng.uniform(0.62, 0.72),
+            branch_probability=rng.uniform(0.92, 1.0),
+            curve_factor=rng.uniform(0.18, 0.32),
+            color_hue=rng.uniform(0.1, 0.14),
+            color_saturation=rng.uniform(0.78, 0.95),
+            stem_thickness=rng.uniform(1.05, 1.45),
+            leaf_density=rng.uniform(0.58, 0.82),
+            aggression=rng.uniform(0.33, 0.58),
+            bluff_frequency=rng.uniform(0.1, 0.24),
+            risk_tolerance=rng.uniform(0.42, 0.66),
+            base_energy_rate=rng.uniform(0.026, 0.05),
+            growth_efficiency=rng.uniform(1.05, 1.5),
+            nectar_threshold_ratio=rng.uniform(0.56, 0.82),
             fractal_type="claude",
         )
-        g._production_rules = g._generate_default_rules()
+        g._production_rules = [
+            ("X", "F[+X][++X]F[-X][--X]FX", 0.55),
+            ("X", "F[+X][-X]F[+FX][-FX]", 0.45),
+            ("F", "FF", 0.65),
+            ("F", "Ff", 0.35),
+        ]
         return g
 
     @classmethod
     def create_antigravity_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
-        """Create an Antigravity plant - unusual inverted growth with violet hues."""
+        """Create an Antigravity variant - Floating vines with aerial roots."""
         rng = rng or random
         g = cls(
-            axiom="X",
-            angle=rng.uniform(18.0, 25.0),
-            length_ratio=0.6,
-            branch_probability=0.9,
-            curve_factor=0.15,
-            color_hue=rng.uniform(0.7, 0.85),  # Violet range
-            color_saturation=0.9,
-            stem_thickness=1.2,
-            leaf_density=0.8,
-            aggression=0.7,
-            bluff_frequency=0.3,
-            risk_tolerance=0.8,
-            base_energy_rate=0.035,
-            growth_efficiency=1.2,
-            nectar_threshold_ratio=0.7,
+            axiom="RX",
+            angle=rng.uniform(28.0, 38.0),
+            length_ratio=rng.uniform(0.68, 0.82),
+            branch_probability=rng.uniform(0.82, 0.95),
+            curve_factor=rng.uniform(0.18, 0.32),
+            color_hue=rng.uniform(0.78, 0.9),
+            color_saturation=rng.uniform(0.85, 1.0),
+            stem_thickness=rng.uniform(0.78, 1.15),
+            leaf_density=rng.uniform(0.32, 0.58),
+            aggression=rng.uniform(0.64, 0.82),
+            bluff_frequency=rng.uniform(0.26, 0.36),
+            risk_tolerance=rng.uniform(0.72, 0.86),
+            base_energy_rate=rng.uniform(0.032, 0.042),
+            growth_efficiency=rng.uniform(1.08, 1.32),
+            nectar_threshold_ratio=rng.uniform(0.66, 0.76),
             fractal_type="antigravity",
         )
         g._production_rules = [
-            ("X", "F-[[X]+X]+F[+FX]-X", 1.0),
-            ("F", "FF", 1.0),
+            ("X", "F[+&FX][-&FX]F", 0.5),
+            ("X", "F[+FX]F[-F&X]F", 0.5),
+            ("F", "FF-[-F&F]+[+F]", 0.45),
+            ("F", "F[&F]F", 0.55),
         ]
         return g
 
     @classmethod
     def create_gpt_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
-        """Create a GPT plant - neural network-inspired with electric cyan/blue patterns."""
+        """Create a GPT variant - Lattice bush with mirrored logic branches."""
         rng = rng or random
         g = cls(
-            axiom="F",
-            angle=rng.uniform(28.0, 38.0),
-            length_ratio=rng.uniform(0.62, 0.72),
-            branch_probability=rng.uniform(0.8, 0.98),  # High branching for "neural" look
-            curve_factor=rng.uniform(0.08, 0.18),
-            color_hue=rng.uniform(0.48, 0.55),  # Cyan/teal range
-            color_saturation=rng.uniform(0.8, 1.0),
-            stem_thickness=rng.uniform(0.7, 1.1),
-            leaf_density=rng.uniform(0.6, 0.9),
-            aggression=rng.uniform(0.45, 0.7),  # More aggressive poker
-            bluff_frequency=rng.uniform(0.15, 0.35),  # Higher bluff rate
-            risk_tolerance=rng.uniform(0.5, 0.75),
-            base_energy_rate=rng.uniform(0.022, 0.042),
-            growth_efficiency=rng.uniform(0.95, 1.35),
-            nectar_threshold_ratio=rng.uniform(0.58, 0.78),
+            axiom="X",
+            angle=rng.uniform(22.0, 32.0),
+            length_ratio=rng.uniform(0.58, 0.68),
+            branch_probability=rng.uniform(0.9, 1.0),
+            curve_factor=rng.uniform(0.1, 0.2),
+            color_hue=rng.uniform(0.52, 0.6),
+            color_saturation=rng.uniform(0.82, 1.0),
+            stem_thickness=rng.uniform(1.25, 1.65),
+            leaf_density=rng.uniform(0.62, 0.9),
+            aggression=rng.uniform(0.46, 0.72),
+            bluff_frequency=rng.uniform(0.16, 0.32),
+            risk_tolerance=rng.uniform(0.52, 0.76),
+            base_energy_rate=rng.uniform(0.023, 0.043),
+            growth_efficiency=rng.uniform(0.98, 1.36),
+            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
             fractal_type="gpt",
         )
-        # Neural network-inspired branching patterns
         g._production_rules = [
-            ("F", "FF+[+F-F-F]-[-F+F+F]", 0.5),  # Symmetric branching
-            ("F", "F[+F]F[-F]F", 0.3),  # Dense connections
-            ("F", "F[-F][+F][F]", 0.2),  # Triple branch
+            ("X", "F[+X]F[-X]|F[+X][-X]", 0.5),
+            ("X", "F[+X][-X]FX", 0.3),
+            ("X", "F[+X][-X]F", 0.2),
+            ("F", "FF", 0.6),
+            ("F", "Ff", 0.4),
         ]
         return g
 
