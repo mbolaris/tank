@@ -85,6 +85,12 @@ R -> F[&F]f                 (10% - aerial root that drapes downward before buddi
 F -> FF                     (100% - trunk/branch extension)
 ```
 
+**Implementation Checklist** (so judges know the Recursive Banyan spec is honored):
+- Spawn using the above axiom/rules with `angle` noise ±3° to vary canopy fans without breaking symmetry.
+- Render bark striations with alternating 1px/2px lines to evoke `;`/`}` motifs while keeping trunks matte jade.
+- Give aerial roots slightly darker saturation than branches so they read as separate organs when they reattach to soil.
+- Keep nectar pulses localized to branch junctions (never whole-branch glows) to preserve the banyan silhouette.
+
 **Rendering Notes**:
 - Draw bark striations as alternating thin/dense strokes to mimic `;` and `}` shapes without literal text overlays.
 - Vary downward bend (`&`) noise slightly so roots arc naturally toward the substrate before curving back up.
