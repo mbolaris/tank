@@ -82,7 +82,7 @@ class SimulationRunner:
         self.auto_eval_history: list[dict[str, Any]] = []
         self.auto_eval_stats: Optional[dict[str, Any]] = None
         self.auto_eval_running: bool = False
-        self.auto_eval_interval_seconds = 120.0
+        self.auto_eval_interval_seconds = 60.0
         self.last_auto_eval_time = 0.0
         self.auto_eval_lock = threading.Lock()
 
@@ -303,7 +303,7 @@ class SimulationRunner:
         try:
             game_id = str(uuid.uuid4())
             standard_energy = 500.0
-            max_hands = 300
+            max_hands = 1000
 
             auto_eval = AutoEvaluatePokerGame(
                 game_id=game_id,

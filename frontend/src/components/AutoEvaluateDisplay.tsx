@@ -203,7 +203,7 @@ function PerformanceChart({
                 <g transform={`translate(${width - padding.right - 200}, ${padding.top})`}>
                     <rect x={0} y={0} width={190} height={hasPlantLine ? 64 : 44} fill="rgba(15,23,42,0.8)" rx={4} />
                     <line x1={10} y1={14} x2={30} y2={14} stroke="#a78bfa" strokeWidth={2} />
-                    <text x={36} y={18} fill={colors.text} fontSize={11}>Evolved Fish (avg)</text>
+                    <text x={36} y={18} fill={colors.text} fontSize={11}>Fish (avg)</text>
                     {hasPlantLine && (
                         <>
                             <line x1={10} y1={32} x2={30} y2={32} stroke="#84cc16" strokeWidth={2} strokeDasharray="3 4" />
