@@ -176,8 +176,11 @@ class SimulationEngine(BaseSimulator):
             if spot is None:
                 break  # No more empty spots
 
-            # Create a random genome
-            genome = PlantGenome.create_random(rng=self.rng)
+            # Create a random genome, occasionally using the Mandelbrot variant
+            if self.rng.random() < 0.25:
+                genome = PlantGenome.create_mandelbrot_variant(rng=self.rng)
+            else:
+                genome = PlantGenome.create_random(rng=self.rng)
 
             # Create the plant
             plant = FractalPlant(

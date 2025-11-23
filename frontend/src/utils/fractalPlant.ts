@@ -15,6 +15,7 @@ export interface PlantGenomeData {
     color_saturation: number;
     stem_thickness: number;
     leaf_density: number;
+    fractal_type?: 'lsystem' | 'mandelbrot';
     production_rules: Array<{
         input: string;
         output: string;
@@ -46,6 +47,11 @@ interface FractalLeaf {
     size: number;
 }
 
+interface MandelbrotCacheEntry {
+    signature: string;
+    texture: HTMLCanvasElement;
+}
+
 /**
  * Cache for plant rendering to avoid regenerating L-system every frame.
  */
@@ -60,6 +66,7 @@ interface PlantRenderCache {
 
 // Module-level cache keyed by plant id to avoid flickering when plants drift
 const plantCache = new Map<number, PlantRenderCache>();
+const mandelbrotCache = new Map<number, MandelbrotCacheEntry>();
 
 /**
  * Create a stable signature for a genome so cache invalidation happens when traits change.
@@ -75,6 +82,7 @@ function getGenomeSignature(genome: PlantGenomeData): string {
         genome.length_ratio,
         genome.branch_probability,
         genome.curve_factor,
+        genome.fractal_type ?? 'lsystem',
         genome.color_hue,
         genome.color_saturation,
         genome.stem_thickness,
@@ -89,6 +97,111 @@ function getGenomeSignature(genome: PlantGenomeData): string {
 function seededRandom(seed: number): number {
     const x = Math.sin(seed) * 10000;
     return x - Math.floor(x);
+}
+
+function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const size = 140;
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const imageData = ctx.createImageData(size, size);
+    const maxIterations = 40;
+    const baseHue = genome.color_hue ?? 0.6;
+    const saturation = genome.color_saturation ?? 0.8;
+
+    for (let py = 0; py < size; py++) {
+        const cy = (py / size) * 2.4 - 1.2; // Range [-1.2, 1.2]
+        for (let px = 0; px < size; px++) {
+            const cx = (px / size) * 3.0 - 2.1; // Range [-2.1, 0.9]
+            let zx = 0;
+            let zy = 0;
+            let iter = 0;
+
+            while (zx * zx + zy * zy <= 4 && iter < maxIterations) {
+                const temp = zx * zx - zy * zy + cx;
+                zy = 2 * zx * zy + cy;
+                zx = temp;
+                iter++;
+            }
+
+            const mix = iter / maxIterations;
+            const hue = (baseHue + mix * 0.25 + cacheKey * 0.0001) % 1;
+            const lightness = iter === maxIterations ? 0.1 : 0.25 + mix * 0.55;
+            const [r, g, b] = hslToRgbTuple(hue, saturation, lightness);
+
+            const maskX = (px - size / 2) / (size / 2);
+            const maskY = py / size;
+            let alpha = 1 - Math.pow(Math.abs(maskX), 1.4) * 0.55 - maskY * 0.1;
+            alpha = Math.max(0, Math.min(1, alpha));
+
+            const idx = (py * size + px) * 4;
+            imageData.data[idx] = r;
+            imageData.data[idx + 1] = g;
+            imageData.data[idx + 2] = b;
+            imageData.data[idx + 3] = Math.floor(alpha * 255);
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Mask the harsh square into an organic blossom silhouette
+    ctx.save();
+    ctx.beginPath();
+    const centerX = size / 2;
+    const centerY = size * 0.58;
+    const baseRadius = size * 0.45;
+    // Create a wavy outline reminiscent of overlapping leaves
+    for (let i = 0; i <= 80; i++) {
+        const t = (i / 80) * Math.PI * 2;
+        const ripple = Math.sin(t * 3) * 0.1 + Math.sin(t * 6) * 0.05;
+        const radius = baseRadius * (0.82 + ripple);
+        const x = centerX + Math.cos(t) * radius;
+        const y = centerY + Math.sin(t) * radius * 0.9;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.closePath();
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    // Add a subtle leaf-vein impression to tie back to plants
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.strokeStyle = `rgba(255, 255, 255, 0.08)`;
+    ctx.lineWidth = 2;
+    for (let branch = -2; branch <= 2; branch++) {
+        const offset = branch * 0.22 * baseRadius;
+        ctx.beginPath();
+        ctx.moveTo(centerX + offset * 0.2, centerY + baseRadius * 0.05);
+        ctx.quadraticCurveTo(
+            centerX + offset * 0.6,
+            centerY - baseRadius * 0.2,
+            centerX + offset,
+            centerY - baseRadius * 0.6
+        );
+        ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Soft edge halo to blend into the water background
+    const halo = ctx.createRadialGradient(centerX, centerY - baseRadius * 0.3, baseRadius * 0.2, centerX, centerY, baseRadius);
+    halo.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+    halo.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = halo;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - baseRadius * 0.1, baseRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    return canvas;
 }
 
 /**
@@ -284,6 +397,31 @@ function hslToRgb(h: number, s: number, l: number): string {
     return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 }
 
+function hslToRgbTuple(h: number, s: number, l: number): [number, number, number] {
+    let r: number, g: number, b: number;
+
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        const hue2rgb = (p: number, q: number, t: number): number => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
 /**
  * Render a fractal plant to a canvas context.
  */
@@ -298,6 +436,21 @@ export function renderFractalPlant(
     elapsedTime: number,
     nectarReady: boolean = false
 ): void {
+    const fractalType = genome.fractal_type ?? 'lsystem';
+    if (fractalType === 'mandelbrot') {
+        renderMandelbrotPlant(
+            ctx,
+            plantId,
+            genome,
+            x,
+            y,
+            sizeMultiplier,
+            elapsedTime,
+            nectarReady
+        );
+        return;
+    }
+
     // Use plant id for caching so geometry stays stable even if position jitters
     const cacheKey = plantId;
     const genomeSignature = `${iterations}:${getGenomeSignature(genome)}`;
@@ -473,6 +626,112 @@ export function renderFractalPlant(
         ctx.strokeStyle = 'rgba(255, 255, 200, 0.8)';
         ctx.lineWidth = 1;
         ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+function renderMandelbrotPlant(
+    ctx: CanvasRenderingContext2D,
+    plantId: number,
+    genome: PlantGenomeData,
+    x: number,
+    y: number,
+    sizeMultiplier: number,
+    elapsedTime: number,
+    nectarReady: boolean
+): void {
+    const cacheKey = plantId;
+    const signature = getGenomeSignature(genome);
+    const cached = mandelbrotCache.get(cacheKey);
+
+    let texture: HTMLCanvasElement;
+
+    if (!cached || cached.signature !== signature) {
+        texture = generateMandelbrotTexture(genome, cacheKey);
+        mandelbrotCache.set(cacheKey, { signature, texture });
+    } else {
+        texture = cached.texture;
+    }
+
+    const baseWidth = 140;
+    const baseHeight = 160;
+    const width = baseWidth * sizeMultiplier;
+    const height = baseHeight * sizeMultiplier;
+
+    // Gentle sway
+    const sway = Math.sin(elapsedTime * 0.0009 + plantId * 0.7) * 3.5;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((sway * Math.PI) / 180);
+
+    // Draw glowing stem anchor with a subtle vine curl
+    const [sr, sg, sb] = hslToRgbTuple(genome.color_hue ?? 0.6, genome.color_saturation ?? 0.85, 0.35);
+    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.45);
+    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.7)`);
+    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.1)`);
+    ctx.fillStyle = stemGradient;
+    ctx.fillRect(-width * 0.07, -height * 0.95, width * 0.14, height * 0.95);
+
+    ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, 0.35)`;
+    ctx.lineWidth = width * 0.04;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, -height * 0.1);
+    ctx.quadraticCurveTo(width * 0.12, -height * 0.4, 0, -height * 0.7);
+    ctx.stroke();
+
+    // Leaf fronds hugging the Mandelbrot bloom
+    ctx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, 0.35)`;
+    for (let i = -2; i <= 2; i++) {
+        const angle = (i * 12 * Math.PI) / 180;
+        const leafHeight = height * 0.18 + Math.abs(i) * 4;
+        ctx.save();
+        ctx.translate(0, -height * 0.35 + i * 10);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.ellipse(
+            width * 0.14,
+            -leafHeight * 0.15,
+            width * 0.12,
+            leafHeight,
+            12 * (Math.PI / 180),
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Draw Mandelbrot texture
+    ctx.drawImage(texture, -width / 2, -height, width, height);
+
+    // Highlight aura with a softer botanical glow
+    const [ar, ag, ab] = hslToRgbTuple(genome.color_hue ?? 0.6, genome.color_saturation ?? 0.85, 0.58);
+    const aura = ctx.createRadialGradient(0, -height * 0.8, 12, 0, -height * 0.82, width * 0.7);
+    aura.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, 0.28)`);
+    aura.addColorStop(0.4, `rgba(${ar}, ${ag}, ${ab}, 0.12)`);
+    aura.addColorStop(1, `rgba(${ar}, ${ag}, ${ab}, 0)`);
+    ctx.fillStyle = aura;
+    ctx.fillRect(-width / 2, -height, width, height);
+
+    if (nectarReady) {
+        const pulse = 0.6 + Math.sin(elapsedTime * 0.005) * 0.25;
+        const topY = -height * 0.9;
+        ctx.beginPath();
+        const glow = ctx.createRadialGradient(0, topY, 4, 0, topY, 28);
+        glow.addColorStop(0, `rgba(255, 230, 150, ${pulse})`);
+        glow.addColorStop(0.6, `rgba(255, 200, 120, ${pulse * 0.7})`);
+        glow.addColorStop(1, 'rgba(255, 180, 100, 0)');
+        ctx.arc(0, topY, 16, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(0, topY, 7, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 240, 200, ${0.7 + pulse * 0.3})`;
+        ctx.fill();
     }
 
     ctx.restore();
