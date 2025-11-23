@@ -129,6 +129,15 @@ class SimulationEngine(BaseSimulator):
         # Fractal plant system
         self.root_spot_manager: Optional[RootSpotManager] = None
 
+        # LLM beauty contest variants (kept in deterministic order)
+        self._fractal_variants = [
+            "mandelbrot",
+            "claude",
+            "antigravity",
+            "gpt",
+            "lsystem",
+        ]
+
     @property
     def agents(self) -> AgentsWrapper:
         """Get agents wrapper for compatibility with tests."""
@@ -163,6 +172,66 @@ class SimulationEngine(BaseSimulator):
         )
         self.entities_list.extend(population)
 
+    def _get_fractal_variant_counts(self) -> Dict[str, int]:
+        """Count how many plants of each LLM variant are present."""
+
+        # Import locally to avoid circular imports at module load time
+        from core.entities.fractal_plant import FractalPlant
+
+        counts = {variant: 0 for variant in self._fractal_variants}
+        for entity in self.entities_list:
+            if isinstance(entity, FractalPlant):
+                variant = getattr(entity.genome, "fractal_type", "lsystem")
+                if variant not in counts:
+                    counts[variant] = 0
+                counts[variant] += 1
+        return counts
+
+    def _pick_balanced_variant(self, preferred_type: Optional[str] = None) -> str:
+        """Pick a fractal variant that keeps the beauty contest balanced.
+
+        The selection prefers underrepresented variants so every LLM gets
+        spotlight time, while also making sure the requesting variant
+        remains in the candidate pool to stay represented.
+        """
+
+        counts = self._get_fractal_variant_counts()
+        min_count = min(counts.values()) if counts else 0
+        underrepresented = [v for v, c in counts.items() if c == min_count]
+
+        candidates = underrepresented.copy()
+        if preferred_type:
+            # Ensure the caller's variant is never excluded from contention
+            if preferred_type not in candidates:
+                candidates.append(preferred_type)
+
+        # Deterministic order for testing but still randomized selection
+        return self.rng.choice(candidates)
+
+    def _create_variant_genome(
+        self, variant: str, parent_genome: Optional[PlantGenome] = None
+    ) -> PlantGenome:
+        """Create a genome for the selected variant, honoring lineage when possible."""
+
+        variant_factories = {
+            "mandelbrot": PlantGenome.create_mandelbrot_variant,
+            "claude": PlantGenome.create_claude_variant,
+            "antigravity": PlantGenome.create_antigravity_variant,
+            "gpt": PlantGenome.create_gpt_variant,
+            "lsystem": PlantGenome.create_random,
+        }
+
+        if parent_genome and variant == parent_genome.fractal_type:
+            return PlantGenome.from_parent(
+                parent_genome,
+                mutation_rate=0.15,
+                mutation_strength=0.15,
+                rng=self.rng,
+            )
+
+        factory = variant_factories.get(variant, PlantGenome.create_random)
+        return factory(rng=self.rng)
+
     def create_initial_fractal_plants(self) -> None:
         """Create initial fractal plants at random root spots."""
         if self.root_spot_manager is None or self.environment is None:
@@ -177,18 +246,9 @@ class SimulationEngine(BaseSimulator):
                 break  # No more empty spots
 
             # LLM Battle: spawn diverse variants for the beauty contest
-            # Each variant has equal chance to compete fairly
-            variant_roll = self.rng.random()
-            if variant_roll < 0.20:
-                genome = PlantGenome.create_mandelbrot_variant(rng=self.rng)
-            elif variant_roll < 0.40:
-                genome = PlantGenome.create_claude_variant(rng=self.rng)
-            elif variant_roll < 0.60:
-                genome = PlantGenome.create_antigravity_variant(rng=self.rng)
-            elif variant_roll < 0.80:
-                genome = PlantGenome.create_gpt_variant(rng=self.rng)
-            else:
-                genome = PlantGenome.create_random(rng=self.rng)
+            # Prefer underrepresented variants so everyone gets spotlight
+            variant = self._pick_balanced_variant()
+            genome = self._create_variant_genome(variant)
 
             # Create the plant
             plant = FractalPlant(
@@ -232,11 +292,9 @@ class SimulationEngine(BaseSimulator):
             return False  # No available spots
 
         # Create offspring genome with mutations
-        offspring_genome = PlantGenome.from_parent(
-            parent_genome,
-            mutation_rate=0.15,
-            mutation_strength=0.15,
-            rng=self.rng,
+        variant = self._pick_balanced_variant(preferred_type=parent_genome.fractal_type)
+        offspring_genome = self._create_variant_genome(
+            variant, parent_genome=parent_genome
         )
 
         # Create the new plant
