@@ -5,6 +5,7 @@ collect energy passively, produce nectar for reproduction, and
 can play poker against fish.
 """
 
+import random
 from typing import TYPE_CHECKING, Optional
 
 from core.entities.base import Agent
@@ -250,8 +251,12 @@ class FractalPlant(Agent):
 
         # Nectar spawns in the top 25% of the plant
         # pos.y is top of plant, pos.y + height is bottom/base
+        
+        # Randomize vertical position within top 25%
+        relative_y_offset_pct = random.uniform(0.0, 0.25)
+        
         nectar_x = self.pos.x + self.width / 2
-        nectar_y = self.pos.y + self.height * 0.20  # 20% from top (within top 25%)
+        nectar_y = self.pos.y + self.height * relative_y_offset_pct
 
         # Import here to avoid circular imports
         from core.entities.fractal_plant import PlantNectar
@@ -263,6 +268,7 @@ class FractalPlant(Agent):
             source_plant=self,
             screen_width=self.screen_width,
             screen_height=self.screen_height,
+            relative_y_offset_pct=relative_y_offset_pct,
         )
 
     def can_play_poker(self) -> bool:
@@ -369,6 +375,14 @@ class FractalPlant(Agent):
         if self.root_spot is not None:
             self.root_spot.release()
 
+    def notify_food_eaten(self) -> None:
+        """Notify plant that one of its food items was eaten.
+        
+        For FractalPlant, this is a no-op as nectar production is controlled
+        by cooldowns and energy thresholds, not a concurrent count limit.
+        """
+        pass
+
     def to_state_dict(self) -> dict:
         """Serialize plant state for frontend rendering.
 
@@ -418,6 +432,7 @@ class PlantNectar(Food):
         source_plant: FractalPlant,
         screen_width: int = 800,
         screen_height: int = 600,
+        relative_y_offset_pct: float = 0.20,
     ) -> None:
         """Initialize plant nectar.
 
@@ -428,6 +443,7 @@ class PlantNectar(Food):
             source_plant: The plant that produced this
             screen_width: Screen width
             screen_height: Screen height
+            relative_y_offset_pct: Vertical offset from top as percentage of height (0.0-1.0)
         """
         super().__init__(
             environment,
@@ -441,6 +457,7 @@ class PlantNectar(Food):
         )
 
         self.source_plant = source_plant
+        self.relative_y_offset_pct = relative_y_offset_pct
         self.parent_genome = source_plant.genome  # Reference to parent genome
         # Override energy from Food init (which uses default 90.0 from constants)
         self.energy = self.NECTAR_ENERGY
@@ -451,10 +468,10 @@ class PlantNectar(Food):
     def update_position(self) -> None:
         """Nectar stays attached to its source plant in the top 25%."""
         if self.source_plant is not None and not self.source_plant.is_dead():
-            # Stay in top 25% of plant (20% from top)
+            # Stay in top 25% of plant (randomized per instance)
             # pos.y is top of plant, pos.y + height is bottom/base
             self.pos.x = self.source_plant.pos.x + self.source_plant.width / 2 - self.width / 2
-            self.pos.y = self.source_plant.pos.y + self.source_plant.height * 0.20 - self.height / 2
+            self.pos.y = self.source_plant.pos.y + self.source_plant.height * self.relative_y_offset_pct - self.height / 2
 
     def update(self, elapsed_time: int) -> None:
         """Update nectar state."""
