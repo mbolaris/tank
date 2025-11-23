@@ -17,6 +17,7 @@ interface ControlPanelProps {
 
 export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, onToggleTree }: ControlPanelProps) {
     const [isPaused, setIsPaused] = useState(false);
+    const [isFastForward, setIsFastForward] = useState(false);
 
     const handleAddFood = () => {
         onCommand({ command: 'add_food' });
@@ -36,9 +37,19 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, on
         }
     };
 
+    const handleFastForward = () => {
+        const newState = !isFastForward;
+        setIsFastForward(newState);
+        onCommand({
+            command: 'fast_forward',
+            data: { enabled: newState }
+        });
+    };
+
     const handleReset = () => {
         onCommand({ command: 'reset' });
         setIsPaused(false);
+        setIsFastForward(false);
     };
 
     const handlePlayPoker = () => {
@@ -79,6 +90,14 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, on
                 variant="secondary"
             >
                 {isPaused ? '▶️ Resume' : '⏸️ Pause'}
+            </Button>
+
+            <Button
+                onClick={handleFastForward}
+                disabled={!isConnected}
+                variant={isFastForward ? 'special' : 'secondary'}
+            >
+                {isFastForward ? '⏩ Normal Speed' : '⏩ Fast Forward'}
             </Button>
 
             <Button

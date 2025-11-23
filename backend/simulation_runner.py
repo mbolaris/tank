@@ -60,7 +60,10 @@ class SimulationRunner:
 
         # Target frame rate
         self.fps = FRAME_RATE
+        # Target frame rate
+        self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
+        self.fast_forward = False
 
         # Performance: Throttle WebSocket updates to reduce serialization overhead
         # Cache state and only rebuild every N frames (reduces from 30 FPS to 15 FPS)
@@ -217,9 +220,10 @@ class SimulationRunner:
                     self._start_auto_evaluation_if_needed()
 
                     # Maintain frame rate
-                    elapsed = time.time() - loop_start
-                    sleep_time = max(0, self.frame_time - elapsed)
-                    time.sleep(sleep_time)
+                    if not self.fast_forward:
+                        elapsed = time.time() - loop_start
+                        sleep_time = max(0, self.frame_time - elapsed)
+                        time.sleep(sleep_time)
 
                 except Exception as e:
                     logger.error(f"Simulation loop: Unexpected error at frame {frame_count}: {e}", exc_info=True)
@@ -799,27 +803,30 @@ class SimulationRunner:
                         screen_height=SCREEN_HEIGHT,
                     )
                     self.world.add_entity(new_fish)
-                    fish_count = len([e for e in self.world.entities_list if isinstance(e, entities.Fish)])
-                    logger.info(f"Successfully spawned new fish at ({x}, {y}). Total fish count: {fish_count}")
                     self._invalidate_state_cache()
+
                 except Exception as e:
-                    logger.error(f"Error spawning fish: {e}", exc_info=True)
+                    logger.error(f"Error spawning fish: {e}")
 
             elif command == "pause":
-                self.world.pause()
-                self._invalidate_state_cache()
+                self.world.paused = True
+                logger.info("Simulation paused")
 
             elif command == "resume":
-                self.world.resume()
-                self._invalidate_state_cache()
+                self.world.paused = False
+                logger.info("Simulation resumed")
 
             elif command == "reset":
-                # Reset simulation
-                self.world.reset()
+                self.world.setup()
                 self._invalidate_state_cache()
+                logger.info("Simulation reset")
 
-            elif command == "start_poker":
-                # Start a new poker game with top 3 fish
+            elif command == "fast_forward":
+                enabled = data.get("enabled", False) if data else False
+                self.fast_forward = enabled
+                logger.info(f"Fast forward {'enabled' if enabled else 'disabled'}")
+
+
                 logger.info("Starting human poker game...")
                 try:
                     # Get top 3 fish from leaderboard
