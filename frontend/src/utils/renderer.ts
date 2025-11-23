@@ -1178,6 +1178,7 @@ export class Renderer {
         // Render using the fractal plant utility
         renderFractalPlantUtil(
             ctx,
+            plant.id,
             genome,
             x + width / 2,  // Center X
             baseY,          // Base Y (bottom of plant)

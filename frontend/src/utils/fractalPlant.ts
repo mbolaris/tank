@@ -52,13 +52,36 @@ interface FractalLeaf {
 interface PlantRenderCache {
     iterations: number;
     // sizeMultiplier is no longer needed in cache as we scale the context
+    signature: string;
     segments: FractalSegment[];
     leaves: FractalLeaf[];
     sortedSegments: FractalSegment[];
 }
 
-// Module-level cache keyed by plant x-position
+// Module-level cache keyed by plant id to avoid flickering when plants drift
 const plantCache = new Map<number, PlantRenderCache>();
+
+/**
+ * Create a stable signature for a genome so cache invalidation happens when traits change.
+ */
+function getGenomeSignature(genome: PlantGenomeData): string {
+    const ruleSignature = genome.production_rules
+        .map((rule) => `${rule.input}:${rule.output}:${rule.prob}`)
+        .join('|');
+
+    return [
+        genome.axiom,
+        genome.angle,
+        genome.length_ratio,
+        genome.branch_probability,
+        genome.curve_factor,
+        genome.color_hue,
+        genome.color_saturation,
+        genome.stem_thickness,
+        genome.leaf_density,
+        ruleSignature,
+    ].join(';');
+}
 
 /**
  * Seeded random for deterministic plant generation.
@@ -266,6 +289,7 @@ function hslToRgb(h: number, s: number, l: number): string {
  */
 export function renderFractalPlant(
     ctx: CanvasRenderingContext2D,
+    plantId: number,
     genome: PlantGenomeData,
     x: number,
     y: number,
@@ -274,8 +298,9 @@ export function renderFractalPlant(
     elapsedTime: number,
     nectarReady: boolean = false
 ): void {
-    // Use x-position as cache key so plants remain stable per column
-    const cacheKey = Math.floor(x * 1000);
+    // Use plant id for caching so geometry stays stable even if position jitters
+    const cacheKey = plantId;
+    const genomeSignature = `${iterations}:${getGenomeSignature(genome)}`;
     const cached = plantCache.get(cacheKey);
 
     let segments: FractalSegment[];
@@ -283,9 +308,7 @@ export function renderFractalPlant(
     let sortedSegments: FractalSegment[];
 
     // Only regenerate geometry when iterations change (size is handled by scaling)
-    const needsRegeneration =
-        !cached ||
-        cached.iterations !== iterations;
+    const needsRegeneration = !cached || cached.signature !== genomeSignature;
 
     if (needsRegeneration) {
         // Generate deterministic L-system string using cache key as seed
@@ -320,6 +343,7 @@ export function renderFractalPlant(
 
         plantCache.set(cacheKey, {
             iterations,
+            signature: genomeSignature,
             segments,
             leaves,
             sortedSegments,
