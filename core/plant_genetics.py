@@ -19,6 +19,7 @@ class PlantGenome:
     - claude: Golden Julia set spirals (amber/gold)
     - antigravity: Inverted growth patterns (violet)
     - gpt: Neural network-inspired patterns (cyan/electric blue)
+    - gpt_codex: Recursive banyan with aerial roots and jade bark striations
     - gemini: Cosmic botanical patterns (deep indigo/violet)
     """
 
@@ -237,6 +238,37 @@ class PlantGenome:
         return g
 
     @classmethod
+    def create_gpt_codex_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+        """Create a GPT-5.1 Codex banyan with aerial roots and jade bark."""
+        rng = rng or random
+        g = cls(
+            axiom="X",
+            angle=rng.uniform(26.0, 32.0),
+            length_ratio=rng.uniform(0.64, 0.74),
+            branch_probability=rng.uniform(0.82, 0.96),
+            curve_factor=rng.uniform(0.12, 0.22),
+            color_hue=rng.uniform(0.32, 0.38),  # Cool jade core
+            color_saturation=rng.uniform(0.65, 0.85),
+            stem_thickness=rng.uniform(1.0, 1.35),
+            leaf_density=rng.uniform(0.55, 0.85),
+            aggression=rng.uniform(0.28, 0.5),
+            bluff_frequency=rng.uniform(0.14, 0.3),
+            risk_tolerance=rng.uniform(0.38, 0.65),
+            base_energy_rate=rng.uniform(0.022, 0.042),
+            growth_efficiency=rng.uniform(1.05, 1.45),
+            nectar_threshold_ratio=rng.uniform(0.62, 0.82),
+            fractal_type="gpt_codex",
+        )
+        g._production_rules = [
+            ("X", "F[+X][-X]R[&FX]", 0.4),
+            ("X", "F[+R][-R]X", 0.3),
+            ("X", "FF[+FX][-FX]", 0.2),
+            ("R", "F[&F]f", 0.1),
+            ("F", "FF", 1.0),
+        ]
+        return g
+
+    @classmethod
     def create_gemini_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a Gemini 3Pro plant - cosmic botanical with deep indigo/violet hues.
 
@@ -339,6 +371,8 @@ class PlantGenome:
             color_min, color_max = 0.65, 0.90  # Violet range
         elif parent.fractal_type == "gpt":
             color_min, color_max = 0.45, 0.58  # Cyan range
+        elif parent.fractal_type == "gpt_codex":
+            color_min, color_max = 0.30, 0.42  # Cool jade with teal ink range
         elif parent.fractal_type == "sonnet":
             color_min, color_max = 0.0, 0.12  # Coral/terracotta range
         elif parent.fractal_type == "gemini":
