@@ -358,6 +358,8 @@ class BoidsBehavior(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        import math
+
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Use 200 radius to match predator detection range and boid interaction range
         QUERY_RADIUS = 200
@@ -367,21 +369,30 @@ class BoidsBehavior(BehaviorAlgorithm):
             if f.species == fish.species
         ]
 
-        # Check for predators - school tightens when threatened
-        nearest_predator = self._find_nearest(fish, Crab)
-        predator_distance = (
-            nearest_predator and (nearest_predator.pos - fish.pos).length() or float("inf")
-        )
-        in_danger = predator_distance < 200
+        fish_x = fish.pos.x
+        fish_y = fish.pos.y
 
-        # Check for food opportunities
+        # Check for predators - school tightens when threatened (use squared distance)
+        nearest_predator = self._find_nearest(fish, Crab)
+        predator_dist_sq = float("inf")
+        if nearest_predator:
+            dx = nearest_predator.pos.x - fish_x
+            dy = nearest_predator.pos.y - fish_y
+            predator_dist_sq = dx * dx + dy * dy
+        in_danger = predator_dist_sq < 40000  # 200^2
+
+        # Check for food opportunities (use squared distance)
         nearest_food = self._find_nearest_food(fish)
-        food_distance = nearest_food and (nearest_food.pos - fish.pos).length() or float("inf")
-        food_nearby = food_distance < 100
+        food_dist_sq = float("inf")
+        if nearest_food:
+            dx = nearest_food.pos.x - fish_x
+            dy = nearest_food.pos.y - fish_y
+            food_dist_sq = dx * dx + dy * dy
+        food_nearby = food_dist_sq < 10000  # 100^2
 
         if not allies:
             # Alone - seek food or flee
-            if in_danger and predator_distance < 150:
+            if in_danger and predator_dist_sq < 22500:  # 150^2
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.3, direction.y * 1.3
             elif food_nearby:
@@ -390,32 +401,54 @@ class BoidsBehavior(BehaviorAlgorithm):
             return 0, 0
 
         # Allies are already filtered by spatial query (within 200 radius)
-        # Further filter to 150 for boid calculations
-        nearby_allies = [f for f in allies if (f.pos - fish.pos).length() < 150]
+        # Further filter to 150 for boid calculations using squared distance
+        nearby_allies = []
+        for f in allies:
+            dx = f.pos.x - fish_x
+            dy = f.pos.y - fish_y
+            if dx * dx + dy * dy < 22500:  # 150^2
+                nearby_allies.append(f)
         if not nearby_allies:
             nearby_allies = allies[:5]  # Use closest 5 if none nearby
 
         # Separation - avoid crowding
-        sep_x, sep_y = 0, 0
+        sep_x, sep_y = 0.0, 0.0
         separation_distance = 40 if in_danger else 50  # Tighter when threatened
+        sep_dist_sq = separation_distance * separation_distance
         for ally in nearby_allies:
-            distance = (ally.pos - fish.pos).length()
-            if 0 < distance < separation_distance:
+            dx = ally.pos.x - fish_x
+            dy = ally.pos.y - fish_y
+            dist_sq = dx * dx + dy * dy
+            if 0 < dist_sq < sep_dist_sq:
+                distance = math.sqrt(dist_sq)
                 direction = self._safe_normalize(fish.pos - ally.pos)
                 # Stronger separation when very close
                 strength = (separation_distance - distance) / separation_distance
                 sep_x += direction.x * strength / max(distance, 1)
                 sep_y += direction.y * strength / max(distance, 1)
 
-        # Alignment - match velocity
-        avg_vel = sum((f.vel for f in nearby_allies), Vector2()) / len(nearby_allies)
-        if avg_vel.length() > 0:
-            avg_vel = self._safe_normalize(avg_vel)
-        align_x, align_y = avg_vel.x, avg_vel.y
+        # Alignment - match velocity (use inline sum)
+        avg_vel_x, avg_vel_y = 0.0, 0.0
+        for f in nearby_allies:
+            avg_vel_x += f.vel.x
+            avg_vel_y += f.vel.y
+        n_allies = len(nearby_allies)
+        avg_vel_x /= n_allies
+        avg_vel_y /= n_allies
+        avg_vel_len = math.sqrt(avg_vel_x * avg_vel_x + avg_vel_y * avg_vel_y)
+        if avg_vel_len > 0:
+            avg_vel_x /= avg_vel_len
+            avg_vel_y /= avg_vel_len
+        align_x, align_y = avg_vel_x, avg_vel_y
 
-        # Cohesion - move toward center
-        center = sum((f.pos for f in nearby_allies), Vector2()) / len(nearby_allies)
-        coh_dir = self._safe_normalize(center - fish.pos)
+        # Cohesion - move toward center (use inline sum)
+        center_x, center_y = 0.0, 0.0
+        for f in nearby_allies:
+            center_x += f.pos.x
+            center_y += f.pos.y
+        center_x /= n_allies
+        center_y /= n_allies
+        coh_dir = self._safe_normalize(Vector2(center_x - fish_x, center_y - fish_y))
 
         # Dynamic weight adjustment based on context
         sep_weight = self.parameters["separation_weight"]
@@ -436,15 +469,16 @@ class BoidsBehavior(BehaviorAlgorithm):
         vx = sep_x * sep_weight + align_x * align_weight + coh_dir.x * coh_weight
         vy = sep_y * sep_weight + align_y * align_weight + coh_dir.y * coh_weight
 
-        # Add predator avoidance
-        if in_danger and predator_distance < 150:
+        # Add predator avoidance (use squared distance)
+        if in_danger and predator_dist_sq < 22500:  # 150^2
             avoid_dir = self._safe_normalize(fish.pos - nearest_predator.pos)
+            predator_distance = math.sqrt(predator_dist_sq)
             threat_strength = (150 - predator_distance) / 150
             vx += avoid_dir.x * threat_strength * 2.0
             vy += avoid_dir.y * threat_strength * 2.0
 
-        # Add food attraction for whole school
-        if food_nearby and food_distance < 80:
+        # Add food attraction for whole school (use squared distance)
+        if food_nearby and food_dist_sq < 6400:  # 80^2
             food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
             vx += food_dir.x * 0.5
             vy += food_dir.y * 0.5
