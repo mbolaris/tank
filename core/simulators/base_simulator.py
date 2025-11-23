@@ -516,6 +516,11 @@ class BaseSimulator(ABC):
                 valid_fish = [f for f in group if f not in processed_fish]
 
                 if len(valid_fish) >= 2 and POKER_ACTIVITY_ENABLED:
+                    # Only allow currently eligible fish to queue for poker.
+                    # This lets groups of 3+ ready neighbors still play even if an
+                    # exhausted or pregnant fish is touching them, which should
+                    # increase multi-player games instead of skipping the whole
+                    # contact cluster until everyone is ready again.
                     ready_fish = PokerInteraction.get_ready_players(valid_fish)
 
                     if len(ready_fish) < 2:
