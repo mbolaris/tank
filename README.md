@@ -8,6 +8,7 @@ This is a **cutting-edge ALife simulation** with a modern web interface that dem
 
 - 🧬 **ALGORITHMIC EVOLUTION** - 58 unique parametrizable behavior strategies that evolve!
 - 🦀 **Balanced Predator-Prey** - Crabs and jellyfish interact with fish ecosystem
+- 🌿 **Fractal Plants** - L-system plants with genetic evolution and nectar production
 - 🔬 **Genetic Evolution** - Traits and algorithms evolve across generations
 - 🌐 **Modern Web UI** - React-based interface with real-time visualization
 - 📊 **Live Statistics & LLM Export** - Track evolution and export data for AI analysis
@@ -61,6 +62,16 @@ Fish can play poker against each other and against jellyfish for energy rewards!
 - **Jellyfish Opponents**: Jellyfish drift through the tank, playing poker with fish using a fixed conservative strategy
 - **Live Events**: See poker games happen in real-time in the UI
 - **Statistics**: Track total games, wins/losses, best hands
+
+### 🌿 **Fractal Plants with L-System Genetics**
+Plants in the ecosystem are procedurally generated using **L-system fractals** with genetic inheritance:
+
+- **Genetic Diversity**: Each plant has a unique genome controlling branch angles, growth patterns, and colors
+- **Energy Collection**: Plants passively collect energy from the environment
+- **Nectar Production**: When plants accumulate enough energy, they produce nectar (food) with floral patterns
+- **Plant Poker**: Plants can play poker against fish - winning fish gain energy from plants
+- **Root Spots**: Plants grow from fixed anchor points at the tank bottom
+- **Visual Evolution**: Plant shapes and colors evolve across generations
 
 ### 🧬 **Pure Algorithmic Evolution**
 The ecosystem focuses on **algorithmic evolution** with all fish competing using parametrizable behavior algorithms:
@@ -233,25 +244,36 @@ tank/
 ├── backend/                 # FastAPI app + WebSocket bridge
 │   ├── main.py              # API and WebSocket server
 │   ├── simulation_runner.py # Threaded simulation runner for the UI
+│   ├── state_payloads.py    # Pydantic models for WebSocket state
 │   └── models.py            # Pydantic schemas shared with the frontend
 ├── frontend/                # React + Vite frontend (npm run dev)
 │   └── src/                 # Components, hooks, rendering utilities
 ├── core/                    # Shared simulation logic
 │   ├── tank_world.py        # Simulation wrapper with config + RNG
 │   ├── simulation_engine.py # Headless engine used by both modes
-│   ├── movement_strategy.py # Movement orchestration + collision helpers
-│   ├── entities.py          # Fish, plants, food, crab, jellyfish entities
-│   ├── entity_factory.py    # Object pooling + entity construction
-│   ├── ecosystem.py         # Population tracking & statistics
-│   ├── enhanced_statistics.py # Extended stats for JSON export
-│   ├── registry.py          # Algorithm source mapping for AI agent
+│   ├── entities/            # Entity classes (modular structure)
+│   │   ├── fish.py          # Fish entity with component system
+│   │   ├── fractal_plant.py # L-system fractal plants
+│   │   ├── resources.py     # Food, Plant, PlantNectar, Castle
+│   │   ├── predators.py     # Crab, Jellyfish entities
+│   │   └── base.py          # Base Agent class
+│   ├── fish/                # Fish component system
+│   │   ├── energy_component.py
+│   │   ├── lifecycle_component.py
+│   │   ├── reproduction_component.py
+│   │   └── poker_stats_component.py
+│   ├── poker/               # Poker game system (organized package)
+│   │   ├── core/            # Card, Hand, PokerEngine
+│   │   ├── evaluation/      # Hand evaluation logic
+│   │   └── strategy/        # AI poker strategies
 │   ├── algorithms/          # Behavior algorithm library (58 strategies)
-│   ├── poker/               # Shared poker utilities and scoring
-│   ├── simulators/          # Benchmarks and batch headless runners
-│   ├── time_system.py       # Day/night cycle management
+│   ├── plant_genetics.py    # PlantGenome with L-system parameters
+│   ├── plant_poker.py       # Plant vs fish poker games
+│   ├── root_spots.py        # Plant anchor point management
+│   ├── genetics.py          # Fish genome and inheritance
+│   ├── ecosystem.py         # Population tracking & statistics
 │   ├── environment.py       # Spatial queries & collision detection
-│   ├── collision_system.py  # Collision resolution helpers
-│   ├── math_utils.py        # Geometry and numeric helpers
+│   ├── time_system.py       # Day/night cycle management
 │   └── constants.py         # Configuration parameters
 ├── scripts/                 # Automation scripts (AI code evolution, demos)
 ├── tests/                   # Test suite (determinism, integration)
@@ -311,7 +333,7 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Population**: Stable at 7-15 fish with balanced predation
 - **Birth rate**: ~10 births per 90 seconds
 - **Generation transitions**: Continuous evolution across generations
-- **Energy flow**: Plants → Food → Fish → Predators
+- **Energy flow**: Environment → Fractal Plants → Nectar → Fish → Predators
 
 ### Algorithmic Evolution in Action
 - **Algorithm diversity**: Population develops mix of strategies over time
@@ -327,9 +349,15 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Risk/reward**: Fish must balance poker with survival needs
 - **Jellyfish lifecycle**: Jellyfish slowly lose energy over time and die when depleted
 
+### Plant Ecosystem
+- **Fractal growth**: Plants grow from root spots using L-system genetics
+- **Nectar production**: Plants produce floral nectar when energy threshold reached
+- **Plant poker**: Fish can challenge plants to poker for energy rewards
+- **Visual diversity**: Each plant has unique branch angles, colors, and patterns
+
 ### Population Dynamics
 - **Carrying capacity**: Max 100 fish prevents overpopulation
-- **Birth-death balance**: Sustainable with 3 food-producing plants
+- **Birth-death balance**: Sustainable with fractal plants producing nectar
 - **Predator-prey cycles**: Crab population affects fish numbers
 - **Starvation**: Rare with proper plant density
 
@@ -379,18 +407,23 @@ This simulation demonstrates:
 - **Genetics & Heredity**: Mendelian inheritance with mutations
 - **Natural Selection**: Survival of the fittest in action
 - **Algorithmic Evolution**: Genetic algorithms with parametrizable behaviors
+- **L-System Fractals**: Procedural plant generation using Lindenmayer systems
 - **Predator-Prey Dynamics**: Balanced hunting and evasion
 - **Population Dynamics**: Carrying capacity, birth/death rates
-- **Energy Flow**: Producers (plants) → Consumers (fish) → Predators
+- **Energy Flow**: Producers (fractal plants) → Nectar → Consumers (fish) → Predators
 - **Emergent Behavior**: Complex ecosystem from simple rules
 - **Evolutionary Computation**: Parameter optimization through natural selection
-- **Game Theory**: Poker interactions and strategic play
+- **Game Theory**: Poker interactions and strategic play (fish vs fish, fish vs plant)
 - **Interpretable AI**: Clear, debuggable algorithm behaviors vs black-box approaches
 - **Data Science**: LLM-friendly stat exports for AI-assisted analysis
 
 ## 🔬 Recent Improvements & Future Enhancements
 
 Recently Completed: ✅
+- [✅] **Fractal Plants with L-System Genetics** - Procedurally generated plants with genetic evolution!
+- [✅] **Plant Nectar System** - Plants produce floral nectar food with unique patterns
+- [✅] **Plant Poker** - Fish can play poker against plants for energy rewards
+- [✅] **Root Spot System** - Plants anchor to fixed positions at tank bottom
 - [✅] **Evolving Poker Strategies** - Genome-based poker aggression that evolves across generations!
 - [✅] **8 Poker Behavior Algorithms** - Strategist, Bluffer, Conservative, and more poker strategies
 - [✅] **AI Code Evolution Agent** - Automated algorithm improvement using Claude/GPT-4!
@@ -437,6 +470,7 @@ The simulation uses a clean architecture with separation of concerns:
   - Fully testable and reproducible
   - Used by both web and headless modes
   - Algorithm-based evolution system
+  - Modular entity system (Fish, FractalPlant, Crab, Jellyfish, Food, PlantNectar)
 
 - **Backend** (`backend/`): FastAPI WebSocket server
   - Runs simulation in background thread
