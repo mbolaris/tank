@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, List, Optional
 from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH, FRACTAL_PLANT_ROOT_SPOT_COUNT
 
 if TYPE_CHECKING:
+    from core.entities.base import Agent
     from core.entities.fractal_plant import FractalPlant
 
 
@@ -40,6 +41,8 @@ class RootSpot:
     occupant: Optional["FractalPlant"] = field(default=None, repr=False)
     # Back-reference to the manager that created this spot (set by RootSpotManager)
     manager: Optional["RootSpotManager"] = field(default=None, repr=False)
+    # Spots can be blocked by obstacles like castles so plants don't spawn there
+    blocked: bool = False
 
     def claim(self, plant: "FractalPlant") -> bool:
         """Claim this spot for a plant.
@@ -115,7 +118,7 @@ class RootSpotManager:
         Returns:
             Random empty RootSpot, or None if all spots are occupied
         """
-        empty_spots = [s for s in self.spots if not s.occupied]
+        empty_spots = [s for s in self.spots if not s.occupied and not s.blocked]
         if not empty_spots:
             return None
         return random.choice(empty_spots)
@@ -130,7 +133,7 @@ class RootSpotManager:
         Returns:
             Nearest empty RootSpot, or None if all occupied
         """
-        empty_spots = [s for s in self.spots if not s.occupied]
+        empty_spots = [s for s in self.spots if not s.occupied and not s.blocked]
         if not empty_spots:
             return None
 
@@ -169,6 +172,57 @@ class RootSpotManager:
             return False
         return spot.claim(plant)
 
+    def block_spots_in_rect(
+        self, x: float, y: float, width: float, height: float, padding: float = 0.0
+    ) -> int:
+        """Block any root spots that fall within a rectangle.
+
+        Args:
+            x: Top-left x of the blocking area
+            y: Top-left y of the blocking area
+            width: Width of the blocking area
+            height: Height of the blocking area
+            padding: Extra margin to inflate the blocking box
+
+        Returns:
+            Number of spots newly blocked
+        """
+        if padding:
+            x -= padding
+            y -= padding
+            width += padding * 2
+            height += padding * 2
+
+        blocked = 0
+        for spot in self.spots:
+            if spot.blocked:
+                continue
+            if x <= spot.x <= x + width and y <= spot.y <= y + height:
+                spot.blocked = True
+                blocked += 1
+        return blocked
+
+    def block_spots_for_entity(self, entity: "Agent", padding: float = 0.0) -> int:
+        """Block spots underneath an entity that shouldn't allow plants.
+
+        Only entities that explicitly opt-in via ``blocks_root_spots`` will
+        affect the root spots. This keeps moving entities like fish from
+        unintentionally blocking the shoreline of available sites.
+
+        Args:
+            entity: The agent to inspect
+            padding: Additional padding around the entity bounds
+
+        Returns:
+            Number of spots newly blocked
+        """
+        if not getattr(entity, "blocks_root_spots", False):
+            return 0
+
+        return self.block_spots_in_rect(
+            entity.pos.x, entity.pos.y, entity.width, entity.height, padding
+        )
+
     def release_spot(self, spot_id: int) -> None:
         """Release a spot when its plant dies.
 
@@ -193,7 +247,7 @@ class RootSpotManager:
         Returns:
             Count of available spots
         """
-        return sum(1 for s in self.spots if not s.occupied)
+        return sum(1 for s in self.spots if not s.occupied and not s.blocked)
 
     def get_occupancy_ratio(self) -> float:
         """Get ratio of occupied to total spots.
@@ -201,9 +255,10 @@ class RootSpotManager:
         Returns:
             Occupancy ratio (0.0 to 1.0)
         """
-        if not self.spots:
+        available_spots = [s for s in self.spots if not s.blocked]
+        if not available_spots:
             return 0.0
-        return self.get_occupied_count() / len(self.spots)
+        return self.get_occupied_count() / len(available_spots)
 
     def get_all_occupied_spots(self) -> List[RootSpot]:
         """Get all spots that have plants.
@@ -219,7 +274,7 @@ class RootSpotManager:
         Returns:
             List of empty RootSpots
         """
-        return [s for s in self.spots if not s.occupied]
+        return [s for s in self.spots if not s.occupied and not s.blocked]
 
     def get_spots_in_range(
         self, x: float, y: float, radius: float, only_empty: bool = False
@@ -239,6 +294,8 @@ class RootSpotManager:
         result = []
 
         for spot in self.spots:
+            if spot.blocked:
+                continue
             if only_empty and spot.occupied:
                 continue
             dx = spot.x - x
