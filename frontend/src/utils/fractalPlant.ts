@@ -15,7 +15,7 @@ export interface PlantGenomeData {
     color_saturation: number;
     stem_thickness: number;
     leaf_density: number;
-    fractal_type?: 'lsystem' | 'mandelbrot' | 'claude';
+    fractal_type?: 'lsystem' | 'mandelbrot' | 'claude' | 'antigravity' | 'gpt';
     production_rules: Array<{
         input: string;
         output: string;
@@ -68,6 +68,8 @@ interface PlantRenderCache {
 const plantCache = new Map<number, PlantRenderCache>();
 const mandelbrotCache = new Map<number, MandelbrotCacheEntry>();
 const claudeCache = new Map<number, MandelbrotCacheEntry>();
+const antigravityCache = new Map<number, MandelbrotCacheEntry>();
+const gptCache = new Map<number, MandelbrotCacheEntry>();
 
 /**
  * Create a stable signature for a genome so cache invalidation happens when traits change.
@@ -358,6 +360,242 @@ function generateClaudeTexture(genome: PlantGenomeData, cacheKey: number): HTMLC
 }
 
 /**
+ * Generate an Antigravity texture with inverse fractal patterns.
+ * Features swirling violet vortex patterns that appear to defy gravity.
+ */
+function generateAntigravityTexture(genome: PlantGenomeData, cacheKey: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const size = 150;
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const imageData = ctx.createImageData(size, size);
+    const maxIterations = 45;
+    const baseHue = genome.color_hue ?? 0.78; // Violet
+    const saturation = genome.color_saturation ?? 0.9;
+
+    // Burning Ship fractal variant - creates asymmetric "flame" patterns
+    for (let py = 0; py < size; py++) {
+        const cy = (py / size) * 3.0 - 1.5;
+        for (let px = 0; px < size; px++) {
+            const cx = (px / size) * 3.0 - 2.0;
+            let zx = 0;
+            let zy = 0;
+            let iter = 0;
+
+            // Burning Ship iteration with absolute values
+            while (zx * zx + zy * zy <= 4 && iter < maxIterations) {
+                const temp = zx * zx - zy * zy + cx;
+                zy = Math.abs(2 * zx * zy) + cy;
+                zx = Math.abs(temp);
+                iter++;
+            }
+
+            const mix = iter / maxIterations;
+            // Inverted coloring for "antigravity" feel
+            const hue = (baseHue + (1 - mix) * 0.15 + cacheKey * 0.00005) % 1;
+            const lightness = iter === maxIterations ? 0.08 : 0.2 + mix * 0.6;
+            const [r, g, b] = hslToRgbTuple(hue, saturation, lightness);
+
+            // Inverted radial mask (brighter at edges)
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const dx = (px - centerX) / (size / 2);
+            const dy = (py - centerY) / (size / 2);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Swirling pattern
+            const angle = Math.atan2(dy, dx);
+            const swirl = Math.sin(angle * 5 + dist * 8) * 0.12;
+            const maxRadius = 0.9 + swirl;
+
+            let alpha = 1 - Math.pow(dist / maxRadius, 2);
+            alpha = Math.max(0, Math.min(1, alpha));
+
+            const idx = (py * size + px) * 4;
+            imageData.data[idx] = r;
+            imageData.data[idx + 1] = g;
+            imageData.data[idx + 2] = b;
+            imageData.data[idx + 3] = Math.floor(alpha * 255);
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Add ethereal glow effect
+    const centerX = size / 2;
+    const centerY = size / 2;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    const vortexGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 0.4);
+    vortexGlow.addColorStop(0, 'rgba(200, 150, 255, 0.4)');
+    vortexGlow.addColorStop(0.5, 'rgba(150, 100, 220, 0.2)');
+    vortexGlow.addColorStop(1, 'rgba(100, 50, 180, 0)');
+    ctx.fillStyle = vortexGlow;
+    ctx.fillRect(0, 0, size, size);
+    ctx.restore();
+
+    // Floating particle effect
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * Math.PI * 2;
+        const radius = size * 0.2 + (i % 3) * size * 0.1;
+        const px = centerX + Math.cos(angle) * radius;
+        const py = centerY + Math.sin(angle) * radius;
+
+        const particle = ctx.createRadialGradient(px, py, 0, px, py, 4);
+        particle.addColorStop(0, 'rgba(220, 180, 255, 0.7)');
+        particle.addColorStop(1, 'rgba(180, 120, 220, 0)');
+        ctx.beginPath();
+        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.fillStyle = particle;
+        ctx.fill();
+    }
+    ctx.restore();
+
+    return canvas;
+}
+
+/**
+ * Generate a GPT texture with neural network-inspired patterns.
+ * Features interconnected nodes and electric cyan/blue coloring.
+ */
+function generateGptTexture(genome: PlantGenomeData, cacheKey: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const size = 155;
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const imageData = ctx.createImageData(size, size);
+    const maxIterations = 42;
+    const baseHue = genome.color_hue ?? 0.52; // Cyan/teal
+    const saturation = genome.color_saturation ?? 0.9;
+
+    // Tricorn fractal - creates interesting branching structures
+    for (let py = 0; py < size; py++) {
+        const cy = (py / size) * 3.2 - 1.6;
+        for (let px = 0; px < size; px++) {
+            const cx = (px / size) * 3.2 - 1.8;
+            let zx = 0;
+            let zy = 0;
+            let iter = 0;
+
+            // Tricorn iteration (conjugate of z)
+            while (zx * zx + zy * zy <= 4 && iter < maxIterations) {
+                const temp = zx * zx - zy * zy + cx;
+                zy = -2 * zx * zy + cy; // Negative for conjugate
+                zx = temp;
+                iter++;
+            }
+
+            // Smooth coloring
+            let smoothIter = iter;
+            if (iter < maxIterations) {
+                const logZn = Math.log(zx * zx + zy * zy) / 2;
+                const nu = Math.log(logZn / Math.log(2)) / Math.log(2);
+                smoothIter = iter + 1 - nu;
+            }
+
+            const mix = smoothIter / maxIterations;
+            // Electric color palette with slight variation per plant
+            const hue = (baseHue + mix * 0.1 + Math.sin(mix * Math.PI * 3) * 0.05 + cacheKey * 0.00003) % 1;
+            const lightness = iter === maxIterations ? 0.12 : 0.25 + mix * 0.55;
+            const [r, g, b] = hslToRgbTuple(hue, saturation, lightness);
+
+            // Neural network-like node pattern mask
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const dx = (px - centerX) / (size / 2);
+            const dy = (py - centerY) / (size / 2);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            // Hexagonal pattern for "network nodes"
+            const hexWave = Math.cos(angle * 6) * 0.1;
+            const maxRadius = 0.85 + hexWave;
+
+            let alpha = 1 - Math.pow(dist / maxRadius, 2.2);
+            alpha = Math.max(0, Math.min(1, alpha));
+
+            const idx = (py * size + px) * 4;
+            imageData.data[idx] = r;
+            imageData.data[idx + 1] = g;
+            imageData.data[idx + 2] = b;
+            imageData.data[idx + 3] = Math.floor(alpha * 255);
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    const centerX = size / 2;
+    const centerY = size / 2;
+
+    // Neural connection lines
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.strokeStyle = 'rgba(100, 220, 255, 0.15)';
+    ctx.lineWidth = 1;
+    const nodeCount = 8;
+    for (let i = 0; i < nodeCount; i++) {
+        const angle1 = (i / nodeCount) * Math.PI * 2;
+        const r1 = size * 0.25;
+        const x1 = centerX + Math.cos(angle1) * r1;
+        const y1 = centerY + Math.sin(angle1) * r1;
+
+        for (let j = i + 1; j < nodeCount; j++) {
+            const angle2 = (j / nodeCount) * Math.PI * 2;
+            const r2 = size * 0.25;
+            const x2 = centerX + Math.cos(angle2) * r2;
+            const y2 = centerY + Math.sin(angle2) * r2;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+
+    // Electric glow effect
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const glow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size * 0.4);
+    glow.addColorStop(0, 'rgba(100, 255, 255, 0.3)');
+    glow.addColorStop(0.4, 'rgba(50, 200, 230, 0.15)');
+    glow.addColorStop(1, 'rgba(0, 150, 200, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, size, size);
+
+    // Node sparkles
+    for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const radius = size * 0.2 + (i % 4) * size * 0.08;
+        const nx = centerX + Math.cos(angle) * radius;
+        const ny = centerY + Math.sin(angle) * radius;
+
+        const nodeGrad = ctx.createRadialGradient(nx, ny, 0, nx, ny, 5);
+        nodeGrad.addColorStop(0, 'rgba(150, 255, 255, 0.8)');
+        nodeGrad.addColorStop(0.5, 'rgba(80, 200, 240, 0.4)');
+        nodeGrad.addColorStop(1, 'rgba(50, 150, 200, 0)');
+        ctx.beginPath();
+        ctx.arc(nx, ny, 5, 0, Math.PI * 2);
+        ctx.fillStyle = nodeGrad;
+        ctx.fill();
+    }
+    ctx.restore();
+
+    return canvas;
+}
+
+/**
  * Apply L-system production rules to generate the fractal string.
  */
 export function generateLSystemString(
@@ -591,29 +829,19 @@ export function renderFractalPlant(
 ): void {
     const fractalType = genome.fractal_type ?? 'lsystem';
     if (fractalType === 'mandelbrot') {
-        renderMandelbrotPlant(
-            ctx,
-            plantId,
-            genome,
-            x,
-            y,
-            sizeMultiplier,
-            elapsedTime,
-            nectarReady
-        );
+        renderMandelbrotPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
         return;
     }
     if (fractalType === 'claude') {
-        renderClaudePlant(
-            ctx,
-            plantId,
-            genome,
-            x,
-            y,
-            sizeMultiplier,
-            elapsedTime,
-            nectarReady
-        );
+        renderClaudePlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
+        return;
+    }
+    if (fractalType === 'antigravity') {
+        renderAntigravityPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
+        return;
+    }
+    if (fractalType === 'gpt') {
+        renderGptPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
         return;
     }
 
@@ -1085,6 +1313,288 @@ function renderClaudePlant(
         ctx.beginPath();
         ctx.arc(-2, topY - 2, 3, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255, 255, 250, 0.9)';
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+/**
+ * Render an Antigravity plant with ethereal violet vortex patterns.
+ */
+function renderAntigravityPlant(
+    ctx: CanvasRenderingContext2D,
+    plantId: number,
+    genome: PlantGenomeData,
+    x: number,
+    y: number,
+    sizeMultiplier: number,
+    elapsedTime: number,
+    nectarReady: boolean
+): void {
+    const cacheKey = plantId;
+    const signature = getGenomeSignature(genome);
+    const cached = antigravityCache.get(cacheKey);
+
+    let texture: HTMLCanvasElement;
+
+    if (!cached || cached.signature !== signature) {
+        texture = generateAntigravityTexture(genome, cacheKey);
+        antigravityCache.set(cacheKey, { signature, texture });
+    } else {
+        texture = cached.texture;
+    }
+
+    const baseWidth = 150;
+    const baseHeight = 170;
+    const width = baseWidth * sizeMultiplier;
+    const height = baseHeight * sizeMultiplier;
+
+    // Ethereal floating sway - slower and more dreamlike
+    const primarySway = Math.sin(elapsedTime * 0.0006 + plantId * 0.4) * 5;
+    const secondarySway = Math.sin(elapsedTime * 0.001 + plantId * 0.7) * 2.5;
+    const sway = primarySway + secondarySway;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((sway * Math.PI) / 180);
+
+    const [sr, sg, sb] = hslToRgbTuple(genome.color_hue ?? 0.78, genome.color_saturation ?? 0.9, 0.4);
+    const [lr, lg, lb] = hslToRgbTuple(genome.color_hue ?? 0.78, genome.color_saturation ?? 0.9, 0.6);
+
+    // Ethereal stem with floating effect
+    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.5);
+    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.7)`);
+    stemGradient.addColorStop(0.5, `rgba(${sr}, ${sg}, ${sb}, 0.5)`);
+    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.2)`);
+
+    ctx.strokeStyle = stemGradient;
+    ctx.lineWidth = width * 0.05;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    const stemWobble = Math.sin(elapsedTime * 0.0008) * 6;
+    ctx.bezierCurveTo(stemWobble, -height * 0.2, -stemWobble, -height * 0.4, 0, -height * 0.55);
+    ctx.stroke();
+
+    // Floating crystal-like leaves
+    for (let i = 0; i < 6; i++) {
+        const t = i / 6;
+        const leafY = -height * (0.1 + t * 0.45);
+        const leafAngle = (i * Math.PI * 2) / 6 + Math.sin(elapsedTime * 0.002 + i) * 0.3;
+        const leafSize = width * (0.1 - t * 0.03);
+
+        ctx.save();
+        ctx.translate(0, leafY);
+        ctx.rotate(leafAngle);
+
+        // Diamond-shaped leaves
+        ctx.beginPath();
+        ctx.moveTo(leafSize, 0);
+        ctx.lineTo(0, leafSize * 0.4);
+        ctx.lineTo(-leafSize * 0.3, 0);
+        ctx.lineTo(0, -leafSize * 0.4);
+        ctx.closePath();
+
+        const leafGrad = ctx.createLinearGradient(-leafSize * 0.3, 0, leafSize, 0);
+        leafGrad.addColorStop(0, `rgba(${lr}, ${lg}, ${lb}, 0.3)`);
+        leafGrad.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.6)`);
+        ctx.fillStyle = leafGrad;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // Draw the Burning Ship texture
+    const bloomY = -height * 0.72;
+    ctx.drawImage(texture, -width / 2, bloomY - height * 0.35, width, width);
+
+    // Vortex glow aura
+    const aura = ctx.createRadialGradient(0, bloomY, width * 0.1, 0, bloomY, width * 0.55);
+    aura.addColorStop(0, `rgba(${lr}, ${lg}, ${lb}, 0.25)`);
+    aura.addColorStop(0.5, `rgba(${sr}, ${sg}, ${sb}, 0.1)`);
+    aura.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0)`);
+    ctx.fillStyle = aura;
+    ctx.fillRect(-width / 2, -height, width, height);
+
+    // Floating particles rising upward (antigravity effect)
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 8; i++) {
+        const particlePhase = (elapsedTime * 0.001 + i * 0.5) % 2;
+        const particleY = bloomY + (1 - particlePhase) * height * 0.4;
+        const particleX = Math.sin(elapsedTime * 0.002 + i * 1.5) * width * 0.2;
+        const particleAlpha = Math.sin(particlePhase * Math.PI) * 0.6;
+
+        const particle = ctx.createRadialGradient(particleX, particleY, 0, particleX, particleY, 4);
+        particle.addColorStop(0, `rgba(220, 180, 255, ${particleAlpha})`);
+        particle.addColorStop(1, `rgba(180, 120, 220, 0)`);
+        ctx.beginPath();
+        ctx.arc(particleX, particleY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = particle;
+        ctx.fill();
+    }
+    ctx.restore();
+
+    if (nectarReady) {
+        const pulse = 0.65 + Math.sin(elapsedTime * 0.005) * 0.3;
+        const topY = bloomY - width * 0.25;
+
+        ctx.beginPath();
+        const glow = ctx.createRadialGradient(0, topY, 4, 0, topY, 25);
+        glow.addColorStop(0, `rgba(220, 180, 255, ${pulse})`);
+        glow.addColorStop(0.5, `rgba(180, 140, 220, ${pulse * 0.6})`);
+        glow.addColorStop(1, 'rgba(150, 100, 200, 0)');
+        ctx.arc(0, topY, 20, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(0, topY, 7, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(230, 200, 255, ${0.8 + pulse * 0.2})`;
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+/**
+ * Render a GPT plant with neural network-inspired electric cyan patterns.
+ */
+function renderGptPlant(
+    ctx: CanvasRenderingContext2D,
+    plantId: number,
+    genome: PlantGenomeData,
+    x: number,
+    y: number,
+    sizeMultiplier: number,
+    elapsedTime: number,
+    nectarReady: boolean
+): void {
+    const cacheKey = plantId;
+    const signature = getGenomeSignature(genome);
+    const cached = gptCache.get(cacheKey);
+
+    let texture: HTMLCanvasElement;
+
+    if (!cached || cached.signature !== signature) {
+        texture = generateGptTexture(genome, cacheKey);
+        gptCache.set(cacheKey, { signature, texture });
+    } else {
+        texture = cached.texture;
+    }
+
+    const baseWidth = 155;
+    const baseHeight = 175;
+    const width = baseWidth * sizeMultiplier;
+    const height = baseHeight * sizeMultiplier;
+
+    // Quick, electric sway
+    const primarySway = Math.sin(elapsedTime * 0.0009 + plantId * 0.6) * 3.5;
+    const secondarySway = Math.sin(elapsedTime * 0.0018 + plantId * 0.9) * 1.8;
+    const sway = primarySway + secondarySway;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((sway * Math.PI) / 180);
+
+    const [sr, sg, sb] = hslToRgbTuple(genome.color_hue ?? 0.52, genome.color_saturation ?? 0.9, 0.35);
+    const [lr, lg, lb] = hslToRgbTuple(genome.color_hue ?? 0.52, genome.color_saturation ?? 0.9, 0.55);
+
+    // Neural network stem with branching
+    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.5);
+    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.85)`);
+    stemGradient.addColorStop(0.5, `rgba(${sr}, ${sg}, ${sb}, 0.6)`);
+    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.25)`);
+
+    ctx.strokeStyle = stemGradient;
+    ctx.lineWidth = width * 0.055;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -height * 0.55);
+    ctx.stroke();
+
+    // Branch connections (neural network style)
+    ctx.strokeStyle = `rgba(${lr}, ${lg}, ${lb}, 0.3)`;
+    ctx.lineWidth = width * 0.02;
+    for (let i = 0; i < 4; i++) {
+        const branchY = -height * (0.15 + i * 0.1);
+        const branchLen = width * (0.15 - i * 0.02);
+        const side = i % 2 === 0 ? 1 : -1;
+
+        ctx.beginPath();
+        ctx.moveTo(0, branchY);
+        ctx.lineTo(side * branchLen, branchY - height * 0.05);
+        ctx.stroke();
+    }
+
+    // Node points along stem
+    ctx.fillStyle = `rgba(${lr}, ${lg}, ${lb}, 0.7)`;
+    for (let i = 0; i < 5; i++) {
+        const nodeY = -height * (0.1 + i * 0.1);
+        ctx.beginPath();
+        ctx.arc(0, nodeY, width * 0.025, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Draw the Tricorn fractal texture
+    const bloomY = -height * 0.73;
+    ctx.drawImage(texture, -width / 2, bloomY - height * 0.32, width, width);
+
+    // Electric glow aura
+    const aura = ctx.createRadialGradient(0, bloomY, width * 0.12, 0, bloomY, width * 0.5);
+    aura.addColorStop(0, `rgba(${lr}, ${lg}, ${lb}, 0.22)`);
+    aura.addColorStop(0.4, `rgba(${sr}, ${sg}, ${sb}, 0.1)`);
+    aura.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0)`);
+    ctx.fillStyle = aura;
+    ctx.fillRect(-width / 2, -height, width, height);
+
+    // Electric sparks
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const sparkCount = 6;
+    for (let i = 0; i < sparkCount; i++) {
+        const sparkPhase = (elapsedTime * 0.003 + i * 0.7) % (Math.PI * 2);
+        const sparkRadius = width * 0.25 + Math.sin(sparkPhase * 2) * width * 0.08;
+        const sparkAngle = (i / sparkCount) * Math.PI * 2 + elapsedTime * 0.001;
+        const sparkX = Math.cos(sparkAngle) * sparkRadius;
+        const sparkY = bloomY + Math.sin(sparkAngle) * sparkRadius * 0.5;
+        const sparkAlpha = 0.3 + Math.sin(sparkPhase) * 0.3;
+
+        const spark = ctx.createRadialGradient(sparkX, sparkY, 0, sparkX, sparkY, 3);
+        spark.addColorStop(0, `rgba(150, 255, 255, ${sparkAlpha})`);
+        spark.addColorStop(0.5, `rgba(80, 200, 240, ${sparkAlpha * 0.5})`);
+        spark.addColorStop(1, 'rgba(50, 150, 200, 0)');
+        ctx.beginPath();
+        ctx.arc(sparkX, sparkY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = spark;
+        ctx.fill();
+    }
+    ctx.restore();
+
+    if (nectarReady) {
+        const pulse = 0.7 + Math.sin(elapsedTime * 0.006) * 0.3;
+        const topY = bloomY - width * 0.28;
+
+        ctx.beginPath();
+        const glow = ctx.createRadialGradient(0, topY, 5, 0, topY, 28);
+        glow.addColorStop(0, `rgba(150, 255, 255, ${pulse})`);
+        glow.addColorStop(0.5, `rgba(100, 220, 240, ${pulse * 0.65})`);
+        glow.addColorStop(1, 'rgba(50, 180, 220, 0)');
+        ctx.arc(0, topY, 22, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(0, topY, 8, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180, 255, 255, ${0.85 + pulse * 0.15})`;
+        ctx.fill();
+
+        // Electric highlight
+        ctx.beginPath();
+        ctx.arc(-2, topY - 2, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(220, 255, 255, 0.9)';
         ctx.fill();
     }
 
