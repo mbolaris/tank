@@ -16,7 +16,10 @@
       "Bash(xargs:*)",
       "Bash(tee:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nRedesign poker UI with green felt table and improved visuals\n\n- Add green poker felt background with texture pattern and wood border\n- Move status message to header row for cleaner layout\n- Make all card areas transparent to show felt through\n- Shrink and improve fish avatar sizing with viewBox padding\n- Add centered FOLDED label overlay with z-index\n- Redesign hand result as compact inline banner\n- Add session over screen with final standings and hands played\n- Show eliminated players (OUT) with distinct styling\n- Remove generation info from avatars for cleaner look\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nMake nectar sway with parent plant and position in top 25%\n\n- Add source_plant_x and source_plant_y to nectar entity data for sway sync\n- Move PlantNectar check before Food check in entity serialization (since\n  PlantNectar extends Food)\n- Calculate sway offset in frontend using same formula as plant renderer\n- Position nectar at 20% from top of plant (within top 25%)\n- Fix nectar z-order to render just in front of parent plant\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
