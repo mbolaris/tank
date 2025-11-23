@@ -30,14 +30,14 @@ export interface PlantGenomeData {
     stem_thickness: number;
     leaf_density: number;
     fractal_type?:
-        | 'lsystem'
-        | 'mandelbrot'
-        | 'claude'
-        | 'antigravity'
-        | 'gpt'
-        | 'gpt_codex'
-        | 'sonnet'
-        | 'gemini';
+    | 'lsystem'
+    | 'mandelbrot'
+    | 'claude'
+    | 'antigravity'
+    | 'gpt'
+    | 'gpt_codex'
+    | 'sonnet'
+    | 'gemini';
     aggression: number;
     bluff_frequency: number;
     risk_tolerance: number;
@@ -180,6 +180,8 @@ export interface StatsData {
     food_count: number;
     plant_count: number;
     total_energy: number;
+    fish_energy: number;  // Total energy of all fish
+    plant_energy: number; // Total energy of all plants
     poker_stats: PokerStatsData;
 }
 

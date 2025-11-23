@@ -151,6 +151,8 @@ class StatsPayload:
     food_count: int
     plant_count: int
     total_energy: float
+    fish_energy: float  # Total energy of all fish
+    plant_energy: float  # Total energy of all plants
     poker_stats: PokerStatsPayload
 
     def to_dict(self) -> Dict[str, Any]:

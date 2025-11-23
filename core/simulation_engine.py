@@ -926,9 +926,16 @@ class SimulationEngine(BaseSimulator):
         )
 
         # Add entity counts (use cached lists)
-        stats["fish_count"] = len(self.get_fish_list())
+        fish_list = self.get_fish_list()
+        stats["fish_count"] = len(fish_list)
         stats["food_count"] = len(self.get_food_list())
         stats["plant_count"] = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
+        
+        # Add separate fish and plant energy
+        from core.entities.fractal_plant import FractalPlant
+        stats["fish_energy"] = sum(fish.energy for fish in fish_list)
+        plant_list = [e for e in self.entities_list if isinstance(e, FractalPlant)]
+        stats["plant_energy"] = sum(plant.energy for plant in plant_list)
 
         return stats
 

@@ -12,7 +12,6 @@ import { PokerLeaderboard } from './components/PokerLeaderboard';
 import PokerEvents from './components/PokerEvents';
 import { AutoEvaluateDisplay } from './components/AutoEvaluateDisplay';
 import type { PokerGameState } from './types/simulation';
-import { getEnergyColor } from './utils/energy';
 import './App.css';
 
 function App() {
@@ -143,9 +142,18 @@ function App() {
                                 <span>fish</span>
                                 <span className="meta-sub">Gen {maxGeneration}</span>
                             </span>
-                            <span className="meta-item" style={{ color: getEnergyColor(state?.stats?.total_energy ?? 0) }}>
+                            <span className="meta-item" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <span className="meta-label">Energy</span>
-                                <span className="meta-value-wide">{state?.stats?.total_energy ? Math.round(state.stats.total_energy).toLocaleString() : '—'}</span>
+                                <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ fontSize: 10 }}>🐟</span>
+                                        <span style={{ color: '#3b82f6' }}>{state?.stats?.fish_energy ? Math.round(state.stats.fish_energy).toLocaleString() : '0'}</span>
+                                    </span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ fontSize: 10 }}>🌱</span>
+                                        <span style={{ color: '#4ade80' }}>{state?.stats?.plant_energy ? Math.round(state.stats.plant_energy).toLocaleString() : '0'}</span>
+                                    </span>
+                                </span>
                             </span>
                             <span className="meta-item">
                                 <span className="meta-label">Time</span>
@@ -178,7 +186,7 @@ function App() {
                                                     const prefix = isPositive ? '+' : '';
                                                     return (
                                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
-                                                            <span style={{ fontSize: 12 }}>🌱→⚡🐟</span>
+                                                            <span style={{ fontSize: 12 }}>🌱⚡→🐟</span>
                                                             <span style={{ color, fontWeight: 600 }}>{prefix}{energyTransfer.toFixed(0)}</span>
                                                         </span>
                                                     );
