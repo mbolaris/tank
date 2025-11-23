@@ -464,10 +464,12 @@ class SimulationRunner:
         z_order = {
             "castle": 0,
             "plant": 1,
+            "fractal_plant": 1,  # Same layer as regular plants
+            "plant_nectar": 2,   # Same layer as food
             "food": 2,
-            "crab": 3,
             "fish": 4,
             "jellyfish": 5,
+            "crab": 10,  # Render crab in front of everything
         }
         entities_data.sort(key=lambda e: z_order.get(e.type, 999))
         return entities_data
