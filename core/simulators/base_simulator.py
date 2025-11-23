@@ -310,6 +310,7 @@ class BaseSimulator(ABC):
                     continue
 
                 # Check if they're close enough for poker
+                # Check if they're close enough for poker
                 if check_fish_plant_poker_collision(fish, plant, FRACTAL_PLANT_POKER_COLLISION_DISTANCE):
                     # Try to play poker
                     self.handle_fish_fractal_plant_collision(fish, plant)
