@@ -115,7 +115,7 @@ function seededRandom(seed: number): number {
 
 function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
-    const size = 140;
+    const size = 160;
     canvas.width = size;
     canvas.height = size;
 
@@ -123,9 +123,16 @@ function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): H
     if (!ctx) return canvas;
 
     const imageData = ctx.createImageData(size, size);
-    const maxIterations = 40;
-    const baseHue = genome.color_hue ?? 0.6;
-    const saturation = genome.color_saturation ?? 0.8;
+    const maxIterations = 44;
+    const baseHue = genome.color_hue ?? 0.33; // default to chlorophyll greens
+    const saturation = genome.color_saturation ?? 0.82;
+
+    // Soft petiole-inspired gradient so the Mandelbrot sits in a leafy cup
+    const cupGradient = ctx.createRadialGradient(size / 2, size * 0.65, size * 0.05, size / 2, size * 0.6, size * 0.48);
+    cupGradient.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+    cupGradient.addColorStop(1, 'rgba(0, 0, 0, 0.05)');
+    ctx.fillStyle = cupGradient;
+    ctx.fillRect(0, 0, size, size);
 
     for (let py = 0; py < size; py++) {
         const cy = (py / size) * 2.4 - 1.2; // Range [-1.2, 1.2]
@@ -143,14 +150,21 @@ function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): H
             }
 
             const mix = iter / maxIterations;
-            const hue = (baseHue + mix * 0.25 + cacheKey * 0.0001) % 1;
-            const lightness = iter === maxIterations ? 0.1 : 0.25 + mix * 0.55;
+            const hue = (baseHue + mix * 0.18 + cacheKey * 0.0001) % 1;
+            const lightness = iter === maxIterations ? 0.16 : 0.22 + mix * 0.55;
             const [r, g, b] = hslToRgbTuple(hue, saturation, lightness);
 
+            // Leaf taper mask keeps tips narrow and keeps the belly of the set plump
             const maskX = (px - size / 2) / (size / 2);
             const maskY = py / size;
-            let alpha = 1 - Math.pow(Math.abs(maskX), 1.4) * 0.55 - maskY * 0.1;
-            alpha = Math.max(0, Math.min(1, alpha));
+            const sideFalloff = Math.pow(Math.abs(maskX), 1.6) * 0.7;
+            const tipFalloff = Math.pow(maskY, 1.5) * 0.22;
+            const alphaBase = 1 - sideFalloff - tipFalloff;
+
+            // Use a second-order derivative of the orbit to carve vein-like striations
+            const veinPulse = Math.sin((zx * 8 + zy * 6) * 0.5);
+            const veinLift = Math.max(0, veinPulse) * 0.25;
+            const alpha = Math.max(0, Math.min(1, alphaBase + veinLift));
 
             const idx = (py * size + px) * 4;
             imageData.data[idx] = r;
@@ -162,19 +176,19 @@ function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): H
 
     ctx.putImageData(imageData, 0, 0);
 
-    // Mask the harsh square into an organic blossom silhouette
+    // Mask the harsh square into an organic blossom silhouette with lobed leaves
     ctx.save();
     ctx.beginPath();
     const centerX = size / 2;
-    const centerY = size * 0.58;
-    const baseRadius = size * 0.45;
-    // Create a wavy outline reminiscent of overlapping leaves
-    for (let i = 0; i <= 80; i++) {
-        const t = (i / 80) * Math.PI * 2;
-        const ripple = Math.sin(t * 3) * 0.1 + Math.sin(t * 6) * 0.05;
+    const centerY = size * 0.6;
+    const baseRadius = size * 0.46;
+    const lobes = 5;
+    for (let i = 0; i <= 160; i++) {
+        const t = (i / 160) * Math.PI * 2;
+        const ripple = Math.sin(t * lobes) * 0.12 + Math.sin(t * lobes * 2) * 0.04;
         const radius = baseRadius * (0.82 + ripple);
         const x = centerX + Math.cos(t) * radius;
-        const y = centerY + Math.sin(t) * radius * 0.9;
+        const y = centerY + Math.sin(t) * radius * 0.92;
         if (i === 0) {
             ctx.moveTo(x, y);
         } else {
@@ -186,33 +200,52 @@ function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): H
     ctx.fillStyle = '#fff';
     ctx.fill();
 
-    // Add a subtle leaf-vein impression to tie back to plants
+    // Add strong midrib and secondary veins to reinforce the plant feel
     ctx.globalCompositeOperation = 'overlay';
-    ctx.strokeStyle = `rgba(255, 255, 255, 0.08)`;
-    ctx.lineWidth = 2;
-    for (let branch = -2; branch <= 2; branch++) {
-        const offset = branch * 0.22 * baseRadius;
+    ctx.lineCap = 'round';
+    const midrib = ctx.createLinearGradient(centerX, centerY + baseRadius * 0.2, centerX, centerY - baseRadius * 0.8);
+    midrib.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+    midrib.addColorStop(1, 'rgba(255, 255, 255, 0.12)');
+    ctx.strokeStyle = midrib;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY + baseRadius * 0.3);
+    ctx.quadraticCurveTo(centerX + baseRadius * 0.05, centerY - baseRadius * 0.1, centerX, centerY - baseRadius * 0.75);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1.5;
+    for (let branch = -3; branch <= 3; branch++) {
+        const offset = branch * 0.2 * baseRadius;
         ctx.beginPath();
-        ctx.moveTo(centerX + offset * 0.2, centerY + baseRadius * 0.05);
+        ctx.moveTo(centerX, centerY - baseRadius * 0.05 + branch * 2);
         ctx.quadraticCurveTo(
-            centerX + offset * 0.6,
-            centerY - baseRadius * 0.2,
+            centerX + offset * 0.65,
+            centerY - baseRadius * (0.3 + Math.abs(branch) * 0.08),
             centerX + offset,
-            centerY - baseRadius * 0.6
+            centerY - baseRadius * (0.62 + Math.abs(branch) * 0.06)
         );
         ctx.stroke();
     }
 
-    ctx.restore();
+    // Dewy sheen on the upper leaf surface
+    ctx.globalCompositeOperation = 'lighter';
+    const dew = ctx.createRadialGradient(centerX - baseRadius * 0.15, centerY - baseRadius * 0.55, 2, centerX, centerY, baseRadius);
+    dew.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+    dew.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = dew;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - baseRadius * 0.4, baseRadius * 0.9, 0, Math.PI * 2);
+    ctx.fill();
 
     // Soft edge halo to blend into the water background
-    const halo = ctx.createRadialGradient(centerX, centerY - baseRadius * 0.3, baseRadius * 0.2, centerX, centerY, baseRadius);
+    const halo = ctx.createRadialGradient(centerX, centerY - baseRadius * 0.28, baseRadius * 0.24, centerX, centerY, baseRadius);
     halo.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
     halo.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = halo;
     ctx.globalCompositeOperation = 'lighter';
     ctx.beginPath();
-    ctx.arc(centerX, centerY - baseRadius * 0.1, baseRadius, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY - baseRadius * 0.08, baseRadius, 0, Math.PI * 2);
     ctx.fill();
 
     return canvas;
@@ -1101,48 +1134,93 @@ function renderMandelbrotPlant(
     ctx.rotate((sway * Math.PI) / 180);
 
     // Draw glowing stem anchor with a subtle vine curl
-    const [sr, sg, sb] = hslToRgbTuple(genome.color_hue ?? 0.6, genome.color_saturation ?? 0.85, 0.35);
-    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.45);
-    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.7)`);
-    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.1)`);
+    const [sr, sg, sb] = hslToRgbTuple(genome.color_hue ?? 0.35, genome.color_saturation ?? 0.9, 0.33);
+    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.55);
+    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.78)`);
+    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.12)`);
     ctx.fillStyle = stemGradient;
-    ctx.fillRect(-width * 0.07, -height * 0.95, width * 0.14, height * 0.95);
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.08, -height * 0.15);
+    ctx.quadraticCurveTo(-width * 0.12, -height * 0.4, 0, -height * 0.65);
+    ctx.quadraticCurveTo(width * 0.12, -height * 0.35, width * 0.08, -height * 0.02);
+    ctx.closePath();
+    ctx.fill();
 
-    ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, 0.35)`;
-    ctx.lineWidth = width * 0.04;
+    ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, 0.42)`;
+    ctx.lineWidth = width * 0.038;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(0, -height * 0.1);
-    ctx.quadraticCurveTo(width * 0.12, -height * 0.4, 0, -height * 0.7);
+    ctx.moveTo(0, -height * 0.08);
+    ctx.quadraticCurveTo(width * 0.16, -height * 0.38, width * 0.02, -height * 0.68);
+    ctx.quadraticCurveTo(-width * 0.18, -height * 0.45, -width * 0.02, -height * 0.18);
     ctx.stroke();
+
+    // Curling tendrils that cradle the fractal leaf
+    ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, 0.28)`;
+    ctx.lineWidth = width * 0.018;
+    const tendrilArc = height * 0.35;
+    for (let i = -1; i <= 1; i += 2) {
+        ctx.beginPath();
+        ctx.moveTo(i * width * 0.1, -height * 0.15);
+        ctx.quadraticCurveTo(i * width * 0.35, -height * 0.35, i * width * 0.12, -height * 0.65);
+        ctx.quadraticCurveTo(i * width * 0.3, -height * 0.9, i * width * 0.08, -height * 0.95);
+        ctx.stroke();
+
+        // small vine curl at the end
+        ctx.beginPath();
+        ctx.arc(i * width * 0.08, -height * 0.95, tendrilArc * 0.08, Math.PI * 0.3, Math.PI * 1.4, i === 1);
+        ctx.stroke();
+    }
 
     // Leaf fronds hugging the Mandelbrot bloom
     ctx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, 0.35)`;
     for (let i = -2; i <= 2; i++) {
-        const angle = (i * 12 * Math.PI) / 180;
-        const leafHeight = height * 0.18 + Math.abs(i) * 4;
+        const angle = (i * 11 * Math.PI) / 180;
+        const leafHeight = height * 0.19 + Math.abs(i) * 5;
         ctx.save();
-        ctx.translate(0, -height * 0.35 + i * 10);
+        ctx.translate(0, -height * 0.38 + i * 10);
         ctx.rotate(angle);
         ctx.beginPath();
         ctx.ellipse(
             width * 0.14,
-            -leafHeight * 0.15,
-            width * 0.12,
+            -leafHeight * 0.12,
+            width * 0.13,
             leafHeight,
-            12 * (Math.PI / 180),
+            10 * (Math.PI / 180),
             0,
             Math.PI * 2
         );
         ctx.fill();
+
+        // Draw a light midrib for each cradle leaf
+        ctx.strokeStyle = `rgba(${sr}, ${sg}, ${sb}, 0.55)`;
+        ctx.lineWidth = width * 0.006;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.14, -leafHeight * 0.12);
+        ctx.quadraticCurveTo(width * 0.05, -leafHeight * 0.35, -width * 0.02, -leafHeight * 0.6);
+        ctx.stroke();
         ctx.restore();
     }
 
-    // Draw Mandelbrot texture
+    // Draw Mandelbrot texture with a petiole bridge into the stem
+    ctx.save();
+    ctx.translate(0, -height * 0.04);
     ctx.drawImage(texture, -width / 2, -height, width, height);
 
+    // Petiole sheen to make the fractal bloom read as a living leaf
+    const petiole = ctx.createLinearGradient(0, -height * 0.1, 0, -height * 0.8);
+    petiole.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.3)`);
+    petiole.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.05)`);
+    ctx.strokeStyle = petiole;
+    ctx.lineWidth = width * 0.02;
+    ctx.beginPath();
+    ctx.moveTo(0, -height * 0.12);
+    ctx.quadraticCurveTo(0, -height * 0.4, 0, -height * 0.82);
+    ctx.stroke();
+    ctx.restore();
+
     // Highlight aura with a softer botanical glow
-    const [ar, ag, ab] = hslToRgbTuple(genome.color_hue ?? 0.6, genome.color_saturation ?? 0.85, 0.58);
+    const [ar, ag, ab] = hslToRgbTuple(genome.color_hue ?? 0.35, genome.color_saturation ?? 0.85, 0.58);
     const aura = ctx.createRadialGradient(0, -height * 0.8, 12, 0, -height * 0.82, width * 0.7);
     aura.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, 0.28)`);
     aura.addColorStop(0.4, `rgba(${ar}, ${ag}, ${ab}, 0.12)`);
