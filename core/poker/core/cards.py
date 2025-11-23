@@ -68,8 +68,21 @@ class Card:
         return self.rank < other.rank
 
 
+# Pre-create all 52 cards once at module load - shared card cache
+# Maps (rank_int, suit_int) -> Card to avoid repeated Enum/Card construction
+_CARD_CACHE: dict = {(r, s): Card(Rank(r), Suit(s)) for r in range(2, 15) for s in range(4)}
+
+
+def get_card(rank: int, suit: int) -> Card:
+    """Get a pre-cached Card object for the given rank and suit integers."""
+    return _CARD_CACHE[(rank, suit)]
+
+
 class Deck:
     """52-card deck for Texas Hold'em."""
+
+    # Pre-create all 52 cards once at module load to avoid repeated Enum construction
+    _TEMPLATE_DECK: List[Card] = list(_CARD_CACHE.values())
 
     def __init__(self):
         """Initialize and shuffle a standard 52-card deck."""
@@ -78,7 +91,8 @@ class Deck:
 
     def reset(self):
         """Reset and shuffle the deck."""
-        self.cards = [Card(Rank(r), Suit(s)) for r in range(2, 15) for s in range(4)]
+        # Copy from pre-created template instead of constructing new Cards
+        self.cards = self._TEMPLATE_DECK.copy()
         random.shuffle(self.cards)
 
     def deal(self, count: int = 1) -> List[Card]:
