@@ -377,18 +377,19 @@ class HumanPokerGame:
         Returns:
             True if all active players have matched the current bet
         """
-        active_players = [p for p in self.players if not p.folded and p.energy > 0]
+        players_in_hand = [p for p in self.players if not p.folded]
 
-        # If no active players or only one, betting is complete
-        if len(active_players) <= 1:
+        # If no players remain (shouldn't happen) or only one, betting is complete
+        if len(players_in_hand) <= 1:
             return True
 
-        # Get max bet
-        max_bet = max(p.current_bet for p in active_players)
+        # All non-folded bets contribute to the pot and call requirements
+        max_bet = max(p.current_bet for p in players_in_hand)
 
-        # Check if all active players have matched max bet
+        # Players who can still act (have energy) must match the highest bet
+        active_players = [p for p in players_in_hand if p.energy > 0]
         for player in active_players:
-            if player.current_bet < max_bet:
+            if player.current_bet + 1e-6 < max_bet:  # small epsilon for float safety
                 return False
 
         # Pre-flop special case: big blind gets option to raise even if all call
