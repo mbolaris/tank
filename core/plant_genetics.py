@@ -108,13 +108,22 @@ class PlantGenome:
     def create_random(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a random L-system plant genome."""
         rng = rng or random
+
+        # Strong bias toward verdant hues so most new plants start green, while
+        # still leaving room for occasional surprise palettes in the initial
+        # population.
+        if rng.random() < 0.85:
+            color_hue = rng.uniform(0.25, 0.45)  # Green range
+        else:
+            color_hue = rng.uniform(0.0, 1.0)  # Rare off-green seedling
+
         g = cls(
             axiom="F",
             angle=rng.uniform(15.0, 45.0),
             length_ratio=rng.uniform(0.5, 0.85),
             branch_probability=rng.uniform(0.6, 1.0),
             curve_factor=rng.uniform(0.0, 0.3),
-            color_hue=rng.uniform(0.25, 0.45),  # Green range
+            color_hue=color_hue,
             color_saturation=rng.uniform(0.4, 1.0),
             stem_thickness=rng.uniform(0.5, 1.5),
             leaf_density=rng.uniform(0.3, 1.0),
@@ -375,6 +384,16 @@ class PlantGenome:
                 val += rng.gauss(0, mutation_strength * (max_val - min_val))
             return max(min_val, min(max_val, val))
 
+        def mutate_color(val: float, min_val: float, max_val: float) -> float:
+            # Default drift within the variant's palette
+            val = mutate_float(val, min_val, max_val)
+
+            # Rarely allow a full-spectrum mutation so lineages can explore new hues
+            if rng.random() < mutation_rate * 0.5:
+                val = rng.uniform(0.0, 1.0)
+
+            return max(0.0, min(1.0, val))
+
         # Determine color mutation range based on variant to preserve identity
         if parent.fractal_type == "claude":
             color_min, color_max = 0.05, 0.18  # Golden range
@@ -399,7 +418,7 @@ class PlantGenome:
             length_ratio=mutate_float(parent.length_ratio, 0.5, 0.85),
             branch_probability=mutate_float(parent.branch_probability, 0.6, 1.0),
             curve_factor=mutate_float(parent.curve_factor, 0.0, 0.3),
-            color_hue=mutate_float(parent.color_hue, color_min, color_max),
+            color_hue=mutate_color(parent.color_hue, color_min, color_max),
             color_saturation=mutate_float(parent.color_saturation, 0.4, 1.0),
             stem_thickness=mutate_float(parent.stem_thickness, 0.5, 1.5),
             leaf_density=mutate_float(parent.leaf_density, 0.3, 1.0),
