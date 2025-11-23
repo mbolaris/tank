@@ -112,7 +112,7 @@ class PlantGenome:
         # Strong bias toward verdant hues so most new plants start green, while
         # still leaving room for occasional surprise palettes in the initial
         # population.
-        if rng.random() < 0.85:
+        if rng.random() < 0.95:
             color_hue = rng.uniform(0.25, 0.45)  # Green range
         else:
             color_hue = rng.uniform(0.0, 1.0)  # Rare off-green seedling
@@ -193,8 +193,8 @@ class PlantGenome:
         g._production_rules = [
             ("X", "F[+X][++X]F[-X][--X]FX", 0.55),
             ("X", "F[+X][-X]F[+FX][-FX]", 0.45),
-            ("F", "FF", 0.65),
-            ("F", "Ff", 0.35),
+            ("X", "F[+X][-X]F[+FX][-FX]", 0.45),
+            ("F", "FF", 1.0),
         ]
         return g
 
