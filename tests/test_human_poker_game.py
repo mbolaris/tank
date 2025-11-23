@@ -45,3 +45,46 @@ def test_showdown_splits_pot_on_tie():
     assert game.players[0].energy == 100.0
     assert game.players[1].energy == 100.0
     assert "split" in game.message.lower()
+
+
+def test_all_in_bet_still_requires_action_from_opponent():
+    """An all-in bettor should not short-circuit the betting round."""
+
+    game = HumanPokerGame(
+        game_id="test", human_energy=100.0, ai_fish=[{"name": "AI One"}, {"name": "AI Two"}, {"name": "AI Three"}]
+    )
+
+    human = game.players[0]
+    aggressor = game.players[1]
+
+    # Only human and aggressor contest the pot
+    for player in game.players:
+        player.folded = player not in (human, aggressor)
+        player.current_bet = 0.0
+        player.total_bet = 0.0
+        player.energy = 100.0
+
+    game.current_round = BettingRound.PRE_FLOP
+    game.big_blind_has_option = False
+
+    # Aggressor jams all their chips; human posted a smaller bet
+    aggressor.current_bet = 100.0
+    aggressor.total_bet = 100.0
+    aggressor.energy = 0.0
+
+    human.current_bet = 10.0
+    human.total_bet = 10.0
+    human.energy = 90.0
+
+    game.pot = aggressor.current_bet + human.current_bet
+    game.actions_this_round = 1  # Aggressor acted
+    game.current_player_index = 1  # Aggressor just acted; advance to next player
+
+    # Betting should not be considered complete yet because the human owes a call decision
+    assert not game._is_betting_complete()
+
+    game._next_player()
+
+    assert game.current_round == BettingRound.PRE_FLOP
+    assert game.current_player_index == 0  # Human's turn
+    assert game._get_call_amount(0) == 90.0
