@@ -41,32 +41,56 @@ logger = logging.getLogger(__name__)
 
 
 class AgentsWrapper:
-    """Wrapper to provide a group-like API for managing entities."""
+    """Wrapper to provide a group-like API for managing entities.
 
-    def __init__(self, entities_list: List):
-        self._entities = entities_list
+    The wrapper can be initialized with either a raw list of entities
+    (for simple, isolated tests) or a SimulationEngine instance to
+    ensure adds/removals stay in sync with spatial grids and caches.
+    """
+
+    def __init__(self, entities_or_engine: Any):
+        # Support both legacy list usage and engine-aware management
+        if hasattr(entities_or_engine, "add_entity") and hasattr(
+            entities_or_engine, "entities_list"
+        ):
+            self._engine = entities_or_engine
+            self._entities = entities_or_engine.entities_list
+        else:
+            self._engine = None
+            self._entities = entities_or_engine
 
     def add(self, *entities):
-        """Add entities to the list."""
-        for entity in entities:
-            if entity not in self._entities:
-                self._entities.append(entity)
-                # Track this group in the entity for kill() method
-                if hasattr(entity, "add_internal"):
-                    entity.add_internal(self)
-
-    def remove(self, *entities):
-        """Remove entities from the list."""
+        """Add entities to the list or engine-aware collection."""
         for entity in entities:
             if entity in self._entities:
+                if hasattr(entity, "add_internal"):
+                    entity.add_internal(self)
+                continue
+
+            if self._engine is not None:
+                self._engine.add_entity(entity)
+            else:
+                self._entities.append(entity)
+            if hasattr(entity, "add_internal"):
+                entity.add_internal(self)
+
+    def remove(self, *entities):
+        """Remove entities from the list or engine-aware collection."""
+        for entity in entities:
+            if entity not in self._entities:
+                continue
+            if self._engine is not None:
+                self._engine.remove_entity(entity)
+            else:
                 self._entities.remove(entity)
 
     def empty(self):
-        """Remove all entities from the list."""
-        self._entities.clear()
+        """Remove all entities from the collection."""
+        for entity in list(self._entities):
+            self.remove(entity)
 
     def __contains__(self, entity):
-        """Check if entity is in the list."""
+        """Check if entity is in the collection."""
         return entity in self._entities
 
     def __iter__(self):
@@ -105,13 +129,13 @@ class SimulationEngine(BaseSimulator):
         self.headless = headless
         self.rng: random.Random = rng or random.Random()
         self.entities_list: List[entities.Agent] = []
+        self.agents = AgentsWrapper(self)
         self.environment: Optional[environment.Environment] = None
         self.time_system: TimeSystem = TimeSystem()
         self.start_time: float = time.time()
         self.poker_events: deque = deque(
             maxlen=MAX_POKER_EVENTS
         )  # Recent poker events (auto-trimming)
-        self._agents_wrapper: Optional[AgentsWrapper] = None
         self.last_emergency_spawn_frame: int = (
             -EMERGENCY_SPAWN_COOLDOWN
         )  # Allow immediate first spawn
@@ -124,6 +148,7 @@ class SimulationEngine(BaseSimulator):
         # Performance: Cached entity type lists to avoid repeated filtering
         self._cached_fish_list: Optional[List[entities.Fish]] = None
         self._cached_food_list: Optional[List[entities.Food]] = None
+        self._cache_dirty: bool = True
         # Fractal plant system
         self.root_spot_manager: Optional[RootSpotManager] = None
 
@@ -166,7 +191,8 @@ class SimulationEngine(BaseSimulator):
         population = create_initial_population(
             self.environment, self.ecosystem, SCREEN_WIDTH, SCREEN_HEIGHT, rng=self.rng
         )
-        self.entities_list.extend(population)
+        for entity in population:
+            self.agents.add(entity)
 
     def _block_root_spots_with_obstacles(self) -> None:
         """Prevent plants from spawning where static obstacles live."""
@@ -331,6 +357,8 @@ class SimulationEngine(BaseSimulator):
 
     def add_entity(self, entity: entities.Agent) -> None:
         """Add an entity to the simulation."""
+        if hasattr(entity, "add_internal"):
+            entity.add_internal(self.agents)
         self.entities_list.append(entity)
         # Add to spatial grid incrementally
         if self.environment:
