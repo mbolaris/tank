@@ -15,7 +15,7 @@ export interface PlantGenomeData {
     color_saturation: number;
     stem_thickness: number;
     leaf_density: number;
-    fractal_type?: 'lsystem' | 'mandelbrot';
+    fractal_type?: 'lsystem' | 'mandelbrot' | 'claude';
     production_rules: Array<{
         input: string;
         output: string;
@@ -67,6 +67,7 @@ interface PlantRenderCache {
 // Module-level cache keyed by plant id to avoid flickering when plants drift
 const plantCache = new Map<number, PlantRenderCache>();
 const mandelbrotCache = new Map<number, MandelbrotCacheEntry>();
+const claudeCache = new Map<number, MandelbrotCacheEntry>();
 
 /**
  * Create a stable signature for a genome so cache invalidation happens when traits change.
@@ -199,6 +200,158 @@ function generateMandelbrotTexture(genome: PlantGenomeData, cacheKey: number): H
     ctx.globalCompositeOperation = 'lighter';
     ctx.beginPath();
     ctx.arc(centerX, centerY - baseRadius * 0.1, baseRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    return canvas;
+}
+
+/**
+ * Generate a Claude Julia set texture with golden spiral aesthetics.
+ * Uses a Julia set with parameters that create elegant spiraling patterns,
+ * combined with golden ratio proportions and warm amber coloring.
+ */
+function generateClaudeTexture(genome: PlantGenomeData, cacheKey: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const size = 160;
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const imageData = ctx.createImageData(size, size);
+    const maxIterations = 50;
+    const baseHue = genome.color_hue ?? 0.11; // Golden/amber
+    const saturation = genome.color_saturation ?? 0.85;
+
+    // Golden ratio for aesthetic proportions
+    const phi = 1.618033988749895;
+
+    // Julia set constants for beautiful spiral patterns
+    // These parameters create elegant double-spiral structures
+    const cReal = -0.4 + (cacheKey % 100) * 0.001;
+    const cImag = 0.6 + (cacheKey % 50) * 0.002;
+
+    for (let py = 0; py < size; py++) {
+        const zy0 = (py / size) * 3.2 - 1.6; // Range [-1.6, 1.6]
+        for (let px = 0; px < size; px++) {
+            const zx0 = (px / size) * 3.2 - 1.6; // Range [-1.6, 1.6]
+            let zx = zx0;
+            let zy = zy0;
+            let iter = 0;
+
+            // Julia set iteration
+            while (zx * zx + zy * zy <= 4 && iter < maxIterations) {
+                const temp = zx * zx - zy * zy + cReal;
+                zy = 2 * zx * zy + cImag;
+                zx = temp;
+                iter++;
+            }
+
+            // Smooth coloring using continuous potential
+            let smoothIter = iter;
+            if (iter < maxIterations) {
+                const logZn = Math.log(zx * zx + zy * zy) / 2;
+                const nu = Math.log(logZn / Math.log(2)) / Math.log(2);
+                smoothIter = iter + 1 - nu;
+            }
+
+            const mix = smoothIter / maxIterations;
+
+            // Golden color palette with warm gradients
+            // Creates flowing amber to gold to cream transitions
+            let hue: number, lightness: number;
+            if (iter === maxIterations) {
+                // Inside the Julia set - deep golden core
+                hue = baseHue;
+                lightness = 0.15 + Math.sin(zx * 5) * 0.05;
+            } else {
+                // Outside - spiral arms with golden gradients
+                hue = (baseHue + mix * 0.12 + Math.sin(mix * Math.PI * 2) * 0.04) % 1;
+                lightness = 0.3 + mix * 0.5;
+            }
+
+            const [r, g, b] = hslToRgbTuple(hue, saturation, lightness);
+
+            // Organic mask - flower-like silhouette with golden ratio proportions
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const dx = (px - centerX) / (size / 2);
+            const dy = (py - centerY) / (size / 2);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            // Fibonacci-inspired petal shape (5 petals for phi relation)
+            const petalCount = 5;
+            const petalWave = Math.cos(angle * petalCount) * 0.15;
+            const spiralWave = Math.sin(angle * 3 + dist * 8) * 0.08;
+            const maxRadius = 0.85 + petalWave + spiralWave;
+
+            let alpha = 1 - Math.pow(dist / maxRadius, 2.5);
+            alpha = Math.max(0, Math.min(1, alpha));
+
+            // Add radial fade for soft edges
+            if (dist > maxRadius * 0.7) {
+                alpha *= 1 - (dist - maxRadius * 0.7) / (maxRadius * 0.3);
+            }
+
+            const idx = (py * size + px) * 4;
+            imageData.data[idx] = r;
+            imageData.data[idx + 1] = g;
+            imageData.data[idx + 2] = b;
+            imageData.data[idx + 3] = Math.floor(Math.max(0, alpha) * 255);
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Add inner glow effect for depth
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const glowRadius = size * 0.35;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    const innerGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
+    innerGlow.addColorStop(0, 'rgba(255, 240, 200, 0.3)');
+    innerGlow.addColorStop(0.5, 'rgba(255, 220, 150, 0.15)');
+    innerGlow.addColorStop(1, 'rgba(255, 200, 100, 0)');
+    ctx.fillStyle = innerGlow;
+    ctx.fillRect(0, 0, size, size);
+    ctx.restore();
+
+    // Add sparkle points using golden angle distribution
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 degrees
+
+    for (let i = 0; i < 12; i++) {
+        const angle = i * goldenAngle;
+        const radius = size * 0.2 + (i / 12) * size * 0.25;
+        const sparkleX = centerX + Math.cos(angle) * radius;
+        const sparkleY = centerY + Math.sin(angle) * radius;
+        const sparkleSize = 2 + Math.sin(i * phi) * 1.5;
+
+        const sparkleGrad = ctx.createRadialGradient(sparkleX, sparkleY, 0, sparkleX, sparkleY, sparkleSize * 2);
+        sparkleGrad.addColorStop(0, 'rgba(255, 255, 240, 0.6)');
+        sparkleGrad.addColorStop(0.5, 'rgba(255, 230, 180, 0.3)');
+        sparkleGrad.addColorStop(1, 'rgba(255, 200, 120, 0)');
+
+        ctx.beginPath();
+        ctx.arc(sparkleX, sparkleY, sparkleSize * 2, 0, Math.PI * 2);
+        ctx.fillStyle = sparkleGrad;
+        ctx.fill();
+    }
+    ctx.restore();
+
+    // Soft outer halo
+    const halo = ctx.createRadialGradient(centerX, centerY, size * 0.3, centerX, centerY, size * 0.5);
+    halo.addColorStop(0, 'rgba(255, 220, 150, 0.1)');
+    halo.addColorStop(1, 'rgba(255, 200, 100, 0)');
+    ctx.fillStyle = halo;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, size * 0.5, 0, Math.PI * 2);
     ctx.fill();
 
     return canvas;
@@ -439,6 +592,19 @@ export function renderFractalPlant(
     const fractalType = genome.fractal_type ?? 'lsystem';
     if (fractalType === 'mandelbrot') {
         renderMandelbrotPlant(
+            ctx,
+            plantId,
+            genome,
+            x,
+            y,
+            sizeMultiplier,
+            elapsedTime,
+            nectarReady
+        );
+        return;
+    }
+    if (fractalType === 'claude') {
+        renderClaudePlant(
             ctx,
             plantId,
             genome,
@@ -731,6 +897,196 @@ function renderMandelbrotPlant(
         ctx.beginPath();
         ctx.arc(0, topY, 7, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 240, 200, ${0.7 + pulse * 0.3})`;
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+/**
+ * Render a Claude plant with golden Julia set spiral aesthetics.
+ * Features warm amber colors, Fibonacci spiral arrangement, and glowing particle effects.
+ */
+function renderClaudePlant(
+    ctx: CanvasRenderingContext2D,
+    plantId: number,
+    genome: PlantGenomeData,
+    x: number,
+    y: number,
+    sizeMultiplier: number,
+    elapsedTime: number,
+    nectarReady: boolean
+): void {
+    const cacheKey = plantId;
+    const signature = getGenomeSignature(genome);
+    const cached = claudeCache.get(cacheKey);
+
+    let texture: HTMLCanvasElement;
+
+    if (!cached || cached.signature !== signature) {
+        texture = generateClaudeTexture(genome, cacheKey);
+        claudeCache.set(cacheKey, { signature, texture });
+    } else {
+        texture = cached.texture;
+    }
+
+    const baseWidth = 160;
+    const baseHeight = 180;
+    const width = baseWidth * sizeMultiplier;
+    const height = baseHeight * sizeMultiplier;
+
+    // Golden ratio for aesthetic calculations
+    const phi = 1.618033988749895;
+
+    // Elegant swaying motion using multiple harmonics
+    const primarySway = Math.sin(elapsedTime * 0.0007 + plantId * 0.5) * 4;
+    const secondarySway = Math.sin(elapsedTime * 0.0013 + plantId * 0.8) * 2;
+    const breathe = 1 + Math.sin(elapsedTime * 0.001 + plantId * 0.3) * 0.02;
+    const sway = primarySway + secondarySway;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((sway * Math.PI) / 180);
+
+    // Get colors from genome
+    const [sr, sg, sb] = hslToRgbTuple(genome.color_hue ?? 0.11, genome.color_saturation ?? 0.85, 0.4);
+    const [lr, lg, lb] = hslToRgbTuple(genome.color_hue ?? 0.11, genome.color_saturation ?? 0.85, 0.55);
+
+    // Draw elegant curved stem with golden spiral influence
+    const stemGradient = ctx.createLinearGradient(0, 0, 0, -height * 0.5);
+    stemGradient.addColorStop(0, `rgba(${sr}, ${sg}, ${sb}, 0.85)`);
+    stemGradient.addColorStop(0.5, `rgba(${sr}, ${sg}, ${sb}, 0.6)`);
+    stemGradient.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.2)`);
+
+    // Main stem with slight curve
+    ctx.strokeStyle = stemGradient;
+    ctx.lineWidth = width * 0.06;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    const stemCurve = Math.sin(elapsedTime * 0.0005) * 5;
+    ctx.quadraticCurveTo(stemCurve, -height * 0.3, 0, -height * 0.55);
+    ctx.stroke();
+
+    // Inner stem highlight
+    ctx.strokeStyle = `rgba(${lr}, ${lg}, ${lb}, 0.4)`;
+    ctx.lineWidth = width * 0.025;
+    ctx.beginPath();
+    ctx.moveTo(0, -height * 0.05);
+    ctx.quadraticCurveTo(stemCurve * 0.8, -height * 0.28, 0, -height * 0.52);
+    ctx.stroke();
+
+    // Fibonacci spiral leaves along stem using golden angle
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 degrees
+    const leafCount = 8;
+
+    for (let i = 0; i < leafCount; i++) {
+        const t = i / leafCount;
+        const leafY = -height * (0.1 + t * 0.4);
+        const leafAngle = i * goldenAngle;
+        const leafSize = width * (0.12 - t * 0.04) * breathe;
+        const leafX = stemCurve * t;
+
+        // Animate leaf sway individually
+        const leafSway = Math.sin(elapsedTime * 0.002 + i * phi) * 0.2;
+
+        ctx.save();
+        ctx.translate(leafX, leafY);
+        ctx.rotate(leafAngle + leafSway);
+
+        // Draw golden leaf
+        const leafGrad = ctx.createRadialGradient(leafSize * 0.5, 0, 0, leafSize * 0.5, 0, leafSize);
+        leafGrad.addColorStop(0, `rgba(${lr}, ${lg}, ${lb}, 0.7)`);
+        leafGrad.addColorStop(1, `rgba(${sr}, ${sg}, ${sb}, 0.3)`);
+
+        ctx.fillStyle = leafGrad;
+        ctx.beginPath();
+        ctx.ellipse(leafSize * 0.5, 0, leafSize, leafSize * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Leaf vein
+        ctx.strokeStyle = `rgba(255, 240, 200, 0.3)`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(leafSize * 0.9, 0);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    // Draw the Julia set bloom texture
+    const bloomY = -height * 0.75;
+    const bloomScale = breathe;
+    ctx.save();
+    ctx.translate(0, bloomY);
+    ctx.scale(bloomScale, bloomScale);
+    ctx.drawImage(texture, -width / 2, -height * 0.35, width, width);
+    ctx.restore();
+
+    // Animated sparkle particles in Fibonacci pattern
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const sparkleTime = elapsedTime * 0.001;
+
+    for (let i = 0; i < 8; i++) {
+        const angle = i * goldenAngle + sparkleTime * 0.5;
+        const baseRadius = width * 0.25 + (i / 8) * width * 0.15;
+        const radiusPulse = Math.sin(elapsedTime * 0.003 + i * phi) * width * 0.05;
+        const radius = baseRadius + radiusPulse;
+
+        const sparkleX = Math.cos(angle) * radius;
+        const sparkleY = bloomY + Math.sin(angle) * radius * 0.6;
+        const sparkleAlpha = 0.4 + Math.sin(elapsedTime * 0.005 + i * 2) * 0.3;
+        const sparkleSize = 3 + Math.sin(elapsedTime * 0.004 + i) * 1.5;
+
+        const sparkle = ctx.createRadialGradient(sparkleX, sparkleY, 0, sparkleX, sparkleY, sparkleSize);
+        sparkle.addColorStop(0, `rgba(255, 250, 230, ${sparkleAlpha})`);
+        sparkle.addColorStop(0.5, `rgba(255, 230, 180, ${sparkleAlpha * 0.5})`);
+        sparkle.addColorStop(1, `rgba(255, 200, 120, 0)`);
+
+        ctx.beginPath();
+        ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+        ctx.fillStyle = sparkle;
+        ctx.fill();
+    }
+    ctx.restore();
+
+    // Outer glow aura
+    const [ar, ag, ab] = hslToRgbTuple(genome.color_hue ?? 0.11, genome.color_saturation ?? 0.85, 0.6);
+    const aura = ctx.createRadialGradient(0, bloomY, width * 0.15, 0, bloomY, width * 0.6);
+    aura.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, 0.2)`);
+    aura.addColorStop(0.5, `rgba(${ar}, ${ag}, ${ab}, 0.08)`);
+    aura.addColorStop(1, `rgba(${ar}, ${ag}, ${ab}, 0)`);
+    ctx.fillStyle = aura;
+    ctx.fillRect(-width / 2, -height, width, height);
+
+    // Nectar ready indicator
+    if (nectarReady) {
+        const pulse = 0.7 + Math.sin(elapsedTime * 0.006) * 0.3;
+        const topY = bloomY - width * 0.3;
+
+        // Golden nectar glow
+        ctx.beginPath();
+        const glow = ctx.createRadialGradient(0, topY, 5, 0, topY, 30);
+        glow.addColorStop(0, `rgba(255, 245, 200, ${pulse})`);
+        glow.addColorStop(0.4, `rgba(255, 225, 150, ${pulse * 0.7})`);
+        glow.addColorStop(0.7, `rgba(255, 200, 100, ${pulse * 0.4})`);
+        glow.addColorStop(1, 'rgba(255, 180, 80, 0)');
+        ctx.arc(0, topY, 25, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // Nectar droplet with sparkle
+        ctx.beginPath();
+        ctx.arc(0, topY, 8, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 245, 210, ${0.85 + pulse * 0.15})`;
+        ctx.fill();
+
+        // Highlight
+        ctx.beginPath();
+        ctx.arc(-2, topY - 2, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 250, 0.9)';
         ctx.fill();
     }
 

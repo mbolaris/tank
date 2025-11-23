@@ -243,6 +243,59 @@ class PlantGenome:
         return genome
 
     @classmethod
+    def create_claude_variant(
+        cls, rng: Optional["random.Random"] = None
+    ) -> "PlantGenome":
+        """Create a Claude-inspired plant genome with golden spiral aesthetics.
+
+        The Claude variant features a Julia set fractal with golden/amber colors,
+        representing warmth, creativity, and thoughtful analysis. It uses the
+        golden ratio in its visual proportions and has enhanced energy traits
+        reflecting Claude's helpful and efficient nature.
+
+        Visual characteristics:
+        - Golden/amber color spectrum (warm, approachable)
+        - Julia set spiral patterns (elegant mathematical beauty)
+        - Fibonacci-inspired leaf arrangements
+        - Glowing particle effects (representing ideas)
+        """
+        import random as random_module
+
+        rng = rng or random_module
+
+        # Golden ratio for proportions
+        phi = 1.618033988749895
+
+        genome = cls(
+            axiom="F",
+            # Golden angle (137.5 degrees) for Fibonacci spiral aesthetics
+            angle=rng.uniform(32.0, 42.0),
+            # Length ratio based on inverse golden ratio
+            length_ratio=rng.uniform(0.58, 0.68),
+            branch_probability=rng.uniform(0.75, 0.95),
+            # Higher curve factor for elegant spiraling
+            curve_factor=rng.uniform(0.15, 0.28),
+            # Golden/amber spectrum (warm, creative)
+            color_hue=rng.uniform(0.08, 0.14),
+            color_saturation=rng.uniform(0.75, 0.95),
+            stem_thickness=rng.uniform(0.85, 1.2),
+            leaf_density=rng.uniform(0.5, 0.85),
+            # Balanced poker traits (thoughtful, analytical)
+            aggression=rng.uniform(0.35, 0.55),
+            bluff_frequency=rng.uniform(0.08, 0.22),
+            risk_tolerance=rng.uniform(0.4, 0.65),
+            # Enhanced energy traits (helpful, efficient)
+            base_energy_rate=rng.uniform(0.025, 0.048),
+            growth_efficiency=rng.uniform(1.0, 1.45),
+            nectar_threshold_ratio=rng.uniform(0.55, 0.8),
+            fractal_type="claude",
+        )
+
+        genome._production_rules = genome._generate_default_rules()
+
+        return genome
+
+    @classmethod
     def from_parent(
         cls,
         parent: "PlantGenome",
