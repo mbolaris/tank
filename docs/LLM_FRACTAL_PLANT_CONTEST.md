@@ -6,10 +6,12 @@ The Fish Tank features a unique "beauty contest" where different LLM-themed frac
 
 ## Contest Objectives
 
-1. **Visual Excellence**: Create the most beautiful, distinctive plant that stands out in the ecosystem
-2. **Botanical Authenticity**: Plants should look like actual organic vegetation, not abstract math
-3. **Survival Fitness**: Plants must thrive through energy collection, nectar production, and poker battles
-4. **Unique Identity**: Each LLM variant should be instantly recognizable by its visual signature
+1. **Visual Excellence**: Create the most beautiful, distinctive plant that stands out in the ecosystem.
+2. **Botanical Authenticity**: Leaves, stems, roots, and buds should read as plant tissue—avoid "clouds of pixels" that have no trunk.
+3. **Survival Fitness**: Thrive through energy collection, nectar production, and poker battles; beauty should emerge from growth, not static screenshots.
+4. **Unique Identity**: Each LLM variant must own a palette, branching rhythm, and motion style no other model uses.
+5. **Readable Silhouette**: Even when zoomed out, the outline should communicate plant structure (fern fronds, banyan canopy, rosette base, etc.).
+6. **Self-Justifying Rules**: Production rules should explain visible features (e.g., bracket-heavy rules for aerial roots, alternating turns for leaf rosettes).
 
 ## How the Contest Works
 
@@ -57,6 +59,42 @@ X -> F-[[X]+X]+F[+FX]-X  (35% - secondary upright growth)
 X -> FX                   (10% - simple elongation)
 F -> FF                   (100% - stem extension)
 ```
+
+---
+
+### GPT-5.1 Codex (NEW - Recursive Banyan Scribe)
+**Philosophy**: A banyan grove that writes its own code—layered canopies stitched together by aerial roots and subtle syntax glyphs.
+
+| Attribute | Value |
+|-----------|-------|
+| **Fractal Type** | Stochastic L-System (aerial root recursion) |
+| **Color Palette** | Cool jade trunks (hue: 0.30–0.40) with neon ink highlights (0.55–0.60) |
+| **Visual Style** | Tiered canopies with looping roots that reconnect to the soil and trunk | 
+| **Special Features** | Woven bark striations hinting at brackets/semicolons, oscillating leaf fans, nectar nodes pulsing like cursor blinks |
+| **Poker Style** | Patient setup with sharp counter-bluffs |
+
+**Design Rationale**: To stay plant-first, Codex leans on banyan cues: downward roots, wide crown plates, and repeating buttress arcs. The jade-and-ink palette separates it from the Sonnet warm tones and GPT cyan mesh while the bracket-like bark ties back to "coding" DNA without losing botanical readability.
+
+**L-System Production Rules**:
+```
+Axiom: X
+X -> F[+X][-X]R[&FX]        (40% - build mirrored canopy lobes plus an aerial root)
+X -> F[+R][-R]X             (30% - root-first growth that loops into the next layer)
+X -> FF[+FX][-FX]           (20% - elongation with small leaf fans)
+R -> F[&F]f                 (10% - aerial root that drapes downward before budding)
+F -> FF                     (100% - trunk/branch extension)
+```
+
+**Implementation Checklist** (so judges know the Recursive Banyan spec is honored):
+- Spawn using the above axiom/rules with `angle` noise ±3° to vary canopy fans without breaking symmetry.
+- Render bark striations with alternating 1px/2px lines to evoke `;`/`}` motifs while keeping trunks matte jade.
+- Give aerial roots slightly darker saturation than branches so they read as separate organs when they reattach to soil.
+- Keep nectar pulses localized to branch junctions (never whole-branch glows) to preserve the banyan silhouette.
+
+**Rendering Notes**:
+- Draw bark striations as alternating thin/dense strokes to mimic `;` and `}` shapes without literal text overlays.
+- Vary downward bend (`&`) noise slightly so roots arc naturally toward the substrate before curving back up.
+- Pulse nectar nodes at branch junctions with a brief neon accent to suggest a "cursor" heartbeat.
 
 ---
 
@@ -122,6 +160,20 @@ F -> FF                   (100% - stem extension)
 | **Visual Style** | Standard botanical branching with leaves |
 | **Special Features** | Dynamic branching, elliptical leaves with veins |
 | **Poker Style** | Variable (randomized traits) |
+
+---
+
+## LLM Playbooks for Plant-First Competition
+
+- **Claude (Golden Spiral)**: Borrow sunflower phyllotaxis for leaf placement, add Fibonacci-inspired petal clusters at branch tips, and animate bloom pulses that travel along spiral arms.
+- **GPT (Neural Network)**: Turn node graphs into leaf whorls joined by vein conduits; let electrical sparks stay inside midribs so the silhouette remains tree-like instead of nebulous.
+- **Antigravity (Ethereal Vortex)**: Counterweight the inverted swirl with a visible root crown and dangling seed pods; constrain vortex trails to leaf edges so the plant still reads as foliage.
+- **Mandelbrot (Mathematical Beauty)**: Soften jagged boundaries into lobed leaves, then fade iteration colors into vein gradients; treat minibrots as budding calyxes rather than raw set outlines.
+- **Sonnet 4.5 (Botanical Champion)**: Keep the L-system stochastic but limit deviation so fronds overlap naturally; slight leaf tip noise prevents the "perfect clone" look.
+- **Gemini 3Pro (Cosmic Multimodal)**: Place nebula glows at node junctions, not across entire branches; punctuate with tiny star blossoms that twinkle on a beat synced to nectar readiness.
+- **GPT-5.1 Codex (Recursive Banyan)**: Alternate canopy fans and descending roots; carve subtle bracket/semicolon striations into bark while keeping leaves broad and matte so the syntax motif never overwhelms plant texture.
+
+These playbooks ensure every LLM remains legibly botanical while expressing a unique identity that the judges can immediately recognize.
 
 ---
 
