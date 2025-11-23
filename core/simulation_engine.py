@@ -136,6 +136,7 @@ class SimulationEngine(BaseSimulator):
             "antigravity",
             "gpt",
             "sonnet",
+            "gemini",
             "lsystem",
         ]
 
@@ -220,6 +221,7 @@ class SimulationEngine(BaseSimulator):
             "antigravity": PlantGenome.create_antigravity_variant,
             "gpt": PlantGenome.create_gpt_variant,
             "sonnet": PlantGenome.create_sonnet_variant,
+            "gemini": PlantGenome.create_gemini_variant,
             "lsystem": PlantGenome.create_random,
         }
 

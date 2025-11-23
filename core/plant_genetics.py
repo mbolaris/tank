@@ -19,6 +19,7 @@ class PlantGenome:
     - claude: Golden Julia set spirals (amber/gold)
     - antigravity: Inverted growth patterns (violet)
     - gpt: Neural network-inspired patterns (cyan/electric blue)
+    - gemini: Cosmic botanical patterns (deep indigo/violet)
     """
 
     # L-System parameters
@@ -236,6 +237,42 @@ class PlantGenome:
         return g
 
     @classmethod
+    def create_gemini_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+        """Create a Gemini 3Pro plant - cosmic botanical with deep indigo/violet hues.
+
+        This variant features highly complex, "multimodal" branching patterns that
+        represent the model's ability to process diverse information types.
+        The aesthetic is "Deep Space" - dark, rich colors with high saturation.
+        """
+        rng = rng or random
+        g = cls(
+            axiom="X",
+            angle=rng.uniform(20.0, 30.0),
+            length_ratio=rng.uniform(0.6, 0.7),
+            branch_probability=rng.uniform(0.85, 0.98),
+            curve_factor=rng.uniform(0.1, 0.25),
+            color_hue=rng.uniform(0.75, 0.82),  # Deep Indigo/Violet range
+            color_saturation=rng.uniform(0.8, 1.0),
+            stem_thickness=rng.uniform(0.8, 1.2),
+            leaf_density=rng.uniform(0.7, 0.9),
+            aggression=rng.uniform(0.4, 0.6),
+            bluff_frequency=rng.uniform(0.1, 0.3),
+            risk_tolerance=rng.uniform(0.4, 0.7),
+            base_energy_rate=rng.uniform(0.025, 0.045),
+            growth_efficiency=rng.uniform(1.0, 1.4),
+            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
+            fractal_type="gemini",
+        )
+        # Complex, multimodal branching rules
+        g._production_rules = [
+            ("X", "F-[[X]+X]+F[+FX]-X", 0.5),  # Standard fern-like
+            ("X", "F[+X][-X]FX", 0.3),         # Dense cluster
+            ("F", "FF", 0.8),                  # Growth
+            ("F", "F[+F]F[-F]F", 0.2),         # Extra branching on stems
+        ]
+        return g
+
+    @classmethod
     def create_sonnet_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a Sonnet 4.5 plant - elegant botanical fern with coral/terracotta hues.
 
@@ -304,6 +341,8 @@ class PlantGenome:
             color_min, color_max = 0.45, 0.58  # Cyan range
         elif parent.fractal_type == "sonnet":
             color_min, color_max = 0.0, 0.12  # Coral/terracotta range
+        elif parent.fractal_type == "gemini":
+            color_min, color_max = 0.75, 0.82  # Deep Indigo/Violet range
         else:
             color_min, color_max = 0.20, 0.50  # Green range for lsystem
 
