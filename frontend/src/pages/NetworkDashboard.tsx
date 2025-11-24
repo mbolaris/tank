@@ -1,63 +1,72 @@
 /**
  * NetworkDashboard - Tank World Net overview page
  *
- * Shows all tanks in the network and allows management
+ * Shows all servers and their tanks in the network
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { config, type TankStatus, type TanksListResponse } from '../config';
+import { config, type TankStatus, type ServerWithTanks } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
 
+interface ServersResponse {
+    servers: ServerWithTanks[];
+}
+
 export function NetworkDashboard() {
-    const [tanks, setTanks] = useState<TankStatus[]>([]);
+    const [servers, setServers] = useState<ServerWithTanks[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [defaultTankId, setDefaultTankId] = useState<string | null>(null);
 
     // Create tank form state
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [newTankName, setNewTankName] = useState('');
     const [newTankDescription, setNewTankDescription] = useState('');
+    const [selectedServerId, setSelectedServerId] = useState<string>('');
     const [creating, setCreating] = useState(false);
 
     // Transfer history state
     const [showHistory, setShowHistory] = useState(false);
 
-    const fetchTanks = useCallback(async () => {
+    const fetchServers = useCallback(async () => {
         try {
             setError(null);
-            const response = await fetch(`${config.tanksApiUrl}?include_private=true`);
+            const response = await fetch(config.serversApiUrl);
             if (!response.ok) {
-                throw new Error(`Failed to fetch tanks: ${response.status}`);
+                throw new Error(`Failed to fetch servers: ${response.status}`);
             }
-            const data: TanksListResponse = await response.json();
-            setTanks(data.tanks);
-            setDefaultTankId(data.default_tank_id);
+            const data: ServersResponse = await response.json();
+            setServers(data.servers);
+
+            // Set default server for create form if not set
+            if (!selectedServerId && data.servers.length > 0) {
+                setSelectedServerId(data.servers[0].server.server_id);
+            }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to load tanks');
+            setError(err instanceof Error ? err.message : 'Failed to load servers');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedServerId]);
 
     useEffect(() => {
-        fetchTanks();
+        fetchServers();
         // Refresh every 5 seconds
-        const interval = setInterval(fetchTanks, 5000);
+        const interval = setInterval(fetchServers, 5000);
         return () => clearInterval(interval);
-    }, [fetchTanks]);
+    }, [fetchServers]);
 
     const handleCreateTank = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newTankName.trim()) return;
+        if (!newTankName.trim() || !selectedServerId) return;
 
         setCreating(true);
         try {
             const params = new URLSearchParams({
                 name: newTankName.trim(),
                 description: newTankDescription.trim(),
+                server_id: selectedServerId,
             });
             const response = await fetch(`${config.tanksApiUrl}?${params}`, {
                 method: 'POST',
@@ -69,7 +78,7 @@ export function NetworkDashboard() {
             setNewTankName('');
             setNewTankDescription('');
             setShowCreateForm(false);
-            await fetchTanks();
+            await fetchServers();
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to create tank');
         } finally {
@@ -83,18 +92,20 @@ export function NetworkDashboard() {
         }
 
         try {
-            const response = await fetch(`${config.tanksApiUrl}/${tankId}`, {
+            const response = await fetch(`${config.apiBaseUrl}/api/tanks/${tankId}`, {
                 method: 'DELETE',
             });
             if (!response.ok) {
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
                 throw new Error(data.error || `Failed to delete tank: ${response.status}`);
             }
-            await fetchTanks();
+            await fetchServers();
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to delete tank');
         }
     };
+
+    const totalTanks = servers.reduce((sum, s) => sum + s.tanks.length, 0);
 
     return (
         <div style={{
@@ -104,7 +115,7 @@ export function NetworkDashboard() {
             padding: '24px',
         }}>
             <div style={{
-                maxWidth: '1200px',
+                maxWidth: '1400px',
                 margin: '0 auto',
             }}>
                 {/* Header */}
@@ -128,9 +139,9 @@ export function NetworkDashboard() {
                             margin: '8px 0 0 0',
                             fontSize: '14px',
                         }}>
-                            {tanks.length} tank{tanks.length !== 1 ? 's' : ''} in network
+                            {servers.length} server{servers.length !== 1 ? 's' : ''}
                             {' '}&bull;{' '}
-                            Server: {config.serverDisplay}
+                            {totalTanks} tank{totalTanks !== 1 ? 's' : ''}
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
@@ -221,6 +232,31 @@ export function NetworkDashboard() {
                                     }}
                                 />
                             </div>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '14px' }}>
+                                    Server
+                                </label>
+                                <select
+                                    value={selectedServerId}
+                                    onChange={(e) => setSelectedServerId(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px 12px',
+                                        backgroundColor: '#0f172a',
+                                        border: '1px solid #475569',
+                                        borderRadius: '6px',
+                                        color: '#e2e8f0',
+                                        fontSize: '14px',
+                                        boxSizing: 'border-box',
+                                    }}
+                                >
+                                    {servers.map((serverWithTanks) => (
+                                        <option key={serverWithTanks.server.server_id} value={serverWithTanks.server.server_id}>
+                                            {serverWithTanks.server.hostname} ({serverWithTanks.server.status})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button
                                     type="submit"
@@ -272,42 +308,37 @@ export function NetworkDashboard() {
                 )}
 
                 {/* Loading State */}
-                {loading && tanks.length === 0 && (
+                {loading && servers.length === 0 && (
                     <div style={{
                         textAlign: 'center',
                         padding: '48px',
                         color: '#94a3b8',
                     }}>
-                        Loading tanks...
+                        Loading servers...
                     </div>
                 )}
 
-                {/* Tank Grid */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                    gap: '20px',
-                }}>
-                    {tanks.map((tankStatus) => (
-                        <TankCard
-                            key={tankStatus.tank.tank_id}
-                            tankStatus={tankStatus}
-                            isDefault={tankStatus.tank.tank_id === defaultTankId}
-                            onDelete={() => handleDeleteTank(tankStatus.tank.tank_id, tankStatus.tank.name)}
-                            onRefresh={fetchTanks}
+                {/* Server Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {servers.map((serverWithTanks) => (
+                        <ServerCard
+                            key={serverWithTanks.server.server_id}
+                            serverWithTanks={serverWithTanks}
+                            onDeleteTank={handleDeleteTank}
+                            onRefresh={fetchServers}
                         />
                     ))}
                 </div>
 
                 {/* Empty State */}
-                {!loading && tanks.length === 0 && !error && (
+                {!loading && servers.length === 0 && !error && (
                     <div style={{
                         textAlign: 'center',
                         padding: '48px',
                         color: '#94a3b8',
                     }}>
-                        <p style={{ fontSize: '18px', margin: '0 0 16px 0' }}>No tanks found</p>
-                        <p style={{ fontSize: '14px', margin: 0 }}>Create your first tank to get started</p>
+                        <p style={{ fontSize: '18px', margin: '0 0 16px 0' }}>No servers found</p>
+                        <p style={{ fontSize: '14px', margin: 0 }}>Unable to connect to Tank World Network</p>
                     </div>
                 )}
 
@@ -320,14 +351,148 @@ export function NetworkDashboard() {
     );
 }
 
+interface ServerCardProps {
+    serverWithTanks: ServerWithTanks;
+    onDeleteTank: (tankId: string, tankName: string) => void;
+    onRefresh: () => void;
+}
+
+function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProps) {
+    const { server, tanks } = serverWithTanks;
+
+    const statusColor = server.status === 'online' ? '#22c55e' :
+                        server.status === 'degraded' ? '#f59e0b' : '#ef4444';
+
+    const formatUptime = (seconds: number): string => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        }
+        return `${minutes}m`;
+    };
+
+    return (
+        <div style={{
+            backgroundColor: '#1e293b',
+            borderRadius: '12px',
+            border: '2px solid #334155',
+            overflow: 'hidden',
+        }}>
+            {/* Server Header */}
+            <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #334155',
+                backgroundColor: '#0f172a',
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <h2 style={{
+                                margin: 0,
+                                fontSize: '20px',
+                                fontWeight: 600,
+                                color: '#f1f5f9',
+                            }}>
+                                🖥️ {server.hostname}
+                            </h2>
+                            <span style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '12px',
+                                color: statusColor,
+                                fontWeight: 500,
+                            }}>
+                                <span style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    backgroundColor: statusColor,
+                                }} />
+                                {server.status.toUpperCase()}
+                            </span>
+                            <span style={{
+                                fontSize: '11px',
+                                backgroundColor: '#334155',
+                                color: '#94a3b8',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 500,
+                            }}>
+                                v{server.version}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#94a3b8', display: 'flex', gap: '16px' }}>
+                            <span>{server.host}:{server.port}</span>
+                            <span>&bull;</span>
+                            <span>Uptime: {formatUptime(server.uptime_seconds)}</span>
+                            {server.cpu_percent !== undefined && (
+                                <>
+                                    <span>&bull;</span>
+                                    <span>CPU: {server.cpu_percent.toFixed(1)}%</span>
+                                </>
+                            )}
+                            {server.memory_mb !== undefined && (
+                                <>
+                                    <span>&bull;</span>
+                                    <span>Memory: {server.memory_mb.toFixed(0)} MB</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <div style={{
+                        textAlign: 'right',
+                    }}>
+                        <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>
+                            {tanks.length}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            tank{tanks.length !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tanks Grid */}
+            <div style={{ padding: '20px' }}>
+                {tanks.length === 0 ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '32px',
+                        color: '#64748b',
+                        fontSize: '14px',
+                    }}>
+                        No tanks running on this server
+                    </div>
+                ) : (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                        gap: '16px',
+                    }}>
+                        {tanks.map((tankStatus) => (
+                            <TankCard
+                                key={tankStatus.tank.tank_id}
+                                tankStatus={tankStatus}
+                                onDelete={() => onDeleteTank(tankStatus.tank.tank_id, tankStatus.tank.name)}
+                                onRefresh={onRefresh}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 interface TankCardProps {
     tankStatus: TankStatus;
-    isDefault: boolean;
     onDelete: () => void;
     onRefresh: () => void;
 }
 
-function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps) {
+function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     const { tank, running, client_count, frame, paused } = tankStatus;
     const stats = tankStatus.stats ?? {
         fish_count: 0,
@@ -365,15 +530,15 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
 
     return (
         <div style={{
-            backgroundColor: '#1e293b',
-            borderRadius: '12px',
-            border: isDefault ? '2px solid #3b82f6' : '1px solid #334155',
+            backgroundColor: '#0f172a',
+            borderRadius: '10px',
+            border: '1px solid #1e293b',
             overflow: 'hidden',
         }}>
             {/* Card Header */}
             <div style={{
-                padding: '16px 20px',
-                borderBottom: '1px solid #334155',
+                padding: '14px 16px',
+                borderBottom: '1px solid #1e293b',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -381,31 +546,16 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                 <div>
                     <h3 style={{
                         margin: 0,
-                        fontSize: '18px',
+                        fontSize: '16px',
                         fontWeight: 600,
                         color: '#f1f5f9',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
                     }}>
                         {tank.name}
-                        {isDefault && (
-                            <span style={{
-                                fontSize: '10px',
-                                backgroundColor: '#3b82f6',
-                                color: 'white',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: 500,
-                            }}>
-                                DEFAULT
-                            </span>
-                        )}
                     </h3>
                     {tank.description && (
                         <p style={{
                             margin: '4px 0 0 0',
-                            fontSize: '13px',
+                            fontSize: '12px',
                             color: '#94a3b8',
                         }}>
                             {tank.description}
@@ -415,16 +565,16 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '6px',
                 }}>
                     <span style={{
-                        width: '10px',
-                        height: '10px',
+                        width: '8px',
+                        height: '8px',
                         borderRadius: '50%',
                         backgroundColor: statusColor,
                     }} />
                     <span style={{
-                        fontSize: '12px',
+                        fontSize: '11px',
                         color: statusColor,
                         fontWeight: 500,
                     }}>
@@ -434,7 +584,7 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
             </div>
 
             {/* Card Body */}
-            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <TankThumbnail
                     tankId={tank.tank_id}
                     status={running ? (paused ? 'paused' : 'running') : 'stopped'}
@@ -443,62 +593,24 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '12px',
+                    gap: '10px',
                 }}>
-                    <div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Frame</div>
-                        <div style={{ fontSize: '16px', fontWeight: 600, color: '#e2e8f0' }}>
-                            {frame.toLocaleString()}
-                        </div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Connections</div>
-                        <div style={{ fontSize: '16px', fontWeight: 600, color: '#e2e8f0' }}>
-                            {client_count}
-                        </div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Owner</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0' }}>
-                            {tank.owner || 'System'}
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '12px',
-                }}>
-                    <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Fish</div>
-                        <div style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: 700 }}>
+                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Fish</div>
+                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
                             {stats.fish_count.toLocaleString()}
                         </div>
                     </div>
-                    <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Max Generation</div>
-                        <div style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: 700 }}>
+                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Gen</div>
+                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
                             {stats.max_generation.toLocaleString()}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
-                            {stats.total_extinctions ?? 0} extinction{(stats.total_extinctions ?? 0) !== 1 ? 's' : ''}
-                        </div>
                     </div>
-                    <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Energy</div>
+                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Clients</div>
                         <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {Math.round(stats.total_energy).toLocaleString()} total
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: 4, display: 'flex', gap: 8 }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                <span style={{ fontSize: 12 }}>🐟</span>
-                                <span>{Math.round(stats.fish_energy).toLocaleString()}</span>
-                            </span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                <span style={{ fontSize: 12 }}>🌱</span>
-                                <span>{Math.round(stats.plant_energy).toLocaleString()}</span>
-                            </span>
+                            {client_count}
                         </div>
                     </div>
                 </div>
@@ -506,104 +618,93 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                 {/* Actions */}
                 <div style={{
                     display: 'flex',
-                    gap: '8px',
+                    gap: '6px',
                     flexWrap: 'wrap',
-                    alignItems: 'stretch',
                 }}>
                     <button
                         onClick={() => sendTankCommand('start')}
                         disabled={actionLoading || running}
                         style={{
-                            padding: '10px 12px',
-                            backgroundColor: running ? '#1f2937' : (actionLoading ? '#166534' : '#22c55e'),
-                            color: running ? '#94a3b8' : 'white',
-                            border: '1px solid #22c55e',
-                            borderRadius: '6px',
+                            padding: '8px 10px',
+                            backgroundColor: running ? '#1e293b' : '#22c55e',
+                            color: running ? '#64748b' : 'white',
+                            border: 'none',
+                            borderRadius: '5px',
                             cursor: (actionLoading || running) ? 'not-allowed' : 'pointer',
                             fontWeight: 600,
-                            fontSize: '14px',
+                            fontSize: '12px',
                             flex: '0 0 auto',
-                            opacity: actionLoading ? 0.7 : 1,
                         }}
                     >
-                        {actionLoading ? 'Starting...' : 'Start'}
+                        Start
                     </button>
                     <button
                         onClick={() => sendTankCommand(paused ? 'resume' : 'pause')}
                         disabled={actionLoading || !running}
-                        title={paused ? 'Resume simulation from current state' : 'Pause simulation (keeps state)'}
                         style={{
-                            padding: '10px 12px',
-                            backgroundColor: paused ? (actionLoading ? '#1e3a8a' : '#3b82f6') : (actionLoading ? '#92400e' : '#f59e0b'),
+                            padding: '8px 10px',
+                            backgroundColor: paused ? '#3b82f6' : '#f59e0b',
                             color: 'white',
-                            border: '1px solid #334155',
-                            borderRadius: '6px',
+                            border: 'none',
+                            borderRadius: '5px',
                             cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
                             fontWeight: 600,
-                            fontSize: '14px',
+                            fontSize: '12px',
                             flex: '0 0 auto',
-                            opacity: actionLoading ? 0.7 : 1,
                         }}
                     >
-                        {actionLoading ? (paused ? 'Resuming...' : 'Pausing...') : (paused ? 'Resume' : 'Pause')}
+                        {paused ? 'Resume' : 'Pause'}
                     </button>
                     <button
                         onClick={() => sendTankCommand('stop')}
                         disabled={actionLoading || !running}
-                        title="Stop simulation completely (resets state)"
                         style={{
-                            padding: '10px 12px',
-                            backgroundColor: actionLoading ? '#7f1d1d' : '#ef4444',
+                            padding: '8px 10px',
+                            backgroundColor: '#ef4444',
                             color: 'white',
-                            border: '1px solid #ef4444',
-                            borderRadius: '6px',
+                            border: 'none',
+                            borderRadius: '5px',
                             cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
                             fontWeight: 600,
-                            fontSize: '14px',
+                            fontSize: '12px',
                             flex: '0 0 auto',
-                            opacity: actionLoading ? 0.7 : 1,
                         }}
                     >
-                        {actionLoading ? 'Stopping...' : 'Stop'}
+                        Stop
                     </button>
                     <Link
                         to={`/tank/${tank.tank_id}`}
                         style={{
                             flex: 1,
-                            padding: '10px',
+                            padding: '8px',
                             backgroundColor: '#3b82f6',
                             color: 'white',
                             textDecoration: 'none',
-                            borderRadius: '6px',
+                            borderRadius: '5px',
                             textAlign: 'center',
                             fontWeight: 600,
-                            fontSize: '14px',
-                            minWidth: '120px',
+                            fontSize: '12px',
+                            minWidth: '80px',
                         }}
                     >
-                        View Tank
+                        View
                     </Link>
-                    {!isDefault && (
-                        <button
-                            onClick={onDelete}
-                            style={{
-                                padding: '10px 16px',
-                                backgroundColor: 'transparent',
-                                color: '#ef4444',
-                                border: '1px solid #ef4444',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                minWidth: '120px',
-                            }}
-                        >
-                            Delete
-                        </button>
-                    )}
+                    <button
+                        onClick={onDelete}
+                        style={{
+                            padding: '8px 12px',
+                            backgroundColor: 'transparent',
+                            color: '#ef4444',
+                            border: '1px solid #ef4444',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                        }}
+                    >
+                        Delete
+                    </button>
                 </div>
             </div>
-
-
         </div>
     );
 }

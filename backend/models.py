@@ -198,3 +198,31 @@ class Command(BaseModel):
 
     command: str  # 'add_food', 'spawn_fish', 'pause', 'resume', 'reset'
     data: Optional[Dict[str, Any]] = None
+
+
+class ServerInfo(BaseModel):
+    """Information about a Tank World Net server.
+
+    Represents a server instance that can host multiple tank simulations.
+    In the current single-server implementation, there will only be one server.
+    This model is designed to support future multi-server distributed architectures.
+    """
+
+    server_id: str  # Unique identifier for this server
+    hostname: str  # Hostname or display name
+    host: str  # IP address or hostname for connections
+    port: int  # Port number for API/WebSocket connections
+    status: str  # "online" | "offline" | "degraded"
+    tank_count: int  # Number of tanks currently running on this server
+    version: str  # Server version
+    uptime_seconds: float = 0.0  # How long the server has been running
+    cpu_percent: Optional[float] = None  # CPU usage percentage (0-100)
+    memory_mb: Optional[float] = None  # Memory usage in MB
+    is_local: bool = True  # Whether this is the local server
+
+
+class ServerWithTanks(BaseModel):
+    """Server information with list of tanks running on it."""
+
+    server: ServerInfo
+    tanks: List[Dict[str, Any]]  # List of tank status dictionaries

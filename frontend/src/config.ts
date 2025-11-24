@@ -132,9 +132,41 @@ export const config = {
     get tanksApiUrl(): string {
         return `${this.apiBaseUrl}/api/tanks`;
     },
+
+    /**
+     * Get API URL for listing servers
+     */
+    get serversApiUrl(): string {
+        return `${this.apiBaseUrl}/api/servers`;
+    },
 } as const;
 
 export type Config = typeof config;
+
+/**
+ * Server information returned from the API
+ */
+export interface ServerInfo {
+    server_id: string;
+    hostname: string;
+    host: string;
+    port: number;
+    status: 'online' | 'offline' | 'degraded';
+    tank_count: number;
+    version: string;
+    uptime_seconds: number;
+    cpu_percent?: number;
+    memory_mb?: number;
+    is_local: boolean;
+}
+
+/**
+ * Server with tanks list
+ */
+export interface ServerWithTanks {
+    server: ServerInfo;
+    tanks: TankStatus[];
+}
 
 /**
  * Tank information returned from the API
@@ -145,6 +177,7 @@ export interface TankInfo {
     description: string;
     created_at: string;
     owner: string | null;
+    server_id: string;
     is_public: boolean;
     allow_transfers: boolean;
 }
