@@ -205,7 +205,7 @@ async def broadcast_updates():
                             disconnected.add(client)
 
                     send_ms = (time.perf_counter() - send_start) * 1000
-                    if send_ms > 10:
+                    if send_ms > 100:
                         logger.warning(
                             "broadcast_updates: Broadcasting to %s clients took %.2f ms",
                             len(connected_clients),
