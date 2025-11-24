@@ -3,8 +3,9 @@
 This module manages population dynamics, statistics, and ecosystem health.
 """
 
-from collections import defaultdict
+import logging
 import os
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
@@ -21,6 +22,9 @@ from core.ecosystem_stats import (
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.genetics import Genome
+
+
+logger = logging.getLogger(__name__)
 
 
 class EcosystemManager:
