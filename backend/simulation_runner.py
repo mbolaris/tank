@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import orjson
 
@@ -72,11 +72,11 @@ class SimulationRunner:
         # Cache state and only rebuild every N frames (reduces from 30 FPS to 15 FPS)
         self.websocket_update_interval = 2  # Send every 2 frames
         self.frames_since_websocket_update = 0
-        self._cached_state: Optional[FullStatePayload | DeltaStatePayload] = None
+        self._cached_state: Optional[Union[FullStatePayload, DeltaStatePayload]] = None
         self._cached_state_frame: Optional[int] = None
         self.delta_sync_interval = 30
         self._last_full_frame: Optional[int] = None
-        self._last_entities: dict[int, EntitySnapshot] = {}
+        self._last_entities: Dict[int, EntitySnapshot] = {}
 
         # Human poker game management
         self.human_poker_game: Optional[HumanPokerGame] = None
@@ -85,8 +85,8 @@ class SimulationRunner:
         self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
 
         # Ongoing auto-evaluation against static baseline
-        self.auto_eval_history: list[dict[str, Any]] = []
-        self.auto_eval_stats: Optional[dict[str, Any]] = None
+        self.auto_eval_history: List[Dict[str, Any]] = []
+        self.auto_eval_stats: Optional[Dict[str, Any]] = None
         self.auto_eval_running: bool = False
         self.auto_eval_interval_seconds = 60.0
         self.last_auto_eval_time = 0.0
@@ -293,7 +293,7 @@ class SimulationRunner:
             # Still allow benchmarking if we have strong plants even when fish leaderboard is empty
             pass
 
-        plant_players: list[Dict[str, Any]] = []
+        plant_players: List[Dict[str, Any]] = []
         if plant_list:
             ranked_plants = sorted(
                 plant_list,
@@ -319,7 +319,7 @@ class SimulationRunner:
             daemon=True,
         ).start()
 
-    def _run_auto_evaluation(self, benchmark_players: list[dict[str, Any]]):
+    def _run_auto_evaluation(self, benchmark_players: List[Dict[str, Any]]):
         """Execute a background auto-evaluation series."""
 
         try:
@@ -442,7 +442,7 @@ class SimulationRunner:
             None, self.get_state, force_full, allow_delta
         )
 
-    def serialize_state(self, state: FullStatePayload | DeltaStatePayload) -> bytes:
+    def serialize_state(self, state: Union[FullStatePayload, DeltaStatePayload]) -> bytes:
         """Serialize a state payload with fast JSON and log slow frames."""
 
         start = time.perf_counter()
@@ -476,8 +476,8 @@ class SimulationRunner:
             auto_evaluation=auto_eval,
         )
 
-    def _collect_entities(self) -> list[EntitySnapshot]:
-        entities_data: list[EntitySnapshot] = []
+    def _collect_entities(self) -> List[EntitySnapshot]:
+        entities_data: List[EntitySnapshot] = []
         for entity in self.world.entities_list:
             entity_data = self._entity_to_data(entity)
             if entity_data:
@@ -554,8 +554,8 @@ class SimulationRunner:
             fps=round(self.current_actual_fps, 1),
         )
 
-    def _collect_poker_events(self) -> list[PokerEventPayload]:
-        poker_events: list[PokerEventPayload] = []
+    def _collect_poker_events(self) -> List[PokerEventPayload]:
+        poker_events: List[PokerEventPayload] = []
         recent_events = self.world.engine.poker_events
         for event in recent_events:
             if "Standard Algorithm" in event["message"] or "Auto-eval" in event["message"]:
@@ -578,7 +578,7 @@ class SimulationRunner:
 
         return poker_events
 
-    def _collect_poker_leaderboard(self) -> list[PokerLeaderboardEntryPayload]:
+    def _collect_poker_leaderboard(self) -> List[PokerLeaderboardEntryPayload]:
         if not hasattr(self.world.ecosystem, "get_poker_leaderboard"):
             return []
 
