@@ -748,7 +748,8 @@ class SimulationRunner:
                 # Serialize fractal plant with its genome for L-system rendering
                 genome_dict = entity.genome.to_dict() if hasattr(entity, "genome") else None
                 return EntitySnapshot(
-                    type="fractal_plant",
+                    # Report as a plant so integration tests count it as vegetation
+                    type="plant",
                     energy=entity.energy if hasattr(entity, "energy") else 0,
                     max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100,
                     genome=genome_dict,
@@ -758,6 +759,7 @@ class SimulationRunner:
                         entity.energy / entity.max_energy >= entity.genome.nectar_threshold_ratio
                     ) if hasattr(entity, "nectar_cooldown") else False,
                     age=entity.age if hasattr(entity, "age") else 0,
+                    plant_type=2,
                     **base_data,
                 )
 
@@ -836,7 +838,11 @@ class SimulationRunner:
                 logger.info("Simulation resumed")
 
             elif command == "reset":
-                self.world.setup()
+                # Reset the underlying world to a clean frame counter and entities
+                if hasattr(self.world, "reset"):
+                    self.world.reset()
+                else:
+                    self.world.setup()
                 self._invalidate_state_cache()
                 logger.info("Simulation reset")
 

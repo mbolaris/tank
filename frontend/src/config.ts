@@ -149,6 +149,15 @@ export interface TankInfo {
   allow_transfers: boolean;
 }
 
+export interface TankStatsSummary {
+  fish_count: number;
+  generation: number;
+  max_generation: number;
+  total_energy: number;
+  fish_energy: number;
+  plant_energy: number;
+}
+
 /**
  * Tank status returned from the API
  */
@@ -158,6 +167,7 @@ export interface TankStatus {
   client_count: number;
   frame: number;
   paused: boolean;
+  stats?: TankStatsSummary;
 }
 
 /**

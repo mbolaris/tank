@@ -447,6 +447,74 @@ async def get_tank(tank_id: str):
     return JSONResponse(manager.get_status())
 
 
+@app.post("/api/tanks/{tank_id}/pause")
+async def pause_tank(tank_id: str):
+    """Pause a running tank simulation."""
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+    if not manager.running:
+        return JSONResponse({"error": "Tank is not running"}, status_code=400)
+
+    manager.world.paused = True
+    return JSONResponse(manager.get_status())
+
+
+@app.post("/api/tanks/{tank_id}/resume")
+async def resume_tank(tank_id: str):
+    """Resume a paused tank simulation."""
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+    if not manager.running:
+        return JSONResponse({"error": "Tank is not running"}, status_code=400)
+
+    manager.world.paused = False
+
+    # Ensure broadcast task exists for this tank
+    if manager.tank_id not in _broadcast_tasks or _broadcast_tasks[manager.tank_id].done():
+        await start_broadcast_for_tank(manager)
+
+    return JSONResponse(manager.get_status())
+
+
+@app.post("/api/tanks/{tank_id}/start")
+async def start_tank(tank_id: str):
+    """Start a stopped tank simulation."""
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+
+    if not manager.running:
+        manager.start(start_paused=False)
+
+    if manager.tank_id not in _broadcast_tasks or _broadcast_tasks[manager.tank_id].done():
+        await start_broadcast_for_tank(manager)
+
+    return JSONResponse(manager.get_status())
+
+
+@app.post("/api/tanks/{tank_id}/stop")
+async def stop_tank(tank_id: str):
+    """Stop a running tank simulation and its broadcast task."""
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+
+    await stop_broadcast_for_tank(tank_id)
+
+    if manager.running:
+        manager.stop()
+
+    manager.world.paused = True
+
+    return JSONResponse(manager.get_status())
+
+
 @app.delete("/api/tanks/{tank_id}")
 async def delete_tank(tank_id: str):
     """Delete a tank from the registry.
