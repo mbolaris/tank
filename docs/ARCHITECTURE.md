@@ -38,16 +38,22 @@ tank/
 │   └── constants.py              # Configuration
 │
 ├── backend/                       # FastAPI WebSocket server
-│   ├── main.py                   # FastAPI app
+│   ├── main.py                   # FastAPI app with Tank World Net API
+│   ├── tank_registry.py         # Multi-tank management (Tank World Net)
+│   ├── simulation_manager.py    # Per-tank lifecycle management
 │   ├── simulation_runner.py     # Background simulation thread
+│   ├── state_payloads.py        # Serialization DTOs
 │   └── models.py                 # Data models
 │
 ├── frontend/                      # React + TypeScript UI
 │   ├── src/
-│   │   ├── components/           # Canvas, StatsPanel, ControlPanel
+│   │   ├── components/           # TankView, Canvas, ControlPanel, etc.
+│   │   ├── pages/                # NetworkDashboard
 │   │   ├── hooks/                # useWebSocket.ts
 │   │   ├── types/                # TypeScript definitions
-│   │   └── utils/                # renderer.ts
+│   │   ├── utils/                # renderer.ts, fractalPlant.ts
+│   │   ├── App.tsx               # Router setup
+│   │   └── config.ts             # Server configuration
 │   └── package.json
 │
 ├── simulation_engine.py          # Headless simulation runner
@@ -97,20 +103,37 @@ tank/
 
 ### 2. Web Backend (backend/)
 
-**Design Goal:** Real-time web UI via WebSocket
+**Design Goal:** Real-time web UI via WebSocket with Tank World Net support
 
-- **main.py**: FastAPI application with WebSocket endpoint
+- **main.py**: FastAPI application with WebSocket and REST endpoints
+- **tank_registry.py**: TankRegistry class for multi-tank management
+- **simulation_manager.py**: SimulationManager for per-tank lifecycle
 - **simulation_runner.py**: Background thread running headless simulation
-- **models.py**: Pydantic models for state serialization
+- **state_payloads.py**: Optimized DTOs for state serialization
+- **models.py**: Pydantic models for API validation
+
+**Tank World Net API:**
+- `GET /api/tanks` - List all tanks
+- `POST /api/tanks` - Create new tank
+- `DELETE /api/tanks/{id}` - Remove tank
+- `WS /ws/{tank_id}` - Connect to specific tank
 
 ### 3. Web Frontend (frontend/)
 
-**Design Goal:** Modern React-based visualization
+**Design Goal:** Modern React-based visualization with multi-tank support
 
+- **React Router** for multi-page navigation
+- **TankView** component for reusable tank visualization
+- **NetworkDashboard** for Tank World Net management
 - Real-time canvas rendering
 - Stats panel with population metrics
 - Control panel for simulation parameters
 - WebSocket communication with backend
+
+**Routes:**
+- `/` - Default tank view
+- `/tank/:tankId` - Specific tank view
+- `/network` - Tank World Net dashboard
 
 ## Execution Modes
 
