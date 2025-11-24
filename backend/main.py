@@ -686,6 +686,14 @@ async def handle_websocket_connection(websocket: WebSocket, manager: SimulationM
         logger.info(f"WebSocket[{tank_id}]: Client {client_id} removed. Total clients: {manager.client_count}")
 
 
+@app.get("/api/evaluation-history")
+async def get_evaluation_history():
+    """Get the full history of the evolution benchmark."""
+    if not simulation_runner:
+        return []
+    return simulation_runner.get_full_evaluation_history()
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for the default tank (backwards compatible)."""

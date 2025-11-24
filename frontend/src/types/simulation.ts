@@ -308,6 +308,9 @@ export interface PokerPerformanceSnapshot {
         species?: 'fish' | 'plant';
         energy: number;
         net_energy: number;
+        hands_won?: number;
+        hands_lost?: number;
+        win_rate?: number;
     }[];
 }
 

@@ -431,6 +431,9 @@ class AutoEvaluatePokerGame:
         }
 
         for player in self.players:
+            hands_played = self.hands_played or 1
+            win_rate = round((player.hands_won / hands_played) * 100, 1)
+            
             snapshot["players"].append(
                 {
                     "player_id": player.player_id,
@@ -439,6 +442,9 @@ class AutoEvaluatePokerGame:
                     "species": getattr(player, "species", "fish"),
                     "energy": round(player.energy, 1),
                     "net_energy": round(player.energy - player.starting_energy, 1),
+                    "hands_won": player.hands_won,
+                    "hands_lost": player.hands_lost,
+                    "win_rate": win_rate,
                 }
             )
 
