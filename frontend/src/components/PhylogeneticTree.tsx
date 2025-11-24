@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Tree, { type CustomNodeElementProps } from 'react-d3-tree';
 import { transformLineageData } from '../utils/lineageUtils';
 import type { FishRecord, TreeNodeData } from '../utils/lineageUtils';
+import { config } from '../config';
 import './PhylogeneticTree.css';
 
 const containerStyles: React.CSSProperties = {
@@ -22,7 +23,11 @@ const loadingStyles: React.CSSProperties = {
     fontSize: '18px',
 };
 
-export const PhylogeneticTree: React.FC = () => {
+interface PhylogeneticTreeProps {
+    tankId?: string;
+}
+
+export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) => {
     const [treeData, setTreeData] = useState<TreeNodeData | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,8 +39,11 @@ export const PhylogeneticTree: React.FC = () => {
             setLoading(true);
             setError(null);
 
-            // Replace with your actual API URL
-            const response = await fetch('http://localhost:8000/api/lineage');
+            // Use tank-specific lineage endpoint if tankId provided
+            const lineageUrl = tankId
+                ? `${config.apiBaseUrl}/api/tanks/${tankId}/lineage`
+                : `${config.apiBaseUrl}/api/lineage`;
+            const response = await fetch(lineageUrl);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -67,7 +75,8 @@ export const PhylogeneticTree: React.FC = () => {
         fetchLineage();
         const interval = setInterval(fetchLineage, 10000);
         return () => clearInterval(interval);
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tankId]);
 
     useEffect(() => {
         const updateTranslate = () => {

@@ -1246,7 +1246,7 @@ function renderMandelbrotPlant(
  * Render a Claude plant with golden Julia set spiral aesthetics.
  * Features warm amber colors, Fibonacci spiral arrangement, and glowing particle effects.
  */
-function renderClaudePlant(
+export function _renderClaudePlant(
     ctx: CanvasRenderingContext2D,
     plantId: number,
     genome: PlantGenomeData,
@@ -1435,7 +1435,7 @@ function renderClaudePlant(
 /**
  * Render an Antigravity plant with ethereal violet vortex patterns.
  */
-function renderAntigravityPlant(
+export function _renderAntigravityPlant(
     ctx: CanvasRenderingContext2D,
     plantId: number,
     genome: PlantGenomeData,
@@ -1763,7 +1763,7 @@ function renderGptCodexPlant(
 /**
  * Render a GPT plant with neural network-inspired electric cyan patterns.
  */
-function renderGptPlant(
+export function _renderGptPlant(
     ctx: CanvasRenderingContext2D,
     plantId: number,
     genome: PlantGenomeData,
@@ -2350,7 +2350,6 @@ function drawDahliaFlower(
             ctx.moveTo(x, y);
             const tipX = x + Math.cos(angle) * layerSize;
             const tipY = y + Math.sin(angle) * layerSize;
-            const width = layerSize * 0.25;
             const cp1x = x + Math.cos(angle - 0.2) * layerSize * 0.5;
             const cp1y = y + Math.sin(angle - 0.2) * layerSize * 0.5;
             const cp2x = x + Math.cos(angle + 0.2) * layerSize * 0.5;
