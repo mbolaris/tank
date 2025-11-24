@@ -90,6 +90,7 @@ class TankRegistry:
         owner: Optional[str] = None,
         is_public: bool = True,
         allow_transfers: bool = False,
+        server_id: str = "local-server",
     ) -> SimulationManager:
         """Create a new tank and add it to the registry.
 
@@ -100,6 +101,7 @@ class TankRegistry:
             owner: Optional owner identifier
             is_public: Whether the tank is publicly visible
             allow_transfers: Whether to allow entity transfers
+            server_id: Which server this tank should run on (default: local-server)
 
         Returns:
             The newly created SimulationManager
@@ -114,15 +116,17 @@ class TankRegistry:
         manager.tank_info.owner = owner
         manager.tank_info.is_public = is_public
         manager.tank_info.allow_transfers = allow_transfers
+        manager.tank_info.server_id = server_id
 
         self._tanks[manager.tank_id] = manager
 
         logger.info(
-            "Created tank: id=%s, name=%s, owner=%s, public=%s",
+            "Created tank: id=%s, name=%s, owner=%s, public=%s, server=%s",
             manager.tank_id,
             name,
             owner,
             is_public,
+            server_id,
         )
 
         return manager

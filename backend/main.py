@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import platform
+import socket
 import sys
 import time
 from contextlib import asynccontextmanager, suppress
@@ -34,7 +35,7 @@ if platform.system() == "Windows":
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.models import Command
+from backend.models import Command, ServerInfo, ServerWithTanks
 from backend.simulation_manager import SimulationManager
 from backend.tank_registry import TankRegistry, CreateTankRequest
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
@@ -46,6 +47,11 @@ tank_registry = TankRegistry(create_default=True)
 simulation_manager = tank_registry.default_tank
 simulation = simulation_manager.runner
 connected_clients = simulation_manager.connected_clients
+
+# Server metadata
+SERVER_ID = "local-server"  # Local server ID
+SERVER_VERSION = "1.0.0"  # Server version
+_server_start_time = time.time()  # Track server uptime
 
 
 def _handle_task_exception(task: asyncio.Task) -> None:
@@ -403,6 +409,7 @@ async def create_tank(
     owner: Optional[str] = None,
     is_public: bool = True,
     allow_transfers: bool = False,
+    server_id: str = "local-server",
 ):
     """Create a new tank simulation.
 
@@ -413,11 +420,22 @@ async def create_tank(
         owner: Optional owner identifier
         is_public: Whether the tank is publicly visible
         allow_transfers: Whether to allow entity transfers
+        server_id: Which server to create the tank on (default: local-server)
 
     Returns:
         The created tank's status
     """
     try:
+        # Validate server_id - for now, only local-server is supported
+        if server_id != SERVER_ID:
+            return JSONResponse(
+                {
+                    "error": f"Invalid server_id: {server_id}. "
+                    f"Only '{SERVER_ID}' is supported in this version."
+                },
+                status_code=400,
+            )
+
         manager = tank_registry.create_tank(
             name=name,
             description=description,
@@ -425,6 +443,7 @@ async def create_tank(
             owner=owner,
             is_public=is_public,
             allow_transfers=allow_transfers,
+            server_id=server_id,
         )
 
         # Start the simulation
@@ -433,7 +452,7 @@ async def create_tank(
         # Start broadcast task for the new tank
         await start_broadcast_for_tank(manager)
 
-        logger.info(f"Created new tank via API: {manager.tank_id[:8]} ({name})")
+        logger.info(f"Created new tank via API: {manager.tank_id[:8]} ({name}) on server {server_id}")
 
         return JSONResponse(manager.get_status(), status_code=201)
     except Exception as e:
@@ -458,6 +477,93 @@ async def get_tank(tank_id: str):
             status_code=404,
         )
     return JSONResponse(manager.get_status())
+
+
+def get_server_info() -> ServerInfo:
+    """Get information about the current server.
+
+    Returns:
+        ServerInfo object with current server state
+    """
+    uptime = time.time() - _server_start_time
+
+    # Try to get resource usage (optional)
+    cpu_percent = None
+    memory_mb = None
+    try:
+        import psutil
+        process = psutil.Process()
+        cpu_percent = process.cpu_percent(interval=0.1)
+        memory_mb = process.memory_info().rss / 1024 / 1024  # Convert bytes to MB
+    except ImportError:
+        # psutil not available - that's okay
+        pass
+    except Exception as e:
+        logger.debug(f"Could not get resource usage: {e}")
+
+    return ServerInfo(
+        server_id=SERVER_ID,
+        hostname=socket.gethostname(),
+        host="localhost",  # For now, always localhost
+        port=DEFAULT_API_PORT,
+        status="online",
+        tank_count=tank_registry.tank_count,
+        version=SERVER_VERSION,
+        uptime_seconds=uptime,
+        cpu_percent=cpu_percent,
+        memory_mb=memory_mb,
+        is_local=True,
+    )
+
+
+@app.get("/api/servers")
+async def list_servers():
+    """List all servers in the Tank World Network.
+
+    In the current single-server implementation, this returns only the local server.
+    Future versions will support multiple servers in a distributed network.
+
+    Returns:
+        List of ServerWithTanks objects containing server info and their tanks
+    """
+    server_info = get_server_info()
+    tanks = tank_registry.list_tanks(include_private=True)
+
+    return JSONResponse({
+        "servers": [
+            ServerWithTanks(
+                server=server_info,
+                tanks=tanks,
+            ).model_dump()
+        ]
+    })
+
+
+@app.get("/api/servers/{server_id}")
+async def get_server(server_id: str):
+    """Get information about a specific server.
+
+    Args:
+        server_id: The server identifier
+
+    Returns:
+        ServerWithTanks object or 404 if not found
+    """
+    if server_id != SERVER_ID:
+        return JSONResponse(
+            {"error": f"Server not found: {server_id}"},
+            status_code=404,
+        )
+
+    server_info = get_server_info()
+    tanks = tank_registry.list_tanks(include_private=True)
+
+    return JSONResponse(
+        ServerWithTanks(
+            server=server_info,
+            tanks=tanks,
+        ).model_dump()
+    )
 
 
 @app.post("/api/tanks/{tank_id}/pause")

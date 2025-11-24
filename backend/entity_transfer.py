@@ -36,12 +36,12 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
     """Serialize a Fish entity."""
     return {
         "type": "fish",
-        "id": fish.id,
+        "id": fish.fish_id,
         "species": fish.species,
-        "x": fish.x,
-        "y": fish.y,
-        "vel_x": fish.vel_x,
-        "vel_y": fish.vel_y,
+        "x": fish.pos.x,
+        "y": fish.pos.y,
+        "vel_x": fish.vel.x,
+        "vel_y": fish.vel.y,
         "speed": fish.speed,
         "energy": fish.energy,
         "max_energy": fish.max_energy,
@@ -50,15 +50,19 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
         "generation": fish.generation,
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
         "genome_data": {
-            "speed": fish.genome.speed,
-            "size": fish.genome.size,
-            "vision": fish.genome.vision,
-            "metabolism": fish.genome.metabolism,
+            "speed_modifier": fish.genome.speed_modifier,
+            "size_modifier": fish.genome.size_modifier,
+            "vision_range": fish.genome.vision_range,
+            "metabolism_rate": fish.genome.metabolism_rate,
+            "max_energy": fish.genome.max_energy,
             "fertility": fish.genome.fertility,
-            "color": fish.genome.color,
-            "lifespan": fish.genome.lifespan,
-            "algorithm_name": fish.genome.algorithm_name,
-            "algorithm_params": fish.genome.algorithm_params,
+            "color_hue": fish.genome.color_hue,
+            "aggression": fish.genome.aggression,
+            "social_tendency": fish.genome.social_tendency,
+            "template_id": fish.genome.template_id,
+            # Skip algorithms for now - they don't have to_dict methods
+            # "behavior_algorithm": fish.genome.behavior_algorithm.to_dict() if fish.genome.behavior_algorithm else None,
+            # "poker_strategy_algorithm": fish.genome.poker_strategy_algorithm.to_dict() if fish.genome.poker_strategy_algorithm else None,
         },
         "memory": {
             "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
@@ -70,11 +74,13 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
 
 def _serialize_plant(plant: Any) -> Dict[str, Any]:
     """Serialize a FractalPlant entity."""
+    # Get plant ID - try both id and plant_id
+    plant_id = getattr(plant, 'id', getattr(plant, 'plant_id', None))
     return {
         "type": "fractal_plant",
-        "id": plant.id,
-        "x": plant.x,
-        "y": plant.y,
+        "id": plant_id,
+        "x": plant.pos.x,
+        "y": plant.pos.y,
         "plant_type": plant.plant_type,
         "energy": plant.energy,
         "max_energy": plant.max_energy,
@@ -126,16 +132,22 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
 
         # Recreate genome
         genome_data = data["genome_data"]
+
+        # Skip recreating behavior algorithms for now
+        # They will be created randomly when the fish is initialized
+
         genome = Genome(
-            speed=genome_data["speed"],
-            size=genome_data["size"],
-            vision=genome_data["vision"],
-            metabolism=genome_data["metabolism"],
-            fertility=genome_data["fertility"],
-            color=genome_data["color"],
-            lifespan=genome_data["lifespan"],
-            algorithm_name=genome_data["algorithm_name"],
-            algorithm_params=genome_data.get("algorithm_params", {}),
+            speed_modifier=genome_data.get("speed_modifier", 1.0),
+            size_modifier=genome_data.get("size_modifier", 1.0),
+            vision_range=genome_data.get("vision_range", 1.0),
+            metabolism_rate=genome_data.get("metabolism_rate", 1.0),
+            max_energy=genome_data.get("max_energy", 1.0),
+            fertility=genome_data.get("fertility", 1.0),
+            color_hue=genome_data.get("color_hue", 0.5),
+            aggression=genome_data.get("aggression", 0.5),
+            social_tendency=genome_data.get("social_tendency", 0.5),
+            template_id=genome_data.get("template_id", 0),
+            # behavior_algorithm and poker_strategy will be set by Fish.__init__
         )
 
         # Create movement strategy
@@ -163,8 +175,8 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         fish.age = data["age"]
         fish.max_age = data["max_age"]
         fish.max_energy = data["max_energy"]
-        fish.vel_x = data["vel_x"]
-        fish.vel_y = data["vel_y"]
+        fish.vel.x = data["vel_x"]
+        fish.vel.y = data["vel_y"]
         fish.reproduction_cooldown = data["reproduction_cooldown"]
 
         # Restore memory (if applicable)

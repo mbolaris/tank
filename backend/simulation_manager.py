@@ -32,6 +32,7 @@ class TankInfo:
     description: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
     owner: Optional[str] = None
+    server_id: str = "local-server"  # Which server this tank is running on
 
     # Network visibility settings (for future use)
     is_public: bool = True
@@ -45,6 +46,7 @@ class TankInfo:
             "description": self.description,
             "created_at": self.created_at.isoformat(),
             "owner": self.owner,
+            "server_id": self.server_id,
             "is_public": self.is_public,
             "allow_transfers": self.allow_transfers,
         }
