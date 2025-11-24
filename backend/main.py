@@ -528,6 +528,101 @@ async def stop_tank(tank_id: str):
     return JSONResponse(manager.get_status())
 
 
+@app.post("/api/tanks/{source_tank_id}/transfer")
+async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_id: str):
+    """Transfer an entity from one tank to another.
+
+    Args:
+        source_tank_id: The tank ID containing the entity
+        entity_id: The entity ID to transfer
+        destination_tank_id: The tank ID to transfer to
+
+    Returns:
+        Success message with entity data, or error if transfer fails
+    """
+    from backend.entity_transfer import serialize_entity_for_transfer, deserialize_entity
+
+    # Get source tank
+    source_manager = tank_registry.get_tank(source_tank_id)
+    if source_manager is None:
+        return JSONResponse({"error": f"Source tank not found: {source_tank_id}"}, status_code=404)
+
+    # Get destination tank
+    dest_manager = tank_registry.get_tank(destination_tank_id)
+    if dest_manager is None:
+        return JSONResponse({"error": f"Destination tank not found: {destination_tank_id}"}, status_code=404)
+
+    # Check if source tank allows transfers
+    if not source_manager.tank_info.allow_transfers:
+        return JSONResponse(
+            {"error": f"Tank '{source_manager.tank_info.name}' does not allow entity transfers"},
+            status_code=403,
+        )
+
+    # Check if destination tank allows transfers
+    if not dest_manager.tank_info.allow_transfers:
+        return JSONResponse(
+            {"error": f"Tank '{dest_manager.tank_info.name}' does not allow entity transfers"},
+            status_code=403,
+        )
+
+    # Find entity in source tank
+    source_entity = None
+    for entity in source_manager.world.engine.entities_list:
+        if entity.id == entity_id:
+            source_entity = entity
+            break
+
+    if source_entity is None:
+        return JSONResponse({"error": f"Entity not found in source tank: {entity_id}"}, status_code=404)
+
+    # Serialize entity
+    entity_data = serialize_entity_for_transfer(source_entity)
+    if entity_data is None:
+        return JSONResponse(
+            {"error": f"Entity type {type(source_entity).__name__} cannot be transferred"},
+            status_code=400,
+        )
+
+    try:
+        # Remove from source tank
+        source_manager.world.engine.remove_entity(source_entity)
+        logger.info(f"Removed entity {entity_id} from tank {source_tank_id[:8]}")
+
+        # Deserialize and add to destination tank
+        new_entity = deserialize_entity(entity_data, dest_manager.world)
+        if new_entity is None:
+            # Transfer failed - try to restore to source tank
+            restored_entity = deserialize_entity(entity_data, source_manager.world)
+            if restored_entity:
+                source_manager.world.engine.add_entity(restored_entity)
+            return JSONResponse(
+                {"error": "Failed to deserialize entity in destination tank"},
+                status_code=500,
+            )
+
+        dest_manager.world.engine.add_entity(new_entity)
+        logger.info(f"Added entity {new_entity.id} to tank {destination_tank_id[:8]} (was {entity_id})")
+
+        return JSONResponse({
+            "success": True,
+            "message": f"Entity transferred successfully",
+            "entity": {
+                "old_id": entity_id,
+                "new_id": new_entity.id,
+                "type": entity_data["type"],
+                "source_tank": source_tank_id,
+                "destination_tank": destination_tank_id,
+            },
+        })
+    except Exception as e:
+        logger.error(f"Transfer failed: {e}", exc_info=True)
+        return JSONResponse(
+            {"error": f"Transfer failed: {str(e)}"},
+            status_code=500,
+        )
+
+
 @app.delete("/api/tanks/{tank_id}")
 async def delete_tank(tank_id: str):
     """Delete a tank from the registry.

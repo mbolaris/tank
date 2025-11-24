@@ -11,6 +11,7 @@ import { PokerGame } from './PokerGame';
 import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
+import { TransferDialog } from './TransferDialog';
 import type { PokerGameState } from '../types/simulation';
 
 interface TankViewProps {
@@ -24,6 +25,12 @@ export function TankView({ tankId }: TankViewProps) {
     const [pokerLoading, setPokerLoading] = useState(false);
     const [showTree, setShowTree] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+    // Entity transfer state
+    const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
+    const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
+    const [showTransferDialog, setShowTransferDialog] = useState(false);
+    const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const maxGeneration = state?.stats
         ? state.stats.max_generation ?? state.stats.generation ?? 0
@@ -100,6 +107,27 @@ export function TankView({ tankId }: TankViewProps) {
             data: {},
         });
         return response as { success: boolean; action: string; amount: number };
+    };
+
+    const handleEntityClick = (entityId: number, entityType: string) => {
+        setSelectedEntityId(entityId);
+        setSelectedEntityType(entityType);
+        setShowTransferDialog(true);
+    };
+
+    const handleTransferComplete = (success: boolean, message: string) => {
+        setTransferMessage({ type: success ? 'success' : 'error', text: message });
+        setSelectedEntityId(null);
+        setSelectedEntityType(null);
+
+        // Clear message after 5 seconds
+        setTimeout(() => setTransferMessage(null), 5000);
+    };
+
+    const handleCloseTransferDialog = () => {
+        setShowTransferDialog(false);
+        setSelectedEntityId(null);
+        setSelectedEntityType(null);
     };
 
     const pokerStats = state?.stats?.poker_stats;
@@ -201,7 +229,13 @@ export function TankView({ tankId }: TankViewProps) {
                             <span>{state?.stats?.time ?? '—'}</span>
                         </span>
                     </div>
-                    <Canvas state={state} width={1088} height={612} />
+                    <Canvas
+                        state={state}
+                        width={1088}
+                        height={612}
+                        onEntityClick={handleEntityClick}
+                        selectedEntityId={selectedEntityId}
+                    />
                     <div className="canvas-glow" aria-hidden />
                 </div>
             </div>
@@ -326,6 +360,40 @@ export function TankView({ tankId }: TankViewProps) {
                         </div>
                         <PhylogeneticTree tankId={tankId} />
                     </div>
+                </div>
+            )}
+
+            {/* Transfer Dialog */}
+            {showTransferDialog && selectedEntityId !== null && selectedEntityType !== null && state?.tank_id && (
+                <TransferDialog
+                    entityId={selectedEntityId}
+                    entityType={selectedEntityType}
+                    sourceTankId={state.tank_id}
+                    sourceTankName={state.tank_id}
+                    onClose={handleCloseTransferDialog}
+                    onTransferComplete={handleTransferComplete}
+                />
+            )}
+
+            {/* Transfer Notification */}
+            {transferMessage && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        right: '20px',
+                        padding: '16px 20px',
+                        borderRadius: '8px',
+                        backgroundColor: transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
+                        color: transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
+                        border: `1px solid ${transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                        zIndex: 1001,
+                        maxWidth: '400px',
+                        fontWeight: 500,
+                    }}
+                >
+                    {transferMessage.text}
                 </div>
             )}
         </>
