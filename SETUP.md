@@ -1,5 +1,43 @@
 # Fish Tank Simulation - Setup Instructions
 
+## macOS Quick Install (Sonoma / Apple Silicon)
+
+1. **Install Command Line Tools (once per machine)**
+   ```bash
+   xcode-select --install
+   ```
+2. **Install Homebrew + runtimes**
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   brew install python@3.12 node@22
+   ```
+   > Use `brew info python@3.12` for activation instructions if it is not your default `python3`.
+3. **Create & activate a virtualenv**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install --upgrade pip
+   ```
+4. **Install backend dependencies from `pyproject.toml`**
+   ```bash
+   pip install -e .
+   ```
+   This installs FastAPI, Uvicorn (with websockets), orjson, and other required simulation packages in one shot.
+5. **Install frontend dependencies**
+   ```bash
+   cd frontend
+   npm install
+   ```
+6. **Run everything**
+   ```bash
+   # From repo root
+   python3 main.py
+   ```
+   - Backend API → http://localhost:8000 (docs at `/docs`)
+   - Frontend (Vite) → http://localhost:3000
+
+Keeping a dedicated terminal tab running `python3 main.py` and another running `npm run dev` helps catch log output quickly.
+
 ## Problem: Blank UI
 
 If you're seeing a blank UI when you visit http://localhost:3000, it's likely because the frontend dependencies haven't been installed.
@@ -23,7 +61,7 @@ After installing dependencies, you can start the application:
 
 ```bash
 # From the root tank/ directory
-python main.py
+python3 main.py
 ```
 
 This will start both:
@@ -49,7 +87,10 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
    # or
    source .venv/bin/activate  # Linux/Mac
 
-   pip install -r requirements.txt
+   # Preferred: read dependencies from pyproject
+   pip install -e .
+   # Legacy fallback (still works):
+   # pip install -r backend/requirements.txt
    ```
 
 3. **Install Frontend dependencies**
@@ -61,7 +102,7 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
 
 4. **Run the application**
    ```bash
-   python main.py
+   python3 main.py
    ```
 
 5. **Open browser**
