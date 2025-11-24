@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { config, type TankStatus, type TanksListResponse } from '../config';
+import { TankThumbnail } from '../components/TankThumbnail';
 
 export function NetworkDashboard() {
     const [tanks, setTanks] = useState<TankStatus[]>([]);
@@ -272,6 +273,7 @@ export function NetworkDashboard() {
                             tankStatus={tankStatus}
                             isDefault={tankStatus.tank.tank_id === defaultTankId}
                             onDelete={() => handleDeleteTank(tankStatus.tank.tank_id, tankStatus.tank.name)}
+                            onRefresh={fetchTanks}
                         />
                     ))}
                 </div>
@@ -296,10 +298,44 @@ interface TankCardProps {
     tankStatus: TankStatus;
     isDefault: boolean;
     onDelete: () => void;
+    onRefresh: () => void;
 }
 
-function TankCard({ tankStatus, isDefault, onDelete }: TankCardProps) {
+function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps) {
     const { tank, running, client_count, frame, paused } = tankStatus;
+    const stats = tankStatus.stats ?? {
+        fish_count: 0,
+        generation: 0,
+        max_generation: 0,
+        total_energy: 0,
+        fish_energy: 0,
+        plant_energy: 0,
+    };
+
+    const [actionLoading, setActionLoading] = useState(false);
+
+    const sendTankCommand = async (action: 'pause' | 'resume' | 'start' | 'stop') => {
+        setActionLoading(true);
+        try {
+            const response = await fetch(`${config.apiBaseUrl}/api/tanks/${tank.tank_id}/${action}`, {
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.error || `Failed to ${action} tank`);
+            }
+
+            await onRefresh();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Tank command failed');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const statusText = running ? (paused ? 'Paused' : 'Running') : 'Stopped';
+    const statusColor = running ? (paused ? '#f59e0b' : '#22c55e') : '#ef4444';
 
     return (
         <div style={{
@@ -351,33 +387,37 @@ function TankCard({ tankStatus, isDefault, onDelete }: TankCardProps) {
                     )}
                 </div>
                 <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                }}>
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                    }}>
                     <span style={{
                         width: '10px',
                         height: '10px',
                         borderRadius: '50%',
-                        backgroundColor: running ? (paused ? '#f59e0b' : '#22c55e') : '#ef4444',
+                        backgroundColor: statusColor,
                     }} />
                     <span style={{
                         fontSize: '12px',
-                        color: running ? (paused ? '#f59e0b' : '#22c55e') : '#ef4444',
+                        color: statusColor,
                         fontWeight: 500,
                     }}>
-                        {running ? (paused ? 'Paused' : 'Running') : 'Stopped'}
+                        {statusText}
                     </span>
                 </div>
             </div>
 
             {/* Card Body */}
-            <div style={{ padding: '16px 20px' }}>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <TankThumbnail
+                    tankId={tank.tank_id}
+                    status={running ? (paused ? 'paused' : 'running') : 'stopped'}
+                />
+
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
                     gap: '12px',
-                    marginBottom: '16px',
                 }}>
                     <div>
                         <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Frame</div>
@@ -399,11 +439,99 @@ function TankCard({ tankStatus, isDefault, onDelete }: TankCardProps) {
                     </div>
                 </div>
 
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '12px',
+                }}>
+                    <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Fish</div>
+                        <div style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: 700 }}>
+                            {stats.fish_count.toLocaleString()}
+                        </div>
+                    </div>
+                    <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Generation</div>
+                        <div style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: 700 }}>
+                            Gen {stats.generation.toLocaleString()} / {stats.max_generation.toLocaleString()}
+                        </div>
+                    </div>
+                    <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Energy</div>
+                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
+                            {Math.round(stats.total_energy).toLocaleString()} total
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: 4, display: 'flex', gap: 8 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ fontSize: 12 }}>🐟</span>
+                                <span>{Math.round(stats.fish_energy).toLocaleString()}</span>
+                            </span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ fontSize: 12 }}>🌱</span>
+                                <span>{Math.round(stats.plant_energy).toLocaleString()}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Actions */}
                 <div style={{
                     display: 'flex',
                     gap: '8px',
+                    flexWrap: 'wrap',
+                    alignItems: 'stretch',
                 }}>
+                    <button
+                        onClick={() => sendTankCommand('start')}
+                        disabled={actionLoading || running}
+                        style={{
+                            padding: '10px 12px',
+                            backgroundColor: running ? '#1f2937' : '#22c55e',
+                            color: running ? '#94a3b8' : 'white',
+                            border: '1px solid #22c55e',
+                            borderRadius: '6px',
+                            cursor: running ? 'not-allowed' : 'pointer',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                            flex: '0 0 auto',
+                        }}
+                    >
+                        Start
+                    </button>
+                    <button
+                        onClick={() => sendTankCommand(paused ? 'resume' : 'pause')}
+                        disabled={actionLoading || !running}
+                        style={{
+                            padding: '10px 12px',
+                            backgroundColor: paused ? '#3b82f6' : '#f59e0b',
+                            color: 'white',
+                            border: '1px solid #334155',
+                            borderRadius: '6px',
+                            cursor: !running ? 'not-allowed' : 'pointer',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                            flex: '0 0 auto',
+                        }}
+                    >
+                        {paused ? 'Resume' : 'Pause'}
+                    </button>
+                    <button
+                        onClick={() => sendTankCommand('stop')}
+                        disabled={actionLoading || !running}
+                        style={{
+                            padding: '10px 12px',
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            border: '1px solid #ef4444',
+                            borderRadius: '6px',
+                            cursor: !running ? 'not-allowed' : 'pointer',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                            flex: '0 0 auto',
+                        }}
+                    >
+                        Stop
+                    </button>
                     <Link
                         to={`/tank/${tank.tank_id}`}
                         style={{
@@ -416,6 +544,7 @@ function TankCard({ tankStatus, isDefault, onDelete }: TankCardProps) {
                             textAlign: 'center',
                             fontWeight: 600,
                             fontSize: '14px',
+                            minWidth: '120px',
                         }}
                     >
                         View Tank
@@ -431,6 +560,7 @@ function TankCard({ tankStatus, isDefault, onDelete }: TankCardProps) {
                                 borderRadius: '6px',
                                 cursor: 'pointer',
                                 fontSize: '14px',
+                                minWidth: '120px',
                             }}
                         >
                             Delete
