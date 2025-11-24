@@ -65,6 +65,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     };
 
     useEffect(() => {
+        let isMounted = true;
+
         try {
             const canvas = canvasRef.current;
             if (!canvas) return;
@@ -79,10 +81,14 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             const loadImages = async () => {
                 try {
                     await ImageLoader.preloadGameImages();
-                    setImagesLoaded(true);
+                    if (isMounted) {
+                        setImagesLoaded(true);
+                    }
                 } catch (err) {
                     console.error("Failed to load images:", err);
-                    setError(`Failed to load images: ${err instanceof Error ? err.message : String(err)}`);
+                    if (isMounted) {
+                        setError(`Failed to load images: ${err instanceof Error ? err.message : String(err)}`);
+                    }
                 }
             };
 
@@ -91,6 +97,10 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             console.error("Failed to initialize renderer:", err);
             setError(`Failed to initialize renderer: ${err instanceof Error ? err.message : String(err)}`);
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     useEffect(() => {
