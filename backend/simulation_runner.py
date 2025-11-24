@@ -340,11 +340,12 @@ class SimulationRunner:
 
             with self.auto_eval_lock:
                 starting_hand = self.auto_eval_history[-1]["hand"] if self.auto_eval_history else 0
-                extended_history = [
-                    {**snapshot, "hand": snapshot["hand"] + starting_hand}
-                    for snapshot in final_stats.performance_history
-                ]
-                self.auto_eval_history.extend(extended_history)
+                
+                # Only record the final result of the game, not every hand
+                if final_stats.performance_history:
+                    last_snapshot = final_stats.performance_history[-1]
+                    adjusted_snapshot = {**last_snapshot, "hand": last_snapshot["hand"] + starting_hand}
+                    self.auto_eval_history.append(adjusted_snapshot)
 
                 players_with_win_rate = []
                 for player in final_stats.players:
@@ -588,6 +589,11 @@ class SimulationRunner:
         )
         return [PokerLeaderboardEntryPayload(**entry) for entry in leaderboard_data]
 
+    def get_full_evaluation_history(self) -> List[Dict[str, Any]]:
+        """Return the full auto-evaluation history."""
+        with self.auto_eval_lock:
+            return list(self.auto_eval_history)
+
     def _collect_auto_eval(self) -> Optional[AutoEvaluateStatsPayload]:
         with self.auto_eval_lock:
             if not self.auto_eval_stats:
@@ -748,8 +754,7 @@ class SimulationRunner:
                 # Serialize fractal plant with its genome for L-system rendering
                 genome_dict = entity.genome.to_dict() if hasattr(entity, "genome") else None
                 return EntitySnapshot(
-                    # Report as a plant so integration tests count it as vegetation
-                    type="plant",
+                    type="fractal_plant",
                     energy=entity.energy if hasattr(entity, "energy") else 0,
                     max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100,
                     genome=genome_dict,

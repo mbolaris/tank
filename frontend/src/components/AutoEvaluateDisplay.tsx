@@ -8,11 +8,14 @@ import type {
     PokerPerformanceSnapshot,
 } from '../types/simulation';
 import { colors } from '../styles/theme';
+import { useEffect, useState } from 'react';
 
 function PerformanceChart({
     history,
+    metric = 'energy',
 }: {
     history: PokerPerformanceSnapshot[];
+    metric?: 'energy' | 'winRate';
 }) {
     if (!history || history.length === 0) {
         return null;
@@ -32,17 +35,19 @@ function PerformanceChart({
         const plantPlayers = snapshot.players.filter((p) => p.species === 'plant');
         const standardPlayer = snapshot.players.find((p) => p.is_standard);
 
+        const getValue = (p: any) => metric === 'energy' ? p.net_energy : (p.win_rate ?? 0);
+
         const fishAvg = fishPlayers.length > 0
-            ? fishPlayers.reduce((sum, p) => sum + p.net_energy, 0) / fishPlayers.length
+            ? fishPlayers.reduce((sum, p) => sum + getValue(p), 0) / fishPlayers.length
             : 0;
         const plantAvg = plantPlayers.length > 0
-            ? plantPlayers.reduce((sum, p) => sum + p.net_energy, 0) / plantPlayers.length
+            ? plantPlayers.reduce((sum, p) => sum + getValue(p), 0) / plantPlayers.length
             : null;
 
         return {
             hand: snapshot.hand,
             fishAvg,
-            standard: standardPlayer?.net_energy || 0,
+            standard: getValue(standardPlayer || { net_energy: 0, win_rate: 0 }),
             plantAvg,
         };
     });
@@ -134,7 +139,10 @@ function PerformanceChart({
                             textAnchor="end"
                             dominantBaseline="middle"
                         >
-                            {tick >= 0 ? '+' : ''}{Math.round(tick)}
+                            {metric === 'energy'
+                                ? `${tick >= 0 ? '+' : ''}${Math.round(tick)}`
+                                : `${Math.round(tick)}%`
+                            }
                         </text>
                         {/* Grid line */}
                         <line
@@ -168,7 +176,7 @@ function PerformanceChart({
                     textAnchor="middle"
                     transform={`rotate(-90, 12, ${(height - padding.top - padding.bottom) / 2 + padding.top})`}
                 >
-                    Net Energy
+                    {metric === 'energy' ? 'Net Energy' : 'Win Rate (%)'}
                 </text>
 
                 {/* Fish average line */}
@@ -258,15 +266,11 @@ function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isW
                 {genLabel && <span style={styles.genLabel}>{genLabel}</span>}
             </div>
             <div style={styles.playerStat}>
-                <span style={styles.statLabel}>W/L</span>
-                <span style={styles.statValue}>{player.hands_won}/{player.hands_lost}</span>
-            </div>
-            <div style={styles.playerStat}>
-                <span style={styles.statLabel}>Win%</span>
+                <span style={styles.statLabel}>Win Rate</span>
                 <span style={styles.statValue}>{Math.round(player.win_rate ?? 0)}%</span>
             </div>
             <div style={styles.playerStat}>
-                <span style={styles.statLabel}>Net</span>
+                <span style={styles.statLabel}>Net Energy</span>
                 <span style={{ ...styles.statValue, color: netColor, fontWeight: 700 }}>
                     {player.net_energy >= 0 ? '+' : ''}{Math.round(player.net_energy)}
                 </span>
@@ -286,6 +290,34 @@ export function AutoEvaluateDisplay({
     stats: AutoEvaluateStats | null;
     loading: boolean;
 }) {
+    const [fullHistory, setFullHistory] = useState<PokerPerformanceSnapshot[]>([]);
+    const [metric, setMetric] = useState<'energy' | 'winRate'>('energy');
+
+    // Fetch full history periodically or when stats update
+    useEffect(() => {
+        if (!stats) return;
+
+        const fetchHistory = async () => {
+            try {
+                const response = await fetch('/api/evaluation-history');
+                if (response.ok) {
+                    const data = await response.json();
+                    setFullHistory(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch evaluation history:', error);
+            }
+        };
+
+        // Fetch if we hit the truncation limit (50)
+        if (stats.performance_history?.length === 50) {
+            fetchHistory();
+        } else if (stats.performance_history) {
+            // If we have the full history in stats (e.g. start of game), use it
+            setFullHistory(stats.performance_history);
+        }
+    }, [stats?.performance_history]);
+
     if (loading && !stats) {
         return (
             <div style={styles.container}>
@@ -321,10 +353,31 @@ export function AutoEvaluateDisplay({
     const sortedPlayers = [...stats.players].sort((a, b) => b.net_energy - a.net_energy);
     const leader = sortedPlayers[0];
 
+    // Use fullHistory if available and longer, otherwise fall back to stats.performance_history
+    const displayHistory = fullHistory.length > (stats.performance_history?.length || 0)
+        ? fullHistory
+        : stats.performance_history || [];
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h2 style={styles.title}>Evolution Benchmark</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <h2 style={styles.title}>Evolution Benchmark</h2>
+                    <div style={styles.toggleGroup}>
+                        <button
+                            onClick={() => setMetric('energy')}
+                            style={metric === 'energy' ? styles.activeToggle : styles.toggle}
+                        >
+                            Energy
+                        </button>
+                        <button
+                            onClick={() => setMetric('winRate')}
+                            style={metric === 'winRate' ? styles.activeToggle : styles.toggle}
+                        >
+                            Win Rate
+                        </button>
+                    </div>
+                </div>
                 <div style={styles.headerStats}>
                     <span style={styles.handsPlayed}>{stats.hands_played} hands</span>
                     {stats.game_over ? (
@@ -376,7 +429,7 @@ export function AutoEvaluateDisplay({
                 ))}
             </div>
 
-            <PerformanceChart history={stats.performance_history ?? []} />
+            <PerformanceChart history={displayHistory} metric={metric} />
         </div>
     );
 }
@@ -510,5 +563,31 @@ const styles = {
     },
     chartSvg: {
         width: '100%',
+    },
+    toggleGroup: {
+        display: 'flex',
+        background: 'rgba(0,0,0,0.2)',
+        borderRadius: '4px',
+        padding: '2px',
+        gap: '2px',
+    },
+    toggle: {
+        background: 'transparent',
+        border: 'none',
+        color: colors.textSecondary,
+        fontSize: '11px',
+        padding: '2px 8px',
+        cursor: 'pointer',
+        borderRadius: '3px',
+    },
+    activeToggle: {
+        background: 'rgba(255,255,255,0.1)',
+        border: 'none',
+        color: colors.text,
+        fontSize: '11px',
+        padding: '2px 8px',
+        cursor: 'pointer',
+        borderRadius: '3px',
+        fontWeight: 600,
     },
 } as const;
