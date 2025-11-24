@@ -3,6 +3,7 @@
  */
 
 import { Routes, Route, Link, useParams, useLocation } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { TankView } from './components/TankView';
 import { NetworkDashboard } from './pages/NetworkDashboard';
 import './App.css';
@@ -94,8 +95,6 @@ function NavBar() {
         </nav>
     );
 }
-
-import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
     return (
