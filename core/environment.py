@@ -36,8 +36,9 @@ class SpatialGrid:
         self.cols = math.ceil(width / cell_size)
         self.rows = math.ceil(height / cell_size)
 
-        # Grid storage: dict of (col, row) -> set of agents
-        self.grid: Dict[Tuple[int, int], Set[Agent]] = defaultdict(set)
+        # Grid storage: dict of (col, row) -> dict of type -> list of agents
+        # Using list instead of set for faster iteration in tight loops
+        self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(lambda: defaultdict(list))
 
         # Agent to cell mapping for quick updates
         self.agent_cells: Dict[Agent, Tuple[int, int]] = {}
@@ -54,14 +55,25 @@ class SpatialGrid:
             return
 
         cell = self._get_cell(agent.pos.x, agent.pos.y)
-        self.grid[cell].add(agent)
+        # Use type(agent) for exact type matching which is faster than isinstance checks later
+        # But we need to be careful about inheritance if we query by base class
+        # For now, we'll store by exact type
+        self.grid[cell][type(agent)].append(agent)
         self.agent_cells[agent] = cell
 
     def remove_agent(self, agent: Agent):
         """Remove an agent from the spatial grid."""
         if agent in self.agent_cells:
             cell = self.agent_cells[agent]
-            self.grid[cell].discard(agent)
+            agent_type = type(agent)
+            if agent_type in self.grid[cell]:
+                try:
+                    self.grid[cell][agent_type].remove(agent)
+                    # Clean up empty lists to keep iteration fast
+                    if not self.grid[cell][agent_type]:
+                        del self.grid[cell][agent_type]
+                except ValueError:
+                    pass  # Agent might not be in the list if something went wrong
             del self.agent_cells[agent]
 
     def update_agent(self, agent: Agent):
@@ -74,9 +86,17 @@ class SpatialGrid:
 
         # Only update if the agent changed cells
         if old_cell != new_cell:
+            agent_type = type(agent)
             if old_cell is not None:
-                self.grid[old_cell].discard(agent)
-            self.grid[new_cell].add(agent)
+                if agent_type in self.grid[old_cell]:
+                    try:
+                        self.grid[old_cell][agent_type].remove(agent)
+                        if not self.grid[old_cell][agent_type]:
+                            del self.grid[old_cell][agent_type]
+                    except ValueError:
+                        pass
+            
+            self.grid[new_cell][agent_type].append(agent)
             self.agent_cells[agent] = new_cell
 
     def get_cells_in_radius(self, x: float, y: float, radius: float) -> List[Tuple[int, int]]:
@@ -116,19 +136,20 @@ class SpatialGrid:
         min_row = max(0, int((agent_pos_y - radius) / cell_size))
         max_row = min(self.rows - 1, int((agent_pos_y + radius) / cell_size))
 
-        # Collect candidates using fast C-implemented extend
+        # Collect candidates
         candidates = []
         grid = self.grid
         
-        # Iterate ranges directly to avoid creating intermediate list of cells
+        # Iterate ranges directly
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
-                # Direct access to defaultdict is faster than checking 'in'
-                # accessing missing key creates empty set, extend handles empty set efficiently
-                candidates.extend(grid[(col, row)])
+                # Get all type buckets in this cell
+                cell_agents = grid.get((col, row))
+                if cell_agents:
+                    for type_list in cell_agents.values():
+                        candidates.extend(type_list)
         
-        # Filter using list comprehension (faster than explicit for loop)
-        # and optimized math (multiplication instead of exponentiation)
+        # Filter using list comprehension
         return [
             other
             for other in candidates
@@ -294,7 +315,7 @@ class Environment:
         # Optimized implementation:
         # 1. Inline spatial grid logic to avoid function call overhead
         # 2. Iterate grid cells directly to avoid creating intermediate candidate list
-        # 3. Check type BEFORE distance to avoid expensive math on wrong agents
+        # 3. Use type buckets to only iterate relevant agents
         
         if not hasattr(agent, "pos"):
             return []
@@ -318,16 +339,26 @@ class Environment:
         # Iterate cells
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
-                # Iterate agents in cell
-                # accessing defaultdict with missing key creates empty set, which is fine
-                for other in grid_dict[(col, row)]:
-                    # Type check first (fast)
-                    if other is not agent and isinstance(other, agent_class):
-                        # Distance check second (slower)
-                        dx = other.pos.x - agent_x
-                        dy = other.pos.y - agent_y
-                        if dx*dx + dy*dy <= radius_sq:
-                            result.append(other)
+                # Get type buckets for this cell
+                # Use get() to avoid creating empty entries in defaultdict
+                cell_buckets = grid_dict.get((col, row))
+                if not cell_buckets:
+                    continue
+                    
+                # Iterate over type buckets
+                for type_key, agents in cell_buckets.items():
+                    # Check if this type is relevant (subclass check)
+                    # This handles inheritance (e.g. asking for Fish gets all Fish subclasses)
+                    if issubclass(type_key, agent_class):
+                        for other in agents:
+                            if other is agent:
+                                continue
+                                
+                            # Distance check
+                            dx = other.pos.x - agent_x
+                            dy = other.pos.y - agent_y
+                            if dx*dx + dy*dy <= radius_sq:
+                                result.append(other)
                             
         return result
 

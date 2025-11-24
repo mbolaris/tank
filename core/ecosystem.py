@@ -98,6 +98,9 @@ class EcosystemManager:
 
         # Next available fish ID
         self.next_fish_id: int = 0
+        
+        # Performance: Batch poker stats saving
+        self._poker_save_counter: int = 0
 
     def _poker_totals_path(self) -> str:
         import os
@@ -116,6 +119,12 @@ class EcosystemManager:
         self.total_plant_poker_games = int(data.get("total_plant_poker_games", 0))
 
     def _save_poker_totals(self) -> None:
+        # Optimization: Only save every 100 updates to reduce file I/O
+        self._poker_save_counter += 1
+        if self._poker_save_counter < 100:
+            return
+        self._poker_save_counter = 0
+
         import json
         p = self._poker_totals_path()
         data = {
