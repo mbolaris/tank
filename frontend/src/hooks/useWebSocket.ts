@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate } from '../types/simulation';
 import { config } from '../config';
 
-export function useWebSocket() {
+export function useWebSocket(tankId?: string) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
@@ -16,7 +16,9 @@ export function useWebSocket() {
 
     const connect = useCallback(() => {
         try {
-            const ws = new WebSocket(config.wsUrl);
+            // Use tankId if provided, otherwise fall back to config
+            const wsUrl = tankId ? config.getWsUrlForTank(tankId) : config.wsUrl;
+            const ws = new WebSocket(wsUrl);
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = () => {
@@ -69,7 +71,7 @@ export function useWebSocket() {
         } catch {
             setIsConnected(false);
         }
-    }, []);
+    }, [tankId]);
 
     // Store connect function in ref without mutating during render
     useEffect(() => {
