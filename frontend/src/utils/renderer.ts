@@ -124,6 +124,21 @@ export class Renderer {
         }
     }
 
+    /**
+     * Drop orientation cache entries for entities that no longer exist.
+     * Prevents unbounded growth when the simulation spawns many short-lived
+     * entities (e.g., food), which can otherwise exhaust browser memory over
+     * time.
+     */
+    pruneEntityFacingCache(activeEntityIds: Iterable<number>) {
+        const activeIds = new Set(activeEntityIds);
+        for (const cachedId of this.entityFacingLeft.keys()) {
+            if (!activeIds.has(cachedId)) {
+                this.entityFacingLeft.delete(cachedId);
+            }
+        }
+    }
+
     private getTimeOfDayPalette(timeOfDay?: string): TimeOfDayPalette {
         const key = timeOfDay?.toLowerCase() ?? 'day';
 
