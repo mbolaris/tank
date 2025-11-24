@@ -173,10 +173,6 @@ class AutoEvaluatePokerGame:
         self.current_player_index = (big_blind_index + 1) % num_players
 
         self.hands_played += 1
-        logger.info(
-            f"Auto-eval {self.game_id}: Started hand {self.hands_played}. "
-            f"Button at {self.players[self.button_position].name}"
-        )
 
     def _player_bet(self, player_index: int, amount: float):
         """Record a player's bet."""
@@ -274,7 +270,7 @@ class AutoEvaluatePokerGame:
                 player.hands_lost += 1
                 player.total_energy_lost += player.total_bet
 
-        logger.info(f"Auto-eval {self.game_id}: {winner.name} wins {self.pot:.1f} energy")
+
 
     def _split_pot(self, tied_player_indices: List[int]):
         """Split the pot among tied players."""
@@ -454,9 +450,7 @@ class AutoEvaluatePokerGame:
         Returns:
             Final evaluation statistics
         """
-        logger.info(
-            f"Auto-eval {self.game_id}: Starting evaluation with {len(self.players)} players"
-        )
+        # Auto-evaluation runs silently in background
 
         # Baseline snapshot before any hands are played
         self._record_hand_performance()
@@ -470,15 +464,6 @@ class AutoEvaluatePokerGame:
                 self.game_over = True
                 if len(active_players) == 1:
                     self.winner = active_players[0].name
-                    logger.debug(
-                        f"Auto-eval {self.game_id}: {self.winner} wins - "
-                        f"all other players out of energy after {self.hands_played} hands"
-                    )
-                else:
-                    # All players out of energy (shouldn't happen with proper starting energy)
-                    logger.debug(
-                        f"Auto-eval {self.game_id}: All players out of energy after {self.hands_played} hands"
-                    )
                 break
 
             # Play one hand
