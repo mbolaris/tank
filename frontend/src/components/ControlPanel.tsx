@@ -2,7 +2,7 @@
  * Control panel component with simulation controls
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Command } from '../types/simulation';
 import { Button } from './ui';
 import styles from './ControlPanel.module.css';
@@ -13,11 +13,16 @@ interface ControlPanelProps {
     onPlayPoker?: () => void;
     showTree?: boolean;
     onToggleTree?: () => void;
+    fastForwardEnabled?: boolean;
 }
 
-export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, onToggleTree }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, onToggleTree, fastForwardEnabled }: ControlPanelProps) {
     const [isPaused, setIsPaused] = useState(false);
     const [isFastForward, setIsFastForward] = useState(false);
+
+    useEffect(() => {
+        setIsFastForward(Boolean(fastForwardEnabled));
+    }, [fastForwardEnabled]);
 
     const handleAddFood = () => {
         onCommand({ command: 'add_food' });

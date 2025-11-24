@@ -193,6 +193,7 @@ export interface StatsData {
     plant_energy: number; // Total energy of all plants
     poker_stats: PokerStatsData;
     fps?: number;
+    fast_forward?: boolean;
 }
 
 export interface SimulationUpdate {

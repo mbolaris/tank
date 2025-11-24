@@ -553,6 +553,7 @@ class SimulationRunner:
             plant_energy=stats.get("plant_energy", 0.0),
             poker_stats=poker_stats_payload,
             fps=round(self.current_actual_fps, 1),
+            fast_forward=self.fast_forward,
         )
 
     def _collect_poker_events(self) -> List[PokerEventPayload]:
@@ -851,6 +852,7 @@ class SimulationRunner:
                 self._invalidate_state_cache()
                 # Unpause after reset for intuitive behavior
                 self.world.paused = False
+                self.fast_forward = False
                 logger.info("Simulation reset")
 
             elif command == "fast_forward":
