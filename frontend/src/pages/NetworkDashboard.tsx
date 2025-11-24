@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { config, type TankStatus, type TanksListResponse } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
+import { TransferHistory } from '../components/TransferHistory';
 
 export function NetworkDashboard() {
     const [tanks, setTanks] = useState<TankStatus[]>([]);
@@ -20,6 +21,9 @@ export function NetworkDashboard() {
     const [newTankName, setNewTankName] = useState('');
     const [newTankDescription, setNewTankDescription] = useState('');
     const [creating, setCreating] = useState(false);
+
+    // Transfer history state
+    const [showHistory, setShowHistory] = useState(false);
 
     const fetchTanks = useCallback(async () => {
         try {
@@ -129,21 +133,38 @@ export function NetworkDashboard() {
                             Server: {config.serverDisplay}
                         </p>
                     </div>
-                    <button
-                        onClick={() => setShowCreateForm(true)}
-                        style={{
-                            padding: '10px 20px',
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            fontSize: '14px',
-                        }}
-                    >
-                        + New Tank
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                            onClick={() => setShowHistory(true)}
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor: '#475569',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '14px',
+                            }}
+                        >
+                            📋 History
+                        </button>
+                        <button
+                            onClick={() => setShowCreateForm(true)}
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '14px',
+                            }}
+                        >
+                            + New Tank
+                        </button>
+                    </div>
                 </div>
 
                 {/* Create Tank Form */}
@@ -576,6 +597,11 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                     )}
                 </div>
             </div>
+
+            {/* Transfer History Dialog */}
+            {showHistory && (
+                <TransferHistory onClose={() => setShowHistory(false)} />
+            )}
         </div>
     );
 }

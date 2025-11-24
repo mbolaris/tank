@@ -48,6 +48,69 @@ Tank World Net enables running multiple independent tank simulations on a single
 - `is_public`: Whether tank is publicly visible (default: true)
 - `allow_transfers`: Enable entity transfers between tanks (default: false)
 
+#### Tank Control API
+
+- `POST /api/tanks/{tank_id}/pause` - Pause a running tank simulation
+- `POST /api/tanks/{tank_id}/resume` - Resume a paused tank simulation
+- `POST /api/tanks/{tank_id}/start` - Start a stopped tank simulation
+- `POST /api/tanks/{tank_id}/stop` - Stop a running tank and its broadcast task
+
+#### Entity Transfer API
+
+- `POST /api/tanks/{source_tank_id}/transfer?entity_id={id}&destination_tank_id={dest_id}` - Transfer entity between tanks
+
+**Requirements:**
+- Both source and destination tanks must have `allow_transfers: true`
+- Only Fish and FractalPlant entities can be transferred (Food/Nectar excluded)
+- Entity receives new ID in destination tank for proper isolation
+- Transfer is atomic with automatic rollback on failure
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Entity transferred successfully",
+  "entity": {
+    "old_id": 12345,
+    "new_id": 67890,
+    "type": "fish",
+    "source_tank": "tank-abc123",
+    "destination_tank": "tank-def456"
+  }
+}
+```
+
+**Error Responses:**
+- `403` - Tank does not allow transfers
+- `404` - Tank or entity not found
+- `400` - Entity type cannot be transferred
+- `500` - Transfer failed (entity restored to source tank)
+
+#### Tank Persistence API (Phase 4A)
+
+- `POST /api/tanks/{tank_id}/save` - Save tank state to a snapshot file
+- `POST /api/tanks/load?snapshot_path={path}` - Load tank from snapshot file
+- `GET /api/tanks/{tank_id}/snapshots` - List all snapshots for a tank
+- `DELETE /api/tanks/{tank_id}/snapshots/{filename}` - Delete a specific snapshot
+
+**Features:**
+- Automatic cleanup (keeps last 10 snapshots per tank)
+- Complete state preservation (entities, ecosystem stats, frame number)
+- Atomic load with validation
+- Snapshots stored in `data/tanks/{tank_id}/snapshots/`
+
+#### Transfer History API (Phase 4A)
+
+- `GET /api/transfers?limit=50&tank_id={id}&success_only=true` - Get transfer history
+- `GET /api/transfers/{transfer_id}` - Get specific transfer by ID
+- `GET /api/tanks/{tank_id}/transfer-stats` - Get transfer statistics for a tank
+
+**Features:**
+- Logs all transfer attempts (success and failure)
+- In-memory buffer (last 100 transfers)
+- Persistent log file: `data/transfers.log`
+- Real-time history updates
+
 ### WebSocket Endpoints
 
 - `WS /ws` - Connect to default tank (backwards compatible)

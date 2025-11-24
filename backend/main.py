@@ -596,6 +596,22 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
             restored_entity = deserialize_entity(entity_data, source_manager.world)
             if restored_entity:
                 source_manager.world.engine.add_entity(restored_entity)
+
+            # Log failed transfer
+            from backend.transfer_history import log_transfer
+
+            log_transfer(
+                entity_type=entity_data["type"],
+                entity_old_id=entity_id,
+                entity_new_id=None,
+                source_tank_id=source_tank_id,
+                source_tank_name=source_manager.tank_info.name,
+                destination_tank_id=destination_tank_id,
+                destination_tank_name=dest_manager.tank_info.name,
+                success=False,
+                error="Failed to deserialize entity in destination tank",
+            )
+
             return JSONResponse(
                 {"error": "Failed to deserialize entity in destination tank"},
                 status_code=500,
@@ -603,6 +619,20 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
 
         dest_manager.world.engine.add_entity(new_entity)
         logger.info(f"Added entity {new_entity.id} to tank {destination_tank_id[:8]} (was {entity_id})")
+
+        # Log successful transfer
+        from backend.transfer_history import log_transfer
+
+        log_transfer(
+            entity_type=entity_data["type"],
+            entity_old_id=entity_id,
+            entity_new_id=new_entity.id,
+            source_tank_id=source_tank_id,
+            source_tank_name=source_manager.tank_info.name,
+            destination_tank_id=destination_tank_id,
+            destination_tank_name=dest_manager.tank_info.name,
+            success=True,
+        )
 
         return JSONResponse({
             "success": True,
@@ -617,10 +647,91 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
         })
     except Exception as e:
         logger.error(f"Transfer failed: {e}", exc_info=True)
+
+        # Log failed transfer
+        from backend.transfer_history import log_transfer
+
+        log_transfer(
+            entity_type=entity_data["type"],
+            entity_old_id=entity_id,
+            entity_new_id=None,
+            source_tank_id=source_tank_id,
+            source_tank_name=source_manager.tank_info.name,
+            destination_tank_id=destination_tank_id,
+            destination_tank_name=dest_manager.tank_info.name,
+            success=False,
+            error=str(e),
+        )
+
         return JSONResponse(
             {"error": f"Transfer failed: {str(e)}"},
             status_code=500,
         )
+
+
+@app.get("/api/transfers")
+async def get_transfers(limit: int = 50, tank_id: Optional[str] = None, success_only: bool = False):
+    """Get transfer history.
+
+    Args:
+        limit: Maximum number of records to return (default 50)
+        tank_id: Filter by tank ID (source or destination)
+        success_only: Only return successful transfers
+
+    Returns:
+        List of transfer records
+    """
+    from backend.transfer_history import get_transfer_history
+
+    transfers = get_transfer_history(limit=limit, tank_id=tank_id, success_only=success_only)
+    return JSONResponse({
+        "transfers": transfers,
+        "count": len(transfers),
+        "limit": limit,
+    })
+
+
+@app.get("/api/transfers/{transfer_id}")
+async def get_transfer(transfer_id: str):
+    """Get a specific transfer by ID.
+
+    Args:
+        transfer_id: The transfer UUID
+
+    Returns:
+        Transfer record or 404 if not found
+    """
+    from backend.transfer_history import get_transfer_by_id
+
+    transfer = get_transfer_by_id(transfer_id)
+    if transfer is None:
+        return JSONResponse({"error": f"Transfer not found: {transfer_id}"}, status_code=404)
+
+    return JSONResponse(transfer)
+
+
+@app.get("/api/tanks/{tank_id}/transfer-stats")
+async def get_tank_transfer_stats(tank_id: str):
+    """Get transfer statistics for a tank.
+
+    Args:
+        tank_id: The tank ID
+
+    Returns:
+        Transfer statistics
+    """
+    from backend.transfer_history import get_tank_transfer_stats
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+
+    stats = get_tank_transfer_stats(tank_id)
+    return JSONResponse({
+        "tank_id": tank_id,
+        "tank_name": manager.tank_info.name,
+        **stats,
+    })
 
 
 @app.delete("/api/tanks/{tank_id}")
@@ -652,6 +763,154 @@ async def delete_tank(tank_id: str):
             {"error": f"Tank not found: {tank_id}"},
             status_code=404,
         )
+
+
+@app.post("/api/tanks/{tank_id}/save")
+async def save_tank(tank_id: str):
+    """Save tank state to a snapshot file.
+
+    Args:
+        tank_id: The tank ID to save
+
+    Returns:
+        Success message with snapshot info, or error
+    """
+    from backend.tank_persistence import save_tank_state, cleanup_old_snapshots
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+
+    # Save the tank state
+    snapshot_path = save_tank_state(tank_id, manager)
+    if snapshot_path is None:
+        return JSONResponse({"error": "Failed to save tank state"}, status_code=500)
+
+    # Cleanup old snapshots (keep last 10)
+    cleanup_old_snapshots(tank_id, max_snapshots=10)
+
+    return JSONResponse({
+        "success": True,
+        "message": f"Tank saved successfully",
+        "snapshot_path": snapshot_path,
+        "tank_id": tank_id,
+    })
+
+
+@app.post("/api/tanks/load")
+async def load_tank(snapshot_path: str):
+    """Load a tank from a snapshot file.
+
+    Args:
+        snapshot_path: Path to the snapshot file
+
+    Returns:
+        Success message with tank info, or error
+    """
+    from backend.tank_persistence import load_tank_state, restore_tank_from_snapshot
+
+    # Load snapshot data
+    snapshot = load_tank_state(snapshot_path)
+    if snapshot is None:
+        return JSONResponse({"error": "Failed to load snapshot"}, status_code=400)
+
+    # Extract metadata
+    tank_id = snapshot["tank_id"]
+    metadata = snapshot["metadata"]
+
+    # Check if tank already exists
+    existing_manager = tank_registry.get_tank(tank_id)
+    if existing_manager is not None:
+        return JSONResponse(
+            {"error": f"Tank {tank_id} already exists. Delete it first or use a different snapshot."},
+            status_code=409,
+        )
+
+    # Create new tank with same ID and metadata
+    create_request = CreateTankRequest(
+        tank_id=tank_id,
+        name=metadata["name"],
+        description=metadata.get("description", ""),
+        seed=metadata.get("seed"),
+        owner=metadata.get("owner"),
+        is_public=metadata.get("is_public", True),
+        allow_transfers=metadata.get("allow_transfers", False),
+    )
+
+    new_manager = tank_registry.create_tank(create_request)
+    if new_manager is None:
+        return JSONResponse({"error": "Failed to create tank"}, status_code=500)
+
+    # Restore state into the new tank
+    if not restore_tank_from_snapshot(snapshot, new_manager.world):
+        # Cleanup failed tank
+        tank_registry.remove_tank(tank_id)
+        return JSONResponse({"error": "Failed to restore tank state"}, status_code=500)
+
+    return JSONResponse({
+        "success": True,
+        "message": f"Tank loaded successfully",
+        "tank_id": tank_id,
+        "frame": snapshot["frame"],
+        "entity_count": len(snapshot["entities"]),
+    })
+
+
+@app.get("/api/tanks/{tank_id}/snapshots")
+async def list_snapshots(tank_id: str):
+    """List all available snapshots for a tank.
+
+    Args:
+        tank_id: The tank ID
+
+    Returns:
+        List of snapshot metadata
+    """
+    from backend.tank_persistence import list_tank_snapshots
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+
+    snapshots = list_tank_snapshots(tank_id)
+    return JSONResponse({
+        "tank_id": tank_id,
+        "snapshots": snapshots,
+        "count": len(snapshots),
+    })
+
+
+@app.delete("/api/tanks/{tank_id}/snapshots/{snapshot_filename}")
+async def delete_tank_snapshot(tank_id: str, snapshot_filename: str):
+    """Delete a specific snapshot file.
+
+    Args:
+        tank_id: The tank ID
+        snapshot_filename: Name of the snapshot file to delete
+
+    Returns:
+        Success message or error
+    """
+    from backend.tank_persistence import delete_snapshot, DATA_DIR
+
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+
+    # Build snapshot path
+    snapshot_path = DATA_DIR / tank_id / "snapshots" / snapshot_filename
+
+    # Validate filename to prevent directory traversal
+    if not snapshot_path.is_relative_to(DATA_DIR / tank_id / "snapshots"):
+        return JSONResponse({"error": "Invalid snapshot filename"}, status_code=400)
+
+    if not snapshot_path.exists():
+        return JSONResponse({"error": f"Snapshot not found: {snapshot_filename}"}, status_code=404)
+
+    if delete_snapshot(str(snapshot_path)):
+        return JSONResponse({"message": f"Snapshot {snapshot_filename} deleted"})
+    else:
+        return JSONResponse({"error": "Failed to delete snapshot"}, status_code=500)
 
 
 @app.get("/api/tanks/{tank_id}/lineage")
