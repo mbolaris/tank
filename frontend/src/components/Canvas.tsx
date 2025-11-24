@@ -40,6 +40,9 @@ export function Canvas({ state, width = 800, height = 600 }: CanvasProps) {
 
     const renderer = rendererRef.current;
 
+    // Prevent orientation cache from growing without bound when entities churn
+    renderer.pruneEntityFacingCache(state.entities.map((entity) => entity.id));
+
     // Clear canvas with time-of-day effects
     renderer.clear(width, height, state.stats?.time);
 
