@@ -13,8 +13,12 @@ export function useWebSocket(tankId?: string) {
     const reconnectTimeoutRef = useRef<number | null>(null);
     const connectRef = useRef<(() => void) | null>(null);
     const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
+    const unmountedRef = useRef(false);  // Track if component is unmounted
 
     const connect = useCallback(() => {
+        // Don't connect if component is unmounted
+        if (unmountedRef.current) return;
+
         try {
             // Use tankId if provided, otherwise fall back to config
             const wsUrl = tankId ? config.getWsUrlForTank(tankId) : config.wsUrl;
@@ -59,12 +63,14 @@ export function useWebSocket(tankId?: string) {
                 setIsConnected(false);
                 wsRef.current = null;
 
-                // Attempt to reconnect after delay
-                reconnectTimeoutRef.current = window.setTimeout(() => {
-                    if (connectRef.current) {
-                        connectRef.current();
-                    }
-                }, config.wsReconnectDelay);
+                // Only attempt to reconnect if component is still mounted
+                if (!unmountedRef.current) {
+                    reconnectTimeoutRef.current = window.setTimeout(() => {
+                        if (connectRef.current && !unmountedRef.current) {
+                            connectRef.current();
+                        }
+                    }, config.wsReconnectDelay);
+                }
             };
 
             wsRef.current = ws;
@@ -79,17 +85,25 @@ export function useWebSocket(tankId?: string) {
     }, [connect]);
 
     useEffect(() => {
+        // Mark as mounted
+        unmountedRef.current = false;
+
         // WebSocket setup synchronizes with external server state
         // eslint-disable-next-line react-hooks/set-state-in-effect
         connect();
 
         return () => {
+            // Mark as unmounted to prevent reconnection
+            unmountedRef.current = true;
+
             // Cleanup on unmount
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = null;
             }
             if (wsRef.current) {
                 wsRef.current.close();
+                wsRef.current = null;
             }
         };
     }, [connect]);

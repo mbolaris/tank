@@ -387,10 +387,10 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                     )}
                 </div>
                 <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                    }}>
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                }}>
                     <span style={{
                         width: '10px',
                         height: '10px',
@@ -426,7 +426,7 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                         </div>
                     </div>
                     <div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Viewers</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Connections</div>
                         <div style={{ fontSize: '16px', fontWeight: 600, color: '#e2e8f0' }}>
                             {client_count}
                         </div>
@@ -451,9 +451,12 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                         </div>
                     </div>
                     <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Generation</div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 4 }}>Max Generation</div>
                         <div style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: 700 }}>
-                            Gen {stats.generation.toLocaleString()} / {stats.max_generation.toLocaleString()}
+                            {stats.max_generation.toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
+                            {stats.total_extinctions ?? 0} extinction{(stats.total_extinctions ?? 0) !== 1 ? 's' : ''}
                         </div>
                     </div>
                     <div style={{ background: '#0f172a', borderRadius: '8px', padding: '12px', border: '1px solid #1f2937' }}>
@@ -502,6 +505,7 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                     <button
                         onClick={() => sendTankCommand(paused ? 'resume' : 'pause')}
                         disabled={actionLoading || !running}
+                        title={paused ? 'Resume simulation from current state' : 'Pause simulation (keeps state)'}
                         style={{
                             padding: '10px 12px',
                             backgroundColor: paused ? (actionLoading ? '#1e3a8a' : '#3b82f6') : (actionLoading ? '#92400e' : '#f59e0b'),
@@ -520,6 +524,7 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                     <button
                         onClick={() => sendTankCommand('stop')}
                         disabled={actionLoading || !running}
+                        title="Stop simulation completely (resets state)"
                         style={{
                             padding: '10px 12px',
                             backgroundColor: actionLoading ? '#7f1d1d' : '#ef4444',

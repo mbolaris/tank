@@ -99,6 +99,10 @@ class EcosystemManager:
         # Next available fish ID
         self.next_fish_id: int = 0
         
+        # Extinction tracking
+        self.total_extinctions: int = 0  # Count of times population went to 0
+        self._last_max_generation: int = 0  # Track previous max generation to detect drops
+        
         # Performance: Batch poker stats saving
         self._poker_save_counter: int = 0
 
@@ -167,6 +171,17 @@ class EcosystemManager:
 
         # NEW: Check for algorithm extinctions
         self.enhanced_stats.check_for_extinctions(frame, self)
+        
+        # Check for population extinction (max generation drops to 0)
+        alive_generations = [g for g, s in self.generation_stats.items() if s.population > 0]
+        current_max_gen = max(alive_generations) if alive_generations else 0
+        
+        # If we had fish before but now have none, increment extinction counter
+        if self._last_max_generation > 0 and current_max_gen == 0:
+            self.total_extinctions += 1
+            logger.info(f"Population extinction #{self.total_extinctions} detected at frame {frame}")
+        
+        self._last_max_generation = current_max_gen
 
     def get_next_fish_id(self) -> int:
         """Get the next unique fish ID.
@@ -539,6 +554,7 @@ class EcosystemManager:
             "max_generation": max(alive_generations) if alive_generations else 0,
             "total_births": self.total_births,
             "total_deaths": self.total_deaths,
+            "total_extinctions": self.total_extinctions,
             "carrying_capacity": self.max_population,
             "capacity_usage": (
                 f"{int(100 * total_pop / self.max_population)}%"

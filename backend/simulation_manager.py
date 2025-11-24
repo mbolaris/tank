@@ -231,6 +231,7 @@ class SimulationManager:
                 "max_generation": world_stats.get(
                     "max_generation", world_stats.get("current_generation", 0)
                 ),
+                "total_extinctions": world_stats.get("total_extinctions", 0),
                 "total_energy": world_stats.get("total_energy", 0.0),
                 "fish_energy": world_stats.get("fish_energy", 0.0),
                 "plant_energy": world_stats.get("plant_energy", 0.0),

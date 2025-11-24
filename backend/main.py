@@ -684,6 +684,32 @@ async def get_tank_lineage(tank_id: str):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.get("/api/tanks/{tank_id}/snapshot")
+async def get_tank_snapshot(tank_id: str):
+    """Get a single state snapshot for a tank (for thumbnails).
+    
+    Args:
+        tank_id: The tank ID to get snapshot for
+        
+    Returns:
+        Current simulation state or 404 if tank not found
+    """
+    manager = tank_registry.get_tank(tank_id)
+    if manager is None:
+        return JSONResponse(
+            {"error": f"Tank not found: {tank_id}"},
+            status_code=404,
+        )
+    
+    try:
+        # Get current state (force full state, no delta)
+        state = manager.get_state(force_full=True, allow_delta=False)
+        return JSONResponse(state.to_dict())
+    except Exception as e:
+        logger.error(f"Error getting snapshot for tank {tank_id[:8]}: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 # =============================================================================
 # Legacy Endpoints (for backwards compatibility)
 # =============================================================================
