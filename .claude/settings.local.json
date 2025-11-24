@@ -19,7 +19,8 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nMake nectar sway with parent plant and position in top 25%\n\n- Add source_plant_x and source_plant_y to nectar entity data for sway sync\n- Move PlantNectar check before Food check in entity serialization (since\n  PlantNectar extends Food)\n- Calculate sway offset in frontend using same formula as plant renderer\n- Position nectar at 20% from top of plant (within top 25%)\n- Fix nectar z-order to render just in front of parent plant\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []
