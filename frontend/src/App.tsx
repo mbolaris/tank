@@ -95,18 +95,22 @@ function NavBar() {
     );
 }
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 function App() {
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <NavBar />
-            <div style={{ flex: 1 }}>
-                <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/tank/:tankId" element={<TankPage />} />
-                    <Route path="/network" element={<NetworkDashboard />} />
-                </Routes>
+        <ErrorBoundary>
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+                <NavBar />
+                <div style={{ flex: 1 }}>
+                    <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/tank/:tankId" element={<TankPage />} />
+                        <Route path="/network" element={<NetworkDashboard />} />
+                    </Routes>
+                </div>
             </div>
-        </div>
+        </ErrorBoundary>
     );
 }
 

@@ -310,6 +310,11 @@ export function NetworkDashboard() {
                         <p style={{ fontSize: '14px', margin: 0 }}>Create your first tank to get started</p>
                     </div>
                 )}
+
+                {/* Transfer History Dialog */}
+                {showHistory && (
+                    <TransferHistory onClose={() => setShowHistory(false)} />
+                )}
             </div>
         </div>
     );
@@ -598,10 +603,7 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                 </div>
             </div>
 
-            {/* Transfer History Dialog */}
-            {showHistory && (
-                <TransferHistory onClose={() => setShowHistory(false)} />
-            )}
+
         </div>
     );
 }

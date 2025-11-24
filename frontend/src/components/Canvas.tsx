@@ -8,133 +8,176 @@ import { Renderer } from '../utils/renderer';
 import { ImageLoader } from '../utils/ImageLoader';
 
 interface CanvasProps {
-  state: SimulationUpdate | null;
-  width?: number;
-  height?: number;
-  onEntityClick?: (entityId: number, entityType: string) => void;
-  selectedEntityId?: number | null;
+    state: SimulationUpdate | null;
+    width?: number;
+    height?: number;
+    onEntityClick?: (entityId: number, entityType: string) => void;
+    selectedEntityId?: number | null;
 }
 
 export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId }: CanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<Renderer | null>(null);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const rendererRef = useRef<Renderer | null>(null);
+    const [imagesLoaded, setImagesLoaded] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  // Tank world dimensions (from core/constants.py)
-  const WORLD_WIDTH = 1088;
-  const WORLD_HEIGHT = 612;
+    // Tank world dimensions (from core/constants.py)
+    const WORLD_WIDTH = 1088;
+    const WORLD_HEIGHT = 612;
 
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!state || !onEntityClick) return;
+    const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!state || !onEntityClick || error) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
-    // Get click coordinates relative to canvas
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clickX = (event.clientX - rect.left) * scaleX;
-    const clickY = (event.clientY - rect.top) * scaleY;
+        // Get click coordinates relative to canvas
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (event.clientX - rect.left) * scaleX;
+        const clickY = (event.clientY - rect.top) * scaleY;
 
-    // Account for world-to-canvas scaling
-    const worldScaleX = WORLD_WIDTH / width;
-    const worldScaleY = WORLD_HEIGHT / height;
-    const worldX = clickX * worldScaleX;
-    const worldY = clickY * worldScaleY;
+        // Account for world-to-canvas scaling
+        const worldScaleX = WORLD_WIDTH / width;
+        const worldScaleY = WORLD_HEIGHT / height;
+        const worldX = clickX * worldScaleX;
+        const worldY = clickY * worldScaleY;
 
-    // Find clicked entity (check in reverse order to prioritize entities rendered on top)
-    for (let i = state.entities.length - 1; i >= 0; i--) {
-      const entity = state.entities[i];
+        // Find clicked entity (check in reverse order to prioritize entities rendered on top)
+        for (let i = state.entities.length - 1; i >= 0; i--) {
+            const entity = state.entities[i];
 
-      // Skip food items (only allow transferring fish and plants)
-      if (entity.type === 'food' || entity.type === 'plant_nectar') continue;
+            // Skip food items (only allow transferring fish and plants)
+            if (entity.type === 'food' || entity.type === 'plant_nectar') continue;
 
-      // Check if click is within entity bounds
-      const left = entity.x - entity.width / 2;
-      const right = entity.x + entity.width / 2;
-      const top = entity.y - entity.height / 2;
-      const bottom = entity.y + entity.height / 2;
+            // Check if click is within entity bounds
+            const left = entity.x - entity.width / 2;
+            const right = entity.x + entity.width / 2;
+            const top = entity.y - entity.height / 2;
+            const bottom = entity.y + entity.height / 2;
 
-      if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
-        onEntityClick(entity.id, entity.type);
-        return;
-      }
-    }
-  };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Initialize renderer and preload images
-    const initRenderer = async () => {
-      await ImageLoader.preloadGameImages();
-      rendererRef.current = new Renderer(ctx);
-      setImagesLoaded(true);
+            if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
+                onEntityClick(entity.id, entity.type);
+                return;
+            }
+        }
     };
 
-    initRenderer();
-  }, []);
+    useEffect(() => {
+        try {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-  useEffect(() => {
-    if (!state || !rendererRef.current || !imagesLoaded) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
 
-    const renderer = rendererRef.current;
-    const ctx = renderer.ctx;
+            // Initialize renderer immediately so we can draw background
+            rendererRef.current = new Renderer(ctx);
 
-    // Calculate scale to fit the entire world into the canvas
-    const scaleX = width / WORLD_WIDTH;
-    const scaleY = height / WORLD_HEIGHT;
+            // Preload images
+            const loadImages = async () => {
+                try {
+                    await ImageLoader.preloadGameImages();
+                    setImagesLoaded(true);
+                } catch (err) {
+                    console.error("Failed to load images:", err);
+                    setError(`Failed to load images: ${err instanceof Error ? err.message : String(err)}`);
+                }
+            };
 
-    // Prevent orientation cache from growing without bound when entities churn
-    renderer.pruneEntityFacingCache(state.entities.map((entity) => entity.id));
+            loadImages();
+        } catch (err) {
+            console.error("Failed to initialize renderer:", err);
+            setError(`Failed to initialize renderer: ${err instanceof Error ? err.message : String(err)}`);
+        }
+    }, []);
 
-    // Save context state
-    ctx.save();
+    useEffect(() => {
+        if (!state || !rendererRef.current || error) return;
 
-    // Apply scale transformation to fit world into canvas
-    ctx.scale(scaleX, scaleY);
+        try {
+            const renderer = rendererRef.current;
+            const ctx = renderer.ctx;
 
-    // Clear canvas with time-of-day effects (using world dimensions)
-    renderer.clear(WORLD_WIDTH, WORLD_HEIGHT, state.stats?.time);
+            // Calculate scale to fit the entire world into the canvas
+            const scaleX = width / WORLD_WIDTH;
+            const scaleY = height / WORLD_HEIGHT;
 
-    // Render all entities (they're already in world coordinates)
-    state.entities.forEach((entity) => {
-      renderer.renderEntity(entity, state.elapsed_time || 0);
+            // Prevent orientation cache from growing without bound when entities churn
+            renderer.pruneEntityFacingCache(state.entities.map((entity) => entity.id));
 
-      // Highlight selected entity
-      if (selectedEntityId === entity.id) {
-        ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([5, 5]);
-        ctx.strokeRect(
-          entity.x - entity.width / 2 - 5,
-          entity.y - entity.height / 2 - 5,
-          entity.width + 10,
-          entity.height + 10
+            // Save context state
+            ctx.save();
+
+            // Apply scale transformation to fit world into canvas
+            ctx.scale(scaleX, scaleY);
+
+            // Clear canvas with time-of-day effects (using world dimensions)
+            // We can do this even if images aren't loaded yet
+            renderer.clear(WORLD_WIDTH, WORLD_HEIGHT, state.stats?.time);
+
+            // Render all entities only if images are loaded
+            if (imagesLoaded) {
+                state.entities.forEach((entity) => {
+                    renderer.renderEntity(entity, state.elapsed_time || 0);
+
+                    // Highlight selected entity
+                    if (selectedEntityId === entity.id) {
+                        ctx.strokeStyle = '#3b82f6';
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeRect(
+                            entity.x - entity.width / 2 - 5,
+                            entity.y - entity.height / 2 - 5,
+                            entity.width + 10,
+                            entity.height + 10
+                        );
+                        ctx.setLineDash([]);
+                    }
+                });
+            }
+
+            // Restore context state
+            ctx.restore();
+        } catch (err) {
+            console.error("Rendering error:", err);
+            setError(`Rendering error: ${err instanceof Error ? err.message : String(err)}`);
+        }
+    }, [state, width, height, imagesLoaded, selectedEntityId, error]);
+
+    if (error) {
+        return (
+            <div style={{
+                width,
+                height,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#1a0000',
+                color: '#ff5555',
+                flexDirection: 'column',
+                padding: 20,
+                border: '1px solid #ff5555',
+                borderRadius: 8,
+                boxSizing: 'border-box'
+            }}>
+                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>Canvas Error</div>
+                <div style={{ fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{error}</div>
+            </div>
         );
-        ctx.setLineDash([]);
-      }
-    });
+    }
 
-    // Restore context state
-    ctx.restore();
-  }, [state, width, height, imagesLoaded, selectedEntityId]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={width}
-      height={height}
-      className="tank-canvas"
-      onClick={handleCanvasClick}
-      style={{
-        cursor: onEntityClick ? 'pointer' : 'default',
-      }}
-    />
-  );
+    return (
+        <canvas
+            ref={canvasRef}
+            width={width}
+            height={height}
+            className="tank-canvas"
+            onClick={handleCanvasClick}
+            style={{
+                cursor: onEntityClick ? 'pointer' : 'default',
+            }}
+        />
+    );
 }
