@@ -25,12 +25,37 @@ The server will start on `http://localhost:8000`
 
 ### HTTP Endpoints
 
-- `GET /` - API information
+- `GET /` - API information (includes Tank World Net status)
 - `GET /health` - Health check with simulation stats
+- `GET /api/tank/info` - Get default tank metadata (backwards compatible)
+- `GET /api/lineage` - Get phylogenetic lineage data for default tank
 
-### WebSocket Endpoint
+### Tank World Net - Multi-Tank API
 
-- `WS /ws` - Real-time simulation updates and commands
+Tank World Net enables running multiple independent tank simulations on a single server:
+
+- `GET /api/tanks` - List all tanks in the registry
+- `POST /api/tanks?name=...&description=...` - Create a new tank
+- `GET /api/tanks/{tank_id}` - Get specific tank info
+- `DELETE /api/tanks/{tank_id}` - Remove a tank
+- `GET /api/tanks/{tank_id}/lineage` - Get lineage for specific tank
+
+**Query Parameters for POST /api/tanks:**
+- `name` (required): Human-readable tank name
+- `description`: Tank description
+- `seed`: Random seed for deterministic behavior
+- `owner`: Owner identifier
+- `is_public`: Whether tank is publicly visible (default: true)
+- `allow_transfers`: Enable entity transfers between tanks (default: false)
+
+### WebSocket Endpoints
+
+- `WS /ws` - Connect to default tank (backwards compatible)
+- `WS /ws/{tank_id}` - Connect to a specific tank by ID
+
+**Frontend URL Parameters:**
+- `?tank={tank_id}` - Connect to a specific tank
+- `?server=ws://host:port` - Connect to a remote server
 
 ## WebSocket Protocol
 
