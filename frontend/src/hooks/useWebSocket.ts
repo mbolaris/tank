@@ -19,6 +19,15 @@ export function useWebSocket(tankId?: string) {
         // Don't connect if component is unmounted
         if (unmountedRef.current) return;
 
+        // Close any existing connection before creating a new one
+        if (wsRef.current) {
+            wsRef.current.onclose = null;
+            wsRef.current.onerror = null;
+            wsRef.current.onmessage = null;
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+
         try {
             // Use tankId if provided, otherwise fall back to config
             const wsUrl = tankId ? config.getWsUrlForTank(tankId) : config.wsUrl;
@@ -102,6 +111,9 @@ export function useWebSocket(tankId?: string) {
                 reconnectTimeoutRef.current = null;
             }
             if (wsRef.current) {
+                wsRef.current.onclose = null;
+                wsRef.current.onerror = null;
+                wsRef.current.onmessage = null;
                 wsRef.current.close();
                 wsRef.current = null;
             }
