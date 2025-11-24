@@ -8,7 +8,7 @@ interface TankThumbnailProps {
 }
 
 export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
-    const { state } = useWebSocket(tankId);
+    const { state, isConnected } = useWebSocket(tankId);
 
     const badge = useMemo(() => {
         if (status === 'stopped') {
@@ -20,6 +20,9 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
         return { label: 'Live', color: '#22c55e' };
     }, [status]);
 
+    // Show error state if disconnected and no state yet
+    const showError = !isConnected && !state;
+
     return (
         <div style={{ position: 'relative' }}>
             <div style={{
@@ -29,6 +32,24 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
                 backgroundColor: '#0f172a',
             }}>
                 <Canvas state={state} width={320} height={180} />
+                {showError && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#0f172add',
+                        color: '#ef4444',
+                        fontSize: 12,
+                        fontWeight: 600,
+                    }}>
+                        Connection Lost
+                    </div>
+                )}
             </div>
             <span style={{
                 position: 'absolute',

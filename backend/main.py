@@ -282,6 +282,8 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
 
 # Track broadcast tasks per tank
 _broadcast_tasks: Dict[str, asyncio.Task] = {}
+# Locks to prevent race conditions when creating broadcast tasks
+_broadcast_locks: Dict[str, asyncio.Lock] = {}
 
 
 async def start_broadcast_for_tank(manager: SimulationManager) -> asyncio.Task:
@@ -293,13 +295,24 @@ async def start_broadcast_for_tank(manager: SimulationManager) -> asyncio.Task:
     Returns:
         The asyncio Task for the broadcast loop
     """
-    task = asyncio.create_task(
-        broadcast_updates_for_tank(manager),
-        name=f"broadcast_{manager.tank_id[:8]}",
-    )
-    task.add_done_callback(_handle_task_exception)
-    _broadcast_tasks[manager.tank_id] = task
-    return task
+    tank_id = manager.tank_id
+
+    # Create lock for this tank if it doesn't exist
+    if tank_id not in _broadcast_locks:
+        _broadcast_locks[tank_id] = asyncio.Lock()
+
+    async with _broadcast_locks[tank_id]:
+        # Check again inside the lock to avoid creating duplicate tasks
+        if tank_id in _broadcast_tasks and not _broadcast_tasks[tank_id].done():
+            return _broadcast_tasks[tank_id]
+
+        task = asyncio.create_task(
+            broadcast_updates_for_tank(manager),
+            name=f"broadcast_{tank_id[:8]}",
+        )
+        task.add_done_callback(_handle_task_exception)
+        _broadcast_tasks[tank_id] = task
+        return task
 
 
 async def stop_broadcast_for_tank(tank_id: str) -> None:
