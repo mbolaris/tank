@@ -135,6 +135,11 @@ function App() {
                                 <span className="meta-label">Sim</span>
                                 <span className="meta-value-wide">{state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}</span>
                                 <span>frames</span>
+                                {state?.stats?.fps !== undefined && (
+                                    <span style={{ marginLeft: '8px', color: '#94a3b8', fontSize: '12px' }}>
+                                        ({state.stats.fps.toFixed(1)} FPS)
+                                    </span>
+                                )}
                             </span>
                             <span className="meta-item">
                                 <span className="meta-label">Pop</span>
@@ -154,8 +159,8 @@ function App() {
                                         <span style={{ color: '#4ade80' }}>{state?.stats?.plant_energy ? Math.round(state.stats.plant_energy).toLocaleString() : '0'}</span>
                                     </span>
                                 </span>
-                                {state?.stats?.poker_stats?.total_plant_games > 0 && (() => {
-                                    const energyTransfer = state?.stats?.poker_stats?.total_plant_energy_transferred || 0;
+                                {state?.stats?.poker_stats && state.stats.poker_stats.total_plant_games > 0 && (() => {
+                                    const energyTransfer = state.stats.poker_stats.total_plant_energy_transferred || 0;
                                     const isPositive = energyTransfer > 0;
                                     const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
                                     const prefix = isPositive ? '+' : '';

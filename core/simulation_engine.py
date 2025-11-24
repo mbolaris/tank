@@ -787,7 +787,7 @@ class SimulationEngine(BaseSimulator):
         )
 
         self.add_entity(new_fish)
-        logger.info(f"Population critical! Spawned emergency fish at ({x}, {y})")
+
 
     def _add_poker_event_to_history(
         self,
@@ -950,13 +950,15 @@ class SimulationEngine(BaseSimulator):
         fish_list = self.get_fish_list()
         stats["fish_count"] = len(fish_list)
         stats["food_count"] = len(self.get_food_list())
-        stats["plant_count"] = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
-        
         # Add separate fish and plant energy
         from core.entities.fractal_plant import FractalPlant
         stats["fish_energy"] = sum(fish.energy for fish in fish_list)
         plant_list = [e for e in self.entities_list if isinstance(e, FractalPlant)]
         stats["plant_energy"] = sum(plant.energy for plant in plant_list)
+        
+        # Update plant count to include fractal plants
+        regular_plants = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
+        stats["plant_count"] = regular_plants + len(plant_list)
 
         return stats
 

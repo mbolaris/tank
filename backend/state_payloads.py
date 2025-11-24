@@ -170,6 +170,7 @@ class StatsPayload:
     fish_energy: float  # Total energy of all fish
     plant_energy: float  # Total energy of all plants
     poker_stats: PokerStatsPayload
+    fps: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         data = _to_dict(self)

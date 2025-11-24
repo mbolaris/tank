@@ -62,6 +62,11 @@ class SimulationRunner:
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
         self.fast_forward = False
+        
+        # FPS Tracking
+        self.last_fps_time = time.time()
+        self.fps_frame_count = 0
+        self.current_actual_fps = 0.0
 
         # Performance: Throttle WebSocket updates to reduce serialization overhead
         # Cache state and only rebuild every N frames (reduces from 30 FPS to 15 FPS)
@@ -205,7 +210,6 @@ class SimulationRunner:
                     frame_count += 1
 
                     with self.lock:
-                        if not self.world.paused:
                             try:
                                 self.world.update()
                             except Exception as e:
@@ -216,6 +220,22 @@ class SimulationRunner:
                                 # Continue running even if update fails
 
                     self._start_auto_evaluation_if_needed()
+
+                    # FPS Calculation
+                    self.fps_frame_count += 1
+                    current_time = time.time()
+                    if current_time - self.last_fps_time >= 5.0:
+                        self.current_actual_fps = self.fps_frame_count / (current_time - self.last_fps_time)
+                        self.fps_frame_count = 0
+                        self.last_fps_time = current_time
+                        # Log stats periodically
+                        stats = self.world.get_stats()
+                        logger.info(
+                            f"Simulation Status: FPS={self.current_actual_fps:.1f}, "
+                            f"Fish={stats.get('fish_count', 0)}, "
+                            f"Plants={stats.get('plant_count', 0)}, "
+                            f"Energy={stats.get('total_energy', 0.0):.1f}"
+                        )
 
                     # Maintain frame rate
                     if not self.fast_forward:
@@ -531,6 +551,7 @@ class SimulationRunner:
             fish_energy=stats.get("fish_energy", 0.0),
             plant_energy=stats.get("plant_energy", 0.0),
             poker_stats=poker_stats_payload,
+            fps=round(self.current_actual_fps, 1),
         )
 
     def _collect_poker_events(self) -> list[PokerEventPayload]:

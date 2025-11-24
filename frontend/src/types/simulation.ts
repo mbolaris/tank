@@ -192,6 +192,7 @@ export interface StatsData {
     fish_energy: number;  // Total energy of all fish
     plant_energy: number; // Total energy of all plants
     poker_stats: PokerStatsData;
+    fps?: number;
 }
 
 export interface SimulationUpdate {
