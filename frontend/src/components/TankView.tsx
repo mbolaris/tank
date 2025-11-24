@@ -151,6 +151,7 @@ export function TankView({ tankId }: TankViewProps) {
                     onPlayPoker={handleStartPoker}
                     showTree={showTree}
                     onToggleTree={() => setShowTree(!showTree)}
+                    fastForwardEnabled={state?.stats?.fast_forward}
                 />
             </div>
 

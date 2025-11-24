@@ -171,6 +171,7 @@ class StatsPayload:
     plant_energy: float  # Total energy of all plants
     poker_stats: PokerStatsPayload
     fps: float = 0.0
+    fast_forward: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         data = _to_dict(self)
