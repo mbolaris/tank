@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Set
 
 from fastapi import WebSocket
+from starlette.websockets import WebSocketState
 
 from backend.simulation_runner import SimulationRunner
 
@@ -117,6 +118,7 @@ class SimulationManager:
     @property
     def client_count(self) -> int:
         """Get the number of connected clients."""
+        self._prune_closed_clients()
         return len(self._connected_clients)
 
     def start(self, start_paused: bool = False) -> None:
@@ -132,6 +134,23 @@ class SimulationManager:
         """Stop the simulation."""
         logger.info("Stopping simulation for tank %s", self.tank_id)
         self._runner.stop()
+
+    def _prune_closed_clients(self) -> None:
+        """Remove any WebSocket connections that are no longer open."""
+        stale_clients = {
+            websocket
+            for websocket in self._connected_clients
+            if websocket.client_state not in {WebSocketState.CONNECTED, WebSocketState.CONNECTING}
+        }
+
+        if stale_clients:
+            self._connected_clients.difference_update(stale_clients)
+            logger.info(
+                "Pruned %d stale clients from tank %s. Total clients: %d",
+                len(stale_clients),
+                self.tank_id,
+                len(self._connected_clients),
+            )
 
     def add_client(self, websocket: WebSocket) -> None:
         """Register a new WebSocket client.
