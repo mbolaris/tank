@@ -849,6 +849,8 @@ class SimulationRunner:
                 else:
                     self.world.setup()
                 self._invalidate_state_cache()
+                # Unpause after reset for intuitive behavior
+                self.world.paused = False
                 logger.info("Simulation reset")
 
             elif command == "fast_forward":

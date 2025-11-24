@@ -84,7 +84,7 @@ export function NetworkDashboard() {
             });
             if (!response.ok) {
                 const data = await response.json();
-                throw new Error(data.detail || `Failed to delete tank: ${response.status}`);
+                throw new Error(data.error || `Failed to delete tank: ${response.status}`);
             }
             await fetchTanks();
         } catch (err) {
@@ -486,51 +486,54 @@ function TankCard({ tankStatus, isDefault, onDelete, onRefresh }: TankCardProps)
                         disabled={actionLoading || running}
                         style={{
                             padding: '10px 12px',
-                            backgroundColor: running ? '#1f2937' : '#22c55e',
+                            backgroundColor: running ? '#1f2937' : (actionLoading ? '#166534' : '#22c55e'),
                             color: running ? '#94a3b8' : 'white',
                             border: '1px solid #22c55e',
                             borderRadius: '6px',
-                            cursor: running ? 'not-allowed' : 'pointer',
+                            cursor: (actionLoading || running) ? 'not-allowed' : 'pointer',
                             fontWeight: 600,
                             fontSize: '14px',
                             flex: '0 0 auto',
+                            opacity: actionLoading ? 0.7 : 1,
                         }}
                     >
-                        Start
+                        {actionLoading ? 'Starting...' : 'Start'}
                     </button>
                     <button
                         onClick={() => sendTankCommand(paused ? 'resume' : 'pause')}
                         disabled={actionLoading || !running}
                         style={{
                             padding: '10px 12px',
-                            backgroundColor: paused ? '#3b82f6' : '#f59e0b',
+                            backgroundColor: paused ? (actionLoading ? '#1e3a8a' : '#3b82f6') : (actionLoading ? '#92400e' : '#f59e0b'),
                             color: 'white',
                             border: '1px solid #334155',
                             borderRadius: '6px',
-                            cursor: !running ? 'not-allowed' : 'pointer',
+                            cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
                             fontWeight: 600,
                             fontSize: '14px',
                             flex: '0 0 auto',
+                            opacity: actionLoading ? 0.7 : 1,
                         }}
                     >
-                        {paused ? 'Resume' : 'Pause'}
+                        {actionLoading ? (paused ? 'Resuming...' : 'Pausing...') : (paused ? 'Resume' : 'Pause')}
                     </button>
                     <button
                         onClick={() => sendTankCommand('stop')}
                         disabled={actionLoading || !running}
                         style={{
                             padding: '10px 12px',
-                            backgroundColor: '#ef4444',
+                            backgroundColor: actionLoading ? '#7f1d1d' : '#ef4444',
                             color: 'white',
                             border: '1px solid #ef4444',
                             borderRadius: '6px',
-                            cursor: !running ? 'not-allowed' : 'pointer',
+                            cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
                             fontWeight: 600,
                             fontSize: '14px',
                             flex: '0 0 auto',
+                            opacity: actionLoading ? 0.7 : 1,
                         }}
                     >
-                        Stop
+                        {actionLoading ? 'Stopping...' : 'Stop'}
                     </button>
                     <Link
                         to={`/tank/${tank.tank_id}`}

@@ -113,10 +113,14 @@ tank/
 - **models.py**: Pydantic models for API validation
 
 **Tank World Net API:**
-- `GET /api/tanks` - List all tanks
+- `GET /api/tanks` - List all tanks with stats (fish count, generation, energy)
 - `POST /api/tanks` - Create new tank
 - `DELETE /api/tanks/{id}` - Remove tank
-- `WS /ws/{tank_id}` - Connect to specific tank
+- `POST /api/tanks/{id}/pause` - Pause a running tank
+- `POST /api/tanks/{id}/resume` - Resume a paused tank
+- `POST /api/tanks/{id}/start` - Start a stopped tank
+- `POST /api/tanks/{id}/stop` - Stop a running tank
+- `WS /ws/{tank_id}` - Connect to specific tank for live updates
 
 ### 3. Web Frontend (frontend/)
 
@@ -124,7 +128,12 @@ tank/
 
 - **React Router** for multi-page navigation
 - **TankView** component for reusable tank visualization
-- **NetworkDashboard** for Tank World Net management
+- **NetworkDashboard** for Tank World Net management with:
+  - Live tank thumbnails with WebSocket streaming
+  - Per-tank controls (pause/resume/start/stop)
+  - Real-time stats (fish count, generation, energy)
+  - Tank creation and deletion
+  - Connection status monitoring
 - Real-time canvas rendering
 - Stats panel with population metrics
 - Control panel for simulation parameters
