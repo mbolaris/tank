@@ -94,7 +94,7 @@ interface Particle {
 }
 
 export class Renderer {
-    private ctx: CanvasRenderingContext2D;
+    public ctx: CanvasRenderingContext2D;
     private particles: Particle[] = [];
     private initialized = false;
     private currentPalette: TimeOfDayPalette | null = null;
