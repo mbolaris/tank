@@ -75,6 +75,64 @@ _api_port_override = os.getenv("TANK_API_PORT")
 if _api_port_override:
     DEFAULT_API_PORT = int(_api_port_override)
 
+# Discovery hub configuration
+DISCOVERY_SERVER_URL = os.getenv("DISCOVERY_SERVER_URL")  # e.g., "http://192.168.1.10:8000"
+_discovery_hub_info: Optional[ServerInfo] = None  # Parsed discovery hub server info
+
+
+def _get_network_ip() -> str:
+    """Get the network IP address of this machine.
+
+    Returns:
+        Network IP address, or "localhost" if unable to determine
+    """
+    try:
+        # Create a socket and connect to an external address to determine local IP
+        # This doesn't actually send data, just determines which interface would be used
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        # Fallback to localhost if we can't determine network IP
+        return "localhost"
+
+
+def _parse_discovery_url(url: str) -> Optional[ServerInfo]:
+    """Parse DISCOVERY_SERVER_URL into a ServerInfo object.
+
+    Args:
+        url: Discovery server URL (e.g., "http://192.168.1.10:8000")
+
+    Returns:
+        ServerInfo for the discovery server, or None if invalid
+    """
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+
+        if not parsed.hostname:
+            logger.error(f"Invalid DISCOVERY_SERVER_URL: {url} (no hostname)")
+            return None
+
+        port = parsed.port or 8000
+
+        # Create a minimal ServerInfo for the discovery hub
+        return ServerInfo(
+            server_id="discovery-hub",
+            hostname=parsed.hostname,
+            host=parsed.hostname,
+            port=port,
+            status="online",
+            tank_count=0,
+            version="unknown",
+            is_local=False,
+        )
+    except Exception as e:
+        logger.error(f"Failed to parse DISCOVERY_SERVER_URL: {url} - {e}")
+        return None
+
 
 def _handle_task_exception(task: asyncio.Task) -> None:
     """Handle exceptions from background tasks."""
@@ -104,7 +162,18 @@ async def _heartbeat_loop() -> None:
             # Update local server info and send heartbeat
             server_info = get_server_info()
             await discovery_service.heartbeat(SERVER_ID, server_info)
-            logger.debug("Heartbeat sent to discovery service")
+            logger.debug("Heartbeat sent to local discovery service")
+
+            # Also send heartbeat to remote discovery hub if configured
+            if _discovery_hub_info:
+                try:
+                    success = await server_client.send_heartbeat(_discovery_hub_info, server_info)
+                    if success:
+                        logger.debug(f"Heartbeat sent to remote discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
+                    else:
+                        logger.warning(f"Failed to send heartbeat to discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
+                except Exception as e:
+                    logger.warning(f"Error sending heartbeat to discovery hub: {e}")
 
         except asyncio.CancelledError:
             logger.info("Heartbeat loop cancelled")
@@ -164,6 +233,15 @@ async def lifespan(app: FastAPI):
             await discovery_service.register_server(local_server_info)
             logger.info(f"Local server registered: {SERVER_ID}")
 
+            # Parse discovery hub URL if provided
+            global _discovery_hub_info
+            if DISCOVERY_SERVER_URL:
+                _discovery_hub_info = _parse_discovery_url(DISCOVERY_SERVER_URL)
+                if _discovery_hub_info:
+                    logger.info(f"Discovery hub configured: {_discovery_hub_info.host}:{_discovery_hub_info.port}")
+                else:
+                    logger.warning(f"Failed to parse DISCOVERY_SERVER_URL: {DISCOVERY_SERVER_URL}")
+
             # Start heartbeat loop
             _heartbeat_task = asyncio.create_task(_heartbeat_loop())
             _heartbeat_task.add_done_callback(_handle_task_exception)
@@ -181,6 +259,20 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Failed to start server client: {e}", exc_info=True)
             # Non-fatal - continue without server client
+
+        # Register with remote discovery hub if configured
+        if _discovery_hub_info:
+            logger.info("Registering with remote discovery hub...")
+            try:
+                local_server_info = get_server_info()
+                success = await server_client.register_server(_discovery_hub_info, local_server_info)
+                if success:
+                    logger.info(f"Successfully registered with discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
+                else:
+                    logger.warning(f"Failed to register with discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
+            except Exception as e:
+                logger.error(f"Error registering with discovery hub: {e}", exc_info=True)
+                # Non-fatal - continue without hub registration
 
         # Configure TankRegistry with distributed services
         logger.info("Configuring TankRegistry for distributed operations...")
@@ -780,7 +872,7 @@ def get_server_info() -> ServerInfo:
     return ServerInfo(
         server_id=SERVER_ID,
         hostname=socket.gethostname(),
-        host="localhost",  # For now, always localhost
+        host=_get_network_ip(),  # Use actual network IP for distributed setups
         port=DEFAULT_API_PORT,
         status="online",
         tank_count=tank_registry.tank_count,

@@ -5,7 +5,10 @@
 ### Phase 1: Server Discovery & Communication
 - **DiscoveryService**: Server registry with heartbeat monitoring (30s interval, 90s timeout)
 - **ServerClient**: HTTP client for all inter-server communication
-- **Server Registration**: Servers can discover and register with each other
+- **Discovery Hub Pattern**: Central hub with automatic worker registration ⭐ **NEW**
+- **Auto-Registration**: Workers automatically register with hub on startup ⭐ **NEW**
+- **Network IP Detection**: Servers report actual network IP for cross-machine communication ⭐ **NEW**
+- **Remote Heartbeats**: Workers send heartbeats to remote hub server ⭐ **NEW**
 - **Health Monitoring**: Automatic detection of offline/stale servers
 - **Persistent Registry**: Server metadata stored in `data/server_registry.json`
 - **API Endpoints**: Complete REST API for server discovery
@@ -75,25 +78,41 @@ Every 10 seconds:
 
 ## 🚀 How to Run
 
-### Start Multiple Servers
+### Using Discovery Hub Pattern (Recommended)
+
+**Step 1: Start the Discovery Hub**
 ```bash
-# Terminal 1 - Server 1
-TANK_SERVER_ID=server-1 TANK_API_PORT=8001 python -m backend.main
-
-# Terminal 2 - Server 2
-TANK_SERVER_ID=server-2 TANK_API_PORT=8002 python -m backend.main
-
-# Terminal 3 - Server 3
-TANK_SERVER_ID=server-3 TANK_API_PORT=8003 python -m backend.main
+# Terminal 1 - Discovery Hub
+TANK_SERVER_ID=hub-server TANK_API_PORT=8000 python -m backend.main
 ```
 
-### Register Servers Together
+**Step 2: Start Worker Servers (Auto-Register)**
 ```bash
-# Get server info
+# Terminal 2 - Worker 1
+TANK_SERVER_ID=worker-1 TANK_API_PORT=8001 \
+  DISCOVERY_SERVER_URL=http://localhost:8000 \
+  python -m backend.main
+
+# Terminal 3 - Worker 2
+TANK_SERVER_ID=worker-2 TANK_API_PORT=8002 \
+  DISCOVERY_SERVER_URL=http://localhost:8000 \
+  python -m backend.main
+```
+
+**That's it!** Workers automatically register with the hub and send heartbeats.
+
+See `DISCOVERY_HUB_GUIDE.md` for detailed setup instructions including firewall configuration.
+
+### Manual Registration (Legacy Method)
+```bash
+# Start servers without DISCOVERY_SERVER_URL
+TANK_SERVER_ID=server-1 TANK_API_PORT=8001 python -m backend.main
+TANK_SERVER_ID=server-2 TANK_API_PORT=8002 python -m backend.main
+
+# Manually register each server with the other
 SERVER1_INFO=$(curl -s http://localhost:8001/api/servers/local)
 SERVER2_INFO=$(curl -s http://localhost:8002/api/servers/local)
 
-# Cross-register
 curl -X POST http://localhost:8001/api/discovery/register \
   -H "Content-Type: application/json" -d "$SERVER2_INFO"
 
@@ -146,6 +165,30 @@ curl -X POST http://localhost:8001/api/connections \
 ### Environment Variables
 - `TANK_SERVER_ID` - Unique server identifier (default: "local-server")
 - `TANK_API_PORT` - API server port (default: 8000)
+- `DISCOVERY_SERVER_URL` - Discovery hub URL for auto-registration (e.g., "http://192.168.1.10:8000") ⭐ **NEW**
+
+### Firewall Requirements
+
+**Discovery Hub Server:**
+- Port `TANK_API_PORT` (default 8000) must be open for incoming connections
+- All worker servers must be able to reach this port
+
+**Worker Servers:**
+- Only need outbound access to reach the hub
+- Incoming ports optional (only needed for direct cross-server migrations)
+
+**Example firewall rules:**
+```bash
+# Linux (iptables)
+sudo iptables -A INPUT -p tcp --dport 8000 -j ACCEPT
+
+# Linux (firewalld)
+sudo firewall-cmd --add-port=8000/tcp --permanent
+sudo firewall-cmd --reload
+
+# Windows
+netsh advfirewall firewall add rule name="Tank Hub" dir=in action=allow protocol=TCP localport=8000
+```
 
 ### Configuration Constants
 ```python
