@@ -62,7 +62,7 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
             "template_id": fish.genome.template_id,
             # Skip algorithms for now - they don't have to_dict methods
             # "behavior_algorithm": fish.genome.behavior_algorithm.to_dict() if fish.genome.behavior_algorithm else None,
-            # "poker_strategy_algorithm": fish.genome.poker_strategy_algorithm.to_dict() if fish.genome.poker_strategy_algorithm else None,
+            "poker_strategy_algorithm": fish.genome.poker_strategy_algorithm.to_dict() if fish.genome.poker_strategy_algorithm else None,
         },
         "memory": {
             "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
@@ -147,8 +147,13 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             aggression=genome_data.get("aggression", 0.5),
             social_tendency=genome_data.get("social_tendency", 0.5),
             template_id=genome_data.get("template_id", 0),
-            # behavior_algorithm and poker_strategy will be set by Fish.__init__
+            # behavior_algorithm will be set by Fish.__init__
         )
+
+        # Restore poker strategy if available
+        if "poker_strategy_algorithm" in genome_data and genome_data["poker_strategy_algorithm"]:
+            from core.poker.strategy.implementations import PokerStrategyAlgorithm
+            genome.poker_strategy_algorithm = PokerStrategyAlgorithm.from_dict(genome_data["poker_strategy_algorithm"])
 
         # Create movement strategy (AlgorithmicMovement uses genome from fish directly)
         movement = AlgorithmicMovement()

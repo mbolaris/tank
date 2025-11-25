@@ -309,6 +309,12 @@ class SimulationRunner:
             if fish is None:
                 continue
 
+            # Ensure fish has a poker strategy
+            if fish.genome.poker_strategy_algorithm is None:
+                from core.poker.strategy.implementations import get_random_poker_strategy
+                fish.genome.poker_strategy_algorithm = get_random_poker_strategy()
+                logger.info(f"Assigned random poker strategy to fish #{fish.fish_id} for auto-eval")
+
             fish_name = f"{entry['algorithm'][:15]} (Gen {entry['generation']}) #{entry['fish_id']}"
             fish_players.append(
                 {

@@ -646,19 +646,19 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
                         <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Fish</div>
                         <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {stats.fish_count.toLocaleString()}
+                            {stats.fish_count?.toLocaleString() ?? '0'}
                         </div>
                     </div>
                     <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
                         <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Gen</div>
                         <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {stats.max_generation.toLocaleString()}
+                            {stats.max_generation?.toLocaleString() ?? '0'}
                         </div>
                     </div>
                     <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
                         <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Frame</div>
                         <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {frame.toLocaleString()}
+                            {frame?.toLocaleString() ?? '0'}
                         </div>
                         <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: 2 }}>
                             {fps != null ? `${fps.toFixed(1)} FPS` : 'FPS —'}

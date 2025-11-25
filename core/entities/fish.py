@@ -89,6 +89,12 @@ class Fish(Agent):
 
         # Genetics
         self.genome: Genome = genome if genome is not None else Genome.random()
+        
+        # Ensure poker strategy is initialized (self-healing for older saves/migrations)
+        if self.genome.poker_strategy_algorithm is None:
+            from core.poker.strategy.implementations import get_random_poker_strategy
+            self.genome.poker_strategy_algorithm = get_random_poker_strategy()
+            
         self.generation: int = generation
         self.species: str = species
         

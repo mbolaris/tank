@@ -12,7 +12,7 @@ Each strategy has evolvable parameters that control:
 
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
     from core.poker.core.engine import BettingAction
@@ -57,6 +57,44 @@ class PokerStrategyAlgorithm:
     def random_instance(cls) -> "PokerStrategyAlgorithm":
         """Create random instance."""
         return cls()
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize strategy to dictionary."""
+        return {
+            "strategy_id": self.strategy_id,
+            "parameters": self.parameters,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PokerStrategyAlgorithm":
+        """Deserialize strategy from dictionary."""
+        strategy_id = data.get("strategy_id")
+        parameters = data.get("parameters", {})
+
+        # Find the correct subclass
+        for strategy_cls in ALL_POKER_STRATEGIES:
+            # Create a temporary instance to check ID (or check class attribute if available)
+            # Since strategy_id is set in __init__, we check the class map below
+            pass
+
+        # Better approach: Map IDs to classes
+        strategy_map = {
+            "tight_aggressive": TightAggressiveStrategy,
+            "loose_aggressive": LooseAggressiveStrategy,
+            "tight_passive": TightPassiveStrategy,
+            "loose_passive": LoosePassiveStrategy,
+            "balanced": BalancedStrategy,
+            "maniac": ManiacStrategy,
+        }
+
+        strategy_cls = strategy_map.get(strategy_id)
+        if strategy_cls:
+            instance = strategy_cls()
+            instance.parameters = parameters
+            return instance
+        
+        # Fallback to random if unknown
+        return get_random_poker_strategy()
 
 
 @dataclass
