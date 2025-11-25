@@ -10,7 +10,7 @@ import sys
 import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,6 +55,10 @@ discovery_service = DiscoveryService()
 
 # Server client for server-to-server communication
 server_client = ServerClient()
+
+# Migration scheduler for automated entity migrations
+from backend.migration_scheduler import MigrationScheduler
+migration_scheduler: Optional[MigrationScheduler] = None  # Will be initialized in lifespan
 
 # Backwards-compatible aliases for the default tank
 simulation_manager = tank_registry.default_tank
@@ -187,6 +191,24 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to configure TankRegistry: {e}", exc_info=True)
             # Non-fatal - continue without distributed tank queries
 
+        # Start migration scheduler
+        logger.info("Starting migration scheduler...")
+        try:
+            global migration_scheduler
+            migration_scheduler = MigrationScheduler(
+                connection_manager=connection_manager,
+                tank_registry=tank_registry,
+                check_interval=10.0,
+                discovery_service=discovery_service,
+                server_client=server_client,
+                local_server_id=SERVER_ID,
+            )
+            await migration_scheduler.start()
+            logger.info("Migration scheduler started")
+        except Exception as e:
+            logger.error(f"Failed to start migration scheduler: {e}", exc_info=True)
+            # Non-fatal - continue without automated migrations
+
         logger.info("LIFESPAN STARTUP: Complete - yielding control to app")
         yield
         logger.info("LIFESPAN SHUTDOWN: Received shutdown signal")
@@ -206,6 +228,15 @@ async def lifespan(app: FastAPI):
                 logger.info(f"Broadcast task stopped for tank {tank_id[:8]}")
             except Exception as e:
                 logger.error(f"Error stopping broadcast for tank {tank_id[:8]}: {e}", exc_info=True)
+
+        # Stop migration scheduler
+        logger.info("Stopping migration scheduler...")
+        if migration_scheduler:
+            try:
+                await migration_scheduler.stop()
+                logger.info("Migration scheduler stopped")
+            except Exception as e:
+                logger.error(f"Error stopping migration scheduler: {e}", exc_info=True)
 
         # Stop all simulations
         logger.info("Stopping all simulations...")
