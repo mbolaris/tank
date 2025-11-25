@@ -592,7 +592,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
 
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
                     gap: '10px',
                 }}>
                     <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
@@ -605,6 +605,12 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Gen</div>
                         <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
                             {stats.max_generation.toLocaleString()}
+                        </div>
+                    </div>
+                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Frame</div>
+                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
+                            {frame.toLocaleString()}
                         </div>
                     </div>
                     <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
