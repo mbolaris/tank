@@ -29,6 +29,9 @@ class CreateTankRequest:
     owner: Optional[str] = None
     is_public: bool = True
     allow_transfers: bool = True
+    persistent: bool = True
+    auto_save_interval: float = 300.0
+    tank_id: Optional[str] = None  # Optional for restoring existing tanks
 
 
 class TankRegistry:
@@ -119,6 +122,8 @@ class TankRegistry:
         is_public: bool = True,
         allow_transfers: bool = True,
         server_id: str = "local-server",
+        persistent: bool = True,
+        auto_save_interval: float = 300.0,
     ) -> SimulationManager:
         """Create a new tank and add it to the registry.
 
@@ -130,6 +135,8 @@ class TankRegistry:
             is_public: Whether the tank is publicly visible
             allow_transfers: Whether to allow entity transfers
             server_id: Which server this tank should run on (default: local-server)
+            persistent: Whether this tank should auto-save and restore
+            auto_save_interval: Auto-save interval in seconds (default: 5 minutes)
 
         Returns:
             The newly created SimulationManager
@@ -138,6 +145,8 @@ class TankRegistry:
             tank_name=name,
             tank_description=description,
             seed=seed,
+            persistent=persistent,
+            auto_save_interval=auto_save_interval,
         )
 
         # Update tank info with additional fields
@@ -149,12 +158,13 @@ class TankRegistry:
         self._tanks[manager.tank_id] = manager
 
         logger.info(
-            "Created tank: id=%s, name=%s, owner=%s, public=%s, server=%s",
+            "Created tank: id=%s, name=%s, owner=%s, public=%s, server=%s, persistent=%s",
             manager.tank_id,
             name,
             owner,
             is_public,
             server_id,
+            persistent,
         )
 
         return manager
@@ -264,6 +274,68 @@ class TankRegistry:
     def __iter__(self):
         """Iterate over tank managers."""
         return iter(self._tanks.values())
+
+    def restore_tank_from_snapshot(
+        self,
+        snapshot_path: str,
+        start_paused: bool = True,
+    ) -> Optional[SimulationManager]:
+        """Restore a tank from a snapshot file.
+
+        Args:
+            snapshot_path: Path to the snapshot file
+            start_paused: Whether to start the tank in paused state
+
+        Returns:
+            The restored SimulationManager, or None if restoration failed
+        """
+        from backend.tank_persistence import load_tank_state, restore_tank_from_snapshot
+
+        # Load snapshot data
+        snapshot = load_tank_state(snapshot_path)
+        if snapshot is None:
+            logger.error(f"Failed to load snapshot: {snapshot_path}")
+            return None
+
+        # Extract metadata
+        tank_id = snapshot["tank_id"]
+        metadata = snapshot["metadata"]
+
+        # Check if tank already exists
+        if tank_id in self._tanks:
+            logger.warning(f"Tank {tank_id[:8]} already exists, skipping restore")
+            return self._tanks[tank_id]
+
+        # Create new tank with same ID and metadata
+        manager = SimulationManager(
+            tank_name=metadata["name"],
+            tank_description=metadata.get("description", ""),
+            seed=metadata.get("seed"),
+            persistent=True,  # Restored tanks are persistent by default
+            auto_save_interval=300.0,
+        )
+
+        # Override the tank_id to match the snapshot
+        manager.tank_info.tank_id = tank_id
+        manager.tank_info.owner = metadata.get("owner")
+        manager.tank_info.is_public = metadata.get("is_public", True)
+        manager.tank_info.allow_transfers = metadata.get("allow_transfers", True)
+        manager.tank_info.server_id = metadata.get("server_id", "local-server")
+
+        # Restore state into the tank
+        if not restore_tank_from_snapshot(snapshot, manager.world):
+            logger.error(f"Failed to restore tank state from {snapshot_path}")
+            return None
+
+        # Add to registry
+        self._tanks[tank_id] = manager
+
+        logger.info(
+            f"Restored tank {tank_id[:8]} from snapshot "
+            f"(frame: {snapshot['frame']}, entities: {len(snapshot['entities'])})"
+        )
+
+        return manager
 
     # =========================================================================
     # Distributed Tank Queries

@@ -318,3 +318,47 @@ def cleanup_old_snapshots(tank_id: str, max_snapshots: int = 10) -> int:
 
     logger.info(f"Cleaned up {deleted} old snapshots for tank {tank_id[:8]}")
     return deleted
+
+
+def get_latest_snapshot(tank_id: str) -> Optional[str]:
+    """Get the path to the most recent snapshot for a tank.
+
+    Args:
+        tank_id: The tank identifier
+
+    Returns:
+        Path to the latest snapshot file, or None if no snapshots exist
+    """
+    snapshots = list_tank_snapshots(tank_id)
+    if not snapshots:
+        return None
+
+    # Snapshots are sorted by newest first
+    return snapshots[0]["filepath"]
+
+
+def find_all_tank_snapshots() -> Dict[str, str]:
+    """Find the latest snapshot for each tank that has saved data.
+
+    Returns:
+        Dictionary mapping tank_id to latest snapshot path
+    """
+    if not DATA_DIR.exists():
+        return {}
+
+    tank_snapshots = {}
+
+    # Iterate through all tank directories
+    for tank_dir in DATA_DIR.iterdir():
+        if not tank_dir.is_dir():
+            continue
+
+        tank_id = tank_dir.name
+        latest_snapshot = get_latest_snapshot(tank_id)
+
+        if latest_snapshot:
+            tank_snapshots[tank_id] = latest_snapshot
+            logger.debug(f"Found snapshot for tank {tank_id[:8]}: {latest_snapshot}")
+
+    logger.info(f"Found {len(tank_snapshots)} tanks with saved snapshots")
+    return tank_snapshots

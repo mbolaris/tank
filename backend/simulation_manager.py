@@ -33,10 +33,15 @@ class TankInfo:
     created_at: datetime = field(default_factory=datetime.utcnow)
     owner: Optional[str] = None
     server_id: str = "local-server"  # Which server this tank is running on
+    seed: Optional[int] = None  # Random seed for deterministic behavior
 
     # Network visibility settings (for future use)
     is_public: bool = True
     allow_transfers: bool = True  # Allow fish/plants to transfer between tanks
+
+    # Persistence settings
+    persistent: bool = True  # Whether this tank should be saved/restored
+    auto_save_interval: float = 300.0  # Auto-save interval in seconds (default: 5 minutes)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize tank info for API responses."""
@@ -47,8 +52,11 @@ class TankInfo:
             "created_at": self.created_at.isoformat(),
             "owner": self.owner,
             "server_id": self.server_id,
+            "seed": self.seed,
             "is_public": self.is_public,
             "allow_transfers": self.allow_transfers,
+            "persistent": self.persistent,
+            "auto_save_interval": self.auto_save_interval,
         }
 
 
@@ -65,6 +73,8 @@ class SimulationManager:
         tank_name: str = "Tank 1",
         tank_description: str = "A local fish tank simulation",
         seed: Optional[int] = None,
+        persistent: bool = True,
+        auto_save_interval: float = 300.0,
     ):
         """Initialize the simulation manager.
 
@@ -72,12 +82,17 @@ class SimulationManager:
             tank_name: Human-readable name for this tank
             tank_description: Description of this tank
             seed: Optional random seed for deterministic behavior
+            persistent: Whether this tank should auto-save and restore
+            auto_save_interval: Auto-save interval in seconds (default: 5 minutes)
         """
         # Generate unique tank ID
         self.tank_info = TankInfo(
             tank_id=str(uuid.uuid4()),
             name=tank_name,
             description=tank_description,
+            seed=seed,
+            persistent=persistent,
+            auto_save_interval=auto_save_interval,
         )
 
         # Create simulation runner
@@ -87,9 +102,10 @@ class SimulationManager:
         self._connected_clients: Set[WebSocket] = set()
 
         logger.info(
-            "SimulationManager initialized: tank_id=%s, name=%s",
+            "SimulationManager initialized: tank_id=%s, name=%s, persistent=%s",
             self.tank_info.tank_id,
             self.tank_info.name,
+            persistent,
         )
 
     @property

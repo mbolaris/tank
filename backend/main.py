@@ -45,7 +45,8 @@ from backend.server_client import ServerClient
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
 # Global tank registry - manages multiple tank simulations for Tank World Net
-tank_registry = TankRegistry(create_default=True)
+# Note: create_default=False because we'll restore from snapshots first
+tank_registry = TankRegistry(create_default=False)
 
 # Connection manager for tank migrations
 connection_manager = ConnectionManager()
@@ -60,10 +61,14 @@ server_client = ServerClient()
 from backend.migration_scheduler import MigrationScheduler
 migration_scheduler: Optional[MigrationScheduler] = None  # Will be initialized in lifespan
 
-# Backwards-compatible aliases for the default tank
-simulation_manager = tank_registry.default_tank
-simulation = simulation_manager.runner
-connected_clients = simulation_manager.connected_clients
+# Auto-save service for periodic tank state persistence
+from backend.auto_save_service import AutoSaveService
+auto_save_service: Optional[AutoSaveService] = None  # Will be initialized in lifespan
+
+# Backwards-compatible aliases for the default tank (will be set after tank restoration)
+simulation_manager = None
+simulation = None
+connected_clients = None
 
 # Server metadata (can be overridden by environment variables)
 SERVER_ID = os.getenv("TANK_SERVER_ID", "local-server")  # Local server ID
@@ -185,7 +190,7 @@ async def _heartbeat_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
-    global _heartbeat_task
+    global _heartbeat_task, auto_save_service, simulation_manager, simulation, connected_clients
 
     try:
         # Startup
@@ -193,8 +198,54 @@ async def lifespan(app: FastAPI):
         logger.info("LIFESPAN STARTUP: Beginning initialization")
         logger.info(f"Platform: {platform.system()} {platform.release()}")
         logger.info(f"Python: {sys.version}")
-        logger.info(f"Tank registry has {tank_registry.tank_count} tank(s)")
         logger.info("=" * 60)
+
+        # Restore tanks from snapshots if available
+        logger.info("Checking for saved tank snapshots...")
+        try:
+            from backend.tank_persistence import find_all_tank_snapshots
+
+            tank_snapshots = find_all_tank_snapshots()
+            if tank_snapshots:
+                logger.info(f"Found {len(tank_snapshots)} tank(s) with saved snapshots")
+                for tank_id, snapshot_path in tank_snapshots.items():
+                    logger.info(f"Restoring tank {tank_id[:8]} from {snapshot_path}")
+                    restored_manager = tank_registry.restore_tank_from_snapshot(
+                        snapshot_path,
+                        start_paused=True,
+                    )
+                    if restored_manager:
+                        logger.info(f"Successfully restored tank {tank_id[:8]}")
+                        # Set as default if it's the first tank
+                        if tank_registry._default_tank_id is None:
+                            tank_registry._default_tank_id = tank_id
+                    else:
+                        logger.error(f"Failed to restore tank {tank_id[:8]}")
+            else:
+                logger.info("No saved snapshots found, will create default tank")
+        except Exception as e:
+            logger.error(f"Error restoring tanks from snapshots: {e}", exc_info=True)
+            logger.info("Will create default tank instead")
+
+        # Create default tank if no tanks were restored
+        if tank_registry.tank_count == 0:
+            logger.info("No tanks in registry, creating default tank...")
+            default_manager = tank_registry.create_tank(
+                name="Tank 1",
+                description="A local fish tank simulation",
+                persistent=True,
+            )
+            tank_registry._default_tank_id = default_manager.tank_id
+            logger.info(f"Created default tank: {default_manager.tank_id[:8]}")
+
+        logger.info(f"Tank registry has {tank_registry.tank_count} tank(s)")
+
+        # Update backwards-compatible aliases
+        simulation_manager = tank_registry.default_tank
+        if simulation_manager:
+            simulation = simulation_manager.runner
+            connected_clients = simulation_manager.connected_clients
+            logger.info(f"Default tank set: {simulation_manager.tank_id[:8]}")
 
         # Start all tanks in the registry
         logger.info("Starting all tank simulations...")
@@ -205,7 +256,7 @@ async def lifespan(app: FastAPI):
                 manager.runner.tank_registry = tank_registry
                 manager.runner.tank_id = manager.tank_id
                 manager.runner._update_environment_migration_context()
-                
+
                 manager.start(start_paused=True)
                 logger.info(f"Tank {manager.tank_id[:8]} started")
         except Exception as e:
@@ -301,6 +352,16 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to start migration scheduler: {e}", exc_info=True)
             # Non-fatal - continue without automated migrations
 
+        # Start auto-save service
+        logger.info("Starting auto-save service...")
+        try:
+            auto_save_service = AutoSaveService(tank_registry)
+            await auto_save_service.start()
+            logger.info("Auto-save service started")
+        except Exception as e:
+            logger.error(f"Failed to start auto-save service: {e}", exc_info=True)
+            # Non-fatal - continue without auto-save
+
         logger.info("LIFESPAN STARTUP: Complete - yielding control to app")
         yield
         logger.info("LIFESPAN SHUTDOWN: Received shutdown signal")
@@ -311,6 +372,24 @@ async def lifespan(app: FastAPI):
     finally:
         # Shutdown
         logger.info("LIFESPAN SHUTDOWN: Cleaning up resources...")
+
+        # Save all persistent tanks before shutdown
+        logger.info("Saving all persistent tanks...")
+        if auto_save_service:
+            try:
+                saved_count = await auto_save_service.save_all_now()
+                logger.info(f"Saved {saved_count} persistent tank(s) before shutdown")
+            except Exception as e:
+                logger.error(f"Error saving tanks on shutdown: {e}", exc_info=True)
+
+        # Stop auto-save service
+        logger.info("Stopping auto-save service...")
+        if auto_save_service:
+            try:
+                await auto_save_service.stop()
+                logger.info("Auto-save service stopped")
+            except Exception as e:
+                logger.error(f"Error stopping auto-save service: {e}", exc_info=True)
 
         # Stop all broadcast tasks
         logger.info("Stopping broadcast tasks...")
