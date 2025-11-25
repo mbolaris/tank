@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 import platform
 import socket
 import sys
@@ -492,6 +493,7 @@ def get_server_info() -> ServerInfo:
     memory_mb = None
     try:
         import psutil
+
         process = psutil.Process()
         cpu_percent = process.cpu_percent(interval=0.1)
         memory_mb = process.memory_info().rss / 1024 / 1024  # Convert bytes to MB
@@ -513,6 +515,10 @@ def get_server_info() -> ServerInfo:
         cpu_percent=cpu_percent,
         memory_mb=memory_mb,
         is_local=True,
+        platform=platform.system(),
+        architecture=platform.machine(),
+        hardware_model=platform.processor() or None,
+        logical_cpus=os.cpu_count(),
     )
 
 
