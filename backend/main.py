@@ -40,6 +40,8 @@ from backend.models import Command, ServerInfo, ServerWithTanks
 from backend.simulation_manager import SimulationManager
 from backend.tank_registry import TankRegistry, CreateTankRequest
 from backend.connection_manager import ConnectionManager, TankConnection
+from backend.discovery_service import DiscoveryService
+from backend.server_client import ServerClient
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
 # Global tank registry - manages multiple tank simulations for Tank World Net
@@ -47,6 +49,12 @@ tank_registry = TankRegistry(create_default=True)
 
 # Connection manager for tank migrations
 connection_manager = ConnectionManager()
+
+# Discovery service for distributed server networking
+discovery_service = DiscoveryService()
+
+# Server client for server-to-server communication
+server_client = ServerClient()
 
 # Backwards-compatible aliases for the default tank
 simulation_manager = tank_registry.default_tank
@@ -74,9 +82,33 @@ def _handle_task_exception(task: asyncio.Task) -> None:
         logger.error(f"Error getting task exception: {e}", exc_info=True)
 
 
+# Track background tasks
+_heartbeat_task: Optional[asyncio.Task] = None
+
+
+async def _heartbeat_loop() -> None:
+    """Background task to send periodic heartbeats to discovery service."""
+    while True:
+        try:
+            await asyncio.sleep(DiscoveryService.HEARTBEAT_INTERVAL)
+
+            # Update local server info and send heartbeat
+            server_info = get_server_info()
+            await discovery_service.heartbeat(SERVER_ID, server_info)
+            logger.debug("Heartbeat sent to discovery service")
+
+        except asyncio.CancelledError:
+            logger.info("Heartbeat loop cancelled")
+            break
+        except Exception as e:
+            logger.error(f"Error in heartbeat loop: {e}", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
+    global _heartbeat_task
+
     try:
         # Startup
         logger.info("=" * 60)
@@ -112,6 +144,44 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to start broadcast tasks: {e}", exc_info=True)
             raise
 
+        # Start discovery service
+        logger.info("Starting discovery service...")
+        try:
+            await discovery_service.start()
+            logger.info("Discovery service started")
+
+            # Register local server
+            local_server_info = get_server_info()
+            await discovery_service.register_server(local_server_info)
+            logger.info(f"Local server registered: {SERVER_ID}")
+
+            # Start heartbeat loop
+            _heartbeat_task = asyncio.create_task(_heartbeat_loop())
+            _heartbeat_task.add_done_callback(_handle_task_exception)
+            logger.info("Heartbeat task started")
+
+        except Exception as e:
+            logger.error(f"Failed to start discovery service: {e}", exc_info=True)
+            # Non-fatal - continue without discovery
+
+        # Start server client
+        logger.info("Starting server client...")
+        try:
+            await server_client.start()
+            logger.info("Server client started")
+        except Exception as e:
+            logger.error(f"Failed to start server client: {e}", exc_info=True)
+            # Non-fatal - continue without server client
+
+        # Configure TankRegistry with distributed services
+        logger.info("Configuring TankRegistry for distributed operations...")
+        try:
+            tank_registry.set_distributed_services(discovery_service, server_client)
+            logger.info("TankRegistry configured for distributed operations")
+        except Exception as e:
+            logger.error(f"Failed to configure TankRegistry: {e}", exc_info=True)
+            # Non-fatal - continue without distributed tank queries
+
         logger.info("LIFESPAN STARTUP: Complete - yielding control to app")
         yield
         logger.info("LIFESPAN SHUTDOWN: Received shutdown signal")
@@ -139,6 +209,32 @@ async def lifespan(app: FastAPI):
             logger.info("All simulations stopped!")
         except Exception as e:
             logger.error(f"Error stopping simulations: {e}", exc_info=True)
+
+        # Stop heartbeat task
+        logger.info("Stopping heartbeat task...")
+        if _heartbeat_task and not _heartbeat_task.done():
+            _heartbeat_task.cancel()
+            try:
+                await _heartbeat_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("Heartbeat task stopped")
+
+        # Stop discovery service
+        logger.info("Stopping discovery service...")
+        try:
+            await discovery_service.stop()
+            logger.info("Discovery service stopped")
+        except Exception as e:
+            logger.error(f"Error stopping discovery service: {e}", exc_info=True)
+
+        # Stop server client
+        logger.info("Stopping server client...")
+        try:
+            await server_client.close()
+            logger.info("Server client stopped")
+        except Exception as e:
+            logger.error(f"Error stopping server client: {e}", exc_info=True)
 
         logger.info("LIFESPAN SHUTDOWN: Complete")
         logger.info("=" * 60)
@@ -379,6 +475,132 @@ async def health():
     )
 
 
+# =============================================================================
+# Discovery Service Endpoints
+# =============================================================================
+
+
+@app.post("/api/discovery/register")
+async def register_server(server_info: ServerInfo):
+    """Register a server with the discovery service.
+
+    Args:
+        server_info: Server information to register
+
+    Returns:
+        Success message and registered server info
+    """
+    await discovery_service.register_server(server_info)
+    return JSONResponse(
+        {
+            "status": "registered",
+            "server_id": server_info.server_id,
+            "message": f"Server {server_info.server_id} registered successfully",
+        }
+    )
+
+
+@app.post("/api/discovery/heartbeat/{server_id}")
+async def send_heartbeat(server_id: str, server_info: Optional[ServerInfo] = None):
+    """Record a heartbeat from a server.
+
+    Args:
+        server_id: Server ID sending the heartbeat
+        server_info: Optional updated server information
+
+    Returns:
+        Success message or error if server not registered
+    """
+    success = await discovery_service.heartbeat(server_id, server_info)
+
+    if not success:
+        return JSONResponse(
+            {
+                "status": "error",
+                "message": f"Server {server_id} not registered. Please register first.",
+            },
+            status_code=404,
+        )
+
+    return JSONResponse(
+        {
+            "status": "ok",
+            "server_id": server_id,
+            "message": "Heartbeat received",
+        }
+    )
+
+
+@app.get("/api/discovery/servers")
+async def list_discovery_servers(
+    status: Optional[str] = None,
+    include_local: bool = True,
+):
+    """List all servers registered in the discovery service.
+
+    Args:
+        status: Optional status filter ("online", "offline", "degraded")
+        include_local: Whether to include local server
+
+    Returns:
+        List of registered servers
+    """
+    servers = await discovery_service.list_servers(
+        status_filter=status,
+        include_local=include_local,
+    )
+
+    return JSONResponse(
+        {
+            "servers": [s.dict() for s in servers],
+            "count": len(servers),
+        }
+    )
+
+
+@app.delete("/api/discovery/unregister/{server_id}")
+async def unregister_server(server_id: str):
+    """Unregister a server from the discovery service.
+
+    Args:
+        server_id: Server ID to unregister
+
+    Returns:
+        Success message or error if not found
+    """
+    success = await discovery_service.unregister_server(server_id)
+
+    if not success:
+        return JSONResponse(
+            {"error": f"Server not found: {server_id}"},
+            status_code=404,
+        )
+
+    return JSONResponse(
+        {
+            "status": "unregistered",
+            "server_id": server_id,
+            "message": f"Server {server_id} unregistered successfully",
+        }
+    )
+
+
+@app.get("/api/servers/local")
+async def get_local_server():
+    """Get information about the local server.
+
+    Returns:
+        ServerInfo for the local server
+    """
+    server_info = get_server_info()
+    return JSONResponse(server_info.dict())
+
+
+# =============================================================================
+# Tank Management Endpoints
+# =============================================================================
+
+
 @app.get("/api/tank/info")
 async def get_tank_info():
     """Get information about the default tank.
@@ -542,23 +764,39 @@ def get_server_info() -> ServerInfo:
 async def list_servers():
     """List all servers in the Tank World Network.
 
-    In the current single-server implementation, this returns only the local server.
-    Future versions will support multiple servers in a distributed network.
+    Returns all servers registered in the discovery service, including the local
+    server. For each server, includes the list of tanks running on it.
 
     Returns:
         List of ServerWithTanks objects containing server info and their tanks
     """
-    server_info = get_server_info()
-    tanks = tank_registry.list_tanks(include_private=True)
+    # Get all servers from discovery service
+    all_servers = await discovery_service.list_servers()
 
-    return JSONResponse({
-        "servers": [
+    # Build response with tanks for each server
+    servers_with_tanks = []
+
+    for server in all_servers:
+        if server.is_local:
+            # For local server, get tanks directly
+            tanks = tank_registry.list_tanks(include_private=True)
+        else:
+            # For remote servers, fetch tanks via API
+            try:
+                remote_tanks = await server_client.list_tanks(server)
+                tanks = remote_tanks if remote_tanks is not None else []
+            except Exception as e:
+                logger.error(f"Failed to fetch tanks from {server.server_id}: {e}")
+                tanks = []
+
+        servers_with_tanks.append(
             ServerWithTanks(
-                server=server_info,
+                server=server,
                 tanks=tanks,
             ).model_dump()
-        ]
-    })
+        )
+
+    return JSONResponse({"servers": servers_with_tanks})
 
 
 @app.get("/api/servers/{server_id}")
@@ -571,14 +809,27 @@ async def get_server(server_id: str):
     Returns:
         ServerWithTanks object or 404 if not found
     """
-    if server_id != SERVER_ID:
+    # Look up server in discovery service
+    server_info = await discovery_service.get_server(server_id)
+
+    if server_info is None:
         return JSONResponse(
             {"error": f"Server not found: {server_id}"},
             status_code=404,
         )
 
-    server_info = get_server_info()
-    tanks = tank_registry.list_tanks(include_private=True)
+    # Get tanks for the server
+    if server_info.is_local:
+        # Local server - get tanks directly
+        tanks = tank_registry.list_tanks(include_private=True)
+    else:
+        # Remote server - fetch via API
+        try:
+            remote_tanks = await server_client.list_tanks(server_info)
+            tanks = remote_tanks if remote_tanks is not None else []
+        except Exception as e:
+            logger.error(f"Failed to fetch tanks from {server_id}: {e}")
+            tanks = []
 
     return JSONResponse(
         ServerWithTanks(

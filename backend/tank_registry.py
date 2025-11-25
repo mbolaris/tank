@@ -2,15 +2,19 @@
 
 This module provides the TankRegistry class which manages multiple
 SimulationManager instances for Tank World Net. It supports creating,
-listing, accessing, and removing tanks.
+listing, accessing, and removing tanks both locally and across remote servers.
 """
 
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from backend.simulation_manager import SimulationManager, TankInfo
+
+if TYPE_CHECKING:
+    from backend.discovery_service import DiscoveryService
+    from backend.server_client import ServerClient
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +46,24 @@ class TankRegistry:
     - Getting a default tank for backwards compatibility
     """
 
-    def __init__(self, create_default: bool = True):
+    def __init__(
+        self,
+        create_default: bool = True,
+        discovery_service: Optional["DiscoveryService"] = None,
+        server_client: Optional["ServerClient"] = None,
+    ):
         """Initialize the tank registry.
 
         Args:
             create_default: If True, creates a default "Tank 1" on init
+            discovery_service: Optional discovery service for distributed lookups
+            server_client: Optional server client for remote queries
         """
         self._tanks: Dict[str, SimulationManager] = {}
         self._default_tank_id: Optional[str] = None
         self._lock = asyncio.Lock()
+        self._discovery_service = discovery_service
+        self._server_client = server_client
 
         if create_default:
             default_tank = self.create_tank(
@@ -64,6 +77,21 @@ class TankRegistry:
             )
         else:
             logger.info("TankRegistry initialized (no default tank)")
+
+    def set_distributed_services(
+        self,
+        discovery_service: "DiscoveryService",
+        server_client: "ServerClient",
+    ) -> None:
+        """Set the discovery service and server client for distributed operations.
+
+        Args:
+            discovery_service: Discovery service instance
+            server_client: Server client instance
+        """
+        self._discovery_service = discovery_service
+        self._server_client = server_client
+        logger.info("TankRegistry distributed services configured")
 
     @property
     def tank_count(self) -> int:
@@ -236,3 +264,123 @@ class TankRegistry:
     def __iter__(self):
         """Iterate over tank managers."""
         return iter(self._tanks.values())
+
+    # =========================================================================
+    # Distributed Tank Queries
+    # =========================================================================
+
+    async def find_tank_server(self, tank_id: str) -> Optional[str]:
+        """Find which server hosts a specific tank.
+
+        Args:
+            tank_id: Tank ID to search for
+
+        Returns:
+            Server ID if found, None otherwise
+        """
+        # Check local first
+        if tank_id in self._tanks:
+            return "local-server"  # TODO: Use actual local server ID
+
+        # Check remote servers if distributed services available
+        if self._discovery_service and self._server_client:
+            try:
+                servers = await self._discovery_service.get_online_servers()
+
+                for server in servers:
+                    if server.is_local:
+                        continue
+
+                    # Query remote server for this tank
+                    tank_info = await self._server_client.get_tank(server, tank_id)
+                    if tank_info is not None:
+                        return server.server_id
+
+            except Exception as e:
+                logger.error(f"Error searching for tank {tank_id}: {e}")
+
+        return None
+
+    async def get_tank_distributed(
+        self,
+        tank_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Get tank information from local or remote servers.
+
+        Args:
+            tank_id: Tank ID to look up
+
+        Returns:
+            Tank info dictionary if found, None otherwise
+        """
+        # Check local first
+        manager = self._tanks.get(tank_id)
+        if manager:
+            return manager.get_status()
+
+        # Check remote servers if distributed services available
+        if self._discovery_service and self._server_client:
+            try:
+                servers = await self._discovery_service.get_online_servers()
+
+                for server in servers:
+                    if server.is_local:
+                        continue
+
+                    # Query remote server for this tank
+                    tank_info = await self._server_client.get_tank(server, tank_id)
+                    if tank_info is not None:
+                        return tank_info
+
+            except Exception as e:
+                logger.error(f"Error fetching tank {tank_id}: {e}")
+
+        return None
+
+    async def list_tanks_distributed(
+        self,
+        include_private: bool = False,
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """List all tanks across all servers.
+
+        Args:
+            include_private: If True, include non-public tanks
+
+        Returns:
+            Dictionary mapping server_id to list of tank info dictionaries
+        """
+        result = {}
+
+        # Add local tanks
+        local_tanks = self.list_tanks(include_private=include_private)
+        if local_tanks:
+            result["local-server"] = local_tanks
+
+        # Add remote tanks if distributed services available
+        if self._discovery_service and self._server_client:
+            try:
+                servers = await self._discovery_service.get_online_servers()
+
+                for server in servers:
+                    if server.is_local:
+                        continue
+
+                    try:
+                        remote_tanks = await self._server_client.list_tanks(server)
+                        if remote_tanks:
+                            # Filter private tanks if needed
+                            if not include_private:
+                                remote_tanks = [
+                                    t for t in remote_tanks
+                                    if t.get("is_public", True)
+                                ]
+                            result[server.server_id] = remote_tanks
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching tanks from {server.server_id}: {e}"
+                        )
+
+            except Exception as e:
+                logger.error(f"Error listing distributed tanks: {e}")
+
+        return result
