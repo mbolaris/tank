@@ -140,6 +140,10 @@ class AutoEvaluatePlayerStats(BaseModel):
     total_energy_lost: float
     net_energy: float
     win_rate: Optional[float] = None
+    bb_per_100: Optional[float] = None
+    showdowns_played: Optional[int] = None
+    showdowns_won: Optional[int] = None
+    showdown_win_rate: Optional[float] = None
 
 
 class PokerPerformanceSnapshot(BaseModel):
