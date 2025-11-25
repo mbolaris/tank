@@ -361,7 +361,7 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
     const { server, tanks } = serverWithTanks;
 
     const statusColor = server.status === 'online' ? '#22c55e' :
-                        server.status === 'degraded' ? '#f59e0b' : '#ef4444';
+        server.status === 'degraded' ? '#f59e0b' : '#ef4444';
 
     const formatUptime = (seconds: number): string => {
         const hours = Math.floor(seconds / 3600);
@@ -427,13 +427,13 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
                             <span>{server.host}:{server.port}</span>
                             <span>&bull;</span>
                             <span>Uptime: {formatUptime(server.uptime_seconds)}</span>
-                            {server.cpu_percent !== undefined && (
+                            {server.cpu_percent != null && (
                                 <>
                                     <span>&bull;</span>
                                     <span>CPU: {server.cpu_percent.toFixed(1)}%</span>
                                 </>
                             )}
-                            {server.memory_mb !== undefined && (
+                            {server.memory_mb != null && (
                                 <>
                                     <span>&bull;</span>
                                     <span>Memory: {server.memory_mb.toFixed(0)} MB</span>
