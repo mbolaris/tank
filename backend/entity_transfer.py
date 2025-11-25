@@ -150,8 +150,8 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             # behavior_algorithm and poker_strategy will be set by Fish.__init__
         )
 
-        # Create movement strategy
-        movement = AlgorithmicMovement(target_world.engine.environment, genome)
+        # Create movement strategy (AlgorithmicMovement uses genome from fish directly)
+        movement = AlgorithmicMovement()
 
         # Create fish
         fish = Fish(
@@ -171,10 +171,11 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             parent_id=data.get("parent_id"),
         )
 
-        # Restore additional state
-        fish.age = data["age"]
-        fish.max_age = data["max_age"]
-        fish.max_energy = data["max_energy"]
+        # Restore additional state via internal components (age/max_age/max_energy are read-only properties)
+        fish._lifecycle_component.age = data["age"]
+        fish._lifecycle_component.max_age = data["max_age"]
+        fish._lifecycle_component.update_life_stage()  # Update life stage based on restored age
+        fish._energy_component.max_energy = data["max_energy"]
         fish.vel.x = data["vel_x"]
         fish.vel.y = data["vel_y"]
         fish.reproduction_cooldown = data["reproduction_cooldown"]

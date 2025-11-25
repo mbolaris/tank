@@ -39,10 +39,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from backend.models import Command, ServerInfo, ServerWithTanks
 from backend.simulation_manager import SimulationManager
 from backend.tank_registry import TankRegistry, CreateTankRequest
+from backend.connection_manager import ConnectionManager, TankConnection
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
 # Global tank registry - manages multiple tank simulations for Tank World Net
 tank_registry = TankRegistry(create_default=True)
+
+# Connection manager for tank migrations
+connection_manager = ConnectionManager()
 
 # Backwards-compatible aliases for the default tank
 simulation_manager = tank_registry.default_tank
@@ -86,6 +90,12 @@ async def lifespan(app: FastAPI):
         logger.info("Starting all tank simulations...")
         try:
             for manager in tank_registry:
+                # Inject connection manager and tank registry for migrations
+                manager.runner.connection_manager = connection_manager
+                manager.runner.tank_registry = tank_registry
+                manager.runner.tank_id = manager.tank_id
+                manager.runner._update_environment_migration_context()
+                
                 manager.start(start_paused=True)
                 logger.info(f"Tank {manager.tank_id[:8]} started")
         except Exception as e:
@@ -447,6 +457,12 @@ async def create_tank(
             server_id=server_id,
         )
 
+        # Inject connection manager and tank registry for migrations
+        manager.runner.connection_manager = connection_manager
+        manager.runner.tank_registry = tank_registry
+        manager.runner.tank_id = manager.tank_id
+        manager.runner._update_environment_migration_context()
+
         # Start the simulation
         manager.start(start_paused=True)
 
@@ -799,8 +815,68 @@ async def get_transfers(limit: int = 50, tank_id: Optional[str] = None, success_
     return JSONResponse({
         "transfers": transfers,
         "count": len(transfers),
-        "limit": limit,
     })
+
+
+# =============================================================================
+# Connection Management API
+# =============================================================================
+
+
+@app.get("/api/connections")
+async def list_connections(tank_id: Optional[str] = None):
+    """List tank connections.
+    
+    Args:
+        tank_id: Optional tank ID to filter by
+        
+    Returns:
+        List of connections
+    """
+    if tank_id:
+        connections = connection_manager.get_connections_for_tank(tank_id)
+    else:
+        connections = connection_manager.list_connections()
+        
+    return JSONResponse({
+        "connections": [c.to_dict() for c in connections],
+        "count": len(connections),
+    })
+
+
+@app.post("/api/connections")
+async def create_connection(connection_data: Dict):
+    """Create or update a tank connection.
+    
+    Args:
+        connection_data: Connection data (sourceId, destinationId, probability, direction)
+        
+    Returns:
+        The created connection
+    """
+    try:
+        connection = TankConnection.from_dict(connection_data)
+        connection_manager.add_connection(connection)
+        return JSONResponse(connection.to_dict())
+    except Exception as e:
+        logger.error(f"Error creating connection: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@app.delete("/api/connections/{connection_id}")
+async def delete_connection(connection_id: str):
+    """Delete a tank connection.
+    
+    Args:
+        connection_id: The connection ID to delete
+        
+    Returns:
+        Success message
+    """
+    if connection_manager.remove_connection(connection_id):
+        return JSONResponse({"success": True})
+    else:
+        return JSONResponse({"error": "Connection not found"}, status_code=404)
 
 
 @app.get("/api/transfers/{transfer_id}")

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import random
 import threading
 import time
 import uuid
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 class SimulationRunner:
     """Runs the simulation in a background thread and provides state updates."""
 
-    def __init__(self, seed: Optional[int] = None):
+    def __init__(self, seed: Optional[int] = None, tank_id: Optional[str] = None):
         """Initialize the simulation runner.
 
         Args:
@@ -90,7 +91,36 @@ class SimulationRunner:
         self.auto_eval_running: bool = False
         self.auto_eval_interval_seconds = 15.0
         self.last_auto_eval_time = 0.0
+        self.auto_eval_interval_seconds = 15.0
+        self.last_auto_eval_time = 0.0
         self.auto_eval_lock = threading.Lock()
+
+        # Migration support
+        self.tank_id = tank_id
+        self.connection_manager = None  # Set after initialization
+        self.tank_registry = None  # Set after initialization
+        self.migration_lock = threading.Lock()
+        
+        # Inject migration support into environment for fish to access
+        self._update_environment_migration_context()
+
+    def _update_environment_migration_context(self) -> None:
+        """Update the environment with current migration context."""
+        if hasattr(self.world, 'engine') and hasattr(self.world.engine, 'environment'):
+            env = self.world.engine.environment
+            if env:
+                env.connection_manager = self.connection_manager
+                env.tank_registry = self.tank_registry
+                env.tank_id = self.tank_id
+                logger.info(
+                    f"Migration context updated for tank {self.tank_id[:8] if self.tank_id else 'None'}: "
+                    f"conn_mgr={'SET' if self.connection_manager else 'NULL'}, "
+                    f"registry={'SET' if self.tank_registry else 'NULL'}"
+                )
+            else:
+                logger.warning("Cannot update migration context: environment is None")
+        else:
+            logger.warning("Cannot update migration context: world.engine or world.engine.environment not found")
 
     def _create_error_response(self, error_msg: str) -> Dict[str, Any]:
         """Create a standardized error response.
@@ -319,7 +349,7 @@ class SimulationRunner:
             daemon=True,
         ).start()
 
-    def _run_auto_evaluation(self, benchmark_players: List[Dict[str, Any]]):
+    def _run_auto_evaluation(self, benchmark_players: List[Dict[str, Any]]) -> None:
         """Execute a background auto-evaluation series."""
 
         try:

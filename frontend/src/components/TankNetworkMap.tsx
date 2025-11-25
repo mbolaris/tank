@@ -15,6 +15,7 @@ export interface TankConnection {
     sourceId: string;
     destinationId: string;
     probability: number; // 0-100
+    direction: 'left' | 'right';
 }
 
 interface TankNetworkMapProps {
@@ -34,37 +35,6 @@ interface TransferRecord {
     success: boolean;
 }
 
-const STORAGE_KEY = 'tank-network-connections';
-
-const loadConnections = (): TankConnection[] => {
-    if (typeof window === 'undefined') return [];
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-            return parsed;
-        }
-    } catch (err) {
-        console.warn('Failed to parse saved connections', err);
-    }
-    return [];
-};
-
-const persistConnections = (connections: TankConnection[]) => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(connections));
-};
-
-const getRingPosition = (index: number, total: number, radiusX: number, radiusY: number, centerX: number, centerY: number) => {
-    if (total === 0) return { x: centerX, y: centerY };
-    const angle = (2 * Math.PI * index) / total - Math.PI / 2;
-    return {
-        x: centerX + radiusX * Math.cos(angle),
-        y: centerY + radiusY * Math.sin(angle),
-    };
-};
-
 export function TankNetworkMap({ servers }: TankNetworkMapProps) {
     const tanks = useMemo(() => {
         return servers.flatMap((server) =>
@@ -77,13 +47,14 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         );
     }, [servers]);
 
-    const [connections, setConnections] = useState<TankConnection[]>(() => loadConnections());
+    const [connections, setConnections] = useState<TankConnection[]>([]);
     const [sourceId, setSourceId] = useState('');
     const [destinationId, setDestinationId] = useState('');
     const [probability, setProbability] = useState(25);
     const [latestTransferId, setLatestTransferId] = useState<string | null>(null);
     const [transfers, setTransfers] = useState<TransferRecord[]>([]);
     const [activeConnection, setActiveConnection] = useState<{ connectionId: string; entity: string; label: string } | null>(null);
+
     const activeConnectionMeta = useMemo(
         () => (activeConnection ? connections.find((c) => c.id === activeConnection.connectionId) : null),
         [activeConnection, connections],
@@ -105,10 +76,17 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         setConnections((prev) => prev.filter((c) => validIds.has(c.sourceId) && validIds.has(c.destinationId)));
     }, [tanks]);
 
-    // Persist connections to localStorage
+    // Load connections from backend
     useEffect(() => {
-        persistConnections(connections);
-    }, [connections]);
+        fetch(`${config.apiBaseUrl}/api/connections`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.connections) {
+                    setConnections(data.connections);
+                }
+            })
+            .catch((err) => console.error('Failed to load connections:', err));
+    }, []);
 
     const fetchTransfers = useCallback(async () => {
         try {
@@ -135,6 +113,15 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         const centerX = 500;
         const centerY = 240;
 
+        const getRingPosition = (index: number, total: number, radiusX: number, radiusY: number, centerX: number, centerY: number) => {
+            if (total === 0) return { x: centerX, y: centerY };
+            const angle = (2 * Math.PI * index) / total - Math.PI / 2;
+            return {
+                x: centerX + radiusX * Math.cos(angle),
+                y: centerY + radiusY * Math.sin(angle),
+            };
+        };
+
         return tanks.map((tank, index) => {
             const position = getRingPosition(index, tanks.length, radiusX, radiusY, centerX, centerY);
             return {
@@ -151,22 +138,57 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         return map;
     }, [nodes]);
 
-    const handleAddConnection = (e: React.FormEvent) => {
+    const handleAddConnection = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!sourceId || !destinationId || sourceId === destinationId) return;
 
-        setConnections((prev) => {
-            const existing = prev.find((c) => c.sourceId === sourceId && c.destinationId === destinationId);
-            if (existing) {
-                return prev.map((c) => (c.id === existing.id ? { ...c, probability } : c));
+        const sourceNode = nodeLookup.get(sourceId);
+        const destNode = nodeLookup.get(destinationId);
+
+        const direction = (sourceNode && destNode && destNode.x > sourceNode.x) ? 'right' : 'left';
+
+        const newConnection = {
+            id: `${sourceId}->${destinationId}`,
+            sourceId,
+            destinationId,
+            probability,
+            direction
+        };
+
+        try {
+            const res = await fetch(`${config.apiBaseUrl}/api/connections`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConnection),
+            });
+
+            if (res.ok) {
+                const savedConnection = await res.json();
+                setConnections((prev) => {
+                    const existing = prev.find((c) => c.id === savedConnection.id);
+                    if (existing) {
+                        return prev.map((c) => (c.id === existing.id ? savedConnection : c));
+                    }
+                    return [...prev, savedConnection];
+                });
             }
-            const id = `${sourceId}->${destinationId}`;
-            return [...prev, { id, sourceId, destinationId, probability }];
-        });
+        } catch (err) {
+            console.error('Failed to save connection:', err);
+        }
     };
 
-    const handleDeleteConnection = (id: string) => {
-        setConnections((prev) => prev.filter((c) => c.id !== id));
+    const handleDeleteConnection = async (id: string) => {
+        try {
+            const res = await fetch(`${config.apiBaseUrl}/api/connections/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                setConnections((prev) => prev.filter((c) => c.id !== id));
+            }
+        } catch (err) {
+            console.error('Failed to delete connection:', err);
+        }
     };
 
     const maxProbability = connections.reduce((max, c) => Math.max(max, c.probability), 0);
@@ -288,9 +310,8 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                             return (
                                 <g key={connection.id}>
                                     <path
-                                        d={`M ${source.x} ${source.y} Q ${(source.x + dest.x) / 2} ${
-                                            (source.y + dest.y) / 2 - 60
-                                        } ${dest.x} ${dest.y}`}
+                                        d={`M ${source.x} ${source.y} Q ${(source.x + dest.x) / 2} ${(source.y + dest.y) / 2 - 60
+                                            } ${dest.x} ${dest.y}`}
                                         stroke="url(#tubeGradient)"
                                         strokeWidth={thickness}
                                         fill="none"

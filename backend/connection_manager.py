@@ -1,0 +1,146 @@
+"""Tank connection manager for automated migrations."""
+
+import logging
+import threading
+from dataclasses import dataclass
+from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TankConnection:
+    """Represents a connection between two tanks for entity migration."""
+    
+    id: str
+    source_tank_id: str
+    destination_tank_id: str
+    probability: int  # 0-100, percentage chance of migration per check
+    direction: str = "right"  # "left" or "right" - which boundary triggers migration
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "id": self.id,
+            "sourceId": self.source_tank_id,
+            "destinationId": self.destination_tank_id,
+            "probability": self.probability,
+            "direction": self.direction,
+        }
+    
+    @staticmethod
+    def from_dict(data: Dict) -> "TankConnection":
+        """Create from dictionary (supports both snake_case and camelCase)."""
+        return TankConnection(
+            id=data.get("id", f"{data.get('sourceId', data.get('source_tank_id'))}->{data.get('destinationId', data.get('destination_tank_id'))}"),
+            source_tank_id=data.get("sourceId", data.get("source_tank_id")),
+            destination_tank_id=data.get("destinationId", data.get("destination_tank_id")),
+            probability=data.get("probability", 25),
+            direction=data.get("direction", "right"),
+        )
+
+
+class ConnectionManager:
+    """Manages tank connections for automated migrations."""
+    
+    def __init__(self):
+        """Initialize the connection manager."""
+        self._connections: Dict[str, TankConnection] = {}
+        self._lock = threading.Lock()
+        logger.info("ConnectionManager initialized")
+    
+    def add_connection(self, connection: TankConnection) -> None:
+        """Add or update a connection.
+        
+        Args:
+            connection: The connection to add/update
+        """
+        with self._lock:
+            self._connections[connection.id] = connection
+            logger.info(
+                f"Added connection: {connection.source_tank_id[:8]} -> "
+                f"{connection.destination_tank_id[:8]} ({connection.probability}%, {connection.direction})"
+            )
+    
+    def remove_connection(self, connection_id: str) -> bool:
+        """Remove a connection.
+        
+        Args:
+            connection_id: The connection ID to remove
+            
+        Returns:
+            True if connection was removed, False if not found
+        """
+        with self._lock:
+            if connection_id in self._connections:
+                conn = self._connections.pop(connection_id)
+                logger.info(
+                    f"Removed connection: {conn.source_tank_id[:8]} -> "
+                    f"{conn.destination_tank_id[:8]}"
+                )
+                return True
+            return False
+    
+    def get_connection(self, connection_id: str) -> Optional[TankConnection]:
+        """Get a specific connection.
+        
+        Args:
+            connection_id: The connection ID to retrieve
+            
+        Returns:
+            The connection if found, None otherwise
+        """
+        with self._lock:
+            return self._connections.get(connection_id)
+    
+    def list_connections(self) -> List[TankConnection]:
+        """Get all connections.
+        
+        Returns:
+            List of all connections
+        """
+        with self._lock:
+            return list(self._connections.values())
+    
+    def get_connections_for_tank(self, tank_id: str, direction: Optional[str] = None) -> List[TankConnection]:
+        """Get connections where the tank is the source, optionally filtered by direction.
+        
+        Args:
+            tank_id: The source tank ID
+            direction: Optional direction to filter by ("left" or "right")
+            
+        Returns:
+            List of matching connections
+        """
+        with self._lock:
+            connections = [
+                conn for conn in self._connections.values()
+                if conn.source_tank_id == tank_id
+            ]
+            
+            if direction:
+                connections = [c for c in connections if c.direction == direction]
+                
+            return connections
+    
+    def clear_connections_for_tank(self, tank_id: str) -> int:
+        """Remove all connections involving a specific tank.
+        
+        Args:
+            tank_id: The tank ID to clear connections for
+            
+        Returns:
+            Number of connections removed
+        """
+        with self._lock:
+            to_remove = [
+                conn_id for conn_id, conn in self._connections.items()
+                if conn.source_tank_id == tank_id or conn.destination_tank_id == tank_id
+            ]
+            for conn_id in to_remove:
+                del self._connections[conn_id]
+            
+            if to_remove:
+                logger.info(f"Cleared {len(to_remove)} connections for tank {tank_id[:8]}")
+            
+            return len(to_remove)

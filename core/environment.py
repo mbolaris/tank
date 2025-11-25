@@ -193,6 +193,11 @@ class Environment:
         self.height = height
         self.time_system = time_system
         
+        # Migration support (injected by backend)
+        self.connection_manager = None  # Set by backend if migrations enabled
+        self.tank_registry = None  # Set by backend if migrations enabled
+        self.tank_id = None  # Set by backend if migrations enabled
+        
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0
 

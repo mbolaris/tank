@@ -133,16 +133,38 @@ class Agent:
         self.rect.topleft = self.pos
 
     def handle_screen_edges(self) -> None:
-        """Handle the agent hitting the edge of the screen."""
-        # Horizontal boundaries - reverse velocity and clamp position
-        if self.pos.x < 0:
-            self.pos.x = 0
-            self.vel.x = abs(self.vel.x)  # Bounce right
-        elif self.pos.x + self.width > self.screen_width:
-            self.pos.x = self.screen_width - self.width
-            self.vel.x = -abs(self.vel.x)  # Bounce left
+        """Handle the agent hitting the edge of the screen.
+        
+        For Fish entities, check for migration opportunities at left/right boundaries.
+        Other entities just bounce.
+        """
+        # Import here to avoid circular dependency
+        from core.entities import Fish
+        
+        # Check for boundary migration (only for Fish)
+        if isinstance(self, Fish):
+            # Left boundary
+            if self.pos.x < 0:
+                if self._attempt_migration("left"):
+                    return  # Migration successful, entity removed from this tank
+                self.pos.x = 0
+                self.vel.x = abs(self.vel.x)  # Bounce right
+            # Right boundary
+            elif self.pos.x + self.width > self.screen_width:
+                if self._attempt_migration("right"):
+                    return  # Migration successful, entity removed from this tank
+                self.pos.x = self.screen_width - self.width
+                self.vel.x = -abs(self.vel.x)  # Bounce left
+        else:
+            # Non-fish entities just bounce
+            if self.pos.x < 0:
+                self.pos.x = 0
+                self.vel.x = abs(self.vel.x)
+            elif self.pos.x + self.width > self.screen_width:
+                self.pos.x = self.screen_width - self.width
+                self.vel.x = -abs(self.vel.x)
 
-        # Vertical boundaries - reverse velocity and clamp position
+        # Vertical boundaries - always bounce (no migration)
         if self.pos.y < 0:
             self.pos.y = 0
             self.vel.y = abs(self.vel.y)  # Bounce down
