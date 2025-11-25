@@ -433,10 +433,10 @@ class Fish(Agent):
         # Find connections for this tank and direction
         connections = connection_manager.get_connections_for_tank(tank_id, direction)
         
-        logger.info(f"Fish #{self.fish_id} hit {direction} boundary in tank {tank_id[:8]}, found {len(connections)} connection(s)")
-        
         if not connections:
             return False  # No connection in this direction
+        
+        logger.debug(f"Fish #{self.fish_id} hit {direction} boundary in tank {tank_id[:8]}, found {len(connections)} connection(s)")
         
         # Pick a random connection if multiple exist
         import random
