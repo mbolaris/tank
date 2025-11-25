@@ -252,6 +252,17 @@ async def lifespan(app: FastAPI):
 
         logger.info(f"Tank registry has {tank_registry.tank_count} tank(s)")
 
+        # Restore connections from saved file
+        logger.info("Restoring tank connections...")
+        try:
+            from backend.connection_persistence import load_connections
+
+            restored_connections = load_connections(connection_manager)
+            logger.info(f"Restored {restored_connections} connection(s)")
+        except Exception as e:
+            logger.error(f"Error restoring connections: {e}", exc_info=True)
+            logger.info("Continuing without restored connections")
+
         # Update backwards-compatible aliases
         simulation_manager = tank_registry.default_tank
         if simulation_manager:
@@ -393,6 +404,18 @@ async def lifespan(app: FastAPI):
                 logger.info(f"Saved {saved_count} persistent tank(s) before shutdown")
             except Exception as e:
                 logger.error(f"Error saving tanks on shutdown: {e}", exc_info=True)
+
+        # Save all connections before shutdown
+        logger.info("Saving tank connections...")
+        try:
+            from backend.connection_persistence import save_connections
+
+            if save_connections(connection_manager):
+                logger.info("Tank connections saved successfully")
+            else:
+                logger.warning("Failed to save tank connections")
+        except Exception as e:
+            logger.error(f"Error saving connections on shutdown: {e}", exc_info=True)
 
         # Stop auto-save service
         logger.info("Stopping auto-save service...")
@@ -1443,6 +1466,14 @@ async def create_connection(connection_data: Dict):
     try:
         connection = TankConnection.from_dict(connection_data)
         connection_manager.add_connection(connection)
+
+        # Save connections to disk
+        try:
+            from backend.connection_persistence import save_connections
+            save_connections(connection_manager)
+        except Exception as save_error:
+            logger.warning(f"Failed to save connections after create: {save_error}")
+
         return JSONResponse(connection.to_dict())
     except Exception as e:
         logger.error(f"Error creating connection: {e}", exc_info=True)
@@ -1452,14 +1483,21 @@ async def create_connection(connection_data: Dict):
 @app.delete("/api/connections/{connection_id}")
 async def delete_connection(connection_id: str):
     """Delete a tank connection.
-    
+
     Args:
         connection_id: The connection ID to delete
-        
+
     Returns:
         Success message
     """
     if connection_manager.remove_connection(connection_id):
+        # Save connections to disk
+        try:
+            from backend.connection_persistence import save_connections
+            save_connections(connection_manager)
+        except Exception as save_error:
+            logger.warning(f"Failed to save connections after delete: {save_error}")
+
         return JSONResponse({"success": True})
     else:
         return JSONResponse({"error": "Connection not found"}, status_code=404)
