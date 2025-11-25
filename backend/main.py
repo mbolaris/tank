@@ -61,10 +61,15 @@ simulation_manager = tank_registry.default_tank
 simulation = simulation_manager.runner
 connected_clients = simulation_manager.connected_clients
 
-# Server metadata
-SERVER_ID = "local-server"  # Local server ID
+# Server metadata (can be overridden by environment variables)
+SERVER_ID = os.getenv("TANK_SERVER_ID", "local-server")  # Local server ID
 SERVER_VERSION = "1.0.0"  # Server version
 _server_start_time = time.time()  # Track server uptime
+
+# Allow port override for testing multiple servers
+_api_port_override = os.getenv("TANK_API_PORT")
+if _api_port_override:
+    DEFAULT_API_PORT = int(_api_port_override)
 
 
 def _handle_task_exception(task: asyncio.Task) -> None:

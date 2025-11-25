@@ -187,7 +187,16 @@ class ServerClient:
 
         if response:
             try:
-                return response.json()
+                data = response.json()
+                # Extract tanks array from response wrapper
+                if isinstance(data, dict) and "tanks" in data:
+                    return data["tanks"]
+                # If response is already a list, return it
+                elif isinstance(data, list):
+                    return data
+                else:
+                    logger.error("Unexpected tank list response format: %s", type(data))
+                    return None
             except Exception as e:
                 logger.error("Failed to parse tank list: %s", e)
 
