@@ -423,6 +423,35 @@ class LoadBalancer:
 
 ---
 
+## Platformization for Distributed ALife (v3.0+)
+
+**Goal:** Move from "multi-server capable" to a **distributed ALife platform** that can host thousands of tanks, run large-scale evolutionary experiments, and expose reproducible interfaces for researchers and external agents.
+
+### Control Plane Upgrades
+- **Deterministic tick coordination:** Introduce a global tick barrier per server that advances only when all tanks have flushed outbound events to Redis/Kafka; keeps migrations and transfers consistent during network partitions.
+- **Pluggable schedulers:** Add a control-plane scheduler that can swap between round-robin, priority ("hot" tanks with active viewers), and batch (headless experiments) policies.
+- **Job orchestration for headless runs:** Define a `SimulationJob` CRD (Kubernetes) or queue schema (Redis Stream) that requests N headless tanks with resource hints; workers lease jobs and report back stats/snapshots.
+- **Admission control:** Enforce per-tenant quotas (max tanks, max CPU/memory, network egress) before creating new simulations; expose limits to the frontend so users see capacity before submitting jobs.
+
+### Data & Genetics Exchange Layer
+- **Genome exchange bus:** Publish genotype summaries and fitness outcomes to Kafka/Redis Streams so other servers can import high-performing genomes; include provenance (server_id, tank_id, generation, seed) for reproducibility.
+- **Global genotype registry:** Backed by PostgreSQL, indexing genome hashes, phenotype metadata, and performance metrics. Enables cross-server experiments and avoids duplicate uploads.
+- **Migration channels:** Use a durable queue (Redis Stream with consumer groups) for inter-server entity transfers; retain events until the destination server acknowledges checkpoint application.
+- **Snapshot harmonization:** Standardize snapshot schemas with versioned manifests and schema evolution scripts so that tanks can be paused on one server and resumed on another without manual fixes.
+
+### Experimentation Services
+- **Experiment bundles:** Define a versioned bundle (YAML + assets) describing tank topology, allowed algorithms, RNG seeds, and observation hooks; bundles are stored in S3 and referenced by jobs.
+- **Replay & audit:** Store per-tick hashes (state digest + RNG seed) for auditability; provide a "replay" mode that deterministically replays an experiment across clusters.
+- **Metrics pipeline:** Stream per-tick metrics into Prometheus remote-write and long-term storage (e.g., ClickHouse) for large-scale analyses; tag metrics by experiment_id, tenant_id, and server_id.
+- **LLM/agent integrations:** Offer a gRPC/REST control surface that external agents can use to request headless experiments, subscribe to genome events, and submit new algorithms for tournament evaluation.
+
+### Milestones & Acceptance Criteria
+1. **v3.0-alpha (4-6 weeks):** Control-plane scheduler + job orchestration; deterministic tick barrier enabled behind feature flag; basic Redis Stream migration channel demoed between two servers.
+2. **v3.0-beta (6-8 weeks):** Genome exchange bus + global registry operational; experiment bundles accepted by control plane; replay mode proven on at least one 10k-tick run.
+3. **v3.0 (production, 8-12 weeks):** Admission control with quotas, audit trails, and Prometheus/ClickHouse pipelines; gRPC/REST agent interface published with example clients; migrations resilient to server restarts.
+
+---
+
 ## Technical Requirements
 
 ### Infrastructure
@@ -806,6 +835,27 @@ db_password = vault.secrets.kv.v2.read_secret_version(path="tank-world/db-passwo
 1. **Phase 1:** Discovery service + multi-server local testing (1-2 weeks)
 2. **Phase 2:** Cross-server communication + metadata store (2-3 weeks)
 3. **Phase 3:** Production hardening + PostgreSQL + auth (3-4 weeks)
+
+**Platformization (v3.0+):** Control-plane scheduler with deterministic tick barriers, Redis/Kafka migration channels, genome exchange + registry, reproducible experiment bundles, and audited replay/metrics pipelines.
+
+### Reality Check: Turning Tank into a Distributed ALife Platform
+
+The platformization track is ambitious and feasible, but only if we respect a few hard constraints that the current roadmap glosses over:
+
+- **Determinism before distribution.** Cross-node evolution only works if sims produce bit-for-bit identical results given a seed. Audit `core/tank_world.py` and physics/energy systems for nondeterminism (random usage, time-based ticks, reliance on Python dict iteration). Add repeatability tests before scaling out.
+- **Single control-plane source of truth.** A scheduler that owns world ticks and migrations needs a strongly consistent backend (PostgreSQL or etcd). Without that, “deterministic tick barriers” are aspirational and migrations will race. Bake this into the v3 control-plane design, not as a postscript.
+- **Resource-aware scheduling beats raw fan-out.** Distributed ALife runs are CPU/GPU hungry. The plan should specify per-node admission control (pods/containers) and per-eval timeouts, otherwise “100+ evals in parallel” will thrash. Favor queue-based scheduling with backpressure over push-based scatter.
+- **Network costs and latency matter.** Genome exchanges every generation are expensive. Default to island-style exchanges with coarse-grained epochs (e.g., every 5–10 generations) and compress payloads. Document an upper-bound bandwidth budget per migration window.
+- **Observability as a requirement, not a phase.** Fitness drift, divergence, or bad RNG seeding will be invisible without metrics and tracing. Treat Prometheus/OpenTelemetry and reproducible run manifests (code + seed + sim config) as table stakes before opening the cluster to public workers.
+- **Security model is underspecified.** Distributed workers—especially browsers—must be sandboxed. Require signed genome bundles, input validation, and rate limits on migration channels. mTLS between servers is non-negotiable once we leave single-host deployments.
+
+**Actionable adjustments to the roadmap:**
+
+1. Add a “Determinism and Reproducibility” milestone immediately before v2.0 rollout, with automated tests that replay seeds across nodes.
+2. Define the v3 control-plane contract (APIs, storage schema, tick barrier protocol) and make it the gate for migration and experiment services.
+3. Introduce a queue-based scheduler (e.g., Redis streams + worker leases) with explicit backpressure and per-evaluation CPU/memory budgets.
+4. Set migration cadence and payload size targets (e.g., ≤1 MB per migration window, ≥5-generation intervals) to bound network costs.
+5. Elevate observability and security to required workstreams—publish a minimal metrics/alerts dashboard and enforce mTLS/token-based auth before multi-tenant or browser workers are allowed.
 
 **Total Time Estimate:** 6-9 weeks for fully distributed production system
 
