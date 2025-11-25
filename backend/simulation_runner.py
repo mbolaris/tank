@@ -88,7 +88,7 @@ class SimulationRunner:
         self.auto_eval_history: List[Dict[str, Any]] = []
         self.auto_eval_stats: Optional[Dict[str, Any]] = None
         self.auto_eval_running: bool = False
-        self.auto_eval_interval_seconds = 60.0
+        self.auto_eval_interval_seconds = 15.0
         self.last_auto_eval_time = 0.0
         self.auto_eval_lock = threading.Lock()
 
@@ -325,7 +325,7 @@ class SimulationRunner:
         try:
             game_id = str(uuid.uuid4())
             standard_energy = 500.0
-            max_hands = 1000
+            max_hands = 2000
 
             auto_eval = AutoEvaluatePokerGame(
                 game_id=game_id,
@@ -337,6 +337,9 @@ class SimulationRunner:
             )
 
             final_stats = auto_eval.run_evaluation()
+            
+            # Reward winners by transferring their net winnings to their actual energy
+            self._reward_auto_eval_winners(benchmark_players, final_stats)
 
             with self.auto_eval_lock:
                 starting_hand = self.auto_eval_history[-1]["hand"] if self.auto_eval_history else 0
@@ -369,6 +372,45 @@ class SimulationRunner:
         finally:
             self.last_auto_eval_time = time.time()
             self.auto_eval_running = False
+
+    def _reward_auto_eval_winners(self, benchmark_players: List[Dict[str, Any]], final_stats) -> None:
+        """Reward Fish/Plants that won energy in auto-evaluation by adding it to their actual energy.
+        
+        Args:
+            benchmark_players: List of players that participated in the evaluation
+            final_stats: Final statistics from the auto-evaluation game
+        """
+        with self.lock:
+            for player_stats in final_stats.players:
+                # Skip the standard algorithm player
+                if player_stats.get("is_standard", False):
+                    continue
+                
+                net_energy = player_stats.get("net_energy", 0.0)
+                if net_energy <= 0:
+                    continue  # Only reward winners
+                
+                # Find the actual entity
+                fish_id = player_stats.get("fish_id")
+                plant_id = player_stats.get("plant_id")
+                
+                if fish_id is not None:
+                    fish = next((e for e in self.world.entities_list 
+                               if isinstance(e, Fish) and e.fish_id == fish_id), None)
+                    if fish:
+                        reward = min(net_energy, fish.max_energy - fish.energy)
+                        if reward > 0:
+                            fish.energy += reward
+                            logger.info(f"Auto-eval reward: Fish #{fish_id} gained {reward:.1f} energy")
+                
+                elif plant_id is not None:
+                    plant = next((e for e in self.world.entities_list 
+                                if isinstance(e, FractalPlant) and e.plant_id == plant_id), None)
+                    if plant:
+                        reward = min(net_energy, plant.max_energy - plant.energy)
+                        if reward > 0:
+                            plant.energy += reward
+                            logger.info(f"Auto-eval reward: Plant #{plant_id} gained {reward:.1f} energy")
 
     def get_state(self, force_full: bool = False, allow_delta: bool = True):
         """Get current simulation state for WebSocket broadcast.

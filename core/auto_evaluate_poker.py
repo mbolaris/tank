@@ -1,7 +1,7 @@
 """Auto-evaluation poker game for testing fish poker skills.
 
 This module manages automated poker games where multiple fish play against
-a standard poker evaluation algorithm for 1000 hands or until one player
+a standard poker evaluation algorithm for 2000 hands or until one player
 runs out of money.
 """
 
@@ -71,7 +71,7 @@ class AutoEvaluatePokerGame:
         game_id: str,
         player_pool: List[Dict[str, Any]],
         standard_energy: float = 500.0,
-        max_hands: int = 1000,
+        max_hands: int = 2000,
         small_blind: float = 5.0,
         big_blind: float = 10.0,
     ):
@@ -84,7 +84,7 @@ class AutoEvaluatePokerGame:
                 such as fish_id, plant_id, generation, or species is preserved
                 for downstream reporting.
             standard_energy: Starting energy for standard algorithm player
-            max_hands: Maximum number of hands to play (default 1000)
+            max_hands: Maximum number of hands to play (default 2000)
             small_blind: Small blind amount
             big_blind: Big blind amount
         """
