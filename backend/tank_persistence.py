@@ -98,12 +98,11 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
             "ecosystem": {
                 "total_births": manager.world.engine.ecosystem.total_births,
                 "total_deaths": manager.world.engine.ecosystem.total_deaths,
-                "generation": manager.world.engine.ecosystem.generation,
-                "max_generation": manager.world.engine.ecosystem.max_generation,
+                "current_generation": manager.world.engine.ecosystem.current_generation,
                 "death_causes": dict(manager.world.engine.ecosystem.death_causes),
                 "poker_stats": {
-                    "total_games": manager.world.engine.ecosystem.total_poker_games,
-                    "total_hands": manager.world.engine.ecosystem.total_poker_hands,
+                    "total_fish_games": manager.world.engine.ecosystem.total_fish_poker_games,
+                    "total_plant_games": manager.world.engine.ecosystem.total_plant_poker_games,
                 },
             },
             "paused": manager.world.paused,
@@ -221,12 +220,11 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
             eco_data = snapshot["ecosystem"]
             eco.total_births = eco_data.get("total_births", 0)
             eco.total_deaths = eco_data.get("total_deaths", 0)
-            eco.generation = eco_data.get("generation", 0)
-            eco.max_generation = eco_data.get("max_generation", 0)
+            eco.current_generation = eco_data.get("current_generation", 0)
             eco.death_causes = eco_data.get("death_causes", {})
             if "poker_stats" in eco_data:
-                eco.total_poker_games = eco_data["poker_stats"].get("total_games", 0)
-                eco.total_poker_hands = eco_data["poker_stats"].get("total_hands", 0)
+                eco.total_fish_poker_games = eco_data["poker_stats"].get("total_fish_games", 0)
+                eco.total_plant_poker_games = eco_data["poker_stats"].get("total_plant_games", 0)
 
         # Restore paused state
         if "paused" in snapshot:
