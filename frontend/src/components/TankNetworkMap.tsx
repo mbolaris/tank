@@ -23,11 +23,15 @@ interface TankNetworkMapProps {
 
 interface TransferRecord {
     transfer_id: string;
+    timestamp: string;
     entity_type: string;
+    entity_old_id: number;
+    entity_new_id: number | null;
     source_tank_id: string;
     destination_tank_id: string;
     source_tank_name: string;
     destination_tank_name: string;
+    success: boolean;
 }
 
 const STORAGE_KEY = 'tank-network-connections';
@@ -78,6 +82,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
     const [destinationId, setDestinationId] = useState('');
     const [probability, setProbability] = useState(25);
     const [latestTransferId, setLatestTransferId] = useState<string | null>(null);
+    const [transfers, setTransfers] = useState<TransferRecord[]>([]);
     const [activeConnection, setActiveConnection] = useState<{ connectionId: string; entity: string; label: string } | null>(null);
     const activeConnectionMeta = useMemo(
         () => (activeConnection ? connections.find((c) => c.id === activeConnection.connectionId) : null),
@@ -104,6 +109,25 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
     useEffect(() => {
         persistConnections(connections);
     }, [connections]);
+
+    const fetchTransfers = useCallback(async () => {
+        try {
+            const response = await fetch(`${config.apiBaseUrl}/api/transfers?limit=100&success_only=true`);
+            if (!response.ok) return;
+            const data = await response.json();
+            if (Array.isArray(data.transfers)) {
+                setTransfers(data.transfers);
+            }
+        } catch (err) {
+            console.error('Failed to load transfers for network map', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchTransfers();
+        const interval = setInterval(fetchTransfers, 12000);
+        return () => clearInterval(interval);
+    }, [fetchTransfers]);
 
     const nodes: TankNode[] = useMemo(() => {
         const radiusX = 420;
@@ -156,6 +180,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
             if (!latest || latest.transfer_id === latestTransferId) return;
 
             setLatestTransferId(latest.transfer_id);
+            fetchTransfers();
 
             const matching = connections.find(
                 (c) => c.sourceId === latest.source_tank_id && c.destinationId === latest.destination_tank_id,
@@ -171,7 +196,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         } catch (err) {
             console.error('Failed to poll transfers for network map', err);
         }
-    }, [connections, latestTransferId]);
+    }, [connections, fetchTransfers, latestTransferId]);
 
     useEffect(() => {
         pollTransfers();
@@ -189,6 +214,23 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         const base = 3;
         const maxExtra = 14;
         return base + (maxProbability === 0 ? 0 : (value / 100) * maxExtra);
+    };
+
+    const connectionMigrationCounts = useMemo(() => {
+        const counts = new Map<string, number>();
+        transfers.forEach((transfer) => {
+            const id = `${transfer.source_tank_id}->${transfer.destination_tank_id}`;
+            counts.set(id, (counts.get(id) ?? 0) + 1);
+        });
+        return counts;
+    }, [transfers]);
+
+    const formatTimestamp = (timestamp: string) => {
+        try {
+            return new Date(timestamp).toLocaleString();
+        } catch (err) {
+            return timestamp;
+        }
     };
 
     return (
@@ -241,6 +283,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
 
                             const isActive = activeConnection?.connectionId === connection.id;
                             const thickness = probabilityWidth(connection.probability);
+                            const migrations = connectionMigrationCounts.get(connection.id) ?? 0;
 
                             return (
                                 <g key={connection.id}>
@@ -275,6 +318,16 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                                         style={{ userSelect: 'none' }}
                                     >
                                         {connection.probability}%
+                                    </text>
+                                    <text
+                                        x={(source.x + dest.x) / 2}
+                                        y={(source.y + dest.y) / 2 - 2}
+                                        fill="#94a3b8"
+                                        fontSize="11"
+                                        textAnchor="middle"
+                                        style={{ userSelect: 'none' }}
+                                    >
+                                        {migrations} migration{migrations === 1 ? '' : 's'}
                                     </text>
                                 </g>
                             );
@@ -491,7 +544,8 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                                                     {dest.name}
                                                 </div>
                                                 <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                                                    {source.serverName} to {dest.serverName} &bull; {connection.probability}%
+                                                    {source.serverName} to {dest.serverName} &bull; {connection.probability}% &bull;{' '}
+                                                    {connectionMigrationCounts.get(connection.id) ?? 0} migrations
                                                 </div>
                                             </div>
                                             <button
@@ -511,6 +565,50 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                                         </div>
                                     );
                                 })
+                            )}
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Recent migrations</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {transfers.length === 0 ? (
+                                <div
+                                    style={{
+                                        padding: '12px',
+                                        borderRadius: 8,
+                                        backgroundColor: '#0b1220',
+                                        border: '1px dashed #334155',
+                                        color: '#94a3b8',
+                                        fontSize: 12,
+                                    }}
+                                >
+                                    No migrations recorded yet.
+                                </div>
+                            ) : (
+                                transfers.slice(0, 6).map((transfer) => (
+                                    <div
+                                        key={transfer.transfer_id}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 4,
+                                            padding: '10px 12px',
+                                            backgroundColor: '#0b1220',
+                                            borderRadius: 8,
+                                            border: '1px solid #1f2937',
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 700, fontSize: 13, color: '#e2e8f0' }}>
+                                            {transfer.entity_type === 'fish' ? '🐟' : '🌿'} {transfer.source_tank_name}
+                                            <span style={{ margin: '0 6px', color: '#38bdf8' }}>→</span>
+                                            {transfer.destination_tank_name}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                                            {formatTimestamp(transfer.timestamp)}
+                                        </div>
+                                    </div>
+                                ))
                             )}
                         </div>
                     </div>
