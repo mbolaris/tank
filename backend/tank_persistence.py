@@ -56,8 +56,10 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
             if serialized:
                 entities.append(serialized)
             else:
-                # Also serialize Food and Nectar for complete state
+                # Also serialize Food, Nectar, Castle, and Crab for complete state
                 from core.entities import Food, PlantNectar
+                from core.entities.base import Castle
+                from core.entities.predators import Crab
 
                 if isinstance(entity, PlantNectar):
                     entities.append({
@@ -67,8 +69,8 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
                         "y": entity.pos.y,
                         "energy": entity.energy,
                         "source_plant_id": getattr(entity, "source_plant_id", None),
-                        "source_plant_x": getattr(entity, "source_plant_x", entity.x),
-                        "source_plant_y": getattr(entity, "source_plant_y", entity.y),
+                        "source_plant_x": getattr(entity, "source_plant_x", entity.pos.x),
+                        "source_plant_y": getattr(entity, "source_plant_y", entity.pos.y),
                     })
                 elif isinstance(entity, Food):
                     entities.append({
@@ -78,6 +80,33 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
                         "y": entity.pos.y,
                         "energy": entity.energy,
                         "food_type": entity.food_type,
+                    })
+                elif isinstance(entity, Castle):
+                    entities.append({
+                        "type": "castle",
+                        "x": entity.pos.x,
+                        "y": entity.pos.y,
+                        "width": entity.width,
+                        "height": entity.height,
+                    })
+                elif isinstance(entity, Crab):
+                    # Serialize crab with genome
+                    genome_data = {
+                        "speed_modifier": entity.genome.speed_modifier,
+                        "size_modifier": entity.genome.size_modifier,
+                        "max_energy": entity.genome.max_energy,
+                        "metabolism_rate": entity.genome.metabolism_rate,
+                        "color_hue": entity.genome.color_hue,
+                        "vision_range": entity.genome.vision_range,
+                    }
+                    entities.append({
+                        "type": "crab",
+                        "x": entity.pos.x,
+                        "y": entity.pos.y,
+                        "energy": entity.energy,
+                        "max_energy": entity.max_energy,
+                        "genome": genome_data,
+                        "hunt_cooldown": entity.hunt_cooldown,
                     })
 
         # Build complete snapshot
@@ -163,17 +192,33 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
     """
     try:
         from backend.entity_transfer import deserialize_entity
-        from core.entities.food import Food
-        from core.entities.plant_nectar import PlantNectar
+        from core.entities import Food, PlantNectar
 
         # Clear existing entities
         target_world.engine.entities_list.clear()
-        target_world.engine.spatial_grid.clear()
+        if target_world.engine.environment:
+            target_world.engine.environment.spatial_grid.clear()
+        
+        # Reset root spots
+        if hasattr(target_world.engine, "root_spot_manager") and target_world.engine.root_spot_manager:
+            for spot in target_world.engine.root_spot_manager.spots:
+                spot.release()
 
         # Restore entities
+        from core.entities.fractal_plant import FractalPlant
+
+        # Track restored plants for nectar association
+        plants_by_id = {}
+        nectar_data_list = []
         restored_count = 0
+
+        # Pass 1: Restore non-nectar entities
         for entity_data in snapshot["entities"]:
             entity_type = entity_data.get("type")
+
+            if entity_type == "plant_nectar":
+                nectar_data_list.append(entity_data)
+                continue
 
             if entity_type in ("fish", "fractal_plant"):
                 # Use existing deserialization logic
@@ -181,6 +226,8 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 if entity:
                     target_world.engine.add_entity(entity)
                     restored_count += 1
+                    if isinstance(entity, FractalPlant):
+                        plants_by_id[entity.plant_id] = entity
 
             elif entity_type == "food":
                 # Restore food
@@ -194,22 +241,72 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 target_world.engine.add_entity(food)
                 restored_count += 1
 
-            elif entity_type == "plant_nectar":
-                # Restore nectar
+            elif entity_type == "castle":
+                # Restore castle
+                from core.entities.base import Castle
+                from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
+                
+                castle = Castle(
+                    environment=target_world.engine.environment,
+                    x=entity_data["x"],
+                    y=entity_data["y"],
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT,
+                )
+                # Restore size if it was saved
+                if "width" in entity_data and "height" in entity_data:
+                    castle.set_size(entity_data["width"], entity_data["height"])
+                target_world.engine.add_entity(castle)
+                restored_count += 1
+
+            elif entity_type == "crab":
+                # Restore crab
+                from core.entities.predators import Crab
+                from core.genetics import Genome
+                from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
+                
+                # Reconstruct genome
+                genome_data = entity_data.get("genome", {})
+                genome = Genome(
+                    speed_modifier=genome_data.get("speed_modifier", 1.0),
+                    size_modifier=genome_data.get("size_modifier", 1.0),
+                    max_energy=genome_data.get("max_energy", 1.0),
+                    metabolism_rate=genome_data.get("metabolism_rate", 1.0),
+                    color_hue=genome_data.get("color_hue", 0.5),
+                    vision_range=genome_data.get("vision_range", 100.0),
+                )
+                
+                crab = Crab(
+                    environment=target_world.engine.environment,
+                    genome=genome,
+                    x=entity_data["x"],
+                    y=entity_data["y"],
+                    screen_width=SCREEN_WIDTH,
+                    screen_height=SCREEN_HEIGHT,
+                )
+                crab.energy = entity_data.get("energy", crab.max_energy)
+                crab.max_energy = entity_data.get("max_energy", crab.max_energy)
+                crab.hunt_cooldown = entity_data.get("hunt_cooldown", 0)
+                target_world.engine.add_entity(crab)
+                restored_count += 1
+
+        # Pass 2: Restore nectar
+        for entity_data in nectar_data_list:
+            source_plant_id = entity_data.get("source_plant_id")
+            source_plant = plants_by_id.get(source_plant_id)
+            
+            if source_plant:
                 nectar = PlantNectar(
                     x=entity_data["x"],
                     y=entity_data["y"],
-                    energy=entity_data["energy"],
+                    source_plant=source_plant,
                     environment=target_world.engine.environment,
                 )
-                # Restore nectar source plant info if available
-                if "source_plant_x" in entity_data:
-                    nectar.source_plant_x = entity_data["source_plant_x"]
-                    nectar.source_plant_y = entity_data["source_plant_y"]
-                if "source_plant_id" in entity_data:
-                    nectar.source_plant_id = entity_data["source_plant_id"]
+                nectar.energy = entity_data["energy"]
                 target_world.engine.add_entity(nectar)
                 restored_count += 1
+            else:
+                logger.warning(f"Skipping nectar restoration: missing source plant {source_plant_id}")
 
         # Restore frame number
         target_world.frame = snapshot["frame"]
@@ -221,7 +318,9 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
             eco.total_births = eco_data.get("total_births", 0)
             eco.total_deaths = eco_data.get("total_deaths", 0)
             eco.current_generation = eco_data.get("current_generation", 0)
-            eco.death_causes = eco_data.get("death_causes", {})
+            if "death_causes" in eco_data:
+                eco.death_causes.clear()
+                eco.death_causes.update(eco_data["death_causes"])
             if "poker_stats" in eco_data:
                 eco.total_fish_poker_games = eco_data["poker_stats"].get("total_fish_games", 0)
                 eco.total_plant_poker_games = eco_data["poker_stats"].get("total_plant_games", 0)

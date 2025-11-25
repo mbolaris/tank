@@ -313,6 +313,10 @@ class EcosystemManager:
             else:
                 stats.avg_age = age
 
+        # Ensure death_causes is a defaultdict (defensive fix for restoration issues)
+        if not isinstance(self.death_causes, defaultdict):
+            self.death_causes = defaultdict(int, self.death_causes)
+            
         # Track death causes
         self.death_causes[cause] += 1
 
