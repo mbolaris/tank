@@ -385,6 +385,15 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to start auto-save service: {e}", exc_info=True)
             # Non-fatal - continue without auto-save
 
+        # Setup API routers (must be done after all dependencies are initialized)
+        logger.info("Setting up API routers...")
+        try:
+            setup_routers()
+            logger.info("API routers configured successfully")
+        except Exception as e:
+            logger.error(f"Failed to setup API routers: {e}", exc_info=True)
+            raise  # Fatal - routers are required for API functionality
+
         logger.info("LIFESPAN STARTUP: Complete - yielding control to app")
         yield
         logger.info("LIFESPAN SHUTDOWN: Received shutdown signal")
@@ -493,6 +502,43 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# =============================================================================
+# Router Setup - Modular API organization
+# =============================================================================
+
+def setup_routers():
+    """Setup and include all API routers after dependencies are initialized."""
+    from backend.routers import discovery, transfers, tanks, servers
+
+    # Setup discovery router
+    discovery_router = discovery.setup_router(discovery_service)
+    app.include_router(discovery_router)
+
+    # Setup transfers router
+    transfers_router = transfers.setup_router(tank_registry, connection_manager)
+    app.include_router(transfers_router)
+
+    # Setup tanks router
+    tanks_router = tanks.setup_router(
+        tank_registry=tank_registry,
+        server_id=SERVER_ID,
+        start_broadcast_callback=start_broadcast_for_tank,
+        stop_broadcast_callback=stop_broadcast_for_tank,
+    )
+    app.include_router(tanks_router)
+
+    # Setup servers router
+    servers_router = servers.setup_router(
+        tank_registry=tank_registry,
+        discovery_service=discovery_service,
+        server_client=server_client,
+        get_server_info_callback=get_server_info,
+    )
+    app.include_router(servers_router)
+
+    logger.info("All API routers configured successfully")
 
 
 async def broadcast_updates_for_tank(manager: SimulationManager):
