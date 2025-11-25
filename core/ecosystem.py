@@ -1028,8 +1028,8 @@ class EcosystemManager:
         self.total_fish_poker_games += 1
         try:
             self._save_poker_totals()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Failed to save poker totals: {e}", exc_info=True)
 
         # Record loser stats
         if loser_algo_id is not None and loser_algo_id in self.poker_stats:
@@ -1415,8 +1415,8 @@ class EcosystemManager:
         self.total_plant_poker_games += 1
         try:
             self._save_poker_totals()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Failed to save poker totals: {e}", exc_info=True)
 
     def get_jellyfish_leaderboard(self, limit: int = 10) -> List[JellyfishPokerStats]:
         """Get the jellyfish poker leaderboard sorted by performance score.
