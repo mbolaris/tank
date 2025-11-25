@@ -230,13 +230,31 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                         plants_by_id[entity.plant_id] = entity
 
             elif entity_type == "food":
-                # Restore food
-                food = Food(
-                    x=entity_data["x"],
-                    y=entity_data["y"],
-                    food_type=entity_data["food_type"],
-                    environment=target_world.engine.environment,
-                )
+                # Restore food - check if it's live food
+                from core.entities.resources import LiveFood
+
+                food_type = entity_data["food_type"]
+                x = entity_data["x"]
+                y = entity_data["y"]
+
+                if food_type == "live":
+                    # Create LiveFood instance to preserve movement behavior
+                    food = LiveFood(
+                        environment=target_world.engine.environment,
+                        x=x,
+                        y=y,
+                        screen_width=target_world.engine.environment.width,
+                        screen_height=target_world.engine.environment.height,
+                    )
+                else:
+                    # Regular stationary food
+                    food = Food(
+                        x=x,
+                        y=y,
+                        food_type=food_type,
+                        environment=target_world.engine.environment,
+                    )
+
                 food.energy = entity_data["energy"]
                 target_world.engine.add_entity(food)
                 restored_count += 1
