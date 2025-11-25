@@ -122,6 +122,24 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
             };
         };
 
+        // With only two tanks the default ring layout stacks them vertically, which hides
+        // the connecting tube in the middle. Give the pair a clear left/right layout so
+        // their connection line is always visible.
+        if (tanks.length === 2) {
+            return [
+                {
+                    ...tanks[0],
+                    x: centerX - radiusX / 2,
+                    y: centerY,
+                },
+                {
+                    ...tanks[1],
+                    x: centerX + radiusX / 2,
+                    y: centerY,
+                },
+            ];
+        }
+
         return tanks.map((tank, index) => {
             const position = getRingPosition(index, tanks.length, radiusX, radiusY, centerX, centerY);
             return {
