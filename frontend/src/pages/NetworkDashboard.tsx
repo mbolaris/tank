@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { config, type TankStatus, type ServerWithTanks } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
+import { TankNetworkMap } from '../components/TankNetworkMap';
 
 interface ServersResponse {
     servers: ServerWithTanks[];
@@ -340,6 +341,13 @@ export function NetworkDashboard() {
                         />
                     ))}
                 </div>
+
+                {/* Tube Network Map - directly follows thumbnails when servers exist */}
+                {servers.length > 0 && (
+                    <div style={{ marginTop: '24px' }}>
+                        <TankNetworkMap servers={servers} />
+                    </div>
+                )}
 
                 {/* Empty State */}
                 {!loading && servers.length === 0 && !error && (
