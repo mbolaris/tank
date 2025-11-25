@@ -46,7 +46,7 @@ class TankRegistry:
         """Initialize the tank registry.
 
         Args:
-            create_default: If True, creates a default "Local Tank" on init
+            create_default: If True, creates a default "Tank 1" on init
         """
         self._tanks: Dict[str, SimulationManager] = {}
         self._default_tank_id: Optional[str] = None
@@ -54,7 +54,7 @@ class TankRegistry:
 
         if create_default:
             default_tank = self.create_tank(
-                name="Local Tank",
+                name="Tank 1",
                 description="A local fish tank simulation",
             )
             self._default_tank_id = default_tank.tank_id

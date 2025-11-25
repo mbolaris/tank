@@ -62,7 +62,7 @@ class SimulationManager:
 
     def __init__(
         self,
-        tank_name: str = "Local Tank",
+        tank_name: str = "Tank 1",
         tank_description: str = "A local fish tank simulation",
         seed: Optional[int] = None,
     ):

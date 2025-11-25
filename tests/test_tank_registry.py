@@ -14,7 +14,7 @@ class TestTankRegistry:
         assert registry.tank_count == 1
         assert registry.default_tank_id is not None
         assert registry.default_tank is not None
-        assert registry.default_tank.tank_info.name == "Local Tank"
+        assert registry.default_tank.tank_info.name == "Tank 1"
 
         # Clean up
         registry.stop_all()
