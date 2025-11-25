@@ -57,15 +57,14 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
                 entities.append(serialized)
             else:
                 # Also serialize Food and Nectar for complete state
-                from core.entities.food import Food
-                from core.entities.plant_nectar import PlantNectar
+                from core.entities import Food, PlantNectar
 
                 if isinstance(entity, PlantNectar):
                     entities.append({
                         "type": "plant_nectar",
-                        "id": entity.id,
-                        "x": entity.x,
-                        "y": entity.y,
+                        "id": id(entity),
+                        "x": entity.pos.x,
+                        "y": entity.pos.y,
                         "energy": entity.energy,
                         "source_plant_id": getattr(entity, "source_plant_id", None),
                         "source_plant_x": getattr(entity, "source_plant_x", entity.x),
@@ -74,9 +73,9 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
                 elif isinstance(entity, Food):
                     entities.append({
                         "type": "food",
-                        "id": entity.id,
-                        "x": entity.x,
-                        "y": entity.y,
+                        "id": id(entity),
+                        "x": entity.pos.x,
+                        "y": entity.pos.y,
                         "energy": entity.energy,
                         "food_type": entity.food_type,
                     })
@@ -86,7 +85,7 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
             "version": "1.0",
             "tank_id": tank_id,
             "saved_at": datetime.utcnow().isoformat(),
-            "frame": manager.world.frame,
+            "frame": manager.world.frame_count,
             "metadata": {
                 "name": manager.tank_info.name,
                 "description": manager.tank_info.description,

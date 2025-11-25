@@ -238,6 +238,18 @@ async def lifespan(app: FastAPI):
             tank_registry._default_tank_id = default_manager.tank_id
             logger.info(f"Created default tank: {default_manager.tank_id[:8]}")
 
+            # Create initial snapshot immediately so it can be restored on next startup
+            try:
+                from backend.tank_persistence import save_tank_state
+
+                snapshot_path = save_tank_state(default_manager.tank_id, default_manager)
+                if snapshot_path:
+                    logger.info(f"Created initial snapshot for default tank: {snapshot_path}")
+                else:
+                    logger.warning("Failed to create initial snapshot for default tank")
+            except Exception as e:
+                logger.error(f"Error creating initial snapshot: {e}", exc_info=True)
+
         logger.info(f"Tank registry has {tank_registry.tank_count} tank(s)")
 
         # Update backwards-compatible aliases
