@@ -528,6 +528,9 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     const statusText = running ? (paused ? 'Paused' : 'Running') : 'Stopped';
     const statusColor = running ? (paused ? '#f59e0b' : '#22c55e') : '#ef4444';
 
+    const description = tank.description?.trim();
+    const descriptionText = description && description.length > 0 ? description : 'No description provided';
+
     return (
         <div style={{
             backgroundColor: '#0f172a',
@@ -552,15 +555,13 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     }}>
                         {tank.name}
                     </h3>
-                    {tank.description && (
-                        <p style={{
-                            margin: '4px 0 0 0',
-                            fontSize: '12px',
-                            color: '#94a3b8',
-                        }}>
-                            {tank.description}
-                        </p>
-                    )}
+                    <p style={{
+                        margin: '4px 0 0 0',
+                        fontSize: '12px',
+                        color: '#94a3b8',
+                    }}>
+                        {descriptionText}
+                    </p>
                 </div>
                 <div style={{
                     display: 'flex',
