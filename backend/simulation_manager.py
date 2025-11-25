@@ -36,7 +36,7 @@ class TankInfo:
 
     # Network visibility settings (for future use)
     is_public: bool = True
-    allow_transfers: bool = False  # Allow fish/plants to transfer between tanks
+    allow_transfers: bool = True  # Allow fish/plants to transfer between tanks
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize tank info for API responses."""

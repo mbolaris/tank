@@ -408,7 +408,7 @@ async def create_tank(
     seed: Optional[int] = None,
     owner: Optional[str] = None,
     is_public: bool = True,
-    allow_transfers: bool = False,
+    allow_transfers: bool = True,
     server_id: str = "local-server",
 ):
     """Create a new tank simulation.
@@ -940,7 +940,7 @@ async def load_tank(snapshot_path: str):
         seed=metadata.get("seed"),
         owner=metadata.get("owner"),
         is_public=metadata.get("is_public", True),
-        allow_transfers=metadata.get("allow_transfers", False),
+        allow_transfers=metadata.get("allow_transfers", True),
     )
 
     new_manager = tank_registry.create_tank(create_request)
