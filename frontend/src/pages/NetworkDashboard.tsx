@@ -344,10 +344,12 @@ export function NetworkDashboard() {
                     ))}
                 </div>
 
-                {/* Tube Network Map */}
-                <div style={{ marginTop: '24px' }}>
-                    <TankNetworkMap servers={servers} />
-                </div>
+                {/* Tube Network Map - directly follows thumbnails when servers exist */}
+                {servers.length > 0 && (
+                    <div style={{ marginTop: '24px' }}>
+                        <TankNetworkMap servers={servers} />
+                    </div>
+                )}
 
                 {/* Empty State */}
                 {!loading && servers.length === 0 && !error && (
