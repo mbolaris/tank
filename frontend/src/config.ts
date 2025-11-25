@@ -158,6 +158,10 @@ export interface ServerInfo {
     cpu_percent?: number;
     memory_mb?: number;
     is_local: boolean;
+    platform?: string;
+    architecture?: string;
+    hardware_model?: string;
+    logical_cpus?: number;
 }
 
 /**
