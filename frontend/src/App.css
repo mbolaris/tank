@@ -195,6 +195,37 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.tube-pulse {
+    animation: tubePulse 1.8s ease-in-out infinite;
+    transform-origin: center;
+}
+
+.tube-flow {
+    stroke-dasharray: 10 16;
+    animation: tubeFlow 1.2s linear infinite;
+}
+
+@keyframes tubePulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+}
+
+@keyframes tubeFlow {
+    to {
+        stroke-dashoffset: -120;
+    }
+}
+
 .tree-overlay {
     position: fixed;
     inset: 0;
