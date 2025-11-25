@@ -838,6 +838,25 @@ db_password = vault.secrets.kv.v2.read_secret_version(path="tank-world/db-passwo
 
 **Platformization (v3.0+):** Control-plane scheduler with deterministic tick barriers, Redis/Kafka migration channels, genome exchange + registry, reproducible experiment bundles, and audited replay/metrics pipelines.
 
+### Reality Check: Turning Tank into a Distributed ALife Platform
+
+The platformization track is ambitious and feasible, but only if we respect a few hard constraints that the current roadmap glosses over:
+
+- **Determinism before distribution.** Cross-node evolution only works if sims produce bit-for-bit identical results given a seed. Audit `core/tank_world.py` and physics/energy systems for nondeterminism (random usage, time-based ticks, reliance on Python dict iteration). Add repeatability tests before scaling out.
+- **Single control-plane source of truth.** A scheduler that owns world ticks and migrations needs a strongly consistent backend (PostgreSQL or etcd). Without that, “deterministic tick barriers” are aspirational and migrations will race. Bake this into the v3 control-plane design, not as a postscript.
+- **Resource-aware scheduling beats raw fan-out.** Distributed ALife runs are CPU/GPU hungry. The plan should specify per-node admission control (pods/containers) and per-eval timeouts, otherwise “100+ evals in parallel” will thrash. Favor queue-based scheduling with backpressure over push-based scatter.
+- **Network costs and latency matter.** Genome exchanges every generation are expensive. Default to island-style exchanges with coarse-grained epochs (e.g., every 5–10 generations) and compress payloads. Document an upper-bound bandwidth budget per migration window.
+- **Observability as a requirement, not a phase.** Fitness drift, divergence, or bad RNG seeding will be invisible without metrics and tracing. Treat Prometheus/OpenTelemetry and reproducible run manifests (code + seed + sim config) as table stakes before opening the cluster to public workers.
+- **Security model is underspecified.** Distributed workers—especially browsers—must be sandboxed. Require signed genome bundles, input validation, and rate limits on migration channels. mTLS between servers is non-negotiable once we leave single-host deployments.
+
+**Actionable adjustments to the roadmap:**
+
+1. Add a “Determinism and Reproducibility” milestone immediately before v2.0 rollout, with automated tests that replay seeds across nodes.
+2. Define the v3 control-plane contract (APIs, storage schema, tick barrier protocol) and make it the gate for migration and experiment services.
+3. Introduce a queue-based scheduler (e.g., Redis streams + worker leases) with explicit backpressure and per-evaluation CPU/memory budgets.
+4. Set migration cadence and payload size targets (e.g., ≤1 MB per migration window, ≥5-generation intervals) to bound network costs.
+5. Elevate observability and security to required workstreams—publish a minimal metrics/alerts dashboard and enforce mTLS/token-based auth before multi-tenant or browser workers are allowed.
+
 **Total Time Estimate:** 6-9 weeks for fully distributed production system
 
 **Key Design Decisions:**
