@@ -46,7 +46,7 @@ Tank World Net enables running multiple independent tank simulations on a single
 - `seed`: Random seed for deterministic behavior
 - `owner`: Owner identifier
 - `is_public`: Whether tank is publicly visible (default: true)
-- `allow_transfers`: Enable entity transfers between tanks (default: false)
+- `allow_transfers`: Enable entity transfers between tanks (default: true)
 
 #### Tank Control API
 
