@@ -190,6 +190,8 @@ export function NetworkDashboard() {
                     </div>
                 </div>
 
+                <TankNetworkMap servers={servers} />
+
                 {/* Create Tank Form */}
                 {showCreateForm && (
                     <div style={{
