@@ -918,6 +918,208 @@ class EcosystemManager:
         # NEW: Track energy from food for efficiency metrics
         self.enhanced_stats.record_energy_from_food(energy_gained)
 
+    def _update_tie_stats(
+        self,
+        algo_id: Optional[int],
+        hand: "PokerHand",
+    ) -> None:
+        """Update statistics for a tied poker game.
+
+        Args:
+            algo_id: Algorithm ID of the player
+            hand: The player's poker hand
+        """
+        if algo_id is not None and algo_id in self.poker_stats:
+            stats = self.poker_stats[algo_id]
+            stats.total_games += 1
+            stats.total_ties += 1
+            if hand is not None:
+                stats._total_hand_rank += hand.rank_value
+                stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+    def _update_winner_stats(
+        self,
+        winner_id: int,
+        winner_algo_id: Optional[int],
+        amount: float,
+        winner_hand: "PokerHand",
+        house_cut: float,
+        result: Optional["PokerResult"],
+        player1_algo_id: Optional[int],
+        player2_algo_id: Optional[int],
+    ) -> None:
+        """Update statistics for the poker game winner.
+
+        Args:
+            winner_id: Fish ID of winner
+            winner_algo_id: Algorithm ID of winner
+            amount: Amount of energy won
+            winner_hand: The winning poker hand
+            house_cut: Amount taken by house
+            result: Optional PokerResult with detailed game information
+            player1_algo_id: Algorithm ID of player 1
+            player2_algo_id: Algorithm ID of player 2
+        """
+        from core.poker.core import BettingAction
+
+        if winner_algo_id is None or winner_algo_id not in self.poker_stats:
+            return
+
+        stats = self.poker_stats[winner_algo_id]
+        stats.total_games += 1
+        stats.total_wins += 1
+        stats.total_energy_won += amount
+        stats.total_house_cuts += house_cut / 2
+
+        if winner_hand is not None:
+            stats.best_hand_rank = max(stats.best_hand_rank, winner_hand.rank_value)
+            stats._total_hand_rank += winner_hand.rank_value
+            stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+        if result is None:
+            return
+
+        # Update pot size average
+        stats._total_pot_size += result.final_pot
+        stats.avg_pot_size = stats._total_pot_size / stats.total_games
+
+        # Track win by fold vs showdown
+        if result.won_by_fold:
+            stats.won_by_fold += 1
+        else:
+            stats.won_at_showdown += 1
+            stats.showdown_count += 1
+
+        # Track positional stats
+        winner_on_button = (
+            winner_algo_id == player1_algo_id and result.button_position == 1
+        ) or (winner_algo_id == player2_algo_id and result.button_position == 2)
+
+        if winner_on_button:
+            stats.button_games += 1
+            stats.button_wins += 1
+        else:
+            stats.off_button_games += 1
+            stats.off_button_wins += 1
+
+        # Count betting actions for aggression factor
+        for player, action, _ in result.betting_history:
+            if (player == 1 and winner_algo_id == player1_algo_id) or (
+                player == 2 and winner_algo_id == player2_algo_id
+            ):
+                if action == BettingAction.RAISE:
+                    stats.total_raises += 1
+                elif action == BettingAction.CALL:
+                    stats.total_calls += 1
+
+    def _update_loser_stats(
+        self,
+        loser_algo_id: Optional[int],
+        amount: float,
+        loser_hand: "PokerHand",
+        house_cut: float,
+        result: Optional["PokerResult"],
+        player1_algo_id: Optional[int],
+        player2_algo_id: Optional[int],
+    ) -> None:
+        """Update statistics for the poker game loser.
+
+        Args:
+            loser_algo_id: Algorithm ID of loser
+            amount: Amount of energy lost
+            loser_hand: The losing poker hand
+            house_cut: Amount taken by house
+            result: Optional PokerResult with detailed game information
+            player1_algo_id: Algorithm ID of player 1
+            player2_algo_id: Algorithm ID of player 2
+        """
+        from core.poker.core import BettingAction
+
+        if loser_algo_id is None or loser_algo_id not in self.poker_stats:
+            return
+
+        stats = self.poker_stats[loser_algo_id]
+        stats.total_games += 1
+        stats.total_losses += 1
+        stats.total_energy_lost += amount
+        stats.total_house_cuts += house_cut / 2
+
+        if loser_hand is not None:
+            stats._total_hand_rank += loser_hand.rank_value
+            stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+
+        if result is None:
+            return
+
+        # Update pot size average
+        stats._total_pot_size += result.final_pot
+        stats.avg_pot_size = stats._total_pot_size / stats.total_games
+
+        # Track fold stats
+        loser_folded = (
+            loser_algo_id == player1_algo_id and result.player1_folded
+        ) or (loser_algo_id == player2_algo_id and result.player2_folded)
+
+        if loser_folded:
+            stats.folds += 1
+            if result.total_rounds == 0:
+                stats.preflop_folds += 1
+            else:
+                stats.postflop_folds += 1
+        else:
+            stats.showdown_count += 1
+
+        # Track positional stats
+        loser_on_button = (
+            loser_algo_id == player1_algo_id and result.button_position == 1
+        ) or (loser_algo_id == player2_algo_id and result.button_position == 2)
+
+        if loser_on_button:
+            stats.button_games += 1
+        else:
+            stats.off_button_games += 1
+
+        # Count betting actions for aggression factor
+        for player, action, _ in result.betting_history:
+            if (player == 1 and loser_algo_id == player1_algo_id) or (
+                player == 2 and loser_algo_id == player2_algo_id
+            ):
+                if action == BettingAction.RAISE:
+                    stats.total_raises += 1
+                elif action == BettingAction.CALL:
+                    stats.total_calls += 1
+
+    def _log_poker_event(
+        self,
+        winner_id: int,
+        loser_id: int,
+        amount: float,
+        winner_hand: "PokerHand",
+        loser_hand: "PokerHand",
+    ) -> None:
+        """Log a poker game event to the ecosystem events list.
+
+        Args:
+            winner_id: Fish ID of winner
+            loser_id: Fish ID of loser
+            amount: Amount of energy transferred
+            winner_hand: The winning poker hand
+            loser_hand: The losing poker hand
+        """
+        winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
+        loser_desc = loser_hand.description if loser_hand is not None else "Unknown"
+        self.events.append(
+            EcosystemEvent(
+                frame=self.frame_count,
+                event_type="poker",
+                fish_id=winner_id,
+                details=(
+                    f"Won {amount:.1f} energy from fish {loser_id} "
+                    f"({winner_desc} vs {loser_desc})"
+                ),
+            )
+        )
+
     def record_poker_outcome(
         self,
         winner_id: int,
@@ -947,156 +1149,43 @@ class EcosystemManager:
             player1_algo_id: Algorithm ID of player 1
             player2_algo_id: Algorithm ID of player 2
         """
-        from core.poker.core import BettingAction
-
         # Handle tie case
         if winner_id == -1:
-            if winner_algo_id is not None and winner_algo_id in self.poker_stats:
-                self.poker_stats[winner_algo_id].total_games += 1
-                self.poker_stats[winner_algo_id].total_ties += 1
-                if winner_hand is not None:
-                    self.poker_stats[winner_algo_id]._total_hand_rank += winner_hand.rank_value
-                    self.poker_stats[winner_algo_id].avg_hand_rank = (
-                        self.poker_stats[winner_algo_id]._total_hand_rank
-                        / self.poker_stats[winner_algo_id].total_games
-                    )
-            if loser_algo_id is not None and loser_algo_id in self.poker_stats:
-                self.poker_stats[loser_algo_id].total_games += 1
-                self.poker_stats[loser_algo_id].total_ties += 1
-                if loser_hand is not None:
-                    self.poker_stats[loser_algo_id]._total_hand_rank += loser_hand.rank_value
-                    self.poker_stats[loser_algo_id].avg_hand_rank = (
-                        self.poker_stats[loser_algo_id]._total_hand_rank
-                        / self.poker_stats[loser_algo_id].total_games
-                    )
+            self._update_tie_stats(winner_algo_id, winner_hand)
+            self._update_tie_stats(loser_algo_id, loser_hand)
             return
 
-        # Record winner stats
-        if winner_algo_id is not None and winner_algo_id in self.poker_stats:
-            stats = self.poker_stats[winner_algo_id]
-            stats.total_games += 1
-            stats.total_wins += 1
-            stats.total_energy_won += amount
-            stats.total_house_cuts += house_cut / 2  # Split house cut evenly between both players
-            if winner_hand is not None:
-                stats.best_hand_rank = max(stats.best_hand_rank, winner_hand.rank_value)
-                stats._total_hand_rank += winner_hand.rank_value
-                stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
+        # Update winner and loser statistics
+        self._update_winner_stats(
+            winner_id,
+            winner_algo_id,
+            amount,
+            winner_hand,
+            house_cut,
+            result,
+            player1_algo_id,
+            player2_algo_id,
+        )
 
-            # Track detailed stats if result available
-            if result is not None:
-                # Update pot size average
-                stats._total_pot_size += result.final_pot
-                stats.avg_pot_size = stats._total_pot_size / stats.total_games
+        self._update_loser_stats(
+            loser_algo_id,
+            amount,
+            loser_hand,
+            house_cut,
+            result,
+            player1_algo_id,
+            player2_algo_id,
+        )
 
-                # Track win by fold vs showdown
-                if result.won_by_fold:
-                    stats.won_by_fold += 1
-                else:
-                    stats.won_at_showdown += 1
-                    stats.showdown_count += 1
-
-                # Track positional stats (winner perspective)
-                winner_on_button = (
-                    winner_id == result.winner_id and result.button_position == 1
-                ) or (winner_id != result.winner_id and result.button_position == 2)
-                if winner_algo_id == player1_algo_id:
-                    winner_on_button = result.button_position == 1
-                else:
-                    winner_on_button = result.button_position == 2
-
-                if winner_on_button:
-                    stats.button_games += 1
-                    stats.button_wins += 1
-                else:
-                    stats.off_button_games += 1
-                    stats.off_button_wins += 1
-
-                # Count betting actions for aggression factor
-                for player, action, _ in result.betting_history:
-                    # Determine if this action was by the winner
-                    if (player == 1 and winner_algo_id == player1_algo_id) or (
-                        player == 2 and winner_algo_id == player2_algo_id
-                    ):
-                        if action == BettingAction.RAISE:
-                            stats.total_raises += 1
-                        elif action == BettingAction.CALL:
-                            stats.total_calls += 1
-
-        # Aggregate total fish-vs-fish games
-        # Only count algorithm-tracked games here (fish-vs-fish)
+        # Increment total fish-vs-fish games counter
         self.total_fish_poker_games += 1
         try:
             self._save_poker_totals()
         except Exception as e:
             logger.error(f"Failed to save poker totals: {e}", exc_info=True)
 
-        # Record loser stats
-        if loser_algo_id is not None and loser_algo_id in self.poker_stats:
-            stats = self.poker_stats[loser_algo_id]
-            stats.total_games += 1
-            stats.total_losses += 1
-            stats.total_energy_lost += amount
-            stats.total_house_cuts += house_cut / 2  # Split house cut evenly between both players
-            if loser_hand is not None:
-                stats._total_hand_rank += loser_hand.rank_value
-                stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
-
-            # Track detailed stats if result available
-            if result is not None:
-                # Update pot size average
-                stats._total_pot_size += result.final_pot
-                stats.avg_pot_size = stats._total_pot_size / stats.total_games
-
-                # Track fold stats
-                loser_folded = (loser_algo_id == player1_algo_id and result.player1_folded) or (
-                    loser_algo_id == player2_algo_id and result.player2_folded
-                )
-                if loser_folded:
-                    stats.folds += 1
-                    # Track pre-flop vs post-flop folds
-                    if result.total_rounds == 0:
-                        stats.preflop_folds += 1
-                    else:
-                        stats.postflop_folds += 1
-                else:
-                    # Lost at showdown
-                    stats.showdown_count += 1
-
-                # Track positional stats (loser perspective)
-                loser_on_button = (
-                    loser_algo_id == player1_algo_id and result.button_position == 1
-                ) or (loser_algo_id == player2_algo_id and result.button_position == 2)
-                if loser_on_button:
-                    stats.button_games += 1
-                else:
-                    stats.off_button_games += 1
-
-                # Count betting actions for aggression factor
-                for player, action, _ in result.betting_history:
-                    # Determine if this action was by the loser
-                    if (player == 1 and loser_algo_id == player1_algo_id) or (
-                        player == 2 and loser_algo_id == player2_algo_id
-                    ):
-                        if action == BettingAction.RAISE:
-                            stats.total_raises += 1
-                        elif action == BettingAction.CALL:
-                            stats.total_calls += 1
-
-        # Log event
-        winner_desc = winner_hand.description if winner_hand is not None else "Unknown"
-        loser_desc = loser_hand.description if loser_hand is not None else "Unknown"
-        self.events.append(
-            EcosystemEvent(
-                frame=self.frame_count,
-                event_type="poker",
-                fish_id=winner_id,
-                details=(
-                    f"Won {amount:.1f} energy from fish {loser_id} "
-                    f"({winner_desc} vs {loser_desc})"
-                ),
-            )
-        )
+        # Log the poker event
+        self._log_poker_event(winner_id, loser_id, amount, winner_hand, loser_hand)
 
     def _get_report_header(self) -> List[str]:
         """Generate the report header section."""
