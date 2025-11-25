@@ -683,6 +683,85 @@ async def stop_broadcast_for_tank(tank_id: str) -> None:
             await task
 
 
+# =============================================================================
+# Helper Functions for Transfer Operations
+# =============================================================================
+
+
+def log_transfer_success(
+    entity_data: Dict[str, Any],
+    old_id: int,
+    new_id: int,
+    source_tank_id: str,
+    source_tank_name: str,
+    dest_tank_id: str,
+    dest_tank_name: str,
+) -> None:
+    """Log a successful entity transfer.
+
+    Args:
+        entity_data: Serialized entity data
+        old_id: Original entity ID
+        new_id: New entity ID in destination tank
+        source_tank_id: Source tank identifier
+        source_tank_name: Source tank name
+        dest_tank_id: Destination tank identifier
+        dest_tank_name: Destination tank name
+    """
+    from backend.transfer_history import log_transfer
+
+    log_transfer(
+        entity_type=entity_data.get("type", "unknown"),
+        entity_old_id=old_id,
+        entity_new_id=new_id,
+        source_tank_id=source_tank_id,
+        source_tank_name=source_tank_name,
+        destination_tank_id=dest_tank_id,
+        destination_tank_name=dest_tank_name,
+        success=True,
+    )
+
+
+def log_transfer_failure(
+    entity_data: Dict[str, Any],
+    old_id: int,
+    source_tank_id: str,
+    source_tank_name: str,
+    dest_tank_id: str,
+    dest_tank_name: str,
+    error: str,
+) -> None:
+    """Log a failed entity transfer.
+
+    Args:
+        entity_data: Serialized entity data
+        old_id: Original entity ID
+        source_tank_id: Source tank identifier
+        source_tank_name: Source tank name
+        dest_tank_id: Destination tank identifier
+        dest_tank_name: Destination tank name
+        error: Error message describing the failure
+    """
+    from backend.transfer_history import log_transfer
+
+    log_transfer(
+        entity_type=entity_data.get("type", "unknown"),
+        entity_old_id=old_id,
+        entity_new_id=None,
+        source_tank_id=source_tank_id,
+        source_tank_name=source_tank_name,
+        destination_tank_id=dest_tank_id,
+        destination_tank_name=dest_tank_name,
+        success=False,
+        error=error,
+    )
+
+
+# =============================================================================
+# API Endpoints
+# =============================================================================
+
+
 @app.get("/")
 async def root():
     """Root endpoint."""
@@ -1219,17 +1298,13 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
                 source_manager.world.engine.add_entity(restored_entity)
 
             # Log failed transfer
-            from backend.transfer_history import log_transfer
-
-            log_transfer(
-                entity_type=entity_data["type"],
-                entity_old_id=entity_id,
-                entity_new_id=None,
+            log_transfer_failure(
+                entity_data=entity_data,
+                old_id=entity_id,
                 source_tank_id=source_tank_id,
                 source_tank_name=source_manager.tank_info.name,
-                destination_tank_id=destination_tank_id,
-                destination_tank_name=dest_manager.tank_info.name,
-                success=False,
+                dest_tank_id=destination_tank_id,
+                dest_tank_name=dest_manager.tank_info.name,
                 error="Failed to deserialize entity in destination tank",
             )
 
@@ -1242,17 +1317,14 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
         logger.info(f"Added entity {new_entity.id} to tank {destination_tank_id[:8]} (was {entity_id})")
 
         # Log successful transfer
-        from backend.transfer_history import log_transfer
-
-        log_transfer(
-            entity_type=entity_data["type"],
-            entity_old_id=entity_id,
-            entity_new_id=new_entity.id,
+        log_transfer_success(
+            entity_data=entity_data,
+            old_id=entity_id,
+            new_id=new_entity.id,
             source_tank_id=source_tank_id,
             source_tank_name=source_manager.tank_info.name,
-            destination_tank_id=destination_tank_id,
-            destination_tank_name=dest_manager.tank_info.name,
-            success=True,
+            dest_tank_id=destination_tank_id,
+            dest_tank_name=dest_manager.tank_info.name,
         )
 
         return JSONResponse({
@@ -1270,17 +1342,13 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
         logger.error(f"Transfer failed: {e}", exc_info=True)
 
         # Log failed transfer
-        from backend.transfer_history import log_transfer
-
-        log_transfer(
-            entity_type=entity_data["type"],
-            entity_old_id=entity_id,
-            entity_new_id=None,
+        log_transfer_failure(
+            entity_data=entity_data,
+            old_id=entity_id,
             source_tank_id=source_tank_id,
             source_tank_name=source_manager.tank_info.name,
-            destination_tank_id=destination_tank_id,
-            destination_tank_name=dest_manager.tank_info.name,
-            success=False,
+            dest_tank_id=destination_tank_id,
+            dest_tank_name=dest_manager.tank_info.name,
             error=str(e),
         )
 
@@ -1307,7 +1375,10 @@ async def remote_transfer_entity(request: RemoteTransferRequest):
     source_server_id = request.source_server_id
     source_tank_id = request.source_tank_id
     from backend.entity_transfer import deserialize_entity
-    from backend.transfer_history import log_transfer
+
+    # Construct remote source identifiers
+    remote_source_id = f"{source_server_id}:{source_tank_id}"
+    remote_source_name = f"Remote tank on {source_server_id}"
 
     # Get destination tank
     dest_manager = tank_registry.get_tank(destination_tank_id)
@@ -1331,15 +1402,13 @@ async def remote_transfer_entity(request: RemoteTransferRequest):
         new_entity = deserialize_entity(entity_data, dest_manager.world)
         if new_entity is None:
             # Log failed transfer
-            log_transfer(
-                entity_type=entity_data.get("type", "unknown"),
-                entity_old_id=entity_data.get("id", -1),
-                entity_new_id=None,
-                source_tank_id=f"{source_server_id}:{source_tank_id}",
-                source_tank_name=f"Remote tank on {source_server_id}",
-                destination_tank_id=destination_tank_id,
-                destination_tank_name=dest_manager.tank_info.name,
-                success=False,
+            log_transfer_failure(
+                entity_data=entity_data,
+                old_id=entity_data.get("id", -1),
+                source_tank_id=remote_source_id,
+                source_tank_name=remote_source_name,
+                dest_tank_id=destination_tank_id,
+                dest_tank_name=dest_manager.tank_info.name,
                 error="Failed to deserialize entity",
             )
 
@@ -1359,15 +1428,14 @@ async def remote_transfer_entity(request: RemoteTransferRequest):
         )
 
         # Log successful transfer
-        log_transfer(
-            entity_type=entity_data.get("type", "unknown"),
-            entity_old_id=entity_data.get("id", -1),
-            entity_new_id=entity_id,
-            source_tank_id=f"{source_server_id}:{source_tank_id}",
-            source_tank_name=f"Remote tank on {source_server_id}",
-            destination_tank_id=destination_tank_id,
-            destination_tank_name=dest_manager.tank_info.name,
-            success=True,
+        log_transfer_success(
+            entity_data=entity_data,
+            old_id=entity_data.get("id", -1),
+            new_id=entity_id,
+            source_tank_id=remote_source_id,
+            source_tank_name=remote_source_name,
+            dest_tank_id=destination_tank_id,
+            dest_tank_name=dest_manager.tank_info.name,
         )
 
         return JSONResponse(
@@ -1388,15 +1456,13 @@ async def remote_transfer_entity(request: RemoteTransferRequest):
         logger.error(f"Remote transfer failed: {e}", exc_info=True)
 
         # Log failed transfer
-        log_transfer(
-            entity_type=entity_data.get("type", "unknown"),
-            entity_old_id=entity_data.get("id", -1),
-            entity_new_id=None,
-            source_tank_id=f"{source_server_id}:{source_tank_id}",
-            source_tank_name=f"Remote tank on {source_server_id}",
-            destination_tank_id=destination_tank_id,
-            destination_tank_name=dest_manager.tank_info.name if dest_manager else "Unknown",
-            success=False,
+        log_transfer_failure(
+            entity_data=entity_data,
+            old_id=entity_data.get("id", -1),
+            source_tank_id=remote_source_id,
+            source_tank_name=remote_source_name,
+            dest_tank_id=destination_tank_id,
+            dest_tank_name=dest_manager.tank_info.name if dest_manager else "Unknown",
             error=str(e),
         )
 
