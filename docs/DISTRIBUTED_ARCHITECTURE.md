@@ -423,6 +423,35 @@ class LoadBalancer:
 
 ---
 
+## Platformization for Distributed ALife (v3.0+)
+
+**Goal:** Move from "multi-server capable" to a **distributed ALife platform** that can host thousands of tanks, run large-scale evolutionary experiments, and expose reproducible interfaces for researchers and external agents.
+
+### Control Plane Upgrades
+- **Deterministic tick coordination:** Introduce a global tick barrier per server that advances only when all tanks have flushed outbound events to Redis/Kafka; keeps migrations and transfers consistent during network partitions.
+- **Pluggable schedulers:** Add a control-plane scheduler that can swap between round-robin, priority ("hot" tanks with active viewers), and batch (headless experiments) policies.
+- **Job orchestration for headless runs:** Define a `SimulationJob` CRD (Kubernetes) or queue schema (Redis Stream) that requests N headless tanks with resource hints; workers lease jobs and report back stats/snapshots.
+- **Admission control:** Enforce per-tenant quotas (max tanks, max CPU/memory, network egress) before creating new simulations; expose limits to the frontend so users see capacity before submitting jobs.
+
+### Data & Genetics Exchange Layer
+- **Genome exchange bus:** Publish genotype summaries and fitness outcomes to Kafka/Redis Streams so other servers can import high-performing genomes; include provenance (server_id, tank_id, generation, seed) for reproducibility.
+- **Global genotype registry:** Backed by PostgreSQL, indexing genome hashes, phenotype metadata, and performance metrics. Enables cross-server experiments and avoids duplicate uploads.
+- **Migration channels:** Use a durable queue (Redis Stream with consumer groups) for inter-server entity transfers; retain events until the destination server acknowledges checkpoint application.
+- **Snapshot harmonization:** Standardize snapshot schemas with versioned manifests and schema evolution scripts so that tanks can be paused on one server and resumed on another without manual fixes.
+
+### Experimentation Services
+- **Experiment bundles:** Define a versioned bundle (YAML + assets) describing tank topology, allowed algorithms, RNG seeds, and observation hooks; bundles are stored in S3 and referenced by jobs.
+- **Replay & audit:** Store per-tick hashes (state digest + RNG seed) for auditability; provide a "replay" mode that deterministically replays an experiment across clusters.
+- **Metrics pipeline:** Stream per-tick metrics into Prometheus remote-write and long-term storage (e.g., ClickHouse) for large-scale analyses; tag metrics by experiment_id, tenant_id, and server_id.
+- **LLM/agent integrations:** Offer a gRPC/REST control surface that external agents can use to request headless experiments, subscribe to genome events, and submit new algorithms for tournament evaluation.
+
+### Milestones & Acceptance Criteria
+1. **v3.0-alpha (4-6 weeks):** Control-plane scheduler + job orchestration; deterministic tick barrier enabled behind feature flag; basic Redis Stream migration channel demoed between two servers.
+2. **v3.0-beta (6-8 weeks):** Genome exchange bus + global registry operational; experiment bundles accepted by control plane; replay mode proven on at least one 10k-tick run.
+3. **v3.0 (production, 8-12 weeks):** Admission control with quotas, audit trails, and Prometheus/ClickHouse pipelines; gRPC/REST agent interface published with example clients; migrations resilient to server restarts.
+
+---
+
 ## Technical Requirements
 
 ### Infrastructure
@@ -806,6 +835,8 @@ db_password = vault.secrets.kv.v2.read_secret_version(path="tank-world/db-passwo
 1. **Phase 1:** Discovery service + multi-server local testing (1-2 weeks)
 2. **Phase 2:** Cross-server communication + metadata store (2-3 weeks)
 3. **Phase 3:** Production hardening + PostgreSQL + auth (3-4 weeks)
+
+**Platformization (v3.0+):** Control-plane scheduler with deterministic tick barriers, Redis/Kafka migration channels, genome exchange + registry, reproducible experiment bundles, and audited replay/metrics pipelines.
 
 **Total Time Estimate:** 6-9 weeks for fully distributed production system
 
