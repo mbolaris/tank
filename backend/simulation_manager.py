@@ -256,6 +256,23 @@ class SimulationManager:
                 "total_energy": world_stats.get("total_energy", 0.0),
                 "fish_energy": world_stats.get("fish_energy", 0.0),
                 "plant_energy": world_stats.get("plant_energy", 0.0),
+                "poker_stats": {
+                    "best_hand_name": world_stats.get("poker_stats", {}).get(
+                        "best_hand_name", "Unknown"
+                    ),
+                    "win_rate_pct": world_stats.get("poker_stats", {}).get(
+                        "win_rate_pct", "0.0%"
+                    ),
+                    "total_fish_games": world_stats.get("poker_stats", {}).get(
+                        "total_fish_games", 0
+                    ),
+                    "total_plant_games": world_stats.get("poker_stats", {}).get(
+                        "total_plant_games", 0
+                    ),
+                    "net_energy": world_stats.get("poker_stats", {}).get(
+                        "net_energy", 0.0
+                    ),
+                },
             }
         except Exception as exc:  # pragma: no cover - defensive guard
             logger.warning("Failed to collect stats for tank %s: %s", self.tank_id, exc)

@@ -512,6 +512,21 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
         total_energy: 0,
         fish_energy: 0,
         plant_energy: 0,
+        poker_stats: {
+            best_hand_name: 'Unknown',
+            win_rate_pct: '0.0%',
+            total_fish_games: 0,
+            total_plant_games: 0,
+            net_energy: 0,
+        },
+    };
+
+    const pokerStats = stats.poker_stats ?? {
+        best_hand_name: 'Unknown',
+        win_rate_pct: '0.0%',
+        total_fish_games: 0,
+        total_plant_games: 0,
+        net_energy: 0,
     };
 
     const [actionLoading, setActionLoading] = useState(false);
@@ -632,6 +647,42 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Clients</div>
                         <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
                             {client_count}
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                    gap: '10px',
+                }}>
+                    <div style={{ background: '#111827', borderRadius: '8px', padding: '10px', border: '1px solid #1f2937' }}>
+                        <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: 6 }}>Poker Strength</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: '13px', color: '#cbd5e1' }}>Best Hand</div>
+                                <div style={{ fontSize: '16px', color: '#f1f5f9', fontWeight: 700 }}>
+                                    {pokerStats.best_hand_name}
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '13px', color: '#cbd5e1' }}>Win Rate</div>
+                                <div style={{ fontSize: '16px', color: '#22c55e', fontWeight: 700 }}>
+                                    {pokerStats.win_rate_pct}
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                            marginTop: 8,
+                            fontSize: '12px',
+                            color: '#94a3b8',
+                        }}>
+                            <span>Fish games: {pokerStats.total_fish_games}</span>
+                            <span>Plant games: {pokerStats.total_plant_games}</span>
+                            <span>Net energy: {pokerStats.net_energy.toFixed(1)}</span>
                         </div>
                     </div>
                 </div>

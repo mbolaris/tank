@@ -190,6 +190,13 @@ export interface TankStatsSummary {
     total_energy: number;
     fish_energy: number;
     plant_energy: number;
+    poker_stats?: {
+        best_hand_name: string;
+        win_rate_pct: string;
+        total_fish_games: number;
+        total_plant_games: number;
+        net_energy: number;
+    };
 }
 
 /**
