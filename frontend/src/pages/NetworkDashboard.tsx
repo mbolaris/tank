@@ -29,6 +29,8 @@ export function NetworkDashboard() {
     // Transfer history state
     const [showHistory, setShowHistory] = useState(false);
 
+    const totalTanks = servers.reduce((sum, s) => sum + s.tanks.length, 0);
+
     const fetchServers = useCallback(async () => {
         try {
             setError(null);
@@ -59,12 +61,13 @@ export function NetworkDashboard() {
 
     const handleCreateTank = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newTankName.trim() || !selectedServerId) return;
+        if (!selectedServerId) return;
 
         setCreating(true);
         try {
+            const name = newTankName.trim() || `Tank ${totalTanks + 1}`;
             const params = new URLSearchParams({
-                name: newTankName.trim(),
+                name,
                 description: newTankDescription.trim(),
                 server_id: selectedServerId,
             });
@@ -105,7 +108,15 @@ export function NetworkDashboard() {
         }
     };
 
-    const totalTanks = servers.reduce((sum, s) => sum + s.tanks.length, 0);
+    const handleOpenCreateForm = () => {
+        setShowCreateForm(true);
+        if (!newTankName.trim()) {
+            setNewTankName(`Tank ${totalTanks + 1}`);
+        }
+        if (!selectedServerId && servers[0]) {
+            setSelectedServerId(servers[0].server.server_id);
+        }
+    };
 
     return (
         <div style={{
@@ -161,7 +172,7 @@ export function NetworkDashboard() {
                             📋 History
                         </button>
                         <button
-                            onClick={() => setShowCreateForm(true)}
+                            onClick={handleOpenCreateForm}
                             style={{
                                 padding: '10px 20px',
                                 backgroundColor: '#3b82f6',
@@ -260,7 +271,7 @@ export function NetworkDashboard() {
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button
                                     type="submit"
-                                    disabled={creating || !newTankName.trim()}
+                                    disabled={creating || !selectedServerId}
                                     style={{
                                         padding: '10px 20px',
                                         backgroundColor: creating ? '#475569' : '#22c55e',
