@@ -391,6 +391,13 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
         return `${minutes}m`;
     };
 
+    const platformMeta = [
+        server.platform,
+        server.architecture,
+        server.hardware_model,
+        server.logical_cpus ? `${server.logical_cpus} logical CPUs` : null,
+    ].filter(Boolean) as string[];
+
     return (
         <div style={{
             backgroundColor: '#1e293b',
@@ -459,6 +466,27 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
                                 </>
                             )}
                         </div>
+                        {platformMeta.length > 0 && (
+                            <div style={{
+                                marginTop: '8px',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '8px',
+                                fontSize: '12px',
+                                color: '#cbd5e1',
+                            }}>
+                                {platformMeta.map((detail) => (
+                                    <span key={detail} style={{
+                                        backgroundColor: '#0b1728',
+                                        border: '1px solid #334155',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                    }}>
+                                        {detail}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <div style={{
                         textAlign: 'right',

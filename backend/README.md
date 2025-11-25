@@ -55,6 +55,22 @@ Tank World Net enables running multiple independent tank simulations on a single
 - `POST /api/tanks/{tank_id}/start` - Start a stopped tank simulation
 - `POST /api/tanks/{tank_id}/stop` - Stop a running tank and its broadcast task
 
+#### Server Inventory API
+
+Use these endpoints to understand what servers are available in the Tank World Net and what
+hardware they are running on (all values are generated with portable `platform`/`os`
+functions, so they work across Linux, macOS, Windows, and ARM boards like Raspberry Pi):
+
+- `GET /api/servers` - List all servers and the tanks running on each one
+- `GET /api/servers/{server_id}` - Get a single server with its tank list
+
+**Server metadata fields:**
+
+- `server_id`, `hostname`, `host`, `port`, `status`, `version`, `uptime_seconds` - lifecycle metadata
+- `tank_count`, `is_local` - multi-tank awareness flags
+- `cpu_percent`, `memory_mb` - optional runtime usage if `psutil` is available
+- `platform`, `architecture`, `hardware_model`, `logical_cpus` - portable hardware descriptors useful for heterogeneous fleets
+
 #### Entity Transfer API
 
 - `POST /api/tanks/{source_tank_id}/transfer?entity_id={id}&destination_tank_id={dest_id}` - Transfer entity between tanks

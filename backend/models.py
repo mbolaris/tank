@@ -223,6 +223,10 @@ class ServerInfo(BaseModel):
     cpu_percent: Optional[float] = None  # CPU usage percentage (0-100)
     memory_mb: Optional[float] = None  # Memory usage in MB
     is_local: bool = True  # Whether this is the local server
+    platform: Optional[str] = None  # OS family name (Linux, Windows, Darwin)
+    architecture: Optional[str] = None  # CPU architecture (x86_64, arm64, etc.)
+    hardware_model: Optional[str] = None  # Optional hardware descriptor
+    logical_cpus: Optional[int] = None  # Logical CPU count for load estimation
 
 
 class ServerWithTanks(BaseModel):
