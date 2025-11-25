@@ -10,24 +10,47 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class TankConnection:
-    """Represents a connection between two tanks for entity migration."""
-    
+    """Represents a connection between two tanks for entity migration.
+
+    Supports both local (same-server) and remote (cross-server) connections.
+    For remote connections, source_server_id and destination_server_id identify
+    the servers hosting each tank.
+    """
+
     id: str
     source_tank_id: str
     destination_tank_id: str
     probability: int  # 0-100, percentage chance of migration per check
     direction: str = "right"  # "left" or "right" - which boundary triggers migration
-    
+    source_server_id: Optional[str] = None  # Server hosting source tank (None = local)
+    destination_server_id: Optional[str] = None  # Server hosting destination tank (None = local)
+
+    def is_remote(self) -> bool:
+        """Check if this is a cross-server connection.
+
+        Returns:
+            True if source and destination are on different servers
+        """
+        # If either is None, consider it local
+        if self.source_server_id is None or self.destination_server_id is None:
+            return False
+        return self.source_server_id != self.destination_server_id
+
     def to_dict(self) -> Dict:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result = {
             "id": self.id,
             "sourceId": self.source_tank_id,
             "destinationId": self.destination_tank_id,
             "probability": self.probability,
             "direction": self.direction,
         }
-    
+        if self.source_server_id:
+            result["sourceServerId"] = self.source_server_id
+        if self.destination_server_id:
+            result["destinationServerId"] = self.destination_server_id
+        return result
+
     @staticmethod
     def from_dict(data: Dict) -> "TankConnection":
         """Create from dictionary (supports both snake_case and camelCase)."""
@@ -37,6 +60,8 @@ class TankConnection:
             destination_tank_id=data.get("destinationId", data.get("destination_tank_id")),
             probability=data.get("probability", 25),
             direction=data.get("direction", "right"),
+            source_server_id=data.get("sourceServerId", data.get("source_server_id")),
+            destination_server_id=data.get("destinationServerId", data.get("destination_server_id")),
         )
 
 

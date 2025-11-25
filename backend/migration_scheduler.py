@@ -3,35 +3,51 @@
 import asyncio
 import logging
 import random
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from backend.connection_manager import ConnectionManager
 from backend.tank_registry import TankRegistry
 from core.entities import Fish
 from core.entities.fractal_plant import FractalPlant
 
+if TYPE_CHECKING:
+    from backend.discovery_service import DiscoveryService
+    from backend.server_client import ServerClient
+
 logger = logging.getLogger(__name__)
 
 
 class MigrationScheduler:
-    """Schedules and executes automated entity migrations between tanks."""
-    
+    """Schedules and executes automated entity migrations between tanks.
+
+    Supports both local (same-server) and remote (cross-server) migrations.
+    """
+
     def __init__(
         self,
         connection_manager: ConnectionManager,
         tank_registry: TankRegistry,
         check_interval: float = 10.0,
+        discovery_service: Optional["DiscoveryService"] = None,
+        server_client: Optional["ServerClient"] = None,
+        local_server_id: str = "local-server",
     ):
         """Initialize the migration scheduler.
-        
+
         Args:
             connection_manager: Manager for tank connections
             tank_registry: Registry of all tanks
             check_interval: Seconds between migration checks (default: 10)
+            discovery_service: Optional discovery service for cross-server migrations
+            server_client: Optional server client for cross-server migrations
+            local_server_id: This server's ID
         """
         self.connection_manager = connection_manager
         self.tank_registry = tank_registry
         self.check_interval = check_interval
+        self.discovery_service = discovery_service
+        self.server_client = server_client
+        self.local_server_id = local_server_id
         self._task: Optional[asyncio.Task] = None
         self._running = False
         logger.info(f"MigrationScheduler initialized (check_interval={check_interval}s)")
@@ -101,7 +117,9 @@ class MigrationScheduler:
     
     async def _check_migration(self, connection) -> None:
         """Check if a migration should occur for a connection.
-        
+
+        Handles both local (same-server) and remote (cross-server) migrations.
+
         Args:
             connection: The TankConnection to check
         """
@@ -109,52 +127,64 @@ class MigrationScheduler:
         roll = random.randint(1, 100)
         if roll > connection.probability:
             return  # No migration this time
-        
+
+        # Check if this is a remote migration
+        if connection.is_remote():
+            await self._perform_remote_migration(connection)
+        else:
+            await self._perform_local_migration(connection)
+
+    async def _perform_local_migration(self, connection) -> None:
+        """Perform a migration between tanks on the same server.
+
+        Args:
+            connection: The TankConnection
+        """
         # Get source and destination tanks
         source_manager = self.tank_registry.get_tank(connection.source_tank_id)
         dest_manager = self.tank_registry.get_tank(connection.destination_tank_id)
-        
+
         if not source_manager or not dest_manager:
             logger.warning(
                 f"Migration failed: tank not found (source={connection.source_tank_id[:8]}, "
                 f"dest={connection.destination_tank_id[:8]})"
             )
             return
-        
+
         # Check if both tanks allow transfers
         if not source_manager.tank_info.allow_transfers:
             return
         if not dest_manager.tank_info.allow_transfers:
             return
-        
+
         # Get eligible entities (fish and plants)
         eligible_entities = []
         for entity in source_manager.world.entities_list:
             if isinstance(entity, (Fish, FractalPlant)):
                 eligible_entities.append(entity)
-        
+
         if not eligible_entities:
             return  # No entities to migrate
-        
+
         # Select random entity
         entity = random.choice(eligible_entities)
         entity_id = id(entity)
         entity_type = "fish" if isinstance(entity, Fish) else "plant"
-        
+
         # Perform the migration
         try:
             from backend.entity_transfer import serialize_entity_for_transfer, deserialize_entity
             from backend.transfer_history import log_transfer
-            
+
             # Serialize entity
             entity_data = serialize_entity_for_transfer(entity)
             if entity_data is None:
                 logger.warning(f"Cannot serialize {entity_type} for migration")
                 return
-            
+
             # Remove from source
             source_manager.world.engine.remove_entity(entity)
-            
+
             # Add to destination
             new_entity = deserialize_entity(entity_data, dest_manager.world)
             if new_entity is None:
@@ -162,7 +192,7 @@ class MigrationScheduler:
                 restored = deserialize_entity(entity_data, source_manager.world)
                 if restored:
                     source_manager.world.engine.add_entity(restored)
-                
+
                 log_transfer(
                     entity_type=entity_type,
                     entity_old_id=entity_id,
@@ -175,9 +205,9 @@ class MigrationScheduler:
                     error="Failed to deserialize in destination",
                 )
                 return
-            
+
             dest_manager.world.engine.add_entity(new_entity)
-            
+
             # Log successful migration
             log_transfer(
                 entity_type=entity_type,
@@ -189,11 +219,131 @@ class MigrationScheduler:
                 destination_tank_name=dest_manager.tank_info.name,
                 success=True,
             )
-            
+
             logger.info(
                 f"Migrated {entity_type} from {source_manager.tank_info.name} to "
                 f"{dest_manager.tank_info.name} (probability={connection.probability}%)"
             )
-            
+
         except Exception as e:
-            logger.error(f"Migration failed: {e}", exc_info=True)
+            logger.error(f"Local migration failed: {e}", exc_info=True)
+
+    async def _perform_remote_migration(self, connection) -> None:
+        """Perform a migration between tanks on different servers.
+
+        Args:
+            connection: The TankConnection (cross-server)
+        """
+        # Check if we have the necessary services
+        if not self.discovery_service or not self.server_client:
+            logger.warning("Cannot perform remote migration: discovery service or server client not available")
+            return
+
+        # Get source tank (must be local)
+        source_manager = self.tank_registry.get_tank(connection.source_tank_id)
+        if not source_manager:
+            logger.warning(f"Remote migration failed: source tank not found: {connection.source_tank_id[:8]}")
+            return
+
+        # Check if source tank allows transfers
+        if not source_manager.tank_info.allow_transfers:
+            return
+
+        # Get eligible entities
+        eligible_entities = []
+        for entity in source_manager.world.entities_list:
+            if isinstance(entity, (Fish, FractalPlant)):
+                eligible_entities.append(entity)
+
+        if not eligible_entities:
+            return  # No entities to migrate
+
+        # Select random entity
+        entity = random.choice(eligible_entities)
+        entity_id = id(entity)
+        entity_type = "fish" if isinstance(entity, Fish) else "plant"
+
+        try:
+            from backend.entity_transfer import serialize_entity_for_transfer
+            from backend.transfer_history import log_transfer
+
+            # Serialize entity
+            entity_data = serialize_entity_for_transfer(entity)
+            if entity_data is None:
+                logger.warning(f"Cannot serialize {entity_type} for remote migration")
+                return
+
+            # Get destination server info
+            dest_server = await self.discovery_service.get_server(connection.destination_server_id)
+            if not dest_server:
+                logger.warning(f"Remote migration failed: destination server not found: {connection.destination_server_id}")
+                return
+
+            # Remove from source tank
+            source_manager.world.engine.remove_entity(entity)
+
+            # Send to remote server
+            result = await self.server_client.remote_transfer_entity(
+                server=dest_server,
+                destination_tank_id=connection.destination_tank_id,
+                entity_data=entity_data,
+                source_server_id=self.local_server_id,
+                source_tank_id=connection.source_tank_id,
+            )
+
+            if result and result.get("success"):
+                # Remote transfer succeeded
+                logger.info(
+                    f"Remote migration: {entity_type} from {source_manager.tank_info.name} "
+                    f"to {connection.destination_server_id}:{connection.destination_tank_id[:8]} "
+                    f"(probability={connection.probability}%)"
+                )
+
+                # Log locally
+                log_transfer(
+                    entity_type=entity_type,
+                    entity_old_id=entity_id,
+                    entity_new_id=result.get("entity", {}).get("new_id", -1),
+                    source_tank_id=connection.source_tank_id,
+                    source_tank_name=source_manager.tank_info.name,
+                    destination_tank_id=f"{connection.destination_server_id}:{connection.destination_tank_id}",
+                    destination_tank_name=f"Remote tank on {connection.destination_server_id}",
+                    success=True,
+                )
+            else:
+                # Remote transfer failed - restore entity
+                from backend.entity_transfer import deserialize_entity
+
+                restored = deserialize_entity(entity_data, source_manager.world)
+                if restored:
+                    source_manager.world.engine.add_entity(restored)
+
+                error_msg = result.get("error", "Unknown error") if result else "No response from remote server"
+                logger.warning(f"Remote migration failed: {error_msg}")
+
+                log_transfer(
+                    entity_type=entity_type,
+                    entity_old_id=entity_id,
+                    entity_new_id=None,
+                    source_tank_id=connection.source_tank_id,
+                    source_tank_name=source_manager.tank_info.name,
+                    destination_tank_id=f"{connection.destination_server_id}:{connection.destination_tank_id}",
+                    destination_tank_name=f"Remote tank on {connection.destination_server_id}",
+                    success=False,
+                    error=error_msg,
+                )
+
+        except Exception as e:
+            logger.error(f"Remote migration failed: {e}", exc_info=True)
+
+            # Try to restore entity
+            from backend.entity_transfer import serialize_entity_for_transfer, deserialize_entity
+
+            try:
+                entity_data = serialize_entity_for_transfer(entity)
+                if entity_data:
+                    restored = deserialize_entity(entity_data, source_manager.world)
+                    if restored:
+                        source_manager.world.engine.add_entity(restored)
+            except:
+                pass
