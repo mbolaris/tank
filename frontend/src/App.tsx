@@ -38,7 +38,6 @@ function HomePage() {
 function NavBar() {
     const location = useLocation();
     const isNetwork = location.pathname === '/network';
-    const isTank = location.pathname === '/' || location.pathname.startsWith('/tank/');
 
     return (
         <nav style={{
@@ -62,20 +61,6 @@ function NavBar() {
                     Tank World
                 </Link>
                 <div style={{ display: 'flex', gap: '16px' }}>
-                    <Link
-                        to="/"
-                        style={{
-                            color: isTank ? '#f1f5f9' : '#94a3b8',
-                            textDecoration: 'none',
-                            fontSize: '14px',
-                            fontWeight: isTank ? 600 : 400,
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            backgroundColor: isTank ? '#1e293b' : 'transparent',
-                        }}
-                    >
-                        Tank
-                    </Link>
                     <Link
                         to="/network"
                         style={{
