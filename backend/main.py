@@ -1053,6 +1053,122 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
         )
 
 
+@app.post("/api/remote-transfer")
+async def remote_transfer_entity(
+    destination_tank_id: str,
+    entity_data: Dict[str, Any],
+    source_server_id: str,
+    source_tank_id: str,
+):
+    """Receive an entity from a remote server for cross-server migration.
+
+    This endpoint is called by remote servers to transfer entities to this server.
+
+    Args:
+        destination_tank_id: Destination tank ID on this server
+        entity_data: Serialized entity data
+        source_server_id: Source server ID (for logging)
+        source_tank_id: Source tank ID (for logging)
+
+    Returns:
+        Success message with new entity ID, or error
+    """
+    from backend.entity_transfer import deserialize_entity
+    from backend.transfer_history import log_transfer
+
+    # Get destination tank
+    dest_manager = tank_registry.get_tank(destination_tank_id)
+    if dest_manager is None:
+        return JSONResponse(
+            {"error": f"Destination tank not found: {destination_tank_id}"},
+            status_code=404,
+        )
+
+    # Check if destination tank allows transfers
+    if not dest_manager.tank_info.allow_transfers:
+        return JSONResponse(
+            {
+                "error": f"Tank '{dest_manager.tank_info.name}' does not allow entity transfers"
+            },
+            status_code=403,
+        )
+
+    try:
+        # Deserialize and add to destination tank
+        new_entity = deserialize_entity(entity_data, dest_manager.world)
+        if new_entity is None:
+            # Log failed transfer
+            log_transfer(
+                entity_type=entity_data.get("type", "unknown"),
+                entity_old_id=entity_data.get("id", -1),
+                entity_new_id=None,
+                source_tank_id=f"{source_server_id}:{source_tank_id}",
+                source_tank_name=f"Remote tank on {source_server_id}",
+                destination_tank_id=destination_tank_id,
+                destination_tank_name=dest_manager.tank_info.name,
+                success=False,
+                error="Failed to deserialize entity",
+            )
+
+            return JSONResponse(
+                {"error": "Failed to deserialize entity"},
+                status_code=500,
+            )
+
+        dest_manager.world.engine.add_entity(new_entity)
+        logger.info(
+            f"Remote transfer: Added entity {new_entity.id} from {source_server_id}:{source_tank_id[:8]} "
+            f"to {destination_tank_id[:8]} (was {entity_data.get('id', '?')})"
+        )
+
+        # Log successful transfer
+        log_transfer(
+            entity_type=entity_data.get("type", "unknown"),
+            entity_old_id=entity_data.get("id", -1),
+            entity_new_id=new_entity.id,
+            source_tank_id=f"{source_server_id}:{source_tank_id}",
+            source_tank_name=f"Remote tank on {source_server_id}",
+            destination_tank_id=destination_tank_id,
+            destination_tank_name=dest_manager.tank_info.name,
+            success=True,
+        )
+
+        return JSONResponse(
+            {
+                "success": True,
+                "message": "Entity transferred successfully from remote server",
+                "entity": {
+                    "old_id": entity_data.get("id", -1),
+                    "new_id": new_entity.id,
+                    "type": entity_data.get("type", "unknown"),
+                    "source_server": source_server_id,
+                    "source_tank": source_tank_id,
+                    "destination_tank": destination_tank_id,
+                },
+            }
+        )
+    except Exception as e:
+        logger.error(f"Remote transfer failed: {e}", exc_info=True)
+
+        # Log failed transfer
+        log_transfer(
+            entity_type=entity_data.get("type", "unknown"),
+            entity_old_id=entity_data.get("id", -1),
+            entity_new_id=None,
+            source_tank_id=f"{source_server_id}:{source_tank_id}",
+            source_tank_name=f"Remote tank on {source_server_id}",
+            destination_tank_id=destination_tank_id,
+            destination_tank_name=dest_manager.tank_info.name if dest_manager else "Unknown",
+            success=False,
+            error=str(e),
+        )
+
+        return JSONResponse(
+            {"error": f"Remote transfer failed: {str(e)}"},
+            status_code=500,
+        )
+
+
 @app.get("/api/transfers")
 async def get_transfers(limit: int = 50, tank_id: Optional[str] = None, success_only: bool = False):
     """Get transfer history.

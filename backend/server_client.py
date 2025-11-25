@@ -397,3 +397,44 @@ class ServerClient:
         )
 
         return response is not None
+
+    async def remote_transfer_entity(
+        self,
+        server: ServerInfo,
+        destination_tank_id: str,
+        entity_data: Dict[str, Any],
+        source_server_id: str,
+        source_tank_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Transfer an entity to a remote server.
+
+        This sends a serialized entity to a remote server for cross-server migration.
+
+        Args:
+            server: Destination server
+            destination_tank_id: Destination tank ID
+            entity_data: Serialized entity data
+            source_server_id: Source server ID (for logging)
+            source_tank_id: Source tank ID (for logging)
+
+        Returns:
+            Transfer result dictionary if successful, None otherwise
+        """
+        url = self._build_url(server, "/api/remote-transfer")
+
+        payload = {
+            "destination_tank_id": destination_tank_id,
+            "entity_data": entity_data,
+            "source_server_id": source_server_id,
+            "source_tank_id": source_tank_id,
+        }
+
+        response = await self._request("POST", url, json=payload)
+
+        if response:
+            try:
+                return response.json()
+            except Exception as e:
+                logger.error("Failed to parse remote transfer result: %s", e)
+
+        return None
