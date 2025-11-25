@@ -2,7 +2,7 @@
  * Canvas component for rendering the simulation
  */
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
 import { Renderer } from '../utils/renderer';
 import { ImageLoader } from '../utils/ImageLoader';
@@ -13,9 +13,10 @@ interface CanvasProps {
     height?: number;
     onEntityClick?: (entityId: number, entityType: string) => void;
     selectedEntityId?: number | null;
+    style?: CSSProperties;
 }
 
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, style }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -187,6 +188,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             onClick={handleCanvasClick}
             style={{
                 cursor: onEntityClick ? 'pointer' : 'default',
+                ...style,
             }}
         />
     );

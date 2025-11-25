@@ -3,6 +3,8 @@ import { Canvas } from './Canvas';
 import { config } from '../config';
 import type { SimulationUpdate } from '../types/simulation';
 
+const TANK_ASPECT_RATIO = '1088 / 612';
+
 interface TankThumbnailProps {
     tankId: string;
     status: 'running' | 'paused' | 'stopped';
@@ -65,37 +67,52 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
         };
     }, [tankId]);
 
+    const containerStyle = {
+        position: 'relative' as const,
+        borderRadius: '10px',
+        overflow: 'hidden',
+        border: '1px solid #334155',
+        backgroundColor: '#0f172a',
+        aspectRatio: TANK_ASPECT_RATIO,
+        width: '100%',
+    };
+
+    const overlayStyle = {
+        position: 'absolute' as const,
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    };
+
     return (
         <div style={{ position: 'relative' }}>
-            <div style={{
-                borderRadius: '10px',
-                overflow: 'hidden',
-                border: '1px solid #334155',
-                backgroundColor: '#0f172a',
-                minHeight: '180px',
-            }}>
+            <div style={containerStyle}>
                 {loading ? (
-                    <div style={{
-                        height: '180px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#64748b',
-                        fontSize: '14px',
-                    }}>
+                    <div
+                        style={{
+                            ...overlayStyle,
+                            color: '#64748b',
+                            fontSize: '14px',
+                        }}
+                    >
                         Loading preview...
                     </div>
                 ) : state ? (
-                    <Canvas state={state} width={320} height={180} />
+                    <Canvas
+                        state={state}
+                        width={320}
+                        height={180}
+                        style={{ width: '100%', height: '100%', display: 'block' }}
+                    />
                 ) : (
-                    <div style={{
-                        height: '180px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ef4444',
-                        fontSize: '12px',
-                    }}>
+                    <div
+                        style={{
+                            ...overlayStyle,
+                            color: '#ef4444',
+                            fontSize: '12px',
+                        }}
+                    >
                         {error || 'No data'}
                     </div>
                 )}
