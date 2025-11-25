@@ -524,7 +524,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
 
     const [actionLoading, setActionLoading] = useState(false);
 
-    const sendTankCommand = async (action: 'pause' | 'resume' | 'start' | 'stop') => {
+    const sendTankCommand = async (action: 'pause' | 'resume') => {
         setActionLoading(true);
         try {
             const response = await fetch(`${config.apiBaseUrl}/api/tanks/${tank.tank_id}/${action}`, {
@@ -651,23 +651,6 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     flexWrap: 'wrap',
                 }}>
                     <button
-                        onClick={() => sendTankCommand('start')}
-                        disabled={actionLoading || running}
-                        style={{
-                            padding: '8px 10px',
-                            backgroundColor: running ? '#1e293b' : '#22c55e',
-                            color: running ? '#64748b' : 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: (actionLoading || running) ? 'not-allowed' : 'pointer',
-                            fontWeight: 600,
-                            fontSize: '12px',
-                            flex: '0 0 auto',
-                        }}
-                    >
-                        Start
-                    </button>
-                    <button
                         onClick={() => sendTankCommand(paused ? 'resume' : 'pause')}
                         disabled={actionLoading || !running}
                         style={{
@@ -683,23 +666,6 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         }}
                     >
                         {paused ? 'Resume' : 'Pause'}
-                    </button>
-                    <button
-                        onClick={() => sendTankCommand('stop')}
-                        disabled={actionLoading || !running}
-                        style={{
-                            padding: '8px 10px',
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
-                            fontWeight: 600,
-                            fontSize: '12px',
-                            flex: '0 0 auto',
-                        }}
-                    >
-                        Stop
                     </button>
                     <Link
                         to={`/tank/${tank.tank_id}`}
