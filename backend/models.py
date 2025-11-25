@@ -234,3 +234,12 @@ class ServerWithTanks(BaseModel):
 
     server: ServerInfo
     tanks: List[Dict[str, Any]]  # List of tank status dictionaries
+
+
+class RemoteTransferRequest(BaseModel):
+    """Request body for cross-server entity transfer."""
+
+    destination_tank_id: str
+    entity_data: Dict[str, Any]
+    source_server_id: str
+    source_tank_id: str

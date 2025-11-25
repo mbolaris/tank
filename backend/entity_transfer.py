@@ -81,7 +81,6 @@ def _serialize_plant(plant: Any) -> Dict[str, Any]:
         "id": plant_id,
         "x": plant.pos.x,
         "y": plant.pos.y,
-        "plant_type": plant.plant_type,
         "energy": plant.energy,
         "max_energy": plant.max_energy,
         "age": plant.age,

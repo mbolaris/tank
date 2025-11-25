@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Dict, Optional, Set, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -36,7 +36,7 @@ if platform.system() == "Windows":
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.models import Command, ServerInfo, ServerWithTanks
+from backend.models import Command, ServerInfo, ServerWithTanks, RemoteTransferRequest
 from backend.simulation_manager import SimulationManager
 from backend.tank_registry import TankRegistry, CreateTankRequest
 from backend.connection_manager import ConnectionManager, TankConnection
@@ -1085,25 +1085,21 @@ async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_
 
 
 @app.post("/api/remote-transfer")
-async def remote_transfer_entity(
-    destination_tank_id: str,
-    entity_data: Dict[str, Any],
-    source_server_id: str,
-    source_tank_id: str,
-):
+async def remote_transfer_entity(request: RemoteTransferRequest):
     """Receive an entity from a remote server for cross-server migration.
 
     This endpoint is called by remote servers to transfer entities to this server.
 
     Args:
-        destination_tank_id: Destination tank ID on this server
-        entity_data: Serialized entity data
-        source_server_id: Source server ID (for logging)
-        source_tank_id: Source tank ID (for logging)
+        request: Remote transfer request containing destination tank, entity data, and source info
 
     Returns:
         Success message with new entity ID, or error
     """
+    destination_tank_id = request.destination_tank_id
+    entity_data = request.entity_data
+    source_server_id = request.source_server_id
+    source_tank_id = request.source_tank_id
     from backend.entity_transfer import deserialize_entity
     from backend.transfer_history import log_transfer
 
@@ -1147,8 +1143,12 @@ async def remote_transfer_entity(
             )
 
         dest_manager.world.engine.add_entity(new_entity)
+
+        # Get entity ID based on type
+        entity_id = getattr(new_entity, 'fish_id', None) or getattr(new_entity, 'plant_id', None) or getattr(new_entity, 'id', None)
+
         logger.info(
-            f"Remote transfer: Added entity {new_entity.id} from {source_server_id}:{source_tank_id[:8]} "
+            f"Remote transfer: Added entity {entity_id} from {source_server_id}:{source_tank_id[:8]} "
             f"to {destination_tank_id[:8]} (was {entity_data.get('id', '?')})"
         )
 
@@ -1156,7 +1156,7 @@ async def remote_transfer_entity(
         log_transfer(
             entity_type=entity_data.get("type", "unknown"),
             entity_old_id=entity_data.get("id", -1),
-            entity_new_id=new_entity.id,
+            entity_new_id=entity_id,
             source_tank_id=f"{source_server_id}:{source_tank_id}",
             source_tank_name=f"Remote tank on {source_server_id}",
             destination_tank_id=destination_tank_id,
@@ -1170,7 +1170,7 @@ async def remote_transfer_entity(
                 "message": "Entity transferred successfully from remote server",
                 "entity": {
                     "old_id": entity_data.get("id", -1),
-                    "new_id": new_entity.id,
+                    "new_id": entity_id,
                     "type": entity_data.get("type", "unknown"),
                     "source_server": source_server_id,
                     "source_tank": source_tank_id,
