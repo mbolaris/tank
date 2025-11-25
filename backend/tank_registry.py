@@ -24,7 +24,7 @@ class CreateTankRequest:
     seed: Optional[int] = None
     owner: Optional[str] = None
     is_public: bool = True
-    allow_transfers: bool = False
+    allow_transfers: bool = True
 
 
 class TankRegistry:
@@ -89,7 +89,7 @@ class TankRegistry:
         seed: Optional[int] = None,
         owner: Optional[str] = None,
         is_public: bool = True,
-        allow_transfers: bool = False,
+        allow_transfers: bool = True,
         server_id: str = "local-server",
     ) -> SimulationManager:
         """Create a new tank and add it to the registry.

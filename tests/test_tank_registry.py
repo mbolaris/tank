@@ -15,6 +15,7 @@ class TestTankRegistry:
         assert registry.default_tank_id is not None
         assert registry.default_tank is not None
         assert registry.default_tank.tank_info.name == "Tank 1"
+        assert registry.default_tank.tank_info.allow_transfers is True
 
         # Clean up
         registry.stop_all()
@@ -53,6 +54,7 @@ class TestTankRegistry:
         """Test getting a tank by ID."""
         registry = TankRegistry(create_default=False)
         manager = registry.create_tank(name="Test Tank")
+        assert manager.tank_info.allow_transfers is True
 
         # Get by valid ID
         retrieved = registry.get_tank(manager.tank_id)
