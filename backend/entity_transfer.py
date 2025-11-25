@@ -76,15 +76,23 @@ def _serialize_plant(plant: Any) -> Dict[str, Any]:
     """Serialize a FractalPlant entity."""
     # Get plant ID - try both id and plant_id
     plant_id = getattr(plant, 'id', getattr(plant, 'plant_id', None))
+    # Get root spot ID if available
+    root_spot_id = plant.root_spot.spot_id if hasattr(plant, 'root_spot') and plant.root_spot else None
     return {
         "type": "fractal_plant",
         "id": plant_id,
         "x": plant.pos.x,
         "y": plant.pos.y,
+        "root_spot_id": root_spot_id,
         "energy": plant.energy,
         "max_energy": plant.max_energy,
         "age": plant.age,
         "generation": getattr(plant, "generation", 0),  # FractalPlant doesn't have generation
+        "poker_cooldown": getattr(plant, "poker_cooldown", 0),
+        "nectar_cooldown": getattr(plant, "nectar_cooldown", 0),
+        "poker_wins": getattr(plant, "poker_wins", 0),
+        "poker_losses": getattr(plant, "poker_losses", 0),
+        "nectar_produced": getattr(plant, "nectar_produced", 0),
         "genome_data": {
             "axiom": plant.genome.axiom,
             "angle": plant.genome.angle,
@@ -216,6 +224,32 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
         from core.entities.fractal_plant import FractalPlant
         from core.plant_genetics import PlantGenome
 
+        # Get root spot manager
+        root_spot_manager = getattr(target_world.engine, 'root_spot_manager', None)
+        if root_spot_manager is None:
+            logger.error("Cannot deserialize plant: root_spot_manager not available")
+            return None
+
+        # Find the appropriate root spot
+        root_spot = None
+        root_spot_id = data.get("root_spot_id")
+
+        # Try to get the exact spot by ID first
+        if root_spot_id is not None:
+            root_spot = root_spot_manager.get_spot_by_id(root_spot_id)
+            # If spot is occupied, try to claim it (will fail if occupied)
+            if root_spot and root_spot.occupied:
+                # Spot is occupied, try to find nearest empty one
+                root_spot = None
+
+        # If no spot by ID, find nearest empty spot to saved position
+        if root_spot is None:
+            root_spot = root_spot_manager.get_nearest_empty_spot(data["x"], data["y"])
+
+        if root_spot is None:
+            logger.warning(f"Cannot deserialize plant: no available root spots")
+            return None
+
         # Recreate genome
         genome_data = data["genome_data"]
         genome = PlantGenome(
@@ -244,25 +278,34 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             fitness_score=genome_data.get("fitness_score", 0.0),
         )
 
-        # Create plant
+        # Create plant with proper constructor
         plant = FractalPlant(
-            x=data["x"],
-            y=data["y"],
-            plant_type=data.get("plant_type", genome_data.get("fractal_type", "lsystem")),
-            genome=genome,
-            generation=data.get("generation", 0),
             environment=target_world.engine.environment,
-            ecosystem=target_world.engine.ecosystem,
+            genome=genome,
+            root_spot=root_spot,
+            initial_energy=data["energy"],
+            screen_width=getattr(target_world.engine, 'screen_width', 800),
+            screen_height=getattr(target_world.engine, 'screen_height', 600),
         )
+
+        # Claim the spot for this plant
+        root_spot.claim(plant)
 
         # Restore additional state
         plant.age = data["age"]
-        plant.energy = data["energy"]
         plant.max_energy = data["max_energy"]
-        if hasattr(plant, "growth_stage"):
-            plant.growth_stage = data.get("growth_stage", 1.0)
-        if hasattr(plant, "nectar_ready"):
-            plant.nectar_ready = data.get("nectar_ready", False)
+        # Note: energy is already set via initial_energy parameter
+        # Restore poker and nectar state
+        if "poker_cooldown" in data:
+            plant.poker_cooldown = data["poker_cooldown"]
+        if "nectar_cooldown" in data:
+            plant.nectar_cooldown = data["nectar_cooldown"]
+        if "poker_wins" in data:
+            plant.poker_wins = data["poker_wins"]
+        if "poker_losses" in data:
+            plant.poker_losses = data["poker_losses"]
+        if "nectar_produced" in data:
+            plant.nectar_produced = data["nectar_produced"]
 
         return plant
     except Exception as e:
