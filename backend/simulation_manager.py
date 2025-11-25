@@ -266,5 +266,8 @@ class SimulationManager:
             "client_count": self.client_count,
             "frame": self.world.frame_count if self.running else 0,
             "paused": self.world.paused if self.running else True,
+            "fps": round(self._runner.current_actual_fps, 1)
+            if self.running
+            else 0.0,
             "stats": stats,
         }

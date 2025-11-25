@@ -201,6 +201,7 @@ export interface TankStatus {
     client_count: number;
     frame: number;
     paused: boolean;
+    fps?: number;
     stats?: TankStatsSummary;
 }
 
