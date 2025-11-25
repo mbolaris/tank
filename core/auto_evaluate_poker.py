@@ -46,6 +46,8 @@ class EvalPlayerState:
     hands_lost: int = 0
     total_energy_won: float = 0.0
     total_energy_lost: float = 0.0
+    showdowns_played: int = 0
+    showdowns_won: int = 0
 
 
 @dataclass
@@ -230,6 +232,9 @@ class AutoEvaluatePokerGame:
             self._award_pot(active_players[0])
             return
 
+        for i in active_players:
+            self.players[i].showdowns_played += 1
+
         # Evaluate hands for all active players
         best_hand: Optional[PokerHand] = None
         best_player_index: Optional[int] = None
@@ -250,10 +255,13 @@ class AutoEvaluatePokerGame:
         # Award pot to winner(s)
         if len(tied_players) > 1:
             self._split_pot(tied_players)
+            for i in tied_players:
+                self.players[i].showdowns_won += 1
             self.last_hand_message = f"Tie! Pot split among {len(tied_players)} players."
         elif best_player_index is not None:
             self._award_pot(best_player_index)
             winner = self.players[best_player_index]
+            winner.showdowns_won += 1
             self.last_hand_message = f"{winner.name} wins with {best_hand}!"
 
     def _award_pot(self, winner_index: int):
@@ -433,7 +441,20 @@ class AutoEvaluatePokerGame:
         for player in self.players:
             hands_played = self.hands_played or 1
             win_rate = round((player.hands_won / hands_played) * 100, 1)
-            
+            showdown_played = player.showdowns_played
+            showdown_win_rate = (
+                round((player.showdowns_won / showdown_played) * 100, 1)
+                if showdown_played
+                else 0.0
+            )
+
+            net_energy = player.energy - player.starting_energy
+            bb_per_100 = (
+                round((net_energy / self.big_blind) * (100 / hands_played), 2)
+                if self.big_blind > 0 and hands_played
+                else 0.0
+            )
+
             snapshot["players"].append(
                 {
                     "player_id": player.player_id,
@@ -441,10 +462,14 @@ class AutoEvaluatePokerGame:
                     "is_standard": player.is_standard,
                     "species": getattr(player, "species", "fish"),
                     "energy": round(player.energy, 1),
-                    "net_energy": round(player.energy - player.starting_energy, 1),
+                    "net_energy": round(net_energy, 1),
                     "hands_won": player.hands_won,
                     "hands_lost": player.hands_lost,
                     "win_rate": win_rate,
+                    "showdowns_played": player.showdowns_played,
+                    "showdowns_won": player.showdowns_won,
+                    "showdown_win_rate": showdown_win_rate,
+                    "bb_per_100": bb_per_100,
                 }
             )
 
@@ -494,6 +519,11 @@ class AutoEvaluatePokerGame:
         # Build player stats list
         players_stats = []
         for player in self.players:
+            hands_played = self.hands_played
+            net_energy = player.total_energy_won - player.total_energy_lost
+            showdown_played = player.showdowns_played
+            total_games = player.hands_won + player.hands_lost
+
             players_stats.append(
                 {
                     "player_id": player.player_id,
@@ -508,7 +538,18 @@ class AutoEvaluatePokerGame:
                     "hands_lost": player.hands_lost,
                     "total_energy_won": round(player.total_energy_won, 1),
                     "total_energy_lost": round(player.total_energy_lost, 1),
-                    "net_energy": round(player.total_energy_won - player.total_energy_lost, 1),
+                    "net_energy": round(net_energy, 1),
+                    "win_rate": round((player.hands_won / total_games) * 100, 1)
+                    if total_games
+                    else 0.0,
+                    "bb_per_100": round((net_energy / self.big_blind) * (100 / hands_played), 2)
+                    if self.big_blind > 0 and hands_played
+                    else 0.0,
+                    "showdowns_played": player.showdowns_played,
+                    "showdowns_won": player.showdowns_won,
+                    "showdown_win_rate": round((player.showdowns_won / showdown_played) * 100, 1)
+                    if showdown_played
+                    else 0.0,
                 }
             )
 
