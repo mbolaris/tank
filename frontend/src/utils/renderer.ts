@@ -346,10 +346,10 @@ export class Renderer {
         this.ctx.restore();
     }
 
-    renderEntity(entity: EntityData, elapsedTime: number) {
+    renderEntity(entity: EntityData, elapsedTime: number, allEntities?: EntityData[]) {
         switch (entity.type) {
             case 'fish':
-                this.renderFish(entity, elapsedTime);
+                this.renderFish(entity, elapsedTime, allEntities);
                 break;
             case 'food':
                 this.renderFood(entity, elapsedTime);
@@ -367,7 +367,7 @@ export class Renderer {
                 this.renderJellyfish(entity, elapsedTime);
                 break;
             case 'fractal_plant':
-                this.renderFractalPlant(entity, elapsedTime);
+                this.renderFractalPlant(entity, elapsedTime, allEntities);
                 break;
             case 'plant_nectar':
                 this.renderPlantNectar(entity, elapsedTime);
@@ -387,13 +387,13 @@ export class Renderer {
         return facingLeft;
     }
 
-    private renderFish(fish: EntityData, elapsedTime: number) {
+    private renderFish(fish: EntityData, elapsedTime: number, allEntities?: EntityData[]) {
         const { ctx } = this;
         const { x, y, width, height, vel_x = 1, genome_data } = fish;
 
         // Use SVG-based parametric fish rendering if genome_data is available
         if (genome_data && genome_data.template_id !== undefined) {
-            this.renderSVGFish(fish);
+            this.renderSVGFish(fish, allEntities);
             return;
         }
 
@@ -428,13 +428,101 @@ export class Renderer {
             this.drawEnhancedEnergyBar(x, y - 12, scaledWidth, fish.energy);
         }
 
+
         if (fish.poker_effect_state) {
-            this.renderPokerStatus(x + scaledWidth / 2, y - 25, fish.poker_effect_state);
+            this.renderPokerStatus(
+                x + scaledWidth / 2,
+                y - 25,
+                fish.poker_effect_state,
+                allEntities,
+                x + scaledWidth / 2,
+                y + scaledHeight / 2
+            );
         }
     }
 
-    private renderPokerStatus(x: number, y: number, state: { status: string; amount: number }) {
+    private renderPokerStatus(
+        x: number,
+        y: number,
+        state: { status: string; amount: number; target_id?: number; target_type?: string },
+        allEntities?: EntityData[],
+        entityX?: number,
+        entityY?: number
+    ) {
         const { ctx } = this;
+
+        // If we have a target ID and it's a loss (transferring energy), draw an arrow
+        if (state.target_id !== undefined && state.target_type !== undefined && state.status === 'lost' && allEntities && entityX !== undefined && entityY !== undefined) {
+            const target = allEntities.find(e => e.id === state.target_id && e.type === state.target_type);
+
+            if (target) {
+                // Calculate target center
+                const targetX = target.x + target.width / 2;
+                const targetY = target.y + target.height / 2;
+
+                // Draw green energy arrow
+                ctx.save();
+
+                // Animated arrow effect
+                const time = Date.now();
+                const dashOffset = -(time * 0.1) % 20;
+
+                // Draw the main line
+                ctx.beginPath();
+                ctx.moveTo(entityX, entityY);
+                ctx.lineTo(targetX, targetY);
+
+                // Glow effect
+                ctx.shadowColor = '#4ade80';
+                ctx.shadowBlur = 10;
+                ctx.strokeStyle = '#4ade80';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 10]);
+                ctx.lineDashOffset = dashOffset;
+                ctx.stroke();
+
+                // Draw arrow head at target
+                const angle = Math.atan2(targetY - entityY, targetX - entityX);
+                const headLen = 15;
+
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#4ade80';
+                ctx.beginPath();
+                ctx.moveTo(targetX, targetY);
+                ctx.lineTo(
+                    targetX - headLen * Math.cos(angle - Math.PI / 6),
+                    targetY - headLen * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.lineTo(
+                    targetX - headLen * Math.cos(angle + Math.PI / 6),
+                    targetY - headLen * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw energy amount moving along the line
+                const progress = ((time * 0.002) % 1);
+                const particleX = entityX + (targetX - entityX) * progress;
+                const particleY = entityY + (targetY - entityY) * progress;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${state.amount.toFixed(0)}`, particleX, particleY - 10);
+
+                ctx.restore();
+
+                // Don't draw the text bubble for the loser
+                return;
+            }
+        }
+
+        // Don't draw text bubble for winners either (arrow is enough)
+        if (state.status === 'won') {
+            return;
+        }
+
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -472,7 +560,7 @@ export class Renderer {
         ctx.restore();
     }
 
-    private renderSVGFish(fish: EntityData) {
+    private renderSVGFish(fish: EntityData, allEntities?: EntityData[]) {
         const { ctx } = this;
         const { x, y, width, height, vel_x = 1, genome_data } = fish;
 
@@ -565,7 +653,14 @@ export class Renderer {
         }
 
         if (fish.poker_effect_state) {
-            this.renderPokerStatus(x + scaledSize / 2, y - 25, fish.poker_effect_state);
+            this.renderPokerStatus(
+                x + scaledSize / 2,
+                y - 25,
+                fish.poker_effect_state,
+                allEntities,
+                x + scaledSize / 2,
+                y + scaledSize / 2
+            );
         }
     }
 
@@ -1162,7 +1257,7 @@ export class Renderer {
     /**
      * Render an evolving fractal plant using L-system genetics.
      */
-    private renderFractalPlant(plant: EntityData, elapsedTime: number) {
+    private renderFractalPlant(plant: EntityData, elapsedTime: number, allEntities?: EntityData[]) {
         const { ctx } = this;
         const { x, y, width, height } = plant;
 
@@ -1202,6 +1297,18 @@ export class Renderer {
             elapsedTime,
             nectarReady
         );
+
+        // Render poker effect if present
+        if (plant.poker_effect_state) {
+            this.renderPokerStatus(
+                x + width / 2,
+                y - 25,
+                plant.poker_effect_state,
+                allEntities,
+                x + width / 2,
+                y + height / 2
+            );
+        }
 
         // Plants no longer display an energy/health meter in the UI.
     }

@@ -221,11 +221,19 @@ class PlantPokerInteraction:
         self.fish.poker_cooldown = self.POKER_COOLDOWN
         self.plant.poker_cooldown = self.POKER_COOLDOWN
 
-        # Visual effects on fish
+        # Visual effects on fish and plant
+        # Visual effects on fish and plant
+        from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
+        
+        fish_stable_id = self.fish.fish_id + FISH_ID_OFFSET
+        plant_stable_id = self.plant.plant_id + PLANT_ID_OFFSET
+        
         if fish_won:
-            self.fish.set_poker_effect("won", abs(energy_transferred))
+            self.fish.set_poker_effect("won", abs(energy_transferred), target_id=plant_stable_id, target_type="fractal_plant")
+            self.plant.set_poker_effect("lost", abs(energy_transferred), target_id=fish_stable_id, target_type="fish")
         else:
-            self.fish.set_poker_effect("lost", abs(energy_transferred))
+            self.fish.set_poker_effect("lost", abs(energy_transferred), target_id=plant_stable_id, target_type="fractal_plant")
+            self.plant.set_poker_effect("won", abs(energy_transferred), target_id=fish_stable_id, target_type="fish")
 
         # Store result
         self.result = PlantPokerResult(

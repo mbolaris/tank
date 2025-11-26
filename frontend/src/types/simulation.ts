@@ -73,6 +73,8 @@ export interface EntityData {
     poker_effect_state?: {
         status: 'playing' | 'won' | 'lost' | 'tie';
         amount: number;
+        target_id?: number;
+        target_type?: 'fish' | 'fractal_plant';
     };
 
     // Food-specific
