@@ -162,12 +162,17 @@ def get_server_info() -> ServerInfo:
     # Try to get resource usage (optional)
     cpu_percent = None
     memory_mb = None
+    logical_cpus = os.cpu_count()
+    physical_cpus = None
     try:
         import psutil
 
         process = psutil.Process()
         cpu_percent = process.cpu_percent(interval=0.1)
         memory_mb = process.memory_info().rss / 1024 / 1024  # Convert bytes to MB
+        physical_cpus = psutil.cpu_count(logical=False)
+        if physical_cpus is None:
+            physical_cpus = logical_cpus
     except ImportError:
         # psutil not available - that's okay
         pass
@@ -189,7 +194,8 @@ def get_server_info() -> ServerInfo:
         platform=platform.system(),
         architecture=platform.machine(),
         hardware_model=platform.processor() or None,
-        logical_cpus=os.cpu_count(),
+        logical_cpus=logical_cpus,
+        physical_cpus=physical_cpus,
     )
 
 
