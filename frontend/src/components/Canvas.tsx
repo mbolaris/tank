@@ -131,7 +131,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             // Render all entities only if images are loaded
             if (imagesLoaded) {
                 state.entities.forEach((entity) => {
-                    renderer.renderEntity(entity, state.elapsed_time || 0);
+                    renderer.renderEntity(entity, state.elapsed_time || 0, state.entities);
 
                     // Highlight selected entity
                     if (selectedEntityId === entity.id) {
