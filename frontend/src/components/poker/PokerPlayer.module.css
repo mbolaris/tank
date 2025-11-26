@@ -13,6 +13,18 @@
 .active {
     border: 2px solid #fbbf24;
     box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+    animation: aiTurnPulse 2s ease-in-out infinite;
+}
+
+@keyframes aiTurnPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+        border-color: #fbbf24;
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(251, 191, 36, 0.5);
+        border-color: #fcd34d;
+    }
 }
 
 .folded {
@@ -177,4 +189,32 @@
 .cardsContainer {
     display: flex;
     gap: 6px;
+}
+
+.turnBadge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #0f172a;
+    font-weight: bold;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+    z-index: 15;
+    animation: turnBadgePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes turnBadgePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 3px 12px rgba(251, 191, 36, 0.7);
+    }
 }

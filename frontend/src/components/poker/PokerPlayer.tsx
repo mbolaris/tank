@@ -159,6 +159,7 @@ export function PokerPlayer({
         const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''}`;
         return (
             <div className={humanClass}>
+                {isActive && <div className={styles.turnBadge}>Your Turn</div>}
                 {/* Cards on the left */}
                 <div className={styles.yourCards}>
                     <div className={styles.cardsContainer}>
@@ -241,6 +242,7 @@ export function PokerPlayer({
 
     return (
         <div className={playerClass} title={name}>
+            {isActive && <div className={styles.turnBadge}>Turn</div>}
             <FishAvatar fishId={fishId} genomeData={genomeData} />
             <div className={styles.opponentInfo}>
                 <div className={styles.opponentCards}>
