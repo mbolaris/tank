@@ -5,7 +5,8 @@ This module provides game simulation, pot resolution, and bet finalization logic
 """
 
 import logging
-from typing import TYPE_CHECKING, Optional, Tuple
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 from core.constants import POKER_MAX_ACTIONS_PER_ROUND, POKER_MAX_HAND_RANK
 from core.poker.betting.actions import BettingAction, BettingRound
@@ -20,6 +21,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class PlayerContext:
+    """Runtime state needed to evaluate betting decisions."""
+
+    remaining_energy: float
+    aggression: float
+    strategy: Optional["PokerStrategyAlgorithm"]
+
+
 def simulate_multi_round_game(
     initial_bet: float,
     player1_energy: float,
@@ -30,31 +40,57 @@ def simulate_multi_round_game(
     player1_strategy: Optional["PokerStrategyAlgorithm"] = None,
     player2_strategy: Optional["PokerStrategyAlgorithm"] = None,
 ) -> PokerGameState:
-    """
-    Simulate a complete multi-round Texas Hold'em poker game with blinds.
-    """
-    if player1_aggression is None:
-        player1_aggression = AGGRESSION_MEDIUM
-    if player2_aggression is None:
-        player2_aggression = AGGRESSION_MEDIUM
+    """Simulate a complete multi-round Texas Hold'em poker game with blinds."""
 
-    # Calculate blinds from initial bet
-    big_blind = initial_bet
-    small_blind = initial_bet / 2
+    contexts = _build_player_contexts(
+        player1_energy=player1_energy,
+        player2_energy=player2_energy,
+        player1_aggression=player1_aggression or AGGRESSION_MEDIUM,
+        player2_aggression=player2_aggression or AGGRESSION_MEDIUM,
+        player1_strategy=player1_strategy,
+        player2_strategy=player2_strategy,
+    )
 
-    # Ensure blinds don't exceed available energy
-    big_blind = min(big_blind, player1_energy, player2_energy)
-    small_blind = min(small_blind, player1_energy, player2_energy, big_blind / 2)
+    game_state = _create_game_state(initial_bet, button_position, contexts)
+    _play_betting_rounds(game_state, contexts, button_position)
+    _evaluate_final_hands(game_state)
+    return game_state
+
+
+def _build_player_contexts(
+    *,
+    player1_energy: float,
+    player2_energy: float,
+    player1_aggression: float,
+    player2_aggression: float,
+    player1_strategy: Optional["PokerStrategyAlgorithm"],
+    player2_strategy: Optional["PokerStrategyAlgorithm"],
+) -> Dict[int, PlayerContext]:
+    return {
+        1: PlayerContext(
+            remaining_energy=player1_energy,
+            aggression=player1_aggression,
+            strategy=player1_strategy,
+        ),
+        2: PlayerContext(
+            remaining_energy=player2_energy,
+            aggression=player2_aggression,
+            strategy=player2_strategy,
+        ),
+    }
+
+
+def _create_game_state(
+    initial_bet: float, button_position: int, contexts: Dict[int, PlayerContext]
+) -> PokerGameState:
+    big_blind = min(initial_bet, contexts[1].remaining_energy, contexts[2].remaining_energy)
+    small_blind = min(initial_bet / 2, big_blind / 2, contexts[1].remaining_energy, contexts[2].remaining_energy)
 
     game_state = PokerGameState(
         small_blind=small_blind, big_blind=big_blind, button_position=button_position
     )
-
-    # Deal hole cards
     game_state.deal_cards()
 
-    # Post blinds
-    # In heads-up, button posts small blind, other player posts big blind
     if button_position == 1:
         small_blind_player = 1
         big_blind_player = 2
@@ -65,187 +101,226 @@ def simulate_multi_round_game(
     game_state.player_bet(small_blind_player, small_blind)
     game_state.player_bet(big_blind_player, big_blind)
 
-    if small_blind_player == 1:
-        player1_remaining = player1_energy - small_blind
-        player2_remaining = player2_energy - big_blind
-    else:
-        player1_remaining = player1_energy - big_blind
-        player2_remaining = player2_energy - small_blind
+    contexts[small_blind_player].remaining_energy -= small_blind
+    contexts[big_blind_player].remaining_energy -= big_blind
+    return game_state
 
-    # Play through betting rounds
+
+def _play_betting_rounds(
+    game_state: PokerGameState, contexts: Dict[int, PlayerContext], button_position: int
+) -> None:
     for round_num in range(4):  # Pre-flop, Flop, Turn, River
         if game_state.get_winner_by_fold() is not None:
             break
 
-        # Advance round and deal community cards
         if round_num > 0:
             game_state.advance_round()
 
-        # Simulate betting for this round
-        # Players alternate actions until both have matched bets or someone folds
-        max_actions_per_round = POKER_MAX_ACTIONS_PER_ROUND  # Prevent infinite loops
+        current_player = button_position if round_num == 0 else 2 if button_position == 1 else 1
         actions_this_round = 0
 
-        # In heads-up pre-flop, button (small blind) acts first
-        # Post-flop, button acts last (so non-button acts first)
-        if round_num == 0:  # Pre-flop
-            current_player = button_position
-        else:  # Post-flop
-            current_player = 2 if button_position == 1 else 1
-
-        while actions_this_round < max_actions_per_round:
-            # Evaluate current hand strength based on available cards
-            if current_player == 1:
-                hand = evaluate_hand(
-                    game_state.player1_hole_cards, game_state.community_cards
-                )
-                current_bet = game_state.player1_current_bet
-                opponent_bet = game_state.player2_current_bet
-                remaining_energy = player1_remaining
-                aggression = player1_aggression
-            else:
-                hand = evaluate_hand(
-                    game_state.player2_hole_cards, game_state.community_cards
-                )
-                current_bet = game_state.player2_current_bet
-                opponent_bet = game_state.player1_current_bet
-                remaining_energy = player2_remaining
-                aggression = player2_aggression
-
-            # Decide action
-            # Determine if player is on button
-            player_on_button = current_player == button_position
-
-            # Get hole cards and community cards for enhanced decision making
-            hole_cards = (
-                game_state.player1_hole_cards
-                if current_player == 1
-                else game_state.player2_hole_cards
+        while actions_this_round < POKER_MAX_ACTIONS_PER_ROUND:
+            remaining_energy = contexts[current_player].remaining_energy
+            action, bet_amount = _decide_player_action(
+                current_player=current_player,
+                game_state=game_state,
+                contexts=contexts,
+                button_position=button_position,
             )
 
-            # Use poker strategy algorithm if available, otherwise fall back to aggression-based
-            player_strategy = player1_strategy if current_player == 1 else player2_strategy
-
-            if player_strategy is not None:
-                # Use evolving poker strategy algorithm
-                # Normalize hand strength from HandRank (0-9) to 0.0-1.0
-                hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
-
-                action, bet_amount = player_strategy.decide_action(
-                    hand_strength=hand_strength,
-                    current_bet=current_bet,
-                    opponent_bet=opponent_bet,
-                    pot=game_state.pot,
-                    player_energy=remaining_energy,
-                    position_on_button=player_on_button,
-                )
-            else:
-                # Fall back to old aggression-based decision making
-                action, bet_amount = decide_action(
-                    hand=hand,
-                    current_bet=current_bet,
-                    opponent_bet=opponent_bet,
-                    pot=game_state.pot,
-                    player_energy=remaining_energy,
-                    aggression=aggression,
-                    hole_cards=hole_cards,
-                    community_cards=game_state.community_cards,
-                    position_on_button=player_on_button,
-                )
-
-            # Process action
-            if action == BettingAction.FOLD:
-                game_state.betting_history.append((current_player, action, 0.0))
-                if current_player == 1:
-                    game_state.player1_folded = True
-                else:
-                    game_state.player2_folded = True
-                break
-
-            elif action == BettingAction.CHECK:
-                # Check - no bet
-                game_state.betting_history.append((current_player, action, 0.0))
-
-            elif action == BettingAction.CALL:
-                # Call - match opponent's bet
-                game_state.betting_history.append((current_player, action, bet_amount))
-                game_state.player_bet(current_player, bet_amount)
-                if current_player == 1:
-                    player1_remaining -= bet_amount
-                else:
-                    player2_remaining -= bet_amount
-
-            elif action == BettingAction.RAISE:
-                # Raise - increase bet
-                # First call to match, then add raise amount
-                call_amount = opponent_bet - current_bet
-
-                # Enforce minimum raise rule (Texas Hold'em)
-                # The raise amount must be at least the size of the last raise
-                actual_raise = max(bet_amount, game_state.min_raise)
-
-                # Cap raise at remaining energy after call
-                max_raise = remaining_energy - call_amount
-                if max_raise < game_state.min_raise:
-                    # Can't afford minimum raise - treat as all-in
-                    actual_raise = max(0, max_raise)
-                else:
-                    actual_raise = min(actual_raise, max_raise)
-
-                total_bet = call_amount + actual_raise
-                game_state.player_bet(current_player, total_bet)
-
-                # Record the actual raise amount (after enforcement)
-                game_state.betting_history.append((current_player, action, actual_raise))
-
-                # Update minimum raise for next raise (min raise = this raise amount)
-                if actual_raise > 0:
-                    game_state.last_raise_amount = actual_raise
-                    game_state.min_raise = actual_raise
-
-                if current_player == 1:
-                    player1_remaining -= total_bet
-                else:
-                    player2_remaining -= total_bet
-
-            actions_this_round += 1
-
-            # Check if betting is complete for this round
-            # Complete if both players have equal bets and at least one has acted
-            if (
-                game_state.player1_current_bet == game_state.player2_current_bet
-                and actions_this_round >= 2
+            if _apply_action(
+                current_player=current_player,
+                action=action,
+                bet_amount=bet_amount,
+                remaining_energy=remaining_energy,
+                game_state=game_state,
+                contexts=contexts,
             ):
                 break
 
-            # Switch to other player
+            actions_this_round += 1
+
+            if _round_is_complete(game_state, actions_this_round):
+                break
+
             current_player = 2 if current_player == 1 else 1
 
-        # UNMATCHED BETS FIX (Side Pot Logic for Heads-Up)
-        # If one player is all-in for less than the other's current bet,
-        # return the excess to the richer player. This ensures Table Stakes rules.
-        if game_state.player1_current_bet != game_state.player2_current_bet:
-            min_bet = min(game_state.player1_current_bet, game_state.player2_current_bet)
+        _refund_unmatched_bets(game_state, contexts)
 
-            # Refund the difference to the player with the larger bet
-            if game_state.player1_current_bet > min_bet:
-                refund = game_state.player1_current_bet - min_bet
-                game_state.player1_current_bet = min_bet
-                game_state.player1_total_bet -= refund
-                game_state.pot -= refund
-                player1_remaining += refund  # Give money back to stack
 
-            elif game_state.player2_current_bet > min_bet:
-                refund = game_state.player2_current_bet - min_bet
-                game_state.player2_current_bet = min_bet
-                game_state.player2_total_bet -= refund
-                game_state.pot -= refund
-                player2_remaining += refund  # Give money back to stack
+def _decide_player_action(
+    *,
+    current_player: int,
+    game_state: PokerGameState,
+    contexts: Dict[int, PlayerContext],
+    button_position: int,
+):
+    hand = _evaluate_hand_for_player(current_player, game_state)
 
-    # Game is over - evaluate final hands at showdown
+    current_bet = (
+        game_state.player1_current_bet
+        if current_player == 1
+        else game_state.player2_current_bet
+    )
+    opponent_bet = (
+        game_state.player2_current_bet
+        if current_player == 1
+        else game_state.player1_current_bet
+    )
+
+    context = contexts[current_player]
+    player_on_button = current_player == button_position
+    hole_cards = (
+        game_state.player1_hole_cards if current_player == 1 else game_state.player2_hole_cards
+    )
+
+    player_strategy = context.strategy
+    if player_strategy is not None:
+        hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
+        return player_strategy.decide_action(
+            hand_strength=hand_strength,
+            current_bet=current_bet,
+            opponent_bet=opponent_bet,
+            pot=game_state.pot,
+            player_energy=context.remaining_energy,
+            position_on_button=player_on_button,
+        )
+
+    return decide_action(
+        hand=hand,
+        current_bet=current_bet,
+        opponent_bet=opponent_bet,
+        pot=game_state.pot,
+        player_energy=context.remaining_energy,
+        aggression=context.aggression,
+        hole_cards=hole_cards,
+        community_cards=game_state.community_cards,
+        position_on_button=player_on_button,
+    )
+
+
+def _evaluate_hand_for_player(current_player: int, game_state: PokerGameState) -> PokerHand:
+    if current_player == 1:
+        return evaluate_hand(game_state.player1_hole_cards, game_state.community_cards)
+    return evaluate_hand(game_state.player2_hole_cards, game_state.community_cards)
+
+
+def _apply_action(
+    *,
+    current_player: int,
+    action: BettingAction,
+    bet_amount: float,
+    remaining_energy: float,
+    game_state: PokerGameState,
+    contexts: Dict[int, PlayerContext],
+) -> bool:
+    if action == BettingAction.FOLD:
+        game_state.betting_history.append((current_player, action, 0.0))
+        if current_player == 1:
+            game_state.player1_folded = True
+        else:
+            game_state.player2_folded = True
+        return True
+
+    if action == BettingAction.CHECK:
+        game_state.betting_history.append((current_player, action, 0.0))
+        return False
+
+    if action == BettingAction.CALL:
+        call_amount = _calculate_call_amount(current_player, game_state)
+        actual_call = min(call_amount, remaining_energy)
+
+        game_state.betting_history.append((current_player, action, actual_call))
+        game_state.player_bet(current_player, actual_call)
+        contexts[current_player].remaining_energy -= actual_call
+        return False
+
+    if action == BettingAction.RAISE:
+        call_amount = _calculate_call_amount(current_player, game_state)
+        call_payment = min(call_amount, remaining_energy)
+        remaining_after_call = remaining_energy - call_payment
+
+        actual_raise = _calculate_actual_raise(
+            bet_amount=bet_amount,
+            available_energy=remaining_after_call,
+            game_state=game_state,
+        )
+
+        total_bet = call_payment + actual_raise
+        game_state.player_bet(current_player, total_bet)
+        game_state.betting_history.append((current_player, action, actual_raise))
+
+        if actual_raise > 0:
+            game_state.last_raise_amount = actual_raise
+            game_state.min_raise = actual_raise
+
+        contexts[current_player].remaining_energy -= total_bet
+        return False
+
+    logger.warning("Unknown betting action %s", action)
+    return False
+
+
+def _calculate_call_amount(current_player: int, game_state: PokerGameState) -> float:
+    if current_player == 1:
+        return max(0.0, game_state.player2_current_bet - game_state.player1_current_bet)
+    return max(0.0, game_state.player1_current_bet - game_state.player2_current_bet)
+
+
+def _calculate_actual_raise(
+    *, bet_amount: float, available_energy: float, game_state: PokerGameState
+) -> float:
+    if available_energy < game_state.min_raise:
+        return 0.0
+
+    actual_raise = max(bet_amount, game_state.min_raise)
+    return min(actual_raise, available_energy)
+
+
+def _round_is_complete(game_state: PokerGameState, actions_this_round: int) -> bool:
+    return (
+        game_state.player1_current_bet == game_state.player2_current_bet
+        and actions_this_round >= 2
+    )
+
+
+def _refund_unmatched_bets(
+    game_state: PokerGameState, contexts: Dict[int, PlayerContext]
+) -> None:
+    if game_state.player1_current_bet == game_state.player2_current_bet:
+        return
+
+    min_bet = min(game_state.player1_current_bet, game_state.player2_current_bet)
+
+    if game_state.player1_current_bet > min_bet:
+        _refund_player_one(game_state, contexts, min_bet)
+    elif game_state.player2_current_bet > min_bet:
+        _refund_player_two(game_state, contexts, min_bet)
+
+
+def _refund_player_one(
+    game_state: PokerGameState, contexts: Dict[int, PlayerContext], min_bet: float
+) -> None:
+    refund = game_state.player1_current_bet - min_bet
+    game_state.player1_current_bet = min_bet
+    game_state.player1_total_bet -= refund
+    game_state.pot -= refund
+    contexts[1].remaining_energy += refund
+
+
+def _refund_player_two(
+    game_state: PokerGameState, contexts: Dict[int, PlayerContext], min_bet: float
+) -> None:
+    refund = game_state.player2_current_bet - min_bet
+    game_state.player2_current_bet = min_bet
+    game_state.player2_total_bet -= refund
+    game_state.pot -= refund
+    contexts[2].remaining_energy += refund
+
+
+def _evaluate_final_hands(game_state: PokerGameState) -> None:
     game_state.current_round = BettingRound.SHOWDOWN
 
-    # Evaluate best hands using all 7 cards (2 hole + 5 community)
     if not game_state.player1_folded:
         game_state.player1_hand = evaluate_hand(
             game_state.player1_hole_cards, game_state.community_cards
@@ -254,8 +329,6 @@ def simulate_multi_round_game(
         game_state.player2_hand = evaluate_hand(
             game_state.player2_hole_cards, game_state.community_cards
         )
-
-    return game_state
 
 
 def resolve_bet(
