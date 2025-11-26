@@ -1098,4 +1098,9 @@ async def websocket_tank_endpoint(websocket: WebSocket, tank_id: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT)
+    # Reduce noisy access logs from Uvicorn (e.g. "GET /... 200 OK").
+    # `access_log=False` disables the default access logs and we also set
+    # the `uvicorn.access` logger to WARNING to be extra sure.
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+    uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT, access_log=False)

@@ -187,7 +187,10 @@ def main():
 
     # Start the server
     import uvicorn
-    uvicorn.run(backend_main.app, host="0.0.0.0", port=args.port)
+    # Suppress uvicorn access logs for test runs to avoid noisy output
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+    uvicorn.run(backend_main.app, host="0.0.0.0", port=args.port, access_log=False)
 
 
 if __name__ == "__main__":
