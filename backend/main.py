@@ -154,6 +154,45 @@ def _handle_task_exception(task: asyncio.Task) -> None:
         logger.error(f"Error getting task exception: {e}", exc_info=True)
 
 
+def get_server_info() -> ServerInfo:
+    """Get information about the current server."""
+
+    uptime = time.time() - _server_start_time
+
+    # Try to get resource usage (optional)
+    cpu_percent = None
+    memory_mb = None
+    try:
+        import psutil
+
+        process = psutil.Process()
+        cpu_percent = process.cpu_percent(interval=0.1)
+        memory_mb = process.memory_info().rss / 1024 / 1024  # Convert bytes to MB
+    except ImportError:
+        # psutil not available - that's okay
+        pass
+    except Exception as e:
+        logger.debug(f"Could not get resource usage: {e}")
+
+    return ServerInfo(
+        server_id=SERVER_ID,
+        hostname=socket.gethostname(),
+        host=_get_network_ip(),  # Use actual network IP for distributed setups
+        port=DEFAULT_API_PORT,
+        status="online",
+        tank_count=tank_registry.tank_count,
+        version=SERVER_VERSION,
+        uptime_seconds=uptime,
+        cpu_percent=cpu_percent,
+        memory_mb=memory_mb,
+        is_local=True,
+        platform=platform.system(),
+        architecture=platform.machine(),
+        hardware_model=platform.processor() or None,
+        logical_cpus=os.cpu_count(),
+    )
+
+
 # Track background tasks
 _heartbeat_task: Optional[asyncio.Task] = None
 
