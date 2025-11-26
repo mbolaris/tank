@@ -330,11 +330,19 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                             const thickness = probabilityWidth(connection.probability);
                             const migrations = connectionMigrationCounts.get(connection.id) ?? 0;
 
+                            // Calculate control point for Bezier curve
+                            // For vertical connections, add horizontal offset to make them visible
+                            const dx = dest.x - source.x;
+                            const dy = dest.y - source.y;
+                            const isVertical = Math.abs(dx) < Math.abs(dy);
+
+                            const controlX = (source.x + dest.x) / 2 + (isVertical ? 80 : 0);
+                            const controlY = (source.y + dest.y) / 2 - (isVertical ? 0 : 60);
+
                             return (
                                 <g key={connection.id}>
                                     <path
-                                        d={`M ${source.x} ${source.y} Q ${(source.x + dest.x) / 2} ${(source.y + dest.y) / 2 - 60
-                                            } ${dest.x} ${dest.y}`}
+                                        d={`M ${source.x} ${source.y} Q ${controlX} ${controlY} ${dest.x} ${dest.y}`}
                                         stroke="url(#tubeGradient)"
                                         strokeWidth={thickness}
                                         fill="none"
@@ -354,8 +362,8 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                                         />
                                     )}
                                     <text
-                                        x={(source.x + dest.x) / 2}
-                                        y={(source.y + dest.y) / 2 - 16}
+                                        x={controlX}
+                                        y={controlY - 4}
                                         fill="#cbd5e1"
                                         fontSize="12"
                                         textAnchor="middle"
@@ -364,8 +372,8 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                                         {connection.probability}%
                                     </text>
                                     <text
-                                        x={(source.x + dest.x) / 2}
-                                        y={(source.y + dest.y) / 2 - 2}
+                                        x={controlX}
+                                        y={controlY + 10}
                                         fill="#94a3b8"
                                         fontSize="11"
                                         textAnchor="middle"
