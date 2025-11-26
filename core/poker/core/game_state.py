@@ -5,16 +5,13 @@ This module contains the PokerGameState class which tracks the complete
 state of a multi-round Texas Hold'em poker game.
 """
 
-from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from core.poker.core.cards import Card, Deck
 from core.poker.core.hand import PokerHand
+from core.poker.betting.actions import BettingRound
 
 
-# Forward reference for BettingRound and BettingAction - will be imported from betting.actions
-# Using int for now to avoid circular imports; actual enums imported at runtime
-@dataclass
 class PokerGameState:
     """Tracks the state of a multi-round Texas Hold'em poker game."""
 
@@ -40,8 +37,6 @@ class PokerGameState:
     last_raise_amount: float  # Size of the last raise (to calculate next min raise)
 
     def __init__(self, small_blind: float = 2.5, big_blind: float = 5.0, button_position: int = 1):
-        # Import here to avoid circular dependency
-        from core.poker.betting.actions import BettingRound
 
         self.current_round = BettingRound.PRE_FLOP
         self.pot = 0.0
@@ -108,8 +103,6 @@ class PokerGameState:
 
     def advance_round(self):
         """Move to the next betting round and deal appropriate community cards."""
-        # Import here to avoid circular dependency
-        from core.poker.betting.actions import BettingRound
 
         if self.current_round < BettingRound.SHOWDOWN:
             self.current_round = BettingRound(self.current_round + 1)
