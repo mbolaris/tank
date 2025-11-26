@@ -158,7 +158,9 @@ class SimulationRunner:
         Returns:
             Dictionary with fish player data
         """
-        algo_name = fish.genome.behavior_algorithm.algorithm_id
+        algo_name = "Unknown"
+        if fish.genome.behavior_algorithm:
+            algo_name = fish.genome.behavior_algorithm.algorithm_id
         genome_data = self._get_fish_genome_data(fish)
         player_data = {
             "fish_id": fish.fish_id,
@@ -1109,7 +1111,9 @@ class SimulationRunner:
                         else:
                             # Fallback to fish from list
                             fish = fish_list[i]
-                            algo_name = fish.genome.behavior_algorithm.algorithm_id
+                            algo_name = "Unknown"
+                            if fish.genome.behavior_algorithm:
+                                algo_name = fish.genome.behavior_algorithm.algorithm_id
                             fish_name = f"{algo_name[:15]} (Gen {fish.generation}) #{fish.fish_id}"
 
                         fish_players.append({
