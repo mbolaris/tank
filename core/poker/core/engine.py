@@ -6,7 +6,6 @@ This module contains the core game engine, game state tracking, and AI decision 
 
 import logging
 import random
-from collections import Counter
 from functools import lru_cache
 from dataclasses import dataclass
 from enum import IntEnum
@@ -219,159 +218,155 @@ class PokerEngine:
         return PokerEngine._RANK_NAMES[rank] if 2 <= rank <= 14 else str(rank)
 
     @staticmethod
-    def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
-        """Evaluate exactly 5 cards and return the poker hand."""
-        # Expect cards to be already sorted by caller when possible for performance.
-        # Fallback to sorting if not.
-        try:
-            # If caller provided a tuple key for cache lookups, handle gracefully
-            sorted_cards = list(cards)
-            if not all(sorted_cards[i].rank >= sorted_cards[i + 1].rank for i in range(len(sorted_cards) - 1)):
-                sorted_cards.sort(key=lambda c: c.rank, reverse=True)
-        except Exception:
-            sorted_cards = sorted(cards, key=lambda c: c.rank, reverse=True)
+    def _evaluate_five_cards_core(
+        ranks: List[int], suits: List[int]
+    ) -> Tuple[str, HandRank, str, List[int], List[int]]:
+        """Core 5-card evaluation logic.
 
-        ranks = [c.rank for c in sorted_cards]
-        suits = [c.suit for c in sorted_cards]
+        Args:
+            ranks: List of 5 card ranks (integers 2-14), sorted descending
+            suits: List of 5 card suits (integers 0-3), in same order as ranks
 
-        rank_counts = Counter(ranks)
-        rank_count_list = rank_counts.most_common()
+        Returns:
+            Tuple of (hand_type, rank_value, description, primary_ranks, kickers)
+        """
+        # Count ranks using a simple dict (faster than Counter for 5 items)
+        rank_count: dict = {}
+        for r in ranks:
+            rank_count[r] = rank_count.get(r, 0) + 1
 
-        # Check for flush
-        is_flush = len(set(suits)) == 1
+        # Sort by (count desc, rank desc)
+        rank_count_list = sorted(rank_count.items(), key=lambda x: (x[1], x[0]), reverse=True)
 
-        # Check for straight (including A-2-3-4-5)
+        # Check for flush (all same suit)
+        is_flush = suits[0] == suits[1] == suits[2] == suits[3] == suits[4]
+
+        # Check for straight (including wheel A-2-3-4-5)
         is_straight = False
         straight_high = 0
-        ranks_set = set(ranks)
-        if ranks == list(range(ranks[0], ranks[0] - 5, -1)):
+        if ranks[0] - ranks[4] == 4 and len(rank_count) == 5:
             is_straight = True
             straight_high = ranks[0]
-        elif ranks_set == {14, 2, 3, 4, 5}:  # Ace-low straight (wheel) - robust set check
+        elif set(ranks) == {14, 2, 3, 4, 5}:
             is_straight = True
             straight_high = 5
 
         # Evaluate hand type
         if is_straight and is_flush:
             if straight_high == 14:
-                return PokerHand(
-                    hand_type="royal_flush",
-                    rank_value=HandRank.ROYAL_FLUSH,
-                    description="Royal Flush",
-                    cards=sorted_cards,
-                    primary_ranks=[14],
-                    kickers=[],
-                )
-            else:
-                return PokerHand(
-                    hand_type="straight_flush",
-                    rank_value=HandRank.STRAIGHT_FLUSH,
-                    description=f"Straight Flush, {PokerEngine._rank_name(straight_high)} high",
-                    cards=sorted_cards,
-                    primary_ranks=[straight_high],
-                    kickers=[],
-                )
+                return ("royal_flush", HandRank.ROYAL_FLUSH, "Royal Flush", [14], [])
+            return (
+                "straight_flush",
+                HandRank.STRAIGHT_FLUSH,
+                f"Straight Flush, {PokerEngine._rank_name(straight_high)} high",
+                [straight_high],
+                [],
+            )
 
         if rank_count_list[0][1] == 4:
-            # Four of a kind
             quad_rank = rank_count_list[0][0]
             kicker = rank_count_list[1][0]
-            return PokerHand(
-                hand_type="four_of_kind",
-                rank_value=HandRank.FOUR_OF_KIND,
-                description=f"Four {PokerEngine._rank_name(quad_rank)}s",
-                cards=sorted_cards,
-                primary_ranks=[quad_rank],
-                kickers=[kicker],
+            return (
+                "four_of_kind",
+                HandRank.FOUR_OF_KIND,
+                f"Four {PokerEngine._rank_name(quad_rank)}s",
+                [quad_rank],
+                [kicker],
             )
 
         if rank_count_list[0][1] == 3 and rank_count_list[1][1] == 2:
-            # Full house
             trips_rank = rank_count_list[0][0]
             pair_rank = rank_count_list[1][0]
-            return PokerHand(
-                hand_type="full_house",
-                rank_value=HandRank.FULL_HOUSE,
-                description=(
-                    f"Full House, {PokerEngine._rank_name(trips_rank)}s "
-                    f"over {PokerEngine._rank_name(pair_rank)}s"
-                ),
-                cards=sorted_cards,
-                primary_ranks=[trips_rank, pair_rank],
-                kickers=[],
+            return (
+                "full_house",
+                HandRank.FULL_HOUSE,
+                f"Full House, {PokerEngine._rank_name(trips_rank)}s over {PokerEngine._rank_name(pair_rank)}s",
+                [trips_rank, pair_rank],
+                [],
             )
 
         if is_flush:
-            return PokerHand(
-                hand_type="flush",
-                rank_value=HandRank.FLUSH,
-                description=f"Flush, {PokerEngine._rank_name(ranks[0])} high",
-                cards=sorted_cards,
-                primary_ranks=[],
-                kickers=ranks,
+            return (
+                "flush",
+                HandRank.FLUSH,
+                f"Flush, {PokerEngine._rank_name(ranks[0])} high",
+                [],
+                list(ranks),
             )
 
         if is_straight:
-            return PokerHand(
-                hand_type="straight",
-                rank_value=HandRank.STRAIGHT,
-                description=f"Straight, {PokerEngine._rank_name(straight_high)} high",
-                cards=sorted_cards,
-                primary_ranks=[straight_high],
-                kickers=[],
+            return (
+                "straight",
+                HandRank.STRAIGHT,
+                f"Straight, {PokerEngine._rank_name(straight_high)} high",
+                [straight_high],
+                [],
             )
 
         if rank_count_list[0][1] == 3:
-            # Three of a kind
             trips_rank = rank_count_list[0][0]
-            kickers_list = [rank_count_list[1][0], rank_count_list[2][0]]
-            kickers_list.sort(reverse=True)
-            return PokerHand(
-                hand_type="three_of_kind",
-                rank_value=HandRank.THREE_OF_KIND,
-                description=f"Three {PokerEngine._rank_name(trips_rank)}s",
-                cards=sorted_cards,
-                primary_ranks=[trips_rank],
-                kickers=kickers_list,
+            kickers_list = sorted([rank_count_list[1][0], rank_count_list[2][0]], reverse=True)
+            return (
+                "three_of_kind",
+                HandRank.THREE_OF_KIND,
+                f"Three {PokerEngine._rank_name(trips_rank)}s",
+                [trips_rank],
+                kickers_list,
             )
 
         if rank_count_list[0][1] == 2 and rank_count_list[1][1] == 2:
-            # Two pair
             pair1 = rank_count_list[0][0]
             pair2 = rank_count_list[1][0]
             pairs = sorted([pair1, pair2], reverse=True)
             kicker = rank_count_list[2][0]
-            return PokerHand(
-                hand_type="two_pair",
-                rank_value=HandRank.TWO_PAIR,
-                description=f"Two Pair, {PokerEngine._rank_name(pairs[0])}s and {PokerEngine._rank_name(pairs[1])}s",
-                cards=sorted_cards,
-                primary_ranks=pairs,
-                kickers=[kicker],
+            return (
+                "two_pair",
+                HandRank.TWO_PAIR,
+                f"Two Pair, {PokerEngine._rank_name(pairs[0])}s and {PokerEngine._rank_name(pairs[1])}s",
+                pairs,
+                [kicker],
             )
 
         if rank_count_list[0][1] == 2:
-            # One pair
             pair_rank = rank_count_list[0][0]
-            kickers_list = [rank_count_list[1][0], rank_count_list[2][0], rank_count_list[3][0]]
-            kickers_list.sort(reverse=True)
-            return PokerHand(
-                hand_type="pair",
-                rank_value=HandRank.PAIR,
-                description=f"Pair of {PokerEngine._rank_name(pair_rank)}s",
-                cards=sorted_cards,
-                primary_ranks=[pair_rank],
-                kickers=kickers_list,
+            kickers_list = sorted(
+                [rank_count_list[1][0], rank_count_list[2][0], rank_count_list[3][0]], reverse=True
+            )
+            return (
+                "pair",
+                HandRank.PAIR,
+                f"Pair of {PokerEngine._rank_name(pair_rank)}s",
+                [pair_rank],
+                kickers_list,
             )
 
         # High card
+        return (
+            "high_card",
+            HandRank.HIGH_CARD,
+            f"High Card {PokerEngine._rank_name(ranks[0])}",
+            [],
+            list(ranks),
+        )
+
+    @staticmethod
+    def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
+        """Evaluate exactly 5 Card objects and return the poker hand."""
+        # Sort cards by rank descending
+        sorted_cards = sorted(cards, key=lambda c: c.rank, reverse=True)
+        ranks = [c.rank for c in sorted_cards]
+        suits = [c.suit for c in sorted_cards]
+
+        hand_type, rank_value, description, primary_ranks, kickers = (
+            PokerEngine._evaluate_five_cards_core(ranks, suits)
+        )
         return PokerHand(
-            hand_type="high_card",
-            rank_value=HandRank.HIGH_CARD,
-            description=f"High Card {PokerEngine._rank_name(ranks[0])}",
+            hand_type=hand_type,
+            rank_value=rank_value,
+            description=description,
             cards=sorted_cards,
-            primary_ranks=[],
-            kickers=ranks,
+            primary_ranks=primary_ranks,
+            kickers=kickers,
         )
 
     @staticmethod
@@ -491,146 +486,17 @@ class PokerEngine:
         ranks = [(k >> 2) for k in five_cards_key]
         suits = [(k & 3) for k in five_cards_key]
 
-        # Count ranks using a simple dict (faster than Counter for 5 items)
-        rank_count: dict = {}
-        for r in ranks:
-            rank_count[r] = rank_count.get(r, 0) + 1
-
-        # Sort by (count desc, rank desc)
-        rank_count_list = sorted(rank_count.items(), key=lambda x: (x[1], x[0]), reverse=True)
-
-        # Check for flush (all same suit)
-        is_flush = suits[0] == suits[1] == suits[2] == suits[3] == suits[4]
-
-        # Check for straight (including wheel A-2-3-4-5)
-        is_straight = False
-        straight_high = 0
-        if ranks[0] - ranks[4] == 4 and len(rank_count) == 5:
-            is_straight = True
-            straight_high = ranks[0]
-        elif set(ranks) == {14, 2, 3, 4, 5}:
-            is_straight = True
-            straight_high = 5
-
-        # Helper to build Card objects using pre-cached cards
-        def make_cards():
-            return [get_card(r, s) for r, s in zip(ranks, suits)]
-
-        # Evaluate hand type
-        if is_straight and is_flush:
-            if straight_high == 14:
-                return PokerHand(
-                    hand_type="royal_flush",
-                    rank_value=HandRank.ROYAL_FLUSH,
-                    description="Royal Flush",
-                    cards=make_cards(),
-                    primary_ranks=[14],
-                    kickers=[],
-                )
-            return PokerHand(
-                hand_type="straight_flush",
-                rank_value=HandRank.STRAIGHT_FLUSH,
-                description=f"Straight Flush, {PokerEngine._rank_name(straight_high)} high",
-                cards=make_cards(),
-                primary_ranks=[straight_high],
-                kickers=[],
-            )
-
-        if rank_count_list[0][1] == 4:
-            quad_rank = rank_count_list[0][0]
-            kicker = rank_count_list[1][0]
-            return PokerHand(
-                hand_type="four_of_kind",
-                rank_value=HandRank.FOUR_OF_KIND,
-                description=f"Four {PokerEngine._rank_name(quad_rank)}s",
-                cards=make_cards(),
-                primary_ranks=[quad_rank],
-                kickers=[kicker],
-            )
-
-        if rank_count_list[0][1] == 3 and rank_count_list[1][1] == 2:
-            trips_rank = rank_count_list[0][0]
-            pair_rank = rank_count_list[1][0]
-            return PokerHand(
-                hand_type="full_house",
-                rank_value=HandRank.FULL_HOUSE,
-                description=(
-                    f"Full House, {PokerEngine._rank_name(trips_rank)}s "
-                    f"over {PokerEngine._rank_name(pair_rank)}s"
-                ),
-                cards=make_cards(),
-                primary_ranks=[trips_rank, pair_rank],
-                kickers=[],
-            )
-
-        if is_flush:
-            return PokerHand(
-                hand_type="flush",
-                rank_value=HandRank.FLUSH,
-                description=f"Flush, {PokerEngine._rank_name(ranks[0])} high",
-                cards=make_cards(),
-                primary_ranks=[],
-                kickers=list(ranks),
-            )
-
-        if is_straight:
-            return PokerHand(
-                hand_type="straight",
-                rank_value=HandRank.STRAIGHT,
-                description=f"Straight, {PokerEngine._rank_name(straight_high)} high",
-                cards=make_cards(),
-                primary_ranks=[straight_high],
-                kickers=[],
-            )
-
-        if rank_count_list[0][1] == 3:
-            trips_rank = rank_count_list[0][0]
-            kickers_list = sorted([rank_count_list[1][0], rank_count_list[2][0]], reverse=True)
-            return PokerHand(
-                hand_type="three_of_kind",
-                rank_value=HandRank.THREE_OF_KIND,
-                description=f"Three {PokerEngine._rank_name(trips_rank)}s",
-                cards=make_cards(),
-                primary_ranks=[trips_rank],
-                kickers=kickers_list,
-            )
-
-        if rank_count_list[0][1] == 2 and rank_count_list[1][1] == 2:
-            pair1 = rank_count_list[0][0]
-            pair2 = rank_count_list[1][0]
-            pairs = sorted([pair1, pair2], reverse=True)
-            kicker = rank_count_list[2][0]
-            return PokerHand(
-                hand_type="two_pair",
-                rank_value=HandRank.TWO_PAIR,
-                description=f"Two Pair, {PokerEngine._rank_name(pairs[0])}s and {PokerEngine._rank_name(pairs[1])}s",
-                cards=make_cards(),
-                primary_ranks=pairs,
-                kickers=[kicker],
-            )
-
-        if rank_count_list[0][1] == 2:
-            pair_rank = rank_count_list[0][0]
-            kickers_list = sorted(
-                [rank_count_list[1][0], rank_count_list[2][0], rank_count_list[3][0]], reverse=True
-            )
-            return PokerHand(
-                hand_type="pair",
-                rank_value=HandRank.PAIR,
-                description=f"Pair of {PokerEngine._rank_name(pair_rank)}s",
-                cards=make_cards(),
-                primary_ranks=[pair_rank],
-                kickers=kickers_list,
-            )
-
-        # High card
+        hand_type, rank_value, description, primary_ranks, kickers = (
+            PokerEngine._evaluate_five_cards_core(ranks, suits)
+        )
+        cards = [get_card(r, s) for r, s in zip(ranks, suits)]
         return PokerHand(
-            hand_type="high_card",
-            rank_value=HandRank.HIGH_CARD,
-            description=f"High Card {PokerEngine._rank_name(ranks[0])}",
-            cards=make_cards(),
-            primary_ranks=[],
-            kickers=list(ranks),
+            hand_type=hand_type,
+            rank_value=rank_value,
+            description=description,
+            cards=cards,
+            primary_ranks=primary_ranks,
+            kickers=kickers,
         )
 
     @staticmethod
