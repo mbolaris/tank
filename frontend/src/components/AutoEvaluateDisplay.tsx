@@ -35,7 +35,7 @@ function PerformanceChart({
         const plantPlayers = snapshot.players.filter((p) => p.species === 'plant');
         const standardPlayer = snapshot.players.find((p) => p.is_standard);
 
-        const getValue = (p: any) => metric === 'energy' ? p.net_energy : (p.win_rate ?? 0);
+        const getValue = (p: PokerPerformanceSnapshot['players'][number]) => metric === 'energy' ? p.net_energy : (p.win_rate ?? 0);
 
         const fishAvg = fishPlayers.length > 0
             ? fishPlayers.reduce((sum, p) => sum + getValue(p), 0) / fishPlayers.length
@@ -47,7 +47,7 @@ function PerformanceChart({
         return {
             hand: snapshot.hand,
             fishAvg,
-            standard: getValue(standardPlayer || { net_energy: 0, win_rate: 0 }),
+            standard: standardPlayer ? getValue(standardPlayer) : 0,
             plantAvg,
         };
     });

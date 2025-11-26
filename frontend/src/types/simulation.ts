@@ -113,6 +113,7 @@ export interface PokerEventData {
     energy_transferred: number;
     message: string;
     is_jellyfish?: boolean;
+    is_plant?: boolean;  // True if this is a plant poker game
 }
 
 export interface PokerLeaderboardEntry {

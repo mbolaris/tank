@@ -12,7 +12,7 @@ import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { TransferDialog } from './TransferDialog';
-import type { PokerGameState } from '../types/simulation';
+import type { PokerGameState, PokerEventData } from '../types/simulation';
 
 interface TankViewProps {
     tankId?: string;
@@ -205,8 +205,8 @@ export function TankView({ tankId }: TankViewProps) {
                         </span>
                         {pokerStats && (
                             (() => {
-                                const fishGames = state?.stats?.poker_stats?.total_fish_games ?? (state?.poker_events || []).filter((e: any) => !e.is_plant).length;
-                                const plantGames = state?.stats?.poker_stats?.total_plant_games ?? (state?.poker_events || []).filter((e: any) => e.is_plant).length;
+                                const fishGames = state?.stats?.poker_stats?.total_fish_games ?? (state?.poker_events || []).filter((e: PokerEventData) => !e.is_plant).length;
+                                const plantGames = state?.stats?.poker_stats?.total_plant_games ?? (state?.poker_events || []).filter((e: PokerEventData) => e.is_plant).length;
 
                                 return (
                                     <span className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
