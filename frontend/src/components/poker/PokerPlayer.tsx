@@ -2,12 +2,15 @@
  * Poker player card component
  */
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PlayingCard } from './PlayingCard';
 import { ChipStack } from './PokerChip';
 import styles from './PokerPlayer.module.css';
+import cardStyles from './PlayingCard.module.css';
 import type { FishGenomeData } from '../../types/simulation';
 import { getEyePosition, getFishPath, type FishParams } from '../../utils/fishTemplates';
+
+const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
 interface PokerPlayerProps {
     name: string;
@@ -182,16 +185,99 @@ export function PokerPlayer({
     // Check if we should show actual cards (showdown) or card backs
     const showActualCards = cards.length > 0 && cards[0] !== '??';
 
+    // Card flipping state for opponent cards
+    const [revealedCards, setRevealedCards] = useState<string[]>([]);
+    const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
+    const prevShowActualCardsRef = useRef(false);
+    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+    useEffect(() => {
+        // Clear any pending timeouts when component unmounts
+        return () => {
+            timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+            timeoutsRef.current = [];
+        };
+    }, []);
+
+    useEffect(() => {
+        // If showdown just started (transitioned from card backs to actual cards)
+        if (showActualCards && !prevShowActualCardsRef.current) {
+            // Clear any existing timeouts
+            timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+            timeoutsRef.current = [];
+            setRevealedCards([]);
+            setFlippingIndex(null);
+
+            // Reveal cards one at a time with delay
+            cards.forEach((card, index) => {
+                const delay = index * CARD_FLIP_DELAY;
+
+                const timeout = setTimeout(() => {
+                    setFlippingIndex(index);
+
+                    // After flip animation (400ms), add card to revealed list
+                    const revealTimeout = setTimeout(() => {
+                        setRevealedCards(prev => [...prev, card]);
+                        setFlippingIndex(null);
+                    }, 400);
+
+                    timeoutsRef.current.push(revealTimeout);
+                }, delay);
+
+                timeoutsRef.current.push(timeout);
+            });
+        }
+
+        // If showdown ended (back to card backs), reset state
+        if (!showActualCards && prevShowActualCardsRef.current) {
+            timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+            timeoutsRef.current = [];
+            setRevealedCards([]);
+            setFlippingIndex(null);
+        }
+
+        prevShowActualCardsRef.current = showActualCards;
+    }, [showActualCards, cards]);
+
     return (
         <div className={playerClass} title={name}>
             <FishAvatar fishId={fishId} genomeData={genomeData} />
             <div className={styles.opponentInfo}>
                 <div className={styles.opponentCards}>
                     {showActualCards ? (
-                        // Show actual cards during showdown
-                        cards.map((card, idx) => (
-                            <PlayingCard key={idx} card={card} size="small" />
-                        ))
+                        // Show actual cards during showdown with flip animation
+                        cards.map((card, idx) => {
+                            const isRevealed = idx < revealedCards.length;
+                            const isFlipping = idx === flippingIndex;
+
+                            if (isRevealed) {
+                                return (
+                                    <PlayingCard
+                                        key={idx}
+                                        card={revealedCards[idx]}
+                                        size="small"
+                                    />
+                                );
+                            } else if (isFlipping) {
+                                return (
+                                    <PlayingCard
+                                        key={idx}
+                                        card={card}
+                                        size="small"
+                                        className={cardStyles.flipping}
+                                    />
+                                );
+                            } else {
+                                return (
+                                    <PlayingCard
+                                        key={idx}
+                                        card="BACK"
+                                        size="small"
+                                        faceDown={true}
+                                    />
+                                );
+                            }
+                        })
                     ) : (
                         // Show card backs during normal play
                         <>

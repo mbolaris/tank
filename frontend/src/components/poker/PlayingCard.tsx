@@ -9,9 +9,10 @@ interface PlayingCardProps {
     card: string; // Format: "A♠", "K♥", "10♦", "2♣", or "BACK"
     size?: 'tiny' | 'small' | 'medium' | 'large';
     faceDown?: boolean;
+    className?: string;
 }
 
-export function PlayingCard({ card, size = 'medium', faceDown = false }: PlayingCardProps) {
+export function PlayingCard({ card, size = 'medium', faceDown = false, className = '' }: PlayingCardProps) {
     const sizeClass = styles[size] || styles.medium;
 
     // Parse card string (e.g., "A♠" -> rank: "A", suit: "♠")
@@ -32,7 +33,7 @@ export function PlayingCard({ card, size = 'medium', faceDown = false }: Playing
 
     if (faceDown || card === 'BACK') {
         return (
-            <div className={`${styles.card} ${sizeClass} ${styles.back}`}>
+            <div className={`${styles.card} ${sizeClass} ${styles.back} ${className}`}>
                 <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
                     {/* Card background */}
                     <rect x="2" y="2" width="96" height="136" rx="8" fill="#1a3a6e" stroke="#0d2847" strokeWidth="2" />
@@ -63,7 +64,7 @@ export function PlayingCard({ card, size = 'medium', faceDown = false }: Playing
     }
 
     return (
-        <div className={`${styles.card} ${sizeClass} ${styles.face}`}>
+        <div className={`${styles.card} ${sizeClass} ${styles.face} ${className}`}>
             <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
                 {/* Card background */}
                 <rect x="2" y="2" width="96" height="136" rx="8" fill="white" stroke="#ddd" strokeWidth="1" />
