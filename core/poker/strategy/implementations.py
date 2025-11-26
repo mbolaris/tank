@@ -19,10 +19,7 @@ from core.constants import (
     POKER_PREFLOP_MAX_ENERGY_FRACTION,
     POKER_PREFLOP_MIN_RAISE_MULTIPLIER,
 )
-
-if TYPE_CHECKING:
-    from core.poker.core.engine import BettingAction
-
+from core.poker.betting.actions import BettingAction
 
 @dataclass
 class PokerStrategyAlgorithm:
@@ -132,7 +129,6 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -186,7 +182,6 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -243,7 +238,6 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -299,7 +293,6 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -376,7 +369,6 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -429,7 +421,6 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker.core.engine import BettingAction
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
