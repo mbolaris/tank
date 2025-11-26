@@ -565,28 +565,106 @@ def _get_predator_threat(
 
 def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
     """Find nearest food within time-based detection range.
-    
+
     Fish have reduced ability to detect food at night due to lower visibility.
     Detection range is modified by time of day:
     - Night: 25% of base range
     - Dawn/Dusk: 75% of base range
     - Day: 100% of base range
-    
+
     Args:
         fish: The fish searching for food
-    
+
     Returns:
         Nearest food within detection range, or None if no food detected
     """
     from core.constants import BASE_FOOD_DETECTION_RANGE
     from core.entities import Food
-    
+
     # Performance: Use cached detection modifier from environment (updated once per frame)
     detection_modifier = fish.environment.get_detection_modifier()
     max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
-    
+
     # Use the updated _find_nearest with max_distance parameter
     return self._find_nearest(fish, Food, max_distance)
+
+
+def _should_flee_predator(self, fish: "Fish") -> Tuple[bool, float, float]:
+    """Check if fish should flee from predators based on energy state.
+
+    Uses energy-aware flee thresholds:
+    - Critical energy: Minimal flee distance (must risk danger for food)
+    - Low energy: Moderate flee distance
+    - Normal energy: Standard flee distance
+
+    Args:
+        fish: The fish to check for predator threats
+
+    Returns:
+        Tuple of (should_flee, velocity_x, velocity_y) where:
+        - should_flee: True if fish should flee from a nearby predator
+        - velocity_x: X component of flee velocity (0 if not fleeing)
+        - velocity_y: Y component of flee velocity (0 if not fleeing)
+    """
+    from core.constants import (
+        FLEE_SPEED_CRITICAL,
+        FLEE_SPEED_NORMAL,
+        FLEE_THRESHOLD_CRITICAL,
+        FLEE_THRESHOLD_LOW,
+        FLEE_THRESHOLD_NORMAL,
+        PREDATOR_DEFAULT_FAR_DISTANCE,
+    )
+    from core.entities import Crab
+
+    # Check energy state
+    is_critical = fish.is_critical_energy()
+    is_low = fish.is_low_energy()
+
+    # Find nearest predator
+    nearest_predator = self._find_nearest(fish, Crab)
+    predator_distance = (
+        (nearest_predator.pos - fish.pos).length()
+        if nearest_predator
+        else PREDATOR_DEFAULT_FAR_DISTANCE
+    )
+
+    # Determine flee threshold based on energy
+    if is_critical:
+        flee_threshold = FLEE_THRESHOLD_CRITICAL
+        flee_speed = FLEE_SPEED_CRITICAL
+    elif is_low:
+        flee_threshold = FLEE_THRESHOLD_LOW
+        flee_speed = FLEE_SPEED_NORMAL
+    else:
+        flee_threshold = FLEE_THRESHOLD_NORMAL
+        flee_speed = FLEE_SPEED_NORMAL
+
+    # Check if should flee
+    if predator_distance < flee_threshold:
+        direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+        return True, direction.x * flee_speed, direction.y * flee_speed
+
+    return False, 0.0, 0.0
+
+
+def _get_energy_state(self, fish: "Fish") -> Tuple[bool, bool, float]:
+    """Get fish energy state information.
+
+    Consolidates common energy checks into a single call.
+
+    Args:
+        fish: The fish to check energy state
+
+    Returns:
+        Tuple of (is_critical, is_low, energy_ratio) where:
+        - is_critical: True if fish has critical energy level
+        - is_low: True if fish has low energy level
+        - energy_ratio: Current energy as ratio of max energy (0.0 to 1.0)
+    """
+    is_critical = fish.is_critical_energy()
+    is_low = fish.is_low_energy()
+    energy_ratio = fish.get_energy_ratio()
+    return is_critical, is_low, energy_ratio
 
 
 # Inject helper methods into base class
@@ -594,3 +672,5 @@ BehaviorAlgorithm._find_nearest = _find_nearest
 BehaviorAlgorithm._safe_normalize = _safe_normalize
 BehaviorAlgorithm._get_predator_threat = _get_predator_threat
 BehaviorAlgorithm._find_nearest_food = _find_nearest_food
+BehaviorAlgorithm._should_flee_predator = _should_flee_predator
+BehaviorAlgorithm._get_energy_state = _get_energy_state

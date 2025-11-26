@@ -345,5 +345,8 @@ class MigrationScheduler:
                     restored = deserialize_entity(entity_data, source_manager.world)
                     if restored:
                         source_manager.world.engine.add_entity(restored)
-            except:
-                pass
+            except Exception as restore_error:
+                logger.error(
+                    f"Failed to restore entity {entity.id} after migration failure: {restore_error}",
+                    exc_info=True,
+                )

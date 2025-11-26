@@ -409,133 +409,48 @@ class Fish(Agent):
 
     def _attempt_migration(self, direction: str) -> bool:
         """Attempt to migrate to a connected tank when hitting a boundary.
-        
+
+        Uses dependency injection pattern - delegates to environment's migration
+        handler if available. This keeps core entities decoupled from backend.
+
         Args:
             direction: "left" or "right" - which boundary was hit
-            
+
         Returns:
-            True if migration successful, False if no connection or migration failed
+            True if migration successful, False if no migration handler or migration failed
         """
         import logging
+
         logger = logging.getLogger(__name__)
-        
-        # Check if we have a connection manager (only in backend, not local simulations)
-        if not hasattr(self.environment, 'connection_manager'):
-            logger.debug(f"Fish #{self.fish_id}: No connection_manager attribute in environment")
+
+        # Check if environment provides migration handler (dependency injection)
+        if not hasattr(self.environment, "migration_handler"):
+            logger.debug(f"Fish #{self.fish_id}: No migration_handler in environment")
             return False
-            
-        if self.environment.connection_manager is None:
-            logger.debug(f"Fish #{self.fish_id}: connection_manager is None")
+
+        migration_handler = self.environment.migration_handler
+        if migration_handler is None:
             return False
-            
-        # Check if we have a tank_id (needed to find connections)
-        if not hasattr(self.environment, 'tank_id'):
-            logger.debug(f"Fish #{self.fish_id}: No tank_id attribute in environment")
+
+        # Check if we have a tank_id
+        if not hasattr(self.environment, "tank_id") or self.environment.tank_id is None:
+            logger.debug(f"Fish #{self.fish_id}: No tank_id in environment")
             return False
-            
-        if self.environment.tank_id is None:
-            logger.debug(f"Fish #{self.fish_id}: tank_id is None")
-            return False
-            
-        connection_manager = self.environment.connection_manager
+
         tank_id = self.environment.tank_id
-        
-        # Find connections for this tank and direction
-        connections = connection_manager.get_connections_for_tank(tank_id, direction)
-        
-        if not connections:
-            return False  # No connection in this direction
-        
-        logger.debug(f"Fish #{self.fish_id} hit {direction} boundary in tank {tank_id[:8]}, found {len(connections)} connection(s)")
-        
-        # Pick a random connection if multiple exist
-        import random
-        connection = random.choice(connections)
-        
-        # Get tank registry (needed to access destination tank)
-        if not hasattr(self.environment, 'tank_registry') or self.environment.tank_registry is None:
-            return False
-            
-        tank_registry = self.environment.tank_registry
-        dest_manager = tank_registry.get_tank(connection.destination_tank_id)
-        
-        if not dest_manager:
-            return False
-        
-        # Check if destination allows transfers
-        if not dest_manager.tank_info.allow_transfers:
-            return False
-        
-        # Perform the migration
+
+        # Delegate migration logic to the handler (backend implementation)
         try:
-            from backend.entity_transfer import serialize_entity_for_transfer, deserialize_entity
-            from backend.transfer_history import log_transfer
-            
-            # Get source manager for logging
-            source_manager = tank_registry.get_tank(tank_id)
-            if not source_manager:
-                return False
-            
-            # Serialize this fish
-            entity_data = serialize_entity_for_transfer(self)
-            if entity_data is None:
-                return False
-            
-            old_id = id(self)
-            
-            # Remove from source (this will happen automatically after we return True)
-            # But we need to add to destination
-            new_entity = deserialize_entity(entity_data, dest_manager.world)
-            if new_entity is None:
-                log_transfer(
-                    entity_type="fish",
-                    entity_old_id=old_id,
-                    entity_new_id=None,
-                    source_tank_id=tank_id,
-                    source_tank_name=source_manager.tank_info.name,
-                    destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_manager.tank_info.name,
-                    success=False,
-                    error="Failed to deserialize in destination",
-                )
-                return False
-            
-            # Position fish at opposite edge of destination tank
-            if direction == "left":
-                new_entity.pos.x = dest_manager.world.config.screen_width - new_entity.width - 10
-            else:  # right
-                new_entity.pos.x = 10
-            
-            dest_manager.world.engine.add_entity(new_entity)
-            
-            # Log successful migration
-            log_transfer(
-                entity_type="fish",
-                entity_old_id=old_id,
-                entity_new_id=id(new_entity),
-                source_tank_id=tank_id,
-                source_tank_name=source_manager.tank_info.name,
-                destination_tank_id=connection.destination_tank_id,
-                destination_tank_name=dest_manager.tank_info.name,
-                success=True,
-            )
-            
-            # Log to console
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(
-                f"Fish migrated {direction} from {source_manager.tank_info.name} to "
-                f"{dest_manager.tank_info.name}"
-            )
-            
-            # Mark this fish for removal from source tank
-            self._migrated = True  # This will trigger removal in the next update cycle
-            
-            return True
-            
+            success = migration_handler.attempt_entity_migration(self, direction, tank_id)
+
+            if success:
+                # Mark this fish for removal from source tank
+                self._migrated = True
+                logger.info(f"Fish #{self.fish_id} successfully migrated {direction}")
+
+            return success
+
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Migration failed: {e}", exc_info=True)
             return False
 
