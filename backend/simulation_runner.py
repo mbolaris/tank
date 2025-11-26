@@ -704,8 +704,20 @@ class SimulationRunner:
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
         """Convert an entity to a lightweight snapshot for serialization."""
         try:
+            # Import ID offsets
+            from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET, JELLYFISH_ID_OFFSET
+            
+            # Compute stable ID based on entity type
+            stable_id = id(entity)  # Fallback for unknown types
+            if isinstance(entity, entities.Fish) and hasattr(entity, 'fish_id'):
+                stable_id = entity.fish_id + FISH_ID_OFFSET
+            elif isinstance(entity, entities.FractalPlant) and hasattr(entity, 'plant_id'):
+                stable_id = entity.plant_id + PLANT_ID_OFFSET
+            elif isinstance(entity, entities.Jellyfish) and hasattr(entity, 'jellyfish_id'):
+                stable_id = entity.jellyfish_id + JELLYFISH_ID_OFFSET
+            
             base_data = {
-                "id": id(entity),  # Use object id as unique identifier
+                "id": stable_id,
                 "x": entity.pos.x,
                 "y": entity.pos.y,
                 "width": entity.width,
@@ -846,6 +858,7 @@ class SimulationRunner:
                     ) if hasattr(entity, "nectar_cooldown") else False,
                     age=entity.age if hasattr(entity, "age") else 0,
                     plant_type=2,
+                    poker_effect_state=entity.poker_effect_state if hasattr(entity, "poker_effect_state") else None,
                     **base_data,
                 )
 

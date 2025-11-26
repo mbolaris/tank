@@ -209,17 +209,21 @@ class Fish(Agent):
         self.poker_effect_timer: int = 0
         self.poker_cooldown: int = 0  # Cooldown between poker games
 
-    def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15) -> None:
+    def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
         """Set a visual effect for poker status.
 
         Args:
             status: 'playing', 'won', 'lost', 'tie'
             amount: Amount won or lost (for display)
             duration: How long to show the effect in frames
+            target_id: ID of the opponent/target entity (for drawing arrows)
+            target_type: Type of the opponent/target entity ('fish', 'fractal_plant')
         """
         self.poker_effect_state = {
             "status": status,
             "amount": amount,
+            "target_id": target_id,
+            "target_type": target_type,
         }
         self.poker_effect_timer = duration
 

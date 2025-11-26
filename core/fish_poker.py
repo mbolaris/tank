@@ -575,12 +575,21 @@ class PokerInteraction:
             participant.start_cooldown(self.POKER_COOLDOWN)
 
         # Visual effects
+        from core.constants import FISH_ID_OFFSET
+        
         if winner_id != -1:
             winner_fish = self.fish_list[best_hand_idx]
-            winner_fish.set_poker_effect("won", total_pot - bet_amount - house_cut)
+            # Winner points to first loser (simplification for multiplayer)
+            first_loser = next(f for f in self.fish_list if f.fish_id != winner_id)
+            
+            winner_stable_id = winner_fish.fish_id + FISH_ID_OFFSET
+            first_loser_stable_id = first_loser.fish_id + FISH_ID_OFFSET
+            
+            winner_fish.set_poker_effect("won", total_pot - bet_amount - house_cut, target_id=first_loser_stable_id, target_type="fish")
+            
             for i, fish in enumerate(self.fish_list):
                 if i != best_hand_idx:
-                    fish.set_poker_effect("lost", bet_amount)
+                    fish.set_poker_effect("lost", bet_amount, target_id=winner_stable_id, target_type="fish")
         else:
             for fish in self.fish_list:
                 fish.set_poker_effect("tie")
@@ -832,26 +841,6 @@ class PokerInteraction:
             winner_actual_gain = 0.0
 
         # Set cooldowns
-        participant1.start_cooldown(self.POKER_COOLDOWN)
-        participant2.start_cooldown(self.POKER_COOLDOWN)
-
-        # Visual effects
-        if winner_id != -1:
-            # Winner gets green "won" effect
-            winner_fish.set_poker_effect("won", winner_actual_gain)
-            # Loser gets red "lost" effect
-            loser_fish.set_poker_effect("lost", energy_transferred)
-        else:
-            # Tie effect
-            self.fish1.set_poker_effect("tie")
-            self.fish2.set_poker_effect("tie")
-
-        # Count rounds played
-        total_rounds = int(game_state.current_round) if game_state.current_round < 4 else 4
-
-        # Determine if game reached showdown
-        reached_showdown = not won_by_fold
-
         # NEW: Update poker strategy learning for both fish
         if winner_id != -1:  # Not a tie
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
@@ -978,6 +967,12 @@ class PokerInteraction:
                 energy_transferred=energy_transferred,
             )
             reproduction_occurred = offspring is not None
+
+        # Count rounds played
+        total_rounds = int(game_state.current_round) if game_state.current_round < 4 else 4
+
+        # Determine if game reached showdown
+        reached_showdown = not won_by_fold
 
         # Create result (using new format with backwards compatibility)
         # Use calculated total_pot if winner exists, otherwise use game_state.pot

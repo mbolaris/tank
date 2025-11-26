@@ -39,7 +39,10 @@ def run_web_server():
         logger.info("=" * SEPARATOR_WIDTH)
         logger.info("")
 
-        uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT)
+        # Disable Uvicorn access logs to reduce verbosity in stdout
+        logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+        logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+        uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT, access_log=False)
     except ImportError as e:
         logger.error("Error: Required dependencies not installed: %s", e)
         logger.error("Install with: pip install -e .[backend]")

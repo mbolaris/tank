@@ -55,8 +55,8 @@ export function NetworkDashboard() {
 
     useEffect(() => {
         fetchServers();
-        // Refresh every 5 seconds
-        const interval = setInterval(fetchServers, 5000);
+        // Refresh every 1 second
+        const interval = setInterval(fetchServers, 1000);
         return () => clearInterval(interval);
     }, [fetchServers]);
 

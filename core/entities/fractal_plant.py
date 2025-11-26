@@ -109,6 +109,8 @@ class FractalPlant(Agent):
 
         # Poker state
         self.last_button_position = 2
+        self.poker_effect_state: Optional[dict] = None
+        self.poker_effect_timer = 0
 
         # Rendering stability
         self._cached_iterations = 1  # Cache iterations to prevent flickering
@@ -162,6 +164,12 @@ class FractalPlant(Agent):
             self.poker_cooldown -= 1
         if self.nectar_cooldown > 0:
             self.nectar_cooldown -= 1
+            
+        # Update poker effect timer
+        if self.poker_effect_timer > 0:
+            self.poker_effect_timer -= 1
+            if self.poker_effect_timer <= 0:
+                self.poker_effect_state = None
 
         # Passive energy collection (compound growth)
         self._collect_energy(time_modifier)
@@ -377,6 +385,24 @@ class FractalPlant(Agent):
         """
         return self.genome.aggression
 
+    def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
+        """Set a visual effect for poker status.
+
+        Args:
+            status: 'playing', 'won', 'lost', 'tie'
+            amount: Amount won or lost (for display)
+            duration: How long to show the effect in frames
+            target_id: ID of the opponent/target entity (for drawing arrows)
+            target_type: Type of the opponent/target entity ('fish', 'fractal_plant')
+        """
+        self.poker_effect_state = {
+            "status": status,
+            "amount": amount,
+            "target_id": target_id,
+            "target_type": target_type,
+        }
+        self.poker_effect_timer = duration
+
     def die(self) -> None:
         """Handle plant death - release root spot."""
         if self.root_spot is not None:
@@ -412,6 +438,7 @@ class FractalPlant(Agent):
             "nectar_ready": self.nectar_cooldown == 0 and (
                 self.energy / self.max_energy >= self.genome.nectar_threshold_ratio
             ),
+            "poker_effect_state": self.poker_effect_state,
         }
 
 

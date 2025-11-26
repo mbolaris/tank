@@ -406,3 +406,15 @@ FRACTAL_PLANT_DEFAULT_LENGTH_RATIO = 0.7  # Default length reduction per iterati
 
 # Plant Collision Detection
 FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 200.0  # Distance for poker collision - Increased for easier detection
+
+# =============================================================================
+# ENTITY ID OFFSETS (For Stable Identification)
+# =============================================================================
+# These offsets are added to internal monotonic IDs to generate globally unique
+# stable IDs for the frontend. This prevents ID reuse issues with Python's id().
+
+FISH_ID_OFFSET = 0
+PLANT_ID_OFFSET = 1_000_000
+JELLYFISH_ID_OFFSET = 2_000_000
+FOOD_ID_OFFSET = 3_000_000
+NECTAR_ID_OFFSET = 4_000_000
