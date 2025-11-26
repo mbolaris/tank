@@ -465,9 +465,8 @@ export class Renderer {
 
                 // Animated arrow effect
                 const time = Date.now();
-                const dashOffset = -(time * 0.1) % 20;
 
-                // Draw the main line
+                // Draw the main line (solid)
                 ctx.beginPath();
                 ctx.moveTo(entityX, entityY);
                 ctx.lineTo(targetX, targetY);
@@ -477,9 +476,14 @@ export class Renderer {
                 ctx.shadowBlur = 10;
                 ctx.strokeStyle = '#4ade80';
                 ctx.lineWidth = 3;
-                ctx.setLineDash([10, 10]);
-                ctx.lineDashOffset = dashOffset;
                 ctx.stroke();
+
+                // Red dot on loser
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(entityX, entityY, 5, 0, Math.PI * 2);
+                ctx.fill();
 
                 // Draw arrow head at target
                 const angle = Math.atan2(targetY - entityY, targetX - entityX);
