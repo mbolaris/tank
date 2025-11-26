@@ -265,6 +265,7 @@ export interface PokerGamePlayer {
     algorithm?: string;
     genome_data?: FishGenomeData;
     hole_cards: string[];
+    last_action?: string | null;
 }
 
 export interface PokerGameState {
