@@ -5,8 +5,11 @@ This module provides collision detection for entity objects in the simulation.
 
 from typing import TYPE_CHECKING
 
+from core.constants import FRACTAL_PLANTS_ENABLED
+
 if TYPE_CHECKING:
     from core.entities import Agent
+    from core.simulation_engine import SimulationEngine
 
 
 class CollisionDetector:
@@ -88,3 +91,40 @@ class CircleCollisionDetector(CollisionDetector):
 
 # Default collision detector
 default_collision_detector = RectCollisionDetector()
+
+
+class CollisionSystem:
+    """Collision utilities that delegate to the simulation engine."""
+
+    def __init__(self, engine: "SimulationEngine") -> None:
+        self.engine = engine
+
+    def check_collision(self, e1: "Agent", e2: "Agent") -> bool:
+        """Check if two entities collide using bounding box collision."""
+        return (
+            e1.pos.x < e2.pos.x + e2.width
+            and e1.pos.x + e1.width > e2.pos.x
+            and e1.pos.y < e2.pos.y + e2.height
+            and e1.pos.y + e1.height > e2.pos.y
+        )
+
+    def handle_fish_food_collision(self, fish: "Agent", food: "Agent") -> None:
+        """Handle collision between a fish and food, including plant nectar."""
+        from core.entities.fractal_plant import PlantNectar
+
+        if isinstance(food, PlantNectar) and FRACTAL_PLANTS_ENABLED:
+            fish.eat(food)
+
+            if food.is_consumed():
+                parent_genome = food.consume()
+                parent_x = food.source_plant.pos.x if food.source_plant else food.pos.x
+                parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
+
+                self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
+                self.engine.remove_entity(food)
+        else:
+            fish.eat(food)
+
+            if food.is_fully_consumed():
+                food.get_eaten()
+                self.engine.remove_entity(food)
