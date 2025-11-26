@@ -87,46 +87,27 @@
     flex: 0 0 auto;
 }
 
-.lastMovesArea {
+.lastMoveArea {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-width: 200px;
+    gap: 6px;
+    min-width: 180px;
 }
 
-.lastMovesLabel {
+.lastMoveLabel {
     font-size: 10px;
     color: #94a3b8;
     text-align: center;
 }
 
-.lastMovesList {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.lastMoveDisplay {
     background: rgba(15, 23, 42, 0.5);
     border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 6px;
-    padding: 8px;
-}
-
-.lastMoveItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-}
-
-.lastMovePlayer {
-    color: #94a3b8;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.lastMoveAction {
+    padding: 10px 12px;
     color: #fbbf24;
     font-weight: bold;
-    text-transform: uppercase;
-    font-size: 11px;
+    font-size: 13px;
+    text-align: center;
+    white-space: nowrap;
 }

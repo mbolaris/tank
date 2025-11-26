@@ -5,7 +5,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { PlayingCard } from './PlayingCard';
 import { ChipStack } from './PokerChip';
-import type { PokerGamePlayer } from '../../types/simulation';
 import styles from './PokerTable.module.css';
 import cardStyles from './PlayingCard.module.css';
 
@@ -13,12 +12,12 @@ interface PokerTableProps {
     pot: number;
     communityCards: string[];
     resultBanner?: React.ReactNode;
-    players: PokerGamePlayer[];
+    lastMove?: string;
 }
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
-export function PokerTable({ pot, communityCards, resultBanner, players }: PokerTableProps) {
+export function PokerTable({ pot, communityCards, resultBanner, lastMove }: PokerTableProps) {
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevCardsRef = useRef<string[]>([]);
@@ -130,23 +129,14 @@ export function PokerTable({ pot, communityCards, resultBanner, players }: Poker
                     </div>
                 </div>
 
-                {/* Right side: Last moves or result banner */}
+                {/* Right side: Last move or result banner */}
                 <div className={styles.rightArea}>
-                    {/* Show last moves when game is active */}
-                    {!resultBanner && (
-                        <div className={styles.lastMovesArea}>
-                            <div className={styles.lastMovesLabel}>Last Moves</div>
-                            <div className={styles.lastMovesList}>
-                                {players.map((player) => (
-                                    <div key={player.player_id} className={styles.lastMoveItem}>
-                                        <span className={styles.lastMovePlayer}>
-                                            {player.is_human ? 'You' : player.name}:
-                                        </span>
-                                        <span className={styles.lastMoveAction}>
-                                            {player.last_action || '—'}
-                                        </span>
-                                    </div>
-                                ))}
+                    {/* Show last move when game is active */}
+                    {!resultBanner && lastMove && (
+                        <div className={styles.lastMoveArea}>
+                            <div className={styles.lastMoveLabel}>Last Move</div>
+                            <div className={styles.lastMoveDisplay}>
+                                {lastMove}
                             </div>
                         </div>
                     )}
