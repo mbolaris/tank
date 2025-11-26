@@ -159,9 +159,8 @@ export function PokerPlayer({
         const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''}`;
         return (
             <div className={humanClass}>
-                {isActive && <div className={styles.turnBadge}>Your Turn</div>}
                 {/* Cards on the left */}
-                <div className={styles.yourCards}>
+                <div className={`${styles.yourCards} ${isActive ? styles.activeHighlight : ''}`}>
                     <div className={styles.cardsContainer}>
                         {cards.map((card, idx) => (
                             <PlayingCard key={idx} card={card} size="small" />
@@ -170,7 +169,7 @@ export function PokerPlayer({
                 </div>
 
                 {/* Chips and stats to the right of cards */}
-                <div className={styles.playerStats}>
+                <div className={`${styles.playerStats} ${isActive ? styles.activeHighlight : ''}`}>
                     <div className={styles.chipStackContainer}>
                         <ChipStack totalValue={Math.round(energy)} size="medium" />
                         <div className={styles.energyText}>{Math.round(energy)} ⚡</div>
@@ -242,10 +241,9 @@ export function PokerPlayer({
 
     return (
         <div className={playerClass} title={name}>
-            {isActive && <div className={styles.turnBadge}>Turn</div>}
             <FishAvatar fishId={fishId} genomeData={genomeData} />
             <div className={styles.opponentInfo}>
-                <div className={styles.opponentCards}>
+                <div className={`${styles.opponentCards} ${isActive ? styles.activeHighlight : ''}`}>
                     {showActualCards ? (
                         // Show actual cards during showdown with flip animation
                         cards.map((card, idx) => {
@@ -288,7 +286,7 @@ export function PokerPlayer({
                         </>
                     )}
                 </div>
-                <div className={styles.opponentStats}>
+                <div className={`${styles.opponentStats} ${isActive ? styles.activeHighlight : ''}`}>
                     <div className={styles.chipWithTotal}>
                         <ChipStack totalValue={Math.round(energy)} size="small" />
                         <div className={styles.energyText}>{Math.round(energy)} ⚡</div>
