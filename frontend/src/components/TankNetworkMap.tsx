@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { config, type ServerWithTanks } from '../config';
+import { useErrorNotification } from '../hooks/useErrorNotification';
+import { ErrorNotification } from './ErrorNotification';
 
 interface TankNode {
     id: string;
@@ -36,6 +38,8 @@ interface TransferRecord {
 }
 
 export function TankNetworkMap({ servers }: TankNetworkMapProps) {
+    const { errors, addError, clearError } = useErrorNotification();
+
     const tanks = useMemo(() => {
         return servers.flatMap((server) =>
             server.tanks.map((tankStatus) => ({
@@ -85,8 +89,8 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                     setConnections(data.connections);
                 }
             })
-            .catch((err) => console.error('Failed to load connections:', err));
-    }, []);
+            .catch((err) => addError(err, 'Failed to load connections'));
+    }, [addError]);
 
     const fetchTransfers = useCallback(async () => {
         try {
@@ -97,9 +101,9 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                 setTransfers(data.transfers);
             }
         } catch (err) {
-            console.error('Failed to load transfers for network map', err);
+            addError(err, 'Failed to load transfers for network map');
         }
-    }, []);
+    }, [addError]);
 
     useEffect(() => {
         fetchTransfers();
@@ -191,7 +195,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                 });
             }
         } catch (err) {
-            console.error('Failed to save connection:', err);
+            addError(err, 'Failed to save connection');
         }
     };
 
@@ -205,7 +209,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                 setConnections((prev) => prev.filter((c) => c.id !== id));
             }
         } catch (err) {
-            console.error('Failed to delete connection:', err);
+            addError(err, 'Failed to delete connection');
         }
     };
 
@@ -234,9 +238,9 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                 });
             }
         } catch (err) {
-            console.error('Failed to poll transfers for network map', err);
+            addError(err, 'Failed to poll transfers for network map');
         }
-    }, [connections, fetchTransfers, latestTransferId]);
+    }, [connections, fetchTransfers, latestTransferId, addError]);
 
     useEffect(() => {
         pollTransfers();
@@ -284,6 +288,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                 boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
             }}
         >
+            <ErrorNotification errors={errors} onDismiss={clearError} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div>
                     <h2 style={{ margin: 0, color: '#f8fafc', fontSize: 20 }}>Tank Migration Tubes</h2>
