@@ -2,7 +2,7 @@
 import sys
 import statistics
 sys.path.append(r"c:\shared\bolaris\tank")
-from core.poker.core.engine import PokerEngine
+from core.poker.core import simulate_game, finalize_pot
 
 
 def run(n=100):
@@ -11,7 +11,7 @@ def run(n=100):
     folds = 0
 
     for _ in range(n):
-        s = PokerEngine.simulate_game(bet_amount=10.0, player1_energy=100.0, player2_energy=100.0)
+        s = simulate_game(bet_amount=10.0, player1_energy=100.0, player2_energy=100.0)
         if s.player1_folded and not s.player2_folded:
             winners[2] += 1
             folds += 1
@@ -19,7 +19,7 @@ def run(n=100):
             winners[1] += 1
             folds += 1
         else:
-            p1_amount, p2_amount = PokerEngine.finalize_pot(s)
+            p1_amount, p2_amount = finalize_pot(s)
             if p1_amount > p2_amount:
                 winners[1] += 1
             elif p2_amount > p1_amount:

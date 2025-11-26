@@ -1045,14 +1045,14 @@ class SimulationRunner:
                     return {"success": True, "action": "wait", "amount": 0}
 
                 # Use the same AI logic as fish opponents
-                from core.poker.core import PokerEngine
+                from core.poker.core import evaluate_hand, decide_action
 
-                hand = PokerEngine.evaluate_hand(human_player.hole_cards, game.community_cards)
+                hand = evaluate_hand(human_player.hole_cards, game.community_cards)
                 call_amount = game._get_call_amount(0)
                 active_bets = [p.current_bet for p in game.players if not p.folded]
                 opponent_bet = max(active_bets) if active_bets else 0.0
 
-                action, bet_amount = PokerEngine.decide_action(
+                action, bet_amount = decide_action(
                     hand=hand,
                     current_bet=human_player.current_bet,
                     opponent_bet=opponent_bet,

@@ -14,8 +14,9 @@ from core.poker.core import (
     BettingRound,
     Card,
     Deck,
-    PokerEngine,
     PokerHand,
+    decide_action,
+    evaluate_hand,
 )
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -242,7 +243,7 @@ class AutoEvaluatePokerGame:
 
         for i in active_players:
             player = self.players[i]
-            hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
+            hand = evaluate_hand(player.hole_cards, self.community_cards)
             logger.debug(f"Auto-eval {self.game_id}: {player.name}: {hand}")
 
             if best_hand is None or hand.beats(best_hand):
@@ -304,11 +305,11 @@ class AutoEvaluatePokerGame:
 
         # Determine action based on player type
         if player.is_standard:  # Standard player
-            # Use PokerEngine.decide_action (standard algorithm)
-            hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
+            # Use decide_action (standard algorithm)
+            hand = evaluate_hand(player.hole_cards, self.community_cards)
             max_opponent_bet = max(p.current_bet for p in self.players if not p.folded)
 
-            action, amount = PokerEngine.decide_action(
+            action, amount = decide_action(
                 hand=hand,
                 current_bet=player.current_bet,
                 opponent_bet=max_opponent_bet,
@@ -322,7 +323,7 @@ class AutoEvaluatePokerGame:
 
         else:  # Fish player
             # Use fish's poker strategy
-            hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
+            hand = evaluate_hand(player.hole_cards, self.community_cards)
             hand_strength = hand.rank_value / 10.0  # Normalize to 0-1
             max_opponent_bet = max(p.current_bet for p in self.players if not p.folded)
 

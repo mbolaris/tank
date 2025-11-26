@@ -17,7 +17,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from core.entities import LifeStage
-from core.poker.core import BettingAction, PokerEngine, PokerHand
+from core.poker.core import BettingAction, PokerHand
+from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW
+from core.poker.evaluation import evaluate_hand
+from core.poker.simulation import simulate_multi_round_game
 from core.poker.strategy.base import PokerStrategyEngine
 
 if TYPE_CHECKING:
@@ -495,7 +498,7 @@ class PokerInteraction:
             fish.energy = max(0, fish.energy - bet_amount)
 
         # Create deck and deal cards
-        from core.poker.core import Deck, PokerEngine
+        from core.poker.core import Deck
 
         deck = Deck()
 
@@ -515,7 +518,7 @@ class PokerInteraction:
         # Evaluate each player's hand
         self.player_hands = []
         for hole_cards in player_hole_cards:
-            hand = PokerEngine.evaluate_hand(hole_cards, community_cards)
+            hand = evaluate_hand(hole_cards, community_cards)
             self.player_hands.append(hand)
 
         # Find the winner (best hand)
@@ -700,13 +703,13 @@ class PokerInteraction:
         participant1 = self.participants[0]
         participant2 = self.participants[1]
 
-        fish1_aggression = PokerEngine.AGGRESSION_LOW + (
+        fish1_aggression = AGGRESSION_LOW + (
             self.fish1.genome.aggression
-            * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
+            * (AGGRESSION_HIGH - AGGRESSION_LOW)
         )
-        fish2_aggression = PokerEngine.AGGRESSION_LOW + (
+        fish2_aggression = AGGRESSION_LOW + (
             self.fish2.genome.aggression
-            * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
+            * (AGGRESSION_HIGH - AGGRESSION_LOW)
         )
 
         # Rotate button position for positional play
@@ -729,7 +732,7 @@ class PokerInteraction:
 
         # Simulate multi-round Texas Hold'em game with blinds and position
         # Use evolved poker strategies if available, otherwise fall back to aggression
-        game_state = PokerEngine.simulate_multi_round_game(
+        game_state = simulate_multi_round_game(
             initial_bet=bet_amount,
             player1_energy=self.fish1.energy,
             player2_energy=self.fish2.energy,

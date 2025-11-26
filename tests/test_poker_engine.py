@@ -1,6 +1,6 @@
 import sys
 sys.path.append(r"c:\shared\bolaris\tank")
-from core.poker.core.engine import PokerGameState, PokerEngine, BettingAction
+from core.poker.core import PokerGameState, BettingAction, simulate_game
 from core.poker.core.cards import Card
 
 
@@ -27,7 +27,7 @@ def test_is_betting_complete_only_checks_current_bets():
 
 
 def test_simulate_game_runs_to_showdown_or_fold():
-    state = PokerEngine.simulate_game(bet_amount=5.0, player1_energy=50.0, player2_energy=50.0)
+    state = simulate_game(bet_amount=5.0, player1_energy=50.0, player2_energy=50.0)
     # Pot should be non-negative and bets should be non-negative
     assert state.pot >= 0
     assert state.player1_current_bet >= 0

@@ -9,7 +9,9 @@ evaluating fish poker performance.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-from core.poker.core import PokerEngine, PokerHand
+from core.poker.core import PokerHand
+from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW
+from core.poker.simulation import simulate_multi_round_game
 
 if TYPE_CHECKING:
     from core.entities import Fish, Jellyfish
@@ -132,8 +134,8 @@ class JellyfishPokerInteraction:
             bet_amount = self.calculate_bet_amount(bet_amount)
 
         # Fish uses genome-based aggression
-        fish_aggression = PokerEngine.AGGRESSION_LOW + (
-            self.fish.genome.aggression * (PokerEngine.AGGRESSION_HIGH - PokerEngine.AGGRESSION_LOW)
+        fish_aggression = AGGRESSION_LOW + (
+            self.fish.genome.aggression * (AGGRESSION_HIGH - AGGRESSION_LOW)
         )
 
         # Jellyfish uses fixed conservative strategy
@@ -146,7 +148,7 @@ class JellyfishPokerInteraction:
         self.fish.last_button_position = button_position
 
         # Play the poker game using static method
-        game_state = PokerEngine.simulate_multi_round_game(
+        game_state = simulate_multi_round_game(
             initial_bet=bet_amount,
             player1_energy=self.fish.energy,
             player2_energy=self.jellyfish.energy,

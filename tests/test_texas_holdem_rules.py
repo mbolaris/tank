@@ -14,7 +14,17 @@ import sys
 sys.path.insert(0, "/home/user/tank")
 
 from core.poker.core.cards import Card, Rank, Suit
-from core.poker.core.engine import BettingAction, BettingRound, PokerEngine, PokerGameState
+from core.poker.core import (
+    BettingAction,
+    BettingRound,
+    PokerGameState,
+    simulate_multi_round_game,
+    resolve_bet,
+    finalize_pot,
+    decide_action,
+    evaluate_hand,
+    _evaluate_five_cards,
+)
 
 
 def test_minimum_raise_enforcement():
@@ -41,7 +51,7 @@ def test_minimum_raise_enforcement():
     # Test within a simulated game
     print("Testing min raise in actual game simulation...")
     for i in range(20):
-        game = PokerEngine.simulate_multi_round_game(
+        game = simulate_multi_round_game(
             initial_bet=10.0,
             player1_energy=100.0,
             player2_energy=100.0,
@@ -74,7 +84,7 @@ def test_wheel_straight():
         Card(Rank.FIVE, Suit.HEARTS),
     ]
 
-    hand = PokerEngine._evaluate_five_cards(wheel)
+    hand = _evaluate_five_cards(wheel)
     print(f"  Hand: {hand.description}")
     print(f"  Type: {hand.hand_type}")
     print(f"  Primary ranks: {hand.primary_ranks}")
@@ -91,7 +101,7 @@ def test_wheel_straight():
         Card(Rank.ACE, Suit.HEARTS),
     ]
 
-    broadway_hand = PokerEngine._evaluate_five_cards(broadway)
+    broadway_hand = _evaluate_five_cards(broadway)
     print(f"\n  Broadway: {broadway_hand.description}")
 
     # Broadway should beat wheel
@@ -116,7 +126,7 @@ def test_wheel_straight_flush():
         Card(Rank.FIVE, Suit.HEARTS),
     ]
 
-    hand = PokerEngine._evaluate_five_cards(wheel_flush)
+    hand = _evaluate_five_cards(wheel_flush)
     print(f"  Hand: {hand.description}")
     print(f"  Type: {hand.hand_type}")
     print(f"  Primary ranks: {hand.primary_ranks}")
@@ -133,7 +143,7 @@ def test_wheel_straight_flush():
         Card(Rank.ACE, Suit.HEARTS),
     ]
 
-    royal_hand = PokerEngine._evaluate_five_cards(royal)
+    royal_hand = _evaluate_five_cards(royal)
     print(f"\n  Royal: {royal_hand.description}")
 
     assert royal_hand.beats(hand), "Royal flush should beat wheel straight flush"
@@ -158,7 +168,7 @@ def test_headsup_blinds_order():
 
     # Run several games and check first actor
     for i in range(10):
-        game = PokerEngine.simulate_multi_round_game(
+        game = simulate_multi_round_game(
             initial_bet=10.0,
             player1_energy=100.0,
             player2_energy=100.0,
@@ -201,8 +211,8 @@ def test_kicker_comparison():
         Card(Rank.TWO, Suit.DIAMONDS),
     ]
 
-    hand1 = PokerEngine._evaluate_five_cards(pair_aces_high_kicker)
-    hand2 = PokerEngine._evaluate_five_cards(pair_aces_low_kicker)
+    hand1 = _evaluate_five_cards(pair_aces_high_kicker)
+    hand2 = _evaluate_five_cards(pair_aces_low_kicker)
 
     print(f"  Hand 1: {hand1.description}")
     print(f"    Kickers: {hand1.kickers}")
@@ -214,7 +224,7 @@ def test_kicker_comparison():
     print("  ✓ King kicker beats Queen kicker")
 
     # Test identical hands tie
-    hand1_copy = PokerEngine._evaluate_five_cards(pair_aces_high_kicker)
+    hand1_copy = _evaluate_five_cards(pair_aces_high_kicker)
     assert hand1.ties(hand1_copy), "Identical hands should tie"
     assert not hand1.beats(hand1_copy), "Identical hands should not beat each other"
     print("  ✓ Identical hands correctly tie")
@@ -241,7 +251,7 @@ def test_best_five_from_seven():
         Card(Rank.ACE, Suit.CLUBS),
     ]
 
-    hand = PokerEngine.evaluate_hand(hole_cards, community)
+    hand = evaluate_hand(hole_cards, community)
     print(f"  Hole cards: 2s 3s")
     print(f"  Community: T-J-Q-K-A (Broadway straight)")
     print(f"  Best hand: {hand.description}")
@@ -274,8 +284,8 @@ def test_split_pot_ties():
         Card(Rank.ACE, Suit.CLUBS),
     ]
 
-    hand1 = PokerEngine.evaluate_hand(hole1, community)
-    hand2 = PokerEngine.evaluate_hand(hole2, community)
+    hand1 = evaluate_hand(hole1, community)
+    hand2 = evaluate_hand(hole2, community)
 
     print(f"  Player 1: {hand1.description}")
     print(f"  Player 2: {hand2.description}")
@@ -286,7 +296,7 @@ def test_split_pot_ties():
     print("  ✓ Both players tie (playing the board)")
 
     # Test resolve_bet for tie
-    result1, result2 = PokerEngine.resolve_bet(hand1, hand2, 10.0, 10.0)
+    result1, result2 = resolve_bet(hand1, hand2, 10.0, 10.0)
     assert result1 == 0.0 and result2 == 0.0, "Tie should result in no money transfer"
     print("  ✓ resolve_bet returns (0, 0) for tie")
 
@@ -307,10 +317,10 @@ def test_table_stakes_all_in():
         Card(Rank.THREE, Suit.DIAMONDS),
         Card(Rank.FOUR, Suit.SPADES),
     ]
-    hand = PokerEngine.evaluate_hand(hole, community)
+    hand = evaluate_hand(hole, community)
 
     # Test 1: Player has $5, opponent bets $10 - should go all-in, not fold
-    action, amount = PokerEngine.decide_action(
+    action, amount = decide_action(
         hand=hand,
         current_bet=0.0,
         opponent_bet=10.0,
@@ -329,7 +339,7 @@ def test_table_stakes_all_in():
     print("  ✓ Player goes all-in instead of folding")
 
     # Test 2: Player has enough to call - should work normally
-    action2, amount2 = PokerEngine.decide_action(
+    action2, amount2 = decide_action(
         hand=hand,
         current_bet=0.0,
         opponent_bet=10.0,
@@ -360,7 +370,7 @@ def test_unmatched_bets_refund():
     # Run several games where one player has much less energy
     # The rich player should not lose more than the poor player can match
     for i in range(10):
-        game = PokerEngine.simulate_multi_round_game(
+        game = simulate_multi_round_game(
             initial_bet=10.0,
             player1_energy=100.0,  # Rich player
             player2_energy=15.0,   # Poor player (can only afford ~15)
@@ -437,7 +447,7 @@ def test_finalize_pot_distribution():
         Card(Rank.NINE, Suit.DIAMONDS),
     ]
 
-    payout1, payout2 = PokerEngine.finalize_pot(state1)
+    payout1, payout2 = finalize_pot(state1)
     print(f"  Test 1: P1 has Aces, P2 has Kings")
     print(f"  Pot: {state1.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
     assert payout1 == 100.0 and payout2 == 0.0, f"P1 should win full pot, got ({payout1}, {payout2})"
@@ -448,7 +458,7 @@ def test_finalize_pot_distribution():
     state2.pot = 50.0
     state2.player1_folded = True
 
-    payout1, payout2 = PokerEngine.finalize_pot(state2)
+    payout1, payout2 = finalize_pot(state2)
     print(f"\n  Test 2: P1 folded")
     print(f"  Pot: {state2.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
     assert payout1 == 0.0 and payout2 == 50.0, f"P2 should win by fold, got ({payout1}, {payout2})"
@@ -468,7 +478,7 @@ def test_finalize_pot_distribution():
         Card(Rank.ACE, Suit.CLUBS),
     ]
 
-    payout1, payout2 = PokerEngine.finalize_pot(state3)
+    payout1, payout2 = finalize_pot(state3)
     print(f"\n  Test 3: Both play the board (Broadway straight)")
     print(f"  Pot: {state3.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
     assert payout1 == 50.0 and payout2 == 50.0, f"Pot should be split 50/50, got ({payout1}, {payout2})"

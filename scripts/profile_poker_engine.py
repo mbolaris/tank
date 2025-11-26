@@ -15,14 +15,14 @@ from time import perf_counter
 
 sys.path.insert(0, r"c:\shared\bolaris\tank")
 
-from core.poker.core.engine import PokerEngine
+from core.poker.core import simulate_multi_round_game
 
 N_ITER = 300
 
 
 def run_once():
     # Use smaller energies and bets to keep each game fast
-    PokerEngine.simulate_multi_round_game(initial_bet=5.0, player1_energy=100.0, player2_energy=100.0)
+    simulate_multi_round_game(initial_bet=5.0, player1_energy=100.0, player2_energy=100.0)
 
 
 def main():

@@ -13,8 +13,9 @@ from core.poker.core import (
     BettingRound,
     Card,
     Deck,
-    PokerEngine,
     PokerHand,
+    decide_action,
+    evaluate_hand,
 )
 
 logger = logging.getLogger(__name__)
@@ -311,7 +312,7 @@ class HumanPokerGame:
             if player.folded:
                 continue
 
-            hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
+            hand = evaluate_hand(player.hole_cards, self.community_cards)
             logger.debug(f"Player {player.name}: {hand}")
 
             if best_hand is None or hand.beats(best_hand):
@@ -612,14 +613,14 @@ class HumanPokerGame:
             self.big_blind_has_option = False
 
         # Evaluate hand
-        hand = PokerEngine.evaluate_hand(player.hole_cards, self.community_cards)
+        hand = evaluate_hand(player.hole_cards, self.community_cards)
         call_amount = self._get_call_amount(self.current_player_index)
 
-        # Use PokerEngine to decide action
+        # Use decide_action to decide action
         active_bets = [p.current_bet for p in self.players if not p.folded]
         opponent_bet = max(active_bets) if active_bets else 0.0
 
-        action, bet_amount = PokerEngine.decide_action(
+        action, bet_amount = decide_action(
             hand=hand,
             current_bet=player.current_bet,
             opponent_bet=opponent_bet,

@@ -16,7 +16,8 @@ from core.poker.strategy.implementations import PokerStrategyAlgorithm
 if TYPE_CHECKING:  # pragma: no cover
     from core.entities.fractal_plant import FractalPlant
     from core.plant_genetics import PlantGenome
-    from core.poker.core.engine import BettingAction
+
+from core.poker.betting.actions import BettingAction
 
 
 class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
@@ -54,8 +55,6 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
     ) -> Tuple["BettingAction", float]:
-        from core.poker.core.engine import BettingAction
-
         call_amount = max(0.0, opponent_bet - current_bet)
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
