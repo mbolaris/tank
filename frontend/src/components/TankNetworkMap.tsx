@@ -103,7 +103,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
 
     useEffect(() => {
         fetchTransfers();
-        const interval = setInterval(fetchTransfers, 12000);
+        const interval = setInterval(fetchTransfers, 2000);
         return () => clearInterval(interval);
     }, [fetchTransfers]);
 
@@ -240,7 +240,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
 
     useEffect(() => {
         pollTransfers();
-        const interval = setInterval(pollTransfers, 4000);
+        const interval = setInterval(pollTransfers, 1000);
         return () => clearInterval(interval);
     }, [pollTransfers]);
 
