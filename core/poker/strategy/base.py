@@ -14,6 +14,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
+from core.poker.core.cards import Card, Rank, Suit
+from core.poker.evaluation.strength import evaluate_starting_hand_strength as _evaluate_strength
+
 if TYPE_CHECKING:
     from core.entities import Fish
 
@@ -159,72 +162,35 @@ class PokerStrategyEngine:
         model = self.get_opponent_model(opponent_id)
         model.update_from_game(won, folded, raised, called, aggression, frame)
 
+    # Rank and suit mappings for converting tuple format to Card objects
+    _RANK_MAP = {
+        "2": Rank.TWO, "3": Rank.THREE, "4": Rank.FOUR, "5": Rank.FIVE,
+        "6": Rank.SIX, "7": Rank.SEVEN, "8": Rank.EIGHT, "9": Rank.NINE,
+        "T": Rank.TEN, "J": Rank.JACK, "Q": Rank.QUEEN, "K": Rank.KING, "A": Rank.ACE,
+    }
+    _SUIT_MAP = {
+        "c": Suit.CLUBS, "d": Suit.DIAMONDS, "h": Suit.HEARTS, "s": Suit.SPADES,
+    }
+
     def evaluate_starting_hand_strength(self, hole_cards: List[Tuple[str, str]]) -> float:
-        """Evaluate the strength of starting hole cards (0.0-1.0)."""
+        """Evaluate the strength of starting hole cards (0.0-1.0).
+        
+        Delegates to core.poker.evaluation.strength for the actual evaluation.
+        """
         if len(hole_cards) != 2:
             return 0.5
 
-        # Extract ranks and suits
-        rank1, suit1 = hole_cards[0]
-        rank2, suit2 = hole_cards[1]
+        # Convert tuple format (rank, suit) to Card objects
+        try:
+            cards = [
+                Card(self._RANK_MAP[r], self._SUIT_MAP[s.lower()])
+                for r, s in hole_cards
+            ]
+        except (KeyError, AttributeError):
+            return 0.5  # Invalid card format
 
-        # Rank values (2-14, where A=14)
-        rank_values = {
-            "2": 2,
-            "3": 3,
-            "4": 4,
-            "5": 5,
-            "6": 6,
-            "7": 7,
-            "8": 8,
-            "9": 9,
-            "T": 10,
-            "J": 11,
-            "Q": 12,
-            "K": 13,
-            "A": 14,
-        }
-        val1 = rank_values.get(rank1, 0)
-        val2 = rank_values.get(rank2, 0)
-
-        high_card = max(val1, val2)
-        low_card = min(val1, val2)
-        is_pair = val1 == val2
-        is_suited = suit1 == suit2
-        gap = high_card - low_card
-
-        # Premium hands (AA, KK, QQ, AK)
-        if is_pair and high_card >= 12:  # QQ+
-            return 0.95
-        if high_card == 14 and low_card == 13:  # AK
-            return 0.90 if is_suited else 0.85
-
-        # Strong hands (JJ, TT, AQ, AJ, KQ)
-        if is_pair and high_card >= 10:  # TT, JJ
-            return 0.80
-        if high_card == 14 and low_card >= 11:  # AQ, AJ
-            return 0.75 if is_suited else 0.70
-        if high_card == 13 and low_card >= 11:  # KQ, KJ
-            return 0.70 if is_suited else 0.65
-
-        # Medium hands (99-66, suited connectors)
-        if is_pair and high_card >= 6:  # 66-99
-            return 0.60
-        if is_suited and gap <= 1 and high_card >= 9:  # Suited connectors T9s+
-            return 0.65
-        if high_card == 14 and low_card >= 9:  # AT, A9
-            return 0.60 if is_suited else 0.50
-
-        # Weak hands (small pairs, suited aces)
-        if is_pair:  # 22-55
-            return 0.45
-        if is_suited and high_card == 14:  # Suited ace-rag
-            return 0.50
-        if is_suited and gap <= 2 and high_card >= 7:  # Suited near-connectors
-            return 0.45
-
-        # Trash (random low cards)
-        return 0.20 + (high_card / 14.0) * 0.15  # 0.20-0.35 based on high card
+        # Delegate to the canonical implementation (without position adjustment)
+        return _evaluate_strength(cards, position_on_button=False)
 
     def should_play_hand(
         self,
