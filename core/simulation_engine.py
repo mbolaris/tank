@@ -4,13 +4,23 @@ This module provides a headless simulation engine that can run the fish tank
 simulation without any visualization code.
 """
 
+import json
 import logging
 import random
 import time
 from typing import Any, Dict, List, Optional
 
-from core import entities, environment
+from core import entities, environment, movement_strategy
+from core.algorithms import get_algorithm_index, get_algorithm_name
 from core.constants import (
+    AUTO_FOOD_ENABLED,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_1,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
+    AUTO_FOOD_SPAWN_RATE,
+    AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
     FILES,
@@ -19,6 +29,7 @@ from core.constants import (
     FRACTAL_PLANT_MATURE_ENERGY,
     FRACTAL_PLANTS_ENABLED,
     FRAME_RATE,
+    LIVE_FOOD_SPAWN_CHANCE,
     MAX_DIVERSITY_SPAWN_ATTEMPTS,
     MAX_POKER_EVENTS,
     MAX_POPULATION,
@@ -31,10 +42,14 @@ from core.constants import (
 )
 from core.collision_system import CollisionSystem
 from core.ecosystem import EcosystemManager
+from core.entities.fractal_plant import FractalPlant, PlantNectar
 from core.entity_factory import create_initial_population
 from core.fish_poker import PokerInteraction
+from core.genetics import Genome
+from core.object_pool import FoodPool
 from core.poker_system import PokerSystem
 from core.plant_genetics import PlantGenome
+from core.registry import get_algorithm_metadata
 from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
 from core.simulators.base_simulator import BaseSimulator
@@ -147,8 +162,6 @@ class SimulationEngine(BaseSimulator):
         self.poker_events = self.poker_system.poker_events
 
         # Performance: Object pool for Food entities
-        from core.object_pool import FoodPool
-
         self.food_pool = FoodPool()
 
         # Performance: Cached entity type lists to avoid repeated filtering
@@ -211,9 +224,6 @@ class SimulationEngine(BaseSimulator):
 
     def _get_fractal_variant_counts(self) -> Dict[str, int]:
         """Count how many plants of each LLM variant are present."""
-
-        # Import locally to avoid circular imports at module load time
-        from core.entities.fractal_plant import FractalPlant
 
         counts = {variant: 0 for variant in self._fractal_variants}
         for entity in self.entities_list:
@@ -283,8 +293,6 @@ class SimulationEngine(BaseSimulator):
         if self.root_spot_manager is None or self.environment is None:
             return
 
-        from core.entities.fractal_plant import FractalPlant
-
         for _ in range(FRACTAL_PLANT_INITIAL_COUNT):
             # Get a random empty root spot
             spot = self.root_spot_manager.get_random_empty_spot()
@@ -329,8 +337,6 @@ class SimulationEngine(BaseSimulator):
         """
         if self.root_spot_manager is None or self.environment is None:
             return False
-
-        from core.entities.fractal_plant import FractalPlant
 
         # Find a suitable spot near the parent
         spot = self.root_spot_manager.find_spot_for_sprouting(parent_x, parent_y)
@@ -499,8 +505,6 @@ class SimulationEngine(BaseSimulator):
 
             elif FRACTAL_PLANTS_ENABLED and hasattr(entity, 'plant_id'):
                 # FractalPlant handling
-                from core.entities.fractal_plant import FractalPlant, PlantNectar
-
                 if isinstance(entity, FractalPlant):
                     nectar = entity.update(self.frame_count, time_modifier, time_of_day)
                     if nectar is not None:
@@ -589,18 +593,6 @@ class SimulationEngine(BaseSimulator):
 
         Override base implementation to use food pool.
         """
-        from core.constants import (
-            AUTO_FOOD_ENABLED,
-            AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
-            AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
-            AUTO_FOOD_HIGH_POP_THRESHOLD_1,
-            AUTO_FOOD_HIGH_POP_THRESHOLD_2,
-            AUTO_FOOD_LOW_ENERGY_THRESHOLD,
-            AUTO_FOOD_SPAWN_RATE,
-            AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
-            LIVE_FOOD_SPAWN_CHANCE,
-        )
-
         if not AUTO_FOOD_ENABLED:
             return
 
@@ -685,10 +677,6 @@ class SimulationEngine(BaseSimulator):
         """
         if self.environment is None or self.ecosystem is None:
             return
-
-        from core import movement_strategy
-        from core.algorithms import get_algorithm_index
-        from core.genetics import Genome
 
         # Get current fish to analyze diversity (use cached list)
         fish_list = self.get_fish_list()
@@ -819,7 +807,6 @@ class SimulationEngine(BaseSimulator):
         stats["fish_count"] = len(fish_list)
         stats["food_count"] = len(self.get_food_list())
         # Add separate fish and plant energy
-        from core.entities.fractal_plant import FractalPlant
         stats["fish_energy"] = sum(fish.energy for fish in fish_list)
         plant_list = [e for e in self.entities_list if isinstance(e, FractalPlant)]
         stats["plant_energy"] = sum(plant.energy for plant in plant_list)
@@ -845,11 +832,6 @@ class SimulationEngine(BaseSimulator):
         if self.ecosystem is None:
             logger.warning("Cannot export stats: ecosystem not initialized")
             return
-
-        import json
-
-        from core.algorithms import get_algorithm_name
-        from core.registry import get_algorithm_metadata
 
         # Get algorithm source mapping for AI agent
         algorithm_metadata = get_algorithm_metadata()
