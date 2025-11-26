@@ -158,6 +158,52 @@ def _handle_task_exception(task: asyncio.Task) -> None:
 _heartbeat_task: Optional[asyncio.Task] = None
 
 
+def get_server_info() -> "ServerInfo":
+    """Get current server information.
+    
+    Returns:
+        ServerInfo object with current server state
+    """
+    try:
+        import psutil
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory_mb = psutil.Process().memory_info().rss / 1024 / 1024
+        logical_cpus = psutil.cpu_count(logical=True)
+    except ImportError:
+        cpu_percent = None
+        memory_mb = None
+        logical_cpus = None
+    except Exception as e:
+        logger.warning(f"Failed to get system metrics: {e}")
+        cpu_percent = None
+        memory_mb = None
+        logical_cpus = None
+    
+    # Calculate uptime
+    uptime_seconds = time.time() - _server_start_time
+    
+    # Get network IP
+    network_ip = _get_network_ip()
+    
+    return ServerInfo(
+        server_id=SERVER_ID,
+        hostname=socket.gethostname(),
+        host=network_ip,
+        port=DEFAULT_API_PORT,
+        status="online",
+        tank_count=tank_registry.tank_count,
+        version=SERVER_VERSION,
+        uptime_seconds=uptime_seconds,
+        cpu_percent=cpu_percent,
+        memory_mb=memory_mb,
+        is_local=True,
+        platform=platform.system(),
+        architecture=platform.machine(),
+        hardware_model=None,  # Could be populated with platform.processor() if needed
+        logical_cpus=logical_cpus,
+    )
+
+
 async def _heartbeat_loop() -> None:
     """Background task to send periodic heartbeats to discovery service."""
     while True:
@@ -364,7 +410,7 @@ async def lifespan(app: FastAPI):
             migration_scheduler = MigrationScheduler(
                 connection_manager=connection_manager,
                 tank_registry=tank_registry,
-                check_interval=10.0,
+                check_interval=2.0,
                 discovery_service=discovery_service,
                 server_client=server_client,
                 local_server_id=SERVER_ID,

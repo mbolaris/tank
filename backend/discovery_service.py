@@ -36,9 +36,9 @@ class DiscoveryService:
     """
 
     # Heartbeat settings
-    HEARTBEAT_INTERVAL = 30.0  # Send heartbeat every 30 seconds
-    HEARTBEAT_TIMEOUT = 90.0   # Mark offline after 90 seconds without heartbeat
-    CLEANUP_INTERVAL = 60.0    # Check for stale servers every 60 seconds
+    HEARTBEAT_INTERVAL = 2.0  # Send heartbeat every 2 seconds (was 30.0)
+    HEARTBEAT_TIMEOUT = 6.0   # Mark offline after 6 seconds without heartbeat (was 90.0)
+    CLEANUP_INTERVAL = 5.0    # Check for stale servers every 5 seconds (was 60.0)
 
     def __init__(self, data_dir: Path = Path("data")):
         """Initialize the discovery service.
