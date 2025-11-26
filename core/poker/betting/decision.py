@@ -19,6 +19,9 @@ from core.constants import (
     POKER_MEDIUM_POT_MULTIPLIER,
     POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD,
     POKER_MEDIUM_RAISE_PROBABILITY,
+    POKER_PREFLOP_MAX_ENERGY_FRACTION,
+    POKER_PREFLOP_MIN_RAISE_MULTIPLIER,
+    POKER_PREFLOP_STRENGTH_THRESHOLD,
     POKER_STRONG_CALL_MULTIPLIER,
     POKER_STRONG_ENERGY_FRACTION,
     POKER_STRONG_ENERGY_FRACTION_RERAISE,
@@ -181,7 +184,7 @@ def decide_action(
                 return (BettingAction.CHECK, 0.0)
             else:
                 # Can't check with a bet to call
-                if starting_strength > pot_odds * 0.8:
+                if starting_strength > pot_odds * POKER_PREFLOP_STRENGTH_THRESHOLD:
                     return (BettingAction.CALL, call_amount)
                 else:
                     return (BettingAction.FOLD, 0.0)
@@ -191,9 +194,9 @@ def decide_action(
             else:
                 return (BettingAction.CALL, call_amount)
         else:  # raise
-            raise_amount = min(pot * bet_multiplier, player_energy * 0.3)
+            raise_amount = min(pot * bet_multiplier, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION)
             if call_amount > 0:
-                raise_amount = max(raise_amount, call_amount * 1.5)
+                raise_amount = max(raise_amount, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER)
             return (BettingAction.RAISE, raise_amount)
 
     # Determine hand strength category and delegate to appropriate helper

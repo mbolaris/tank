@@ -14,6 +14,12 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
+from core.constants import (
+    POKER_LAG_ENERGY_FRACTION,
+    POKER_PREFLOP_MAX_ENERGY_FRACTION,
+    POKER_PREFLOP_MIN_RAISE_MULTIPLIER,
+)
+
 if TYPE_CHECKING:
     from core.poker.core.engine import BettingAction
 
@@ -145,7 +151,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         if hand_strength >= self.parameters["strong_raise_threshold"]:
             raise_amt = pot * self.parameters["value_raise_multiplier"]
             raise_amt = min(raise_amt, player_energy * 0.4)
-            raise_amt = max(raise_amt, call_amount * 1.5)
+            raise_amt = max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER)
             return (BettingAction.RAISE, raise_amt)
 
         return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
@@ -191,19 +197,19 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 
         if call_amount == 0 and hand_strength > 0.2:
             raise_amt = pot * self.parameters["raise_multiplier"]
-            return (BettingAction.RAISE, min(raise_amt, player_energy * 0.35))
+            return (BettingAction.RAISE, min(raise_amt, player_energy * POKER_LAG_ENERGY_FRACTION))
 
         if hand_strength < self.parameters["weak_fold_threshold"]:
             return (BettingAction.FOLD, 0.0)
 
         if random.random() < self.parameters["bluff_frequency"]:
             bluff = pot * random.uniform(0.5, 1.2)
-            return (BettingAction.RAISE, min(bluff, player_energy * 0.3))
+            return (BettingAction.RAISE, min(bluff, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION))
 
         if hand_strength >= self.parameters["raise_threshold"]:
             raise_amt = pot * self.parameters["raise_multiplier"]
             raise_amt = min(raise_amt, player_energy * 0.4)
-            return (BettingAction.RAISE, max(raise_amt, call_amount * 1.5))
+            return (BettingAction.RAISE, max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER))
 
         return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
 
@@ -320,12 +326,12 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         if hand_strength >= self.parameters["strong_threshold"]:
             raise_amt = pot * self.parameters["value_raise_multiplier"]
             raise_amt = min(raise_amt, player_energy * 0.40)
-            return (BettingAction.RAISE, max(raise_amt, call_amount * 1.5))
+            return (BettingAction.RAISE, max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER))
 
         if hand_strength >= self.parameters["medium_threshold"]:
             if random.random() < 0.4:
                 raise_amt = pot * self.parameters["value_raise_multiplier"] * 0.7
-                raise_amt = min(raise_amt, player_energy * 0.30)
+                raise_amt = min(raise_amt, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION)
                 return (BettingAction.RAISE, max(raise_amt, call_amount * 1.3))
             return (
                 (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)

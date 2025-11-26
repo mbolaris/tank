@@ -317,6 +317,12 @@ POKER_HOUSE_CUT_SIZE_MULTIPLIER = 0.18  # House cut increase per size unit (8-25
 POKER_MAX_HAND_RANK = 9.0  # Maximum hand rank value for normalization
 POKER_WEAK_HAND_THRESHOLD = 0.3  # Threshold for considering a hand weak (for bluff detection)
 
+# Poker Preflop Decision Constants
+POKER_PREFLOP_STRENGTH_THRESHOLD = 0.8  # Multiplier for pot odds to determine call vs fold
+POKER_PREFLOP_MAX_ENERGY_FRACTION = 0.3  # Maximum fraction of energy to bet preflop
+POKER_PREFLOP_MIN_RAISE_MULTIPLIER = 1.5  # Minimum raise as multiplier of call amount
+POKER_LAG_ENERGY_FRACTION = 0.35  # Energy fraction for loose-aggressive strategy raises
+
 # Post-Poker Reproduction Energy Constants
 POST_POKER_PARENT_ENERGY_CONTRIBUTION = 0.15  # Energy contribution from each parent (15%)
 POST_POKER_MUTATION_RATE = 0.1  # Mutation rate for post-poker offspring
