@@ -191,30 +191,19 @@
     gap: 6px;
 }
 
-.turnBadge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    color: #0f172a;
-    font-weight: bold;
-    font-size: 10px;
-    padding: 3px 8px;
-    border-radius: 10px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
-    z-index: 15;
-    animation: turnBadgePulse 1.5s ease-in-out infinite;
+.activeHighlight {
+    border-radius: 6px;
+    padding: 4px;
+    margin: -4px;
+    box-shadow: 0 0 0 2px #fbbf24, 0 0 12px rgba(251, 191, 36, 0.6);
+    animation: activeGlow 2s ease-in-out infinite;
 }
 
-@keyframes turnBadgePulse {
+@keyframes activeGlow {
     0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+        box-shadow: 0 0 0 2px #fbbf24, 0 0 12px rgba(251, 191, 36, 0.6);
     }
     50% {
-        transform: scale(1.05);
-        box-shadow: 0 3px 12px rgba(251, 191, 36, 0.7);
+        box-shadow: 0 0 0 2px #fcd34d, 0 0 20px rgba(251, 191, 36, 0.8);
     }
 }
