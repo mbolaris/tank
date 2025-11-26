@@ -200,6 +200,24 @@ def _evaluate_five_cards_cached(five_cards_key: Tuple[int, int, int, int, int]) 
     )
 
 
+def _make_pokerhand_from_ints(
+    hand_type, rank_value, description, card_ints, primary_ranks, kickers
+) -> PokerHand:
+    """Build PokerHand from integer card representations.
+
+    card_ints is an iterable of (rank, suit) integer tuples.
+    """
+    cards = [get_card(r, s) for r, s in card_ints]
+    return PokerHand(
+        hand_type=hand_type,
+        rank_value=rank_value,
+        description=description,
+        cards=cards,
+        primary_ranks=primary_ranks,
+        kickers=kickers,
+    )
+
+
 def evaluate_hand(hole_cards: List[Card], community_cards: List[Card]) -> PokerHand:
     """
     Evaluate the best 5-card poker hand from hole cards and community cards.
@@ -256,17 +274,6 @@ def evaluate_hand_cached(hole_key: Tuple[int, ...], community_key: Tuple[int, ..
     all_cards_int = hole_cards + community_cards
     n_cards = len(all_cards_int)
 
-    def make_pokerhand_from_ints(hand_type, rank_value, description, card_ints, primary_ranks, kickers):
-        # Build Card objects using pre-cached cards
-        cards = [get_card(r, s) for r, s in card_ints]
-        return PokerHand(
-            hand_type=hand_type,
-            rank_value=rank_value,
-            description=description,
-            cards=cards,
-            primary_ranks=primary_ranks,
-            kickers=kickers,
-        )
 
     if n_cards < 5:
         # Not enough cards yet - high card from what we have
@@ -283,7 +290,7 @@ def evaluate_hand_cached(hole_key: Tuple[int, ...], community_key: Tuple[int, ..
         top_rank = sorted_cards[0][0]
         description = f"High Card {_rank_name(top_rank)}"
         card_ints = sorted_cards[:5]
-        return make_pokerhand_from_ints(
+        return _make_pokerhand_from_ints(
             "high_card", HandRank.HIGH_CARD, description, card_ints, [], [r for r, s in card_ints[1:5]]
         )
 
