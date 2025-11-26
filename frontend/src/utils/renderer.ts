@@ -1273,8 +1273,8 @@ export class Renderer {
             ctx.strokeStyle = '#2d5a2d';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x, y - height);
+            ctx.moveTo(x, y + height);  // Start at bottom of plant
+            ctx.lineTo(x, y);           // Draw up to top
             ctx.stroke();
             ctx.restore();
             return;
