@@ -24,6 +24,11 @@ export interface TreeNodeData {
 
 const ROOT_NODE_ID = 'root';
 
+export interface LineageTransformResult {
+  tree: TreeNodeData | null;
+  error: string | null;
+}
+
 /**
  * Recursively remove dead fish that have no children (dead-end branches).
  * This prunes the tree to only show lineages that have living descendants or contributed to them.
@@ -57,9 +62,9 @@ const pruneDeadLeaves = (node: TreeNodeData, isRoot: boolean = false): TreeNodeD
   return null;
 };
 
-export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | null => {
+export const transformLineageData = (flatData: FishRecord[]): LineageTransformResult => {
   if (!flatData || flatData.length === 0) {
-    return null;
+    return { tree: null, error: null };
   }
 
   try {
@@ -81,10 +86,13 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
 
     // Log orphans if found
     if (orphans.length > 0) {
-      console.error('Phylogenetic tree error: Found orphaned records:', orphans);
-      console.error('Available IDs:', Array.from(idSet));
-      console.error('Full data:', flatData);
-      return null;
+      const orphanPreview = orphans.slice(0, 3).join('; ');
+      const detailSuffix = orphans.length > 3 ? ' (additional orphaned records omitted)' : '';
+
+      return {
+        tree: null,
+        error: `Lineage data contains ${orphans.length} orphaned record(s): ${orphanPreview}${detailSuffix}`,
+      };
     }
 
     // D3 Stratify converts flat list -> nested tree
@@ -128,10 +136,9 @@ export const transformLineageData = (flatData: FishRecord[]): TreeNodeData | nul
     // Prune dead fish that have no children (dead-end branches)
     const prunedResult = pruneDeadLeaves(result, true);
 
-    return prunedResult;
+    return { tree: prunedResult, error: null };
   } catch (error) {
-    console.error('Phylogenetic tree error:', error);
-    console.error('Data that caused error:', flatData);
-    return null;
+    const message = error instanceof Error ? error.message : 'Unknown lineage transform error';
+    return { tree: null, error: `Failed to process lineage data: ${message}` };
   }
 };
