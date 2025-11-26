@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { PlayingCard } from './PlayingCard';
 import { ChipStack } from './PokerChip';
+import type { PokerGamePlayer } from '../../types/simulation';
 import styles from './PokerTable.module.css';
 import cardStyles from './PlayingCard.module.css';
 
@@ -12,11 +13,12 @@ interface PokerTableProps {
     pot: number;
     communityCards: string[];
     resultBanner?: React.ReactNode;
+    players: PokerGamePlayer[];
 }
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
-export function PokerTable({ pot, communityCards, resultBanner }: PokerTableProps) {
+export function PokerTable({ pot, communityCards, resultBanner, players }: PokerTableProps) {
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevCardsRef = useRef<string[]>([]);
@@ -128,14 +130,33 @@ export function PokerTable({ pot, communityCards, resultBanner }: PokerTableProp
                     </div>
                 </div>
 
-                {/* Right side: Result banner only (phase is now in header) */}
-                {resultBanner && (
-                    <div className={styles.rightArea}>
+                {/* Right side: Last moves or result banner */}
+                <div className={styles.rightArea}>
+                    {/* Show last moves when game is active */}
+                    {!resultBanner && (
+                        <div className={styles.lastMovesArea}>
+                            <div className={styles.lastMovesLabel}>Last Moves</div>
+                            <div className={styles.lastMovesList}>
+                                {players.map((player) => (
+                                    <div key={player.player_id} className={styles.lastMoveItem}>
+                                        <span className={styles.lastMovePlayer}>
+                                            {player.is_human ? 'You' : player.name}:
+                                        </span>
+                                        <span className={styles.lastMoveAction}>
+                                            {player.last_action || '—'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {/* Show result banner when game is over */}
+                    {resultBanner && (
                         <div className={styles.resultArea}>
                             {resultBanner}
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

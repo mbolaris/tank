@@ -151,6 +151,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
             <PokerTable
                 pot={gameState.pot}
                 communityCards={gameState.community_cards}
+                players={gameState.players}
                 resultBanner={gameState.game_over && !gameState.session_over ? (
                     <div className={`${styles.resultBanner} ${gameState.winner === 'You' ? styles.winBanner : styles.loseBanner}`}>
                         {gameState.winner === 'You' ? (

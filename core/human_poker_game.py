@@ -39,6 +39,7 @@ class PlayerState:
     algorithm: Optional[str] = None
     genome_data: Optional[Dict[str, Any]] = None
     aggression: float = 0.5
+    last_action: Optional[str] = None  # Track last action (fold, check, call, raise, bet)
 
 
 @dataclass
@@ -146,6 +147,7 @@ class HumanPokerGame:
         for player in self.players:
             player.current_bet = 0.0
             player.total_bet = 0.0
+            player.last_action = None  # Reset last action for new hand
             # Players with no energy are eliminated - mark them as folded
             if player.energy <= 0:
                 player.hole_cards = []
@@ -480,6 +482,7 @@ class HumanPokerGame:
         # Process action
         if action == "fold":
             current_player.folded = True
+            current_player.last_action = "fold"
             self.betting_history.append(
                 {
                     "player": current_player.name,
@@ -503,6 +506,7 @@ class HumanPokerGame:
                     "error": f"Cannot check - must call {call_amount:.0f} or fold",
                     "state": self.get_state(),
                 }
+            current_player.last_action = "check"
             self.betting_history.append(
                 {
                     "player": current_player.name,
@@ -524,6 +528,7 @@ class HumanPokerGame:
                 # All-in call
                 call_amount = current_player.energy
             self._player_bet(self.current_player_index, call_amount)
+            current_player.last_action = f"call {call_amount:.0f}"
             self.betting_history.append(
                 {
                     "player": current_player.name,
@@ -548,10 +553,12 @@ class HumanPokerGame:
                 total_amount = current_player.energy
 
             self._player_bet(self.current_player_index, total_amount)
+            action_name = "raise" if call_amount > 0 else "bet"
+            current_player.last_action = f"{action_name} {total_amount:.0f}"
             self.betting_history.append(
                 {
                     "player": current_player.name,
-                    "action": "raise" if call_amount > 0 else "bet",
+                    "action": action_name,
                     "amount": total_amount,
                 }
             )
@@ -559,7 +566,7 @@ class HumanPokerGame:
             self.actions_this_round = 1
             # Clear big blind option since there was a raise
             self.big_blind_has_option = False
-            self.message = f"{current_player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.0f}"
+            self.message = f"{current_player.name} {action_name}s {total_amount:.0f}"
 
         else:
             return {
@@ -635,6 +642,7 @@ class HumanPokerGame:
         # Process action directly without calling handle_action to avoid recursion
         if action == BettingAction.FOLD:
             player.folded = True
+            player.last_action = "fold"
             self.betting_history.append({"player": player.name, "action": "fold", "amount": 0.0})
             self.actions_this_round += 1
             self.message = f"{player.name} folds"
@@ -645,6 +653,7 @@ class HumanPokerGame:
                 return
 
         elif action == BettingAction.CHECK:
+            player.last_action = "check"
             self.betting_history.append({"player": player.name, "action": "check", "amount": 0.0})
             self.actions_this_round += 1
             self.message = f"{player.name} checks"
@@ -653,6 +662,7 @@ class HumanPokerGame:
             if call_amount > player.energy:
                 call_amount = player.energy
             self._player_bet(self.current_player_index, call_amount)
+            player.last_action = f"call {call_amount:.0f}"
             self.betting_history.append(
                 {"player": player.name, "action": "call", "amount": call_amount}
             )
@@ -664,10 +674,12 @@ class HumanPokerGame:
             if total_amount > player.energy:
                 total_amount = player.energy
             self._player_bet(self.current_player_index, total_amount)
+            action_name = "raise" if call_amount > 0 else "bet"
+            player.last_action = f"{action_name} {total_amount:.0f}"
             self.betting_history.append(
                 {
                     "player": player.name,
-                    "action": "raise" if call_amount > 0 else "bet",
+                    "action": action_name,
                     "amount": total_amount,
                 }
             )
@@ -676,7 +688,7 @@ class HumanPokerGame:
             # Clear big blind option since there was a raise
             self.big_blind_has_option = False
             self.message = (
-                f"{player.name} {'raises' if call_amount > 0 else 'bets'} {total_amount:.0f}"
+                f"{player.name} {action_name}s {total_amount:.0f}"
             )
 
         # Move to next player
@@ -721,6 +733,7 @@ class HumanPokerGame:
                     "generation": p.generation,
                     "algorithm": p.algorithm,
                     "genome_data": p.genome_data,
+                    "last_action": p.last_action,
                     # Show hole cards for human player or during showdown
                     "hole_cards": (
                         [str(card) for card in p.hole_cards]
