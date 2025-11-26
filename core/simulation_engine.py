@@ -7,7 +7,6 @@ simulation without any visualization code.
 import logging
 import random
 import time
-from collections import deque
 from typing import Any, Dict, List, Optional
 
 from core import entities, environment
@@ -30,10 +29,13 @@ from core.constants import (
     SPAWN_MARGIN_PIXELS,
     TOTAL_ALGORITHM_COUNT,
 )
+from core.collision_system import CollisionSystem
 from core.ecosystem import EcosystemManager
 from core.entity_factory import create_initial_population
 from core.fish_poker import PokerInteraction
+from core.poker_system import PokerSystem
 from core.plant_genetics import PlantGenome
+from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
 from core.simulators.base_simulator import BaseSimulator
 from core.time_system import TimeSystem
@@ -134,12 +136,15 @@ class SimulationEngine(BaseSimulator):
         self.environment: Optional[environment.Environment] = None
         self.time_system: TimeSystem = TimeSystem()
         self.start_time: float = time.time()
-        self.poker_events: deque = deque(
-            maxlen=MAX_POKER_EVENTS
-        )  # Recent poker events (auto-trimming)
         self.last_emergency_spawn_frame: int = (
             -EMERGENCY_SPAWN_COOLDOWN
         )  # Allow immediate first spawn
+
+        # Systems
+        self.collision_system = CollisionSystem(self)
+        self.reproduction_system = ReproductionSystem(self)
+        self.poker_system = PokerSystem(self, max_events=MAX_POKER_EVENTS)
+        self.poker_events = self.poker_system.poker_events
 
         # Performance: Object pool for Food entities
         from core.object_pool import FoodPool
@@ -416,70 +421,20 @@ class SimulationEngine(BaseSimulator):
         self._cache_dirty = False
 
     def check_collision(self, e1: entities.Agent, e2: entities.Agent) -> bool:
-        """Check if two entities collide using bounding box collision.
-
-        Args:
-            e1: First entity
-            e2: Second entity
-
-        Returns:
-            True if entities overlap
-        """
-        # Simple bounding box collision
-        return (
-            e1.pos.x < e2.pos.x + e2.width
-            and e1.pos.x + e1.width > e2.pos.x
-            and e1.pos.y < e2.pos.y + e2.height
-            and e1.pos.y + e1.height > e2.pos.y
-        )
+        """Delegate collision detection to the collision system."""
+        return self.collision_system.check_collision(e1, e2)
 
     def handle_fish_food_collision(self, fish: entities.Agent, food: entities.Agent) -> None:
-        """Handle collision between a fish and food.
+        """Delegate fish-food collision handling to the collision system."""
+        self.collision_system.handle_fish_food_collision(fish, food)
 
-        Overridden to handle PlantNectar consumption triggering plant sprouting.
-        """
-        from core.entities.fractal_plant import PlantNectar
-
-        # Check if this is plant nectar
-        if isinstance(food, PlantNectar) and FRACTAL_PLANTS_ENABLED:
-            # Fish consumes the nectar
-            fish.eat(food)
-
-            if food.is_consumed():
-                # Get the parent genome and trigger sprouting
-                parent_genome = food.consume()
-                parent_x = food.source_plant.pos.x if food.source_plant else food.pos.x
-                parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
-
-                # Try to sprout a new plant
-                self.sprout_new_plant(parent_genome, parent_x, parent_y)
-
-                # Remove the nectar
-                self.remove_entity(food)
-        else:
-            # Normal food handling
-            fish.eat(food)
-
-            # Only remove food if it's fully consumed
-            if food.is_fully_consumed():
-                food.get_eaten()
-                self.remove_entity(food)
+    def handle_reproduction(self) -> None:
+        """Delegate reproduction handling to the reproduction system."""
+        self.reproduction_system.handle_reproduction()
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
-        """Handle the result of a poker game by logging to events list.
-
-        Also handles post-poker reproduction if it occurred.
-        """
-        self.add_poker_event(poker)
-
-        if (
-            poker.result is not None
-            and poker.result.reproduction_occurred
-            and poker.result.offspring is not None
-        ):
-            offspring = poker.result.offspring
-            self.add_entity(offspring)
-            # Note: Birth is automatically recorded by Fish.__init__ when ecosystem is provided
+        """Delegate poker result processing to the poker system."""
+        self.poker_system.handle_poker_result(poker)
 
     def update(self) -> None:
         """Update the state of the simulation.
@@ -799,89 +754,22 @@ class SimulationEngine(BaseSimulator):
         message: str,
         is_jellyfish: bool,
     ) -> None:
-        """Helper method to add a poker event to history.
+        """Helper method that delegates to the poker system."""
 
-        Args:
-            winner_id: ID of the winner (-1 for tie, -2 for jellyfish)
-            loser_id: ID of the loser (-2 for jellyfish)
-            winner_hand: Description of winner's hand
-            loser_hand: Description of loser's hand
-            energy_transferred: Amount of energy transferred
-            message: Event message
-            is_jellyfish: Whether jellyfish was involved
-        """
-        event = {
-            "frame": self.frame_count,
-            "winner_id": winner_id,
-            "loser_id": loser_id,
-            "winner_hand": winner_hand,
-            "loser_hand": loser_hand,
-            "energy_transferred": energy_transferred,
-            "message": message,
-            "is_jellyfish": is_jellyfish,
-        }
-        # Deque with maxlen automatically drops oldest when full
-        self.poker_events.append(event)
+        self.poker_system._add_poker_event_to_history(
+            winner_id,
+            loser_id,
+            winner_hand,
+            loser_hand,
+            energy_transferred,
+            message,
+            is_jellyfish,
+        )
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
-        """Add a poker event to the recent events list."""
-        if poker.result is None:
-            return
+        """Delegate event creation to the poker system."""
 
-        result = poker.result
-        num_players = len(result.player_ids)
-
-        # Create event message
-        if result.winner_id == -1:
-            # Tie - show all players involved
-            hand1_desc = result.hand1.description if result.hand1 is not None else "Unknown"
-            if num_players == 2:
-                message = f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
-            else:
-                # Multi-player tie - show all players
-                player_list = ", ".join(f"#{pid}" for pid in result.player_ids)
-                message = f"Fish {player_list} - TIE! ({hand1_desc})"
-        else:
-            # Get winner's hand from player_hands based on winner_id
-            winner_hand_obj = None
-            for i, pid in enumerate(result.player_ids):
-                if pid == result.winner_id:
-                    winner_hand_obj = result.player_hands[i]
-                    break
-            winner_desc = winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
-
-            # Format loser(s)
-            if num_players == 2:
-                # 2-player game: show single loser
-                message = (
-                    f"Fish #{result.winner_id} beats Fish #{result.loser_id} "
-                    f"with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
-                )
-            else:
-                # Multi-player game: show all losers
-                loser_list = ", ".join(f"#{lid}" for lid in result.loser_ids)
-                message = (
-                    f"Fish #{result.winner_id} beats Fish {loser_list} "
-                    f"with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
-                )
-
-        # Extract hand descriptions for the event record
-        # For 2-player games, use legacy approach; for multi-player, use first player vs first loser
-        winner_hand_obj = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
-        loser_hand_obj = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
-        winner_hand_desc = winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
-        loser_hand_desc = loser_hand_obj.description if loser_hand_obj is not None else "Unknown"
-
-        # Add to history using helper method
-        self._add_poker_event_to_history(
-            result.winner_id,
-            result.loser_id,
-            winner_hand_desc,
-            loser_hand_desc,
-            result.energy_transferred,
-            message,
-            is_jellyfish=False,
-        )
+        self.poker_system.add_poker_event(poker)
 
     def add_jellyfish_poker_event(
         self,
@@ -891,41 +779,21 @@ class SimulationEngine(BaseSimulator):
         jellyfish_hand: str,
         energy_transferred: float,
     ) -> None:
-        """Add a jellyfish poker event to the recent events list.
+        """Delegate jellyfish poker events to the poker system."""
 
-        Args:
-            fish_id: ID of the fish that played
-            fish_won: Whether the fish won
-            fish_hand: Description of the fish's hand
-            jellyfish_hand: Description of the jellyfish's hand
-            energy_transferred: Amount of energy transferred
-        """
-        # Create event message with jellyfish emoji indicator
-        if fish_won:
-            message = f"Fish #{fish_id} beats Jellyfish with {fish_hand}! (+{energy_transferred:.1f} energy)"
-        else:
-            message = f"Jellyfish beats Fish #{fish_id} with {jellyfish_hand}! (-{energy_transferred:.1f} energy)"
-
-        # Add to history using helper method
-        self._add_poker_event_to_history(
-            winner_id=fish_id if fish_won else -2,  # -2 indicates jellyfish won
-            loser_id=-2 if fish_won else fish_id,  # -2 indicates jellyfish lost
-            winner_hand=fish_hand if fish_won else jellyfish_hand,
-            loser_hand=jellyfish_hand if fish_won else fish_hand,
-            energy_transferred=energy_transferred,
-            message=message,
-            is_jellyfish=True,
+        self.poker_system.add_jellyfish_poker_event(
+            fish_id,
+            fish_won,
+            fish_hand,
+            jellyfish_hand,
+            energy_transferred,
         )
 
     def get_recent_poker_events(
         self, max_age_frames: int = POKER_EVENT_MAX_AGE_FRAMES
     ) -> List[Dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
-        return [
-            event
-            for event in self.poker_events
-            if self.frame_count - event["frame"] < max_age_frames
-        ]
+        return self.poker_system.get_recent_poker_events(max_age_frames)
 
     def get_stats(self) -> Dict[str, Any]:
         """Get current simulation statistics.
@@ -1300,46 +1168,16 @@ class SimulationEngine(BaseSimulator):
         plant_hand: str,
         energy_transferred: float,
     ) -> None:
-        """Record a poker event between a fish and a plant.
+        """Delegate plant poker events to the poker system."""
 
-        Args:
-            fish_id: ID of the fish
-            plant_id: ID of the plant
-            fish_won: Whether the fish won
-            fish_hand: Description of fish's hand
-            plant_hand: Description of plant's hand
-            energy_transferred: Amount of energy transferred
-        """
-        # Determine winner/loser IDs
-        # Use -3 for Plant ID to distinguish from Fish (positive) and Jellyfish (-2)
-        if fish_won:
-            winner_id = fish_id
-            loser_id = -3  # Plant
-            winner_hand = fish_hand
-            loser_hand = plant_hand
-            message = f"Fish #{fish_id} beats Plant #{plant_id} with {fish_hand}! (+{energy_transferred:.1f}⚡)"
-        else:
-            winner_id = -3  # Plant
-            loser_id = fish_id
-            winner_hand = plant_hand
-            loser_hand = fish_hand
-            message = f"Plant #{plant_id} beats Fish #{fish_id} with {plant_hand}! (+{energy_transferred:.1f}⚡)"
-
-        event = {
-            "frame": self.frame_count,
-            "winner_id": winner_id,
-            "loser_id": loser_id,
-            "winner_hand": winner_hand,
-            "loser_hand": loser_hand,
-            "energy_transferred": energy_transferred,
-            "message": message,
-            "is_jellyfish": False,  # Not a jellyfish
-            "is_plant": True,  # New flag for plants
-            # Expose the actual plant id for frontend display
-            "plant_id": plant_id,
-        }
-
-        self.poker_events.append(event)
+        self.poker_system.add_plant_poker_event(
+            fish_id,
+            plant_id,
+            fish_won,
+            fish_hand,
+            plant_hand,
+            energy_transferred,
+        )
 
 
 class HeadlessSimulator(SimulationEngine):
