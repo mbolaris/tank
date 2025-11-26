@@ -327,7 +327,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 logger.warning(f"Skipping nectar restoration: missing source plant {source_plant_id}")
 
         # Restore frame number
-        target_world.frame = snapshot["frame"]
+        target_world.engine.frame_count = snapshot["frame"]
 
         # Restore ecosystem statistics
         if "ecosystem" in snapshot:
