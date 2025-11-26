@@ -227,6 +227,7 @@ class ServerInfo(BaseModel):
     architecture: Optional[str] = None  # CPU architecture (x86_64, arm64, etc.)
     hardware_model: Optional[str] = None  # Optional hardware descriptor
     logical_cpus: Optional[int] = None  # Logical CPU count for load estimation
+    physical_cpus: Optional[int] = None  # Physical core count when available
 
 
 class ServerWithTanks(BaseModel):
