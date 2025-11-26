@@ -4,6 +4,8 @@ Poker system for fish interactions.
 This package provides a complete Texas Hold'em poker implementation including:
 - Core game engine (cards, hands, game state)
 - Hand strength evaluation
+- Betting decision logic
+- Game simulation
 - Evolving AI strategies
 - Fish poker interactions
 
@@ -23,13 +25,32 @@ from core.poker.core import (
     PokerHand,
     Rank,
     Suit,
+    get_card,
+)
+
+# Betting module
+from core.poker.betting import (
+    AGGRESSION_HIGH,
+    AGGRESSION_LOW,
+    AGGRESSION_MEDIUM,
+    decide_action,
 )
 
 # Hand evaluation
 from core.poker.evaluation import (
     calculate_pot_odds,
+    evaluate_hand,
+    evaluate_hand_cached,
     evaluate_starting_hand_strength,
     get_action_recommendation,
+)
+
+# Simulation
+from core.poker.simulation import (
+    finalize_pot,
+    resolve_bet,
+    simulate_game,
+    simulate_multi_round_game,
 )
 
 # Strategy system
@@ -56,16 +77,29 @@ __all__ = [
     "Deck",
     "Rank",
     "Suit",
+    "get_card",
     "HandRank",
     "PokerHand",
     "BettingAction",
     "BettingRound",
     "PokerEngine",
     "PokerGameState",
+    # Betting
+    "AGGRESSION_HIGH",
+    "AGGRESSION_LOW",
+    "AGGRESSION_MEDIUM",
+    "decide_action",
     # Evaluation
     "calculate_pot_odds",
+    "evaluate_hand",
+    "evaluate_hand_cached",
     "evaluate_starting_hand_strength",
     "get_action_recommendation",
+    # Simulation
+    "finalize_pot",
+    "resolve_bet",
+    "simulate_game",
+    "simulate_multi_round_game",
     # Strategy
     "HandStrength",
     "OpponentModel",
