@@ -86,7 +86,9 @@ const gptCodexCache = new Map<number, PlantRenderCache>();
  * Create a stable signature for a genome so cache invalidation happens when traits change.
  */
 function getGenomeSignature(genome: PlantGenomeData): string {
-    const ruleSignature = genome.production_rules
+    // Handle missing or undefined production_rules
+    const rules = genome.production_rules ?? [];
+    const ruleSignature = rules
         .map((rule) => `${rule.input}:${rule.output}:${rule.prob}`)
         .join('|');
 
@@ -650,6 +652,18 @@ export function generateLSystemString(
 ): string {
     let current = axiom;
 
+    // Safety check: if no rules provided or empty array, return a basic F pattern
+    // to ensure the plant is visible
+    if (!rules || rules.length === 0) {
+        // If axiom has X but no rules, convert X to F so we at least draw something
+        current = axiom.replace(/X/g, 'F[-F][+F]F');
+        // Apply basic branching
+        for (let i = 0; i < iterations && current.length < 500; i++) {
+            current = current.replace(/F/g, 'F[-F][+F]');
+        }
+        return current;
+    }
+
     // Build rules map
     const ruleMap = new Map<string, Array<{ output: string; prob: number }>>();
     for (const rule of rules) {
@@ -997,6 +1011,29 @@ export function renderFractalPlant(
     // Note: We don't translate back because we want to draw relative to (0,0)
     // which is now at (x,y) with rotation and scaling applied.
     // The geometry was generated at (0,0).
+
+    // Fallback: if no segments were generated, draw a simple stem
+    // This can happen if production_rules are empty or don't match the axiom
+    if (segments.length === 0) {
+        // Draw a simple visible stem so the plant isn't invisible
+        const stemHeight = 40;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -stemHeight);
+        ctx.strokeStyle = stemColor;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Add a simple leaf at the top
+        ctx.beginPath();
+        ctx.ellipse(0, -stemHeight - 5, 8, 12, 0, 0, Math.PI * 2);
+        ctx.fillStyle = leafColor;
+        ctx.fill();
+        
+        ctx.restore();
+        return;
+    }
 
     // Draw shadow
     ctx.save();
