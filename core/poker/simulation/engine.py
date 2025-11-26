@@ -227,27 +227,36 @@ def _apply_action(
         return False
 
     if action == BettingAction.CALL:
-        game_state.betting_history.append((current_player, action, bet_amount))
-        game_state.player_bet(current_player, bet_amount)
-        contexts[current_player].remaining_energy -= bet_amount
+        call_amount = _calculate_call_amount(current_player, game_state)
+        actual_call = min(call_amount, remaining_energy)
+
+        game_state.betting_history.append((current_player, action, actual_call))
+        game_state.player_bet(current_player, actual_call)
+        contexts[current_player].remaining_energy -= actual_call
         return False
 
     if action == BettingAction.RAISE:
         call_amount = _calculate_call_amount(current_player, game_state)
+        call_payment = min(call_amount, remaining_energy)
+        remaining_after_call = remaining_energy - call_payment
+
         actual_raise = _calculate_actual_raise(
             bet_amount=bet_amount,
-            remaining_energy=remaining_energy,
-            call_amount=call_amount,
+            available_energy=remaining_after_call,
             game_state=game_state,
         )
 
-        total_bet = call_amount + actual_raise
+        total_bet = call_payment + actual_raise
         game_state.player_bet(current_player, total_bet)
-        game_state.betting_history.append((current_player, action, actual_raise))
 
         if actual_raise > 0:
+            game_state.betting_history.append((current_player, action, actual_raise))
             game_state.last_raise_amount = actual_raise
             game_state.min_raise = actual_raise
+        else:
+            game_state.betting_history.append(
+                (current_player, BettingAction.CALL, call_payment)
+            )
 
         contexts[current_player].remaining_energy -= total_bet
         return False
@@ -258,23 +267,18 @@ def _apply_action(
 
 def _calculate_call_amount(current_player: int, game_state: PokerGameState) -> float:
     if current_player == 1:
-        return game_state.player2_current_bet - game_state.player1_current_bet
-    return game_state.player1_current_bet - game_state.player2_current_bet
+        return max(0.0, game_state.player2_current_bet - game_state.player1_current_bet)
+    return max(0.0, game_state.player1_current_bet - game_state.player2_current_bet)
 
 
 def _calculate_actual_raise(
-    *,
-    bet_amount: float,
-    remaining_energy: float,
-    call_amount: float,
-    game_state: PokerGameState,
+    *, bet_amount: float, available_energy: float, game_state: PokerGameState
 ) -> float:
-    actual_raise = max(bet_amount, game_state.min_raise)
-    max_raise = remaining_energy - call_amount
+    if available_energy < game_state.min_raise:
+        return 0.0
 
-    if max_raise < game_state.min_raise:
-        return max(0, max_raise)
-    return min(actual_raise, max_raise)
+    actual_raise = max(bet_amount, game_state.min_raise)
+    return min(actual_raise, available_energy)
 
 
 def _round_is_complete(game_state: PokerGameState, actions_this_round: int) -> bool:
