@@ -107,21 +107,21 @@ class PokerEngine:
 
     @staticmethod
     def _decide_strong_hand_action(
-        call_amount: float, pot: float, player_energy: float, aggression: float
+        call_amount: float, pot: float, player_energy: float, aggression: Optional[float]
     ) -> Tuple[BettingAction, float]:
         """Decide action for strong hands (flush or better)."""
         return _decide_strong_hand_action(call_amount, pot, player_energy, aggression)
 
     @staticmethod
     def _decide_medium_hand_action(
-        call_amount: float, pot: float, player_energy: float, aggression: float
+        call_amount: float, pot: float, player_energy: float, aggression: Optional[float]
     ) -> Tuple[BettingAction, float]:
         """Decide action for medium hands (pair through straight)."""
         return _decide_medium_hand_action(call_amount, pot, player_energy, aggression)
 
     @staticmethod
     def _decide_weak_hand_action(
-        call_amount: float, pot: float, player_energy: float, aggression: float
+        call_amount: float, pot: float, player_energy: float, aggression: Optional[float]
     ) -> Tuple[BettingAction, float]:
         """Decide action for weak hands (high card)."""
         return _decide_weak_hand_action(call_amount, pot, player_energy, aggression)
@@ -133,7 +133,7 @@ class PokerEngine:
         opponent_bet: float,
         pot: float,
         player_energy: float,
-        aggression: float = None,
+        aggression: Optional[float] = None,
         hole_cards: Optional[List[Card]] = None,
         community_cards: Optional[List[Card]] = None,
         position_on_button: bool = False,
@@ -156,8 +156,8 @@ class PokerEngine:
         initial_bet: float,
         player1_energy: float,
         player2_energy: float,
-        player1_aggression: float = None,
-        player2_aggression: float = None,
+        player1_aggression: Optional[float] = None,
+        player2_aggression: Optional[float] = None,
         button_position: int = 1,
         player1_strategy: Optional["PokerStrategyAlgorithm"] = None,
         player2_strategy: Optional["PokerStrategyAlgorithm"] = None,

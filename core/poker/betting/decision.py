@@ -136,7 +136,7 @@ def decide_action(
     opponent_bet: float,
     pot: float,
     player_energy: float,
-    aggression: float = None,
+    aggression: Optional[float] = None,
     hole_cards: Optional[List[Card]] = None,
     community_cards: Optional[List[Card]] = None,
     position_on_button: bool = False,
