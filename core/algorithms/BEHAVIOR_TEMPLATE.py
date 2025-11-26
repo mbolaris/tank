@@ -7,6 +7,7 @@ Follow the structure and comments below for best practices.
 File naming: Use descriptive names like 'food_seeking.py' or 'energy_management.py'
 """
 
+import random
 from typing import Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
@@ -138,10 +139,6 @@ class BehaviorTemplate(BehaviorAlgorithm):
         threat_vector = self._get_predator_threat(fish)
         has_threat = threat_vector[0] != 0 or threat_vector[1] != 0
 
-        # Environmental context (optional)
-        # time_of_day = fish.environment.time_system.get_time_of_day()
-        # is_night = time_of_day in ["night", "dusk"]
-
         # --- STEP 2: MAKE DECISIONS ---
 
         # Default: no movement
@@ -159,8 +156,6 @@ class BehaviorTemplate(BehaviorAlgorithm):
                 return self._safe_normalize(dx, dy)
             else:
                 # No food visible: search desperately (random movement)
-                import random
-
                 dx = random.uniform(-1.0, 1.0)
                 dy = random.uniform(-1.0, 1.0)
                 return self._safe_normalize(dx, dy)
@@ -219,8 +214,6 @@ class BehaviorTemplate(BehaviorAlgorithm):
             else:
                 # No nearby fish, explore using custom pattern
                 # This is behavior-specific - implement your strategy here
-                import random
-
                 dx = random.uniform(-0.5, 0.5)
                 dy = random.uniform(-0.5, 0.5)
 

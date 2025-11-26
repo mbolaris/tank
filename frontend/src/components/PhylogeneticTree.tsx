@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Tree, { type CustomNodeElementProps } from 'react-d3-tree';
 import { transformLineageData } from '../utils/lineageUtils';
-import type { FishRecord, TreeNodeData } from '../utils/lineageUtils';
+import type { FishRecord, TreeNodeData, LineageTransformResult } from '../utils/lineageUtils';
 import { config } from '../config';
 import './PhylogeneticTree.css';
 
@@ -52,14 +52,19 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
             const data: FishRecord[] = await response.json();
 
             if (data && data.length > 0) {
-                const nestedData = transformLineageData(data);
-                if (nestedData) {
-                    setTreeData(nestedData);
-                    setError(null);  // Clear any previous errors
+                const { tree, error: lineageError }: LineageTransformResult = transformLineageData(data);
+                if (lineageError) {
+                    setTreeData(null);
+                    setError(lineageError);
+                } else if (tree) {
+                    setTreeData(tree);
+                    setError(null); // Clear any previous errors
                 } else {
+                    setTreeData(null);
                     setError(`Failed to build phylogenetic tree from ${data.length} lineage records.`);
                 }
             } else {
+                setTreeData(null);
                 setError('No lineage data available yet. Fish need to reproduce to build the tree.');
             }
 
