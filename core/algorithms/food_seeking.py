@@ -25,14 +25,45 @@ from core.constants import (
     CHASE_DISTANCE_CRITICAL,
     CHASE_DISTANCE_LOW,
     CHASE_DISTANCE_SAFE_BASE,
+    DANGER_WEIGHT_CRITICAL,
+    DANGER_WEIGHT_LOW,
+    DANGER_WEIGHT_NORMAL,
     FLEE_SPEED_CRITICAL,
     FLEE_SPEED_NORMAL,
     FLEE_THRESHOLD_CRITICAL,
     FLEE_THRESHOLD_LOW,
     FLEE_THRESHOLD_NORMAL,
+    FOOD_CIRCLING_APPROACH_DISTANCE,
+    FOOD_MEMORY_RECORD_DISTANCE,
+    FOOD_PURSUIT_RANGE_CLOSE,
+    FOOD_PURSUIT_RANGE_DESPERATE,
+    FOOD_PURSUIT_RANGE_EXTENDED,
+    FOOD_PURSUIT_RANGE_NORMAL,
+    FOOD_SAFETY_BONUS,
+    FOOD_SAFETY_DISTANCE_RATIO,
+    FOOD_SCORE_THRESHOLD_CRITICAL,
+    FOOD_SCORE_THRESHOLD_LOW,
+    FOOD_SCORE_THRESHOLD_NORMAL,
+    FOOD_SPEED_BOOST_DISTANCE,
+    FOOD_STRIKE_DISTANCE,
+    FOOD_VELOCITY_THRESHOLD,
+    PREDATOR_DANGER_ZONE_DIVISOR,
+    PREDATOR_DANGER_ZONE_RADIUS,
+    PREDATOR_DEFAULT_FAR_DISTANCE,
+    PREDATOR_FLEE_DISTANCE_CAUTIOUS,
+    PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
+    PREDATOR_FLEE_DISTANCE_DESPERATE,
+    PREDATOR_FLEE_DISTANCE_NORMAL,
+    PREDATOR_FLEE_DISTANCE_SAFE,
+    PREDATOR_FLEE_DISTANCE_VERY_SAFE,
+    PREDATOR_GUARDING_FOOD_DISTANCE,
+    PREDATOR_PROXIMITY_THRESHOLD,
     PROXIMITY_BOOST_DIVISOR,
     PROXIMITY_BOOST_MULTIPLIER,
     SCREEN_HEIGHT,
+    SOCIAL_FOLLOW_MAX_DISTANCE,
+    SOCIAL_FOOD_PROXIMITY_THRESHOLD,
+    SOCIAL_SIGNAL_DETECTION_RANGE,
     URGENCY_BOOST_CRITICAL,
     URGENCY_BOOST_LOW,
 )
@@ -59,49 +90,13 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
-        # IMPROVEMENT: Use new critical energy methods for smarter decisions
-        is_critical = fish.is_critical_energy()
-        is_low = fish.is_low_energy()
-        energy_ratio = fish.get_energy_ratio()
+        # Use helper to check energy state (consolidates 3 method calls)
+        is_critical, is_low, energy_ratio = self._get_energy_state(fish)
 
-        # Check for predators first - but adjust caution based on energy
-        nearest_predator = self._find_nearest(fish, Crab)
-        predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
-
-        # IMPROVEMENT: Adaptive flee threshold based on energy state
-        flee_threshold = (
-            FLEE_THRESHOLD_CRITICAL
-            if is_critical
-            else (FLEE_THRESHOLD_LOW if is_low else FLEE_THRESHOLD_NORMAL)
-        )
-
-        if predator_distance < flee_threshold:
-            # NEW: Use predictive avoidance
-            if hasattr(nearest_predator, "vel"):
-                from core.predictive_movement import get_avoidance_direction
-
-                direction = get_avoidance_direction(
-                    fish.pos, fish.vel, nearest_predator.pos, nearest_predator.vel, 1.0
-                )
-            else:
-                # Fallback to simple flee
-                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
-
-            # IMPROVEMENT: Conserve energy when fleeing in critical state
-            flee_speed = FLEE_SPEED_CRITICAL if is_critical else FLEE_SPEED_NORMAL
-
-            # NEW: Remember danger zone
-            if hasattr(fish, "memory_system"):
-                from core.fish_memory import MemoryType
-
-                fish.memory_system.add_memory(
-                    MemoryType.DANGER_ZONE,
-                    nearest_predator.pos,
-                    strength=1.0,
-                    metadata={"predator_type": type(nearest_predator).__name__},
-                )
-
-            return direction.x * flee_speed, direction.y * flee_speed
+        # Use helper to check for predators and flee if necessary
+        should_flee, flee_x, flee_y = self._should_flee_predator(fish)
+        if should_flee:
+            return flee_x, flee_y
 
         nearest_food = self._find_nearest_food(fish)
         if nearest_food:
@@ -119,7 +114,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
             if distance < max_chase_distance:
                 # NEW: Use predictive interception for moving food
-                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.1:
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
                     from core.predictive_movement import predict_intercept_point
 
                     intercept_point, _ = predict_intercept_point(
@@ -147,7 +142,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                 speed = base_speed * (1.0 + proximity_boost + urgency_boost)
 
                 # NEW: Remember successful food locations
-                if hasattr(fish, "memory_system") and distance < 50:
+                if hasattr(fish, "memory_system") and distance < FOOD_MEMORY_RECORD_DISTANCE:
                     from core.fish_memory import MemoryType
 
                     fish.memory_system.add_memory(
@@ -195,8 +190,12 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 
         # Check for predators - even urgent fish should avoid immediate danger
         nearest_predator = self._find_nearest(fish, Crab)
-        predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
-        predator_nearby = predator_distance < 100  # Define predator proximity threshold
+        predator_distance = (
+            (nearest_predator.pos - fish.pos).length()
+            if nearest_predator
+            else PREDATOR_DEFAULT_FAR_DISTANCE
+        )
+        predator_nearby = predator_distance < PREDATOR_PROXIMITY_THRESHOLD
 
         # IMPROVEMENT: Critical energy mode - must find food NOW
         if is_critical:
@@ -206,7 +205,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
                 # If predator is blocking food, try to path around it
                 if predator_nearby:
                     predator_to_food = (nearest_food.pos - nearest_predator.pos).length()
-                    if predator_to_food < 80:  # Predator is guarding the food
+                    if predator_to_food < PREDATOR_GUARDING_FOOD_DISTANCE:
                         # Try perpendicular approach
                         to_food = (nearest_food.pos - fish.pos).normalize()
                         perp_x, perp_y = -to_food.y, to_food.x
@@ -264,7 +263,11 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
             pred_dist = (nearest_predator.pos - fish.pos).length()
-            flee_threshold = 60 if is_critical else 90
+            flee_threshold = (
+                PREDATOR_FLEE_DISTANCE_DESPERATE
+                if is_critical
+                else PREDATOR_FLEE_DISTANCE_CONSERVATIVE
+            )
             if pred_dist < flee_threshold:
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.3, direction.y * 1.3
@@ -283,7 +286,7 @@ class OpportunisticFeeder(BehaviorAlgorithm):
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 # IMPROVEMENT: Speed up when close and when hungry
                 speed = self.parameters["speed"]
-                if distance < 100:
+                if distance < FOOD_SPEED_BOOST_DISTANCE:
                     speed *= 1.3
                 if is_critical:
                     speed *= 1.2
@@ -327,10 +330,18 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
 
         # Check predators first - but be less cautious when critically low energy
         nearest_predator = self._find_nearest(fish, Crab)
-        predator_distance = (nearest_predator.pos - fish.pos).length() if nearest_predator else 999
+        predator_distance = (
+            (nearest_predator.pos - fish.pos).length()
+            if nearest_predator
+            else PREDATOR_DEFAULT_FAR_DISTANCE
+        )
 
         # In critical energy, only flee if predator is very close
-        flee_threshold = 50 if is_critical else (70 if is_low else 90)
+        flee_threshold = (
+            PREDATOR_FLEE_DISTANCE_DESPERATE
+            if is_critical
+            else (PREDATOR_FLEE_DISTANCE_CAUTIOUS if is_low else PREDATOR_FLEE_DISTANCE_CONSERVATIVE)
+        )
         if nearest_predator and predator_distance < flee_threshold:
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             flee_speed = 1.2 if is_critical else 1.4  # Conserve energy even when fleeing
@@ -355,19 +366,21 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
             danger_score = 0
             if nearest_predator:
                 predator_food_dist = (nearest_predator.pos - food.pos).length()
-                if predator_food_dist < 120:
-                    danger_score = (120 - predator_food_dist) / 1.2  # Scale to 0-100
+                if predator_food_dist < PREDATOR_DANGER_ZONE_RADIUS:
+                    danger_score = (
+                        PREDATOR_DANGER_ZONE_RADIUS - predator_food_dist
+                    ) / PREDATOR_DANGER_ZONE_DIVISOR
 
             # IMPROVEMENT: Smarter danger weighting based on energy state
-            # Critical energy: mostly ignore danger (0.1 weight)
-            # Low energy: some caution (0.4 weight)
-            # Normal energy: high caution (0.8 weight)
+            # Critical energy: mostly ignore danger
+            # Low energy: some caution
+            # Normal energy: high caution
             if is_critical:
-                danger_weight = 0.1
+                danger_weight = DANGER_WEIGHT_CRITICAL
             elif is_low:
-                danger_weight = 0.4
+                danger_weight = DANGER_WEIGHT_LOW
             else:
-                danger_weight = 0.7
+                danger_weight = DANGER_WEIGHT_NORMAL
 
             # IMPROVEMENT: Increase quality weight when low energy
             quality_weight = self.parameters["quality_weight"] * (1.5 if is_low else 1.0)
@@ -379,15 +392,19 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
             )
 
             # IMPROVEMENT: Bonus for food that's closer than predator
-            if nearest_predator and distance < predator_distance * 0.7:
-                score += 20  # Bonus for food we can likely get before predator
+            if nearest_predator and distance < predator_distance * FOOD_SAFETY_DISTANCE_RATIO:
+                score += FOOD_SAFETY_BONUS
 
             if score > best_score:
                 best_score = score
                 best_food = food
 
         # IMPROVEMENT: Lower threshold for pursuing food when critically low
-        min_score_threshold = -80 if is_critical else (-60 if is_low else -50)
+        min_score_threshold = (
+            FOOD_SCORE_THRESHOLD_CRITICAL
+            if is_critical
+            else (FOOD_SCORE_THRESHOLD_LOW if is_low else FOOD_SCORE_THRESHOLD_NORMAL)
+        )
 
         if best_food and best_score > min_score_threshold:
             distance_to_food = (best_food.pos - fish.pos).length()
@@ -467,13 +484,13 @@ class PatrolFeeder(BehaviorAlgorithm):
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
             pred_dist = (nearest_predator.pos - fish.pos).length()
-            if pred_dist < 80:
+            if pred_dist < PREDATOR_FLEE_DISTANCE_NORMAL:
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.3, direction.y * 1.3
 
         # Check for nearby food first - EXPANDED detection
         nearest_food = self._find_nearest_food(fish)
-        detection_range = 200 if is_desperate else 150  # INCREASED from 100
+        detection_range = FOOD_PURSUIT_RANGE_DESPERATE if is_desperate else FOOD_PURSUIT_RANGE_NORMAL
         if nearest_food and (nearest_food.pos - fish.pos).length() < detection_range:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             # IMPROVEMENT: Faster when desperate
@@ -524,7 +541,7 @@ class SurfaceSkimmer(BehaviorAlgorithm):
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
             pred_dist = (nearest_predator.pos - fish.pos).length()
-            if pred_dist < 90:
+            if pred_dist < PREDATOR_FLEE_DISTANCE_CONSERVATIVE:
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.3, direction.y * 1.3
 
@@ -617,7 +634,7 @@ class ZigZagForager(BehaviorAlgorithm):
 
         # Check for nearby food
         nearest_food = self._find_nearest_food(fish)
-        if nearest_food and (nearest_food.pos - fish.pos).length() < 80:
+        if nearest_food and (nearest_food.pos - fish.pos).length() < FOOD_PURSUIT_RANGE_CLOSE:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x, direction.y
 
@@ -659,7 +676,7 @@ class CircularHunter(BehaviorAlgorithm):
 
         # Predator check - flee distance based on energy
         nearest_predator = self._find_nearest(fish, Crab)
-        flee_distance = 80 if is_desperate else 110
+        flee_distance = PREDATOR_FLEE_DISTANCE_NORMAL if is_desperate else PREDATOR_FLEE_DISTANCE_VERY_SAFE
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < flee_distance:
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             # Conserve energy when desperate
@@ -700,7 +717,7 @@ class CircularHunter(BehaviorAlgorithm):
 
         # Only circle when well-fed (this is the "hunting" behavior)
         # IMPROVEMENT: Much faster circling to not waste time
-        if distance < 200:
+        if distance < FOOD_CIRCLING_APPROACH_DISTANCE:
             self.circle_angle += 0.25  # Much faster than old 0.05-0.15!
 
             target_x = (
@@ -791,7 +808,9 @@ class AggressiveHunter(BehaviorAlgorithm):
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
             pred_dist = (nearest_predator.pos - fish.pos).length()
-            flee_threshold = 50 if is_critical else 75  # Risk more when desperate
+            flee_threshold = (
+                PREDATOR_FLEE_DISTANCE_DESPERATE if is_critical else PREDATOR_FLEE_DISTANCE_CAUTIOUS
+            )
             if pred_dist < flee_threshold:
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.4, direction.y * 1.4
@@ -812,7 +831,7 @@ class AggressiveHunter(BehaviorAlgorithm):
                 direction = self._safe_normalize(target_pos - fish.pos)
 
                 # Strike mode when very close
-                if distance < 80:
+                if distance < FOOD_STRIKE_DISTANCE:
                     return (
                         direction.x * self.parameters["strike_speed"],
                         direction.y * self.parameters["strike_speed"],
@@ -863,7 +882,7 @@ class SpiralForager(BehaviorAlgorithm):
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
             pred_dist = (nearest_predator.pos - fish.pos).length()
-            if pred_dist < 85:
+            if pred_dist < PREDATOR_FLEE_DISTANCE_SAFE:
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.3, direction.y * 1.3
 
@@ -872,7 +891,7 @@ class SpiralForager(BehaviorAlgorithm):
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
             # Abandon spiral to pursue food
-            if distance < 250 or is_desperate:
+            if distance < FOOD_PURSUIT_RANGE_EXTENDED or is_desperate:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 speed = self.parameters["food_pursuit_speed"] * (1.3 if is_desperate else 1.0)
                 return direction.x * speed, direction.y * speed
@@ -919,7 +938,7 @@ class CooperativeForager(BehaviorAlgorithm):
 
         # Check for predators - IMPROVED avoidance
         nearest_predator = self._find_nearest(fish, Crab)
-        if nearest_predator and (nearest_predator.pos - fish.pos).length() < 100:
+        if nearest_predator and (nearest_predator.pos - fish.pos).length() < PREDATOR_PROXIMITY_THRESHOLD:
             # NEW: Broadcast danger signal
             if hasattr(fish.environment, "communication_system"):
                 from core.fish_communication import SignalType
@@ -937,7 +956,7 @@ class CooperativeForager(BehaviorAlgorithm):
 
         # Look for food directly first - EXPANDED range
         nearest_food = self._find_nearest_food(fish)
-        detection_range = 150 if is_desperate else 100  # INCREASED from 80
+        detection_range = FOOD_PURSUIT_RANGE_NORMAL if is_desperate else FOOD_SPEED_BOOST_DISTANCE
         if nearest_food and (nearest_food.pos - fish.pos).length() < detection_range:
             # NEW: Broadcast food found signal (if social)
             if (
@@ -983,13 +1002,13 @@ class CooperativeForager(BehaviorAlgorithm):
 
         for other_fish in fishes:
             fish_dist = (other_fish.pos - fish.pos).length()
-            if fish_dist > 200:  # Too far to follow
+            if fish_dist > SOCIAL_FOLLOW_MAX_DISTANCE:
                 continue
 
             # Check if this fish is near food or moving toward food
             for food in foods:
                 food_dist = (other_fish.pos - food.pos).length()
-                if food_dist < 80:
+                if food_dist < SOCIAL_FOOD_PROXIMITY_THRESHOLD:
                     # Score based on how close the other fish is to food
                     # and how close we are to that fish
                     score = (100 - food_dist) * (200 - fish_dist) / 100
@@ -1009,7 +1028,7 @@ class CooperativeForager(BehaviorAlgorithm):
         # NEW: Prefer signal target if it's good
         if best_signal_target:
             signal_dist = (best_signal_target - fish.pos).length()
-            if signal_dist < 250:  # Within reasonable range
+            if signal_dist < SOCIAL_SIGNAL_DETECTION_RANGE:
                 best_target = best_signal_target
                 best_score = max(best_score, 50)  # Give it decent priority
 

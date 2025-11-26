@@ -99,8 +99,9 @@ def _get_network_ip() -> str:
         ip = s.getsockname()[0]
         s.close()
         return ip
-    except Exception:
+    except Exception as e:
         # Fallback to localhost if we can't determine network IP
+        logger.debug(f"Could not determine network IP: {e}")
         return "localhost"
 
 

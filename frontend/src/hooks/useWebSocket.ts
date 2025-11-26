@@ -59,8 +59,8 @@ export function useWebSocket(tankId?: string) {
                         responseCallbacksRef.current.forEach((callback) => callback(data));
                         responseCallbacksRef.current.clear();
                     }
-                } catch {
-                    // Silently ignore parse errors - malformed data
+                } catch (error) {
+                    console.error('WebSocket message parse error:', error, 'Data:', event.data);
                 }
             };
 
@@ -83,7 +83,8 @@ export function useWebSocket(tankId?: string) {
             };
 
             wsRef.current = ws;
-        } catch {
+        } catch (error) {
+            console.error('WebSocket connection error:', error);
             setIsConnected(false);
         }
     }, [tankId]);

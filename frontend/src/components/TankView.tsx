@@ -50,7 +50,8 @@ export function TankView({ tankId }: TankViewProps) {
             } else if (response.state) {
                 setPokerGameState(response.state);
             }
-        } catch {
+        } catch (error) {
+            console.error('Failed to start poker game:', error);
             alert('Failed to start poker game. Please try again.');
             setShowPokerGame(false);
         } finally {
@@ -70,7 +71,8 @@ export function TankView({ tankId }: TankViewProps) {
             } else if (response.state) {
                 setPokerGameState(response.state);
             }
-        } catch {
+        } catch (error) {
+            console.error('Failed to send poker action:', error);
             alert('Failed to send action. Please try again.');
         } finally {
             setPokerLoading(false);
@@ -94,7 +96,8 @@ export function TankView({ tankId }: TankViewProps) {
             } else if (response.state) {
                 setPokerGameState(response.state);
             }
-        } catch {
+        } catch (error) {
+            console.error('Failed to start new poker round:', error);
             alert('Failed to start new round. Please try again.');
         } finally {
             setPokerLoading(false);
