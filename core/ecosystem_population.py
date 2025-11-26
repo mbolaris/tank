@@ -1,0 +1,286 @@
+from __future__ import annotations
+
+import logging
+from collections import defaultdict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+from core.ecosystem_stats import EcosystemEvent, GenerationStats, GeneticDiversityStats
+
+if TYPE_CHECKING:
+    from core.ecosystem import EcosystemManager
+    from core.entities import Fish
+    from core.genetics import Genome
+
+logger = logging.getLogger(__name__)
+
+
+def record_birth(
+    ecosystem: "EcosystemManager",
+    fish_id: int,
+    generation: int,
+    parent_ids: Optional[List[int]] = None,
+    algorithm_id: Optional[int] = None,
+    color: Optional[str] = None,
+) -> None:
+    ecosystem.total_births += 1
+
+    if generation not in ecosystem.generation_stats:
+        ecosystem.generation_stats[generation] = GenerationStats(generation=generation)
+
+    ecosystem.generation_stats[generation].births += 1
+    ecosystem.generation_stats[generation].population += 1
+
+    if generation > ecosystem.current_generation:
+        ecosystem.current_generation = generation
+
+    if algorithm_id is not None and algorithm_id in ecosystem.algorithm_stats:
+        ecosystem.algorithm_stats[algorithm_id].total_births += 1
+        ecosystem.algorithm_stats[algorithm_id].current_population += 1
+
+    ecosystem.enhanced_stats.record_offspring_birth(energy_cost=0.0)
+
+    parent_id = None
+    if parent_ids and len(parent_ids) > 0:
+        parent_id = parent_ids[0]
+
+    algorithm_name = "Unknown"
+    if algorithm_id is not None and algorithm_id in ecosystem.algorithm_stats:
+        algorithm_name = ecosystem.algorithm_stats[algorithm_id].algorithm_name
+
+    lineage_record = {
+        "id": str(fish_id),
+        "parent_id": str(parent_id) if parent_id is not None else "root",
+        "generation": generation,
+        "algorithm": algorithm_name,
+        "color": color if color else "#00ff00",
+        "birth_time": ecosystem.frame_count,
+    }
+    ecosystem.lineage_log.append(lineage_record)
+
+    details = f"Parents: {parent_ids}" if parent_ids else "Initial spawn"
+    if algorithm_id is not None:
+        details += f", Algorithm: {algorithm_id}"
+    ecosystem._add_event(
+        EcosystemEvent(
+            frame=ecosystem.frame_count,
+            event_type="birth",
+            fish_id=fish_id,
+            details=details,
+        )
+    )
+
+
+def record_death(
+    ecosystem: "EcosystemManager",
+    fish_id: int,
+    generation: int,
+    age: int,
+    cause: str = "unknown",
+    genome: Optional["Genome"] = None,
+    algorithm_id: Optional[int] = None,
+    remaining_energy: float = 0.0,
+) -> None:
+    ecosystem.total_deaths += 1
+
+    if generation in ecosystem.generation_stats:
+        stats = ecosystem.generation_stats[generation]
+        stats.deaths += 1
+        stats.population = max(0, stats.population - 1)
+
+        total_fish = stats.deaths
+        if total_fish > 0:
+            stats.avg_age = (stats.avg_age * (total_fish - 1) + age) / total_fish
+        else:
+            stats.avg_age = age
+
+    if not isinstance(ecosystem.death_causes, defaultdict):
+        ecosystem.death_causes = defaultdict(int, ecosystem.death_causes)
+
+    ecosystem.death_causes[cause] += 1
+
+    if algorithm_id is not None and algorithm_id in ecosystem.algorithm_stats:
+        algo_stats = ecosystem.algorithm_stats[algorithm_id]
+        algo_stats.total_deaths += 1
+        algo_stats.current_population = max(0, algo_stats.current_population - 1)
+        algo_stats.total_lifespan += age
+
+        if cause == "starvation":
+            algo_stats.deaths_starvation += 1
+        elif cause == "old_age":
+            algo_stats.deaths_old_age += 1
+        elif cause == "predation":
+            algo_stats.deaths_predation += 1
+
+    if genome is not None:
+        ecosystem.enhanced_stats.record_trait_fitness_sample(genome)
+
+    ecosystem.enhanced_stats.record_death_energy_loss(remaining_energy)
+
+    details = f"Age: {age}, Generation: {generation}"
+    if algorithm_id is not None:
+        details += f", Algorithm: {algorithm_id}"
+    ecosystem._add_event(
+        EcosystemEvent(
+            frame=ecosystem.frame_count, event_type=cause, fish_id=fish_id, details=details
+        )
+    )
+
+
+def update_population_stats(ecosystem: "EcosystemManager", fish_list: List["Fish"]) -> None:
+    if not fish_list:
+        return
+
+    gen_fish: Dict[int, List[Fish]] = defaultdict(list)
+    for fish in fish_list:
+        if hasattr(fish, "generation"):
+            gen_fish[fish.generation].append(fish)
+
+    for generation, fishes in gen_fish.items():
+        if generation not in ecosystem.generation_stats:
+            ecosystem.generation_stats[generation] = GenerationStats(generation=generation)
+
+        stats = ecosystem.generation_stats[generation]
+        stats.population = len(fishes)
+
+        fishes_with_genome = [f for f in fishes if hasattr(f, "genome")]
+        if fishes_with_genome:
+            stats.avg_speed = sum(f.genome.speed_modifier for f in fishes_with_genome) / len(fishes)
+            stats.avg_size = sum(f.genome.size_modifier for f in fishes_with_genome) / len(fishes)
+            stats.avg_energy = sum(f.genome.max_energy for f in fishes_with_genome) / len(fishes)
+
+    update_genetic_diversity_stats(ecosystem, fish_list)
+
+    pregnant_count = sum(
+        1
+        for fish in fish_list
+        if hasattr(fish, "reproduction") and fish.reproduction.is_pregnant
+    )
+    ecosystem.update_pregnant_count(pregnant_count)
+
+    if ecosystem.frame_count % 10 == 0:
+        ecosystem.enhanced_stats.record_frame_snapshot(
+            frame=ecosystem.frame_count,
+            fish_list=fish_list,
+            births_this_frame=0,
+            deaths_this_frame=0,
+        )
+
+
+def update_genetic_diversity_stats(ecosystem: "EcosystemManager", fish_list: List["Fish"]) -> None:
+    if not fish_list:
+        ecosystem.genetic_diversity_stats = GeneticDiversityStats()
+        return
+
+    try:
+        from core.algorithms import get_algorithm_index
+    except ImportError:
+        get_algorithm_index = None
+
+    algorithms = set()
+    species = set()
+    color_hues = []
+    speed_modifiers = []
+    size_modifiers = []
+    vision_ranges = []
+
+    for fish in fish_list:
+        if (
+            hasattr(fish, "genome")
+            and hasattr(fish.genome, "behavior_algorithm")
+            and get_algorithm_index is not None
+        ):
+            algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
+            if algo_idx >= 0:
+                algorithms.add(algo_idx)
+
+        if hasattr(fish, "species"):
+            species.add(fish.species)
+
+        if hasattr(fish, "genome"):
+            if hasattr(fish.genome, "color_hue"):
+                color_hues.append(fish.genome.color_hue)
+            if hasattr(fish.genome, "speed_modifier"):
+                speed_modifiers.append(fish.genome.speed_modifier)
+            if hasattr(fish.genome, "size_modifier"):
+                size_modifiers.append(fish.genome.size_modifier)
+            if hasattr(fish.genome, "vision_range"):
+                vision_ranges.append(fish.genome.vision_range)
+
+    color_variance = 0.0
+    if len(color_hues) > 1:
+        mean_color = sum(color_hues) / len(color_hues)
+        color_variance = sum((h - mean_color) ** 2 for h in color_hues) / len(color_hues)
+
+    trait_variances: Dict[str, float] = {}
+    if len(speed_modifiers) > 1:
+        mean_speed = sum(speed_modifiers) / len(speed_modifiers)
+        trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / len(
+            speed_modifiers
+        )
+
+    if len(size_modifiers) > 1:
+        mean_size = sum(size_modifiers) / len(size_modifiers)
+        trait_variances["size"] = sum((s - mean_size) ** 2 for s in size_modifiers) / len(
+            size_modifiers
+        )
+
+    if len(vision_ranges) > 1:
+        mean_vision = sum(vision_ranges) / len(vision_ranges)
+        trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / len(
+            vision_ranges
+        )
+
+    ecosystem.genetic_diversity_stats.unique_algorithms = len(algorithms)
+    ecosystem.genetic_diversity_stats.unique_species = len(species)
+    ecosystem.genetic_diversity_stats.color_variance = color_variance
+    ecosystem.genetic_diversity_stats.trait_variances = trait_variances
+
+
+def get_population_by_generation(ecosystem: "EcosystemManager") -> Dict[int, int]:
+    return {
+        gen: stats.population
+        for gen, stats in ecosystem.generation_stats.items()
+        if stats.population > 0
+    }
+
+
+def get_total_population(ecosystem: "EcosystemManager") -> int:
+    return sum(stats.population for stats in ecosystem.generation_stats.values())
+
+
+def get_summary_stats(
+    ecosystem: "EcosystemManager", entities: Optional[List] = None
+) -> Dict[str, Any]:
+    total_pop = get_total_population(ecosystem)
+    poker_summary = ecosystem.get_poker_stats_summary()
+
+    total_energy = 0.0
+    if entities is not None:
+        from core.entities import Fish
+
+        total_energy = sum(e.energy for e in entities if isinstance(e, Fish))
+
+    alive_generations = [
+        g for g, stats in ecosystem.generation_stats.items() if stats.population > 0
+    ]
+
+    return {
+        "total_population": total_pop,
+        "current_generation": ecosystem.current_generation,
+        "max_generation": max(alive_generations) if alive_generations else 0,
+        "total_births": ecosystem.total_births,
+        "total_deaths": ecosystem.total_deaths,
+        "total_extinctions": ecosystem.total_extinctions,
+        "carrying_capacity": ecosystem.max_population,
+        "capacity_usage": (
+            f"{int(100 * total_pop / ecosystem.max_population)}%"
+            if ecosystem.max_population > 0
+            else "0%"
+        ),
+        "death_causes": dict(ecosystem.death_causes),
+        "generations_alive": len(alive_generations),
+        "poker_stats": poker_summary,
+        "total_energy": total_energy,
+        "reproduction_stats": ecosystem.get_reproduction_summary(),
+        "diversity_stats": ecosystem.get_diversity_summary(),
+    }
