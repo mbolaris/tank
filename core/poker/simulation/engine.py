@@ -248,11 +248,15 @@ def _apply_action(
 
         total_bet = call_payment + actual_raise
         game_state.player_bet(current_player, total_bet)
-        game_state.betting_history.append((current_player, action, actual_raise))
 
         if actual_raise > 0:
+            game_state.betting_history.append((current_player, action, actual_raise))
             game_state.last_raise_amount = actual_raise
             game_state.min_raise = actual_raise
+        else:
+            game_state.betting_history.append(
+                (current_player, BettingAction.CALL, call_payment)
+            )
 
         contexts[current_player].remaining_energy -= total_bet
         return False

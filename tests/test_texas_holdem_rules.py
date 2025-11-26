@@ -69,6 +69,42 @@ def test_minimum_raise_enforcement():
     return True
 
 
+def test_all_in_raise_downgrades_to_call_when_under_minimum():
+    """
+    Ensure attempted raises that cannot meet the minimum are treated as calls.
+    """
+
+    state = PokerGameState(small_blind=5.0, big_blind=10.0, button_position=1)
+
+    # Post blinds manually
+    state.player_bet(1, 5.0)
+    state.player_bet(2, 10.0)
+
+    contexts = {
+        1: simulate_multi_round_game.__globals__["PlayerContext"](
+            remaining_energy=7.0, aggression=0.5, strategy=None
+        ),
+        2: simulate_multi_round_game.__globals__["PlayerContext"](
+            remaining_energy=100.0, aggression=0.5, strategy=None
+        ),
+    }
+
+    _apply_action = simulate_multi_round_game.__globals__["_apply_action"]
+    _apply_action(
+        current_player=1,
+        action=BettingAction.RAISE,
+        bet_amount=25.0,
+        remaining_energy=contexts[1].remaining_energy,
+        game_state=state,
+        contexts=contexts,
+    )
+
+    assert state.betting_history[-1][1] == BettingAction.CALL
+    assert state.betting_history[-1][2] == 5.0
+    assert state.player1_current_bet == state.player2_current_bet == 10.0
+    assert contexts[1].remaining_energy == 2.0
+
+
 def test_wheel_straight():
     """Test that A-2-3-4-5 (wheel) is recognized as a straight."""
     print("=" * 60)
