@@ -27,7 +27,7 @@ class MigrationScheduler:
         self,
         connection_manager: ConnectionManager,
         tank_registry: TankRegistry,
-        check_interval: float = 10.0,
+        check_interval: float = 2.0,
         discovery_service: Optional["DiscoveryService"] = None,
         server_client: Optional["ServerClient"] = None,
         local_server_id: str = "local-server",
