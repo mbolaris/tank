@@ -31,8 +31,14 @@ from core.constants import (
     POKER_WEAK_ENERGY_FRACTION,
     POKER_WEAK_POT_MULTIPLIER,
 )
+from core.constants import POKER_MAX_HAND_RANK
 from core.poker.core.cards import Card, Deck, Rank, Suit, get_card
 from core.poker.core.hand import HandRank, PokerHand
+from core.poker.evaluation.strength import (
+    calculate_pot_odds,
+    evaluate_starting_hand_strength,
+    get_action_recommendation,
+)
 
 if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
@@ -170,7 +176,6 @@ class PokerGameState:
             self.last_raise_amount = self.big_blind
 
     def is_betting_complete(self) -> bool:
-        """Check if betting is complete for current round."""
         """Check if betting is complete for current round.
 
         Only consider the current round's state: if both players have
@@ -613,12 +618,6 @@ class PokerEngine:
         # Enhanced pre-flop decision making with starting hand evaluation
         is_preflop = community_cards is None or len(community_cards) == 0
         if is_preflop and hole_cards is not None and len(hole_cards) == 2:
-            from core.poker.evaluation.strength import (
-                calculate_pot_odds,
-                evaluate_starting_hand_strength,
-                get_action_recommendation,
-            )
-
             # Evaluate starting hand strength
             starting_strength = evaluate_starting_hand_strength(hole_cards, position_on_button)
 
@@ -784,8 +783,6 @@ class PokerEngine:
                 if player_strategy is not None:
                     # Use evolving poker strategy algorithm
                     # Normalize hand strength from HandRank (0-9) to 0.0-1.0
-                    from core.constants import POKER_MAX_HAND_RANK
-
                     hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
 
                     action, bet_amount = player_strategy.decide_action(
