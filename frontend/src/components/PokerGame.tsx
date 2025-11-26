@@ -5,6 +5,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { PokerTable, PokerPlayer, PokerActions, FishAvatar } from './poker';
 import type { PokerGameState } from '../types/simulation';
+import { useErrorNotification } from '../hooks/useErrorNotification';
+import { ErrorNotification } from './ErrorNotification';
 import styles from './PokerGame.module.css';
 
 interface PokerGameProps {
@@ -23,6 +25,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
     const [autopilot, setAutopilot] = useState(false);
     const isProcessingRef = useRef(false);
     const lastActionTimeRef = useRef(0);
+    const { errors, addError, clearError } = useErrorNotification();
 
     // Autopilot polling effect
     useEffect(() => {
@@ -63,7 +66,8 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                     onAction(action, amount);
                 }
             } catch (error) {
-                console.error('Autopilot error:', error);
+                addError(error, 'Autopilot error');
+                setAutopilot(false); // Disable autopilot on error
             }
 
             isProcessingRef.current = false;
@@ -126,6 +130,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
 
     return (
         <div className={styles.container}>
+            <ErrorNotification errors={errors} onDismiss={clearError} />
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <h2 className={styles.title}>
