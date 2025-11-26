@@ -77,10 +77,35 @@ class ConnectionManager:
     def add_connection(self, connection: TankConnection) -> None:
         """Add or update a connection.
         
+        Enforces a maximum of 1 connection between any two tanks.
+        If a connection already exists between the source and destination (in either direction),
+        it will be replaced by the new connection.
+        
         Args:
             connection: The connection to add/update
         """
         with self._lock:
+            # Check for existing connections between these two tanks (in either direction)
+            # We need to find any connection where:
+            # (source == new_source AND dest == new_dest) OR (source == new_dest AND dest == new_source)
+            
+            to_remove = []
+            for existing_id, existing_conn in self._connections.items():
+                # Check forward match
+                if (existing_conn.source_tank_id == connection.source_tank_id and 
+                    existing_conn.destination_tank_id == connection.destination_tank_id):
+                    to_remove.append(existing_id)
+                # Check reverse match
+                elif (existing_conn.source_tank_id == connection.destination_tank_id and 
+                      existing_conn.destination_tank_id == connection.source_tank_id):
+                    to_remove.append(existing_id)
+            
+            # Remove conflicting connections
+            for conn_id in to_remove:
+                del self._connections[conn_id]
+                logger.info(f"Removed conflicting connection {conn_id} to enforce max 1 rule")
+            
+            # Add the new connection
             self._connections[connection.id] = connection
             logger.info(
                 f"Added connection: {connection.source_tank_id[:8]} -> "
@@ -169,3 +194,40 @@ class ConnectionManager:
                 logger.info(f"Cleared {len(to_remove)} connections for tank {tank_id[:8]}")
             
             return len(to_remove)
+
+    def validate_connections(self, valid_tank_ids: List[str]) -> int:
+        """Remove connections that reference non-existent tanks.
+        
+        Args:
+            valid_tank_ids: List of currently valid tank IDs
+            
+        Returns:
+            Number of invalid connections removed
+        """
+        valid_ids_set = set(valid_tank_ids)
+        removed_count = 0
+        
+        with self._lock:
+            to_remove = []
+            for conn_id, conn in self._connections.items():
+                # Only check local connections (where server IDs are None or match local)
+                # For now, we assume all connections are local or at least one end is local
+                # But strictly speaking, we only know about local tanks.
+                
+                # If a connection refers to a tank ID that we don't know about,
+                # and it's supposed to be a local tank, we should remove it.
+                # However, distinguishing local vs remote tank IDs is tricky without server info.
+                # Based on current implementation, we'll assume all tank IDs in the registry are the only valid ones.
+                
+                if conn.source_tank_id not in valid_ids_set or conn.destination_tank_id not in valid_ids_set:
+                    to_remove.append(conn_id)
+            
+            for conn_id in to_remove:
+                conn = self._connections.pop(conn_id)
+                logger.info(
+                    f"Removed invalid connection: {conn.source_tank_id[:8]} -> {conn.destination_tank_id[:8]} "
+                    f"(referenced missing tank)"
+                )
+                removed_count += 1
+                
+        return removed_count

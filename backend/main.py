@@ -444,7 +444,15 @@ async def lifespan(app: FastAPI):
         logger.info("Configuring TankRegistry for distributed operations...")
         try:
             tank_registry.set_distributed_services(discovery_service, server_client)
-            logger.info("TankRegistry configured for distributed operations")
+            tank_registry.set_connection_manager(connection_manager)
+            logger.info("TankRegistry configured for distributed operations and connection management")
+            
+            # Clean up invalid connections on startup
+            valid_tank_ids = tank_registry.list_tank_ids()
+            removed_count = connection_manager.validate_connections(valid_tank_ids)
+            if removed_count > 0:
+                logger.info(f"Startup cleanup: Removed {removed_count} invalid connections")
+                
         except Exception as e:
             logger.error(f"Failed to configure TankRegistry: {e}", exc_info=True)
             # Non-fatal - continue without distributed tank queries

@@ -67,6 +67,7 @@ class TankRegistry:
         self._lock = asyncio.Lock()
         self._discovery_service = discovery_service
         self._server_client = server_client
+        self._connection_manager = None
 
         if create_default:
             default_tank = self.create_tank(
@@ -95,6 +96,15 @@ class TankRegistry:
         self._discovery_service = discovery_service
         self._server_client = server_client
         logger.info("TankRegistry distributed services configured")
+
+    def set_connection_manager(self, connection_manager: Any) -> None:
+        """Set the connection manager for handling tank connections.
+
+        Args:
+            connection_manager: ConnectionManager instance
+        """
+        self._connection_manager = connection_manager
+        logger.info("TankRegistry connection manager configured")
 
     @property
     def tank_count(self) -> int:
@@ -243,6 +253,10 @@ class TankRegistry:
             if self._tanks:
                 self._default_tank_id = next(iter(self._tanks.keys()))
                 logger.info("New default tank: %s", self._default_tank_id)
+
+        # Remove associated connections if connection manager is available
+        if self._connection_manager:
+            self._connection_manager.clear_connections_for_tank(tank_id)
 
         logger.info("Removed tank: %s", tank_id)
         return True
