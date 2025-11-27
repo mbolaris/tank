@@ -88,3 +88,38 @@ def test_all_in_bet_still_requires_action_from_opponent():
     assert game.current_round == BettingRound.PRE_FLOP
     assert game.current_player_index == 0  # Human's turn
     assert game._get_call_amount(0) == 90.0
+
+
+def test_game_ends_immediately_when_all_but_one_fold():
+    """Verify game ends without dealing extra cards when all but one player folds."""
+
+    game = HumanPokerGame(
+        game_id="test",
+        human_energy=100.0,
+        ai_fish=[{"name": "AI One"}, {"name": "AI Two"}, {"name": "AI Three"}],
+    )
+
+    # Manually set up PRE_FLOP scenario where 3 players will fold sequentially
+    # Fold 2 AI immediately to leave human + 1 AI
+    game.players[2].folded = True  # AI Two folds
+    game.players[3].folded = True  # AI Three folds
+
+    # Reset to PRE_FLOP state
+    game.current_round = BettingRound.PRE_FLOP
+    game.community_cards = []
+    game.game_over = False
+    game.pot = 15.0  # Just blinds
+    game.current_player_index = 0  # Human's turn
+
+    # Record state
+    cards_before = len(game.community_cards)
+
+    # Human folds, leaving only AI One
+    game.handle_action("human", "fold")
+
+    # Verify game ended immediately
+    assert game.game_over, "Game should end when only one player remains"
+    assert len(game.community_cards) == cards_before, (
+        f"No community cards should be dealt when fold leaves 1 player. "
+        f"Started with {cards_before}, ended with {len(game.community_cards)}"
+    )
