@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import logging
 import os
 import platform
 import socket
@@ -10,28 +9,13 @@ import sys
 import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from typing import Dict, Optional, Set, Any
+from typing import Any, Dict, Optional, Set
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-# Set up logging with more detail
-logging.basicConfig(
-    level=logging.INFO,  # Changed to INFO to reduce log noise
-    format="%(levelname)s:%(name)s:%(message)s",
-)
-logger = logging.getLogger(__name__)
-
-# Windows-specific asyncio configuration
-if platform.system() == "Windows":
-    logger.info("Windows detected - configuring asyncio event loop policy")
-    try:
-        # Use ProactorEventLoop on Windows for better compatibility
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-        logger.info("Set WindowsProactorEventLoopPolicy for asyncio")
-    except Exception as e:
-        logger.warning(f"Could not set Windows event loop policy: {e}")
+from backend.logging_config import configure_logging
 
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -43,6 +27,19 @@ from backend.connection_manager import ConnectionManager, TankConnection
 from backend.discovery_service import DiscoveryService
 from backend.server_client import ServerClient
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
+
+# Configure logging once for the backend stack (includes uvicorn)
+logger = configure_logging(extra_loggers=("backend",))
+
+# Windows-specific asyncio configuration
+if platform.system() == "Windows":
+    logger.info("Windows detected - configuring asyncio event loop policy")
+    try:
+        # Use ProactorEventLoop on Windows for better compatibility
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        logger.info("Set WindowsProactorEventLoopPolicy for asyncio")
+    except Exception as e:
+        logger.warning(f"Could not set Windows event loop policy: {e}")
 
 # Global tank registry - manages multiple tank simulations for Tank World Net
 # Note: create_default=False because we'll restore from snapshots first
