@@ -354,7 +354,7 @@ class SimulationEngine(BaseSimulator):
             environment=self.environment,
             genome=offspring_genome,
             root_spot=spot,
-            initial_energy=FRACTAL_PLANT_INITIAL_ENERGY * 0.5,  # Start smaller
+            initial_energy=30.0,  # Start with enough energy to mature in reasonable time
             screen_width=SCREEN_WIDTH,
             screen_height=SCREEN_HEIGHT,
         )
