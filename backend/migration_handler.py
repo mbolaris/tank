@@ -77,8 +77,8 @@ class BackendMigrationHandler:
 
         # Perform the migration
         try:
-            # Serialize the entity
-            entity_data = serialize_entity_for_transfer(entity)
+            # Serialize the entity (pass direction for plants to select appropriate edge spot)
+            entity_data = serialize_entity_for_transfer(entity, migration_direction=direction)
             if entity_data is None:
                 logger.error("Failed to serialize entity for transfer")
                 return False

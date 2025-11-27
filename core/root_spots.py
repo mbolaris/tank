@@ -345,3 +345,37 @@ class RootSpotManager:
 
         # Fall back to any empty spot
         return self.get_random_empty_spot()
+
+    def get_edge_empty_spot(self, direction: str) -> Optional[RootSpot]:
+        """Get an empty spot at the specified edge of the tank.
+
+        Used for plant migration - plants migrating from the left should appear
+        on the right, and vice versa.
+
+        Args:
+            direction: "left" or "right" - which edge to prefer
+
+        Returns:
+            Empty RootSpot at the specified edge, or None if all spots are occupied
+        """
+        empty_spots = [s for s in self.spots if not s.occupied and not s.blocked]
+        if not empty_spots:
+            return None
+
+        # Define edge spots (first 3 and last 3 of the spot list)
+        edge_count = 3
+
+        if direction == "left":
+            # Prefer leftmost spots (low spot IDs)
+            edge_spots = [s for s in empty_spots if s.spot_id < edge_count]
+        else:  # "right"
+            # Prefer rightmost spots (high spot IDs)
+            total_spots = len(self.spots)
+            edge_spots = [s for s in empty_spots if s.spot_id >= total_spots - edge_count]
+
+        # If edge spots are available, prefer them
+        if edge_spots:
+            return random.choice(edge_spots)
+
+        # Fall back to any empty spot if edge spots are full
+        return random.choice(empty_spots)
