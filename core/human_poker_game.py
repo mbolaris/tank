@@ -245,6 +245,13 @@ class HumanPokerGame:
 
     def _advance_round(self):
         """Move to the next betting round and deal community cards."""
+        # Check if only one player remains - if so, end immediately without dealing cards
+        active_players = [p for p in self.players if not p.folded]
+        if len(active_players) <= 1:
+            self.current_round = BettingRound.SHOWDOWN
+            self._showdown()
+            return
+
         if self.current_round == BettingRound.PRE_FLOP:
             # Deal flop
             self.deck.deal(1)  # Burn card
