@@ -38,11 +38,18 @@ logger = logging.getLogger(__name__)
 class SimulationRunner:
     """Runs the simulation in a background thread and provides state updates."""
 
-    def __init__(self, seed: Optional[int] = None, tank_id: Optional[str] = None):
+    def __init__(
+        self,
+        seed: Optional[int] = None,
+        tank_id: Optional[str] = None,
+        tank_name: Optional[str] = None,
+    ):
         """Initialize the simulation runner.
 
         Args:
             seed: Optional random seed for deterministic behavior
+            tank_id: Optional unique identifier for the tank
+            tank_name: Optional human-readable name for the tank
         """
         # Create TankWorld configuration
         config = TankWorldConfig(headless=True)
@@ -97,6 +104,7 @@ class SimulationRunner:
 
         # Migration support
         self.tank_id = tank_id
+        self.tank_name = tank_name
         self.connection_manager = None  # Set after initialization
         self.tank_registry = None  # Set after initialization
         self.migration_lock = threading.Lock()
@@ -262,8 +270,10 @@ class SimulationRunner:
                         self.last_fps_time = current_time
                         # Log stats periodically
                         stats = self.world.get_stats()
+                        tank_label = self.tank_name or self.tank_id or "Unknown Tank"
                         logger.info(
-                            f"Simulation Status: FPS={self.current_actual_fps:.1f}, "
+                            f"{tank_label} Simulation Status "
+                            f"FPS={self.current_actual_fps:.1f}, "
                             f"Fish={stats.get('fish_count', 0)}, "
                             f"Plants={stats.get('plant_count', 0)}, "
                             f"Energy={stats.get('total_energy', 0.0):.1f}"
