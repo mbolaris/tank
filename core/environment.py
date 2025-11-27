@@ -39,6 +39,11 @@ class SpatialGrid:
         # Grid storage: dict of (col, row) -> dict of type -> list of agents
         # Using list instead of set for faster iteration in tight loops
         self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(lambda: defaultdict(list))
+        
+        # Dedicated grids for high-frequency types to avoid dictionary lookups and issubclass checks
+        # These contain the SAME agent objects as self.grid, just indexed differently for speed
+        self.fish_grid: Dict[Tuple[int, int], List[Agent]] = defaultdict(list)
+        self.food_grid: Dict[Tuple[int, int], List[Agent]] = defaultdict(list)
 
         # Agent to cell mapping for quick updates
         self.agent_cells: Dict[Agent, Tuple[int, int]] = {}
@@ -58,7 +63,17 @@ class SpatialGrid:
         # Use type(agent) for exact type matching which is faster than isinstance checks later
         # But we need to be careful about inheritance if we query by base class
         # For now, we'll store by exact type
-        self.grid[cell][type(agent)].append(agent)
+        agent_type = type(agent)
+        self.grid[cell][agent_type].append(agent)
+        
+        # Update dedicated grids
+        # We use string names to avoid circular imports or heavy isinstance checks
+        type_name = agent_type.__name__
+        if type_name == 'Fish':
+            self.fish_grid[cell].append(agent)
+        elif type_name == 'Food' or type_name == 'LiveFood':
+            self.food_grid[cell].append(agent)
+            
         self.agent_cells[agent] = cell
 
     def remove_agent(self, agent: Agent):
@@ -74,6 +89,20 @@ class SpatialGrid:
                         del self.grid[cell][agent_type]
                 except ValueError:
                     pass  # Agent might not be in the list if something went wrong
+            
+            # Remove from dedicated grids
+            type_name = agent_type.__name__
+            if type_name == 'Fish':
+                if agent in self.fish_grid[cell]:
+                    self.fish_grid[cell].remove(agent)
+                    if not self.fish_grid[cell]:
+                        del self.fish_grid[cell]
+            elif type_name == 'Food' or type_name == 'LiveFood':
+                if agent in self.food_grid[cell]:
+                    self.food_grid[cell].remove(agent)
+                    if not self.food_grid[cell]:
+                        del self.food_grid[cell]
+                        
             del self.agent_cells[agent]
 
     def update_agent(self, agent: Agent):
@@ -87,6 +116,7 @@ class SpatialGrid:
         # Only update if the agent changed cells
         if old_cell != new_cell:
             agent_type = type(agent)
+            # Remove from old cell
             if old_cell is not None:
                 if agent_type in self.grid[old_cell]:
                     try:
@@ -95,8 +125,30 @@ class SpatialGrid:
                             del self.grid[old_cell][agent_type]
                     except ValueError:
                         pass
+                
+                # Remove from dedicated grids (old cell)
+                type_name = agent_type.__name__
+                if type_name == 'Fish':
+                    if agent in self.fish_grid[old_cell]:
+                        self.fish_grid[old_cell].remove(agent)
+                        if not self.fish_grid[old_cell]:
+                            del self.fish_grid[old_cell]
+                elif type_name == 'Food' or type_name == 'LiveFood':
+                    if agent in self.food_grid[old_cell]:
+                        self.food_grid[old_cell].remove(agent)
+                        if not self.food_grid[old_cell]:
+                            del self.food_grid[old_cell]
             
+            # Add to new cell
             self.grid[new_cell][agent_type].append(agent)
+            
+            # Add to dedicated grids (new cell)
+            type_name = agent_type.__name__
+            if type_name == 'Fish':
+                self.fish_grid[new_cell].append(agent)
+            elif type_name == 'Food' or type_name == 'LiveFood':
+                self.food_grid[new_cell].append(agent)
+                
             self.agent_cells[agent] = new_cell
 
     def get_cells_in_radius(self, x: float, y: float, radius: float) -> List[Tuple[int, int]]:
@@ -158,9 +210,125 @@ class SpatialGrid:
                 (other.pos.y - agent_pos_y) * (other.pos.y - agent_pos_y) <= radius_sq
         ]
 
+    def query_fish(self, agent: Agent, radius: float) -> List[Agent]:
+        """Optimized query for nearby fish."""
+        if not hasattr(agent, "pos"):
+            return []
+
+        agent_x = agent.pos.x
+        agent_y = agent.pos.y
+        radius_sq = radius * radius
+        
+        cell_size = self.cell_size
+        min_col = max(0, int((agent_x - radius) / cell_size))
+        max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
+        min_row = max(0, int((agent_y - radius) / cell_size))
+        max_row = min(self.rows - 1, int((agent_y + radius) / cell_size))
+
+        candidates = []
+        fish_grid = self.fish_grid
+        
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cell_fish = fish_grid.get((col, row))
+                if cell_fish:
+                    candidates.extend(cell_fish)
+                    
+        return [
+            other
+            for other in candidates
+            if other is not agent
+            and (other.pos.x - agent_x) * (other.pos.x - agent_x) + 
+                (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
+        ]
+
+    def query_food(self, agent: Agent, radius: float) -> List[Agent]:
+        """Optimized query for nearby food."""
+        if not hasattr(agent, "pos"):
+            return []
+
+        agent_x = agent.pos.x
+        agent_y = agent.pos.y
+        radius_sq = radius * radius
+        
+        cell_size = self.cell_size
+        min_col = max(0, int((agent_x - radius) / cell_size))
+        max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
+        min_row = max(0, int((agent_y - radius) / cell_size))
+        max_row = min(self.rows - 1, int((agent_y + radius) / cell_size))
+
+        candidates = []
+        food_grid = self.food_grid
+        
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cell_food = food_grid.get((col, row))
+                if cell_food:
+                    candidates.extend(cell_food)
+                    
+        return [
+            other
+            for other in candidates
+            if other is not agent
+            and (other.pos.x - agent_x) * (other.pos.x - agent_x) + 
+                (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
+        ]
+
+    def query_interaction_candidates(self, agent: Agent, radius: float, crab_type: Type[Agent]) -> List[Agent]:
+        """
+        Optimized query for collision candidates (Fish, Food, Crabs).
+        Performs a single grid traversal to collect all relevant entities.
+        """
+        if not hasattr(agent, "pos"):
+            return []
+
+        agent_x = agent.pos.x
+        agent_y = agent.pos.y
+        radius_sq = radius * radius
+        
+        cell_size = self.cell_size
+        min_col = max(0, int((agent_x - radius) / cell_size))
+        max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
+        min_row = max(0, int((agent_y - radius) / cell_size))
+        max_row = min(self.rows - 1, int((agent_y + radius) / cell_size))
+
+        candidates = []
+        fish_grid = self.fish_grid
+        food_grid = self.food_grid
+        grid = self.grid
+        
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cell = (col, row)
+                
+                # Check Fish
+                cell_fish = fish_grid.get(cell)
+                if cell_fish:
+                    candidates.extend(cell_fish)
+                            
+                # Check Food
+                cell_food = food_grid.get(cell)
+                if cell_food:
+                    candidates.extend(cell_food)
+                            
+                # Check Crabs
+                cell_agents = grid.get(cell)
+                if cell_agents and crab_type in cell_agents:
+                    candidates.extend(cell_agents[crab_type])
+                            
+        return [
+            other
+            for other in candidates
+            if other is not agent
+            and (other.pos.x - agent_x) * (other.pos.x - agent_x) + 
+                (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
+        ]
+
     def clear(self):
         """Clear all agents from the grid."""
         self.grid.clear()
+        self.fish_grid.clear()
+        self.food_grid.clear()
         self.agent_cells.clear()
 
     def rebuild(self, agents: Iterable[Agent]):
@@ -366,6 +534,24 @@ class Environment:
                                 result.append(other)
                             
         return result
+
+    def nearby_fish(self, agent: Agent, radius: int) -> List[Agent]:
+        """
+        Optimized method to get nearby fish.
+        """
+        return self.spatial_grid.query_fish(agent, radius)
+
+    def nearby_food(self, agent: Agent, radius: int) -> List[Agent]:
+        """
+        Optimized method to get nearby food.
+        """
+        return self.spatial_grid.query_food(agent, radius)
+
+    def nearby_interaction_candidates(self, agent: Agent, radius: int, crab_type: Type[Agent]) -> List[Agent]:
+        """
+        Optimized method to get nearby Fish, Food, and Crabs in a single pass.
+        """
+        return self.spatial_grid.query_interaction_candidates(agent, radius, crab_type)
 
     # Convenient entity filtering helpers for improved code clarity
     def get_all_fish(self) -> List[Agent]:

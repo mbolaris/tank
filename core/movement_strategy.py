@@ -43,7 +43,11 @@ class MovementStrategy:
 
         # Optimize: Use spatial query to only check nearby food
         # Radius of 50 is sufficient for collision detection (fish size + food size)
-        nearby_food = sprite.environment.nearby_agents_by_type(sprite_entity, 50, Food)
+        # Use optimized nearby_food query if available
+        if hasattr(sprite.environment, "nearby_food"):
+            nearby_food = sprite.environment.nearby_food(sprite_entity, 50)
+        else:
+            nearby_food = sprite.environment.nearby_agents_by_type(sprite_entity, 50, Food)
         
         for food in nearby_food:
             # Get the food entity (unwrap if it's a sprite wrapper)
@@ -101,7 +105,11 @@ class AlgorithmicMovement(MovementStrategy):
 
             # Optimize: Use spatial query to only check nearby fish
             # We only care about fish within 200 units for poker behavior
-            nearby_fish = sprite.environment.nearby_agents_by_type(sprite_entity, 200, FishClass)
+            # Use optimized nearby_fish query if available
+            if hasattr(sprite.environment, "nearby_fish"):
+                nearby_fish = sprite.environment.nearby_fish(sprite_entity, 200)
+            else:
+                nearby_fish = sprite.environment.nearby_agents_by_type(sprite_entity, 200, FishClass)
 
             # Calculate poker behavior weight based on context
             poker_weight: float = 0.0

@@ -266,7 +266,11 @@ class BaseSimulator(ABC):
             # Use spatial grid for nearby entity lookup
             # Use plant poker distance for query since we check poker collision below
             if environment is not None:
-                nearby_entities = environment.nearby_agents(plant, radius=FRACTAL_PLANT_POKER_COLLISION_DISTANCE)
+                # Optimize: Only look for fish
+                if hasattr(environment, "nearby_fish"):
+                    nearby_entities = environment.nearby_fish(plant, radius=FRACTAL_PLANT_POKER_COLLISION_DISTANCE)
+                else:
+                    nearby_entities = environment.nearby_agents_by_type(plant, radius=FRACTAL_PLANT_POKER_COLLISION_DISTANCE, agent_class=Fish)
             else:
                 nearby_entities = fish_list
 
@@ -312,9 +316,13 @@ class BaseSimulator(ABC):
             # Use spatial grid to find nearby fish
             nearby_entities = []
             if self.environment is not None:
-                nearby_entities = self.environment.nearby_agents(
-                    fish1, radius=COLLISION_QUERY_RADIUS
-                )
+                # Optimize: Only look for fish
+                if hasattr(self.environment, "nearby_fish"):
+                    nearby_entities = self.environment.nearby_fish(fish1, radius=COLLISION_QUERY_RADIUS)
+                else:
+                    nearby_entities = self.environment.nearby_agents_by_type(
+                        fish1, radius=COLLISION_QUERY_RADIUS, agent_class=Fish
+                    )
             else:
                 nearby_entities = fish_list
 
@@ -403,7 +411,17 @@ class BaseSimulator(ABC):
 
             # Use spatial grid to get nearby entities (within collision range)
             if environment is not None:
-                nearby_entities = environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
+                # Optimize: Get all interaction candidates (Fish, Food, Crabs) in a single pass
+                if hasattr(environment, "nearby_interaction_candidates"):
+                    nearby_entities = environment.nearby_interaction_candidates(fish, radius=COLLISION_QUERY_RADIUS, crab_type=Crab)
+                elif hasattr(environment, "nearby_fish"):
+                    # Fallback to multi-pass if combined query not available (shouldn't happen with new code)
+                    nearby_entities = []
+                    nearby_entities.extend(environment.nearby_fish(fish, radius=COLLISION_QUERY_RADIUS))
+                    nearby_entities.extend(environment.nearby_food(fish, radius=COLLISION_QUERY_RADIUS))
+                    nearby_entities.extend(environment.nearby_agents_by_type(fish, radius=COLLISION_QUERY_RADIUS, agent_class=Crab))
+                else:
+                    nearby_entities = environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
             else:
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in all_entities if e is not fish]
@@ -604,9 +622,12 @@ class BaseSimulator(ABC):
 
             # Use spatial grid to find nearby fish (mating typically happens at close range)
             if environment is not None:
-                nearby_fish = environment.nearby_agents_by_type(
-                    fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
-                )
+                if hasattr(environment, "nearby_fish"):
+                    nearby_fish = environment.nearby_fish(fish, radius=MATING_QUERY_RADIUS)
+                else:
+                    nearby_fish = environment.nearby_agents_by_type(
+                        fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
+                    )
             else:
                 # Fallback to checking all fish if no environment
                 nearby_fish = [f for f in fish_list if f is not fish]
