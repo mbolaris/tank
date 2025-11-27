@@ -390,6 +390,9 @@ class SimulationEngine(BaseSimulator):
     def remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation."""
         if entity in self.entities_list:
+            # Ensure fractal plant root spots are released even when removed externally
+            if isinstance(entity, FractalPlant):
+                entity.die()
             self.entities_list.remove(entity)
             # Remove from spatial grid incrementally
             if self.environment:
