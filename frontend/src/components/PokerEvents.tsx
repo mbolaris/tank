@@ -9,7 +9,6 @@ interface PokerEvent {
     loser_hand: string;
     energy_transferred: number;
     message: string;
-    is_jellyfish?: boolean;
     is_plant?: boolean;
 }
 
@@ -41,7 +40,6 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                         .map((event, index) => {
                             const age = currentFrame - event.frame;
                             const isTie = event.winner_id === -1;
-                            const isJellyfish = event.is_jellyfish;
                             const isPlant = event.is_plant;
 
                             // Calculate opacity based on age (fade out after 180 frames)
@@ -67,10 +65,7 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                                 let winnerName = `Fish #${event.winner_id}`;
                                 let loserName = `Fish #${event.loser_id}`;
 
-                                if (isJellyfish) {
-                                    if (event.winner_id === -2) winnerName = "Jellyfish";
-                                    if (event.loser_id === -2) loserName = "Jellyfish";
-                                } else if (isPlant) {
+                                if (isPlant) {
                                     // Backend now includes explicit `plant_id` when `is_plant` is true.
                                     const pid = (event as any).plant_id;
                                     if (event.winner_id === -3) {
@@ -84,8 +79,8 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                                 content = (
                                     <div className="event-content">
                                         <div className="event-header">
-                                            <span className={`event-badge ${isJellyfish ? 'jellyfish' : isPlant ? 'plant' : 'win'}`}>
-                                                {isJellyfish ? 'JELLY' : isPlant ? 'PLANT' : 'WIN'}
+                                            <span className={`event-badge ${isPlant ? 'plant' : 'win'}`}>
+                                                {isPlant ? 'PLANT' : 'WIN'}
                                             </span>
                                             <span className="event-hand">{event.winner_hand}</span>
                                             <span className="event-energy">+{event.energy_transferred.toFixed(1)}⚡</span>
@@ -102,7 +97,7 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
                             return (
                                 <div
                                     key={`${event.frame}-${index}`}
-                                    className={`poker-events__item ${isTie ? 'tie' : ''} ${isJellyfish ? 'jellyfish' : ''} ${isPlant ? 'plant' : ''}`}
+                                    className={`poker-events__item ${isTie ? 'tie' : ''} ${isPlant ? 'plant' : ''}`}
                                     style={{ opacity: fading }}
                                 >
                                     {content}

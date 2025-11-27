@@ -579,7 +579,6 @@ class SimulationRunner:
             "plant_nectar": 2,   # Same layer as food
             "food": 2,
             "fish": 4,
-            "jellyfish": 5,
             "crab": 10,  # Render crab in front of everything
         }
         entities_data.sort(key=lambda e: z_order.get(e.type, 999))
@@ -660,7 +659,6 @@ class SimulationRunner:
                     loser_hand=event["loser_hand"],
                     energy_transferred=event["energy_transferred"],
                     message=event["message"],
-                    is_jellyfish=event.get("is_jellyfish", False),
                     is_plant=event.get("is_plant", False),
                     plant_id=event.get("plant_id", None),
                 )
@@ -713,7 +711,7 @@ class SimulationRunner:
         """Convert an entity to a lightweight snapshot for serialization."""
         try:
             # Import ID offsets
-            from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET, JELLYFISH_ID_OFFSET
+            from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
             
             # Compute stable ID based on entity type
             stable_id = id(entity)  # Fallback for unknown types
@@ -721,8 +719,6 @@ class SimulationRunner:
                 stable_id = entity.fish_id + FISH_ID_OFFSET
             elif isinstance(entity, entities.FractalPlant) and hasattr(entity, 'plant_id'):
                 stable_id = entity.plant_id + PLANT_ID_OFFSET
-            elif isinstance(entity, entities.Jellyfish) and hasattr(entity, 'jellyfish_id'):
-                stable_id = entity.jellyfish_id + JELLYFISH_ID_OFFSET
             
             base_data = {
                 "id": stable_id,
@@ -842,14 +838,6 @@ class SimulationRunner:
 
             elif isinstance(entity, entities.Castle):
                 return EntitySnapshot(type="castle", **base_data)
-
-            elif isinstance(entity, entities.Jellyfish):
-                return EntitySnapshot(
-                    type="jellyfish",
-                    energy=entity.energy if hasattr(entity, "energy") else 1000,
-                    plant_type=getattr(entity, "jellyfish_id", 0),
-                    **base_data,
-                )
 
             elif isinstance(entity, entities.FractalPlant):
                 # Serialize fractal plant with its genome for L-system rendering

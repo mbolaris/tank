@@ -315,7 +315,6 @@ Either:
 | core/fish_poker.py | 2 | 125 chars |
 | backend/main.py | 2 | 130 chars |
 | core/algorithms/food_seeking.py | 1 | 125 chars |
-| tests/test_jellyfish_poker_behavior.py | 1 | 145 chars |
 | tests/test_poker_energy.py | 1 | 135 chars |
 
 #### Recommendation

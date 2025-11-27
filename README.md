@@ -7,7 +7,7 @@ An advanced artificial life ecosystem simulation featuring **58 parametrizable b
 This is a **cutting-edge ALife simulation** with a modern web interface that demonstrates complex ecosystem behaviors through **algorithmic evolution** and competitive dynamics. Fish evolve diverse survival strategies through genetic algorithms, with each fish inheriting and mutating behavior algorithms across generations. The simulation features:
 
 - 🧬 **ALGORITHMIC EVOLUTION** - 58 unique parametrizable behavior strategies that evolve!
-- 🦀 **Balanced Predator-Prey** - Crabs and jellyfish interact with fish ecosystem
+- 🦀 **Predator-Prey Dynamics** - Crabs hunt fish in the ecosystem
 - 🌿 **Fractal Plants** - L-system plants with genetic evolution and nectar production
 - 🔬 **Genetic Evolution** - Traits and algorithms evolve across generations
 - 🌐 **Modern Web UI** - React-based interface with real-time visualization
@@ -50,7 +50,7 @@ The simulation features **58 parametrizable behavior algorithms** that fish can 
 - ...and 48 more!
 
 ### 🎴 **Fish Poker Minigame**
-Fish can play poker against each other and against jellyfish for energy rewards!
+Fish can play poker against each other and against plants for energy rewards!
 
 - **Automatic**: Fish play when they collide and have >10 energy
 - **5-Card Draw**: Standard poker hand rankings
@@ -59,7 +59,6 @@ Fish can play poker against each other and against jellyfish for energy rewards!
   - Each fish's poker playing style is determined by their genome's aggression trait
   - Evolutionary pressure: Fish with optimal poker aggression win more energy and reproduce more
   - 8 specialized poker behavior algorithms (Challenger, Dodger, Gambler, Strategist, Bluffer, Conservative, and more)
-- **Jellyfish Opponents**: Jellyfish drift through the tank, playing poker with fish using a fixed conservative strategy
 - **Live Events**: See poker games happen in real-time in the UI
 - **Statistics**: Track total games, wins/losses, best hands
 
@@ -255,7 +254,7 @@ tank/
 │   │   ├── fish.py          # Fish entity with component system
 │   │   ├── fractal_plant.py # L-system fractal plants
 │   │   ├── resources.py     # Food, Plant, PlantNectar, Castle
-│   │   ├── predators.py     # Crab, Jellyfish entities
+│   │   ├── predators.py     # Crab entity
 │   │   └── base.py          # Base Agent class
 │   ├── fish/                # Fish component system
 │   │   ├── energy_component.py
@@ -343,11 +342,9 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Performance tracking**: Stats export shows which algorithms dominate
 
 ### Poker Economy
-- **Energy redistribution**: Poker transfers energy between fish and jellyfish
-- **Jellyfish benchmark**: Jellyfish use a fixed conservative poker strategy, serving as a skill benchmark
+- **Energy redistribution**: Poker transfers energy between fish and plants
 - **Fitness signaling**: Better poker players accumulate more energy
 - **Risk/reward**: Fish must balance poker with survival needs
-- **Jellyfish lifecycle**: Jellyfish slowly lose energy over time and die when depleted
 
 ### Plant Ecosystem
 - **Fractal growth**: Plants grow from root spots using L-system genetics
@@ -436,8 +433,6 @@ Recently Completed: ✅
 - [✅] Headless mode (10-300x faster)
 - [✅] Deterministic seeding for reproducibility
 - [✅] React-based web UI
-- [✅] Fish poker minigame with jellyfish opponents
-- [✅] Jellyfish entity with fixed poker strategy
 - [✅] Removed pygame dependencies (pure Python core)
 
 Potential Future Additions:
@@ -470,7 +465,7 @@ The simulation uses a clean architecture with separation of concerns:
   - Fully testable and reproducible
   - Used by both web and headless modes
   - Algorithm-based evolution system
-  - Modular entity system (Fish, FractalPlant, Crab, Jellyfish, Food, PlantNectar)
+  - Modular entity system (Fish, FractalPlant, Crab, Food, PlantNectar)
 
 - **Backend** (`backend/`): FastAPI WebSocket server
   - Runs simulation in background thread

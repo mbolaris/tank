@@ -32,7 +32,6 @@ class PokerSystem:
         loser_hand: str,
         energy_transferred: float,
         message: str,
-        is_jellyfish: bool,
     ) -> None:
         event = {
             "frame": self.engine.frame_count,
@@ -42,7 +41,6 @@ class PokerSystem:
             "loser_hand": loser_hand,
             "energy_transferred": energy_transferred,
             "message": message,
-            "is_jellyfish": is_jellyfish,
         }
         self.poker_events.append(event)
 
@@ -93,31 +91,6 @@ class PokerSystem:
             loser_hand_desc,
             result.energy_transferred,
             message,
-            is_jellyfish=False,
-        )
-
-    def add_jellyfish_poker_event(
-        self,
-        fish_id: int,
-        fish_won: bool,
-        fish_hand: str,
-        jellyfish_hand: str,
-        energy_transferred: float,
-    ) -> None:
-        """Add a jellyfish poker event to the recent events list."""
-        if fish_won:
-            message = f"Fish #{fish_id} beats Jellyfish with {fish_hand}! (+{energy_transferred:.1f} energy)"
-        else:
-            message = f"Jellyfish beats Fish #{fish_id} with {jellyfish_hand}! (-{energy_transferred:.1f} energy)"
-
-        self._add_poker_event_to_history(
-            winner_id=fish_id if fish_won else -2,
-            loser_id=-2 if fish_won else fish_id,
-            winner_hand=fish_hand if fish_won else jellyfish_hand,
-            loser_hand=jellyfish_hand if fish_won else fish_hand,
-            energy_transferred=energy_transferred,
-            message=message,
-            is_jellyfish=True,
         )
 
     def add_plant_poker_event(
@@ -151,7 +124,6 @@ class PokerSystem:
             "loser_hand": loser_hand,
             "energy_transferred": energy_transferred,
             "message": message,
-            "is_jellyfish": False,
             "is_plant": True,
             "plant_id": plant_id,
         }

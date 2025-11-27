@@ -12,6 +12,5 @@ CRAB_ATTACK_COOLDOWN = 120  # Frames between attacks (4 seconds)
 # stable IDs for the frontend. This prevents ID reuse issues with Python's id().
 FISH_ID_OFFSET = 0
 PLANT_ID_OFFSET = 1_000_000
-JELLYFISH_ID_OFFSET = 2_000_000
 FOOD_ID_OFFSET = 3_000_000
 NECTAR_ID_OFFSET = 4_000_000

@@ -27,7 +27,6 @@ engine.poker_events.appendleft({
     'loser_hand': 'Pair',
     'energy_transferred': 12.5,
     'message': 'Plant #2 beats Fish #1 with Triple! (+12.5⚡)',
-    'is_jellyfish': False,
     'is_plant': True,
     'plant_id': 2,
 })

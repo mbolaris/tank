@@ -4,7 +4,7 @@ import os
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from core.constants import TOTAL_ALGORITHM_COUNT
-from core.ecosystem_stats import EcosystemEvent, JellyfishPokerStats, PokerStats
+from core.ecosystem_stats import EcosystemEvent, FishOpponentPokerStats, PokerStats
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -24,7 +24,7 @@ class PokerStatsManager:
         self._frame_provider = frame_provider
 
         self.poker_stats: Dict[int, PokerStats] = {}
-        self.jellyfish_poker_stats: Dict[int, JellyfishPokerStats] = {}
+        self.plant_poker_stats: Dict[int, FishOpponentPokerStats] = {}
         self.total_fish_poker_games: int = 0
         self.total_plant_poker_games: int = 0
         self.total_plant_poker_energy_transferred: float = 0.0
@@ -80,22 +80,16 @@ class PokerStatsManager:
         total_showdowns = sum(s.showdown_count for s in self.poker_stats.values())
         total_won_at_showdown = sum(s.won_at_showdown for s in self.poker_stats.values())
 
-        total_games += sum(s.total_games for s in self.jellyfish_poker_stats.values())
-        total_wins += sum(s.wins for s in self.jellyfish_poker_stats.values())
-        total_losses += sum(s.losses for s in self.jellyfish_poker_stats.values())
-        total_ties += 0
-        total_energy_won += sum(s.total_energy_won for s in self.jellyfish_poker_stats.values())
-        total_energy_lost += sum(s.total_energy_lost for s in self.jellyfish_poker_stats.values())
-        total_house_cuts += sum(
-            s.total_house_cuts for s in self.jellyfish_poker_stats.values() if hasattr(s, "total_house_cuts")
-        )
-        total_folds += sum(s.wins_by_fold + s.losses_by_fold for s in self.jellyfish_poker_stats.values())
-        total_showdowns += sum(
-            s.showdown_count for s in self.jellyfish_poker_stats.values() if hasattr(s, "showdown_count")
-        )
-        total_won_at_showdown += sum(
-            s.won_at_showdown for s in self.jellyfish_poker_stats.values() if hasattr(s, "won_at_showdown")
-        )
+        total_games += sum(s.total_games for s in self.poker_stats.values())
+        total_wins += sum(s.total_wins for s in self.poker_stats.values())
+        total_losses += sum(s.total_losses for s in self.poker_stats.values())
+        total_ties += sum(s.total_ties for s in self.poker_stats.values())
+        total_energy_won += sum(s.total_energy_won for s in self.poker_stats.values())
+        total_energy_lost += sum(s.total_energy_lost for s in self.poker_stats.values())
+        total_house_cuts += sum(s.total_house_cuts for s in self.poker_stats.values())
+        total_folds += sum(s.folds for s in self.poker_stats.values())
+        total_showdowns += sum(s.showdown_count for s in self.poker_stats.values())
+        total_won_at_showdown += sum(s.won_at_showdown for s in self.poker_stats.values())
         total_won_by_fold = sum(s.won_by_fold for s in self.poker_stats.values())
 
         best_hand_rank = max((s.best_hand_rank for s in self.poker_stats.values()), default=0)
@@ -319,38 +313,6 @@ class PokerStatsManager:
 
         self._log_poker_event(winner_id, loser_id, amount, winner_hand, loser_hand)
 
-    def record_jellyfish_poker_game(
-        self,
-        fish_id: int,
-        fish_won: bool,
-        energy_transferred: float,
-        fish_hand_rank: int,
-        won_by_fold: bool,
-    ) -> None:
-        """Record a poker game between a fish and the jellyfish benchmark."""
-        if fish_id not in self.jellyfish_poker_stats:
-            self.jellyfish_poker_stats[fish_id] = JellyfishPokerStats(
-                fish_id=fish_id, fish_name=f"Fish #{fish_id}"
-            )
-
-        stats = self.jellyfish_poker_stats[fish_id]
-        stats.total_games += 1
-
-        if fish_won:
-            stats.wins += 1
-            stats.total_energy_won += energy_transferred
-            if won_by_fold:
-                stats.wins_by_fold += 1
-        else:
-            stats.losses += 1
-            stats.total_energy_lost += energy_transferred
-            if won_by_fold:
-                stats.losses_by_fold += 1
-
-        stats.best_hand_rank = max(stats.best_hand_rank, fish_hand_rank)
-        stats._total_hand_rank += fish_hand_rank
-        stats.avg_hand_rank = stats._total_hand_rank / stats.total_games
-
     def record_plant_poker_game(
         self,
         fish_id: int,
@@ -362,12 +324,12 @@ class PokerStatsManager:
         won_by_fold: bool,
     ) -> None:
         """Record a poker game between a fish and a fractal plant."""
-        if fish_id not in self.jellyfish_poker_stats:
-            self.jellyfish_poker_stats[fish_id] = JellyfishPokerStats(
+        if fish_id not in self.plant_poker_stats:
+            self.plant_poker_stats[fish_id] = FishOpponentPokerStats(
                 fish_id=fish_id, fish_name=f"Fish #{fish_id}"
             )
 
-        stats = self.jellyfish_poker_stats[fish_id]
+        stats = self.plant_poker_stats[fish_id]
         stats.total_games += 1
 
         if fish_won:
@@ -392,18 +354,6 @@ class PokerStatsManager:
             self._save_poker_totals()
         except Exception as error:  # pragma: no cover - defensive logging
             logger.error(f"Failed to save poker totals: {error}", exc_info=True)
-
-    def get_jellyfish_leaderboard(self, limit: int = 10) -> List[JellyfishPokerStats]:
-        """Get the jellyfish poker leaderboard sorted by performance score."""
-        stats_with_games = [
-            stats for stats in self.jellyfish_poker_stats.values() if stats.total_games > 0
-        ]
-        stats_with_games.sort(key=lambda stats: stats.get_score(), reverse=True)
-        return stats_with_games[:limit]
-
-    def get_jellyfish_poker_stats_for_fish(self, fish_id: int) -> Optional[JellyfishPokerStats]:
-        """Get jellyfish poker stats for a specific fish."""
-        return self.jellyfish_poker_stats.get(fish_id)
 
     def _update_tie_stats(self, algo_id: Optional[int], hand: "PokerHand") -> None:
         if algo_id is not None and algo_id in self.poker_stats:

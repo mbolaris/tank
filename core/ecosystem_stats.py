@@ -278,24 +278,23 @@ class GeneticDiversityStats:
 
 
 @dataclass
-class JellyfishPokerStats:
-    """Statistics for a fish's performance against the jellyfish benchmark.
+class FishOpponentPokerStats:
+    """Statistics for a fish's performance against non-fish opponents (plants).
 
-    This tracks how well each fish performs in poker games against the
-    non-evolving jellyfish evaluator, providing a standardized benchmark
-    for comparing fish poker skills.
+    This tracks how well each fish performs in poker games against
+    non-fish opponents like fractal plants.
 
     Attributes:
         fish_id: Unique identifier for the fish
         fish_name: Display name for the fish
-        total_games: Total games played against jellyfish
-        wins: Games won against jellyfish
-        losses: Games lost against jellyfish
-        total_energy_won: Total energy gained from jellyfish
-        total_energy_lost: Total energy lost to jellyfish
+        total_games: Total games played against opponents
+        wins: Games won against opponents
+        losses: Games lost against opponents
+        total_energy_won: Total energy gained from opponents
+        total_energy_lost: Total energy lost to opponents
         best_hand_rank: Best hand rank achieved (0-9)
         avg_hand_rank: Average hand rank
-        wins_by_fold: Wins because jellyfish folded
+        wins_by_fold: Wins because opponent folded
         losses_by_fold: Losses because fish folded
     """
 
@@ -313,11 +312,11 @@ class JellyfishPokerStats:
     losses_by_fold: int = 0
 
     def get_win_rate(self) -> float:
-        """Calculate win rate against jellyfish."""
+        """Calculate win rate against opponents."""
         return self.wins / self.total_games if self.total_games > 0 else 0.0
 
     def get_net_energy(self) -> float:
-        """Calculate net energy gained/lost against jellyfish."""
+        """Calculate net energy gained/lost against opponents."""
         return self.total_energy_won - self.total_energy_lost
 
     def get_avg_energy_per_game(self) -> float:

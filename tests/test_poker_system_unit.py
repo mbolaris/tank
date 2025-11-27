@@ -100,24 +100,6 @@ def test_handle_poker_result_adds_offspring():
     assert len(system.poker_events) == 1
 
 
-def test_jellyfish_event_flags_and_message():
-    engine = DummyEngine()
-    system = PokerSystem(engine, max_events=10)
-
-    system.add_jellyfish_poker_event(
-        fish_id=5,
-        fish_won=True,
-        fish_hand="Flush",
-        jellyfish_hand="Pair",
-        energy_transferred=4.2,
-    )
-
-    event = system.poker_events[-1]
-    assert event["is_jellyfish"] is True
-    assert "Jellyfish" in event["message"]
-    assert event["winner_id"] == 5
-
-
 def test_plant_event_adds_metadata():
     engine = DummyEngine()
     system = PokerSystem(engine, max_events=10)

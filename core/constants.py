@@ -264,7 +264,6 @@ from .config.entities import (
     CRAB_ATTACK_COOLDOWN,
     FISH_ID_OFFSET,
     PLANT_ID_OFFSET,
-    JELLYFISH_ID_OFFSET,
     FOOD_ID_OFFSET,
     NECTAR_ID_OFFSET,
 )
@@ -518,7 +517,6 @@ __all__ = [
     "CRAB_ATTACK_COOLDOWN",
     "FISH_ID_OFFSET",
     "PLANT_ID_OFFSET",
-    "JELLYFISH_ID_OFFSET",
     "FOOD_ID_OFFSET",
     "NECTAR_ID_OFFSET",
     # Server

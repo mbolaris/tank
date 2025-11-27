@@ -137,7 +137,7 @@
 }
 
 /* Win Style */
-.poker-events__item:not(.tie):not(.jellyfish) {
+.poker-events__item:not(.tie):not(.plant) {
     border-left: 3px solid #10b981;
     background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, rgba(30, 41, 59, 0.4) 100%);
 }
@@ -146,12 +146,6 @@
 .poker-events__item.tie {
     border-left: 3px solid #f59e0b;
     background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, rgba(30, 41, 59, 0.4) 100%);
-}
-
-/* Jellyfish Style */
-.poker-events__item.jellyfish {
-    border-left: 3px solid #a855f7;
-    background: linear-gradient(90deg, rgba(168, 85, 247, 0.05) 0%, rgba(30, 41, 59, 0.4) 100%);
 }
 
 .event-content {
@@ -187,12 +181,6 @@
     background: rgba(245, 158, 11, 0.2);
     color: #fbbf24;
     border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.event-badge.jellyfish {
-    background: rgba(168, 85, 247, 0.2);
-    color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
 /* Plant Style */

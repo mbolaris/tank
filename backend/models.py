@@ -52,13 +52,12 @@ class PokerEventData(BaseModel):
     """A single poker game event."""
 
     frame: int
-    winner_id: int  # -1 for tie, -2 for jellyfish
-    loser_id: int  # -2 for jellyfish
+    winner_id: int  # -1 for tie
+    loser_id: int
     winner_hand: str
     loser_hand: str
     energy_transferred: float
     message: str
-    is_jellyfish: bool = False
 
 
 class PokerLeaderboardEntry(BaseModel):

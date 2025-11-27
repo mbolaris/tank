@@ -469,7 +469,6 @@ class SimulationEngine(BaseSimulator):
         # Performance: Pre-fetch type references to avoid repeated module lookups
         Fish = entities.Fish
         Plant = entities.Plant
-        Jellyfish = entities.Jellyfish
         Food = entities.Food
         LiveFood = entities.LiveFood
 
@@ -495,13 +494,6 @@ class SimulationEngine(BaseSimulator):
                 food = entity.update(self.frame_count, time_modifier, time_of_day)
                 if food is not None:
                     new_entities.append(food)
-
-            elif entity_type is Jellyfish or isinstance(entity, Jellyfish):
-                entity.update(self.frame_count)
-                # Remove dead jellyfish
-                if entity.is_dead():
-                    entities_to_remove.append(entity)
-                    logger.info(f"Jellyfish #{entity.jellyfish_id} died at age {entity.age}")
 
             elif FRACTAL_PLANTS_ENABLED and hasattr(entity, 'plant_id'):
                 # FractalPlant handling
@@ -740,7 +732,6 @@ class SimulationEngine(BaseSimulator):
         loser_hand: str,
         energy_transferred: float,
         message: str,
-        is_jellyfish: bool,
     ) -> None:
         """Helper method that delegates to the poker system."""
 
@@ -751,31 +742,12 @@ class SimulationEngine(BaseSimulator):
             loser_hand,
             energy_transferred,
             message,
-            is_jellyfish,
         )
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Delegate event creation to the poker system."""
 
         self.poker_system.add_poker_event(poker)
-
-    def add_jellyfish_poker_event(
-        self,
-        fish_id: int,
-        fish_won: bool,
-        fish_hand: str,
-        jellyfish_hand: str,
-        energy_transferred: float,
-    ) -> None:
-        """Delegate jellyfish poker events to the poker system."""
-
-        self.poker_system.add_jellyfish_poker_event(
-            fish_id,
-            fish_won,
-            fish_hand,
-            jellyfish_hand,
-            energy_transferred,
-        )
 
     def get_recent_poker_events(
         self, max_age_frames: int = POKER_EVENT_MAX_AGE_FRAMES

@@ -27,7 +27,6 @@ from core.constants import (
     FRACTAL_PLANT_POKER_COLLISION_DISTANCE,
 )
 from core.fish_poker import PokerInteraction
-from core.jellyfish_poker import JellyfishPokerInteraction
 from core.plant_poker import PlantPokerInteraction, check_fish_plant_poker_collision
 
 # Type checking imports
@@ -193,40 +192,6 @@ class BaseSimulator(ABC):
                     self.record_fish_death(fish2)
 
                 return fish1_died
-        return False
-
-    def handle_fish_jellyfish_collision(self, fish: "Agent", jellyfish: "Agent") -> bool:
-        """Handle collision between a fish and jellyfish (poker benchmark).
-
-        Args:
-            fish: The fish entity
-            jellyfish: The jellyfish entity
-
-        Returns:
-            bool: True if fish died from the collision, False otherwise
-        """
-        # Fish-to-jellyfish poker interaction
-        if POKER_ACTIVITY_ENABLED:
-            poker = JellyfishPokerInteraction(fish, jellyfish)
-            if poker.play_poker():
-                # Add jellyfish poker event if available
-                if (
-                    hasattr(self, "add_jellyfish_poker_event")
-                    and poker.result is not None
-                    and poker.result.fish_hand is not None
-                    and poker.result.jellyfish_hand is not None
-                ):
-                    self.add_jellyfish_poker_event(
-                        fish_id=poker.result.fish_id,
-                        fish_won=poker.result.fish_won,
-                        fish_hand=poker.result.fish_hand.description,
-                        jellyfish_hand=poker.result.jellyfish_hand.description,
-                        energy_transferred=abs(poker.result.energy_transferred),
-                    )
-                # Check if fish died from poker
-                if fish.is_dead() and fish in self.get_all_entities():
-                    self.record_fish_death(fish)
-                    return True
         return False
 
     def handle_fish_fractal_plant_collision(self, fish: "Agent", plant: "Agent") -> bool:
@@ -408,7 +373,7 @@ class BaseSimulator(ABC):
         - Cache get_all_entities() result
         - Use set membership for removed_fish checks
         """
-        from core.entities import Crab, Fish, Food, Jellyfish
+        from core.entities import Crab, Fish, Food
 
         # Performance: Cache all_entities and avoid repeated calls
         all_entities = self.get_all_entities()
@@ -468,12 +433,6 @@ class BaseSimulator(ABC):
 
                     elif other_type is Food or isinstance(other, Food):
                         self.handle_fish_food_collision(fish, other)
-
-                    elif other_type is Jellyfish or isinstance(other, Jellyfish):
-                        if self.handle_fish_jellyfish_collision(fish, other):
-                            removed_fish.add(fish)
-                            all_entities_set.discard(fish)
-                            break  # Fish died, stop checking collisions for it
 
         # After processing all collisions, handle poker groups
         # Build full adjacency graph (make it symmetric)

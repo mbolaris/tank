@@ -1,4 +1,4 @@
-"""Predator entity logic for crabs and jellyfish."""
+"""Predator entity logic for crabs."""
 
 import random
 from typing import TYPE_CHECKING, Optional
@@ -97,67 +97,3 @@ class Crab(Agent):
         # Stay on bottom
         self.vel.y = 0
         super().update(elapsed_time)
-
-
-class Jellyfish(Agent):
-    """A poker-evaluating jellyfish that plays poker with fish."""
-
-    # Constants for jellyfish
-    INITIAL_ENERGY = 1000.0
-    ENERGY_DECAY_RATE = 0.5  # Energy lost per frame (slower than fish metabolism)
-    POKER_AGGRESSION = 0.4  # Fixed conservative poker strategy (0.0-1.0)
-
-    def __init__(
-        self,
-        environment: "Environment",
-        x: float,
-        y: float,
-        jellyfish_id: int = 0,
-        screen_width: int = 800,
-        screen_height: int = 600,
-    ) -> None:
-        """Initialize a jellyfish."""
-        # Jellyfish drift slowly
-        speed = 0.8
-        super().__init__(environment, x, y, speed, screen_width, screen_height)
-
-        # Energy system
-        self.max_energy: float = self.INITIAL_ENERGY
-        self.energy: float = self.INITIAL_ENERGY
-
-        # Tracking
-        self.jellyfish_id: int = jellyfish_id
-        self.age: int = 0
-
-        # Poker system
-        self.poker_cooldown: int = 0
-        self.last_button_position: int = 2  # For button rotation in poker
-
-        # Set size for collision detection
-        self.set_size(40, 40)  # Slightly larger than fish
-
-    def consume_energy(self) -> None:
-        """Consume energy over time (jellyfish slowly dies)."""
-        self.energy = max(0, self.energy - self.ENERGY_DECAY_RATE)
-
-    def is_dead(self) -> bool:
-        """Check if jellyfish should die (energy depleted)."""
-        return self.energy <= 0
-
-    def update(self, elapsed_time: int) -> None:
-        """Update the jellyfish state."""
-        super().update(elapsed_time)
-
-        # Increment age
-        self.age += 1
-
-        # Decay energy
-        self.consume_energy()
-
-        # Update poker cooldown
-        if self.poker_cooldown > 0:
-            self.poker_cooldown -= 1
-
-        # Gentle drifting movement (slow random walk)
-        if self.age % 30 == 0:  # Change direction every second
-            self.add_random_velocity_change([0.2, 0.6, 0.2], 20)  # Subtle movements

@@ -54,7 +54,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'jellyfish' | 'fractal_plant' | 'plant_nectar';
+    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'fractal_plant' | 'plant_nectar';
     x: number;
     y: number;
     width: number;
@@ -106,13 +106,12 @@ export interface EntityData {
 
 export interface PokerEventData {
     frame: number;
-    winner_id: number;  // -1 for tie, -2 for jellyfish
-    loser_id: number;  // -2 for jellyfish
+    winner_id: number;  // -1 for tie
+    loser_id: number;
     winner_hand: string;
     loser_hand: string;
     energy_transferred: number;
     message: string;
-    is_jellyfish?: boolean;
     is_plant?: boolean;  // True if this is a plant poker game
 }
 

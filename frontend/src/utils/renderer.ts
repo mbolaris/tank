@@ -363,9 +363,6 @@ export class Renderer {
             case 'castle':
                 this.renderCastle(entity);
                 break;
-            case 'jellyfish':
-                this.renderJellyfish(entity, elapsedTime);
-                break;
             case 'fractal_plant':
                 this.renderFractalPlant(entity, elapsedTime, allEntities);
                 break;
@@ -992,92 +989,6 @@ export class Renderer {
         // Flip based on velocity
         const flipHorizontal = vel_x < 0;
         this.drawImage(image, x, y, width, height, flipHorizontal);
-    }
-
-    private renderJellyfish(jellyfish: EntityData, elapsedTime: number) {
-        const { ctx } = this;
-        const { x, y, width, height, energy = 1000 } = jellyfish;
-
-        // Animation variables
-        const pulse = Math.sin(elapsedTime * 0.002) * 0.1 + 0.9; // Pulsing animation
-        const tentacleWave = elapsedTime * 0.003;
-
-        ctx.save();
-
-        // Center position
-        const centerX = x + width / 2;
-        const centerY = y + height / 3;
-
-        // Draw translucent dome/bell
-        const domeRadius = (width / 2) * pulse;
-        const domeHeight = height / 2;
-
-        // Dome gradient (semi-transparent purple/pink)
-        const domeGradient = ctx.createRadialGradient(
-            centerX,
-            centerY - domeHeight * 0.3,
-            0,
-            centerX,
-            centerY,
-            domeRadius
-        );
-        domeGradient.addColorStop(0, 'rgba(200, 100, 255, 0.6)');
-        domeGradient.addColorStop(0.5, 'rgba(150, 80, 220, 0.5)');
-        domeGradient.addColorStop(1, 'rgba(100, 60, 180, 0.3)');
-
-        // Draw dome
-        ctx.fillStyle = domeGradient;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, domeRadius, domeHeight, 0, Math.PI, 0, true);
-        ctx.fill();
-
-        // Add dome highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        ctx.ellipse(
-            centerX - domeRadius * 0.3,
-            centerY - domeHeight * 0.5,
-            domeRadius * 0.4,
-            domeHeight * 0.3,
-            0,
-            0,
-            Math.PI * 2
-        );
-        ctx.fill();
-
-        // Draw tentacles (4-6 wavy lines)
-        const tentacleCount = 5;
-        ctx.strokeStyle = 'rgba(150, 80, 220, 0.6)';
-        ctx.lineWidth = 2;
-
-        for (let i = 0; i < tentacleCount; i++) {
-            const offsetX = ((i - tentacleCount / 2) / tentacleCount) * width * 0.8;
-            const startX = centerX + offsetX;
-            const startY = centerY + domeHeight * 0.5;
-
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
-
-            // Draw wavy tentacle
-            const segments = 6;
-            for (let j = 1; j <= segments; j++) {
-                const segmentY = startY + (j / segments) * height * 0.6;
-                const waveOffset = Math.sin(tentacleWave + i + j * 0.5) * 5;
-                ctx.lineTo(startX + waveOffset, segmentY);
-            }
-            ctx.stroke();
-        }
-
-        // Draw energy bar above jellyfish
-        if (energy !== undefined) {
-            this.drawEnhancedEnergyBar(x, y - 12, width, energy / 10); // Jellyfish has max 1000 energy
-        }
-
-        // Add glow effect
-        ctx.shadowColor = 'rgba(150, 80, 220, 0.5)';
-        ctx.shadowBlur = 15 * pulse;
-
-        ctx.restore();
     }
 
     private renderCastle(castle: EntityData) {

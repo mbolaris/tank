@@ -188,7 +188,6 @@ class PokerEventPayload:
     loser_hand: str
     energy_transferred: float
     message: str
-    is_jellyfish: bool = False
     is_plant: bool = False
     plant_id: Optional[int] = None
 

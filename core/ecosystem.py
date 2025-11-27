@@ -13,7 +13,6 @@ from core.ecosystem_stats import (
     EcosystemEvent,
     GenerationStats,
     GeneticDiversityStats,
-    JellyfishPokerStats,
     PokerStats,
 )
 from core.poker_stats_manager import PokerStatsManager
@@ -73,9 +72,6 @@ class EcosystemManager:
             add_event=self._add_event, frame_provider=lambda: self.frame_count
         )
         self.poker_stats: Dict[int, PokerStats] = self.poker_manager.poker_stats
-        self.jellyfish_poker_stats: Dict[int, JellyfishPokerStats] = (
-            self.poker_manager.jellyfish_poker_stats
-        )
 
         # Reproduction statistics tracking
         self.reproduction_manager = ReproductionStatsManager(self.algorithm_stats)
@@ -369,19 +365,6 @@ class EcosystemManager:
             player2_algo_id,
         )
 
-    def record_jellyfish_poker_game(
-        self,
-        fish_id: int,
-        fish_won: bool,
-        energy_transferred: float,
-        fish_hand_rank: int,
-        won_by_fold: bool,
-    ) -> None:
-        """Record a poker game between a fish and the jellyfish benchmark."""
-        self.poker_manager.record_jellyfish_poker_game(
-            fish_id, fish_won, energy_transferred, fish_hand_rank, won_by_fold
-        )
-
     def record_plant_poker_game(
         self,
         fish_id: int,
@@ -402,14 +385,6 @@ class EcosystemManager:
             plant_hand_rank,
             won_by_fold,
         )
-
-    def get_jellyfish_leaderboard(self, limit: int = 10) -> List[JellyfishPokerStats]:
-        """Get the jellyfish poker leaderboard sorted by performance score."""
-        return self.poker_manager.get_jellyfish_leaderboard(limit)
-
-    def get_jellyfish_poker_stats_for_fish(self, fish_id: int) -> Optional[JellyfishPokerStats]:
-        """Get jellyfish poker stats for a specific fish."""
-        return self.poker_manager.get_jellyfish_poker_stats_for_fish(fish_id)
 
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         from core import algorithm_reporter

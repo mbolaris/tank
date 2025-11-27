@@ -128,7 +128,6 @@ The Canvas component renders all entities:
 - **Plants**: L-system fractal plants with genetic evolution
 - **Crab**: Orange with claws
 - **Castle**: Gray structure with towers
-- **Jellyfish**: Translucent with tentacles
 
 Each fish displays an energy bar above it (green/yellow/red based on energy level).
 
