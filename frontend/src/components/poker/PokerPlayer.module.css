@@ -193,8 +193,6 @@
 
 .activeHighlight {
     border-radius: 6px;
-    padding: 4px;
-    margin: -4px;
     box-shadow: 0 0 0 2px #fbbf24, 0 0 12px rgba(251, 191, 36, 0.6);
     animation: activeGlow 2s ease-in-out infinite;
 }
