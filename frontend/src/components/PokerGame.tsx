@@ -192,7 +192,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                         energy={player.energy}
                         currentBet={player.current_bet}
                         folded={player.folded}
-                        isActive={!gameState.game_over && player.energy > 0 && player.name === gameState.current_player}
+                        isActive={!gameState.game_over && !player.folded && player.energy > 0 && player.name === gameState.current_player}
                         isHuman={false}
                         cards={player.hole_cards}
                     />
@@ -208,7 +208,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                             energy={humanPlayer.energy}
                             currentBet={humanPlayer.current_bet}
                             folded={humanPlayer.folded}
-                            isActive={!gameState.game_over && humanPlayer.energy > 0 && gameState.is_your_turn}
+                            isActive={!gameState.game_over && !humanPlayer.folded && humanPlayer.energy > 0 && gameState.current_player === "You"}
                             isHuman={true}
                             cards={gameState.your_cards}
                         />
