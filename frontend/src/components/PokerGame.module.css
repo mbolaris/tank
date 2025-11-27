@@ -203,8 +203,7 @@
 }
 
 .opponentsSection {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    display: flex;
     gap: 12px;
     margin-bottom: 12px;
 }
@@ -221,7 +220,6 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    flex: 1;
 }
 
 .message {

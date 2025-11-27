@@ -46,19 +46,43 @@
 }
 
 .communityCardsArea {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
 }
 
 .communityCardsLabel {
-    font-size: 10px;
-    color: #94a3b8;
-    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #60a5fa;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.communityCardsRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.phaseBadge {
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #60a5fa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .potLabel {
     font-size: 10px;
     color: #94a3b8;
     margin-bottom: 2px;
+    position: relative;
+    z-index: 10;
 }
 
 .potChips {
@@ -87,6 +111,34 @@
     flex: 0 0 auto;
 }
 
+.statusArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 200px;
+    min-height: 50px;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    padding: 8px 14px;
+}
+
+.waitingMessage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.waitingMessage strong {
+    color: #60a5fa;
+}
+
 .lastMovesArea {
     display: flex;
     flex-direction: column;
@@ -112,10 +164,10 @@
 
 .lastMoveItem {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .lastMovePlayer {
@@ -125,8 +177,8 @@
 }
 
 .lastMoveAction {
-    color: #fbbf24;
-    font-weight: bold;
+    color: #60a5fa;
+    font-weight: 600;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 13px;
 }

@@ -85,6 +85,7 @@ interface FishAvatarProps {
     genomeData?: FishGenomeData;
     size?: 'small' | 'medium' | 'large';
     className?: string;
+    isHuman?: boolean;
 }
 
 const sizeMap = {
@@ -98,17 +99,20 @@ export function FishAvatar({
     genomeData,
     size = 'medium',
     className,
+    isHuman = false,
 }: FishAvatarProps) {
     const fishParams = buildFishParams(genomeData);
-    const label = fishId ? `Fish #${fishId}` : 'AI Fish';
+    const label = isHuman ? 'You' : fishId ? `Fish #${fishId}` : 'AI Fish';
     const dims = sizeMap[size];
 
     const containerStyle: React.CSSProperties = {
         width: dims.container,
         height: dims.container,
         borderRadius: size === 'small' ? 6 : 10,
-        background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.6)), #0f172a',
-        border: '1px solid rgba(148, 163, 184, 0.3)',
+        background: isHuman
+            ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+            : 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.6)), #0f172a',
+        border: isHuman ? '2px solid #60a5fa' : '1px solid rgba(148, 163, 184, 0.3)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -116,6 +120,30 @@ export function FishAvatar({
         flexShrink: 0,
     };
 
+    // Render human player avatar
+    if (isHuman) {
+        const iconSize = dims.container * 0.6;
+        return (
+            <div style={containerStyle} className={className}>
+                <svg
+                    width={iconSize}
+                    height={iconSize}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-label={label}
+                >
+                    {/* Person silhouette */}
+                    <circle cx="12" cy="8" r="4" fill="white" />
+                    <path
+                        d="M4 20c0-4 4-6 8-6s8 2 8 6"
+                        fill="white"
+                    />
+                </svg>
+            </div>
+        );
+    }
+
+    // Fallback for fish without genome data
     if (!fishParams) {
         return (
             <div style={containerStyle} className={className}>

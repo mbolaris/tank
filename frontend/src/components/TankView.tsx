@@ -36,6 +36,37 @@ export function TankView({ tankId }: TankViewProps) {
         ? state.stats.max_generation ?? state.stats.generation ?? 0
         : 0;
 
+    // Process AI turns one at a time with delay for visual feedback
+    const processAiTurnsWithDelay = async () => {
+        const AI_TURN_DELAY = 800; // ms to show each AI player's turn
+        
+        const processNextAiTurn = async (): Promise<void> => {
+            try {
+                const response = await sendCommandWithResponse({
+                    command: 'poker_process_ai_turn',
+                    data: {},
+                });
+                
+                if (response.state) {
+                    setPokerGameState(response.state);
+                }
+                
+                // If an action was taken, wait and check for more AI turns
+                if (response.action_taken) {
+                    await new Promise(resolve => setTimeout(resolve, AI_TURN_DELAY));
+                    await processNextAiTurn();
+                }
+                // If no action taken (human_turn or game_over), we're done
+            } catch (error) {
+                console.error('Failed to process AI turn:', error);
+            }
+        };
+        
+        // Small initial delay to show the first AI player's highlight
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await processNextAiTurn();
+    };
+
     const handleStartPoker = async () => {
         try {
             setPokerLoading(true);
@@ -49,6 +80,10 @@ export function TankView({ tankId }: TankViewProps) {
                 setShowPokerGame(false);
             } else if (response.state) {
                 setPokerGameState(response.state);
+                // Process AI turns if it's not the human's turn first
+                if (!response.state.is_your_turn && !response.state.game_over) {
+                    processAiTurnsWithDelay();
+                }
             }
         } catch (error) {
             console.error('Failed to start poker game:', error);
@@ -70,6 +105,8 @@ export function TankView({ tankId }: TankViewProps) {
                 alert(response.error || 'Invalid action');
             } else if (response.state) {
                 setPokerGameState(response.state);
+                // Start processing AI turns after human action
+                processAiTurnsWithDelay();
             }
         } catch (error) {
             console.error('Failed to send poker action:', error);
@@ -95,6 +132,10 @@ export function TankView({ tankId }: TankViewProps) {
                 alert(response.error || 'Failed to start new round');
             } else if (response.state) {
                 setPokerGameState(response.state);
+                // Process AI turns if it's not the human's turn first
+                if (!response.state.is_your_turn && !response.state.game_over) {
+                    processAiTurnsWithDelay();
+                }
             }
         } catch (error) {
             console.error('Failed to start new poker round:', error);

@@ -284,6 +284,7 @@ export interface PokerGameState {
     your_cards: string[];
     call_amount: number;
     min_raise: number;
+    last_move?: { player: string; action: string } | null;
 }
 
 // Auto-Evaluation Stats

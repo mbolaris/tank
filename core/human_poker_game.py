@@ -136,6 +136,7 @@ class HumanPokerGame:
         self.actions_this_round = 0  # Track actions per betting round
         self.big_blind_index = 0  # Track big blind position for BB option
         self.big_blind_has_option = False  # BB gets option to raise if no raises pre-flop
+        self.last_move: Optional[Dict[str, str]] = None  # Track the single most recent move
 
         # Deal cards and post blinds
         self._start_hand()
@@ -182,8 +183,8 @@ class HumanPokerGame:
             f"current player: {self.current_player_index}"
         )
 
-        # Process AI actions if first player to act is AI
-        self._process_ai_turns()
+        # Don't process AI actions automatically - let frontend poll for each one
+        # This allows the UI to show the highlight on each AI player's turn
 
     def _get_next_active_player(self, from_index: int) -> int:
         """Get the next player with energy > 0 after the given index."""
@@ -483,6 +484,7 @@ class HumanPokerGame:
         if action == "fold":
             current_player.folded = True
             current_player.last_action = "fold"
+            self.last_move = {"player": current_player.name, "action": "fold"}
             self.betting_history.append(
                 {
                     "player": current_player.name,
@@ -507,6 +509,7 @@ class HumanPokerGame:
                     "state": self.get_state(),
                 }
             current_player.last_action = "check"
+            self.last_move = {"player": current_player.name, "action": "check"}
             self.betting_history.append(
                 {
                     "player": current_player.name,
@@ -529,6 +532,7 @@ class HumanPokerGame:
                 call_amount = current_player.energy
             self._player_bet(self.current_player_index, call_amount)
             current_player.last_action = f"call {call_amount:.0f}"
+            self.last_move = {"player": current_player.name, "action": f"call {call_amount:.0f}"}
             self.betting_history.append(
                 {
                     "player": current_player.name,
@@ -555,6 +559,7 @@ class HumanPokerGame:
             self._player_bet(self.current_player_index, total_amount)
             action_name = "raise" if call_amount > 0 else "bet"
             current_player.last_action = f"{action_name} {total_amount:.0f}"
+            self.last_move = {"player": current_player.name, "action": f"{action_name} {total_amount:.0f}"}
             self.betting_history.append(
                 {
                     "player": current_player.name,
@@ -579,11 +584,46 @@ class HumanPokerGame:
         if not self.game_over:
             self._next_player()
 
-            # Process AI actions automatically
-            self._process_ai_turns()
+            # Don't process AI turns automatically - let frontend poll for each one
+            # This allows the UI to show the highlight on each AI player's turn
 
         return {
             "success": True,
+            "state": self.get_state(),
+        }
+
+    def process_single_ai_turn(self) -> dict:
+        """Process a single AI player's turn if it's their turn.
+        
+        Returns:
+            Dictionary with success status, whether an action was taken, and game state
+        """
+        # If game is over, nothing to do
+        if self.game_over:
+            return {
+                "success": True,
+                "action_taken": False,
+                "reason": "game_over",
+                "state": self.get_state(),
+            }
+        
+        current_player = self.players[self.current_player_index]
+        
+        # If it's the human's turn, don't process
+        if current_player.is_human:
+            return {
+                "success": True,
+                "action_taken": False,
+                "reason": "human_turn",
+                "state": self.get_state(),
+            }
+        
+        # Process the AI action
+        self._process_ai_action_internal()
+        
+        return {
+            "success": True,
+            "action_taken": True,
             "state": self.get_state(),
         }
 
@@ -643,6 +683,7 @@ class HumanPokerGame:
         if action == BettingAction.FOLD:
             player.folded = True
             player.last_action = "fold"
+            self.last_move = {"player": player.name, "action": "fold"}
             self.betting_history.append({"player": player.name, "action": "fold", "amount": 0.0})
             self.actions_this_round += 1
             self.message = f"{player.name} folds"
@@ -654,6 +695,7 @@ class HumanPokerGame:
 
         elif action == BettingAction.CHECK:
             player.last_action = "check"
+            self.last_move = {"player": player.name, "action": "check"}
             self.betting_history.append({"player": player.name, "action": "check", "amount": 0.0})
             self.actions_this_round += 1
             self.message = f"{player.name} checks"
@@ -663,6 +705,7 @@ class HumanPokerGame:
                 call_amount = player.energy
             self._player_bet(self.current_player_index, call_amount)
             player.last_action = f"call {call_amount:.0f}"
+            self.last_move = {"player": player.name, "action": f"call {call_amount:.0f}"}
             self.betting_history.append(
                 {"player": player.name, "action": "call", "amount": call_amount}
             )
@@ -676,6 +719,7 @@ class HumanPokerGame:
             self._player_bet(self.current_player_index, total_amount)
             action_name = "raise" if call_amount > 0 else "bet"
             player.last_action = f"{action_name} {total_amount:.0f}"
+            self.last_move = {"player": player.name, "action": f"{action_name} {total_amount:.0f}"}
             self.betting_history.append(
                 {
                     "player": player.name,
@@ -746,4 +790,5 @@ class HumanPokerGame:
             "your_cards": [str(card) for card in human_player.hole_cards],
             "call_amount": int(self._get_call_amount(0)) if not human_player.folded else 0,
             "min_raise": int(self.big_blind),
+            "last_move": self.last_move,
         }

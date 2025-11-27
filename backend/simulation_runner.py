@@ -1028,6 +1028,15 @@ class SimulationRunner:
                 result = self.human_poker_game.handle_action("human", action, amount)
                 return result
 
+            elif command == "poker_process_ai_turn":
+                # Process a single AI player's turn (for step-by-step animation)
+                if not self.human_poker_game:
+                    logger.warning("AI turn processing requested but no game active")
+                    return self._create_error_response("No poker game active")
+
+                result = self.human_poker_game.process_single_ai_turn()
+                return result
+
             elif command == "poker_new_round":
                 # Start a new hand in the current poker session
                 if not self.human_poker_game:

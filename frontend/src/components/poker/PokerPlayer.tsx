@@ -156,7 +156,7 @@ export function PokerPlayer({
     const playerClass = `${styles.player} ${folded ? styles.folded : ''} ${isActive ? styles.active : ''}`;
 
     if (isHuman) {
-        const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''} ${isActive ? styles.activeHighlight : ''}`;
+        const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''}`;
         return (
             <div className={humanClass}>
                 {/* Cards on the left */}
@@ -242,7 +242,7 @@ export function PokerPlayer({
     return (
         <div className={playerClass} title={name}>
             <FishAvatar fishId={fishId} genomeData={genomeData} />
-            <div className={`${styles.opponentInfo} ${isActive ? styles.activeHighlight : ''}`}>
+            <div className={styles.opponentInfo}>
                 <div className={styles.opponentCards}>
                     {showActualCards ? (
                         // Show actual cards during showdown with flip animation

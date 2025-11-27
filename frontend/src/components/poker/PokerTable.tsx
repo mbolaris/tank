@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { PlayingCard } from './PlayingCard';
 import { ChipStack } from './PokerChip';
+import { FishAvatar } from './FishAvatar';
 import type { PokerGamePlayer } from '../../types/simulation';
 import styles from './PokerTable.module.css';
 import cardStyles from './PlayingCard.module.css';
@@ -14,11 +15,16 @@ interface PokerTableProps {
     communityCards: string[];
     resultBanner?: React.ReactNode;
     players: PokerGamePlayer[];
+    lastMove?: { player: string; action: string } | null;
+    message?: string;
+    currentPlayer?: string;
+    isYourTurn?: boolean;
+    phase?: string;
 }
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
-export function PokerTable({ pot, communityCards, resultBanner, players }: PokerTableProps) {
+export function PokerTable({ pot, communityCards, resultBanner, players, lastMove, message, currentPlayer, isYourTurn, phase }: PokerTableProps) {
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevCardsRef = useRef<string[]>([]);
@@ -79,20 +85,11 @@ export function PokerTable({ pot, communityCards, resultBanner, players }: Poker
 
     return (
         <div className={styles.table}>
-            {/* Pot, Community Cards, Phase all side by side */}
+            {/* Community Cards, Pot, Phase all side by side */}
             <div className={styles.topRow}>
-                {/* Pot display */}
-                <div className={styles.potArea}>
-                    <div className={styles.potLabel}>POT</div>
-                    <div className={styles.potChips}>
-                        <ChipStack totalValue={Math.round(pot)} size="medium" />
-                    </div>
-                    <div className={styles.potAmount}>{Math.round(pot)} ⚡</div>
-                </div>
-
                 {/* Community cards area */}
                 <div className={styles.communityCardsArea}>
-                    <div className={styles.communityCardsLabel}>Community Cards</div>
+                    <div className={styles.communityCardsLabel}>{phase || 'Community Cards'}</div>
                     <div className={styles.communityCards}>
                         {/* Always show 5 cards - flipped or face-down */}
                         {[0, 1, 2, 3, 4].map((idx) => {
@@ -130,24 +127,58 @@ export function PokerTable({ pot, communityCards, resultBanner, players }: Poker
                     </div>
                 </div>
 
-                {/* Right side: Last moves or result banner */}
+                {/* Pot display */}
+                <div className={styles.potArea}>
+                    <div className={styles.potLabel}>POT</div>
+                    <div className={styles.potChips}>
+                        <ChipStack totalValue={Math.round(pot)} size="medium" />
+                    </div>
+                    <div className={styles.potAmount}>{Math.round(pot)} ⚡</div>
+                </div>
+
+                {/* Right side: Status message or result banner */}
                 <div className={styles.rightArea}>
-                    {/* Show last moves when game is active */}
+                    {/* Show status when game is active */}
                     {!resultBanner && (
-                        <div className={styles.lastMovesArea}>
-                            <div className={styles.lastMovesLabel}>Last Moves</div>
-                            <div className={styles.lastMovesList}>
-                                {players.map((player) => (
-                                    <div key={player.player_id} className={styles.lastMoveItem}>
+                        <div className={styles.statusArea}>
+                            {/* Show last move if available, otherwise show waiting message */}
+                            {lastMove ? (() => {
+                                const lastMovePlayer = players.find(p => p.name === lastMove.player || (lastMove.player === 'You' && p.is_human));
+                                const isHumanPlayer = lastMovePlayer?.is_human || lastMove.player === 'You';
+                                return (
+                                    <div className={styles.lastMoveItem}>
+                                        {lastMovePlayer && (
+                                            <FishAvatar
+                                                fishId={lastMovePlayer.fish_id}
+                                                genomeData={lastMovePlayer.genome_data}
+                                                size="medium"
+                                                isHuman={isHumanPlayer}
+                                            />
+                                        )}
                                         <span className={styles.lastMovePlayer}>
-                                            {player.is_human ? 'You' : player.name}:
+                                            {lastMove.player === 'You' ? 'You' : lastMove.player}:
                                         </span>
                                         <span className={styles.lastMoveAction}>
-                                            {player.last_action || '—'}
+                                            {lastMove.action.toUpperCase()}
                                         </span>
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })() : !isYourTurn && currentPlayer ? (() => {
+                                const waitingPlayer = players.find(p => p.name === currentPlayer);
+                                return (
+                                    <div className={styles.waitingMessage}>
+                                        {waitingPlayer && (
+                                            <FishAvatar
+                                                fishId={waitingPlayer.fish_id}
+                                                genomeData={waitingPlayer.genome_data}
+                                                size="medium"
+                                                isHuman={waitingPlayer.is_human}
+                                            />
+                                        )}
+                                        <span>Waiting for <strong>{currentPlayer}</strong>...</span>
+                                    </div>
+                                );
+                            })() : null}
                         </div>
                     )}
                     {/* Show result banner when game is over */}

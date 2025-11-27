@@ -8,6 +8,8 @@
     gap: 8px;
     min-height: 75px;
     position: relative;
+    width: 320px;
+    flex-shrink: 0;
 }
 
 .active {
@@ -129,13 +131,14 @@
     padding: 8px 12px;
     background: transparent;
     border-radius: 8px;
-    border: 2px solid #fbbf24;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     transition: all 0.3s ease;
-    min-width: 200px;
+    width: 320px;
+    flex-shrink: 0;
 }
 
 .humanPlayer.humanActive {
-    border-color: #fbbf24;
+    border: 2px solid #fbbf24;
     box-shadow: 0 0 16px rgba(251, 191, 36, 0.3), inset 0 0 20px rgba(251, 191, 36, 0.05);
     animation: yourTurnPulse 2s ease-in-out infinite;
 }
@@ -189,19 +192,4 @@
 .cardsContainer {
     display: flex;
     gap: 6px;
-}
-
-.activeHighlight {
-    border-radius: 6px;
-    box-shadow: 0 0 0 2px #fbbf24, 0 0 12px rgba(251, 191, 36, 0.6);
-    animation: activeGlow 2s ease-in-out infinite;
-}
-
-@keyframes activeGlow {
-    0%, 100% {
-        box-shadow: 0 0 0 2px #fbbf24, 0 0 12px rgba(251, 191, 36, 0.6);
-    }
-    50% {
-        box-shadow: 0 0 0 2px #fcd34d, 0 0 20px rgba(251, 191, 36, 0.8);
-    }
 }

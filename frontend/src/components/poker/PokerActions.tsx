@@ -48,14 +48,9 @@ export function PokerActions({
 
   const actionsClass = `${styles.actions} ${isYourTurn ? styles.actionsActive : ''}`;
 
+  // Don't show anything when it's not your turn - status is shown elsewhere
   if (!isYourTurn) {
-    return (
-      <div className={styles.actions}>
-        <div className={styles.waitingMessage}>
-          Waiting for <strong>{currentPlayer}</strong><span className={styles.waitingDots}>...</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (showRaiseInput) {

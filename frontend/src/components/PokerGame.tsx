@@ -35,6 +35,10 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
             // Skip if already processing or loading
             if (isProcessingRef.current || loading) return;
 
+            // Skip polling if it's not our turn (AI turns are being processed)
+            // This prevents spamming the server with "wait" responses
+            if (!gameState.is_your_turn && !gameState.game_over) return;
+
             // Enforce minimum delay between actions
             const now = Date.now();
             if (now - lastActionTimeRef.current < AUTOPILOT_POLL_INTERVAL) return;
@@ -60,6 +64,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                     onNewRound();
                 } else if (action === 'wait') {
                     // Not our turn, just wait for next poll
+                    // (This shouldn't happen now since we check is_your_turn above)
                 } else {
                     // Execute the action (fold, check, call, raise)
                     lastActionTimeRef.current = Date.now();
@@ -136,11 +141,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                     <h2 className={styles.title}>
                         Poker Game
                         <span className={styles.handCounter}>Hand #{gameState.hands_played}</span>
-                        <span className={styles.phaseIndicator}>{gameState.current_round?.replace('_', '-') || 'Starting'}</span>
                     </h2>
-                    {gameState.message && (
-                        <div className={styles.headerMessage}>{gameState.message}</div>
-                    )}
                 </div>
                 <div className={styles.headerRight}>
                     <button onClick={onClose} className={styles.closeButton}>×</button>
@@ -152,15 +153,23 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                 pot={gameState.pot}
                 communityCards={gameState.community_cards}
                 players={gameState.players}
+                lastMove={gameState.last_move}
+                message={gameState.message}
+                currentPlayer={gameState.current_player}
+                isYourTurn={gameState.is_your_turn}
+                phase={gameState.current_round?.replace('_', '-') || 'Starting'}
                 resultBanner={gameState.game_over && !gameState.session_over ? (
                     <div className={`${styles.resultBanner} ${gameState.winner === 'You' ? styles.winBanner : styles.loseBanner}`}>
                         {gameState.winner === 'You' ? (
-                            <span className={styles.resultIcon}>🏆</span>
+                            <FishAvatar
+                                isHuman={true}
+                                size="medium"
+                            />
                         ) : (
                             <FishAvatar
                                 fishId={winnerPlayer?.fish_id}
                                 genomeData={winnerPlayer?.genome_data}
-                                size="small"
+                                size="medium"
                             />
                         )}
                         <span className={styles.resultText}>
@@ -183,7 +192,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                         energy={player.energy}
                         currentBet={player.current_bet}
                         folded={player.folded}
-                        isActive={player.name === gameState.current_player}
+                        isActive={!gameState.game_over && player.energy > 0 && player.name === gameState.current_player}
                         isHuman={false}
                         cards={player.hole_cards}
                     />
@@ -199,7 +208,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                             energy={humanPlayer.energy}
                             currentBet={humanPlayer.current_bet}
                             folded={humanPlayer.folded}
-                            isActive={gameState.is_your_turn}
+                            isActive={!gameState.game_over && humanPlayer.energy > 0 && gameState.is_your_turn}
                             isHuman={true}
                             cards={gameState.your_cards}
                         />

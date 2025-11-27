@@ -17,7 +17,7 @@ export function PlayingCard({ card, size = 'medium', faceDown = false, className
 
     // Parse card string (e.g., "A♠" -> rank: "A", suit: "♠")
     const { rank, suit, color } = useMemo(() => {
-        if (card === 'BACK' || faceDown) {
+        if (!card || card === 'BACK' || faceDown) {
             return { rank: '', suit: '', color: 'black' };
         }
 
@@ -31,7 +31,7 @@ export function PlayingCard({ card, size = 'medium', faceDown = false, className
         return { rank: r, suit: s, color: c };
     }, [card, faceDown]);
 
-    if (faceDown || card === 'BACK') {
+    if (faceDown || !card || card === 'BACK') {
         return (
             <div className={`${styles.card} ${sizeClass} ${styles.back} ${className}`}>
                 <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
