@@ -96,7 +96,9 @@ class SimulationManager:
         )
 
         # Create simulation runner
-        self._runner = SimulationRunner(seed=seed)
+        self._runner = SimulationRunner(
+            seed=seed, tank_id=self.tank_info.tank_id, tank_name=self.tank_info.name
+        )
 
         # Track connected WebSocket clients
         self._connected_clients: Set[WebSocket] = set()
