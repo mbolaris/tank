@@ -98,8 +98,6 @@ class SimulationRunner:
         self.auto_eval_running: bool = False
         self.auto_eval_interval_seconds = 15.0
         self.last_auto_eval_time = 0.0
-        self.auto_eval_interval_seconds = 15.0
-        self.last_auto_eval_time = 0.0
         self.auto_eval_lock = threading.Lock()
 
         # Migration support
@@ -250,14 +248,14 @@ class SimulationRunner:
                     frame_count += 1
 
                     with self.lock:
-                            try:
-                                self.world.update()
-                            except Exception as e:
-                                logger.error(
-                                    f"Simulation loop: Error updating world at frame {frame_count}: {e}",
-                                    exc_info=True,
-                                )
-                                # Continue running even if update fails
+                        try:
+                            self.world.update()
+                        except Exception as e:
+                            logger.error(
+                                f"Simulation loop: Error updating world at frame {frame_count}: {e}",
+                                exc_info=True,
+                            )
+                            # Continue running even if update fails
 
                     self._start_auto_evaluation_if_needed()
 
