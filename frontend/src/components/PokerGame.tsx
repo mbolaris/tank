@@ -20,6 +20,7 @@ interface PokerGameProps {
 
 const AUTOPILOT_POLL_INTERVAL = 1000; // ms between autopilot checks
 const AUTOPILOT_NEW_ROUND_DELAY = 1500; // ms before starting new hand
+const AUTOPILOT_ACTION_DELAY = 1000; // ms before executing automatic action
 
 export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction, gameState, loading }: PokerGameProps) {
     const [autopilot, setAutopilot] = useState(false);
@@ -66,7 +67,8 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                     // Not our turn, just wait for next poll
                     // (This shouldn't happen now since we check is_your_turn above)
                 } else {
-                    // Execute the action (fold, check, call, raise)
+                    // Execute the action (fold, check, call, raise) with delay
+                    await new Promise(resolve => setTimeout(resolve, AUTOPILOT_ACTION_DELAY));
                     lastActionTimeRef.current = Date.now();
                     onAction(action, amount);
                 }
