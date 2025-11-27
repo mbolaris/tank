@@ -528,7 +528,7 @@ class Fish(Agent):
         Returns:
             bool: True if fish can reproduce
         """
-        return self._reproduction_component.can_reproduce(self.life_stage, self.energy)
+        return self._reproduction_component.can_reproduce(self.life_stage, self.energy, self.max_energy)
 
     def try_mate(self, other: "Fish") -> bool:
         """Attempt to mate with another fish.

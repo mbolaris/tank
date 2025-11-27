@@ -127,15 +127,20 @@ def _get_participant(fish: "Fish") -> PokerParticipant:
 def should_offer_post_poker_reproduction(
     fish: "Fish", opponent: "Fish", is_winner: bool, energy_gained: float = 0.0
 ) -> bool:
-    """Decide whether to offer reproduction after a poker game."""
+    """Decide whether to offer reproduction after a poker game.
+
+    Fish must have 90% of their max energy to reproduce - proving they are successful
+    at resource acquisition.
+    """
 
     from core.constants import (
-        POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
         POST_POKER_REPRODUCTION_LOSER_PROB,
         POST_POKER_REPRODUCTION_WINNER_PROB,
     )
 
-    if fish.energy < POST_POKER_REPRODUCTION_ENERGY_THRESHOLD:
+    # Require 90% of max energy (high energy threshold for reproduction)
+    min_energy_for_reproduction = fish.max_energy * 0.9
+    if fish.energy < min_energy_for_reproduction:
         return False
 
     if fish.is_pregnant or fish.reproduction_cooldown > 0:
