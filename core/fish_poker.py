@@ -129,14 +129,16 @@ def should_offer_post_poker_reproduction(
 ) -> bool:
     """Decide whether to offer reproduction after a poker game.
 
-    Fish must have 90% of their max energy to reproduce - proving they are successful
-    at resource acquisition.
-    """
+    DETERMINISTIC reproduction trigger:
+    - Fish must have ≥90% of their max energy (proving successful resource acquisition)
+    - Fish must not be pregnant
+    - Fish must be off reproduction cooldown
+    - Fish must be adult
+    - Fish must be same species as opponent
 
-    from core.constants import (
-        POST_POKER_REPRODUCTION_LOSER_PROB,
-        POST_POKER_REPRODUCTION_WINNER_PROB,
-    )
+    No probabilities - if conditions are met, reproduction occurs. This creates strong
+    selection pressure: only successful fish (high energy = good at resource acquisition) reproduce.
+    """
 
     # Require 90% of max energy (high energy threshold for reproduction)
     min_energy_for_reproduction = fish.max_energy * 0.9
@@ -152,24 +154,8 @@ def should_offer_post_poker_reproduction(
     if fish.species != opponent.species:
         return False
 
-    opponent_fitness = 0.0
-    if opponent.genome is not None:
-        opponent_fitness += min(opponent.genome.fitness_score / 100.0, 1.0) * 0.3
-
-        energy_ratio = opponent.energy / opponent.max_energy if opponent.max_energy > 0 else 0
-        opponent_fitness += energy_ratio * 0.2
-
-        if fish.genome is not None:
-            compatibility = fish.genome.calculate_mate_compatibility(opponent.genome)
-            opponent_fitness += compatibility * 0.3
-
-        if not is_winner:
-            opponent_fitness += 0.2
-
-    base_prob = POST_POKER_REPRODUCTION_WINNER_PROB if is_winner else POST_POKER_REPRODUCTION_LOSER_PROB
-    final_prob = base_prob * (0.5 + opponent_fitness)
-
-    return random.random() < final_prob
+    # Deterministic: all conditions met, reproduction occurs
+    return True
 
 
 class PokerInteraction:
@@ -599,6 +585,33 @@ class PokerInteraction:
             for fish in self.fish_list:
                 fish.set_poker_effect("tie")
 
+        # Try post-poker reproduction (multiplayer)
+        offspring = None
+        reproduction_occurred = False
+        if winner_id != -1:  # Only if there was a winner (not a tie)
+            # Find the highest-placing loser (second place) for reproduction
+            # This is the loser with the best hand
+            second_place_idx = None
+            second_place_hand = None
+
+            for i in range(self.num_players):
+                if i != best_hand_idx:  # Skip winner
+                    if second_place_idx is None or self.player_hands[i].beats(second_place_hand):
+                        second_place_idx = i
+                        second_place_hand = self.player_hands[i]
+
+            # Attempt reproduction between winner and second place
+            if second_place_idx is not None:
+                winner_fish = self.fish_list[best_hand_idx]
+                second_place_fish = self.fish_list[second_place_idx]
+
+                offspring = self.try_post_poker_reproduction(
+                    winner_fish=winner_fish,
+                    loser_fish=second_place_fish,
+                    energy_transferred=bet_amount,
+                )
+                reproduction_occurred = offspring is not None
+
         # Create result
         self.result = PokerResult(
             player_hands=self.player_hands,
@@ -614,8 +627,8 @@ class PokerInteraction:
             players_folded=[False] * self.num_players,
             reached_showdown=True,
             betting_history=[],
-            reproduction_occurred=False,
-            offspring=None,
+            reproduction_occurred=reproduction_occurred,
+            offspring=offspring,
         )
 
         # Record stats for each player
