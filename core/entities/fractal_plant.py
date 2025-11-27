@@ -101,6 +101,12 @@ class FractalPlant(Agent):
         self.poker_cooldown = 0
         self.nectar_cooldown = FRACTAL_PLANT_NECTAR_COOLDOWN // 2  # Start partially ready
 
+        # Migration timer - check for migration every 300 frames (5 seconds at 60fps)
+        # Add random offset to prevent synchronized migrations
+        self.migration_check_interval = 300
+        self.migration_timer = random.randint(0, self.migration_check_interval)
+        self._migrated = False  # Set to True when plant migrates
+
         # Statistics
         self.age = 0
         self.nectar_produced = 0
@@ -164,12 +170,18 @@ class FractalPlant(Agent):
             self.poker_cooldown -= 1
         if self.nectar_cooldown > 0:
             self.nectar_cooldown -= 1
-            
+
         # Update poker effect timer
         if self.poker_effect_timer > 0:
             self.poker_effect_timer -= 1
             if self.poker_effect_timer <= 0:
                 self.poker_effect_state = None
+
+        # Update migration timer and check for migration
+        self.migration_timer += 1
+        if self.migration_timer >= self.migration_check_interval:
+            self.migration_timer = 0
+            self._check_migration()
 
         # Passive energy collection (compound growth)
         self._collect_energy(time_modifier)
@@ -329,12 +341,12 @@ class FractalPlant(Agent):
         return actual_gain
 
     def is_dead(self) -> bool:
-        """Check if plant is dead (energy too low).
+        """Check if plant is dead (energy too low) or has migrated.
 
         Returns:
             True if plant should be removed
         """
-        return self.energy < FRACTAL_PLANT_DEATH_ENERGY
+        return self._migrated or self.energy < FRACTAL_PLANT_DEATH_ENERGY
 
     def get_size_multiplier(self) -> float:
         """Get current size multiplier for rendering.
@@ -410,11 +422,82 @@ class FractalPlant(Agent):
 
     def notify_food_eaten(self) -> None:
         """Notify plant that one of its food items was eaten.
-        
+
         For FractalPlant, this is a no-op as nectar production is controlled
         by cooldowns and energy thresholds, not a concurrent count limit.
         """
         pass
+
+    def _check_migration(self) -> None:
+        """Check if plant should attempt migration based on root spot position."""
+        if self.root_spot is None:
+            return
+
+        # Determine if this plant is in an edge position
+        # Edge positions are the first 2 or last 2 spots out of 25
+        total_spots = len(self.root_spot.manager.spots) if hasattr(self.root_spot, "manager") else 25
+        edge_threshold = 2  # Consider first 2 and last 2 spots as "edge"
+
+        spot_id = self.root_spot.spot_id
+        direction = None
+
+        if spot_id < edge_threshold:
+            # Leftmost positions - can migrate left
+            direction = "left"
+        elif spot_id >= total_spots - edge_threshold:
+            # Rightmost positions - can migrate right
+            direction = "right"
+
+        if direction is not None:
+            # Attempt migration with a probability (20% per check)
+            # This makes migration less aggressive than guaranteed
+            if random.random() < 0.20:
+                self._attempt_migration(direction)
+
+    def _attempt_migration(self, direction: str) -> bool:
+        """Attempt to migrate to a connected tank.
+
+        Uses dependency injection pattern - delegates to environment's migration
+        handler if available. This keeps core entities decoupled from backend.
+
+        Args:
+            direction: "left" or "right" - which edge this plant is on
+
+        Returns:
+            True if migration successful, False otherwise
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Check if environment provides migration handler (dependency injection)
+        if not hasattr(self.environment, "migration_handler"):
+            return False
+
+        migration_handler = self.environment.migration_handler
+        if migration_handler is None:
+            return False
+
+        # Check if we have a tank_id
+        if not hasattr(self.environment, "tank_id") or self.environment.tank_id is None:
+            return False
+
+        tank_id = self.environment.tank_id
+
+        # Delegate migration logic to the handler (backend implementation)
+        try:
+            success = migration_handler.attempt_entity_migration(self, direction, tank_id)
+
+            if success:
+                # Mark this plant for removal from source tank
+                self._migrated = True
+                logger.info(f"Plant #{self.plant_id} successfully migrated {direction}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Plant migration failed: {e}", exc_info=True)
+            return False
 
     def to_state_dict(self) -> dict:
         """Serialize plant state for frontend rendering.

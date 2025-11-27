@@ -10,11 +10,12 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
-def serialize_entity_for_transfer(entity: Any) -> Optional[Dict[str, Any]]:
+def serialize_entity_for_transfer(entity: Any, migration_direction: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Serialize an entity for transfer to another tank.
 
     Args:
         entity: The entity to serialize (Fish, FractalPlant, etc.)
+        migration_direction: Optional direction of migration for plants ("left" or "right")
 
     Returns:
         Dictionary containing all entity state, or None if entity cannot be transferred
@@ -25,7 +26,7 @@ def serialize_entity_for_transfer(entity: Any) -> Optional[Dict[str, Any]]:
     if isinstance(entity, Fish):
         return _serialize_fish(entity)
     elif isinstance(entity, FractalPlant):
-        return _serialize_plant(entity)
+        return _serialize_plant(entity, migration_direction)
     else:
         # Food and other resources cannot be transferred
         logger.warning(f"Cannot transfer entity of type {type(entity).__name__}")
@@ -72,8 +73,16 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
     }
 
 
-def _serialize_plant(plant: Any) -> Dict[str, Any]:
-    """Serialize a FractalPlant entity."""
+def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> Dict[str, Any]:
+    """Serialize a FractalPlant entity.
+
+    Args:
+        plant: The FractalPlant to serialize
+        migration_direction: Optional direction of migration ("left" or "right")
+
+    Returns:
+        Dictionary containing plant state
+    """
     # Get plant ID - try both id and plant_id
     plant_id = getattr(plant, 'id', getattr(plant, 'plant_id', None))
     # Get root spot ID if available
@@ -84,6 +93,7 @@ def _serialize_plant(plant: Any) -> Dict[str, Any]:
         "x": plant.pos.x,
         "y": plant.pos.y,
         "root_spot_id": root_spot_id,
+        "migration_direction": migration_direction,  # Used to select appropriate edge spot
         "energy": plant.energy,
         "max_energy": plant.max_energy,
         "age": plant.age,
@@ -232,15 +242,24 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
 
         # Find the appropriate root spot
         root_spot = None
-        root_spot_id = data.get("root_spot_id")
+        migration_direction = data.get("migration_direction")
 
-        # Try to get the exact spot by ID first
-        if root_spot_id is not None:
-            root_spot = root_spot_manager.get_spot_by_id(root_spot_id)
-            # If spot is occupied, try to claim it (will fail if occupied)
-            if root_spot and root_spot.occupied:
-                # Spot is occupied, try to find nearest empty one
-                root_spot = None
+        # If plant is migrating, prefer edge spots on the opposite side
+        if migration_direction is not None:
+            # Plant migrating left appears on right edge, and vice versa
+            preferred_edge = "right" if migration_direction == "left" else "left"
+            root_spot = root_spot_manager.get_edge_empty_spot(preferred_edge)
+            logger.debug(f"Plant migrating from {migration_direction}, placing at {preferred_edge} edge")
+
+        # Fall back to exact spot ID if not migrating
+        if root_spot is None:
+            root_spot_id = data.get("root_spot_id")
+            if root_spot_id is not None:
+                root_spot = root_spot_manager.get_spot_by_id(root_spot_id)
+                # If spot is occupied, try to claim it (will fail if occupied)
+                if root_spot and root_spot.occupied:
+                    # Spot is occupied, try to find nearest empty one
+                    root_spot = None
 
         # If no spot by ID, find nearest empty spot to saved position
         if root_spot is None:
