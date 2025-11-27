@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class _HandEvaluationCache:
+    community_cards_seen: int
+    hands: Dict[int, PokerHand]
+
+
+@dataclass
 class PlayerContext:
     """Runtime state needed to evaluate betting decisions."""
 
@@ -109,12 +115,18 @@ def _create_game_state(
 def _play_betting_rounds(
     game_state: PokerGameState, contexts: Dict[int, PlayerContext], button_position: int
 ) -> None:
+    hand_cache = _HandEvaluationCache(
+        community_cards_seen=len(game_state.community_cards), hands={}
+    )
+
     for round_num in range(4):  # Pre-flop, Flop, Turn, River
         if game_state.get_winner_by_fold() is not None:
             break
 
         if round_num > 0:
             game_state.advance_round()
+            hand_cache.hands.clear()
+            hand_cache.community_cards_seen = len(game_state.community_cards)
 
         current_player = button_position if round_num == 0 else 2 if button_position == 1 else 1
         actions_this_round = 0
@@ -126,6 +138,7 @@ def _play_betting_rounds(
                 game_state=game_state,
                 contexts=contexts,
                 button_position=button_position,
+                hand_cache=hand_cache,
             )
 
             if _apply_action(
@@ -154,8 +167,9 @@ def _decide_player_action(
     game_state: PokerGameState,
     contexts: Dict[int, PlayerContext],
     button_position: int,
+    hand_cache: _HandEvaluationCache,
 ):
-    hand = _evaluate_hand_for_player(current_player, game_state)
+    hand = _evaluate_hand_for_player(current_player, game_state, hand_cache)
 
     current_bet = (
         game_state.player1_current_bet
@@ -199,10 +213,26 @@ def _decide_player_action(
     )
 
 
-def _evaluate_hand_for_player(current_player: int, game_state: PokerGameState) -> PokerHand:
+def _evaluate_hand_for_player(
+    current_player: int,
+    game_state: PokerGameState,
+    hand_cache: _HandEvaluationCache,
+) -> PokerHand:
+    community_len = len(game_state.community_cards)
+    if community_len != hand_cache.community_cards_seen:
+        hand_cache.hands.clear()
+        hand_cache.community_cards_seen = community_len
+
+    if current_player in hand_cache.hands:
+        return hand_cache.hands[current_player]
+
     if current_player == 1:
-        return evaluate_hand(game_state.player1_hole_cards, game_state.community_cards)
-    return evaluate_hand(game_state.player2_hole_cards, game_state.community_cards)
+        hand = evaluate_hand(game_state.player1_hole_cards, game_state.community_cards)
+    else:
+        hand = evaluate_hand(game_state.player2_hole_cards, game_state.community_cards)
+
+    hand_cache.hands[current_player] = hand
+    return hand
 
 
 def _apply_action(
