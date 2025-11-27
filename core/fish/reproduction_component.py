@@ -30,7 +30,7 @@ class ReproductionComponent:
     """
 
     # Reproduction constants
-    REPRODUCTION_ENERGY_THRESHOLD = 25.0  # Minimum energy to reproduce (reduced for more breeding)
+    REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Must have 90% of max energy to reproduce
     REPRODUCTION_COOLDOWN = 240  # 8 seconds (reduced for better breeding)
     PREGNANCY_DURATION = 300  # 10 seconds
     MATING_DISTANCE = 60.0  # Maximum distance for mating
@@ -45,21 +45,26 @@ class ReproductionComponent:
         self.reproduction_cooldown: int = 0
         self.mate_genome: Optional[Genome] = None
 
-    def can_reproduce(self, life_stage: "LifeStage", energy: float) -> bool:
+    def can_reproduce(self, life_stage: "LifeStage", energy: float, max_energy: float) -> bool:
         """Check if fish can reproduce.
+
+        Fish must have 90% of their max energy to reproduce - proving they are successful
+        at resource acquisition.
 
         Args:
             life_stage: Current life stage of the fish
             energy: Current energy level
+            max_energy: Maximum energy capacity
 
         Returns:
             bool: True if fish can reproduce
         """
         from core.entities import LifeStage
 
+        min_energy_for_reproduction = max_energy * self.REPRODUCTION_ENERGY_PERCENTAGE
         return (
             life_stage == LifeStage.ADULT
-            and energy >= self.REPRODUCTION_ENERGY_THRESHOLD
+            and energy >= min_energy_for_reproduction
             and self.reproduction_cooldown <= 0
             and not self.is_pregnant
         )

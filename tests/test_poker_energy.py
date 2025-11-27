@@ -181,6 +181,7 @@ def test_poker_energy_transfer():
     print(f"  • Winner gained: {winner_delta:.2f} energy")
     print(f"  • House took: {abs(total_delta):.2f} energy")
     print(f"  • Winner gained {(winner_delta / abs(loser_delta) * 100):.1f}% of loser's loss")
+    return True
 
 
 def test_multiple_poker_games():
@@ -280,6 +281,7 @@ def test_multiple_poker_games():
 
     assert successful == total, f"Only {successful}/{total} games had proper energy transfer"
     print("✓ ALL GAMES PASSED!")
+    return True
 
 
 def test_poker_result_fields():
@@ -394,6 +396,7 @@ def test_poker_result_fields():
     print("  • winner_actual_gain correctly represents what winner gained")
     print("  • energy_transferred correctly represents what loser lost")
     print("  • winner_actual_gain < energy_transferred (house cut working)")
+    return True
 
 
 if __name__ == "__main__":
