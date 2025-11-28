@@ -549,9 +549,9 @@ function MiniPerformanceChart({ history }: { history: any[] }) {
     }
 
     const sortedHistory = [...history].sort((a, b) => a.hand - b.hand);
-    const width = 300;
-    const height = 80;
-    const padding = { top: 10, right: 10, bottom: 20, left: 35 };
+    const width = 280;
+    const height = 50;
+    const padding = { top: 5, right: 5, bottom: 5, left: 25 };
     const maxHand = Math.max(...sortedHistory.map((h) => h.hand), 1);
     const minHand = Math.min(...sortedHistory.map((h) => h.hand));
     const handRange = maxHand - minHand || 1;
@@ -559,22 +559,27 @@ function MiniPerformanceChart({ history }: { history: any[] }) {
     // Calculate fish average and standard values for each hand
     const chartData = sortedHistory.map((snapshot) => {
         const fishPlayers = snapshot.players.filter((p: any) => !p.is_standard && p.species !== 'plant');
+        const plantPlayers = snapshot.players.filter((p: any) => !p.is_standard && p.species === 'plant');
         const standardPlayer = snapshot.players.find((p: any) => p.is_standard);
 
         const fishAvg = fishPlayers.length > 0
             ? fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length
             : 0;
+        const plantAvg = plantPlayers.length > 0
+            ? plantPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / plantPlayers.length
+            : null;
 
         return {
             hand: snapshot.hand,
             fishAvg,
+            plantAvg,
             standard: standardPlayer ? standardPlayer.net_energy : 0,
         };
     });
 
-    const allValues = chartData.flatMap((d) => [d.fishAvg, d.standard]);
-    const minValue = Math.min(0, ...allValues);
-    const maxValue = Math.max(0, ...allValues);
+    const values = chartData.flatMap((d) => [d.fishAvg, d.standard, d.plantAvg].filter((v): v is number => v !== null));
+    const minValue = Math.min(0, ...values);
+    const maxValue = Math.max(0, ...values);
     const range = maxValue - minValue || 1;
 
     const scaleX = (hand: number) =>
@@ -598,6 +603,18 @@ function MiniPerformanceChart({ history }: { history: any[] }) {
             return `${i === 0 ? 'M' : 'L'}${x},${y}`;
         })
         .join(' ');
+
+    const hasPlantLine = chartData.some((point) => point.plantAvg !== null);
+    const plantPath = hasPlantLine
+        ? chartData
+            .map((point, i) => {
+                const plantValue = point.plantAvg ?? 0;
+                const x = scaleX(point.hand);
+                const y = scaleY(plantValue);
+                return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+            })
+            .join(' ')
+        : '';
 
     const zeroY = scaleY(0);
 
@@ -631,27 +648,16 @@ function MiniPerformanceChart({ history }: { history: any[] }) {
                 strokeWidth="2"
             />
 
-            {/* X-axis label */}
-            <text
-                x={width / 2}
-                y={height - 2}
-                fontSize="9"
-                fill="#64748b"
-                textAnchor="middle"
-            >
-                Hands
-            </text>
-
-            {/* Y-axis label */}
-            <text
-                x={5}
-                y={height / 2}
-                fontSize="9"
-                fill="#64748b"
-                textAnchor="start"
-            >
-                Net
-            </text>
+            {/* Plant average line */}
+            {hasPlantLine && (
+                <path
+                    d={plantPath}
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="1.5"
+                    strokeDasharray="3,3"
+                />
+            )}
         </svg>
     );
 }
@@ -779,200 +785,133 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
             </div>
 
             {/* Card Body */}
-            <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <TankThumbnail
                     tankId={tank.tank_id}
                     status={running ? (paused ? 'paused' : 'running') : 'stopped'}
                 />
 
+                {/* Core Stats - Single Row */}
                 <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '10px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    background: '#1e293b',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
                 }}>
-                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Fish</div>
-                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {stats.fish_count?.toLocaleString() ?? '0'}
-                        </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: '#94a3b8' }}>Fish</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats.fish_count ?? 0}</div>
                     </div>
-                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Gen</div>
-                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {stats.max_generation?.toLocaleString() ?? '0'}
-                        </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: '#94a3b8' }}>Gen</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats.max_generation ?? 0}</div>
                     </div>
-                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Frame</div>
-                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {frame?.toLocaleString() ?? '0'}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: 2 }}>
-                            {fps != null ? `${fps.toFixed(1)} FPS` : 'FPS —'}
-                        </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: '#94a3b8' }}>Frame</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{frame?.toLocaleString() ?? 0}</div>
                     </div>
-                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Clients</div>
-                        <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                            {client_count}
-                        </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: '#94a3b8' }}>FPS</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{fps?.toFixed(0) ?? '—'}</div>
                     </div>
                 </div>
 
-                {/* Energy Stats */}
+                {/* Energy Row */}
                 <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '10px',
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    background: '#1e293b',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
                 }}>
-                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Total Energy</div>
-                        <div style={{ fontSize: '16px', color: '#22c55e', fontWeight: 700 }}>
-                            {stats.total_energy?.toFixed(0) ?? '0'}
-                        </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: '#94a3b8' }}>🐟 Energy</div>
+                        <div style={{ fontSize: '14px', color: '#3b82f6', fontWeight: 700 }}>{stats.fish_energy?.toFixed(0) ?? 0}</div>
                     </div>
-                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Fish Energy</div>
-                        <div style={{ fontSize: '16px', color: '#3b82f6', fontWeight: 700 }}>
-                            {stats.fish_energy?.toFixed(0) ?? '0'}
-                        </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: '#94a3b8' }}>🌱 Energy</div>
+                        <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 700 }}>{stats.plant_energy?.toFixed(0) ?? 0}</div>
                     </div>
-                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Plant Energy</div>
-                        <div style={{ fontSize: '16px', color: '#10b981', fontWeight: 700 }}>
-                            {stats.plant_energy?.toFixed(0) ?? '0'}
+                    {stats.poker_stats && stats.poker_stats.total_games > 0 && (
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '9px', color: '#94a3b8' }}>🃏 Games</div>
+                            <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{(stats.poker_stats.total_games / 1000).toFixed(0)}k</div>
                         </div>
-                    </div>
+                    )}
                 </div>
-
-                {/* Poker Stats */}
-                {stats.poker_stats && stats.poker_stats.total_games > 0 && (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '10px',
-                    }}>
-                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Poker Games</div>
-                            <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                                {stats.poker_stats.total_games.toLocaleString()}
-                            </div>
-                        </div>
-                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Win Rate</div>
-                            <div style={{ fontSize: '16px', color: stats.poker_stats.win_rate && stats.poker_stats.win_rate > 50 ? '#22c55e' : '#e2e8f0', fontWeight: 700 }}>
-                                {stats.poker_stats.win_rate != null ? `${stats.poker_stats.win_rate.toFixed(1)}%` : '—'}
-                            </div>
-                        </div>
-                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Net Energy</div>
-                            <div style={{ fontSize: '16px', color: stats.poker_stats.net_energy > 0 ? '#22c55e' : stats.poker_stats.net_energy < 0 ? '#ef4444' : '#e2e8f0', fontWeight: 700 }}>
-                                {stats.poker_stats.net_energy > 0 ? '+' : ''}{stats.poker_stats.net_energy.toFixed(0)}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Additional Stats Row - Plant Transfer & Time */}
-                {fullState?.stats && (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '10px',
-                    }}>
-                        {/* Plant-to-Fish Energy Transfer */}
-                        {fullState.stats.poker_stats && (fullState.stats.poker_stats.total_plant_games ?? 0) > 0 && (() => {
-                            const energyTransfer = fullState.stats.poker_stats.total_plant_energy_transferred || 0;
-                            const isPositive = energyTransfer > 0;
-                            const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
-                            return (
-                                <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>🌱→🐟 Transfer</div>
-                                    <div style={{ fontSize: '16px', color, fontWeight: 700 }}>
-                                        {isPositive ? '+' : ''}{energyTransfer.toFixed(0)}
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                        {/* Time of Day */}
-                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
-                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Time</div>
-                            <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
-                                {fullState.stats.time ?? '—'}
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Auto-Evaluation Summary */}
                 {fullState?.auto_evaluation && fullState.auto_evaluation.players && fullState.auto_evaluation.players.length > 0 && (() => {
                     const autoEval = fullState.auto_evaluation;
-                    const fishPlayers = autoEval.players.filter((p: any) => !p.is_standard && p.species !== 'plant');
-                    const standardPlayer = autoEval.players.find((p: any) => p.is_standard);
-
+                    const history = autoEval.performance_history || [];
+                    const latestSnapshot = history.length > 0 ? history[history.length - 1] : null;
+                    const players = latestSnapshot?.players || autoEval.players;
+                    
+                    const fishPlayers = players.filter((p: any) => !p.is_standard && p.species !== 'plant');
+                    const plantPlayers = players.filter((p: any) => !p.is_standard && p.species === 'plant');
+                    const standardPlayer = players.find((p: any) => p.is_standard);
+                    
                     if (!fishPlayers.length || !standardPlayer) return null;
+                    
+                    const fishAvg = fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length;
+                    const plantAvg = plantPlayers.length > 0 
+                        ? plantPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / plantPlayers.length 
+                        : null;
+                    const baseline = standardPlayer.net_energy;
+                    const hasPlants = plantAvg !== null;
 
-                    const fishAvgEnergy = fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length;
-                    const standardEnergy = standardPlayer.net_energy;
-                    const fishAvgWinRate = fishPlayers.reduce((sum: number, p: any) => sum + (p.win_rate || 0), 0) / fishPlayers.length;
-                    const standardWinRate = standardPlayer.win_rate || 0;
-
-                    const outperforming = fishAvgEnergy > standardEnergy;
-                    const progress = autoEval.game_over ? '✓ Complete' : `${autoEval.hands_played}/${autoEval.hands_played + autoEval.hands_remaining} hands`;
+                    // Compact inline scoreboard
+                    const formatProfit = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(0)}`;
 
                     return (
                         <div style={{
-                            background: '#1e293b',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            border: '1px solid #334155',
+                            background: '#0f172a',
+                            borderRadius: '6px',
+                            padding: '8px 10px',
                         }}>
+                            {/* Compact single-line scoreboard */}
                             <div style={{
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                marginBottom: '8px'
-                            }}>
-                                <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
-                                    Poker Benchmark
-                                </div>
-                                <div style={{ fontSize: '10px', color: '#64748b' }}>
-                                    {progress}
-                                </div>
-                            </div>
-
-                            {/* Performance Stats */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr',
                                 gap: '8px',
-                                marginBottom: '10px'
                             }}>
-                                <div style={{ background: '#0f172a', borderRadius: '4px', padding: '6px' }}>
-                                    <div style={{ fontSize: '9px', color: '#94a3b8', marginBottom: 2 }}>Fish Avg vs Baseline</div>
-                                    <div style={{
-                                        fontSize: '14px',
-                                        color: outperforming ? '#22c55e' : '#ef4444',
-                                        fontWeight: 700
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <span style={{ 
+                                        fontSize: '12px', 
+                                        fontWeight: 700,
+                                        color: fishAvg >= 0 ? '#22c55e' : '#ef4444'
                                     }}>
-                                        {fishAvgEnergy > 0 ? '+' : ''}{fishAvgEnergy.toFixed(0)} vs {standardEnergy > 0 ? '+' : ''}{standardEnergy.toFixed(0)}
-                                    </div>
-                                </div>
-                                <div style={{ background: '#0f172a', borderRadius: '4px', padding: '6px' }}>
-                                    <div style={{ fontSize: '9px', color: '#94a3b8', marginBottom: 2 }}>Win Rate</div>
-                                    <div style={{
-                                        fontSize: '14px',
-                                        color: fishAvgWinRate > standardWinRate ? '#22c55e' : '#e2e8f0',
-                                        fontWeight: 700
+                                        🐟 {formatProfit(fishAvg)}
+                                    </span>
+                                    {hasPlants && (
+                                        <span style={{ 
+                                            fontSize: '12px', 
+                                            fontWeight: 700,
+                                            color: plantAvg! >= 0 ? '#22c55e' : '#ef4444'
+                                        }}>
+                                            🌱 {formatProfit(plantAvg!)}
+                                        </span>
+                                    )}
+                                    <span style={{ 
+                                        fontSize: '12px', 
+                                        fontWeight: 700,
+                                        color: baseline >= 0 ? '#22c55e' : '#ef4444'
                                     }}>
-                                        {fishAvgWinRate.toFixed(1)}% vs {standardWinRate.toFixed(1)}%
-                                    </div>
+                                        📊 {formatProfit(baseline)}
+                                    </span>
                                 </div>
+                                <span style={{ fontSize: '9px', color: '#64748b' }}>
+                                    {autoEval.hands_played}h
+                                </span>
                             </div>
-
-                            {/* Mini Chart */}
-                            {autoEval.performance_history && autoEval.performance_history.length > 0 && (
-                                <MiniPerformanceChart history={autoEval.performance_history} />
+                            
+                            {/* Mini Chart - more compact */}
+                            {history.length > 1 && (
+                                <div style={{ marginTop: '6px' }}>
+                                    <MiniPerformanceChart history={history} />
+                                </div>
                             )}
                         </div>
                     );
@@ -982,38 +921,35 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 <div style={{
                     display: 'flex',
                     gap: '6px',
-                    flexWrap: 'wrap',
                 }}>
                     <button
                         onClick={() => sendTankCommand(paused ? 'resume' : 'pause')}
                         disabled={actionLoading || !running}
                         style={{
-                            padding: '8px 10px',
+                            padding: '6px 10px',
                             backgroundColor: paused ? '#3b82f6' : '#f59e0b',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '5px',
+                            borderRadius: '4px',
                             cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
                             fontWeight: 600,
-                            fontSize: '12px',
-                            flex: '0 0 auto',
+                            fontSize: '11px',
                         }}
                     >
-                        {paused ? 'Resume' : 'Pause'}
+                        {paused ? '▶' : '⏸'}
                     </button>
                     <Link
                         to={`/tank/${tank.tank_id}`}
                         style={{
                             flex: 1,
-                            padding: '8px',
+                            padding: '6px',
                             backgroundColor: '#3b82f6',
                             color: 'white',
                             textDecoration: 'none',
-                            borderRadius: '5px',
+                            borderRadius: '4px',
                             textAlign: 'center',
                             fontWeight: 600,
-                            fontSize: '12px',
-                            minWidth: '80px',
+                            fontSize: '11px',
                         }}
                     >
                         View
@@ -1021,16 +957,16 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     <button
                         onClick={onDelete}
                         style={{
-                            padding: '8px 12px',
+                            padding: '6px 10px',
                             backgroundColor: 'transparent',
                             color: '#ef4444',
                             border: '1px solid #ef4444',
-                            borderRadius: '5px',
+                            borderRadius: '4px',
                             cursor: 'pointer',
-                            fontSize: '12px',
+                            fontSize: '11px',
                         }}
                     >
-                        Delete
+                        ✕
                     </button>
                 </div>
             </div>
