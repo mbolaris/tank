@@ -663,7 +663,7 @@ function MiniPerformanceChart({ history }: { history: any[] }) {
 }
 
 function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
-    const { tank, running, client_count, frame, paused, fps } = tankStatus;
+    const { tank, running, client_count, frame, paused, fps, fast_forward } = tankStatus;
     const stats = tankStatus.stats ?? {
         fish_count: 0,
         generation: 0,
@@ -720,6 +720,28 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
             await onRefresh();
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Tank command failed');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const toggleFastForward = async () => {
+        setActionLoading(true);
+        try {
+            const newEnabled = !fast_forward;
+            const response = await fetch(
+                `${config.apiBaseUrl}/api/tanks/${tank.tank_id}/fast_forward?enabled=${newEnabled}`,
+                { method: 'POST' }
+            );
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.error || 'Failed to toggle fast forward');
+            }
+
+            await onRefresh();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Fast forward toggle failed');
         } finally {
             setActionLoading(false);
         }
@@ -937,6 +959,23 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         }}
                     >
                         {paused ? '▶' : '⏸'}
+                    </button>
+                    <button
+                        onClick={toggleFastForward}
+                        disabled={actionLoading || !running}
+                        style={{
+                            padding: '6px 10px',
+                            backgroundColor: fast_forward ? '#a855f7' : '#475569',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
+                            fontWeight: 600,
+                            fontSize: '11px',
+                        }}
+                        title={fast_forward ? 'Normal Speed' : 'Fast Forward'}
+                    >
+                        {fast_forward ? '⏩' : '⏩'}
                     </button>
                     <Link
                         to={`/tank/${tank.tank_id}`}

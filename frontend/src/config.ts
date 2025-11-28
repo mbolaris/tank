@@ -217,6 +217,7 @@ export interface TankStatus {
     paused: boolean;
     fps?: number;
     stats?: TankStatsSummary;
+    fast_forward?: boolean;
 }
 
 /**

@@ -289,4 +289,5 @@ class SimulationManager:
             if self.running
             else 0.0,
             "stats": stats,
+            "fast_forward": self._runner.fast_forward if self.running else False,
         }

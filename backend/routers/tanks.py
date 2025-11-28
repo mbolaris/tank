@@ -190,6 +190,27 @@ def setup_router(
 
         return JSONResponse(manager.get_status())
 
+    @router.post("/{tank_id}/fast_forward")
+    async def toggle_fast_forward(tank_id: str, enabled: bool = True):
+        """Toggle fast forward mode for a tank simulation.
+
+        Args:
+            tank_id: The tank ID
+            enabled: Whether to enable fast forward (default: True)
+
+        Returns:
+            Updated tank status
+        """
+        manager = tank_registry.get_tank(tank_id)
+        if manager is None:
+            return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+        if not manager.running:
+            return JSONResponse({"error": "Tank is not running"}, status_code=400)
+
+        manager.runner.fast_forward = enabled
+        logger.info(f"Fast forward {'enabled' if enabled else 'disabled'} for tank {tank_id[:8]}")
+        return JSONResponse(manager.get_status())
+
     @router.delete("/{tank_id}")
     async def delete_tank(tank_id: str):
         """Delete a tank from the registry.
