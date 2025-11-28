@@ -228,11 +228,12 @@ class TankRegistry:
         """
         return list(self._tanks.keys())
 
-    def remove_tank(self, tank_id: str) -> bool:
+    def remove_tank(self, tank_id: str, delete_persistent_data: bool = False) -> bool:
         """Remove a tank from the registry and clean up resources.
 
         Args:
             tank_id: The tank ID to remove
+            delete_persistent_data: Whether to delete any persisted tank data
 
         Returns:
             True if the tank was removed, False if not found
@@ -257,6 +258,18 @@ class TankRegistry:
         # Remove associated connections if connection manager is available
         if self._connection_manager:
             self._connection_manager.clear_connections_for_tank(tank_id)
+
+        if delete_persistent_data:
+            try:
+                from backend.tank_persistence import delete_tank_data
+
+                deleted = delete_tank_data(tank_id)
+                if deleted:
+                    logger.info("Deleted persisted data for tank: %s", tank_id)
+            except Exception as e:
+                logger.warning(
+                    "Failed to delete persisted data for tank %s: %s", tank_id, e
+                )
 
         logger.info("Removed tank: %s", tank_id)
         return True

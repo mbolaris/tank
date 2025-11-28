@@ -129,6 +129,30 @@ class TestTankRegistry:
         # Clean up
         registry.stop_all()
 
+    def test_remove_tank_deletes_persistent_data(self, tmp_path, monkeypatch):
+        """Test removing a tank also deletes any persisted snapshots."""
+        from backend import tank_persistence
+
+        # Redirect persistence to a temp directory for isolation
+        monkeypatch.setattr(tank_persistence, "DATA_DIR", tmp_path / "tanks")
+
+        registry = TankRegistry(create_default=False)
+
+        tank = registry.create_tank(name="Persistent Tank")
+
+        # Create a fake snapshot file for this tank
+        tank_dir = tank_persistence.ensure_tank_directory(tank.tank_id)
+        snapshot_file = tank_dir / "snapshot_test.json"
+        snapshot_file.write_text("{}")
+
+        assert snapshot_file.exists()
+
+        # Remove the tank and expect persistent data to be cleaned up
+        result = registry.remove_tank(tank.tank_id, delete_persistent_data=True)
+
+        assert result is True
+        assert not (tank_persistence.DATA_DIR / tank.tank_id).exists()
+
     def test_list_tank_ids(self):
         """Test getting list of tank IDs."""
         registry = TankRegistry(create_default=False)

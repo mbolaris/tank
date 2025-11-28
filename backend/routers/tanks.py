@@ -204,7 +204,7 @@ def setup_router(
         await stop_broadcast_callback(tank_id)
 
         # Remove from registry
-        if tank_registry.remove_tank(tank_id):
+        if tank_registry.remove_tank(tank_id, delete_persistent_data=True):
             logger.info(f"Deleted tank via API: {tank_id[:8]}")
             return JSONResponse({"message": f"Tank {tank_id} deleted"})
         else:
