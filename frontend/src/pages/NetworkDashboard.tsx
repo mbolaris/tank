@@ -10,7 +10,10 @@ import { config, type TankStatus, type ServerWithTanks } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
 import { TankNetworkMap } from '../components/TankNetworkMap';
-import type { SimulationUpdate } from '../types/simulation';
+import type { SimulationUpdate, PokerPerformanceSnapshot } from '../types/simulation';
+
+/** Player data from poker performance snapshots */
+type SnapshotPlayer = PokerPerformanceSnapshot['players'][number];
 
 interface ServersResponse {
     servers: ServerWithTanks[];
@@ -543,7 +546,7 @@ interface TankCardProps {
 /**
  * Mini performance chart for network dashboard
  */
-function MiniPerformanceChart({ history }: { history: any[] }) {
+function MiniPerformanceChart({ history }: { history: PokerPerformanceSnapshot[] }) {
     if (!history || history.length === 0) {
         return null;
     }
@@ -558,15 +561,15 @@ function MiniPerformanceChart({ history }: { history: any[] }) {
 
     // Calculate fish average and standard values for each hand
     const chartData = sortedHistory.map((snapshot) => {
-        const fishPlayers = snapshot.players.filter((p: any) => !p.is_standard && p.species !== 'plant');
-        const plantPlayers = snapshot.players.filter((p: any) => !p.is_standard && p.species === 'plant');
-        const standardPlayer = snapshot.players.find((p: any) => p.is_standard);
+        const fishPlayers = snapshot.players.filter((p: SnapshotPlayer) => !p.is_standard && p.species !== 'plant');
+        const plantPlayers = snapshot.players.filter((p: SnapshotPlayer) => !p.is_standard && p.species === 'plant');
+        const standardPlayer = snapshot.players.find((p: SnapshotPlayer) => p.is_standard);
 
         const fishAvg = fishPlayers.length > 0
-            ? fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length
+            ? fishPlayers.reduce((sum: number, p: SnapshotPlayer) => sum + p.net_energy, 0) / fishPlayers.length
             : 0;
         const plantAvg = plantPlayers.length > 0
-            ? plantPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / plantPlayers.length
+            ? plantPlayers.reduce((sum: number, p: SnapshotPlayer) => sum + p.net_energy, 0) / plantPlayers.length
             : null;
 
         return {
@@ -870,15 +873,15 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     const latestSnapshot = history.length > 0 ? history[history.length - 1] : null;
                     const players = latestSnapshot?.players || autoEval.players;
                     
-                    const fishPlayers = players.filter((p: any) => !p.is_standard && p.species !== 'plant');
-                    const plantPlayers = players.filter((p: any) => !p.is_standard && p.species === 'plant');
-                    const standardPlayer = players.find((p: any) => p.is_standard);
+                    const fishPlayers = players.filter((p) => !p.is_standard && p.species !== 'plant');
+                    const plantPlayers = players.filter((p) => !p.is_standard && p.species === 'plant');
+                    const standardPlayer = players.find((p) => p.is_standard);
                     
                     if (!fishPlayers.length || !standardPlayer) return null;
                     
-                    const fishAvg = fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length;
+                    const fishAvg = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0) / fishPlayers.length;
                     const plantAvg = plantPlayers.length > 0 
-                        ? plantPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / plantPlayers.length 
+                        ? plantPlayers.reduce((sum, p) => sum + p.net_energy, 0) / plantPlayers.length 
                         : null;
                     const baseline = standardPlayer.net_energy;
                     const hasPlants = plantAvg !== null;

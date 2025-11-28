@@ -1,98 +1,98 @@
-         12762251 function calls (12762135 primitive calls) in 6.699 seconds
+         13419365 function calls in 6.777 seconds
 
    Ordered by: cumulative time
-   List reduced from 761 to 50 due to restriction <50>
+   List reduced from 716 to 50 due to restriction <50>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-      500    0.088    0.000    6.701    0.013 C:\shared\bolaris\tank\core\simulation_engine.py:484(update)
-    31281    0.124    0.000    4.683    0.000 C:\shared\bolaris\tank\core\entities\fish.py:612(update)
-    31281    0.365    0.000    3.926    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:72(move)
-    76167    1.039    0.000    1.503    0.000 C:\shared\bolaris\tank\core\environment.py:298(nearby_agents_by_type)
-      500    0.005    0.000    1.218    0.002 C:\shared\bolaris\tank\core\simulators\base_simulator.py:129(handle_collisions)
-      500    0.216    0.000    1.033    0.002 C:\shared\bolaris\tank\core\simulators\base_simulator.py:396(handle_fish_collisions)
-    34196    0.016    0.000    0.467    0.000 C:\shared\bolaris\tank\core\environment.py:260(nearby_agents)
-    34196    0.327    0.000    0.451    0.000 C:\shared\bolaris\tank\core\environment.py:117(query_radius)
-   521877    0.235    0.000    0.388    0.000 C:\shared\bolaris\tank\core\math_utils.py:26(__sub__)
-   300876    0.084    0.000    0.379    0.000 {built-in method builtins.min}
-      500    0.024    0.000    0.336    0.001 C:\shared\bolaris\tank\core\ecosystem.py:332(update_population_stats)
-    15637    0.110    0.000    0.308    0.000 {built-in method builtins.sum}
-    31281    0.016    0.000    0.276    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:31(move)
-    31281    0.027    0.000    0.260    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:35(check_collision_with_food)
-   594152    0.177    0.000    0.258    0.000 C:\shared\bolaris\tank\core\math_utils.py:58(length)
-     2000    0.023    0.000    0.243    0.000 C:\shared\bolaris\tank\core\algorithms\schooling.py:511(execute)
-   811282    0.243    0.000    0.243    0.000 C:\shared\bolaris\tank\core\math_utils.py:19(__init__)
-     1989    0.075    0.000    0.242    0.000 C:\shared\bolaris\tank\core\algorithms\energy_management.py:438(execute)
-      500    0.097    0.000    0.241    0.000 C:\shared\bolaris\tank\core\ecosystem.py:390(update_genetic_diversity_stats)
-     1319    0.019    0.000    0.201    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:282(execute)
-   947772    0.194    0.000    0.194    0.000 {method 'get' of 'dict' objects}
-     2079    0.076    0.000    0.193    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:354(execute)
-    37016    0.064    0.000    0.192    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:566(_find_nearest_food)
-    31281    0.032    0.000    0.189    0.000 C:\shared\bolaris\tank\core\entities\fish.py:320(consume_energy)
-    75394    0.123    0.000    0.163    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:466(_find_nearest)
-   929620    0.153    0.000    0.153    0.000 {method 'append' of 'list' objects}
-    34472    0.018    0.000    0.153    0.000 C:\shared\bolaris\tank\core\entities\base.py:153(update)
-    31281    0.080    0.000    0.149    0.000 C:\shared\bolaris\tank\core\fish\energy_component.py:62(consume_energy)
-      118    0.002    0.000    0.148    0.001 C:\shared\bolaris\tank\core\fish_poker.py:669(play_poker)
-      500    0.034    0.000    0.146    0.000 C:\shared\bolaris\tank\core\simulators\base_simulator.py:267(handle_fractal_plant_collisions)
-     1000    0.039    0.000    0.143    0.000 C:\shared\bolaris\tank\core\algorithms\food_seeking.py:915(execute)
-   778946    0.138    0.000    0.141    0.000 {built-in method builtins.hasattr}
-   178190    0.086    0.000    0.139    0.000 C:\shared\bolaris\tank\core\math_utils.py:23(__add__)
-    81397    0.046    0.000    0.138    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:305(<lambda>)
-    33416    0.058    0.000    0.138    0.000 C:\shared\bolaris\tank\core\entities\base.py:127(update_position)
-       60    0.003    0.000    0.132    0.002 C:\shared\bolaris\tank\core\fish_poker.py:477(play_poker_multiplayer)
-   136585    0.085    0.000    0.131    0.000 <frozen importlib._bootstrap>:1390(_handle_fromlist)
-      585    0.003    0.000    0.118    0.000 C:\shared\bolaris\tank\core\poker\core\engine.py:377(evaluate_hand)
-     5070    0.021    0.000    0.116    0.000 C:\shared\bolaris\tank\core\fish_poker.py:224(get_ready_players)
-      379    0.022    0.000    0.114    0.000 C:\shared\bolaris\tank\core\poker\core\engine.py:416(evaluate_hand_cached)
-     2000    0.010    0.000    0.110    0.000 C:\shared\bolaris\tank\core\algorithms\schooling.py:117(execute)
-    31281    0.044    0.000    0.106    0.000 C:\shared\bolaris\tank\core\entities\fish.py:725(_apply_turn_energy_cost)
-    35210    0.012    0.000    0.106    0.000 C:\shared\bolaris\tank\core\environment.py:256(update_agent_position)
-     1489    0.032    0.000    0.105    0.000 C:\shared\bolaris\tank\core\algorithms\schooling.py:360(execute)
-   709286    0.102    0.000    0.102    0.000 {built-in method math.sqrt}
-    73210    0.063    0.000    0.099    0.000 C:\shared\bolaris\tank\core\math_utils.py:64(normalize)
-    41757    0.028    0.000    0.098    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:518(_safe_normalize)
-    35210    0.028    0.000    0.094    0.000 C:\shared\bolaris\tank\core\environment.py:79(update_agent)
-    31281    0.018    0.000    0.093    0.000 C:\shared\bolaris\tank\core\fish\lifecycle_component.py:56(increment_age)
-   367514    0.074    0.000    0.091    0.000 {built-in method builtins.max}
+      500    0.086    0.000    6.782    0.014 C:\shared\bolaris\tank\core\simulation_engine.py:445(update)
+    33633    0.124    0.000    4.427    0.000 C:\shared\bolaris\tank\core\entities\fish.py:681(update)
+    33633    0.360    0.000    3.645    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:76(move)
+      500    0.005    0.000    1.552    0.003 C:\shared\bolaris\tank\core\simulators\base_simulator.py:128(handle_collisions)
+      500    0.202    0.000    1.408    0.003 C:\shared\bolaris\tank\core\simulators\base_simulator.py:369(handle_fish_collisions)
+    34814    0.022    0.000    0.649    0.000 C:\shared\bolaris\tank\core\environment.py:538(nearby_fish)
+    34814    0.454    0.000    0.627    0.000 C:\shared\bolaris\tank\core\environment.py:213(query_fish)
+   700929    0.296    0.000    0.491    0.000 C:\shared\bolaris\tank\core\math_utils.py:26(__sub__)
+   321026    0.096    0.000    0.485    0.000 {built-in method builtins.min}
+    33628    0.014    0.000    0.469    0.000 C:\shared\bolaris\tank\core\environment.py:550(nearby_interaction_candidates)
+    33628    0.309    0.000    0.455    0.000 C:\shared\bolaris\tank\core\environment.py:277(query_interaction_candidates)
+     1435    0.043    0.000    0.427    0.000 C:\shared\bolaris\tank\core\fish_poker.py:681(play_poker)
+     2785    0.131    0.000    0.399    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:95(execute)
+      500    0.001    0.000    0.343    0.001 C:\shared\bolaris\tank\core\ecosystem.py:225(update_population_stats)
+      500    0.024    0.000    0.341    0.001 C:\shared\bolaris\tank\core\ecosystem_population.py:129(update_population_stats)
+   777213    0.213    0.000    0.312    0.000 C:\shared\bolaris\tank\core\math_utils.py:58(length)
+   953824    0.272    0.000    0.272    0.000 C:\shared\bolaris\tank\core\math_utils.py:19(__init__)
+     8506    0.171    0.000    0.248    0.000 C:\shared\bolaris\tank\core\environment.py:471(nearby_agents_by_type)
+      500    0.102    0.000    0.247    0.000 C:\shared\bolaris\tank\core\ecosystem_population.py:169(update_genetic_diversity_stats)
+    33633    0.016    0.000    0.244    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:31(move)
+  1261966    0.239    0.000    0.239    0.000 {method 'get' of 'dict' objects}
+     1191    0.077    0.000    0.235    0.000 C:\shared\bolaris\tank\core\algorithms\food_seeking.py:934(execute)
+     2156    0.016    0.000    0.229    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:41(execute)
+    33633    0.031    0.000    0.228    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:35(check_collision_with_food)
+    44647    0.073    0.000    0.222    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:566(_find_nearest_food)
+    13105    0.081    0.000    0.219    0.000 {built-in method builtins.sum}
+    33633    0.033    0.000    0.191    0.000 C:\shared\bolaris\tank\core\entities\fish.py:333(consume_energy)
+    89885    0.139    0.000    0.186    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:466(_find_nearest)
+    33633    0.016    0.000    0.183    0.000 C:\shared\bolaris\tank\core\environment.py:544(nearby_food)
+   108431    0.058    0.000    0.174    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:64(<lambda>)
+    36055    0.018    0.000    0.168    0.000 C:\shared\bolaris\tank\core\entities\base.py:175(update)
+    33633    0.120    0.000    0.166    0.000 C:\shared\bolaris\tank\core\environment.py:245(query_food)
+   921499    0.158    0.000    0.159    0.000 {built-in method builtins.hasattr}
+     1039    0.014    0.000    0.155    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:282(execute)
+    35267    0.058    0.000    0.153    0.000 C:\shared\bolaris\tank\core\entities\base.py:127(update_position)
+    33633    0.080    0.000    0.150    0.000 C:\shared\bolaris\tank\core\fish\energy_component.py:62(consume_energy)
+     1363    0.003    0.000    0.149    0.000 C:\shared\bolaris\tank\core\poker\simulation\engine.py:33(simulate_multi_round_game)
+   161582    0.094    0.000    0.143    0.000 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+     3183    0.013    0.000    0.131    0.000 C:\shared\bolaris\tank\core\poker\evaluation\hand_evaluator.py:221(evaluate_hand)
+     1000    0.011    0.000    0.131    0.000 C:\shared\bolaris\tank\core\algorithms\schooling.py:511(execute)
+       87    0.004    0.000    0.126    0.001 C:\shared\bolaris\tank\core\fish_poker.py:480(play_poker_multiplayer)
+   899812    0.120    0.000    0.120    0.000 {built-in method math.sqrt}
+     6200    0.023    0.000    0.119    0.000 C:\shared\bolaris\tank\core\fish_poker.py:227(get_ready_players)
+     1424    0.031    0.000    0.111    0.000 C:\shared\bolaris\tank\core\algorithms\schooling.py:360(execute)
+      380    0.020    0.000    0.110    0.000 C:\shared\bolaris\tank\core\poker\evaluation\hand_evaluator.py:260(evaluate_hand_cached)
+    33633    0.047    0.000    0.109    0.000 C:\shared\bolaris\tank\core\entities\fish.py:794(_apply_turn_energy_cost)
+    67398    0.036    0.000    0.107    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:305(<lambda>)
+    37054    0.012    0.000    0.106    0.000 C:\shared\bolaris\tank\core\environment.py:429(update_agent_position)
+    80223    0.066    0.000    0.103    0.000 C:\shared\bolaris\tank\core\math_utils.py:64(normalize)
+     1363    0.005    0.000    0.103    0.000 C:\shared\bolaris\tank\core\poker\simulation\engine.py:83(_create_game_state)
 
 
 
 Top functions by self time (CPU intensive):
-         12762251 function calls (12762135 primitive calls) in 6.699 seconds
+         13419365 function calls in 6.777 seconds
 
    Ordered by: internal time
-   List reduced from 761 to 30 due to restriction <30>
+   List reduced from 716 to 30 due to restriction <30>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-    76167    1.039    0.000    1.503    0.000 C:\shared\bolaris\tank\core\environment.py:298(nearby_agents_by_type)
-    31281    0.365    0.000    3.926    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:72(move)
-    34196    0.327    0.000    0.451    0.000 C:\shared\bolaris\tank\core\environment.py:117(query_radius)
-   811282    0.243    0.000    0.243    0.000 C:\shared\bolaris\tank\core\math_utils.py:19(__init__)
-   521877    0.235    0.000    0.388    0.000 C:\shared\bolaris\tank\core\math_utils.py:26(__sub__)
-      500    0.216    0.000    1.033    0.002 C:\shared\bolaris\tank\core\simulators\base_simulator.py:396(handle_fish_collisions)
-   947772    0.194    0.000    0.194    0.000 {method 'get' of 'dict' objects}
-   594152    0.177    0.000    0.258    0.000 C:\shared\bolaris\tank\core\math_utils.py:58(length)
-   929620    0.153    0.000    0.153    0.000 {method 'append' of 'list' objects}
-   778946    0.138    0.000    0.141    0.000 {built-in method builtins.hasattr}
-    31281    0.124    0.000    4.683    0.000 C:\shared\bolaris\tank\core\entities\fish.py:612(update)
-    75394    0.123    0.000    0.163    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:466(_find_nearest)
-    15637    0.110    0.000    0.308    0.000 {built-in method builtins.sum}
-   709286    0.102    0.000    0.102    0.000 {built-in method math.sqrt}
-      500    0.097    0.000    0.241    0.000 C:\shared\bolaris\tank\core\ecosystem.py:390(update_genetic_diversity_stats)
-   595047    0.089    0.000    0.089    0.000 C:\shared\bolaris\tank\core\math_utils.py:144(distance_squared)
-      500    0.088    0.000    6.701    0.013 C:\shared\bolaris\tank\core\simulation_engine.py:484(update)
-   178190    0.086    0.000    0.139    0.000 C:\shared\bolaris\tank\core\math_utils.py:23(__add__)
-   136585    0.085    0.000    0.131    0.000 <frozen importlib._bootstrap>:1390(_handle_fromlist)
-   300876    0.084    0.000    0.379    0.000 {built-in method builtins.min}
-   450602    0.084    0.000    0.084    0.000 {method 'items' of 'dict' objects}
-    31281    0.080    0.000    0.149    0.000 C:\shared\bolaris\tank\core\fish\energy_component.py:62(consume_energy)
-     2079    0.076    0.000    0.193    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:354(execute)
-     1989    0.075    0.000    0.242    0.000 C:\shared\bolaris\tank\core\algorithms\energy_management.py:438(execute)
-   367514    0.074    0.000    0.091    0.000 {built-in method builtins.max}
-   534613    0.073    0.000    0.073    0.000 {built-in method builtins.issubclass}
-    37016    0.064    0.000    0.192    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:566(_find_nearest_food)
-    73210    0.063    0.000    0.099    0.000 C:\shared\bolaris\tank\core\math_utils.py:64(normalize)
-   207251    0.060    0.000    0.060    0.000 C:\shared\bolaris\tank\core\simulation_engine.py:418(check_collision)
-    33416    0.058    0.000    0.138    0.000 C:\shared\bolaris\tank\core\entities\base.py:127(update_position)
+    34814    0.454    0.000    0.627    0.000 C:\shared\bolaris\tank\core\environment.py:213(query_fish)
+    33633    0.360    0.000    3.645    0.000 C:\shared\bolaris\tank\core\movement_strategy.py:76(move)
+    33628    0.309    0.000    0.455    0.000 C:\shared\bolaris\tank\core\environment.py:277(query_interaction_candidates)
+   700929    0.296    0.000    0.491    0.000 C:\shared\bolaris\tank\core\math_utils.py:26(__sub__)
+   953824    0.272    0.000    0.272    0.000 C:\shared\bolaris\tank\core\math_utils.py:19(__init__)
+  1261966    0.239    0.000    0.239    0.000 {method 'get' of 'dict' objects}
+   777213    0.213    0.000    0.312    0.000 C:\shared\bolaris\tank\core\math_utils.py:58(length)
+      500    0.202    0.000    1.408    0.003 C:\shared\bolaris\tank\core\simulators\base_simulator.py:369(handle_fish_collisions)
+     8506    0.171    0.000    0.248    0.000 C:\shared\bolaris\tank\core\environment.py:471(nearby_agents_by_type)
+   921499    0.158    0.000    0.159    0.000 {built-in method builtins.hasattr}
+    89885    0.139    0.000    0.186    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:466(_find_nearest)
+     2785    0.131    0.000    0.399    0.000 C:\shared\bolaris\tank\core\algorithms\poker.py:95(execute)
+    33633    0.124    0.000    4.427    0.000 C:\shared\bolaris\tank\core\entities\fish.py:681(update)
+    33633    0.120    0.000    0.166    0.000 C:\shared\bolaris\tank\core\environment.py:245(query_food)
+   899812    0.120    0.000    0.120    0.000 {built-in method math.sqrt}
+      500    0.102    0.000    0.247    0.000 C:\shared\bolaris\tank\core\ecosystem_population.py:169(update_genetic_diversity_stats)
+   434960    0.099    0.000    0.099    0.000 {method 'extend' of 'list' objects}
+   321026    0.096    0.000    0.485    0.000 {built-in method builtins.min}
+   161582    0.094    0.000    0.143    0.000 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+   600731    0.092    0.000    0.092    0.000 C:\shared\bolaris\tank\core\math_utils.py:144(distance_squared)
+      500    0.086    0.000    6.782    0.014 C:\shared\bolaris\tank\core\simulation_engine.py:445(update)
+    13105    0.081    0.000    0.219    0.000 {built-in method builtins.sum}
+    33633    0.080    0.000    0.150    0.000 C:\shared\bolaris\tank\core\fish\energy_component.py:62(consume_energy)
+     1191    0.077    0.000    0.235    0.000 C:\shared\bolaris\tank\core\algorithms\food_seeking.py:934(execute)
+    44647    0.073    0.000    0.222    0.000 C:\shared\bolaris\tank\core\algorithms\base.py:566(_find_nearest_food)
+   410665    0.069    0.000    0.069    0.000 {method 'append' of 'list' objects}
+   385084    0.067    0.000    0.073    0.000 {built-in method builtins.max}
+    80223    0.066    0.000    0.103    0.000 C:\shared\bolaris\tank\core\math_utils.py:64(normalize)
+   129308    0.060    0.000    0.097    0.000 C:\shared\bolaris\tank\core\math_utils.py:23(__add__)
+    35267    0.058    0.000    0.153    0.000 C:\shared\bolaris\tank\core\entities\base.py:127(update_position)
 
 

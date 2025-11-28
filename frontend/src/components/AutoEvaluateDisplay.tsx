@@ -292,6 +292,7 @@ export function AutoEvaluateDisplay({
 }) {
     const [fullHistory, setFullHistory] = useState<PokerPerformanceSnapshot[]>([]);
     const [metric, setMetric] = useState<'energy' | 'winRate'>('energy');
+    const [historyError, setHistoryError] = useState<string | null>(null);
 
     // Fetch full history periodically or when stats update
     useEffect(() => {
@@ -299,13 +300,16 @@ export function AutoEvaluateDisplay({
 
         const fetchHistory = async () => {
             try {
+                setHistoryError(null);
                 const response = await fetch('/api/evaluation-history');
-                if (response.ok) {
-                    const data = await response.json();
-                    setFullHistory(data);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                const data = await response.json();
+                setFullHistory(data);
             } catch (error) {
-                console.error('Failed to fetch evaluation history:', error);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                setHistoryError(`Failed to fetch history: ${message}`);
             }
         };
 
@@ -343,13 +347,13 @@ export function AutoEvaluateDisplay({
 
     const plantPlayers = nonStandardPlayers.filter(p => p.species === 'plant');
 
-
     const plantTotalNet = plantPlayers.reduce((sum, p) => sum + p.net_energy, 0);
     const standardNet = standardPlayer?.net_energy ?? 0;
     const plantWinning = plantPlayers.length > 0 && plantTotalNet > standardNet;
 
     // Sort players by net energy for display
     const sortedPlayers = [...stats.players].sort((a, b) => b.net_energy - a.net_energy);
+    const leader = sortedPlayers[0];
 
     // Use fullHistory if available and longer, otherwise fall back to stats.performance_history
     const displayHistory = fullHistory.length > (stats.performance_history?.length || 0)
@@ -390,6 +394,9 @@ export function AutoEvaluateDisplay({
             <div style={styles.summary}>
                 <div style={styles.summaryItem}>
                     <span style={styles.summaryLabel}>Leader</span>
+                    <span style={styles.summaryValue}>
+                        {getPlayerIcon(leader)} {leader.name} ({leader.net_energy >= 0 ? '+' : ''}{Math.round(leader.net_energy)} ⚡)
+                    </span>
                 </div>
                 {plantPlayers.length > 0 && (
                     <div style={styles.summaryItem}>
@@ -414,6 +421,12 @@ export function AutoEvaluateDisplay({
                     />
                 ))}
             </div>
+
+            {historyError && (
+                <div style={styles.errorMessage}>
+                    {historyError}
+                </div>
+            )}
 
             <PerformanceChart history={displayHistory} metric={metric} />
         </div>
@@ -540,6 +553,15 @@ const styles = {
         marginTop: '8px',
         color: colors.textSecondary,
         fontSize: '13px',
+    },
+    errorMessage: {
+        padding: '8px 12px',
+        marginBottom: '12px',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        borderRadius: '6px',
+        color: '#ef4444',
+        fontSize: '12px',
     },
     chartWrapper: {
         backgroundColor: colors.bgLight,

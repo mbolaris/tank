@@ -188,7 +188,7 @@ class SimulationRunner:
         return {
             "plant_id": plant.plant_id,
             "name": f"Plant #{plant.plant_id}",
-            "generation": getattr(plant, "age", 0),
+            "generation": getattr(plant, "generation", None),
             "energy": plant.energy,
             "species": "plant",
             "poker_strategy": PlantPokerStrategyAdapter.from_genome(plant.genome),

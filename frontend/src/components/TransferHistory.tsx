@@ -28,6 +28,7 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
     const [transfers, setTransfers] = useState<Transfer[]>([]);
     const [loading, setLoading] = useState(true);
     const [successOnly, setSuccessOnly] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchTransfers();
@@ -38,6 +39,7 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
 
     const fetchTransfers = async () => {
         try {
+            setError(null);
             const params = new URLSearchParams({
                 limit: '50',
                 ...(tankId && { tank_id: tankId }),
@@ -52,7 +54,8 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
             const data = await response.json();
             setTransfers(data.transfers);
         } catch (err) {
-            console.error('Failed to load transfer history:', err);
+            const message = err instanceof Error ? err.message : 'Failed to load transfers';
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -150,6 +153,25 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                         Loading transfers...
+                    </div>
+                ) : error ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}>
+                        <p style={{ color: '#ef4444', margin: 0 }}>{error}</p>
+                        <button
+                            onClick={fetchTransfers}
+                            style={{
+                                marginTop: '12px',
+                                padding: '8px 16px',
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                            }}
+                        >
+                            Retry
+                        </button>
                     </div>
                 ) : transfers.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px' }}>

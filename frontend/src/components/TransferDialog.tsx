@@ -26,12 +26,14 @@ export function TransferDialog({
     const [loading, setLoading] = useState(true);
     const [transferring, setTransferring] = useState(false);
     const [selectedTankId, setSelectedTankId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchTanks();
     }, []);
 
     const fetchTanks = async () => {
+        setError(null);
         try {
             const response = await fetch(`${config.tanksApiUrl}?include_private=true`);
             if (!response.ok) {
@@ -45,7 +47,8 @@ export function TransferDialog({
             );
             setTanks(eligibleTanks);
         } catch (err) {
-            console.error('Failed to load tanks:', err);
+            const message = err instanceof Error ? err.message : 'Failed to load tanks';
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -117,6 +120,27 @@ export function TransferDialog({
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
                         Loading available tanks...
+                    </div>
+                ) : error ? (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <p style={{ color: '#ef4444', margin: 0 }}>
+                            {error}
+                        </p>
+                        <button
+                            onClick={fetchTanks}
+                            style={{
+                                marginTop: '12px',
+                                padding: '8px 16px',
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                            }}
+                        >
+                            Retry
+                        </button>
                     </div>
                 ) : tanks.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
