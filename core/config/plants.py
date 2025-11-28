@@ -53,4 +53,4 @@ FRACTAL_PLANT_DEFAULT_ANGLE = 25.0  # Default branching angle (degrees)
 FRACTAL_PLANT_DEFAULT_LENGTH_RATIO = 0.7  # Default length reduction per iteration
 
 # Plant Collision Detection
-FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 200.0  # Distance for poker collision - Increased for easier detection
+FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 60.0  # Distance for poker collision (slightly larger than entity size ~50px)
