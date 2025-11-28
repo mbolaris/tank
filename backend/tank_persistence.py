@@ -52,9 +52,14 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
         # Serialize all entities
         entities = []
         for entity in manager.world.engine.entities_list:
-            serialized = serialize_entity_for_transfer(entity)
-            if serialized:
-                entities.append(serialized)
+            # Only attempt to serialize transferable entities using the transfer logic
+            # This prevents "Cannot transfer entity of type X" warnings for things like Food, Crab, etc.
+            from core.entities import Fish, FractalPlant
+            
+            if isinstance(entity, (Fish, FractalPlant)):
+                serialized = serialize_entity_for_transfer(entity)
+                if serialized:
+                    entities.append(serialized)
             else:
                 # Also serialize Food, Nectar, Castle, and Crab for complete state
                 from core.entities import Food, PlantNectar

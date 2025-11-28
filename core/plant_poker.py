@@ -52,7 +52,8 @@ class PlantPokerInteraction:
     DEFAULT_BET_AMOUNT = 8.0
 
     # Cooldown between poker games (in frames)
-    POKER_COOLDOWN = 90  # 3 seconds at 30fps
+    from core.config.plants import FRACTAL_PLANT_POKER_COOLDOWN
+    POKER_COOLDOWN = FRACTAL_PLANT_POKER_COOLDOWN
 
     def __init__(self, fish: "Fish", plant: "FractalPlant"):
         """Initialize a poker interaction between a fish and plant.

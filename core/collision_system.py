@@ -119,7 +119,13 @@ class CollisionSystem:
                 parent_x = food.source_plant.pos.x if food.source_plant else food.pos.x
                 parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
 
-                self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
+                # Check sprouting chance
+                import random
+                from core.config.plants import FRACTAL_PLANT_SPROUTING_CHANCE
+                
+                if random.random() < FRACTAL_PLANT_SPROUTING_CHANCE:
+                    self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
+                
                 self.engine.remove_entity(food)
         else:
             fish.eat(food)

@@ -29,7 +29,7 @@ FRACTAL_PLANT_BASE_WIDTH = 60  # Base width in pixels
 FRACTAL_PLANT_BASE_HEIGHT = 65  # Base height in pixels
 
 # Plant Poker Configuration
-FRACTAL_PLANT_POKER_COOLDOWN = 30  # 1 second at 30fps (reduced for more frequent games)
+FRACTAL_PLANT_POKER_COOLDOWN = 60  # 3 seconds at 60fps (increased to prevent rapid energy loss)
 FRACTAL_PLANT_MIN_POKER_ENERGY = 0.0  # Plants can always play poker (no min energy)
 FRACTAL_PLANT_POKER_BET_RATIO = 0.15  # Max bet as ratio of energy
 
@@ -40,7 +40,7 @@ FRACTAL_PLANT_SPROUTING_CHANCE = 0.5  # Chance to sprout when nectar consumed - 
 FRACTAL_PLANT_INITIAL_COUNT = 3  # Number of plants to start with
 
 # Plant Energy Collection (Passive Growth)
-FRACTAL_PLANT_BASE_ENERGY_RATE = 0.002  # Base energy gain per frame - Reduced for slower growth
+FRACTAL_PLANT_BASE_ENERGY_RATE = 0.01  # Base energy gain per frame - Increased to prevent starvation
 FRACTAL_PLANT_GROWTH_FACTOR = 0.3  # Compound growth rate modifier
 FRACTAL_PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
 FRACTAL_PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk
@@ -53,4 +53,4 @@ FRACTAL_PLANT_DEFAULT_ANGLE = 25.0  # Default branching angle (degrees)
 FRACTAL_PLANT_DEFAULT_LENGTH_RATIO = 0.7  # Default length reduction per iteration
 
 # Plant Collision Detection
-FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 200.0  # Distance for poker collision - Increased for easier detection
+FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 150.0  # Distance for poker collision - Reduced to limit frequency
