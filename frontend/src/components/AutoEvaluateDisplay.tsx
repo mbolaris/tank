@@ -176,7 +176,7 @@ function PerformanceChart({
                     textAnchor="middle"
                     transform={`rotate(-90, 12, ${(height - padding.top - padding.bottom) / 2 + padding.top})`}
                 >
-                    {metric === 'energy' ? 'Net Energy' : 'Win Rate (%)'}
+                    {metric === 'energy' ? 'Profit' : 'Win %'}
                 </text>
 
                 {/* Fish average line */}
@@ -270,7 +270,7 @@ function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isW
                 <span style={styles.statValue}>{Math.round(player.win_rate ?? 0)}%</span>
             </div>
             <div style={styles.playerStat}>
-                <span style={styles.statLabel}>Net Energy</span>
+                <span style={styles.statLabel}>Profit</span>
                 <span style={{ ...styles.statValue, color: netColor, fontWeight: 700 }}>
                     {player.net_energy >= 0 ? '+' : ''}{Math.round(player.net_energy)}
                 </span>
@@ -340,18 +340,16 @@ export function AutoEvaluateDisplay({
 
     const standardPlayer = stats.players.find(p => p.is_standard);
     const nonStandardPlayers = stats.players.filter(p => !p.is_standard);
-    const fishPlayers = nonStandardPlayers.filter(p => p.species !== 'plant');
+
     const plantPlayers = nonStandardPlayers.filter(p => p.species === 'plant');
 
-    const fishTotalNet = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0);
+
     const plantTotalNet = plantPlayers.reduce((sum, p) => sum + p.net_energy, 0);
     const standardNet = standardPlayer?.net_energy ?? 0;
-    const fishWinning = fishPlayers.length > 0 && fishTotalNet > standardNet;
     const plantWinning = plantPlayers.length > 0 && plantTotalNet > standardNet;
 
     // Sort players by net energy for display
     const sortedPlayers = [...stats.players].sort((a, b) => b.net_energy - a.net_energy);
-    const leader = sortedPlayers[0];
 
     // Use fullHistory if available and longer, otherwise fall back to stats.performance_history
     const displayHistory = fullHistory.length > (stats.performance_history?.length || 0)
@@ -374,14 +372,14 @@ export function AutoEvaluateDisplay({
                             onClick={() => setMetric('winRate')}
                             style={metric === 'winRate' ? styles.activeToggle : styles.toggle}
                         >
-                            Win Rate
+                            Win %
                         </button>
                     </div>
                 </div>
                 <div style={styles.headerStats}>
                     <span style={styles.handsPlayed}>{stats.hands_played} hands</span>
                     {stats.game_over ? (
-                        <span style={styles.gameOver}>Complete</span>
+                        <span style={styles.gameOver}>Benchmark Complete</span>
                     ) : (
                         <span style={styles.inProgress}>In Progress</span>
                     )}
@@ -392,18 +390,6 @@ export function AutoEvaluateDisplay({
             <div style={styles.summary}>
                 <div style={styles.summaryItem}>
                     <span style={styles.summaryLabel}>Leader</span>
-                    <span style={styles.summaryValue}>
-                        {leader ? getPlayerIcon(leader) : ''} {leader?.name}
-                    </span>
-                </div>
-                <div style={styles.summaryItem}>
-                    <span style={styles.summaryLabel}>Fish vs Baseline</span>
-                    <span style={{
-                        ...styles.summaryValue,
-                        color: fishWinning ? '#22c55e' : '#ef4444',
-                    }}>
-                        {fishWinning ? '+' : ''}{Math.round(fishTotalNet - standardNet)} ⚡
-                    </span>
                 </div>
                 {plantPlayers.length > 0 && (
                     <div style={styles.summaryItem}>

@@ -31,15 +31,10 @@ export function StatsPanel({ stats }: StatsPanelProps) {
                 <>
                     <div className={styles.gridRow}>
                         <StatRow label="Games:" value={stats.poker_stats.total_games} />
-                        <StatRow
-                            label="Win Rate:"
-                            value={stats.poker_stats.win_rate_pct || '0.0%'}
-                            valueColor={(stats.poker_stats.win_rate || 0) > 0.5 ? '#4ade80' : '#94a3b8'}
-                        />
                     </div>
                     <div className={styles.gridRow}>
                         <StatRow
-                            label="Net Energy:"
+                            label="Profit:"
                             value={`${stats.poker_stats.net_energy >= 0 ? '+' : ''}${stats.poker_stats.net_energy.toFixed(1)}`}
                             valueColor={stats.poker_stats.net_energy >= 0 ? '#4ade80' : '#f87171'}
                             valueStyle={{ fontWeight: 600 }}
