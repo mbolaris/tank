@@ -62,6 +62,8 @@ class AutoEvaluateStats:
     winner: Optional[str] = None
     reason: str = ""
     performance_history: List[Dict[str, Any]] = field(default_factory=list)
+    # For heads-up benchmark evaluation
+    net_bb_for_candidate: Optional[float] = None
 
 
 class AutoEvaluatePokerGame:
@@ -76,6 +78,7 @@ class AutoEvaluatePokerGame:
         small_blind: float = 5.0,
         big_blind: float = 10.0,
         rng_seed: int = None,
+        include_standard_player: bool = True,
     ):
         """Initialize a new auto-evaluation poker game.
 
@@ -90,6 +93,7 @@ class AutoEvaluatePokerGame:
             small_blind: Small blind amount
             big_blind: Big blind amount
             rng_seed: Optional RNG seed for deterministic card dealing
+            include_standard_player: If True, add standard algorithm player (default True)
         """
         self.game_id = game_id
         self.small_blind = small_blind
@@ -104,7 +108,8 @@ class AutoEvaluatePokerGame:
         # Add fish players - ensure they have enough energy to play all hands
         # With 4 players, blinds rotate, so each player posts SB+BB every 4 hands
         # Minimum energy needed: (SB + BB) * (max_hands / num_players) * 2
-        min_energy_needed = (small_blind + big_blind) * (max_hands / len(player_pool) + 1) * 2
+        num_players = len(player_pool) + (1 if include_standard_player else 0)
+        min_energy_needed = (small_blind + big_blind) * (max_hands / num_players + 1) * 2
         starting_energy = max(standard_energy, min_energy_needed)
 
         for i, player_data in enumerate(player_pool):
@@ -123,16 +128,17 @@ class AutoEvaluatePokerGame:
                 )
             )
 
-        # Add standard algorithm player
-        self.players.append(
-            EvalPlayerState(
-                player_id="standard",
-                name="Standard Algorithm",
-                energy=starting_energy,
-                is_standard=True,
-                starting_energy=starting_energy,
+        # Add standard algorithm player (optional for heads-up benchmark mode)
+        if include_standard_player:
+            self.players.append(
+                EvalPlayerState(
+                    player_id="standard",
+                    name="Standard Algorithm",
+                    energy=starting_energy,
+                    is_standard=True,
+                    starting_energy=starting_energy,
+                )
             )
-        )
 
         # Game state
         self.deck = Deck(seed=rng_seed)
@@ -595,9 +601,9 @@ class AutoEvaluatePokerGame:
             rng_seed: Optional RNG seed for deterministic dealing
 
         Returns:
-            AutoEvaluateStats with net_bb_for_candidate field added
+            AutoEvaluateStats with net_bb_for_candidate field populated
         """
-        # Build player pool
+        # Build player pool with candidate in specified seat
         if candidate_seat == 0:
             player_pool = [
                 {"name": "Candidate", "poker_strategy": candidate_algo},
@@ -617,21 +623,25 @@ class AutoEvaluatePokerGame:
             small_blind=small_blind,
             big_blind=big_blind,
             rng_seed=rng_seed,
+            include_standard_player=False,  # Pure HU, no standard player
         )
 
         stats = game.run_evaluation()
 
-        # Find candidate's net bb
-        candidate_player_stats = None
-        for player_stats in stats.players:
-            if player_stats["name"] == "Candidate":
-                candidate_player_stats = player_stats
-                break
+        # Verify expected number of hands were played
+        if stats.hands_played != num_hands:
+            logger.warning(
+                f"HU evaluation exited early: expected {num_hands} hands, "
+                f"played {stats.hands_played}"
+            )
 
-        net_bb = candidate_player_stats["net_energy"] / big_blind if candidate_player_stats else 0.0
+        # Use seat-based indexing (candidate is at candidate_seat)
+        if candidate_seat < len(stats.players):
+            candidate_player_stats = stats.players[candidate_seat]
+            net_bb = candidate_player_stats["net_energy"] / big_blind
+        else:
+            logger.error(f"Candidate seat {candidate_seat} out of range")
+            net_bb = 0.0
 
-        # Add custom field for easy access
         stats.net_bb_for_candidate = net_bb
-        stats.hands_played = num_hands
-
         return stats
