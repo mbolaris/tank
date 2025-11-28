@@ -7,6 +7,7 @@ enabling durable simulations that can be resumed after restarts.
 import json
 import logging
 import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -407,6 +408,30 @@ def delete_snapshot(snapshot_path: str) -> bool:
         return True
     except Exception as e:
         logger.error(f"Failed to delete snapshot {snapshot_path}: {e}")
+        return False
+
+
+def delete_tank_data(tank_id: str) -> bool:
+    """Delete all persisted data for a specific tank.
+
+    Args:
+        tank_id: The tank identifier
+
+    Returns:
+        True if the tank data directory was removed, False otherwise
+    """
+
+    tank_dir = DATA_DIR / tank_id
+    try:
+        if not tank_dir.exists():
+            logger.info(f"No persisted data found for tank {tank_id[:8]}")
+            return False
+
+        shutil.rmtree(tank_dir)
+        logger.info(f"Deleted persisted data for tank {tank_id[:8]}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete data for tank {tank_id[:8]}: {e}")
         return False
 
 
