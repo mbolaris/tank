@@ -183,13 +183,13 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         if "behavior_algorithm" in genome_data and genome_data["behavior_algorithm"]:
             genome.behavior_algorithm = behavior_from_dict(genome_data["behavior_algorithm"])
             if genome.behavior_algorithm is None:
-                logger.warning("Failed to deserialize behavior_algorithm, will use random")
+                logger.warning("Failed to deserialize behavior_algorithm; Fish.__init__ will assign random")
 
         # Restore poker algorithm if available
         if "poker_algorithm" in genome_data and genome_data["poker_algorithm"]:
             genome.poker_algorithm = behavior_from_dict(genome_data["poker_algorithm"])
             if genome.poker_algorithm is None:
-                logger.warning("Failed to deserialize poker_algorithm, will use random")
+                logger.warning("Failed to deserialize poker_algorithm; Fish.__init__ will assign random")
 
         # Restore poker strategy if available
         if "poker_strategy_algorithm" in genome_data and genome_data["poker_strategy_algorithm"]:
