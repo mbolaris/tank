@@ -6,6 +6,7 @@ simulation without any visualization code.
 
 import json
 import logging
+import os
 import random
 import time
 from typing import Any, Dict, List, Optional
@@ -48,6 +49,8 @@ from core.fish_poker import PokerInteraction
 from core.genetics import Genome
 from core.object_pool import FoodPool
 from core.poker_system import PokerSystem
+from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
+from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
 from core.plant_genetics import PlantGenome
 from core.registry import get_algorithm_metadata
 from core.reproduction_system import ReproductionSystem
@@ -190,11 +193,8 @@ class SimulationEngine(BaseSimulator):
         ]
 
         # Periodic poker benchmark evaluation
-        self.benchmark_evaluator: Optional["PeriodicBenchmarkEvaluator"] = None
+        self.benchmark_evaluator: Optional[PeriodicBenchmarkEvaluator] = None
         if enable_poker_benchmarks:
-            from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
-            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-
             self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
                 BenchmarkEvalConfig()
             )
@@ -1130,8 +1130,6 @@ class SimulationEngine(BaseSimulator):
             logger.info(f"{report}")
 
             # Save to file
-            import os
-
             os.makedirs("logs", exist_ok=True)
             report_path = os.path.join("logs", "algorithm_performance_report.txt")
             with open(report_path, "w") as f:
