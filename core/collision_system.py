@@ -6,6 +6,7 @@ This module provides collision detection for entity objects in the simulation.
 from typing import TYPE_CHECKING
 
 from core.constants import FRACTAL_PLANTS_ENABLED
+from core.entities.fractal_plant import PlantNectar
 
 if TYPE_CHECKING:
     from core.entities import Agent
@@ -110,8 +111,6 @@ class CollisionSystem:
 
     def handle_fish_food_collision(self, fish: "Agent", food: "Agent") -> None:
         """Handle collision between a fish and food, including plant nectar."""
-        from core.entities.fractal_plant import PlantNectar
-
         if isinstance(food, PlantNectar) and FRACTAL_PLANTS_ENABLED:
             fish.eat(food)
 
