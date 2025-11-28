@@ -3,8 +3,10 @@
 This module provides collision detection for entity objects in the simulation.
 """
 
+import random
 from typing import TYPE_CHECKING
 
+from core.config.plants import FRACTAL_PLANT_SPROUTING_CHANCE
 from core.constants import FRACTAL_PLANTS_ENABLED
 from core.entities.fractal_plant import PlantNectar
 
@@ -120,9 +122,6 @@ class CollisionSystem:
                 parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
 
                 # Check sprouting chance
-                import random
-                from core.config.plants import FRACTAL_PLANT_SPROUTING_CHANCE
-                
                 if random.random() < FRACTAL_PLANT_SPROUTING_CHANCE:
                     self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
                 
