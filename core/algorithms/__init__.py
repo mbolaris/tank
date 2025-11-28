@@ -171,6 +171,43 @@ ALL_ALGORITHMS = [
     PokerConservative,
 ]
 
+# Algorithm registry for deserialization (maps class names to classes)
+ALGORITHM_REGISTRY = {algo_class.__name__: algo_class for algo_class in ALL_ALGORITHMS}
+
+
+def behavior_from_dict(data: dict) -> Optional[BehaviorAlgorithm]:
+    """Reconstruct a behavior algorithm from serialized data.
+
+    Args:
+        data: Dictionary from BehaviorAlgorithm.to_dict() containing:
+            - class: Algorithm class name
+            - algorithm_id: Algorithm identifier
+            - parameters: Dictionary of parameters
+
+    Returns:
+        Reconstructed algorithm instance, or None if class not found
+    """
+    if not data:
+        return None
+
+    class_name = data.get("class")
+    if not class_name:
+        return None
+
+    algo_class = ALGORITHM_REGISTRY.get(class_name)
+    if not algo_class:
+        # Algorithm class not found in registry
+        return None
+
+    # Instantiate with default random parameters (each class has custom __init__)
+    algorithm = algo_class()
+
+    # Overwrite with serialized parameters
+    if "parameters" in data:
+        algorithm.parameters = data["parameters"].copy()
+
+    return algorithm
+
 
 def get_algorithm_index(algorithm: BehaviorAlgorithm) -> int:
     """Get the index of an algorithm in the ALL_ALGORITHMS list.
