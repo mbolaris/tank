@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Type
 
-from core.entities import Agent
+from core.entities import Agent, Food
 
 
 class SpatialGrid:
@@ -36,9 +36,9 @@ class SpatialGrid:
         self.cols = math.ceil(width / cell_size)
         self.rows = math.ceil(height / cell_size)
 
-        # Agent type names that should be indexed in the dedicated food grid
-        # (includes subclasses like PlantNectar so fish treat nectar as food)
-        self.food_type_names = {"Food", "LiveFood", "PlantNectar"}
+        # Base type used to identify all food-like agents (covers subclasses
+        # like LiveFood and PlantNectar without needing explicit name checks)
+        self._food_base_type = Food
 
         # Grid storage: dict of (col, row) -> dict of type -> list of agents
         # Using list instead of set for faster iteration in tight loops
@@ -75,7 +75,7 @@ class SpatialGrid:
         type_name = agent_type.__name__
         if type_name == 'Fish':
             self.fish_grid[cell].append(agent)
-        elif type_name in self.food_type_names:
+        elif issubclass(agent_type, self._food_base_type):
             self.food_grid[cell].append(agent)
             
         self.agent_cells[agent] = cell
@@ -101,7 +101,7 @@ class SpatialGrid:
                     self.fish_grid[cell].remove(agent)
                     if not self.fish_grid[cell]:
                         del self.fish_grid[cell]
-            elif type_name in self.food_type_names:
+            elif issubclass(agent_type, self._food_base_type):
                 if agent in self.food_grid[cell]:
                     self.food_grid[cell].remove(agent)
                     if not self.food_grid[cell]:
@@ -137,7 +137,7 @@ class SpatialGrid:
                         self.fish_grid[old_cell].remove(agent)
                         if not self.fish_grid[old_cell]:
                             del self.fish_grid[old_cell]
-                elif type_name in self.food_type_names:
+                elif issubclass(agent_type, self._food_base_type):
                     if agent in self.food_grid[old_cell]:
                         self.food_grid[old_cell].remove(agent)
                         if not self.food_grid[old_cell]:
@@ -150,7 +150,7 @@ class SpatialGrid:
             type_name = agent_type.__name__
             if type_name == 'Fish':
                 self.fish_grid[new_cell].append(agent)
-            elif type_name in self.food_type_names:
+            elif issubclass(agent_type, self._food_base_type):
                 self.food_grid[new_cell].append(agent)
                 
             self.agent_cells[agent] = new_cell
