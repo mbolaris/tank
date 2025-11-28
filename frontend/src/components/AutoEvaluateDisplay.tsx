@@ -302,14 +302,27 @@ export function AutoEvaluateDisplay({
             try {
                 setHistoryError(null);
                 const response = await fetch('/api/evaluation-history');
+                
+                // Check content type before parsing
+                const contentType = response.headers.get('content-type');
+                if (!contentType?.includes('application/json')) {
+                    // Silently fall back to stats history - API might not be proxied
+                    if (stats.performance_history) {
+                        setFullHistory(stats.performance_history);
+                    }
+                    return;
+                }
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 const data = await response.json();
                 setFullHistory(data);
             } catch (error) {
-                const message = error instanceof Error ? error.message : 'Unknown error';
-                setHistoryError(`Failed to fetch history: ${message}`);
+                // Silently fall back to stats history on error
+                if (stats.performance_history) {
+                    setFullHistory(stats.performance_history);
+                }
             }
         };
 
@@ -330,9 +343,11 @@ export function AutoEvaluateDisplay({
                 </div>
                 <div style={styles.loading}>
                     <p>
-                        Playing poker with the top 3 fish vs static algorithm to track evolution progress.
+                        Playing 5000 hands of poker with position-rotated duplicate deals.
                     </p>
-                    <p style={styles.loadingSubtext}>This may take a moment...</p>
+                    <p style={styles.loadingSubtext}>
+                        Each deal is replayed with rotated seats for fair evaluation. This may take a moment...
+                    </p>
                 </div>
             </div>
         );

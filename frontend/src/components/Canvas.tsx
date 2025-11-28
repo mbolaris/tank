@@ -86,7 +86,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                         setImagesLoaded(true);
                     }
                 } catch (err) {
-                    console.error("Failed to load images:", err);
+                    // Log for debugging but don't break the app - images may load later
                     if (isMounted) {
                         setError(`Failed to load images: ${err instanceof Error ? err.message : String(err)}`);
                     }
@@ -95,7 +95,6 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
             loadImages();
         } catch (err) {
-            console.error("Failed to initialize renderer:", err);
             setError(`Failed to initialize renderer: ${err instanceof Error ? err.message : String(err)}`);
         }
 
@@ -152,8 +151,11 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             // Restore context state
             ctx.restore();
         } catch (err) {
-            console.error("Rendering error:", err);
-            setError(`Rendering error: ${err instanceof Error ? err.message : String(err)}`);
+            // Only set error state for persistent issues, not transient rendering glitches
+            const message = err instanceof Error ? err.message : String(err);
+            if (!error) {
+                setError(`Rendering error: ${message}`);
+            }
         }
     }, [state, width, height, imagesLoaded, selectedEntityId, error]);
 

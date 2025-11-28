@@ -54,6 +54,7 @@ class TankRegistry:
         create_default: bool = True,
         discovery_service: Optional["DiscoveryService"] = None,
         server_client: Optional["ServerClient"] = None,
+        local_server_id: str = "local-server",
     ):
         """Initialize the tank registry.
 
@@ -61,6 +62,7 @@ class TankRegistry:
             create_default: If True, creates a default "Tank 1" on init
             discovery_service: Optional discovery service for distributed lookups
             server_client: Optional server client for remote queries
+            local_server_id: ID of the local server for distributed lookups
         """
         self._tanks: Dict[str, SimulationManager] = {}
         self._default_tank_id: Optional[str] = None
@@ -68,6 +70,7 @@ class TankRegistry:
         self._discovery_service = discovery_service
         self._server_client = server_client
         self._connection_manager = None
+        self._local_server_id = local_server_id
 
         if create_default:
             default_tank = self.create_tank(
@@ -379,7 +382,7 @@ class TankRegistry:
         """
         # Check local first
         if tank_id in self._tanks:
-            return "local-server"  # TODO: Use actual local server ID
+            return self._local_server_id
 
         # Check remote servers if distributed services available
         if self._discovery_service and self._server_client:

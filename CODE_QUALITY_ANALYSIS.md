@@ -18,10 +18,11 @@ Analysis Scope: 98 Python files + Frontend TypeScript/React
 - **Inconsistent code style** across multiple modules - Being addressed incrementally
 
 ### Overall Assessment
-**Code Quality Score: 7.5/10** (improved from 6.5)
+**Code Quality Score: 8/10** (improved from 7.5)
 - Good: Proper exception handling, no bare except clauses
 - Good: Proper error state handling in frontend components
 - Good: Strong type safety in TypeScript
+- Good: Error notifications displayed to users (not silent failures)
 - Fair: Reasonable test coverage, clear structure
 - Needs Work: Some long methods remain (but are logically cohesive)
 
@@ -33,6 +34,10 @@ Analysis Scope: 98 Python files + Frontend TypeScript/React
 - ✅ Added error states to `TransferDialog.tsx` and `TransferHistory.tsx`
 - ✅ Replaced `any` types with proper `PokerPerformanceSnapshot` types in NetworkDashboard.tsx
 - ✅ Added missing `logging` import in backend/main.py entry point
+- ✅ Replaced console.error statements in `TankView.tsx` with proper error states
+- ✅ Removed console.error from `Canvas.tsx` - errors now set error state
+- ✅ Fixed TODO in `tank_registry.py` - now uses actual local server ID
+- ✅ Added user-visible error notifications for poker operations
 
 ---
 

@@ -1,8 +1,22 @@
 """Auto-evaluation poker game for testing fish poker skills.
 
 This module manages automated poker games where multiple fish play against
-a standard poker evaluation algorithm for 2000 hands or until one player
-runs out of money.
+a standard poker evaluation algorithm with variance reduction through
+position-rotated duplicate deals.
+
+## Position Rotation (Duplicate Deal Semantics)
+
+For fair evaluation with minimal positional variance:
+1. Each "deal set" uses a specific RNG seed to deal cards
+2. The same deal is replayed N times (N = number of players)
+3. In each replay, players rotate seats so everyone experiences each position
+4. This cancels out positional luck - only skill matters
+
+## Statistical Benefits
+
+- Position advantage/disadvantage averages out across rotations
+- Card luck still varies between deal sets but is the same within a set
+- Results converge much faster than single-pass evaluation
 """
 
 import logging
@@ -67,7 +81,12 @@ class AutoEvaluateStats:
 
 
 class AutoEvaluatePokerGame:
-    """Manages an automated poker evaluation game between multiple fish and standard algorithm."""
+    """Manages an automated poker evaluation game between multiple fish and standard algorithm.
+    
+    Supports position-rotated duplicate deals for reduced variance evaluation.
+    When position_rotation=True, each dealt hand is replayed N times (N = number of players),
+    rotating seat assignments so every player experiences every position with the same cards.
+    """
 
     def __init__(
         self,
@@ -79,6 +98,7 @@ class AutoEvaluatePokerGame:
         big_blind: float = 10.0,
         rng_seed: int = None,
         include_standard_player: bool = True,
+        position_rotation: bool = True,
     ):
         """Initialize a new auto-evaluation poker game.
 
@@ -94,6 +114,8 @@ class AutoEvaluatePokerGame:
             big_blind: Big blind amount
             rng_seed: Optional RNG seed for deterministic card dealing
             include_standard_player: If True, add standard algorithm player (default True)
+            position_rotation: If True, replay each deal with rotated positions for
+                fairness. Each unique deal is played N times (N = number of players).
         """
         self.game_id = game_id
         self.small_blind = small_blind
@@ -101,6 +123,13 @@ class AutoEvaluatePokerGame:
         self.max_hands = max_hands
         self.hands_played = 0
         self.rng_seed = rng_seed
+        self.position_rotation = position_rotation
+        
+        # Track current deal set for position rotation
+        self._current_deal_seed = rng_seed if rng_seed is not None else 0
+        self._rotation_index = 0  # Which rotation we're on for current deal
+        self._saved_hole_cards: List[List[Card]] = []  # Cards for each player in base deal
+        self._saved_deck_state: List[Card] = []  # Remaining deck after dealing hole cards
 
         # Create players list
         self.players: List[EvalPlayerState] = []
@@ -157,21 +186,55 @@ class AutoEvaluatePokerGame:
         return self.players
 
     def _start_hand(self):
-        """Start a new hand: deal cards and post blinds."""
-        # Reset deck and deal hole cards
-        self.deck.reset()
+        """Start a new hand: deal cards and post blinds.
+        
+        With position_rotation enabled, this method implements duplicate deals:
+        - First call with a new deal: deals fresh cards, saves them
+        - Subsequent calls (rotations): reuses same cards, rotates seat assignments
+        """
+        num_players = len(self.players)
+        
+        # Reset player state for new hand
         for player in self.players:
-            player.hole_cards = self.deck.deal(2)
             player.current_bet = 0.0
             player.total_bet = 0.0
             player.folded = False
-
+        
         self.community_cards = []
         self.pot = 0.0
         self.current_round = BettingRound.PRE_FLOP
+        
+        if self.position_rotation:
+            # Position rotation mode: replay same cards with rotated seats
+            if self._rotation_index == 0:
+                # First rotation of a new deal set - deal fresh cards
+                self._current_deal_seed += 1
+                self.deck = Deck(seed=self._current_deal_seed)
+                self.deck.reset()
+                
+                # Deal and save hole cards for each position
+                self._saved_hole_cards = [self.deck.deal(2) for _ in range(num_players)]
+                # Save remaining deck state for community cards
+                self._saved_deck_state = list(self.deck.cards)
+            else:
+                # Subsequent rotation - restore deck state for community cards
+                self.deck.cards = list(self._saved_deck_state)
+            
+            # Assign hole cards with rotation offset
+            # Player i gets the cards from position (i + rotation_index) % N
+            for i, player in enumerate(self.players):
+                card_position = (i + self._rotation_index) % num_players
+                player.hole_cards = list(self._saved_hole_cards[card_position])
+            
+            # Advance rotation for next hand
+            self._rotation_index = (self._rotation_index + 1) % num_players
+        else:
+            # Standard mode - deal fresh cards each hand
+            self.deck.reset()
+            for player in self.players:
+                player.hole_cards = self.deck.deal(2)
 
-        # Rotate button
-        num_players = len(self.players)
+        # Rotate button position (same logic for both modes)
         self.button_position = (self.button_position + 1) % num_players
 
         # Post blinds (small blind is player after button, big blind is next player)

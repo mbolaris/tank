@@ -32,6 +32,17 @@ export function TankView({ tankId }: TankViewProps) {
     const [showTransferDialog, setShowTransferDialog] = useState(false);
     const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    // Error handling state
+    const [pokerError, setPokerError] = useState<string | null>(null);
+
+    const handlePokerError = (message: string, error?: unknown) => {
+        const errorDetail = error instanceof Error ? error.message : String(error ?? '');
+        const fullMessage = errorDetail ? `${message}: ${errorDetail}` : message;
+        setPokerError(fullMessage);
+        // Auto-clear error after 5 seconds
+        setTimeout(() => setPokerError(null), 5000);
+    };
+
     const maxGeneration = state?.stats
         ? state.stats.max_generation ?? state.stats.generation ?? 0
         : 0;
@@ -60,7 +71,7 @@ export function TankView({ tankId }: TankViewProps) {
                 }
                 // If no action taken (human_turn or game_over), we're done
             } catch (error) {
-                console.error('Failed to process AI turn:', error);
+                handlePokerError('Failed to process AI turn', error);
             }
         };
 
@@ -87,8 +98,7 @@ export function TankView({ tankId }: TankViewProps) {
                 }
             }
         } catch (error) {
-            console.error('Failed to start poker game:', error);
-            alert('Failed to start poker game. Please try again.');
+            handlePokerError('Failed to start poker game', error);
             setShowPokerGame(false);
         } finally {
             setPokerLoading(false);
@@ -110,8 +120,7 @@ export function TankView({ tankId }: TankViewProps) {
                 processAiTurnsWithDelay();
             }
         } catch (error) {
-            console.error('Failed to send poker action:', error);
-            alert('Failed to send action. Please try again.');
+            handlePokerError('Failed to send poker action', error);
         } finally {
             setPokerLoading(false);
         }
@@ -139,8 +148,7 @@ export function TankView({ tankId }: TankViewProps) {
                 }
             }
         } catch (error) {
-            console.error('Failed to start new poker round:', error);
-            alert('Failed to start new round. Please try again.');
+            handlePokerError('Failed to start new poker round', error);
         } finally {
             setPokerLoading(false);
         }
@@ -440,6 +448,45 @@ export function TankView({ tankId }: TankViewProps) {
                     }}
                 >
                     {transferMessage.text}
+                </div>
+            )}
+
+            {/* Poker Error Notification */}
+            {pokerError && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        bottom: transferMessage ? '90px' : '20px',
+                        right: '20px',
+                        padding: '16px 20px',
+                        borderRadius: '8px',
+                        backgroundColor: '#7f1d1d',
+                        color: '#fecaca',
+                        border: '1px solid #ef4444',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                        zIndex: 1001,
+                        maxWidth: '400px',
+                        fontWeight: 500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                    }}
+                >
+                    <span>⚠️</span>
+                    <span>{pokerError}</span>
+                    <button
+                        onClick={() => setPokerError(null)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#fecaca',
+                            cursor: 'pointer',
+                            padding: '0 4px',
+                            fontSize: '16px',
+                        }}
+                    >
+                        ✕
+                    </button>
                 </div>
             )}
         </>

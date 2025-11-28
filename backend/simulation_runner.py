@@ -366,12 +366,19 @@ class SimulationRunner:
         ).start()
 
     def _run_auto_evaluation(self, benchmark_players: List[Dict[str, Any]]) -> None:
-        """Execute a background auto-evaluation series."""
+        """Execute a background auto-evaluation series.
+        
+        Uses position-rotated duplicate deals for reduced variance evaluation.
+        Each deal is replayed N times (N = number of players) with rotated
+        seat positions so every player experiences every position with the same cards.
+        """
 
         try:
             game_id = str(uuid.uuid4())
             standard_energy = 500.0
-            max_hands = 2000
+            # Increased from 2000 to 5000 hands for reduced variance
+            # With position rotation, this means ~5000 unique deals played N times each
+            max_hands = 5000
 
             auto_eval = AutoEvaluatePokerGame(
                 game_id=game_id,
@@ -380,6 +387,7 @@ class SimulationRunner:
                 max_hands=max_hands,
                 small_blind=5.0,
                 big_blind=10.0,
+                position_rotation=True,  # Enable position rotation for fair evaluation
             )
 
             final_stats = auto_eval.run_evaluation()
