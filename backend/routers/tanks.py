@@ -200,13 +200,6 @@ def setup_router(
         Returns:
             Success message or 404 if not found
         """
-        # Don't allow deleting the default tank
-        if tank_id == tank_registry.default_tank_id and tank_registry.tank_count == 1:
-            return JSONResponse(
-                {"error": "Cannot delete the last remaining tank"},
-                status_code=400,
-            )
-
         # Stop broadcast first
         await stop_broadcast_callback(tank_id)
 

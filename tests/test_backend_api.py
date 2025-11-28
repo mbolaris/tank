@@ -300,15 +300,15 @@ def test_pause_and_resume_update_status_and_trigger_broadcast():
     assert start_calls == [manager.tank_id]
 
 
-def test_cannot_delete_last_remaining_tank():
+def test_can_delete_last_remaining_tank():
     manager = FakeTankManager("tank-1", "Tank 1")
     registry = FakeTankRegistry([manager])
     client = build_tanks_client(registry)
 
     response = client.delete(f"/api/tanks/{manager.tank_id}")
 
-    assert response.status_code == 400
-    assert "Cannot delete the last remaining tank" in response.json()["error"]
+    assert response.status_code == 200
+    assert "deleted" in response.json()["message"].lower()
 
 
 def test_create_tank_rejects_invalid_server():
