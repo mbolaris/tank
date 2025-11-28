@@ -36,6 +36,10 @@ class SpatialGrid:
         self.cols = math.ceil(width / cell_size)
         self.rows = math.ceil(height / cell_size)
 
+        # Agent type names that should be indexed in the dedicated food grid
+        # (includes subclasses like PlantNectar so fish treat nectar as food)
+        self.food_type_names = {"Food", "LiveFood", "PlantNectar"}
+
         # Grid storage: dict of (col, row) -> dict of type -> list of agents
         # Using list instead of set for faster iteration in tight loops
         self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(lambda: defaultdict(list))
@@ -71,7 +75,7 @@ class SpatialGrid:
         type_name = agent_type.__name__
         if type_name == 'Fish':
             self.fish_grid[cell].append(agent)
-        elif type_name == 'Food' or type_name == 'LiveFood':
+        elif type_name in self.food_type_names:
             self.food_grid[cell].append(agent)
             
         self.agent_cells[agent] = cell
@@ -97,7 +101,7 @@ class SpatialGrid:
                     self.fish_grid[cell].remove(agent)
                     if not self.fish_grid[cell]:
                         del self.fish_grid[cell]
-            elif type_name == 'Food' or type_name == 'LiveFood':
+            elif type_name in self.food_type_names:
                 if agent in self.food_grid[cell]:
                     self.food_grid[cell].remove(agent)
                     if not self.food_grid[cell]:
@@ -133,7 +137,7 @@ class SpatialGrid:
                         self.fish_grid[old_cell].remove(agent)
                         if not self.fish_grid[old_cell]:
                             del self.fish_grid[old_cell]
-                elif type_name == 'Food' or type_name == 'LiveFood':
+                elif type_name in self.food_type_names:
                     if agent in self.food_grid[old_cell]:
                         self.food_grid[old_cell].remove(agent)
                         if not self.food_grid[old_cell]:
@@ -146,7 +150,7 @@ class SpatialGrid:
             type_name = agent_type.__name__
             if type_name == 'Fish':
                 self.fish_grid[new_cell].append(agent)
-            elif type_name == 'Food' or type_name == 'LiveFood':
+            elif type_name in self.food_type_names:
                 self.food_grid[new_cell].append(agent)
                 
             self.agent_cells[agent] = new_cell
