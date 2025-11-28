@@ -79,7 +79,13 @@ def get_card(rank: int, suit: int) -> Card:
 
 
 class Deck:
-    """52-card deck for Texas Hold'em."""
+    """52-card deck for Texas Hold'em.
+
+    Determinism guarantee:
+    Given the same initial seed and the same sequence of reset() calls,
+    this deck produces identical sequences of hands. This property is
+    critical for duplicate-deal poker evaluation.
+    """
 
     # Pre-create all 52 cards once at module load to avoid repeated Enum construction
     _TEMPLATE_DECK: List[Card] = list(_CARD_CACHE.values())
