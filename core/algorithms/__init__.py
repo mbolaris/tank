@@ -199,12 +199,18 @@ def behavior_from_dict(data: dict) -> Optional[BehaviorAlgorithm]:
         # Algorithm class not found in registry
         return None
 
-    # Instantiate with default random parameters (each class has custom __init__)
-    algorithm = algo_class()
+    # Instantiate via random_instance() for robustness
+    algorithm = algo_class.random_instance()
 
     # Overwrite with serialized parameters
-    if "parameters" in data:
-        algorithm.parameters = data["parameters"].copy()
+    params = data.get("parameters")
+    if params is not None:
+        algorithm.parameters = params.copy()
+
+    # Restore algorithm_id if present
+    algo_id = data.get("algorithm_id")
+    if algo_id is not None:
+        algorithm.algorithm_id = algo_id
 
     return algorithm
 

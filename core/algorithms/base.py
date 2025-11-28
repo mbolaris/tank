@@ -472,7 +472,7 @@ class BehaviorAlgorithm(BehaviorStrategy):
         return {
             "class": self.__class__.__name__,
             "algorithm_id": self.algorithm_id,
-            "parameters": self.parameters,
+            "parameters": dict(self.parameters),  # shallow copy
         }
 
 
