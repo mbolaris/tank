@@ -1,5 +1,6 @@
 """Fish entity logic and genetics handling."""
 
+import logging
 import random
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
@@ -25,6 +26,9 @@ from core.constants import (
 )
 from core.entities.base import Agent, LifeStage
 from core.math_utils import Vector2
+
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -419,10 +423,6 @@ class Fish(Agent):
         Returns:
             True if migration successful, False if no migration handler or migration failed
         """
-        import logging
-
-        logger = logging.getLogger(__name__)
-
         # Check if environment provides migration handler (dependency injection)
         if not hasattr(self.environment, "migration_handler"):
             logger.debug(f"Fish #{self.fish_id}: No migration_handler in environment")

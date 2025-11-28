@@ -5,6 +5,7 @@ collect energy passively, produce nectar for reproduction, and
 can play poker against fish.
 """
 
+import logging
 import random
 from typing import TYPE_CHECKING, Optional
 
@@ -29,6 +30,9 @@ from core.constants import (
     FRACTAL_PLANT_NECTAR_COOLDOWN,
     FRACTAL_PLANT_POKER_COOLDOWN,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class FractalPlant(Agent):
@@ -466,10 +470,6 @@ class FractalPlant(Agent):
         Returns:
             True if migration successful, False otherwise
         """
-        import logging
-
-        logger = logging.getLogger(__name__)
-
         # Check if environment provides migration handler (dependency injection)
         if not hasattr(self.environment, "migration_handler"):
             return False

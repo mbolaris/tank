@@ -69,6 +69,7 @@ from core.constants import (
 )
 from core.entities import Crab, Food
 from core.entities import Fish as FishClass
+from core.predictive_movement import predict_intercept_point
 
 
 @dataclass
@@ -115,8 +116,6 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
             if distance < max_chase_distance:
                 # NEW: Use predictive interception for moving food
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
-                    from core.predictive_movement import predict_intercept_point
-
                     intercept_point, _ = predict_intercept_point(
                         fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
                     )

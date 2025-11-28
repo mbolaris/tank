@@ -358,8 +358,6 @@ class BoidsBehavior(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-        import math
-
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Use 200 radius to match predator detection range and boid interaction range
         QUERY_RADIUS = 200
