@@ -136,12 +136,18 @@ class SimulationEngine(BaseSimulator):
         start_time: Real-world start time
     """
 
-    def __init__(self, headless: bool = True, rng: Optional[random.Random] = None) -> None:
+    def __init__(
+        self,
+        headless: bool = True,
+        rng: Optional[random.Random] = None,
+        enable_poker_benchmarks: bool = False,
+    ) -> None:
         """Initialize the simulation engine.
 
         Args:
             headless: If True, run without any visualization
             rng: Shared random number generator for deterministic runs
+            enable_poker_benchmarks: If True, enable periodic benchmark evaluations
         """
         super().__init__()
         self.headless = headless
@@ -182,6 +188,16 @@ class SimulationEngine(BaseSimulator):
             "gemini",
             "lsystem",
         ]
+
+        # Periodic poker benchmark evaluation
+        self.benchmark_evaluator: Optional["PeriodicBenchmarkEvaluator"] = None
+        if enable_poker_benchmarks:
+            from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
+            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+
+            self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
+                BenchmarkEvalConfig()
+            )
 
 
     def setup(self) -> None:
@@ -578,6 +594,11 @@ class SimulationEngine(BaseSimulator):
                     if self.rng.random() < spawn_probability:
                         self.spawn_emergency_fish()
                         self.last_emergency_spawn_frame = self.frame_count
+
+        # Periodic poker benchmark evaluation
+        if self.benchmark_evaluator is not None:
+            fish_list = self.get_fish_list()
+            self.benchmark_evaluator.maybe_run(self.frame_count, fish_list)
 
         # Rebuild caches at end of frame if dirty
         if self._cache_dirty:
