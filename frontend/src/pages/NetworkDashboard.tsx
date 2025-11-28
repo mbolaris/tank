@@ -10,6 +10,7 @@ import { config, type TankStatus, type ServerWithTanks } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
 import { TankNetworkMap } from '../components/TankNetworkMap';
+import type { SimulationUpdate } from '../types/simulation';
 
 interface ServersResponse {
     servers: ServerWithTanks[];
@@ -539,6 +540,122 @@ interface TankCardProps {
     onRefresh: () => void;
 }
 
+/**
+ * Mini performance chart for network dashboard
+ */
+function MiniPerformanceChart({ history }: { history: any[] }) {
+    if (!history || history.length === 0) {
+        return null;
+    }
+
+    const sortedHistory = [...history].sort((a, b) => a.hand - b.hand);
+    const width = 300;
+    const height = 80;
+    const padding = { top: 10, right: 10, bottom: 20, left: 35 };
+    const maxHand = Math.max(...sortedHistory.map((h) => h.hand), 1);
+    const minHand = Math.min(...sortedHistory.map((h) => h.hand));
+    const handRange = maxHand - minHand || 1;
+
+    // Calculate fish average and standard values for each hand
+    const chartData = sortedHistory.map((snapshot) => {
+        const fishPlayers = snapshot.players.filter((p: any) => !p.is_standard && p.species !== 'plant');
+        const standardPlayer = snapshot.players.find((p: any) => p.is_standard);
+
+        const fishAvg = fishPlayers.length > 0
+            ? fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length
+            : 0;
+
+        return {
+            hand: snapshot.hand,
+            fishAvg,
+            standard: standardPlayer ? standardPlayer.net_energy : 0,
+        };
+    });
+
+    const allValues = chartData.flatMap((d) => [d.fishAvg, d.standard]);
+    const minValue = Math.min(0, ...allValues);
+    const maxValue = Math.max(0, ...allValues);
+    const range = maxValue - minValue || 1;
+
+    const scaleX = (hand: number) =>
+        padding.left + ((hand - minHand) / handRange) * (width - padding.left - padding.right);
+    const scaleY = (value: number) =>
+        height - padding.bottom - ((value - minValue) / range) * (height - padding.top - padding.bottom);
+
+    // Generate paths for fish average and standard
+    const fishPath = chartData
+        .map((point, i) => {
+            const x = scaleX(point.hand);
+            const y = scaleY(point.fishAvg);
+            return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+        })
+        .join(' ');
+
+    const standardPath = chartData
+        .map((point, i) => {
+            const x = scaleX(point.hand);
+            const y = scaleY(point.standard);
+            return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+        })
+        .join(' ');
+
+    const zeroY = scaleY(0);
+
+    return (
+        <svg width={width} height={height} style={{ display: 'block', margin: '0 auto' }}>
+            {/* Zero line */}
+            <line
+                x1={padding.left}
+                y1={zeroY}
+                x2={width - padding.right}
+                y2={zeroY}
+                stroke="#475569"
+                strokeWidth="1"
+                strokeDasharray="2,2"
+            />
+
+            {/* Standard line (baseline) */}
+            <path
+                d={standardPath}
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="1.5"
+                strokeDasharray="3,3"
+            />
+
+            {/* Fish average line */}
+            <path
+                d={fishPath}
+                fill="none"
+                stroke="#a855f7"
+                strokeWidth="2"
+            />
+
+            {/* X-axis label */}
+            <text
+                x={width / 2}
+                y={height - 2}
+                fontSize="9"
+                fill="#64748b"
+                textAnchor="middle"
+            >
+                Hands
+            </text>
+
+            {/* Y-axis label */}
+            <text
+                x={5}
+                y={height / 2}
+                fontSize="9"
+                fill="#64748b"
+                textAnchor="start"
+            >
+                Net
+            </text>
+        </svg>
+    );
+}
+
 function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     const { tank, running, client_count, frame, paused, fps } = tankStatus;
     const stats = tankStatus.stats ?? {
@@ -552,6 +669,35 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     };
 
     const [actionLoading, setActionLoading] = useState(false);
+    const [fullState, setFullState] = useState<SimulationUpdate | null>(null);
+
+    // Fetch full state periodically to get auto_evaluation data
+    useEffect(() => {
+        let mounted = true;
+
+        const fetchFullState = async () => {
+            try {
+                const response = await fetch(`${config.apiBaseUrl}/api/tanks/${tank.tank_id}/snapshot`);
+                if (!response.ok) return;
+                if (mounted) {
+                    const data = await response.json();
+                    if (data && data.entities && Array.isArray(data.entities)) {
+                        setFullState(data);
+                    }
+                }
+            } catch (err) {
+                // Silent fail - we have basic stats from tankStatus anyway
+            }
+        };
+
+        fetchFullState();
+        const interval = setInterval(fetchFullState, 1000); // Refresh every second
+
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
+    }, [tank.tank_id]);
 
     const sendTankCommand = async (action: 'pause' | 'resume') => {
         setActionLoading(true);
@@ -726,6 +872,111 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         </div>
                     </div>
                 )}
+
+                {/* Additional Stats Row - Plant Transfer & Time */}
+                {fullState?.stats && (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '10px',
+                    }}>
+                        {/* Plant-to-Fish Energy Transfer */}
+                        {fullState.stats.poker_stats && (fullState.stats.poker_stats.total_plant_games ?? 0) > 0 && (() => {
+                            const energyTransfer = fullState.stats.poker_stats.total_plant_energy_transferred || 0;
+                            const isPositive = energyTransfer > 0;
+                            const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
+                            return (
+                                <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>🌱→🐟 Transfer</div>
+                                    <div style={{ fontSize: '16px', color, fontWeight: 700 }}>
+                                        {isPositive ? '+' : ''}{energyTransfer.toFixed(0)}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                        {/* Time of Day */}
+                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Time</div>
+                            <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
+                                {fullState.stats.time ?? '—'}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Auto-Evaluation Summary */}
+                {fullState?.auto_evaluation && fullState.auto_evaluation.players && fullState.auto_evaluation.players.length > 0 && (() => {
+                    const autoEval = fullState.auto_evaluation;
+                    const fishPlayers = autoEval.players.filter((p: any) => !p.is_standard && p.species !== 'plant');
+                    const standardPlayer = autoEval.players.find((p: any) => p.is_standard);
+
+                    if (!fishPlayers.length || !standardPlayer) return null;
+
+                    const fishAvgEnergy = fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length;
+                    const standardEnergy = standardPlayer.net_energy;
+                    const fishAvgWinRate = fishPlayers.reduce((sum: number, p: any) => sum + (p.win_rate || 0), 0) / fishPlayers.length;
+                    const standardWinRate = standardPlayer.win_rate || 0;
+
+                    const outperforming = fishAvgEnergy > standardEnergy;
+                    const progress = autoEval.game_over ? '✓ Complete' : `${autoEval.hands_played}/${autoEval.hands_played + autoEval.hands_remaining} hands`;
+
+                    return (
+                        <div style={{
+                            background: '#1e293b',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            border: '1px solid #334155',
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '8px'
+                            }}>
+                                <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                                    Poker Benchmark
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#64748b' }}>
+                                    {progress}
+                                </div>
+                            </div>
+
+                            {/* Performance Stats */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '8px',
+                                marginBottom: '10px'
+                            }}>
+                                <div style={{ background: '#0f172a', borderRadius: '4px', padding: '6px' }}>
+                                    <div style={{ fontSize: '9px', color: '#94a3b8', marginBottom: 2 }}>Fish Avg vs Baseline</div>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        color: outperforming ? '#22c55e' : '#ef4444',
+                                        fontWeight: 700
+                                    }}>
+                                        {fishAvgEnergy > 0 ? '+' : ''}{fishAvgEnergy.toFixed(0)} vs {standardEnergy > 0 ? '+' : ''}{standardEnergy.toFixed(0)}
+                                    </div>
+                                </div>
+                                <div style={{ background: '#0f172a', borderRadius: '4px', padding: '6px' }}>
+                                    <div style={{ fontSize: '9px', color: '#94a3b8', marginBottom: 2 }}>Win Rate</div>
+                                    <div style={{
+                                        fontSize: '14px',
+                                        color: fishAvgWinRate > standardWinRate ? '#22c55e' : '#e2e8f0',
+                                        fontWeight: 700
+                                    }}>
+                                        {fishAvgWinRate.toFixed(1)}% vs {standardWinRate.toFixed(1)}%
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mini Chart */}
+                            {autoEval.performance_history && autoEval.performance_history.length > 0 && (
+                                <MiniPerformanceChart history={autoEval.performance_history} />
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Actions */}
                 <div style={{
