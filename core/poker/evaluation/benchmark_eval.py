@@ -2,6 +2,39 @@
 
 This module provides duplicate deal head-to-head poker evaluation to assess
 fish poker strategies against calibrated benchmark opponents with minimal variance.
+
+## Duplicate Deal Semantics
+
+For each benchmark evaluation:
+1. Same rng_seed → same sequence of cards dealt (via Deck's seeded RNG)
+2. Two matches per seed: candidate in seat 0, then candidate in seat 1
+3. Card luck cancels out; only skill and positional effects remain
+
+## Determinism Guarantees
+
+**What IS deterministic:**
+- Card dealing: Same seed → same deck shuffles → same hole cards and board
+- Hand evaluation: Same cards → same hand rankings
+- Game structure: Blinds, betting rounds, pot calculations
+
+**What is NOT fully deterministic:**
+- Strategy decisions: PokerStrategyAlgorithm.decide_action() may use random.random()
+  for bluffing, mixed strategies, etc. This is INTENTIONAL - we're measuring the
+  expected performance of a mixed strategy, not a single deterministic path.
+
+**Why this is okay:**
+- Strategies are static (not learning during evaluation)
+- The randomness in decisions is part of the strategy's definition
+- Variance from decision randomness is small compared to card variance
+- Duplicate deals still eliminate the dominant source of variance (card luck)
+
+## Statistical Properties
+
+With N duplicate sets:
+- Each set contributes 2 × hands_per_match samples (one from each seat)
+- Total hands = N × hands_per_match × 2
+- Variance primarily from strategy decision randomness (not card luck)
+- 95% confidence intervals computed via t-distribution
 """
 
 from __future__ import annotations
