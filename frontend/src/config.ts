@@ -194,6 +194,16 @@ export interface TankStatsSummary {
     total_energy: number;
     fish_energy: number;
     plant_energy: number;
+    poker_stats?: {
+        total_games: number;
+        total_wins: number;
+        total_losses: number;
+        total_ties: number;
+        win_rate?: number;
+        net_energy: number;
+        total_energy_won: number;
+        total_energy_lost: number;
+    };
 }
 
 /**

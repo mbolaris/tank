@@ -548,6 +548,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
         total_energy: 0,
         fish_energy: 0,
         plant_energy: 0,
+        poker_stats: undefined,
     };
 
     const [actionLoading, setActionLoading] = useState(false);
@@ -671,6 +672,60 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         </div>
                     </div>
                 </div>
+
+                {/* Energy Stats */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '10px',
+                }}>
+                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Total Energy</div>
+                        <div style={{ fontSize: '16px', color: '#22c55e', fontWeight: 700 }}>
+                            {stats.total_energy?.toFixed(0) ?? '0'}
+                        </div>
+                    </div>
+                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Fish Energy</div>
+                        <div style={{ fontSize: '16px', color: '#3b82f6', fontWeight: 700 }}>
+                            {stats.fish_energy?.toFixed(0) ?? '0'}
+                        </div>
+                    </div>
+                    <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Plant Energy</div>
+                        <div style={{ fontSize: '16px', color: '#10b981', fontWeight: 700 }}>
+                            {stats.plant_energy?.toFixed(0) ?? '0'}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Poker Stats */}
+                {stats.poker_stats && stats.poker_stats.total_games > 0 && (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '10px',
+                    }}>
+                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Poker Games</div>
+                            <div style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: 700 }}>
+                                {stats.poker_stats.total_games.toLocaleString()}
+                            </div>
+                        </div>
+                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Win Rate</div>
+                            <div style={{ fontSize: '16px', color: stats.poker_stats.win_rate && stats.poker_stats.win_rate > 50 ? '#22c55e' : '#e2e8f0', fontWeight: 700 }}>
+                                {stats.poker_stats.win_rate != null ? `${stats.poker_stats.win_rate.toFixed(1)}%` : '—'}
+                            </div>
+                        </div>
+                        <div style={{ background: '#1e293b', borderRadius: '6px', padding: '10px', border: '1px solid #334155' }}>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: 3 }}>Net Energy</div>
+                            <div style={{ fontSize: '16px', color: stats.poker_stats.net_energy > 0 ? '#22c55e' : stats.poker_stats.net_energy < 0 ? '#ef4444' : '#e2e8f0', fontWeight: 700 }}>
+                                {stats.poker_stats.net_energy > 0 ? '+' : ''}{stats.poker_stats.net_energy.toFixed(0)}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div style={{
