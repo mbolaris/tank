@@ -463,6 +463,19 @@ class BehaviorAlgorithm(BehaviorStrategy):
         """Create a random instance of this algorithm with random parameters."""
         raise NotImplementedError("Subclasses must implement random_instance")
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize algorithm for migration/storage.
+
+        Returns dictionary containing class name and parameters needed to
+        reconstruct this algorithm instance.
+        """
+        return {
+            "class": self.__class__.__name__,
+            "algorithm_id": self.algorithm_id,
+            "parameters": self.parameters,
+        }
+
+
 def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] = None) -> Optional[Any]:
     """Find nearest agent of given type within optional distance limit.
     

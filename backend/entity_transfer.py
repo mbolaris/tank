@@ -61,8 +61,9 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
             "aggression": fish.genome.aggression,
             "social_tendency": fish.genome.social_tendency,
             "template_id": fish.genome.template_id,
-            # Skip algorithms for now - they don't have to_dict methods
-            # "behavior_algorithm": fish.genome.behavior_algorithm.to_dict() if fish.genome.behavior_algorithm else None,
+            # Serialize behavior algorithms so fish keep their evolved behaviors when migrating
+            "behavior_algorithm": fish.genome.behavior_algorithm.to_dict() if fish.genome.behavior_algorithm else None,
+            "poker_algorithm": fish.genome.poker_algorithm.to_dict() if fish.genome.poker_algorithm else None,
             "poker_strategy_algorithm": fish.genome.poker_strategy_algorithm.to_dict() if fish.genome.poker_strategy_algorithm else None,
         },
         "memory": {
@@ -160,12 +161,10 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         from core.entities.fish import Fish
         from core.genetics import Genome
         from core.movement_strategy import AlgorithmicMovement
+        from core.algorithms import behavior_from_dict
 
         # Recreate genome
         genome_data = data["genome_data"]
-
-        # Skip recreating behavior algorithms for now
-        # They will be created randomly when the fish is initialized
 
         genome = Genome(
             speed_modifier=genome_data.get("speed_modifier", 1.0),
@@ -178,8 +177,19 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             aggression=genome_data.get("aggression", 0.5),
             social_tendency=genome_data.get("social_tendency", 0.5),
             template_id=genome_data.get("template_id", 0),
-            # behavior_algorithm will be set by Fish.__init__
         )
+
+        # Restore behavior algorithm if available
+        if "behavior_algorithm" in genome_data and genome_data["behavior_algorithm"]:
+            genome.behavior_algorithm = behavior_from_dict(genome_data["behavior_algorithm"])
+            if genome.behavior_algorithm is None:
+                logger.warning("Failed to deserialize behavior_algorithm, will use random")
+
+        # Restore poker algorithm if available
+        if "poker_algorithm" in genome_data and genome_data["poker_algorithm"]:
+            genome.poker_algorithm = behavior_from_dict(genome_data["poker_algorithm"])
+            if genome.poker_algorithm is None:
+                logger.warning("Failed to deserialize poker_algorithm, will use random")
 
         # Restore poker strategy if available
         if "poker_strategy_algorithm" in genome_data and genome_data["poker_strategy_algorithm"]:
