@@ -73,7 +73,7 @@ class FakeTankRegistry:
     def get_tank(self, tank_id: str) -> Optional[FakeTankManager]:
         return self.managers.get(tank_id)
 
-    def remove_tank(self, tank_id: str) -> bool:
+    def remove_tank(self, tank_id: str, delete_persistent_data: bool = False) -> bool:
         if tank_id in self.managers:
             del self.managers[tank_id]
             if tank_id == self._default_tank_id:
