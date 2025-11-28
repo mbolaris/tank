@@ -75,6 +75,7 @@ class AutoEvaluatePokerGame:
         max_hands: int = 2000,
         small_blind: float = 5.0,
         big_blind: float = 10.0,
+        rng_seed: int = None,
     ):
         """Initialize a new auto-evaluation poker game.
 
@@ -88,12 +89,14 @@ class AutoEvaluatePokerGame:
             max_hands: Maximum number of hands to play (default 2000)
             small_blind: Small blind amount
             big_blind: Big blind amount
+            rng_seed: Optional RNG seed for deterministic card dealing
         """
         self.game_id = game_id
         self.small_blind = small_blind
         self.big_blind = big_blind
         self.max_hands = max_hands
         self.hands_played = 0
+        self.rng_seed = rng_seed
 
         # Create players list
         self.players: List[EvalPlayerState] = []
@@ -132,7 +135,7 @@ class AutoEvaluatePokerGame:
         )
 
         # Game state
-        self.deck = Deck()
+        self.deck = Deck(seed=rng_seed)
         self.community_cards: List[Card] = []
         self.pot = 0.0
         self.current_round = BettingRound.PRE_FLOP
@@ -567,3 +570,68 @@ class AutoEvaluatePokerGame:
             ),
             performance_history=self.performance_history,
         )
+
+    @staticmethod
+    def run_heads_up(
+        candidate_algo: PokerStrategyAlgorithm,
+        benchmark_algo: PokerStrategyAlgorithm,
+        candidate_seat: int,
+        num_hands: int = 200,
+        small_blind: float = 50.0,
+        big_blind: float = 100.0,
+        starting_stack: float = 10_000.0,
+        rng_seed: int = None,
+    ) -> "AutoEvaluateStats":
+        """Run a heads-up match between two algorithms.
+
+        Args:
+            candidate_algo: The algorithm being evaluated
+            benchmark_algo: The benchmark opponent
+            candidate_seat: Which seat (0 or 1) the candidate is in
+            num_hands: Number of hands to play
+            small_blind: Small blind amount
+            big_blind: Big blind amount
+            starting_stack: Starting chip stack for each player
+            rng_seed: Optional RNG seed for deterministic dealing
+
+        Returns:
+            AutoEvaluateStats with net_bb_for_candidate field added
+        """
+        # Build player pool
+        if candidate_seat == 0:
+            player_pool = [
+                {"name": "Candidate", "poker_strategy": candidate_algo},
+                {"name": "Benchmark", "poker_strategy": benchmark_algo},
+            ]
+        else:
+            player_pool = [
+                {"name": "Benchmark", "poker_strategy": benchmark_algo},
+                {"name": "Candidate", "poker_strategy": candidate_algo},
+            ]
+
+        game = AutoEvaluatePokerGame(
+            game_id=f"hu_eval_{rng_seed}_{candidate_seat}",
+            player_pool=player_pool,
+            standard_energy=starting_stack,
+            max_hands=num_hands,
+            small_blind=small_blind,
+            big_blind=big_blind,
+            rng_seed=rng_seed,
+        )
+
+        stats = game.run_evaluation()
+
+        # Find candidate's net bb
+        candidate_player_stats = None
+        for player_stats in stats.players:
+            if player_stats["name"] == "Candidate":
+                candidate_player_stats = player_stats
+                break
+
+        net_bb = candidate_player_stats["net_energy"] / big_blind if candidate_player_stats else 0.0
+
+        # Add custom field for easy access
+        stats.net_bb_for_candidate = net_bb
+        stats.hands_played = num_hands
+
+        return stats

@@ -84,16 +84,27 @@ class Deck:
     # Pre-create all 52 cards once at module load to avoid repeated Enum construction
     _TEMPLATE_DECK: List[Card] = list(_CARD_CACHE.values())
 
-    def __init__(self):
-        """Initialize and shuffle a standard 52-card deck."""
+    def __init__(self, seed: int = None):
+        """Initialize and shuffle a standard 52-card deck.
+
+        Args:
+            seed: Optional RNG seed for deterministic shuffling
+        """
         self.cards: List[Card] = []
+        self.rng = random.Random(seed)
         self.reset()
 
-    def reset(self):
-        """Reset and shuffle the deck."""
+    def reset(self, seed: int = None):
+        """Reset and shuffle the deck.
+
+        Args:
+            seed: Optional RNG seed for deterministic shuffling
+        """
+        if seed is not None:
+            self.rng = random.Random(seed)
         # Copy from pre-created template instead of constructing new Cards
         self.cards = self._TEMPLATE_DECK.copy()
-        random.shuffle(self.cards)
+        self.rng.shuffle(self.cards)
 
     def deal(self, count: int = 1) -> List[Card]:
         """Deal cards from the deck."""
