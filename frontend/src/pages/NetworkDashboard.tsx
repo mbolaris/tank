@@ -59,8 +59,8 @@ export function NetworkDashboard() {
 
     useEffect(() => {
         fetchServers();
-        // Refresh every 1 second
-        const interval = setInterval(fetchServers, 1000);
+        // Refresh every 5 seconds to avoid overwhelming the browser
+        const interval = setInterval(fetchServers, 5000);
         return () => clearInterval(interval);
     }, [fetchServers]);
 
@@ -700,7 +700,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
         };
 
         fetchFullState();
-        const interval = setInterval(fetchFullState, 1000); // Refresh every second
+        const interval = setInterval(fetchFullState, 3000); // Refresh every 3 seconds to avoid browser resource exhaustion
 
         return () => {
             mounted = false;

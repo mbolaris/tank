@@ -106,6 +106,13 @@ class SimulationRunner:
         self.tank_registry = None  # Set after initialization
         self.migration_lock = threading.Lock()
 
+        # Stable ID generation for entities without internal IDs (Food, PlantNectar, etc.)
+        # Maps Python id() -> stable_id to avoid ID reuse when memory is recycled
+        self._entity_stable_ids: Dict[int, int] = {}
+        self._next_food_id: int = 0
+        self._next_nectar_id: int = 0
+        self._next_other_id: int = 0
+
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
 
@@ -574,10 +581,19 @@ class SimulationRunner:
 
     def _collect_entities(self) -> List[EntitySnapshot]:
         entities_data: List[EntitySnapshot] = []
+        current_entity_ids = set()
+        
         for entity in self.world.entities_list:
+            current_entity_ids.add(id(entity))
             entity_data = self._entity_to_data(entity)
             if entity_data:
                 entities_data.append(entity_data)
+
+        # Prune stale entries from stable ID tracking
+        # Only keep entries for entities that still exist
+        stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
+        for stale_id in stale_ids:
+            del self._entity_stable_ids[stale_id]
 
         z_order = {
             "castle": 0,
@@ -718,13 +734,42 @@ class SimulationRunner:
         """Convert an entity to a lightweight snapshot for serialization."""
         try:
             # Import ID offsets
-            from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
+            from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET, FOOD_ID_OFFSET, NECTAR_ID_OFFSET
 
             # Compute stable ID based on entity type
-            stable_id = id(entity)  # Fallback for unknown types
+            # Fish and FractalPlant have internal stable IDs
+            # Other entities use a tracking dictionary to maintain stable IDs
+            stable_id: int
+            python_id = id(entity)
+            
             if isinstance(entity, entities.Fish) and hasattr(entity, 'fish_id'):
                 stable_id = entity.fish_id + FISH_ID_OFFSET
             elif isinstance(entity, entities.FractalPlant) and hasattr(entity, 'plant_id'):
+                stable_id = entity.plant_id + PLANT_ID_OFFSET
+            elif isinstance(entity, entities.PlantNectar):
+                # Check if we already have a stable ID for this entity
+                if python_id in self._entity_stable_ids:
+                    stable_id = self._entity_stable_ids[python_id]
+                else:
+                    stable_id = self._next_nectar_id + NECTAR_ID_OFFSET
+                    self._entity_stable_ids[python_id] = stable_id
+                    self._next_nectar_id += 1
+            elif isinstance(entity, entities.Food):
+                # Check if we already have a stable ID for this entity
+                if python_id in self._entity_stable_ids:
+                    stable_id = self._entity_stable_ids[python_id]
+                else:
+                    stable_id = self._next_food_id + FOOD_ID_OFFSET
+                    self._entity_stable_ids[python_id] = stable_id
+                    self._next_food_id += 1
+            else:
+                # Other entities (Crab, Castle, Plant) - use tracking
+                if python_id in self._entity_stable_ids:
+                    stable_id = self._entity_stable_ids[python_id]
+                else:
+                    stable_id = self._next_other_id + 5_000_000  # Use 5M offset for other entities
+                    self._entity_stable_ids[python_id] = stable_id
+                    self._next_other_id += 1
                 stable_id = entity.plant_id + PLANT_ID_OFFSET
 
             base_data = {

@@ -245,7 +245,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
 
     useEffect(() => {
         pollTransfers();
-        const interval = setInterval(pollTransfers, 1000);
+        const interval = setInterval(pollTransfers, 3000); // Poll every 3 seconds to avoid browser resource exhaustion
         return () => clearInterval(interval);
     }, [pollTransfers]);
 

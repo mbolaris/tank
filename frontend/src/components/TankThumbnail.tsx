@@ -58,8 +58,8 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
         // Fetch immediately
         fetchSnapshot();
 
-        // Then fetch every 200ms for frequent updates
-        const interval = setInterval(fetchSnapshot, 200);
+        // Then fetch every 2 seconds to avoid overwhelming the browser
+        const interval = setInterval(fetchSnapshot, 2000);
 
         return () => {
             mounted = false;
