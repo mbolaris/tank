@@ -2,11 +2,16 @@
 
 This module provides a genetic system for evolving fractal plants with
 heritable L-system parameters, poker skills, and energy traits.
+
+Uses core.evolution module for mutation operations to maintain consistency
+across the codebase and respect ALife principles (no explicit fitness functions).
 """
 
 import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
+
+from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
 
 
 @dataclass
@@ -428,15 +433,23 @@ class PlantGenome:
         mutation_strength: float = 0.15,
         rng: Optional[random.Random] = None,
     ) -> "PlantGenome":
-        """Create offspring genome with mutations while preserving variant identity."""
+        """Create offspring genome with mutations while preserving variant identity.
+        
+        Uses core.evolution module for mutation operations.
+        """
         rng = rng or random
 
         def mutate_float(val: float, min_val: float, max_val: float) -> float:
-            if rng.random() < mutation_rate:
-                val += rng.gauss(0, mutation_strength * (max_val - min_val))
-            return max(min_val, min(max_val, val))
+            """Mutate a continuous trait using evolution module."""
+            return mutate_continuous_trait(
+                val, min_val, max_val,
+                mutation_rate=mutation_rate,
+                mutation_strength=mutation_strength,
+                rng=rng,
+            )
 
         def mutate_color(val: float, min_val: float, max_val: float) -> float:
+            """Mutate color with occasional full-spectrum exploration."""
             # Default drift within the variant's palette
             val = mutate_float(val, min_val, max_val)
 
@@ -445,6 +458,14 @@ class PlantGenome:
                 val = rng.uniform(0.0, 1.0)
 
             return max(0.0, min(1.0, val))
+
+        def mutate_int(val: int, min_val: int, max_val: int) -> int:
+            """Mutate a discrete trait using evolution module."""
+            return mutate_discrete_trait(
+                val, min_val, max_val,
+                mutation_rate=mutation_rate,
+                rng=rng,
+            )
 
         # Determine color mutation range based on variant to preserve identity
         if parent.fractal_type == "claude":
@@ -474,11 +495,6 @@ class PlantGenome:
                 # Fractal (mandelbrot only)
                 "mandelbrot", "mandelbrot", "sunflower",
             ])
-
-        def mutate_int(val: int, min_val: int, max_val: int) -> int:
-            if rng.random() < mutation_rate:
-                val += rng.choice([-1, 1])
-            return max(min_val, min(max_val, val))
 
         offspring = cls(
             axiom=parent.axiom,

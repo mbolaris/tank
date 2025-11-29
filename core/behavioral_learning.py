@@ -61,8 +61,7 @@ class BehavioralLearningSystem:
     DEFAULT_DECAY_RATE = 0.001  # 0.1% decay per frame
     MAX_LEARNED_ADJUSTMENT = 0.3  # Max 30% parameter adjustment from learning
 
-    # Inheritance rates (how much learned behavior passes to offspring)
-    CULTURAL_INHERITANCE_RATE = 0.25  # 25% of learned behaviors inherited
+    # NOTE: Cultural inheritance is now handled in core.evolution.inheritance
 
     def __init__(
         self,
@@ -328,39 +327,8 @@ class BehavioralLearningSystem:
             "games_lost": self.genome.learned_behaviors.get("poker_games_lost", 0.0),
         }
 
-    @staticmethod
-    def inherit_learned_behaviors(
-        parent1: "Genome", parent2: "Genome", offspring: "Genome"
-    ) -> None:
-        """Transfer some learned behaviors to offspring (cultural evolution).
-
-        This represents cultural transmission of learned strategies,
-        where offspring benefit from parents' experience.
-
-        Args:
-            parent1: First parent's genome
-            parent2: Second parent's genome
-            offspring: Offspring's genome to modify
-        """
-        # Average parents' learned behaviors
-        for key in parent1.learned_behaviors:
-            if key in parent2.learned_behaviors:
-                # Don't inherit counters
-                if (
-                    key.endswith("_finds")
-                    or key.endswith("_escapes")
-                    or key.endswith("_won")
-                    or key.endswith("_lost")
-                ):
-                    continue
-
-                parent1_val = parent1.learned_behaviors[key]
-                parent2_val = parent2.learned_behaviors[key]
-                avg_val = (parent1_val + parent2_val) / 2.0
-
-                # Offspring inherits a fraction of parents' learning
-                inherited_val = avg_val * BehavioralLearningSystem.CULTURAL_INHERITANCE_RATE
-                offspring.learned_behaviors[key] = inherited_val
+    # NOTE: inherit_learned_behaviors has been moved to core.evolution.inheritance
+    # and is called from Genome.from_parents() and from_parents_weighted()
 
     def get_learning_summary(self) -> Dict[str, Any]:
         """Get a summary of learned behaviors for debugging/display.
