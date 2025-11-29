@@ -186,6 +186,18 @@ def setup_router(
             dest_manager.world.engine.add_entity(new_entity)
             logger.info(f"Added entity {new_entity.id} to tank {destination_tank_id[:8]} (was {entity_id})")
 
+            # Invalidate cached state so websocket clients see updated stats immediately
+            try:
+                dest_runner = getattr(dest_manager, "_runner", None)
+                if dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                    dest_runner._invalidate_state_cache()
+
+                src_runner = getattr(source_manager, "_runner", None)
+                if src_runner and hasattr(src_runner, "_invalidate_state_cache"):
+                    src_runner._invalidate_state_cache()
+            except Exception:
+                logger.debug("Failed to invalidate runner caches after transfer", exc_info=True)
+
             # Log successful transfer
             log_transfer_success(
                 entity_data=entity_data,
@@ -286,6 +298,14 @@ def setup_router(
                 )
 
             dest_manager.world.engine.add_entity(new_entity)
+
+            # Invalidate cached state so websocket clients see updated stats immediately
+            try:
+                dest_runner = getattr(dest_manager, "_runner", None)
+                if dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                    dest_runner._invalidate_state_cache()
+            except Exception:
+                logger.debug("Failed to invalidate runner cache after remote transfer", exc_info=True)
 
             # Get entity ID based on type
             entity_id = getattr(new_entity, 'fish_id', None) or getattr(new_entity, 'plant_id', None) or getattr(new_entity, 'id', None)

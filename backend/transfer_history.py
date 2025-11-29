@@ -35,6 +35,7 @@ class TransferRecord:
     destination_tank_name: str
     success: bool
     error: Optional[str] = None
+    generation: Optional[int] = None  # Fish generation (for tracking migration stats)
 
 
 def log_transfer(
@@ -47,6 +48,7 @@ def log_transfer(
     destination_tank_name: str,
     success: bool,
     error: Optional[str] = None,
+    generation: Optional[int] = None,
 ) -> TransferRecord:
     """Log a transfer event.
 
@@ -76,6 +78,7 @@ def log_transfer(
         destination_tank_name=destination_tank_name,
         success=success,
         error=error,
+        generation=generation,
     )
 
     # Add to in-memory history

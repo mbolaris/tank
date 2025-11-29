@@ -98,6 +98,7 @@ class BackendMigrationHandler:
                     destination_tank_name=dest_manager.tank_info.name,
                     success=False,
                     error="Failed to deserialize in destination",
+                    generation=getattr(entity, "generation", None),
                 )
                 return False
 
@@ -111,7 +112,22 @@ class BackendMigrationHandler:
 
             dest_manager.world.engine.add_entity(new_entity)
 
+            # Invalidate cached state on destination and source runners so
+            # websocket clients immediately see updated stats (e.g., max generation).
+            try:
+                dest_runner = getattr(dest_manager, "_runner", None)
+                if dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                    dest_runner._invalidate_state_cache()
+
+                source_runner = getattr(source_manager, "_runner", None)
+                if source_runner and hasattr(source_runner, "_invalidate_state_cache"):
+                    source_runner._invalidate_state_cache()
+            except Exception:
+                # Non-fatal: cache invalidation is best-effort
+                logger.debug("Failed to invalidate runner cache after migration", exc_info=True)
+
             # Log successful migration
+            generation = getattr(entity, "generation", None)
             log_transfer(
                 entity_type=type(entity).__name__.lower(),
                 entity_old_id=old_id,
@@ -121,10 +137,11 @@ class BackendMigrationHandler:
                 destination_tank_id=connection.destination_tank_id,
                 destination_tank_name=dest_manager.tank_info.name,
                 success=True,
+                generation=generation,
             )
 
             logger.info(
-                f"{type(entity).__name__} migrated {direction} from "
+                f"{type(entity).__name__} (Gen {generation}) migrated {direction} from "
                 f"{source_manager.tank_info.name} to {dest_manager.tank_info.name}"
             )
 
@@ -143,5 +160,6 @@ class BackendMigrationHandler:
                 destination_tank_name=dest_manager.tank_info.name if dest_manager else "unknown",
                 success=False,
                 error=str(e),
+                generation=getattr(entity, "generation", None),
             )
             return False

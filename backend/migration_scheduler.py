@@ -208,6 +208,18 @@ class MigrationScheduler:
 
             dest_manager.world.engine.add_entity(new_entity)
 
+            # Try to invalidate cached SimulationRunner state so frontends update
+            try:
+                dest_runner = getattr(dest_manager, "_runner", None)
+                if dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                    dest_runner._invalidate_state_cache()
+
+                src_runner = getattr(source_manager, "_runner", None)
+                if src_runner and hasattr(src_runner, "_invalidate_state_cache"):
+                    src_runner._invalidate_state_cache()
+            except Exception:
+                logger.debug("Failed to invalidate runner caches after migration", exc_info=True)
+
             # Log successful migration
             log_transfer(
                 entity_type=entity_type,
