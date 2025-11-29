@@ -226,6 +226,28 @@ button:disabled {
     }
 }
 
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.9);
+    }
+}
+
+/* View toggle styles */
+.view-toggle-btn:hover:not(.active) {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    color: #e2e8f0 !important;
+}
+
+.view-toggle-btn:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
 .tree-overlay {
     position: fixed;
     inset: 0;

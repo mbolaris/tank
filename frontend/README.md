@@ -101,6 +101,13 @@ The dashboard provides:
 - **Delete Tank**: Remove tanks (with confirmation)
 - **View Tank**: Navigate to any tank's live view
 
+### Single Tank / Network View Toggle
+
+- The top navigation includes a prominent view toggle for switching between the Single Tank view and the Network dashboard.
+- When viewing a single tank there's a compact Tank Navigator next to the toggle (left/right arrows) that lets you quickly cycle between available tanks without opening the network dashboard.
+- Keyboard shortcuts: use the left/right arrow keys (`←` / `→`) to switch tanks when viewing a single tank. A keyboard hint is shown in the navbar.
+- The previous "View all tanks →" button has been removed — use the Network toggle to open the dashboard.
+
 ### Multi-Tank Support
 
 - Each tank runs independently with its own simulation

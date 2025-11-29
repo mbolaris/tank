@@ -90,6 +90,8 @@ Built with **React + FastAPI + WebSocket**:
 - **Poker Events**: See live poker games and results
 - **Control Panel**: Pause/resume, add food, reset simulation
 - **Responsive Design**: Works on desktop and mobile
+- **View Toggle**: Switch between Single Tank and Network views via a central pill-style toggle
+- **Tank Navigator**: Cycle through tanks with ← → arrow buttons or keyboard shortcuts
 
 ## 🚀 Running the Simulation
 
