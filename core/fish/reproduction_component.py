@@ -9,7 +9,7 @@ import random
 from typing import TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
-    from core.entities import LifeStage
+    from core.entities.base import LifeStage
     from core.genetics import Genome
 
 
@@ -23,10 +23,10 @@ class ReproductionComponent:
     - Offspring generation
 
     Attributes:
-        is_pregnant: Whether the fish is currently pregnant
-        pregnancy_timer: Frames remaining until birth
-        reproduction_cooldown: Frames until can reproduce again
-        mate_genome: Genome of the mate (stored for offspring generation)
+        is_pregnant: Whether the fish is currently pregnant.
+        pregnancy_timer: Frames remaining until birth.
+        reproduction_cooldown: Frames until can reproduce again.
+        mate_genome: Genome of the mate (stored for offspring generation).
     """
 
     # Reproduction constants
@@ -38,7 +38,9 @@ class ReproductionComponent:
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby
     MIN_ACCEPTANCE_THRESHOLD = 0.3  # Minimum chance to accept mate (30%)
 
-    def __init__(self):
+    __slots__ = ("is_pregnant", "pregnancy_timer", "reproduction_cooldown", "mate_genome")
+
+    def __init__(self) -> None:
         """Initialize the reproduction component."""
         self.is_pregnant: bool = False
         self.pregnancy_timer: int = 0
@@ -52,14 +54,14 @@ class ReproductionComponent:
         at resource acquisition.
 
         Args:
-            life_stage: Current life stage of the fish
-            energy: Current energy level
-            max_energy: Maximum energy capacity
+            life_stage: Current life stage of the fish.
+            energy: Current energy level.
+            max_energy: Maximum energy capacity.
 
         Returns:
-            bool: True if fish can reproduce
+            True if fish can reproduce.
         """
-        from core.entities import LifeStage
+        from core.entities.base import LifeStage
 
         min_energy_for_reproduction = max_energy * self.REPRODUCTION_ENERGY_PERCENTAGE
         return (

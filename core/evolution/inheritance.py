@@ -36,9 +36,9 @@ def inherit_trait(
     rng: Optional[random.Random] = None,
 ) -> float:
     """Inherit a continuous trait from two parents.
-    
+
     Combines weighted blending with mutation.
-    
+
     Args:
         val1: First parent's value
         val2: Second parent's value
@@ -48,22 +48,22 @@ def inherit_trait(
         mutation_rate: Probability of mutation
         mutation_strength: Magnitude of mutation
         rng: Random number generator
-    
+
     Returns:
         Inherited value with possible mutation
     """
     rng = rng or random
     weight2 = 1.0 - weight1
-    
+
     # Weighted blend
     inherited = val1 * weight1 + val2 * weight2
-    
+
     # Apply mutation
     inherited = mutate_continuous_trait(
         inherited, min_val, max_val,
         mutation_rate, mutation_strength, rng
     )
-    
+
     return inherited
 
 
@@ -77,9 +77,9 @@ def inherit_discrete_trait(
     rng: Optional[random.Random] = None,
 ) -> int:
     """Inherit a discrete trait from two parents.
-    
+
     Selects one parent's value probabilistically, then may mutate.
-    
+
     Args:
         val1: First parent's value
         val2: Second parent's value
@@ -88,21 +88,21 @@ def inherit_discrete_trait(
         weight1: Probability of selecting first parent's value
         mutation_rate: Probability of mutation
         rng: Random number generator
-    
+
     Returns:
         Inherited value with possible mutation
     """
     rng = rng or random
-    
+
     # Probabilistic selection
     inherited = val1 if rng.random() < weight1 else val2
-    
+
     # Apply mutation
     inherited = mutate_discrete_trait(
         inherited, min_val, max_val,
         mutation_rate, rng
     )
-    
+
     return inherited
 
 
@@ -116,12 +116,12 @@ def inherit_algorithm(
     rng: Optional[random.Random] = None,
 ) -> Optional["BehaviorAlgorithm"]:
     """Inherit a behavior algorithm from two parents.
-    
+
     Algorithm inheritance is more complex than simple traits:
     1. If parents have same algorithm type: blend parameters
     2. If parents have different types: select one probabilistically
     3. Small chance of completely random new algorithm (novelty)
-    
+
     Args:
         alg1: First parent's algorithm (can be None)
         alg2: Second parent's algorithm (can be None)
@@ -130,26 +130,26 @@ def inherit_algorithm(
         mutation_strength: Parameter mutation strength
         algorithm_switch_rate: Chance of random new algorithm
         rng: Random number generator
-    
+
     Returns:
         Inherited algorithm with mutated parameters
     """
     rng = rng or random
-    
+
     # Import here to avoid circular dependency
     from core.algorithms import (
         crossover_algorithms_weighted,
         get_random_algorithm,
     )
-    
+
     # Handle None cases
     if alg1 is None and alg2 is None:
         return get_random_algorithm(rng)
-    
+
     # Check for random algorithm switch (novelty injection)
     if rng.random() < algorithm_switch_rate:
         return get_random_algorithm(rng)
-    
+
     # Use the algorithms module's crossover
     return crossover_algorithms_weighted(
         alg1, alg2,
@@ -167,32 +167,32 @@ def inherit_learned_behaviors(
     inheritance_rate: float = 0.25,
 ) -> None:
     """Transfer learned behaviors to offspring (cultural evolution).
-    
+
     This represents non-genetic inheritance - offspring benefit from
     their parents' experience. Learned behaviors (like poker skill
     adjustments) are partially passed down.
-    
+
     This is NOT Lamarckian inheritance of acquired traits into genes.
     Learned behaviors are stored separately and decay over time.
-    
+
     Args:
         parent1: First parent's genome
-        parent2: Second parent's genome  
+        parent2: Second parent's genome
         offspring: Offspring genome to modify (in-place)
         inheritance_rate: Fraction of learning that passes to offspring
     """
     # Skip counters (games played, etc.) - only inherit adjustments
     skip_suffixes = ("_finds", "_escapes", "_won", "_lost")
-    
+
     for key in parent1.learned_behaviors:
         if any(key.endswith(suffix) for suffix in skip_suffixes):
             continue
-            
+
         if key in parent2.learned_behaviors:
             # Average parents' learned values
             p1_val = parent1.learned_behaviors[key]
             p2_val = parent2.learned_behaviors[key]
             avg_val = (p1_val + p2_val) / 2.0
-            
+
             # Offspring inherits a fraction
             offspring.learned_behaviors[key] = avg_val * inheritance_rate

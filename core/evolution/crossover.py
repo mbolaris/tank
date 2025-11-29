@@ -21,13 +21,13 @@ from typing import Optional
 
 class CrossoverMode(Enum):
     """Methods for combining parent genetic values."""
-    
+
     AVERAGING = "averaging"
     """Simple average of parent values. Most conservative."""
-    
+
     RECOMBINATION = "recombination"
     """Randomly select from each parent with some blending."""
-    
+
     WEIGHTED = "weighted"
     """Weighted combination based on parent contributions."""
 
@@ -40,24 +40,24 @@ def blend_values(
     rng: Optional[random.Random] = None,
 ) -> float:
     """Blend two parent values using the specified crossover mode.
-    
+
     Args:
         val1: First parent's value
         val2: Second parent's value
         weight1: Weight for first parent (0.0-1.0), second gets (1-weight1)
         mode: Crossover mode to use
         rng: Random number generator
-    
+
     Returns:
         Blended value
     """
     rng = rng or random
     weight2 = 1.0 - weight1
-    
+
     if mode == CrossoverMode.AVERAGING:
         # Simple average (ignores weights)
         return (val1 + val2) * 0.5
-    
+
     elif mode == CrossoverMode.RECOMBINATION:
         # Random selection with some blending
         if rng.random() < 0.5:
@@ -66,11 +66,11 @@ def blend_values(
         else:
             # Blend with some randomness
             return val1 * 0.7 + val2 * 0.15 + (val1 + val2) * 0.075
-    
+
     elif mode == CrossoverMode.WEIGHTED:
         # Weighted average based on parent contribution
         return val1 * weight1 + val2 * weight2
-    
+
     # Default to averaging
     return (val1 + val2) * 0.5
 
@@ -82,17 +82,17 @@ def blend_discrete(
     rng: Optional[random.Random] = None,
 ) -> int:
     """Blend two discrete parent values (probabilistic selection).
-    
+
     For discrete traits like template_id, we can't average.
     Instead, we select one parent's value with probability
     proportional to their weight.
-    
+
     Args:
         val1: First parent's value
         val2: Second parent's value
         weight1: Probability of selecting first parent's value
         rng: Random number generator
-    
+
     Returns:
         Selected value (either val1 or val2)
     """
@@ -108,25 +108,25 @@ def crossover_dict_values(
     rng: Optional[random.Random] = None,
 ) -> dict[str, float]:
     """Crossover two dictionaries of float values (e.g., algorithm parameters).
-    
+
     Handles keys that exist in one parent but not the other.
-    
+
     Args:
         dict1: First parent's dictionary
         dict2: Second parent's dictionary
         weight1: Weight for first parent
         mode: Crossover mode
         rng: Random number generator
-    
+
     Returns:
         Blended dictionary
     """
     rng = rng or random
     result = {}
-    
+
     # Get all keys from both parents
     all_keys = set(dict1.keys()) | set(dict2.keys())
-    
+
     for key in all_keys:
         if key in dict1 and key in dict2:
             # Both parents have this key - blend
@@ -137,7 +137,7 @@ def crossover_dict_values(
         else:
             # Only second parent has this key
             result[key] = dict2[key]
-    
+
     return result
 
 
@@ -150,9 +150,9 @@ def crossover_genomes(
     mode: CrossoverMode = CrossoverMode.RECOMBINATION,
 ) -> "Genome":
     """Create offspring genome by crossing two parent genomes.
-    
+
     This is a convenience wrapper that delegates to Genome.from_parents().
-    
+
     Args:
         parent1_genome: First parent's genome
         parent2_genome: Second parent's genome
@@ -160,20 +160,20 @@ def crossover_genomes(
         mutation_strength: Base mutation strength
         population_stress: Environmental stress (0.0-1.0)
         mode: Crossover mode
-    
+
     Returns:
         New offspring genome
     """
     # Import here to avoid circular dependency
-    from core.genetics import Genome, GeneticCrossoverMode
-    
+    from core.genetics import GeneticCrossoverMode, Genome
+
     # Map our mode to genetics module mode
     genetics_mode = {
         CrossoverMode.AVERAGING: GeneticCrossoverMode.AVERAGING,
         CrossoverMode.RECOMBINATION: GeneticCrossoverMode.RECOMBINATION,
         CrossoverMode.WEIGHTED: GeneticCrossoverMode.AVERAGING,  # Weighted uses from_parents_weighted
     }.get(mode, GeneticCrossoverMode.RECOMBINATION)
-    
+
     return Genome.from_parents(
         parent1_genome,
         parent2_genome,
@@ -193,10 +193,10 @@ def crossover_genomes_weighted(
     population_stress: float = 0.0,
 ) -> "Genome":
     """Create offspring genome with weighted parent contributions.
-    
+
     Used for post-poker reproduction where the winner contributes
     more genetic material.
-    
+
     Args:
         parent1_genome: First parent's genome (e.g., poker winner)
         parent2_genome: Second parent's genome (e.g., poker loser)
@@ -204,13 +204,13 @@ def crossover_genomes_weighted(
         mutation_rate: Base mutation rate
         mutation_strength: Base mutation strength
         population_stress: Environmental stress (0.0-1.0)
-    
+
     Returns:
         New offspring genome with weighted inheritance
     """
     # Import here to avoid circular dependency
     from core.genetics import Genome
-    
+
     return Genome.from_parents_weighted(
         parent1_genome,
         parent2_genome,

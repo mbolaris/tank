@@ -22,22 +22,22 @@ Design Philosophy (ALife vs GA):
 """
 
 from core.evolution.crossover import (
+    CrossoverMode,
     crossover_genomes,
     crossover_genomes_weighted,
-    CrossoverMode,
-)
-from core.evolution.mutation import (
-    mutate_continuous_trait,
-    mutate_discrete_trait,
-    calculate_adaptive_mutation_rate,
-    MutationConfig,
-    DEFAULT_MUTATION_CONFIG,
 )
 from core.evolution.inheritance import (
-    inherit_trait,
-    inherit_discrete_trait,
     inherit_algorithm,
+    inherit_discrete_trait,
     inherit_learned_behaviors,
+    inherit_trait,
+)
+from core.evolution.mutation import (
+    DEFAULT_MUTATION_CONFIG,
+    MutationConfig,
+    calculate_adaptive_mutation_rate,
+    mutate_continuous_trait,
+    mutate_discrete_trait,
 )
 
 __all__ = [

@@ -12,13 +12,17 @@ from enum import Enum
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
-from core.evolution.mutation import calculate_adaptive_mutation_rate
 from core.evolution.inheritance import (
-    inherit_trait as _inherit_trait,
-    inherit_discrete_trait as _inherit_discrete_trait,
     inherit_algorithm,
     inherit_learned_behaviors,
 )
+from core.evolution.inheritance import (
+    inherit_discrete_trait as _inherit_discrete_trait,
+)
+from core.evolution.inheritance import (
+    inherit_trait as _inherit_trait,
+)
+from core.evolution.mutation import calculate_adaptive_mutation_rate
 
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm
@@ -444,7 +448,7 @@ class Genome:
             else:
                 # Recombination: random selection with blending handled by inherit_trait
                 weight1 = 0.5
-            
+
             return _inherit_trait(
                 val1, val2, min_val, max_val,
                 weight1=weight1,

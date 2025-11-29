@@ -17,13 +17,14 @@ from core.constants import (
     INITIAL_ENERGY_RATIO,
     LOW_ENERGY_THRESHOLD,
     MOVEMENT_ENERGY_COST,
+    MOVEMENT_SIZE_MULTIPLIER,
     SAFE_ENERGY_THRESHOLD,
     STARVATION_THRESHOLD,
 )
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
-    from core.entities import LifeStage
+    from core.entities.base import LifeStage
 
 
 class EnergyComponent:
@@ -36,20 +37,19 @@ class EnergyComponent:
     - Energy ratio calculations for decision-making
 
     Attributes:
-        energy: Current energy level
-        max_energy: Maximum energy capacity
-        base_metabolism: Base metabolic rate
-        existence_cost: Energy cost for just being alive per frame
-        movement_cost_multiplier: Multiplier for movement-based energy consumption
-        sharp_turn_cost: Additional energy cost for sharp turns
+        energy: Current energy level.
+        max_energy: Maximum energy capacity.
+        base_metabolism: Base metabolic rate (energy consumption per frame).
     """
+
+    __slots__ = ("energy", "max_energy", "base_metabolism")
 
     def __init__(
         self,
         max_energy: float,
         base_metabolism: float,
         initial_energy_ratio: float = INITIAL_ENERGY_RATIO,
-    ):
+    ) -> None:
         """Initialize the energy component.
 
         Args:
@@ -78,13 +78,14 @@ class EnergyComponent:
         - Size scaling: Larger fish consume more energy
 
         Args:
-            velocity: Current velocity vector of the fish
-            speed: Maximum speed of the fish
-            life_stage: Current life stage (affects metabolism)
-            time_modifier: Time-based modifier (e.g., for day/night cycles)
-            size: Body size multiplier (0.5 for baby, 1.0 for adult)
+            velocity: Current velocity vector of the fish.
+            speed: Maximum speed of the fish.
+            life_stage: Current life stage (affects metabolism).
+            time_modifier: Time-based modifier (e.g., for day/night cycles).
+            size: Body size multiplier (0.5 for baby, 1.0 for adult).
         """
-        from core.entities import LifeStage
+        # Import LifeStage at runtime to avoid circular dependency
+        from core.entities.base import LifeStage
 
         # Existence cost - scales with body size (larger fish need more energy to exist)
         total_cost = EXISTENCE_ENERGY_COST * time_modifier * size
@@ -92,18 +93,16 @@ class EnergyComponent:
         # Base metabolism (affected by genes and life stage)
         metabolism = self.base_metabolism * time_modifier
 
-        # Additional cost for movement - scales with body size (larger fish use more energy to move)
+        # Additional cost for movement - scales with body size
         # Size scaling is non-linear: larger fish use disproportionately more energy
         vel_length = velocity.length()
         if vel_length > 0:
-            from core.constants import MOVEMENT_SIZE_MULTIPLIER
-
-            size_factor = size**MOVEMENT_SIZE_MULTIPLIER
+            size_factor = size ** MOVEMENT_SIZE_MULTIPLIER
             speed_ratio = vel_length / speed if speed > 0 else 0
-            
+
             # Base movement cost (linear with speed)
             movement_cost = MOVEMENT_ENERGY_COST * speed_ratio * size_factor
-            
+
             # Additional quadratic cost for high-speed movement
             # Fish moving faster than 70% of max speed pay extra
             if speed_ratio > HIGH_SPEED_THRESHOLD:
@@ -111,7 +110,7 @@ class EnergyComponent:
                 # Quadratic scaling: small excess = small cost, large excess = large cost
                 high_speed_cost = HIGH_SPEED_ENERGY_COST * (excess_speed ** 2) * size_factor
                 movement_cost += high_speed_cost
-            
+
             metabolism += movement_cost
 
         # Apply life stage modifiers to metabolism (not existence cost)
@@ -122,13 +121,13 @@ class EnergyComponent:
 
         # Total energy consumption
         total_cost += metabolism
-        self.energy = max(0, self.energy - total_cost)
+        self.energy = max(0.0, self.energy - total_cost)
 
     def gain_energy(self, amount: float) -> None:
         """Gain energy from consuming food.
 
         Args:
-            amount: Amount of energy to gain (will not exceed max_energy)
+            amount: Amount of energy to gain (will not exceed max_energy).
         """
         self.energy = min(self.max_energy, self.energy + amount)
 
@@ -136,7 +135,7 @@ class EnergyComponent:
         """Check if fish is starving (will die soon).
 
         Returns:
-            bool: True if energy is below starvation threshold
+            True if energy is below starvation threshold.
         """
         return self.energy < STARVATION_THRESHOLD
 
@@ -144,7 +143,7 @@ class EnergyComponent:
         """Check if fish is in critical energy state (emergency survival mode).
 
         Returns:
-            bool: True if energy is critically low
+            True if energy is critically low.
         """
         return self.energy < CRITICAL_ENERGY_THRESHOLD
 
@@ -152,7 +151,7 @@ class EnergyComponent:
         """Check if fish has low energy (should prioritize finding food).
 
         Returns:
-            bool: True if energy is low
+            True if energy is low.
         """
         return self.energy < LOW_ENERGY_THRESHOLD
 
@@ -160,7 +159,7 @@ class EnergyComponent:
         """Check if fish has safe energy level (can explore/breed).
 
         Returns:
-            bool: True if energy is at a safe level
+            True if energy is at a safe level.
         """
         return self.energy >= SAFE_ENERGY_THRESHOLD
 
@@ -171,18 +170,29 @@ class EnergyComponent:
         a normalized value regardless of the fish's maximum energy capacity.
 
         Returns:
-            float: Energy ratio between 0.0 (empty) and 1.0 (full)
+            Energy ratio between 0.0 (empty) and 1.0 (full).
         """
         return self.energy / self.max_energy if self.max_energy > 0 else 0.0
+
+    @property
+    def energy_percentage(self) -> float:
+        """Get current energy as a percentage (0-100).
+
+        Convenience property for UI display and logging.
+
+        Returns:
+            Energy percentage between 0.0 and 100.0.
+        """
+        return self.get_energy_ratio() * 100.0
 
     def has_enough_energy(self, threshold: float) -> bool:
         """Check if fish has at least the specified energy level.
 
         Args:
-            threshold: Energy threshold to check against
+            threshold: Energy threshold to check against.
 
         Returns:
-            bool: True if current energy >= threshold
+            True if current energy >= threshold.
         """
         return self.energy >= threshold
 
@@ -190,15 +200,14 @@ class EnergyComponent:
         """Get a human-readable description of the current energy state.
 
         Returns:
-            str: Description of energy state (e.g., "Starving", "Low Energy", "Safe")
+            Description of energy state (e.g., "Starving", "Low Energy", "Safe").
         """
         if self.is_starving():
             return "Starving"
-        elif self.is_critical_energy():
+        if self.is_critical_energy():
             return "Critical Energy"
-        elif self.is_low_energy():
+        if self.is_low_energy():
             return "Low Energy"
-        elif self.is_safe_energy():
+        if self.is_safe_energy():
             return "Safe Energy"
-        else:
-            return "Moderate Energy"
+        return "Moderate Energy"

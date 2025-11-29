@@ -434,7 +434,7 @@ class PlantGenome:
         rng: Optional[random.Random] = None,
     ) -> "PlantGenome":
         """Create offspring genome with mutations while preserving variant identity.
-        
+
         Uses core.evolution module for mutation operations.
         """
         rng = rng or random
