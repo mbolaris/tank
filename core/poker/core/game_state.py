@@ -7,9 +7,9 @@ state of a multi-round Texas Hold'em poker game.
 
 from typing import List, Optional, Tuple
 
+from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
 from core.poker.core.hand import PokerHand
-from core.poker.betting.actions import BettingRound
 
 
 class PokerGameState:

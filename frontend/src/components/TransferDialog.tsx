@@ -2,7 +2,7 @@
  * TransferDialog - Modal for transferring entities between tanks
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { config, type TankStatus } from '../config';
 
 interface TransferDialogProps {
@@ -28,11 +28,7 @@ export function TransferDialog({
     const [selectedTankId, setSelectedTankId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchTanks();
-    }, []);
-
-    const fetchTanks = async () => {
+    const fetchTanks = useCallback(async () => {
         setError(null);
         try {
             const response = await fetch(`${config.tanksApiUrl}?include_private=true`);
@@ -52,7 +48,11 @@ export function TransferDialog({
         } finally {
             setLoading(false);
         }
-    };
+    }, [sourceTankId]);
+
+    useEffect(() => {
+        fetchTanks();
+    }, [fetchTanks]);
 
     const handleTransfer = async () => {
         if (!selectedTankId) return;

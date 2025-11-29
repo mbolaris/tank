@@ -1,8 +1,9 @@
 """Run multiple poker simulations and print summary statistics."""
-import sys
 import statistics
+import sys
+
 sys.path.append(r"c:\shared\bolaris\tank")
-from core.poker.core import simulate_game, finalize_pot
+from core.poker.core import finalize_pot, simulate_game
 
 
 def run(n=100):

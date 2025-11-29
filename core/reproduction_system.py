@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from core.constants import MATING_QUERY_RADIUS
 
 if TYPE_CHECKING:
-    from core.entities import Fish
     from core.simulation_engine import SimulationEngine
 
 

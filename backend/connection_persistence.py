@@ -7,7 +7,6 @@ to/from disk, enabling connections to persist across server restarts.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +63,7 @@ def load_connections(connection_manager) -> int:
             return 0
 
         # Load from file
-        with open(CONNECTIONS_FILE, "r") as f:
+        with open(CONNECTIONS_FILE) as f:
             data = json.load(f)
 
         # Validate format

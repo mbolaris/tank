@@ -14,9 +14,16 @@ winner gaining energy from the loser.
 """
 
 # Core poker components
-from core.poker.core import (
+# Betting module
+from core.poker.betting import (
+    AGGRESSION_HIGH,
+    AGGRESSION_LOW,
+    AGGRESSION_MEDIUM,
     BettingAction,
     BettingRound,
+    decide_action,
+)
+from core.poker.core import (
     Card,
     Deck,
     HandRank,
@@ -25,14 +32,6 @@ from core.poker.core import (
     Rank,
     Suit,
     get_card,
-)
-
-# Betting module
-from core.poker.betting import (
-    AGGRESSION_HIGH,
-    AGGRESSION_LOW,
-    AGGRESSION_MEDIUM,
-    decide_action,
 )
 
 # Hand evaluation

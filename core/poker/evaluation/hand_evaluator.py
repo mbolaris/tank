@@ -12,7 +12,6 @@ from typing import List, Tuple
 from core.poker.core.cards import Card, get_card
 from core.poker.core.hand import HandRank, PokerHand
 
-
 # Pre-computed rank names for fast lookup (index 0-14, only 2-14 valid)
 _RANK_NAMES = ("", "", "2", "3", "4", "5", "6", "7", "8", "9", "Ten", "Jack", "Queen", "King", "Ace")
 

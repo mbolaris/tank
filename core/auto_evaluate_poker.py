@@ -82,7 +82,7 @@ class AutoEvaluateStats:
 
 class AutoEvaluatePokerGame:
     """Manages an automated poker evaluation game between multiple fish and standard algorithm.
-    
+
     Supports position-rotated duplicate deals for reduced variance evaluation.
     When position_rotation=True, each dealt hand is replayed N times (N = number of players),
     rotating seat assignments so every player experiences every position with the same cards.
@@ -124,7 +124,7 @@ class AutoEvaluatePokerGame:
         self.hands_played = 0
         self.rng_seed = rng_seed
         self.position_rotation = position_rotation
-        
+
         # Track current deal set for position rotation
         self._current_deal_seed = rng_seed if rng_seed is not None else 0
         self._rotation_index = 0  # Which rotation we're on for current deal
@@ -187,23 +187,23 @@ class AutoEvaluatePokerGame:
 
     def _start_hand(self):
         """Start a new hand: deal cards and post blinds.
-        
+
         With position_rotation enabled, this method implements duplicate deals:
         - First call with a new deal: deals fresh cards, saves them
         - Subsequent calls (rotations): reuses same cards, rotates seat assignments
         """
         num_players = len(self.players)
-        
+
         # Reset player state for new hand
         for player in self.players:
             player.current_bet = 0.0
             player.total_bet = 0.0
             player.folded = False
-        
+
         self.community_cards = []
         self.pot = 0.0
         self.current_round = BettingRound.PRE_FLOP
-        
+
         if self.position_rotation:
             # Position rotation mode: replay same cards with rotated seats
             if self._rotation_index == 0:
@@ -211,7 +211,7 @@ class AutoEvaluatePokerGame:
                 self._current_deal_seed += 1
                 self.deck = Deck(seed=self._current_deal_seed)
                 self.deck.reset()
-                
+
                 # Deal and save hole cards for each position
                 self._saved_hole_cards = [self.deck.deal(2) for _ in range(num_players)]
                 # Save remaining deck state for community cards
@@ -219,13 +219,13 @@ class AutoEvaluatePokerGame:
             else:
                 # Subsequent rotation - restore deck state for community cards
                 self.deck.cards = list(self._saved_deck_state)
-            
+
             # Assign hole cards with rotation offset
             # Player i gets the cards from position (i + rotation_index) % N
             for i, player in enumerate(self.players):
                 card_position = (i + self._rotation_index) % num_players
                 player.hole_cards = list(self._saved_hole_cards[card_position])
-            
+
             # Advance rotation for next hand
             self._rotation_index = (self._rotation_index + 1) % num_players
         else:

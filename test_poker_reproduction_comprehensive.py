@@ -9,15 +9,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.entities import Fish, LifeStage
-from core.genetics import Genome
-from core.fish_poker import PokerInteraction, should_offer_post_poker_reproduction
 from core.algorithms.energy_management import EnergyConserver
 from core.config.fish import (
     POST_POKER_CROSSOVER_WINNER_WEIGHT,
     POST_POKER_MATING_DISTANCE,
     POST_POKER_PARENT_ENERGY_CONTRIBUTION,
 )
+from core.entities import Fish, LifeStage
+from core.fish_poker import PokerInteraction, should_offer_post_poker_reproduction
+from core.genetics import Genome
 
 
 class MockEnvironment:
@@ -195,7 +195,6 @@ def test_distance_check():
     poker = PokerInteraction(fish1, fish2)
 
     # Try reproduction directly
-    from core.fish_poker import PokerInteraction as PI
     offspring = poker.try_post_poker_reproduction(fish1, fish2, 10.0)
 
     distance = (fish1.pos - fish2.pos).length()
@@ -219,8 +218,8 @@ def test_two_player_poker():
 
     env.agents = [fish1, fish2]
 
-    initial_energy1 = fish1.energy
-    initial_energy2 = fish2.energy
+    _initial_energy1 = fish1.energy
+    _initial_energy2 = fish2.energy
 
     # Play poker
     poker = PokerInteraction(fish1, fish2)

@@ -6,11 +6,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.entities import Fish, LifeStage
-from core.genetics import Genome
-from core.fish_poker import PokerInteraction
 from core.algorithms.energy_management import EnergyConserver
 from core.config.fish import POST_POKER_PARENT_ENERGY_CONTRIBUTION
+from core.entities import Fish, LifeStage
+from core.fish_poker import PokerInteraction
+from core.genetics import Genome
 
 
 class MockEnvironment:
@@ -49,7 +49,7 @@ def logging_should_offer(fish, opponent, is_winner, energy_gained=0.0):
     result = original_should_offer(fish, opponent, is_winner, energy_gained)
     role = "WINNER" if is_winner else "LOSER"
     energy_pct = (fish.energy / fish.max_energy * 100) if fish.max_energy > 0 else 0
-    threshold_pct = 90.0
+    _threshold_pct = 90.0
     print(f"  [{role}] Fish #{fish.fish_id}: {fish.energy:.1f}/{fish.max_energy:.1f} ({energy_pct:.1f}%) → {result}")
     return result
 
@@ -118,25 +118,25 @@ def test_reproduction_energy_cost():
 
         env.agents = [fish1, fish2]
 
-        print(f"\nBEFORE POKER:")
+        print("\nBEFORE POKER:")
         print(f"  Fish #1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)")
         print(f"  Fish #2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)")
 
         # Play poker
-        print(f"\nPLAYING POKER...")
+        print("\nPLAYING POKER...")
         poker = PokerInteraction(fish1, fish2)
-        success = poker.play_poker()
+        _success = poker.play_poker()
 
-        print(f"\nAFTER POKER:")
+        print("\nAFTER POKER:")
         print(f"  Fish #1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)")
         print(f"  Fish #2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)")
 
         if poker.result and poker.result.reproduction_occurred:
-            print(f"\n✓ REPRODUCTION OCCURRED!")
+            print("\n✓ REPRODUCTION OCCURRED!")
             print(f"  Expected energy cost per parent: {POST_POKER_PARENT_ENERGY_CONTRIBUTION * 100}% of current energy")
             print(f"  Offspring energy: {poker.result.offspring.energy:.1f}")
         else:
-            print(f"\n❌ No reproduction occurred")
+            print("\n❌ No reproduction occurred")
 
     finally:
         # Restore original function

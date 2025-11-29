@@ -1,5 +1,5 @@
-from core.simulation_engine import SimulationEngine
 from core.plant_genetics import PlantGenome
+from core.simulation_engine import SimulationEngine
 
 sim = SimulationEngine(headless=True)
 sim.setup()

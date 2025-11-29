@@ -152,8 +152,6 @@ class DiscoveryService:
 
             # Update server info if provided
             if server_info:
-                # Preserve registration time and other fields
-                old_info = self._servers[server_id]
                 self._servers[server_id] = server_info
 
                 # Ensure status is online
@@ -279,7 +277,7 @@ class DiscoveryService:
             return
 
         try:
-            with open(self._registry_file, "r") as f:
+            with open(self._registry_file) as f:
                 data = json.load(f)
 
             # Load servers

@@ -6,7 +6,7 @@ for agents in the simulation.
 
 import math
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Type
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
 
@@ -43,7 +43,7 @@ class SpatialGrid:
         # Grid storage: dict of (col, row) -> dict of type -> list of agents
         # Using list instead of set for faster iteration in tight loops
         self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(lambda: defaultdict(list))
-        
+
         # Dedicated grids for high-frequency types to avoid dictionary lookups and issubclass checks
         # These contain the SAME agent objects as self.grid, just indexed differently for speed
         self.fish_grid: Dict[Tuple[int, int], List[Agent]] = defaultdict(list)
@@ -69,7 +69,7 @@ class SpatialGrid:
         # For now, we'll store by exact type
         agent_type = type(agent)
         self.grid[cell][agent_type].append(agent)
-        
+
         # Update dedicated grids
         # We use string names to avoid circular imports or heavy isinstance checks
         type_name = agent_type.__name__
@@ -77,7 +77,7 @@ class SpatialGrid:
             self.fish_grid[cell].append(agent)
         elif issubclass(agent_type, self._food_base_type):
             self.food_grid[cell].append(agent)
-            
+
         self.agent_cells[agent] = cell
 
     def remove_agent(self, agent: Agent):
@@ -93,7 +93,7 @@ class SpatialGrid:
                         del self.grid[cell][agent_type]
                 except ValueError:
                     pass  # Agent might not be in the list if something went wrong
-            
+
             # Remove from dedicated grids
             type_name = agent_type.__name__
             if type_name == 'Fish':
@@ -106,7 +106,7 @@ class SpatialGrid:
                     self.food_grid[cell].remove(agent)
                     if not self.food_grid[cell]:
                         del self.food_grid[cell]
-                        
+
             del self.agent_cells[agent]
 
     def update_agent(self, agent: Agent):
@@ -129,7 +129,7 @@ class SpatialGrid:
                             del self.grid[old_cell][agent_type]
                     except ValueError:
                         pass
-                
+
                 # Remove from dedicated grids (old cell)
                 type_name = agent_type.__name__
                 if type_name == 'Fish':
@@ -142,17 +142,17 @@ class SpatialGrid:
                         self.food_grid[old_cell].remove(agent)
                         if not self.food_grid[old_cell]:
                             del self.food_grid[old_cell]
-            
+
             # Add to new cell
             self.grid[new_cell][agent_type].append(agent)
-            
+
             # Add to dedicated grids (new cell)
             type_name = agent_type.__name__
             if type_name == 'Fish':
                 self.fish_grid[new_cell].append(agent)
             elif issubclass(agent_type, self._food_base_type):
                 self.food_grid[new_cell].append(agent)
-                
+
             self.agent_cells[agent] = new_cell
 
     def get_cells_in_radius(self, x: float, y: float, radius: float) -> List[Tuple[int, int]]:
@@ -184,7 +184,7 @@ class SpatialGrid:
         agent_pos_x = agent.pos.x
         agent_pos_y = agent.pos.y
         radius_sq = radius * radius
-        
+
         # Calculate cell range directly
         cell_size = self.cell_size
         min_col = max(0, int((agent_pos_x - radius) / cell_size))
@@ -195,7 +195,7 @@ class SpatialGrid:
         # Collect candidates
         candidates = []
         grid = self.grid
-        
+
         # Iterate ranges directly
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
@@ -204,13 +204,13 @@ class SpatialGrid:
                 if cell_agents:
                     for type_list in cell_agents.values():
                         candidates.extend(type_list)
-        
+
         # Filter using list comprehension
         return [
             other
             for other in candidates
             if other is not agent
-            and (other.pos.x - agent_pos_x) * (other.pos.x - agent_pos_x) + 
+            and (other.pos.x - agent_pos_x) * (other.pos.x - agent_pos_x) +
                 (other.pos.y - agent_pos_y) * (other.pos.y - agent_pos_y) <= radius_sq
         ]
 
@@ -222,7 +222,7 @@ class SpatialGrid:
         agent_x = agent.pos.x
         agent_y = agent.pos.y
         radius_sq = radius * radius
-        
+
         cell_size = self.cell_size
         min_col = max(0, int((agent_x - radius) / cell_size))
         max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
@@ -231,18 +231,18 @@ class SpatialGrid:
 
         candidates = []
         fish_grid = self.fish_grid
-        
+
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
                 cell_fish = fish_grid.get((col, row))
                 if cell_fish:
                     candidates.extend(cell_fish)
-                    
+
         return [
             other
             for other in candidates
             if other is not agent
-            and (other.pos.x - agent_x) * (other.pos.x - agent_x) + 
+            and (other.pos.x - agent_x) * (other.pos.x - agent_x) +
                 (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
         ]
 
@@ -254,7 +254,7 @@ class SpatialGrid:
         agent_x = agent.pos.x
         agent_y = agent.pos.y
         radius_sq = radius * radius
-        
+
         cell_size = self.cell_size
         min_col = max(0, int((agent_x - radius) / cell_size))
         max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
@@ -263,18 +263,18 @@ class SpatialGrid:
 
         candidates = []
         food_grid = self.food_grid
-        
+
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
                 cell_food = food_grid.get((col, row))
                 if cell_food:
                     candidates.extend(cell_food)
-                    
+
         return [
             other
             for other in candidates
             if other is not agent
-            and (other.pos.x - agent_x) * (other.pos.x - agent_x) + 
+            and (other.pos.x - agent_x) * (other.pos.x - agent_x) +
                 (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
         ]
 
@@ -289,7 +289,7 @@ class SpatialGrid:
         agent_x = agent.pos.x
         agent_y = agent.pos.y
         radius_sq = radius * radius
-        
+
         cell_size = self.cell_size
         min_col = max(0, int((agent_x - radius) / cell_size))
         max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
@@ -300,31 +300,31 @@ class SpatialGrid:
         fish_grid = self.fish_grid
         food_grid = self.food_grid
         grid = self.grid
-        
+
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
                 cell = (col, row)
-                
+
                 # Check Fish
                 cell_fish = fish_grid.get(cell)
                 if cell_fish:
                     candidates.extend(cell_fish)
-                            
+
                 # Check Food
                 cell_food = food_grid.get(cell)
                 if cell_food:
                     candidates.extend(cell_food)
-                            
+
                 # Check Crabs
                 cell_agents = grid.get(cell)
                 if cell_agents and crab_type in cell_agents:
                     candidates.extend(cell_agents[crab_type])
-                            
+
         return [
             other
             for other in candidates
             if other is not agent
-            and (other.pos.x - agent_x) * (other.pos.x - agent_x) + 
+            and (other.pos.x - agent_x) * (other.pos.x - agent_x) +
                 (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
         ]
 
@@ -364,12 +364,12 @@ class Environment:
         self.width = width
         self.height = height
         self.time_system = time_system
-        
+
         # Migration support (injected by backend)
         self.connection_manager = None  # Set by backend if migrations enabled
         self.tank_registry = None  # Set by backend if migrations enabled
         self.tank_id = None  # Set by backend if migrations enabled
-        
+
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0
 
@@ -389,20 +389,20 @@ class Environment:
         from core.fish_communication import FishCommunicationSystem
 
         self.communication_system = FishCommunicationSystem(max_signals=50, decay_rate=0.05)
-    
+
     def update_detection_modifier(self) -> None:
         """Update cached detection range modifier from time system.
-        
+
         Should be called once per frame to avoid repeated time_system calls.
         """
         if self.time_system is not None:
             self._cached_detection_modifier = self.time_system.get_detection_range_modifier()
         else:
             self._cached_detection_modifier = 1.0
-    
+
     def get_detection_modifier(self) -> float:
         """Get cached detection range modifier.
-        
+
         Returns:
             Float multiplier for detection range (0.25-1.0)
         """
@@ -493,7 +493,7 @@ class Environment:
         # 1. Inline spatial grid logic to avoid function call overhead
         # 2. Iterate grid cells directly to avoid creating intermediate candidate list
         # 3. Use type buckets to only iterate relevant agents
-        
+
         if not hasattr(agent, "pos"):
             return []
 
@@ -502,17 +502,17 @@ class Environment:
         cell_size = grid.cell_size
         agent_x = agent.pos.x
         agent_y = agent.pos.y
-        
+
         # Calculate cell range
         min_col = max(0, int((agent_x - radius) / cell_size))
         max_col = min(grid.cols - 1, int((agent_x + radius) / cell_size))
         min_row = max(0, int((agent_y - radius) / cell_size))
         max_row = min(grid.rows - 1, int((agent_y + radius) / cell_size))
-        
+
         radius_sq = radius * radius
         result = []
         grid_dict = grid.grid
-        
+
         # Iterate cells
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
@@ -521,7 +521,7 @@ class Environment:
                 cell_buckets = grid_dict.get((col, row))
                 if not cell_buckets:
                     continue
-                    
+
                 # Iterate over type buckets
                 for type_key, agents in cell_buckets.items():
                     # Check if this type is relevant (subclass check)
@@ -530,13 +530,13 @@ class Environment:
                         for other in agents:
                             if other is agent:
                                 continue
-                                
+
                             # Distance check
                             dx = other.pos.x - agent_x
                             dy = other.pos.y - agent_y
                             if dx*dx + dy*dy <= radius_sq:
                                 result.append(other)
-                            
+
         return result
 
     def nearby_fish(self, agent: Agent, radius: int) -> List[Agent]:

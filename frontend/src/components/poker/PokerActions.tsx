@@ -11,7 +11,6 @@ interface PokerActionsProps {
   minRaise: number;
   maxRaise: number;
   loading: boolean;
-  currentPlayer: string;
   onFold: () => void;
   onCheck: () => void;
   onCall: () => void;
@@ -24,7 +23,6 @@ export function PokerActions({
   minRaise,
   maxRaise,
   loading,
-  currentPlayer,
   onFold,
   onCheck,
   onCall,

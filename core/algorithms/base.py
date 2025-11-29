@@ -478,53 +478,53 @@ class BehaviorAlgorithm(BehaviorStrategy):
 
 def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] = None) -> Optional[Any]:
     """Find nearest agent of given type within optional distance limit.
-    
+
     Performance optimized to use squared distances for comparisons.
-    
+
     Args:
         fish: The fish searching for agents
         agent_type: Type of agent to search for
         max_distance: Optional maximum detection distance (None = unlimited)
-    
+
     Returns:
         Nearest agent within range, or None if no agents found/in range
     """
     agents = fish.environment.get_agents_of_type(agent_type)
     if not agents:
         return None
-    
+
     # Performance: Use squared distances to avoid expensive sqrt operations
     # Also use static Vector2.distance_squared to avoid Vector2 allocations
     fish_x = fish.pos.x
     fish_y = fish.pos.y
-    
+
     if max_distance is not None:
         max_distance_sq = max_distance * max_distance
-        
+
         # Find nearest using squared distances
         min_dist_sq = float('inf')
         nearest = None
-        
+
         for agent in agents:
             # Use static method - no Vector2 allocation
             dist_sq = Vector2.distance_squared(fish_x, fish_y, agent.pos.x, agent.pos.y)
-            
+
             if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
                 min_dist_sq = dist_sq
                 nearest = agent
-        
+
         return nearest
     else:
         # No distance limit - find closest using squared distances
         min_dist_sq = float('inf')
         nearest = None
-        
+
         for agent in agents:
             dist_sq = Vector2.distance_squared(fish_x, fish_y, agent.pos.x, agent.pos.y)
             if dist_sq < min_dist_sq:
                 min_dist_sq = dist_sq
                 nearest = agent
-        
+
         return nearest
 
 

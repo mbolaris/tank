@@ -174,7 +174,7 @@ class PokerStrategyEngine:
 
     def evaluate_starting_hand_strength(self, hole_cards: List[Tuple[str, str]]) -> float:
         """Evaluate the strength of starting hole cards (0.0-1.0).
-        
+
         Delegates to core.poker.evaluation.strength for the actual evaluation.
         """
         if len(hole_cards) != 2:

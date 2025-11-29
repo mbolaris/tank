@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.ecosystem_stats import EcosystemEvent, GenerationStats, GeneticDiversityStats
 
@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 def record_birth(
-    ecosystem: "EcosystemManager",
+    ecosystem: EcosystemManager,
     fish_id: int,
     generation: int,
-    parent_ids: Optional[List[int]] = None,
-    algorithm_id: Optional[int] = None,
-    color: Optional[str] = None,
+    parent_ids: list[int] | None = None,
+    algorithm_id: int | None = None,
+    color: str | None = None,
 ) -> None:
     ecosystem.total_births += 1
 
@@ -71,13 +71,13 @@ def record_birth(
 
 
 def record_death(
-    ecosystem: "EcosystemManager",
+    ecosystem: EcosystemManager,
     fish_id: int,
     generation: int,
     age: int,
     cause: str = "unknown",
-    genome: Optional["Genome"] = None,
-    algorithm_id: Optional[int] = None,
+    genome: Genome | None = None,
+    algorithm_id: int | None = None,
     remaining_energy: float = 0.0,
 ) -> None:
     ecosystem.total_deaths += 1
@@ -126,11 +126,11 @@ def record_death(
     )
 
 
-def update_population_stats(ecosystem: "EcosystemManager", fish_list: List["Fish"]) -> None:
+def update_population_stats(ecosystem: EcosystemManager, fish_list: list[Fish]) -> None:
     if not fish_list:
         return
 
-    gen_fish: Dict[int, List[Fish]] = defaultdict(list)
+    gen_fish: dict[int, list[Fish]] = defaultdict(list)
     for fish in fish_list:
         if hasattr(fish, "generation"):
             gen_fish[fish.generation].append(fish)
@@ -166,7 +166,7 @@ def update_population_stats(ecosystem: "EcosystemManager", fish_list: List["Fish
         )
 
 
-def update_genetic_diversity_stats(ecosystem: "EcosystemManager", fish_list: List["Fish"]) -> None:
+def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: list[Fish]) -> None:
     if not fish_list:
         ecosystem.genetic_diversity_stats = GeneticDiversityStats()
         return
@@ -211,7 +211,7 @@ def update_genetic_diversity_stats(ecosystem: "EcosystemManager", fish_list: Lis
         mean_color = sum(color_hues) / len(color_hues)
         color_variance = sum((h - mean_color) ** 2 for h in color_hues) / len(color_hues)
 
-    trait_variances: Dict[str, float] = {}
+    trait_variances: dict[str, float] = {}
     if len(speed_modifiers) > 1:
         mean_speed = sum(speed_modifiers) / len(speed_modifiers)
         trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / len(
@@ -236,7 +236,7 @@ def update_genetic_diversity_stats(ecosystem: "EcosystemManager", fish_list: Lis
     ecosystem.genetic_diversity_stats.trait_variances = trait_variances
 
 
-def get_population_by_generation(ecosystem: "EcosystemManager") -> Dict[int, int]:
+def get_population_by_generation(ecosystem: EcosystemManager) -> dict[int, int]:
     return {
         gen: stats.population
         for gen, stats in ecosystem.generation_stats.items()
@@ -244,13 +244,13 @@ def get_population_by_generation(ecosystem: "EcosystemManager") -> Dict[int, int
     }
 
 
-def get_total_population(ecosystem: "EcosystemManager") -> int:
+def get_total_population(ecosystem: EcosystemManager) -> int:
     return sum(stats.population for stats in ecosystem.generation_stats.values())
 
 
 def get_summary_stats(
-    ecosystem: "EcosystemManager", entities: Optional[List] = None
-) -> Dict[str, Any]:
+    ecosystem: EcosystemManager, entities: list | None = None
+) -> dict[str, Any]:
     total_pop = get_total_population(ecosystem)
     poker_summary = ecosystem.get_poker_stats_summary()
 

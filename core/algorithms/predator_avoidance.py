@@ -20,7 +20,7 @@ from typing import Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from core.entities import Crab, Food
+from core.entities import Crab
 from core.entities import Fish as FishClass
 
 
@@ -132,7 +132,6 @@ class FreezeResponse(BehaviorAlgorithm):
         - Increased food-seeking speed from 0.5 to 0.8-1.0
         - Better food search pattern instead of random wandering
         """
-        from core.entities import Food
 
         # Calculate energy percentage
         energy_percent = (fish.energy / fish.max_energy) * 100

@@ -12,7 +12,7 @@ Each strategy has evolvable parameters that control:
 
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from core.constants import (
     POKER_LAG_ENERGY_FRACTION,
@@ -20,6 +20,7 @@ from core.constants import (
     POKER_PREFLOP_MIN_RAISE_MULTIPLIER,
 )
 from core.poker.betting.actions import BettingAction
+
 
 @dataclass
 class PokerStrategyAlgorithm:
@@ -95,7 +96,7 @@ class PokerStrategyAlgorithm:
             instance = strategy_cls()
             instance.parameters = parameters
             return instance
-        
+
         # Fallback to random if unknown
         return get_random_poker_strategy()
 

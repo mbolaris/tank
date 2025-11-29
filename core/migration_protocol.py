@@ -4,7 +4,7 @@ This protocol defines the interface for migration functionality without
 coupling core to backend implementation details.
 """
 
-from typing import Protocol, Optional, Any
+from typing import Any, Protocol
 
 
 class MigrationHandler(Protocol):

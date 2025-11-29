@@ -148,7 +148,7 @@ def main():
     os.environ["TANK_DATA_DIR"] = data_dir
 
     logger.info("=" * 60)
-    logger.info(f"Starting Tank World Server")
+    logger.info("Starting Tank World Server")
     logger.info(f"  Server ID: {args.server_id}")
     logger.info(f"  Port: {args.port}")
     logger.info(f"  Data Dir: {data_dir}")

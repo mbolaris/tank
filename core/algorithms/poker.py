@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.entities import Crab, Food
+from core.entities import Crab
 from core.entities import Fish as FishClass
 
 

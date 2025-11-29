@@ -9,8 +9,8 @@ energy from the plant. If the plant wins, it takes energy from the fish.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-from core.poker.core import PokerHand
 from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW
+from core.poker.core import PokerHand
 from core.poker.simulation import simulate_multi_round_game
 
 if TYPE_CHECKING:
@@ -200,7 +200,6 @@ class PlantPokerInteraction:
         # Calculate energy transfer
         # NO house cut for fish vs plant games - fish keep 100% of winnings
         total_pot = game_state.pot
-        house_cut = 0.0
         winnings = total_pot
 
         # Transfer energy
@@ -225,10 +224,10 @@ class PlantPokerInteraction:
         # Visual effects on fish and plant
         # Visual effects on fish and plant
         from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
-        
+
         fish_stable_id = self.fish.fish_id + FISH_ID_OFFSET
         plant_stable_id = self.plant.plant_id + PLANT_ID_OFFSET
-        
+
         if fish_won:
             self.fish.set_poker_effect("won", abs(energy_transferred), target_id=plant_stable_id, target_type="fractal_plant")
             self.plant.set_poker_effect("lost", abs(energy_transferred), target_id=fish_stable_id, target_type="fish")

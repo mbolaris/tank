@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Test script to verify LiveFood persistence works correctly."""
 
-import json
 import sys
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.entities.resources import LiveFood, Food
+from core.entities.resources import Food, LiveFood
 from core.environment import Environment
 
 
@@ -69,7 +68,7 @@ def test_live_food_persistence():
                 screen_width=800,
                 screen_height=600,
             )
-            print(f"  Restored as LiveFood (has movement behavior)")
+            print("  Restored as LiveFood (has movement behavior)")
         else:
             food = Food(
                 x=x,

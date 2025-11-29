@@ -1,6 +1,5 @@
 """Predator entity logic for crabs."""
 
-import random
 from typing import TYPE_CHECKING, Optional
 
 from core.constants import (
@@ -8,12 +7,10 @@ from core.constants import (
     CRAB_ATTACK_ENERGY_TRANSFER,
     CRAB_IDLE_CONSUMPTION,
     CRAB_INITIAL_ENERGY,
-    FRAME_RATE,
 )
 from core.entities.base import Agent
 from core.entities.fish import Fish
 from core.entities.resources import Food
-from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.environment import Environment

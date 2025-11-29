@@ -1,5 +1,6 @@
-import requests
 import sys
+
+import requests
 
 try:
     response = requests.get("http://localhost:8000/api/transfers?limit=1&success_only=true")

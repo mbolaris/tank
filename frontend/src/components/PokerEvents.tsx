@@ -67,7 +67,7 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
 
                                 if (isPlant) {
                                     // Backend now includes explicit `plant_id` when `is_plant` is true.
-                                    const pid = (event as any).plant_id;
+                                    const pid = (event as PokerEvent & { plant_id?: number }).plant_id;
                                     if (event.winner_id === -3) {
                                         winnerName = pid !== undefined ? `Plant #${pid}` : "Plant";
                                     }

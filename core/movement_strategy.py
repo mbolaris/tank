@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, Tuple
 
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
-from core.entities import Fish as FishClass, Food
+from core.entities import Fish as FishClass
+from core.entities import Food
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -28,18 +29,18 @@ VelocityComponents = Tuple[float, float]
 class MovementStrategy:
     """Base class for movement strategies."""
 
-    def move(self, sprite: "Fish") -> None:
+    def move(self, sprite: Fish) -> None:
         """Move a sprite according to the strategy."""
         self.check_collision_with_food(sprite)
 
-    def check_collision_with_food(self, sprite: "Fish") -> None:
+    def check_collision_with_food(self, sprite: Fish) -> None:
         """Check if sprite collides with food and stop it if so.
 
         Args:
             sprite: The fish sprite to check for collisions
         """
         # Get the sprite entity (unwrap if it's a sprite wrapper)
-        sprite_entity: "Fish" = sprite._entity if hasattr(sprite, "_entity") else sprite
+        sprite_entity: Fish = sprite._entity if hasattr(sprite, "_entity") else sprite
 
         # Optimize: Use spatial query to only check nearby food
         # Radius of 50 is sufficient for collision detection (fish size + food size)
@@ -48,7 +49,7 @@ class MovementStrategy:
             nearby_food = sprite.environment.nearby_food(sprite_entity, 50)
         else:
             nearby_food = sprite.environment.nearby_agents_by_type(sprite_entity, 50, Food)
-        
+
         for food in nearby_food:
             # Get the food entity (unwrap if it's a sprite wrapper)
             food_entity: Food = food._entity if hasattr(food, "_entity") else food
@@ -73,7 +74,7 @@ class AlgorithmicMovement(MovementStrategy):
     - Avoid sqrt when not needed
     """
 
-    def move(self, sprite: "Fish") -> None:
+    def move(self, sprite: Fish) -> None:
         """Move using the fish's behavior algorithms (mix-and-match).
 
         Performance optimizations:
@@ -101,7 +102,7 @@ class AlgorithmicMovement(MovementStrategy):
             poker_vx, poker_vy = poker_velocity
 
             # Get the sprite entity (unwrap if it's a sprite wrapper)
-            sprite_entity: "Fish" = sprite._entity if hasattr(sprite, "_entity") else sprite
+            sprite_entity: Fish = sprite._entity if hasattr(sprite, "_entity") else sprite
 
             # Optimize: Use spatial query to only check nearby fish
             # We only care about fish within 200 units for poker behavior

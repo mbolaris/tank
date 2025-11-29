@@ -16,7 +16,9 @@ class AudioManager {
 
     private initAudioContext() {
         if (!this.audioContext) {
-            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            // Support for older browsers with webkitAudioContext
+            const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+            this.audioContext = new AudioContextClass();
         }
     }
 

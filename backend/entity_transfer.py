@@ -158,10 +158,10 @@ def deserialize_entity(data: Dict[str, Any], target_world: Any) -> Optional[Any]
 def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize and create a Fish entity."""
     try:
+        from core.algorithms import behavior_from_dict
         from core.entities.fish import Fish
         from core.genetics import Genome
         from core.movement_strategy import AlgorithmicMovement
-        from core.algorithms import behavior_from_dict
 
         # Recreate genome
         genome_data = data["genome_data"]
@@ -276,7 +276,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             root_spot = root_spot_manager.get_nearest_empty_spot(data["x"], data["y"])
 
         if root_spot is None:
-            logger.warning(f"Cannot deserialize plant: no available root spots")
+            logger.warning("Cannot deserialize plant: no available root spots")
             return None
 
         # Recreate genome

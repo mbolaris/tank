@@ -27,7 +27,6 @@ from core.constants import (
 from core.entities.base import Agent, LifeStage
 from core.math_utils import Vector2
 
-
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -93,15 +92,15 @@ class Fish(Agent):
 
         # Genetics
         self.genome: Genome = genome if genome is not None else Genome.random()
-        
+
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
         if self.genome.poker_strategy_algorithm is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
             self.genome.poker_strategy_algorithm = get_random_poker_strategy()
-            
+
         self.generation: int = generation
         self.species: str = species
-        
+
         # Migration flag - set to True when fish migrates to another tank
         self._migrated: bool = False
 
@@ -655,7 +654,7 @@ class Fish(Agent):
 
     def handle_screen_edges(self) -> None:
         """Handle the fish hitting the edge of the screen with top margin for energy bar visibility.
-        
+
         For connected tanks, attempts migration when hitting left/right boundaries.
         """
         # Horizontal boundaries - check for migration first, then bounce

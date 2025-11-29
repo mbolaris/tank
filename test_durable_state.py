@@ -23,8 +23,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from backend.tank_persistence import restore_tank_from_snapshot, save_tank_state
 from backend.tank_registry import TankRegistry
-from backend.tank_persistence import save_tank_state, load_tank_state, restore_tank_from_snapshot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,8 +54,8 @@ def verify_state_match(original_state, restored_state, tank_id: str):
         )
 
     # Check entity counts
-    orig_entities = {e['type']: e for e in original_state['entities']}
-    rest_entities = {e['type']: e for e in restored_state['entities']}
+    _orig_entities = {e['type']: e for e in original_state['entities']}
+    _rest_entities = {e['type']: e for e in restored_state['entities']}
 
     orig_fish = [e for e in original_state['entities'] if e['type'] == 'Fish']
     rest_fish = [e for e in restored_state['entities'] if e['type'] == 'Fish']
@@ -149,7 +149,7 @@ def main():
     logger.info(f"Snapshot saved to: {snapshot_path}")
 
     # Load the snapshot data for verification
-    with open(snapshot_path, 'r') as f:
+    with open(snapshot_path) as f:
         original_snapshot_data = json.load(f)
 
     logger.info(f"Snapshot contains {len(original_snapshot_data['entities'])} entities")
@@ -179,14 +179,13 @@ def main():
 
     # Phase 6: Verify state
     print("\nPhase 6: Verifying restored state...")
-    restored_tank_world = restored_manager.runner.world
+    _restored_tank_world = restored_manager.runner.world
 
     # Save restored state and compare snapshots
-    import tempfile
     restored_snapshot_path = save_tank_state(restored_manager.tank_id, restored_manager)
 
     # Load restored snapshot for comparison
-    with open(restored_snapshot_path, 'r') as f:
+    with open(restored_snapshot_path) as f:
         restored_snapshot_data = json.load(f)
 
     # Compare states
@@ -198,7 +197,7 @@ def main():
 
     # Additional detailed checks
     print("\nDetailed State Comparison:")
-    print(f"  Frame Number:")
+    print("  Frame Number:")
     print(f"    Original:  {original_snapshot_data['frame']}")
     print(f"    Restored:  {restored_snapshot_data['frame']}")
     print(f"    Match: {'✓' if original_snapshot_data['frame'] == restored_snapshot_data['frame'] else '✗'}")
@@ -206,26 +205,26 @@ def main():
     orig_fish = [e for e in original_snapshot_data['entities'] if e['type'] == 'Fish']
     rest_fish = [e for e in restored_snapshot_data['entities'] if e['type'] == 'Fish']
 
-    print(f"\n  Fish Count:")
+    print("\n  Fish Count:")
     print(f"    Original:  {len(orig_fish)}")
     print(f"    Restored:  {len(rest_fish)}")
     print(f"    Match: {'✓' if len(orig_fish) == len(rest_fish) else '✗'}")
 
-    print(f"\n  Generation:")
+    print("\n  Generation:")
     orig_gen = original_snapshot_data['ecosystem']['generation']
     rest_gen = restored_snapshot_data['ecosystem']['generation']
     print(f"    Original:  {orig_gen}")
     print(f"    Restored:  {rest_gen}")
     print(f"    Match: {'✓' if orig_gen == rest_gen else '✗'}")
 
-    print(f"\n  Total Births:")
+    print("\n  Total Births:")
     orig_births = original_snapshot_data['ecosystem']['total_births']
     rest_births = restored_snapshot_data['ecosystem']['total_births']
     print(f"    Original:  {orig_births}")
     print(f"    Restored:  {rest_births}")
     print(f"    Match: {'✓' if orig_births == rest_births else '✗'}")
 
-    print(f"\n  Total Deaths:")
+    print("\n  Total Deaths:")
     orig_deaths = original_snapshot_data['ecosystem']['total_deaths']
     rest_deaths = restored_snapshot_data['ecosystem']['total_deaths']
     print(f"    Original:  {orig_deaths}")
@@ -234,21 +233,21 @@ def main():
 
     # Sample fish details
     if len(orig_fish) > 0 and len(rest_fish) > 0:
-        print(f"\n  Sample Fish Details (first fish):")
+        print("\n  Sample Fish Details (first fish):")
         orig_first = orig_fish[0]
         # Find corresponding fish by ID (note: IDs will be different after restoration)
         # Instead, compare by position or other properties
         rest_first = rest_fish[0]
 
-        print(f"    Energy:")
+        print("    Energy:")
         print(f"      Original:  {orig_first.get('energy', 'N/A')}")
         print(f"      Restored:  {rest_first.get('energy', 'N/A')}")
 
-        print(f"    Generation:")
+        print("    Generation:")
         print(f"      Original:  {orig_first.get('generation', 'N/A')}")
         print(f"      Restored:  {rest_first.get('generation', 'N/A')}")
 
-        print(f"    Age:")
+        print("    Age:")
         print(f"      Original:  {orig_first.get('age', 'N/A')}")
         print(f"      Restored:  {rest_first.get('age', 'N/A')}")
 

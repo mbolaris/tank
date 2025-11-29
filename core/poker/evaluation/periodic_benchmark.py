@@ -5,7 +5,7 @@ periodically during simulation to track poker strategy evolution over time.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,

@@ -13,12 +13,12 @@ Features:
 """
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from core.entities import LifeStage
-from core.poker.core import BettingAction, PokerHand
-from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW
+from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW, BettingAction
+from core.poker.core import PokerHand
 from core.poker.evaluation import evaluate_hand
 from core.poker.simulation import simulate_multi_round_game
 from core.poker.strategy.base import PokerStrategyEngine
@@ -116,7 +116,7 @@ def _get_participant(fish: "Fish") -> PokerParticipant:
             last_cooldown_age=getattr(fish, "age", 0),
         )
         _POKER_PARTICIPANTS[fish.fish_id] = participant
-    
+
     # Always update the stats reference in case the fish object was recreated/reloaded
     participant.stats = fish.poker_stats
     participant.fish = fish
@@ -567,17 +567,17 @@ class PokerInteraction:
 
         # Visual effects
         from core.constants import FISH_ID_OFFSET
-        
+
         if winner_id != -1:
             winner_fish = self.fish_list[best_hand_idx]
             # Winner points to first loser (simplification for multiplayer)
             first_loser = next(f for f in self.fish_list if f.fish_id != winner_id)
-            
+
             winner_stable_id = winner_fish.fish_id + FISH_ID_OFFSET
             first_loser_stable_id = first_loser.fish_id + FISH_ID_OFFSET
-            
+
             winner_fish.set_poker_effect("won", total_pot - bet_amount - house_cut, target_id=first_loser_stable_id, target_type="fish")
-            
+
             for i, fish in enumerate(self.fish_list):
                 if i != best_hand_idx:
                     fish.set_poker_effect("lost", bet_amount, target_id=winner_stable_id, target_type="fish")

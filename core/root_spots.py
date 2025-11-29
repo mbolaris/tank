@@ -8,7 +8,7 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
-from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH, FRACTAL_PLANT_ROOT_SPOT_COUNT
+from core.constants import FRACTAL_PLANT_ROOT_SPOT_COUNT, SCREEN_HEIGHT, SCREEN_WIDTH
 
 if TYPE_CHECKING:
     from core.entities.base import Agent

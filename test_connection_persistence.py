@@ -2,7 +2,6 @@
 """Test script to verify connection persistence works correctly."""
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -10,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from backend.connection_manager import ConnectionManager, TankConnection
-from backend.connection_persistence import save_connections, load_connections
+from backend.connection_persistence import load_connections, save_connections
 
 
 def test_connection_persistence():
@@ -77,7 +76,7 @@ def test_connection_persistence():
     print(f"  File created: {connections_file}")
 
     # Read and display file contents
-    with open(connections_file, "r") as f:
+    with open(connections_file) as f:
         data = json.load(f)
     print(f"  File contains {len(data.get('connections', []))} connection(s)")
 

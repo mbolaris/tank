@@ -14,11 +14,11 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.entities import Fish, LifeStage
-from core.genetics import Genome
-from core.fish_poker import PokerInteraction, should_offer_post_poker_reproduction
 from core.algorithms.energy_management import EnergyConserver
 from core.config.fish import POST_POKER_CROSSOVER_WINNER_WEIGHT
+from core.entities import Fish, LifeStage
+from core.fish_poker import PokerInteraction, should_offer_post_poker_reproduction
+from core.genetics import Genome
 
 
 def test_deterministic_reproduction():

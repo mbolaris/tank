@@ -9,7 +9,7 @@ interface used throughout the fish poker code.
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -23,7 +23,7 @@ from core.poker.betting.actions import BettingAction
 class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
     """Adapts plant genome poker traits to the poker strategy interface."""
 
-    def __init__(self, genome: "PlantGenome", *, strategy_id: str = "plant_adapter") -> None:
+    def __init__(self, genome: PlantGenome, *, strategy_id: str = "plant_adapter") -> None:
         super().__init__(
             strategy_id=strategy_id,
             parameters={
@@ -35,13 +35,13 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         self._genome = genome
 
     @classmethod
-    def from_genome(cls, genome: "PlantGenome") -> "PlantPokerStrategyAdapter":
+    def from_genome(cls, genome: PlantGenome) -> PlantPokerStrategyAdapter:
         """Create a strategy adapter directly from a PlantGenome."""
 
         return cls(genome)
 
     @classmethod
-    def from_plant(cls, plant: "FractalPlant") -> "PlantPokerStrategyAdapter":
+    def from_plant(cls, plant: FractalPlant) -> PlantPokerStrategyAdapter:
         """Convenience constructor that reads the genome from a plant."""
 
         return cls(plant.genome)
@@ -54,7 +54,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-    ) -> Tuple["BettingAction", float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = max(0.0, opponent_bet - current_bet)
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)

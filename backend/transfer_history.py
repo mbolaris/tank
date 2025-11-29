@@ -7,7 +7,7 @@ query capabilities for the transfer history.
 import json
 import logging
 from collections import deque
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Deque, Dict, List, Optional
@@ -211,7 +211,7 @@ def load_history_from_file() -> int:
 
     try:
         loaded = 0
-        with open(HISTORY_FILE, "r") as f:
+        with open(HISTORY_FILE) as f:
             for line in f:
                 try:
                     data = json.loads(line.strip())

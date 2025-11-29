@@ -9,9 +9,9 @@ import sys
 import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -20,12 +20,12 @@ from backend.logging_config import configure_logging
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.models import Command, ServerInfo, ServerWithTanks, RemoteTransferRequest
-from backend.simulation_manager import SimulationManager
-from backend.tank_registry import TankRegistry, CreateTankRequest
-from backend.connection_manager import ConnectionManager, TankConnection
+from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService
+from backend.models import Command, ServerInfo
 from backend.server_client import ServerClient
+from backend.simulation_manager import SimulationManager
+from backend.tank_registry import TankRegistry
 from core.constants import DEFAULT_API_PORT, FRAME_RATE
 
 # Configure logging once for the backend stack (includes uvicorn)
@@ -56,10 +56,12 @@ server_client = ServerClient()
 
 # Migration scheduler for automated entity migrations
 from backend.migration_scheduler import MigrationScheduler
+
 migration_scheduler: Optional[MigrationScheduler] = None  # Will be initialized in lifespan
 
 # Auto-save service for periodic tank state persistence
 from backend.auto_save_service import AutoSaveService
+
 auto_save_service: Optional[AutoSaveService] = None  # Will be initialized in lifespan
 
 # Backwards-compatible aliases for the default tank (will be set after tank restoration)
@@ -397,13 +399,13 @@ async def lifespan(app: FastAPI):
             tank_registry.set_distributed_services(discovery_service, server_client)
             tank_registry.set_connection_manager(connection_manager)
             logger.info("TankRegistry configured for distributed operations and connection management")
-            
+
             # Clean up invalid connections on startup
             valid_tank_ids = tank_registry.list_tank_ids()
             removed_count = connection_manager.validate_connections(valid_tank_ids)
             if removed_count > 0:
                 logger.info(f"Startup cleanup: Removed {removed_count} invalid connections")
-                
+
         except Exception as e:
             logger.error(f"Failed to configure TankRegistry: {e}", exc_info=True)
             # Non-fatal - continue without distributed tank queries
@@ -561,7 +563,7 @@ app.add_middleware(
 
 def setup_routers():
     """Setup and include all API routers after dependencies are initialized."""
-    from backend.routers import discovery, transfers, tanks, servers
+    from backend.routers import discovery, servers, tanks, transfers
 
     # Setup discovery router
     discovery_router = discovery.setup_router(discovery_service)
@@ -1058,6 +1060,7 @@ async def websocket_tank_endpoint(websocket: WebSocket, tank_id: str):
 
 if __name__ == "__main__":
     import logging
+
     import uvicorn
 
     # Reduce noisy access logs from Uvicorn (e.g. "GET /... 200 OK").

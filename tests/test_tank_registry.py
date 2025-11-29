@@ -1,6 +1,5 @@
 """Tests for the TankRegistry multi-tank management system."""
 
-import pytest
 from backend.tank_registry import TankRegistry
 
 
@@ -92,8 +91,8 @@ class TestTankRegistry:
         registry = TankRegistry(create_default=False)
 
         # Create public and private tanks
-        public_tank = registry.create_tank(name="Public Tank", is_public=True)
-        private_tank = registry.create_tank(name="Private Tank", is_public=False)
+        _public_tank = registry.create_tank(name="Public Tank", is_public=True)
+        _private_tank = registry.create_tank(name="Private Tank", is_public=False)
 
         # List public only
         public_list = registry.list_tanks(include_private=False)
@@ -112,7 +111,7 @@ class TestTankRegistry:
         registry = TankRegistry(create_default=False)
 
         tank1 = registry.create_tank(name="Tank 1")
-        tank2 = registry.create_tank(name="Tank 2")
+        _tank2 = registry.create_tank(name="Tank 2")
 
         assert registry.tank_count == 2
 

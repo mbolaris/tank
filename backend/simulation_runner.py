@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import random
 import threading
 import time
 import uuid
@@ -70,7 +69,7 @@ class SimulationRunner:
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
         self.fast_forward = False
-        
+
         # FPS Tracking
         self.last_fps_time = time.time()
         self.fps_frame_count = 0
@@ -106,7 +105,7 @@ class SimulationRunner:
         self.connection_manager = None  # Set after initialization
         self.tank_registry = None  # Set after initialization
         self.migration_lock = threading.Lock()
-        
+
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
 
@@ -367,7 +366,7 @@ class SimulationRunner:
 
     def _run_auto_evaluation(self, benchmark_players: List[Dict[str, Any]]) -> None:
         """Execute a background auto-evaluation series.
-        
+
         Uses position-rotated duplicate deals for reduced variance evaluation.
         Each deal is replayed N times (N = number of players) with rotated
         seat positions so every player experiences every position with the same cards.
@@ -391,13 +390,13 @@ class SimulationRunner:
             )
 
             final_stats = auto_eval.run_evaluation()
-            
+
             # Reward winners by transferring their net winnings to their actual energy
             self._reward_auto_eval_winners(benchmark_players, final_stats)
 
             with self.auto_eval_lock:
                 starting_hand = self.auto_eval_history[-1]["hand"] if self.auto_eval_history else 0
-                
+
                 # Only record the final result of the game, not every hand
                 if final_stats.performance_history:
                     last_snapshot = final_stats.performance_history[-1]
@@ -429,7 +428,7 @@ class SimulationRunner:
 
     def _reward_auto_eval_winners(self, benchmark_players: List[Dict[str, Any]], final_stats) -> None:
         """Reward Fish/Plants that won energy in auto-evaluation by adding it to their actual energy.
-        
+
         Args:
             benchmark_players: List of players that participated in the evaluation
             final_stats: Final statistics from the auto-evaluation game
@@ -439,26 +438,26 @@ class SimulationRunner:
                 # Skip the standard algorithm player
                 if player_stats.get("is_standard", False):
                     continue
-                
+
                 net_energy = player_stats.get("net_energy", 0.0)
                 if net_energy <= 0:
                     continue  # Only reward winners
-                
+
                 # Find the actual entity
                 fish_id = player_stats.get("fish_id")
                 plant_id = player_stats.get("plant_id")
-                
+
                 if fish_id is not None:
-                    fish = next((e for e in self.world.entities_list 
+                    fish = next((e for e in self.world.entities_list
                                if isinstance(e, Fish) and e.fish_id == fish_id), None)
                     if fish:
                         reward = min(net_energy, fish.max_energy - fish.energy)
                         if reward > 0:
                             fish.energy += reward
                             logger.info(f"Auto-eval reward: Fish #{fish_id} gained {reward:.1f} energy")
-                
+
                 elif plant_id is not None:
-                    plant = next((e for e in self.world.entities_list 
+                    plant = next((e for e in self.world.entities_list
                                 if isinstance(e, FractalPlant) and e.plant_id == plant_id), None)
                     if plant:
                         reward = min(net_energy, plant.max_energy - plant.energy)
@@ -720,14 +719,14 @@ class SimulationRunner:
         try:
             # Import ID offsets
             from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
-            
+
             # Compute stable ID based on entity type
             stable_id = id(entity)  # Fallback for unknown types
             if isinstance(entity, entities.Fish) and hasattr(entity, 'fish_id'):
                 stable_id = entity.fish_id + FISH_ID_OFFSET
             elif isinstance(entity, entities.FractalPlant) and hasattr(entity, 'plant_id'):
                 stable_id = entity.plant_id + PLANT_ID_OFFSET
-            
+
             base_data = {
                 "id": stable_id,
                 "x": entity.pos.x,
@@ -1071,7 +1070,7 @@ class SimulationRunner:
                     return {"success": True, "action": "wait", "amount": 0}
 
                 # Use the same AI logic as fish opponents
-                from core.poker.core import evaluate_hand, decide_action
+                from core.poker.core import decide_action, evaluate_hand
 
                 hand = evaluate_hand(human_player.hole_cards, game.community_cards)
                 call_amount = game._get_call_amount(0)

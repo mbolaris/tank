@@ -3,8 +3,8 @@
 import json
 import time
 
-from state_payloads import FullStatePayload
 from simulation_runner import SimulationRunner
+from state_payloads import FullStatePayload
 
 
 def test_simulation_runner_lifecycle():

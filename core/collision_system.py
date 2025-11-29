@@ -124,7 +124,7 @@ class CollisionSystem:
                 # Check sprouting chance
                 if random.random() < FRACTAL_PLANT_SPROUTING_CHANCE:
                     self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
-                
+
                 self.engine.remove_entity(food)
         else:
             fish.eat(food)

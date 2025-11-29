@@ -6,7 +6,6 @@ enabling durable simulations that can be resumed after restarts.
 
 import json
 import logging
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -56,7 +55,7 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
             # Only attempt to serialize transferable entities using the transfer logic
             # This prevents "Cannot transfer entity of type X" warnings for things like Food, Crab, etc.
             from core.entities import Fish, FractalPlant
-            
+
             if isinstance(entity, (Fish, FractalPlant)):
                 serialized = serialize_entity_for_transfer(entity)
                 if serialized:
@@ -165,7 +164,7 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
         Snapshot data dictionary, or None if load failed
     """
     try:
-        with open(snapshot_path, "r") as f:
+        with open(snapshot_path) as f:
             snapshot = json.load(f)
 
         # Validate snapshot format
@@ -204,7 +203,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         target_world.engine.entities_list.clear()
         if target_world.engine.environment:
             target_world.engine.environment.spatial_grid.clear()
-        
+
         # Reset root spots
         if hasattr(target_world.engine, "root_spot_manager") and target_world.engine.root_spot_manager:
             for spot in target_world.engine.root_spot_manager.spots:
@@ -267,9 +266,9 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
 
             elif entity_type == "castle":
                 # Restore castle
+                from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
                 from core.entities.base import Castle
-                from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-                
+
                 castle = Castle(
                     environment=target_world.engine.environment,
                     x=entity_data["x"],
@@ -285,10 +284,10 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
 
             elif entity_type == "crab":
                 # Restore crab
+                from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
                 from core.entities.predators import Crab
                 from core.genetics import Genome
-                from core.constants import SCREEN_WIDTH, SCREEN_HEIGHT
-                
+
                 # Reconstruct genome
                 genome_data = entity_data.get("genome", {})
                 genome = Genome(
@@ -299,7 +298,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                     color_hue=genome_data.get("color_hue", 0.5),
                     vision_range=genome_data.get("vision_range", 100.0),
                 )
-                
+
                 crab = Crab(
                     environment=target_world.engine.environment,
                     genome=genome,
@@ -318,7 +317,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         for entity_data in nectar_data_list:
             source_plant_id = entity_data.get("source_plant_id")
             source_plant = plants_by_id.get(source_plant_id)
-            
+
             if source_plant:
                 nectar = PlantNectar(
                     x=entity_data["x"],
@@ -381,7 +380,7 @@ def list_tank_snapshots(tank_id: str) -> List[Dict[str, Any]]:
     for snapshot_file in sorted(tank_dir.glob("snapshot_*.json"), reverse=True):
         try:
             # Read just the metadata without loading full state
-            with open(snapshot_file, "r") as f:
+            with open(snapshot_file) as f:
                 data = json.load(f)
                 snapshots.append({
                     "filename": snapshot_file.name,

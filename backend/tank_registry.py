@@ -8,9 +8,9 @@ listing, accessing, and removing tanks both locally and across remote servers.
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from backend.simulation_manager import SimulationManager, TankInfo
+from backend.simulation_manager import SimulationManager
 
 if TYPE_CHECKING:
     from backend.discovery_service import DiscoveryService

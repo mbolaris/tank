@@ -2,7 +2,7 @@
  * Canvas component for rendering the simulation
  */
 
-import { useRef, useEffect, useState, type CSSProperties } from 'react';
+import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
 import { Renderer } from '../utils/renderer';
 import { ImageLoader } from '../utils/ImageLoader';
@@ -16,15 +16,26 @@ interface CanvasProps {
     style?: CSSProperties;
 }
 
+// Tank world dimensions (from core/constants.py)
+const WORLD_WIDTH = 1088;
+const WORLD_HEIGHT = 612;
+
 export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, style }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // Tank world dimensions (from core/constants.py)
-    const WORLD_WIDTH = 1088;
-    const WORLD_HEIGHT = 612;
+    
+    // Use ref to track if error has been set to avoid repeated setState calls
+    const errorSetRef = useRef(false);
+    
+    // Stable error setter that only sets once
+    const setErrorOnce = useCallback((message: string) => {
+        if (!errorSetRef.current) {
+            errorSetRef.current = true;
+            setError(message);
+        }
+    }, []);
 
     const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (!state || !onEntityClick || error) return;
@@ -68,58 +79,57 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     useEffect(() => {
         let isMounted = true;
 
-        try {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-
-            // Initialize renderer immediately so we can draw background
-            rendererRef.current = new Renderer(ctx);
-
-            // Preload images
-            const loadImages = async () => {
-                try {
-                    await ImageLoader.preloadGameImages();
-                    if (isMounted) {
-                        setImagesLoaded(true);
-                    }
-                } catch (err) {
-                    // Log for debugging but don't break the app - images may load later
-                    if (isMounted) {
-                        setError(`Failed to load images: ${err instanceof Error ? err.message : String(err)}`);
-                    }
-                }
-            };
-
-            loadImages();
-        } catch (err) {
-            setError(`Failed to initialize renderer: ${err instanceof Error ? err.message : String(err)}`);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            setErrorOnce('Failed to get canvas 2D context');
+            return;
         }
+
+        // Initialize renderer immediately so we can draw background
+        rendererRef.current = new Renderer(ctx);
+
+        // Preload images
+        const loadImages = async () => {
+            try {
+                await ImageLoader.preloadGameImages();
+                if (isMounted) {
+                    setImagesLoaded(true);
+                }
+            } catch (err) {
+                // Log for debugging but don't break the app - images may load later
+                if (isMounted) {
+                    setErrorOnce(`Failed to load images: ${err instanceof Error ? err.message : String(err)}`);
+                }
+            }
+        };
+
+        loadImages();
 
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [setErrorOnce]);
 
     useEffect(() => {
         if (!state || !rendererRef.current || error) return;
 
+        const renderer = rendererRef.current;
+        const ctx = renderer.ctx;
+
+        // Calculate scale to fit the entire world into the canvas
+        const scaleX = width / WORLD_WIDTH;
+        const scaleY = height / WORLD_HEIGHT;
+
+        // Prevent orientation cache from growing without bound when entities churn
+        renderer.pruneEntityFacingCache(state.entities.map((entity) => entity.id));
+
+        // Save context state
+        ctx.save();
+
         try {
-            const renderer = rendererRef.current;
-            const ctx = renderer.ctx;
-
-            // Calculate scale to fit the entire world into the canvas
-            const scaleX = width / WORLD_WIDTH;
-            const scaleY = height / WORLD_HEIGHT;
-
-            // Prevent orientation cache from growing without bound when entities churn
-            renderer.pruneEntityFacingCache(state.entities.map((entity) => entity.id));
-
-            // Save context state
-            ctx.save();
-
             // Apply scale transformation to fit world into canvas
             ctx.scale(scaleX, scaleY);
 
@@ -147,17 +157,15 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                     }
                 });
             }
-
-            // Restore context state
-            ctx.restore();
         } catch (err) {
             // Only set error state for persistent issues, not transient rendering glitches
             const message = err instanceof Error ? err.message : String(err);
-            if (!error) {
-                setError(`Rendering error: ${message}`);
-            }
+            setErrorOnce(`Rendering error: ${message}`);
+        } finally {
+            // Restore context state
+            ctx.restore();
         }
-    }, [state, width, height, imagesLoaded, selectedEntityId, error]);
+    }, [state, width, height, imagesLoaded, selectedEntityId, error, setErrorOnce]);
 
     if (error) {
         return (

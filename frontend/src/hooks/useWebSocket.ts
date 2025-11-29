@@ -99,7 +99,6 @@ export function useWebSocket(tankId?: string) {
         unmountedRef.current = false;
 
         // WebSocket setup synchronizes with external server state
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         connect();
 
         return () => {

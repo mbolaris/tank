@@ -1,13 +1,14 @@
 """Server management API endpoints."""
 
 import logging
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from backend.tank_registry import TankRegistry
 from backend.discovery_service import DiscoveryService
-from backend.server_client import ServerClient
 from backend.models import ServerWithTanks
+from backend.server_client import ServerClient
+from backend.tank_registry import TankRegistry
 
 logger = logging.getLogger(__name__)
 

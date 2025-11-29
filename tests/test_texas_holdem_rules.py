@@ -13,18 +13,17 @@ import sys
 
 sys.path.insert(0, "/home/user/tank")
 
-from core.poker.core.cards import Card, Rank, Suit
 from core.poker.core import (
     BettingAction,
-    BettingRound,
     PokerGameState,
-    simulate_multi_round_game,
-    resolve_bet,
-    finalize_pot,
+    _evaluate_five_cards,
     decide_action,
     evaluate_hand,
-    _evaluate_five_cards,
+    finalize_pot,
+    resolve_bet,
+    simulate_multi_round_game,
 )
+from core.poker.core.cards import Card, Rank, Suit
 
 
 def test_minimum_raise_enforcement():
@@ -42,7 +41,7 @@ def test_minimum_raise_enforcement():
 
     # Test that after advance_round, min_raise resets to big blind
     state.advance_round()  # To flop
-    assert state.min_raise == 10.0, f"Min raise should reset to big blind after round change"
+    assert state.min_raise == 10.0, "Min raise should reset to big blind after round change"
     print(f"  After flop, min_raise: {state.min_raise} (reset to big blind)")
 
     print("  ✓ Min raise starts at big blind and resets each round")
@@ -64,7 +63,7 @@ def test_minimum_raise_enforcement():
             if action == BettingAction.RAISE:
                 assert amount >= 0, f"Raise amount should be non-negative, got {amount}"
 
-    print(f"  ✓ Ran 20 games, all raises were valid")
+    print("  ✓ Ran 20 games, all raises were valid")
     print("PASSED: Minimum raise enforcement working\n")
     return True
 
@@ -288,13 +287,13 @@ def test_best_five_from_seven():
     ]
 
     hand = evaluate_hand(hole_cards, community)
-    print(f"  Hole cards: 2s 3s")
-    print(f"  Community: T-J-Q-K-A (Broadway straight)")
+    print("  Hole cards: 2s 3s")
+    print("  Community: T-J-Q-K-A (Broadway straight)")
     print(f"  Best hand: {hand.description}")
 
     # Should play the board (straight) not use hole cards
     assert hand.hand_type == "straight", f"Should find straight on board, got {hand.hand_type}"
-    assert hand.primary_ranks == [14], f"Should be Ace-high straight"
+    assert hand.primary_ranks == [14], "Should be Ace-high straight"
     print("  ✓ Correctly plays the board (Broadway straight)")
 
     print("PASSED: Best 5 from 7 selection working\n")
@@ -367,7 +366,7 @@ def test_table_stakes_all_in():
         community_cards=community,
     )
 
-    print(f"  Scenario: Player has $5, opponent bets $10")
+    print("  Scenario: Player has $5, opponent bets $10")
     print(f"  Action: {action.name}, Amount: {amount}")
 
     assert action == BettingAction.CALL, f"Player should CALL (all-in), not {action.name}"
@@ -386,7 +385,7 @@ def test_table_stakes_all_in():
         community_cards=community,
     )
 
-    print(f"\n  Scenario: Player has $20, opponent bets $10")
+    print("\n  Scenario: Player has $20, opponent bets $10")
     print(f"  Action: {action2.name}, Amount: {amount2}")
 
     # Should not be forced to fold - any action is valid
@@ -484,7 +483,7 @@ def test_finalize_pot_distribution():
     ]
 
     payout1, payout2 = finalize_pot(state1)
-    print(f"  Test 1: P1 has Aces, P2 has Kings")
+    print("  Test 1: P1 has Aces, P2 has Kings")
     print(f"  Pot: {state1.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
     assert payout1 == 100.0 and payout2 == 0.0, f"P1 should win full pot, got ({payout1}, {payout2})"
     print("  ✓ Player 1 wins entire pot with better hand")
@@ -495,7 +494,7 @@ def test_finalize_pot_distribution():
     state2.player1_folded = True
 
     payout1, payout2 = finalize_pot(state2)
-    print(f"\n  Test 2: P1 folded")
+    print("\n  Test 2: P1 folded")
     print(f"  Pot: {state2.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
     assert payout1 == 0.0 and payout2 == 50.0, f"P2 should win by fold, got ({payout1}, {payout2})"
     print("  ✓ Player 2 wins pot when Player 1 folds")
@@ -515,7 +514,7 @@ def test_finalize_pot_distribution():
     ]
 
     payout1, payout2 = finalize_pot(state3)
-    print(f"\n  Test 3: Both play the board (Broadway straight)")
+    print("\n  Test 3: Both play the board (Broadway straight)")
     print(f"  Pot: {state3.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
     assert payout1 == 50.0 and payout2 == 50.0, f"Pot should be split 50/50, got ({payout1}, {payout2})"
     print("  ✓ Pot is split equally on tie (no money vanishes)")

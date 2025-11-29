@@ -1,12 +1,12 @@
 """Discovery service API endpoints."""
 
 from typing import Optional
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from backend.models import ServerInfo
 from backend.discovery_service import DiscoveryService
-
+from backend.models import ServerInfo
 
 router = APIRouter(prefix="/api/discovery", tags=["discovery"])
 

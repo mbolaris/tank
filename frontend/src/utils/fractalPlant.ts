@@ -902,7 +902,7 @@ export function renderFractalPlant(
     // Cosmic Fern uses standard L-system rendering, so we let it fall through
     if (fractalType === 'cosmic_fern') {
         // Fall through to default L-system renderer
-    } else if ((fractalType as any) === 'mandelbrot') {
+    } else if (fractalType === 'mandelbrot') {
         // Legacy support or if we want to keep the code for reference
         renderMandelbrotPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
         return;

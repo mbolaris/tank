@@ -1,5 +1,6 @@
-import unittest
 import logging
+import unittest
+
 from backend.connection_manager import ConnectionManager, TankConnection
 from backend.tank_registry import TankRegistry
 
@@ -23,7 +24,7 @@ class TestConnectorLogic(unittest.TestCase):
             direction="right"
         )
         self.connection_manager.add_connection(conn1)
-        
+
         # Verify first connection exists
         self.assertEqual(len(self.connection_manager.list_connections()), 1)
         self.assertEqual(self.connection_manager.get_connection("A->B").probability, 25)
@@ -49,10 +50,10 @@ class TestConnectorLogic(unittest.TestCase):
         # Create mock tanks
         tank_a = self.tank_registry.create_tank(name="Tank A", persistent=False)
         tank_b = self.tank_registry.create_tank(name="Tank B", persistent=False)
-        
+
         id_a = tank_a.tank_id
         id_b = tank_b.tank_id
-        
+
         # Create connection
         conn = TankConnection(
             id="A->B",
@@ -61,13 +62,13 @@ class TestConnectorLogic(unittest.TestCase):
             probability=25
         )
         self.connection_manager.add_connection(conn)
-        
+
         # Verify connection exists
         self.assertEqual(len(self.connection_manager.list_connections()), 1)
-        
+
         # Remove Tank A
         self.tank_registry.remove_tank(id_a)
-        
+
         # Verify connection is gone
         self.assertEqual(len(self.connection_manager.list_connections()), 0)
 
@@ -81,13 +82,13 @@ class TestConnectorLogic(unittest.TestCase):
             probability=25
         )
         self.connection_manager.add_connection(conn)
-        
+
         # Verify connection exists
         self.assertEqual(len(self.connection_manager.list_connections()), 1)
-        
+
         # Run validation with empty tank list
         removed = self.connection_manager.validate_connections([])
-        
+
         # Verify connection is gone
         self.assertEqual(removed, 1)
         self.assertEqual(len(self.connection_manager.list_connections()), 0)

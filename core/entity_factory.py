@@ -26,7 +26,7 @@ def create_initial_population(
     - 10 algorithmic fish with parametrizable behavior algorithms
     - 1 crab
     - 1 castle
-    
+
     Note: PNG plants have been disabled. Only fractal plants are used.
 
     Args:

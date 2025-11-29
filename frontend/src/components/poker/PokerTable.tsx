@@ -16,7 +16,6 @@ interface PokerTableProps {
     resultBanner?: React.ReactNode;
     players: PokerGamePlayer[];
     lastMove?: { player: string; action: string } | null;
-    message?: string;
     currentPlayer?: string;
     isYourTurn?: boolean;
     phase?: string;
@@ -24,7 +23,7 @@ interface PokerTableProps {
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
-export function PokerTable({ pot, communityCards, resultBanner, players, lastMove, message, currentPlayer, isYourTurn, phase }: PokerTableProps) {
+export function PokerTable({ pot, communityCards, resultBanner, players, lastMove, currentPlayer, isYourTurn, phase }: PokerTableProps) {
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevCardsRef = useRef<string[]>([]);

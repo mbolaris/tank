@@ -28,9 +28,7 @@ from core.constants import (
     FRACTAL_PLANT_MIN_POKER_ENERGY,
     FRACTAL_PLANT_MIN_SIZE,
     FRACTAL_PLANT_NECTAR_COOLDOWN,
-    FRACTAL_PLANT_POKER_COOLDOWN,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +138,7 @@ class FractalPlant(Agent):
             FRACTAL_PLANT_BASE_WIDTH * size_multiplier,
             FRACTAL_PLANT_BASE_HEIGHT * size_multiplier,
         )
-        
+
         # Anchor bottom of plant to root spot
         self.pos.y = self.root_spot.y - self.height
         self.rect.y = self.pos.y
@@ -372,16 +370,16 @@ class FractalPlant(Agent):
             Number of iterations (1-3)
         """
         size = self.get_size_multiplier()
-        
+
         # Use hysteresis to prevent flickering between iteration levels
         # Only upgrade when well past the threshold, downgrade when well below
-        
+
         target_iterations = 1
         if size >= 1.0:
             target_iterations = 3
         elif size >= 0.6:
             target_iterations = 2
-            
+
         # Apply hysteresis
         if target_iterations > self._cached_iterations:
             # Upgrade requires being 10% past the threshold to prevent rapid switching
@@ -390,7 +388,7 @@ class FractalPlant(Agent):
         elif target_iterations < self._cached_iterations:
             # Downgrade is immediate to reflect energy loss, but we respect the thresholds
             self._cached_iterations = target_iterations
-            
+
         return self._cached_iterations
 
     def get_poker_aggression(self) -> float:
@@ -527,6 +525,7 @@ class FractalPlant(Agent):
 
 from core.entities.resources import Food
 
+
 class PlantNectar(Food):
     """Nectar produced by fractal plants.
 
@@ -618,14 +617,14 @@ class PlantNectar(Food):
         Overrides Food.take_bite to trigger reproduction logic when fully consumed.
         """
         consumed = super().take_bite(bite_size)
-        
+
         # If fully consumed (or close enough), trigger reproduction logic
         if self.energy <= 0.1:
             self.energy = 0
             # Logic for reproduction is handled by the consumer (Fish)
             # But we need to ensure the consumer knows this is special nectar
             pass
-            
+
         return consumed
 
     def consume(self) -> "PlantGenome":

@@ -1,14 +1,15 @@
 """Entity transfer and connection management API endpoints."""
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from backend.connection_manager import ConnectionManager, TankConnection
+from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
 from backend.models import RemoteTransferRequest
 from backend.tank_registry import TankRegistry
-from backend.connection_manager import ConnectionManager, TankConnection
-from backend.entity_transfer import serialize_entity_for_transfer, deserialize_entity
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ def setup_router(
 
             return JSONResponse({
                 "success": True,
-                "message": f"Entity transferred successfully",
+                "message": "Entity transferred successfully",
                 "entity": {
                     "old_id": entity_id,
                     "new_id": new_entity.id,

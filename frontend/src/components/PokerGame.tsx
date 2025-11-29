@@ -85,13 +85,15 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
         const intervalId = setInterval(pollAutopilot, 500);
 
         return () => clearInterval(intervalId);
-    }, [autopilot, gameState, loading, onGetAutopilotAction, onAction, onNewRound]);
+    }, [autopilot, gameState, loading, onGetAutopilotAction, onAction, onNewRound, addError]);
 
-    // Turn off autopilot when session ends
+    // Turn off autopilot when session ends - use ref to avoid setState in render cycle
+    const sessionOverRef = useRef(gameState?.session_over);
     useEffect(() => {
-        if (gameState?.session_over) {
+        if (gameState?.session_over && !sessionOverRef.current) {
             setAutopilot(false);
         }
+        sessionOverRef.current = gameState?.session_over;
     }, [gameState?.session_over]);
     if (!gameState) {
         return (

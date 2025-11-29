@@ -41,7 +41,7 @@ class PokerStatsManager:
         if not os.path.exists(path):
             return
 
-        with open(path, "r") as file:
+        with open(path) as file:
             data = json.load(file)
 
         self.total_fish_poker_games = int(data.get("total_fish_poker_games", 0))

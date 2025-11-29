@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import random
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from backend.connection_manager import ConnectionManager
 from backend.tank_registry import TankRegistry
@@ -51,22 +51,22 @@ class MigrationScheduler:
         self._task: Optional[asyncio.Task] = None
         self._running = False
         logger.info(f"MigrationScheduler initialized (check_interval={check_interval}s)")
-    
+
     async def start(self) -> None:
         """Start the migration scheduler."""
         if self._running:
             logger.warning("Migration scheduler already running")
             return
-        
+
         self._running = True
         self._task = asyncio.create_task(self._run_loop(), name="migration_scheduler")
         logger.info("Migration scheduler started")
-    
+
     async def stop(self) -> None:
         """Stop the migration scheduler."""
         if not self._running:
             return
-        
+
         self._running = False
         if self._task:
             self._task.cancel()
@@ -74,25 +74,25 @@ class MigrationScheduler:
                 await self._task
             except asyncio.CancelledError:
                 pass
-        
+
         logger.info("Migration scheduler stopped")
-    
+
     async def _run_loop(self) -> None:
         """Main scheduler loop."""
         logger.info("Migration scheduler loop started")
         check_count = 0
-        
+
         try:
             while self._running:
                 try:
                     check_count += 1
                     connections = self.connection_manager.list_connections()
-                    
+
                     if check_count % 6 == 0:  # Log every ~60 seconds
                         logger.debug(
                             f"Migration check #{check_count}: {len(connections)} active connections"
                         )
-                    
+
                     for connection in connections:
                         try:
                             await self._check_migration(connection)
@@ -101,20 +101,20 @@ class MigrationScheduler:
                                 f"Error checking migration for connection {connection.id}: {e}",
                                 exc_info=True,
                             )
-                    
+
                     await asyncio.sleep(self.check_interval)
-                    
+
                 except asyncio.CancelledError:
                     raise
                 except Exception as e:
                     logger.error(f"Error in migration scheduler loop: {e}", exc_info=True)
                     await asyncio.sleep(self.check_interval)
-        
+
         except asyncio.CancelledError:
             logger.info("Migration scheduler loop cancelled")
         finally:
             logger.info(f"Migration scheduler loop ended after {check_count} checks")
-    
+
     async def _check_migration(self, connection) -> None:
         """Check if a migration should occur for a connection.
 
@@ -173,7 +173,7 @@ class MigrationScheduler:
 
         # Perform the migration
         try:
-            from backend.entity_transfer import serialize_entity_for_transfer, deserialize_entity
+            from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
             from backend.transfer_history import log_transfer
 
             # Serialize entity
@@ -337,7 +337,7 @@ class MigrationScheduler:
             logger.error(f"Remote migration failed: {e}", exc_info=True)
 
             # Try to restore entity
-            from backend.entity_transfer import serialize_entity_for_transfer, deserialize_entity
+            from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
 
             try:
                 entity_data = serialize_entity_for_transfer(entity)

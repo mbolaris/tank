@@ -2,7 +2,7 @@
  * TransferHistory - Display recent entity transfers between tanks
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { config } from '../config';
 
 interface Transfer {
@@ -30,14 +30,7 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
     const [successOnly, setSuccessOnly] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchTransfers();
-        // Auto-refresh every 5 seconds
-        const interval = setInterval(fetchTransfers, 5000);
-        return () => clearInterval(interval);
-    }, [tankId, successOnly]);
-
-    const fetchTransfers = async () => {
+    const fetchTransfers = useCallback(async () => {
         try {
             setError(null);
             const params = new URLSearchParams({
@@ -59,7 +52,15 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [tankId, successOnly]);
+
+    // Fetch transfers on mount and when filters change
+    useEffect(() => {
+        fetchTransfers();
+        // Auto-refresh every 5 seconds
+        const interval = setInterval(fetchTransfers, 5000);
+        return () => clearInterval(interval);
+    }, [fetchTransfers]);
 
     const formatRelativeTime = (timestamp: string): string => {
         const now = new Date();

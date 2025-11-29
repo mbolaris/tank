@@ -1,11 +1,12 @@
 """Tank management API endpoints."""
 
 import logging
-from typing import Optional, Any
+from typing import Any, Optional
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from backend.tank_registry import TankRegistry, CreateTankRequest
+from backend.tank_registry import CreateTankRequest, TankRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,6 @@ def setup_router(
             )
 
             # Inject connection manager and tank registry for migrations
-            from backend.connection_manager import ConnectionManager
             if hasattr(tank_registry, '_connection_manager'):
                 manager.runner.connection_manager = tank_registry._connection_manager
             manager.runner.tank_registry = tank_registry
@@ -249,7 +249,7 @@ def setup_router(
         Returns:
             Success message with snapshot info, or error
         """
-        from backend.tank_persistence import save_tank_state, cleanup_old_snapshots
+        from backend.tank_persistence import cleanup_old_snapshots, save_tank_state
 
         manager = tank_registry.get_tank(tank_id)
         if manager is None:
@@ -265,7 +265,7 @@ def setup_router(
 
         return JSONResponse({
             "success": True,
-            "message": f"Tank saved successfully",
+            "message": "Tank saved successfully",
             "snapshot_path": snapshot_path,
             "tank_id": tank_id,
         })
@@ -322,7 +322,7 @@ def setup_router(
 
         return JSONResponse({
             "success": True,
-            "message": f"Tank loaded successfully",
+            "message": "Tank loaded successfully",
             "tank_id": tank_id,
             "frame": snapshot["frame"],
             "entity_count": len(snapshot["entities"]),
@@ -362,7 +362,7 @@ def setup_router(
         Returns:
             Success message or error
         """
-        from backend.tank_persistence import delete_snapshot, DATA_DIR
+        from backend.tank_persistence import DATA_DIR, delete_snapshot
 
         manager = tank_registry.get_tank(tank_id)
         if manager is None:

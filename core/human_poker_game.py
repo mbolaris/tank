@@ -601,7 +601,7 @@ class HumanPokerGame:
 
     def process_single_ai_turn(self) -> dict:
         """Process a single AI player's turn if it's their turn.
-        
+
         Returns:
             Dictionary with success status, whether an action was taken, and game state
         """
@@ -613,9 +613,9 @@ class HumanPokerGame:
                 "reason": "game_over",
                 "state": self.get_state(),
             }
-        
+
         current_player = self.players[self.current_player_index]
-        
+
         # If it's the human's turn, don't process
         if current_player.is_human:
             return {
@@ -624,10 +624,10 @@ class HumanPokerGame:
                 "reason": "human_turn",
                 "state": self.get_state(),
             }
-        
+
         # Process the AI action
         self._process_ai_action_internal()
-        
+
         return {
             "success": True,
             "action_taken": True,

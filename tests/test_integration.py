@@ -2,7 +2,7 @@
 
 import pytest
 
-from core.entities import Castle, Crab, Fish, Food, Plant
+from core.entities import Castle, Crab, Fish, Food
 
 
 class TestFullSimulation:

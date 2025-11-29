@@ -8,8 +8,8 @@ This script runs several simulated games under cProfile and prints the top
 hotspots by cumulative time. Adjust `N_ITER` for longer/shorter runs.
 """
 import cProfile
-import pstats
 import io
+import pstats
 import sys
 from time import perf_counter
 

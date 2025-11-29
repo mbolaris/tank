@@ -5,19 +5,19 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Ensure consistent module aliasing whether imported as `state_payloads` or `backend.state_payloads`
 sys.modules.setdefault("state_payloads", sys.modules[__name__])
 sys.modules.setdefault("backend.state_payloads", sys.modules[__name__])
 
 
-def _compact_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+def _compact_dict(data: dict[str, Any]) -> dict[str, Any]:
     """Return a copy of *data* with None values removed."""
     return {k: v for k, v in data.items() if v is not None}
 
 
-def _to_dict(dataclass_obj: Any) -> Dict[str, Any]:
+def _to_dict(dataclass_obj: Any) -> dict[str, Any]:
     """Dictionary representation for slot-based dataclasses without __dict__."""
 
     return {field.name: getattr(dataclass_obj, field.name) for field in dataclass_obj.__dataclass_fields__.values()}
@@ -35,34 +35,34 @@ class EntitySnapshot:
     height: float
     vel_x: float = 0.0
     vel_y: float = 0.0
-    energy: Optional[float] = None
-    generation: Optional[int] = None
-    age: Optional[int] = None
-    species: Optional[str] = None
-    genome_data: Optional[Dict[str, Any]] = None
-    food_type: Optional[str] = None
-    plant_type: Optional[int] = None
+    energy: float | None = None
+    generation: int | None = None
+    age: int | None = None
+    species: str | None = None
+    genome_data: dict[str, Any] | None = None
+    food_type: str | None = None
+    plant_type: int | None = None
     # Fractal plant fields
-    genome: Optional[Dict[str, Any]] = None
-    max_energy: Optional[float] = None
-    size_multiplier: Optional[float] = None
-    iterations: Optional[int] = None
-    nectar_ready: Optional[bool] = None
+    genome: dict[str, Any] | None = None
+    max_energy: float | None = None
+    size_multiplier: float | None = None
+    iterations: int | None = None
+    nectar_ready: bool | None = None
     # Plant nectar fields
-    source_plant_id: Optional[int] = None
-    source_plant_x: Optional[float] = None
-    source_plant_y: Optional[float] = None
+    source_plant_id: int | None = None
+    source_plant_x: float | None = None
+    source_plant_y: float | None = None
     # Floral genome for nectar rendering
-    floral_type: Optional[str] = None
-    floral_petals: Optional[int] = None
-    floral_layers: Optional[int] = None
-    floral_spin: Optional[float] = None
-    floral_hue: Optional[float] = None
-    floral_saturation: Optional[float] = None
+    floral_type: str | None = None
+    floral_petals: int | None = None
+    floral_layers: int | None = None
+    floral_spin: float | None = None
+    floral_hue: float | None = None
+    floral_saturation: float | None = None
     # Poker effects
-    poker_effect_state: Optional[Dict[str, Any]] = None
+    poker_effect_state: dict[str, Any] | None = None
 
-    def to_full_dict(self) -> Dict[str, Any]:
+    def to_full_dict(self) -> dict[str, Any]:
         """Return the full payload used on sync frames."""
 
         return _compact_dict(
@@ -100,7 +100,7 @@ class EntitySnapshot:
             }
         )
 
-    def to_delta_dict(self) -> Dict[str, Any]:
+    def to_delta_dict(self) -> dict[str, Any]:
         """Return only fast-changing fields for delta frames."""
 
         return {
@@ -148,7 +148,7 @@ class PokerStatsPayload:
     showdown_win_rate: str = "0.0%"
     avg_fold_rate: str = "0.0%"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -162,7 +162,7 @@ class StatsPayload:
     deaths: int
     capacity: str
     time: str
-    death_causes: Dict[str, int]
+    death_causes: dict[str, int]
     fish_count: int
     food_count: int
     plant_count: int
@@ -173,7 +173,7 @@ class StatsPayload:
     fps: float = 0.0
     fast_forward: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = _to_dict(self)
         data["poker_stats"] = self.poker_stats.to_dict()
         return data
@@ -189,9 +189,9 @@ class PokerEventPayload:
     energy_transferred: float
     message: str
     is_plant: bool = False
-    plant_id: Optional[int] = None
+    plant_id: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -220,7 +220,7 @@ class PokerLeaderboardEntryPayload:
     recent_win_rate: float = 0.0
     skill_trend: str = "stable"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -228,13 +228,13 @@ class PokerLeaderboardEntryPayload:
 class AutoEvaluateStatsPayload:
     hands_played: int
     hands_remaining: int
-    players: List[Dict[str, Any]]
+    players: list[dict[str, Any]]
     game_over: bool
-    winner: Optional[str]
+    winner: str | None
     reason: str
-    performance_history: List[Dict[str, Any]] = field(default_factory=list)
+    performance_history: list[dict[str, Any]] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -244,15 +244,15 @@ class FullStatePayload:
 
     frame: int
     elapsed_time: int
-    entities: List[EntitySnapshot]
+    entities: list[EntitySnapshot]
     stats: StatsPayload
-    poker_events: List[PokerEventPayload]
-    poker_leaderboard: List[PokerLeaderboardEntryPayload]
-    auto_evaluation: Optional[AutoEvaluateStatsPayload] = None
+    poker_events: list[PokerEventPayload]
+    poker_leaderboard: list[PokerLeaderboardEntryPayload]
+    auto_evaluation: AutoEvaluateStatsPayload | None = None
     type: str = "update"
-    tank_id: Optional[str] = None  # Tank World Net identifier
+    tank_id: str | None = None  # Tank World Net identifier
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _compact_dict(
             {
                 "type": self.type,
@@ -279,15 +279,15 @@ class DeltaStatePayload:
 
     frame: int
     elapsed_time: int
-    updates: List[Dict[str, Any]]
-    added: List[Dict[str, Any]]
-    removed: List[int]
-    poker_events: List[PokerEventPayload]
-    stats: Optional[StatsPayload]
+    updates: list[dict[str, Any]]
+    added: list[dict[str, Any]]
+    removed: list[int]
+    poker_events: list[PokerEventPayload]
+    stats: StatsPayload | None
     type: str = "delta"
-    tank_id: Optional[str] = None  # Tank World Net identifier
+    tank_id: str | None = None  # Tank World Net identifier
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _compact_dict(
             {
                 "type": self.type,

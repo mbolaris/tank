@@ -39,13 +39,12 @@ With N duplicate sets:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
 import math
 import statistics
+from dataclasses import dataclass, field
 
-from core.poker.strategy.implementations import PokerStrategyAlgorithm
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
+from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 
 @dataclass
@@ -60,7 +59,7 @@ class BenchmarkEvalConfig:
     num_duplicate_sets: int = 50  # number of seeds
     base_seed: int = 42
 
-    benchmark_opponents: List[str] = field(
+    benchmark_opponents: list[str] = field(
         default_factory=lambda: [
             "balanced",
             "tight_aggressive",
@@ -69,7 +68,7 @@ class BenchmarkEvalConfig:
         ]
     )
 
-    benchmark_weights: Dict[str, float] = field(
+    benchmark_weights: dict[str, float] = field(
         default_factory=lambda: {
             "balanced": 1.0,
             "tight_aggressive": 1.0,
@@ -86,7 +85,7 @@ class SingleBenchmarkResult:
     benchmark_id: str
     hands_played: int
     bb_per_100: float
-    bb_per_100_ci_95: Tuple[float, float]
+    bb_per_100_ci_95: tuple[float, float]
     sample_variance: float
     is_statistically_significant: bool
 
@@ -97,13 +96,13 @@ class BenchmarkSuiteResult:
 
     total_hands: int
     # per-opponent details
-    per_benchmark: Dict[str, SingleBenchmarkResult]
+    per_benchmark: dict[str, SingleBenchmarkResult]
     # weighted aggregate
     weighted_bb_per_100: float
-    weighted_bb_per_100_ci_95: Tuple[float, float]
+    weighted_bb_per_100_ci_95: tuple[float, float]
 
 
-def _compute_ci_95(values: List[float]) -> Tuple[float, float]:
+def _compute_ci_95(values: list[float]) -> tuple[float, float]:
     """Basic t-approximation CI. Good enough for our use;
     if you want bootstrap later, you can swap this out.
     """
@@ -132,11 +131,11 @@ def create_standard_strategy(strategy_id: str) -> PokerStrategyAlgorithm:
     """
     from core.poker.strategy.implementations import (
         BalancedStrategy,
-        TightAggressiveStrategy,
         LooseAggressiveStrategy,
-        TightPassiveStrategy,
         LoosePassiveStrategy,
         ManiacStrategy,
+        TightAggressiveStrategy,
+        TightPassiveStrategy,
     )
 
     strategy_map = {
@@ -180,7 +179,7 @@ def evaluate_vs_single_benchmark_duplicate(
     """
     benchmark_algo = create_standard_strategy(benchmark_id)
 
-    bb_per_100_samples: List[float] = []
+    bb_per_100_samples: list[float] = []
     total_hands = 0
     total_net_bb = 0.0  # big blinds won by candidate
 
@@ -273,7 +272,7 @@ def evaluate_vs_benchmark_suite(
     Returns:
         BenchmarkSuiteResult with per-opponent and aggregate metrics
     """
-    per_benchmark: Dict[str, SingleBenchmarkResult] = {}
+    per_benchmark: dict[str, SingleBenchmarkResult] = {}
     total_hands = 0
 
     # First: run per-opponent evals
@@ -284,8 +283,8 @@ def evaluate_vs_benchmark_suite(
 
     # Then: compute weighted aggregate
     weight_sum = 0.0
-    weighted_values: List[float] = []
-    sample_weights: List[float] = []
+    weighted_values: list[float] = []
+    sample_weights: list[float] = []
 
     for benchmark_id, result in per_benchmark.items():
         w = cfg.benchmark_weights.get(benchmark_id, 1.0)
@@ -299,7 +298,7 @@ def evaluate_vs_benchmark_suite(
     else:
         weighted_mean = sum(weighted_values) / weight_sum
         # crude weighted CI: treat weights as multiplicities
-        expanded_samples: List[float] = []
+        expanded_samples: list[float] = []
         for benchmark_id, result in per_benchmark.items():
             w = int(round(cfg.benchmark_weights.get(benchmark_id, 1.0)))
             expanded_samples.extend([result.bb_per_100] * max(w, 1))

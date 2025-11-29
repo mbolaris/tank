@@ -153,43 +153,15 @@ export function PokerPlayer({
     genomeData,
     cards = [],
 }: PokerPlayerProps) {
-    const playerClass = `${styles.player} ${folded ? styles.folded : ''} ${isActive ? styles.active : ''}`;
-
-    if (isHuman) {
-        const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''}`;
-        return (
-            <div className={humanClass}>
-                {/* Cards on the left */}
-                <div className={styles.yourCards}>
-                    <div className={styles.cardsContainer}>
-                        {cards.map((card, idx) => (
-                            <PlayingCard key={idx} card={card} size="small" />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Chips and stats to the right of cards */}
-                <div className={styles.playerStats}>
-                    <div className={styles.chipStackContainer}>
-                        <ChipStack totalValue={Math.round(energy)} size="medium" />
-                        <div className={styles.energyText}>{Math.round(energy)} ⚡</div>
-                    </div>
-                    <div className={currentBet > 0 ? styles.currentBet : styles.betHidden}>
-                        {currentBet > 0 ? `🪙 ${Math.round(currentBet)}` : ''}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // Check if we should show actual cards (showdown) or card backs
-    const showActualCards = cards.length > 0 && cards[0] !== '??';
-
+    // All hooks must be called at the top level, before any conditional returns
     // Card flipping state for opponent cards
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevShowActualCardsRef = useRef(false);
     const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+    // Check if we should show actual cards (showdown) or card backs
+    const showActualCards = cards.length > 0 && cards[0] !== '??';
 
     useEffect(() => {
         // Clear any pending timeouts when component unmounts
@@ -200,6 +172,9 @@ export function PokerPlayer({
     }, []);
 
     useEffect(() => {
+        // Skip card flip logic for human player
+        if (isHuman) return;
+
         // If showdown just started (transitioned from card backs to actual cards)
         if (showActualCards && !prevShowActualCardsRef.current) {
             // Clear any existing timeouts
@@ -237,7 +212,36 @@ export function PokerPlayer({
         }
 
         prevShowActualCardsRef.current = showActualCards;
-    }, [showActualCards, cards]);
+    }, [isHuman, showActualCards, cards]);
+
+    const playerClass = `${styles.player} ${folded ? styles.folded : ''} ${isActive ? styles.active : ''}`;
+
+    if (isHuman) {
+        const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''}`;
+        return (
+            <div className={humanClass}>
+                {/* Cards on the left */}
+                <div className={styles.yourCards}>
+                    <div className={styles.cardsContainer}>
+                        {cards.map((card, idx) => (
+                            <PlayingCard key={idx} card={card} size="small" />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Chips and stats to the right of cards */}
+                <div className={styles.playerStats}>
+                    <div className={styles.chipStackContainer}>
+                        <ChipStack totalValue={Math.round(energy)} size="medium" />
+                        <div className={styles.energyText}>{Math.round(energy)} ⚡</div>
+                    </div>
+                    <div className={currentBet > 0 ? styles.currentBet : styles.betHidden}>
+                        {currentBet > 0 ? `🪙 ${Math.round(currentBet)}` : ''}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={playerClass} title={name}>

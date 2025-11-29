@@ -68,12 +68,12 @@ class PlantGenome:
 
     def _generate_default_rules(self) -> List[Tuple[str, str, float]]:
         """Generate default L-system production rules based on axiom and fractal type.
-        
+
         This ensures plants with 'X' axiom (like claude, gemini, cosmic_fern, etc.)
         get proper rules to expand their axiom into drawable 'F' segments.
         """
         rules: List[Tuple[str, str, float]] = []
-        
+
         # If axiom contains 'X', we need rules for X to expand into F segments
         if "X" in self.axiom:
             # Add fern-like X rules that produce visible F segments
@@ -86,7 +86,7 @@ class PlantGenome:
             else:
                 rules.append(("X", "F[+X]F[-X]+X", 0.6))
                 rules.append(("X", "F[-X]+F[+X]", 0.4))
-        
+
         # Add F rules for stem/branch growth
         if self.branch_probability > 0.8:
             rules.append(("F", "FF-[-F+F+F]+[+F-F-F]", 0.7))
@@ -97,12 +97,12 @@ class PlantGenome:
         else:
             rules.append(("F", "FF", 0.6))
             rules.append(("F", "F[-F]", 0.4))
-        
+
         # If axiom contains 'R' (like antigravity variant), add aerial root rules
         if "R" in self.axiom:
             rules.append(("R", "F[&F]f", 0.5))
             rules.append(("R", "F[-&F][+&F]", 0.5))
-        
+
         return rules
 
     def get_production_rules(self) -> Dict[str, List[Tuple[str, float]]]:
@@ -556,11 +556,11 @@ class PlantGenome:
         )
 
     def get_color_rgb(self) -> Tuple[int, int, int]:
-        h = self.color_hue
-        s = self.color_saturation
-        l = 0.4
-        if s == 0:
-            r = g = b = int(l * 255)
+        hue = self.color_hue
+        sat = self.color_saturation
+        lightness = 0.4
+        if sat == 0:
+            r = g = b = int(lightness * 255)
         else:
             def hue_to_rgb(p: float, q: float, t: float) -> float:
                 if t < 0:
@@ -575,11 +575,11 @@ class PlantGenome:
                     return p + (q - p) * (2 / 3 - t) * 6
                 return p
 
-            q = l * (1 + s) if l < 0.5 else l + s - l * s
-            p = 2 * l - q
-            r = int(hue_to_rgb(p, q, h + 1 / 3) * 255)
-            g = int(hue_to_rgb(p, q, h) * 255)
-            b = int(hue_to_rgb(p, q, h - 1 / 3) * 255)
+            q = lightness * (1 + sat) if lightness < 0.5 else lightness + sat - lightness * sat
+            p = 2 * lightness - q
+            r = int(hue_to_rgb(p, q, hue + 1 / 3) * 255)
+            g = int(hue_to_rgb(p, q, hue) * 255)
+            b = int(hue_to_rgb(p, q, hue - 1 / 3) * 255)
         return (r, g, b)
 
     def to_dict(self) -> Dict:

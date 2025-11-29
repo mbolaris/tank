@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from core import entities, environment, movement_strategy
 from core.algorithms import get_algorithm_index, get_algorithm_name
+from core.collision_system import CollisionSystem
 from core.constants import (
     AUTO_FOOD_ENABLED,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
@@ -26,7 +27,6 @@ from core.constants import (
     EMERGENCY_SPAWN_COOLDOWN,
     FILES,
     FRACTAL_PLANT_INITIAL_COUNT,
-    FRACTAL_PLANT_INITIAL_ENERGY,
     FRACTAL_PLANT_MATURE_ENERGY,
     FRACTAL_PLANTS_ENABLED,
     FRAME_RATE,
@@ -41,17 +41,16 @@ from core.constants import (
     SPAWN_MARGIN_PIXELS,
     TOTAL_ALGORITHM_COUNT,
 )
-from core.collision_system import CollisionSystem
 from core.ecosystem import EcosystemManager
 from core.entities.fractal_plant import FractalPlant, PlantNectar
 from core.entity_factory import create_initial_population
 from core.fish_poker import PokerInteraction
 from core.genetics import Genome
 from core.object_pool import FoodPool
-from core.poker_system import PokerSystem
+from core.plant_genetics import PlantGenome
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-from core.plant_genetics import PlantGenome
+from core.poker_system import PokerSystem
 from core.registry import get_algorithm_metadata
 from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
@@ -241,7 +240,7 @@ class SimulationEngine(BaseSimulator):
     def _get_fractal_variant_counts(self) -> Dict[str, int]:
         """Count how many plants of each LLM variant are present."""
 
-        counts = {variant: 0 for variant in self._fractal_variants}
+        counts = dict.fromkeys(self._fractal_variants, 0)
         for entity in self.entities_list:
             if isinstance(entity, FractalPlant):
                 variant = getattr(entity.genome, "fractal_type", "lsystem")
@@ -806,7 +805,7 @@ class SimulationEngine(BaseSimulator):
         stats["fish_energy"] = sum(fish.energy for fish in fish_list)
         plant_list = [e for e in self.entities_list if isinstance(e, FractalPlant)]
         stats["plant_energy"] = sum(plant.energy for plant in plant_list)
-        
+
         # Update plant count to include fractal plants
         regular_plants = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
         stats["plant_count"] = regular_plants + len(plant_list)

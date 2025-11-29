@@ -7,7 +7,7 @@ server restarts.
 
 import asyncio
 import logging
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
     from backend.simulation_manager import SimulationManager
@@ -110,7 +110,7 @@ class AutoSaveService:
         Args:
             manager: The SimulationManager to save
         """
-        from backend.tank_persistence import save_tank_state, cleanup_old_snapshots
+        from backend.tank_persistence import cleanup_old_snapshots, save_tank_state
 
         tank_id = manager.tank_id
         interval = manager.tank_info.auto_save_interval
@@ -161,7 +161,7 @@ class AutoSaveService:
         Returns:
             Path to saved snapshot, or None if failed
         """
-        from backend.tank_persistence import save_tank_state, cleanup_old_snapshots
+        from backend.tank_persistence import cleanup_old_snapshots, save_tank_state
 
         manager = self._tank_registry.get_tank(tank_id)
         if not manager:

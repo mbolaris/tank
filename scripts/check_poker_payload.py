@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # Ensure project root is on sys.path when running as a script
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

@@ -19,12 +19,12 @@ from core.constants import (
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     COLLISION_QUERY_RADIUS,
+    FRACTAL_PLANT_POKER_COLLISION_DISTANCE,
     LIVE_FOOD_SPAWN_CHANCE,
     MATING_QUERY_RADIUS,
+    POKER_ACTIVITY_ENABLED,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
-    POKER_ACTIVITY_ENABLED,
-    FRACTAL_PLANT_POKER_COLLISION_DISTANCE,
 )
 from core.fish_poker import PokerInteraction
 from core.plant_poker import PlantPokerInteraction, check_fish_plant_poker_collision

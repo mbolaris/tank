@@ -666,7 +666,7 @@ function MiniPerformanceChart({ history }: { history: PokerPerformanceSnapshot[]
 }
 
 function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
-    const { tank, running, client_count, frame, paused, fps, fast_forward } = tankStatus;
+    const { tank, running, frame, paused, fps, fast_forward } = tankStatus;
     const stats = tankStatus.stats ?? {
         fish_count: 0,
         generation: 0,
@@ -694,7 +694,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         setFullState(data);
                     }
                 }
-            } catch (err) {
+            } catch {
                 // Silent fail - we have basic stats from tankStatus anyway
             }
         };

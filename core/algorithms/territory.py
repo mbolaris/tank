@@ -18,7 +18,7 @@ from typing import List, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from core.entities import Crab, Food
+from core.entities import Crab
 from core.entities import Fish as FishClass
 
 
@@ -432,7 +432,6 @@ class NomadicWanderer(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-        from core.math_utils import Vector2
 
         # Check for threats and opportunities
         nearest_predator = self._find_nearest(fish, Crab)

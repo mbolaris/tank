@@ -2,12 +2,13 @@
 """Test that the 90% energy threshold for reproduction works correctly."""
 
 import sys
+
 sys.path.insert(0, "/home/user/tank")
 
+from core.algorithms import GreedyFoodSeeker
 from core.entities import Fish, LifeStage
 from core.genetics import Genome
 from core.movement_strategy import AlgorithmicMovement
-from core.algorithms import GreedyFoodSeeker
 
 
 def make_adult_fish(**kwargs):
@@ -48,10 +49,9 @@ def test_reproduction_threshold_logic():
     )
 
     # Age fish to ADULT stage (fish start as BABY)
-    from core.entities import LifeStage
     fish._life_stage = LifeStage.ADULT
 
-    print(f"\nFish created:")
+    print("\nFish created:")
     print(f"  Life stage: {fish.life_stage}")
     print(f"  Max energy: {fish.max_energy:.1f}")
     print(f"  90% threshold: {fish.max_energy * 0.9:.1f}")
@@ -67,7 +67,7 @@ def test_reproduction_threshold_logic():
         (1.00, "100%", True),
     ]
 
-    print(f"\nTesting can_reproduce() at different energy levels:")
+    print("\nTesting can_reproduce() at different energy levels:")
     print(f"  {'Energy':<10} {'Can Reproduce':<15} {'Expected':<10} {'Result'}")
     print(f"  {'-'*10} {'-'*15} {'-'*10} {'-'*6}")
 
@@ -140,7 +140,7 @@ def test_proximity_vs_poker_reproduction():
         initial_energy=50.0,
     )
 
-    print(f"\n1. Testing PROXIMITY-BASED reproduction:")
+    print("\n1. Testing PROXIMITY-BASED reproduction:")
 
     # Test at 50% energy
     fish1.energy = fish1.max_energy * 0.50
@@ -149,16 +149,16 @@ def test_proximity_vs_poker_reproduction():
     can_reproduce_1 = fish1.can_reproduce()
     can_reproduce_2 = fish2.can_reproduce()
 
-    print(f"\n  At 50% energy:")
+    print("\n  At 50% energy:")
     print(f"    Fish 1 can reproduce: {can_reproduce_1}")
     print(f"    Fish 2 can reproduce: {can_reproduce_2}")
 
     test1_passed = True
     if can_reproduce_1 or can_reproduce_2:
-        print(f"    ❌ FAIL: Fish at 50% energy can reproduce (threshold not working!)")
+        print("    ❌ FAIL: Fish at 50% energy can reproduce (threshold not working!)")
         test1_passed = False
     else:
-        print(f"    ✓ PASS: Fish at 50% energy cannot reproduce")
+        print("    ✓ PASS: Fish at 50% energy cannot reproduce")
 
     # Test at 95% energy
     fish1.energy = fish1.max_energy * 0.95
@@ -167,18 +167,18 @@ def test_proximity_vs_poker_reproduction():
     can_reproduce_1 = fish1.can_reproduce()
     can_reproduce_2 = fish2.can_reproduce()
 
-    print(f"\n  At 95% energy:")
+    print("\n  At 95% energy:")
     print(f"    Fish 1 can reproduce: {can_reproduce_1}")
     print(f"    Fish 2 can reproduce: {can_reproduce_2}")
 
     if can_reproduce_1 and can_reproduce_2:
-        print(f"    ✓ PASS: Fish at 95% energy can reproduce")
+        print("    ✓ PASS: Fish at 95% energy can reproduce")
     else:
-        print(f"    ❌ FAIL: Fish at 95% energy cannot reproduce!")
+        print("    ❌ FAIL: Fish at 95% energy cannot reproduce!")
         test1_passed = False
 
     # Test poker reproduction
-    print(f"\n2. Testing POKER-BASED reproduction:")
+    print("\n2. Testing POKER-BASED reproduction:")
 
     from core.fish_poker import should_offer_post_poker_reproduction
 
@@ -193,15 +193,15 @@ def test_proximity_vs_poker_reproduction():
     # Test at 50% energy
     winner_wants = should_offer_post_poker_reproduction(fish1, fish2, is_winner=True, energy_gained=10.0)
 
-    print(f"\n  At 50% energy:")
+    print("\n  At 50% energy:")
     print(f"    Winner wants to reproduce: {winner_wants}")
 
     test2_passed = True
     if winner_wants:
-        print(f"    ❌ FAIL: Fish at 50% energy wants to reproduce after poker!")
+        print("    ❌ FAIL: Fish at 50% energy wants to reproduce after poker!")
         test2_passed = False
     else:
-        print(f"    ✓ PASS: Fish at 50% energy doesn't want to reproduce after poker")
+        print("    ✓ PASS: Fish at 50% energy doesn't want to reproduce after poker")
 
     # Test at 95% energy
     fish1.energy = fish1.max_energy * 0.95
@@ -221,20 +221,20 @@ def test_proximity_vs_poker_reproduction():
     winner_prob = winner_wants_count / trials
     loser_prob = loser_wants_count / trials
 
-    print(f"\n  At 95% energy (100 trials):")
+    print("\n  At 95% energy (100 trials):")
     print(f"    Winner wants to reproduce: {winner_prob*100:.0f}% of time (expected ~40%)")
     print(f"    Loser wants to reproduce: {loser_prob*100:.0f}% of time (expected ~20%)")
 
     # Check if probabilities are reasonable (within 15% of expected)
     if 0.25 <= winner_prob <= 0.55:
-        print(f"    ✓ PASS: Winner probability is reasonable")
+        print("    ✓ PASS: Winner probability is reasonable")
     else:
-        print(f"    ⚠ WARNING: Winner probability seems off (expected 40% +/- 15%)")
+        print("    ⚠ WARNING: Winner probability seems off (expected 40% +/- 15%)")
 
     if 0.05 <= loser_prob <= 0.35:
-        print(f"    ✓ PASS: Loser probability is reasonable")
+        print("    ✓ PASS: Loser probability is reasonable")
     else:
-        print(f"    ⚠ WARNING: Loser probability seems off (expected 20% +/- 15%)")
+        print("    ⚠ WARNING: Loser probability seems off (expected 20% +/- 15%)")
 
     return test1_passed and test2_passed
 
@@ -278,11 +278,11 @@ def test_energy_threshold_comparison():
 
         print(f"  {fish.max_energy:<12.1f} {old_threshold_percent:<12.1f}% {new_threshold:<12.1f} (+{difference:.1f})")
 
-    print(f"\n  Summary:")
-    print(f"    - Old threshold was ABSOLUTE (always 25 energy)")
-    print(f"    - Weak fish (70 max): needed 36% energy, now need 90% (+54 percentage points!)")
-    print(f"    - Strong fish (150 max): needed 17% energy, now need 90% (+73 percentage points!)")
-    print(f"    - This creates STRONG selection pressure across all fish types")
+    print("\n  Summary:")
+    print("    - Old threshold was ABSOLUTE (always 25 energy)")
+    print("    - Weak fish (70 max): needed 36% energy, now need 90% (+54 percentage points!)")
+    print("    - Strong fish (150 max): needed 17% energy, now need 90% (+73 percentage points!)")
+    print("    - This creates STRONG selection pressure across all fish types")
 
     return True
 
@@ -312,7 +312,7 @@ def test_realistic_scenario():
         initial_energy=50.0,
     )
 
-    print(f"\nScenario: Fish starts at 50% energy and eats food")
+    print("\nScenario: Fish starts at 50% energy and eats food")
     print(f"  Initial energy: {fish.energy:.1f}/{fish.max_energy:.1f} ({fish.energy/fish.max_energy*100:.0f}%)")
     print(f"  Can reproduce: {fish.can_reproduce()}")
 
@@ -329,14 +329,14 @@ def test_realistic_scenario():
         print(f"    Can reproduce: {can_reproduce}")
 
         if can_reproduce:
-            print(f"    ✓ Fish can now reproduce! (reached 90% threshold)")
+            print("    ✓ Fish can now reproduce! (reached 90% threshold)")
             break
 
     # Final check
     final_percent = (fish.energy / fish.max_energy) * 100
     if fish.can_reproduce():
         print(f"\n  ✓ SUCCESS: Fish reached {final_percent:.0f}% energy and can reproduce")
-        print(f"  This shows the 90% threshold is achievable through normal gameplay")
+        print("  This shows the 90% threshold is achievable through normal gameplay")
         return True
     else:
         print(f"\n  ⚠ Note: Fish is at {final_percent:.0f}% energy - needs more food to reproduce")

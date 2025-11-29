@@ -9,7 +9,6 @@ from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.environment import Environment
-    from core.entities.predators import Crab
 
 
 class LifeStage(Enum):
@@ -134,13 +133,13 @@ class Agent:
 
     def handle_screen_edges(self) -> None:
         """Handle the agent hitting the edge of the screen.
-        
+
         For Fish entities, check for migration opportunities at left/right boundaries.
         Other entities just bounce.
         """
         # Import here to avoid circular dependency
         from core.entities import Fish
-        
+
         # Check for boundary migration (only for Fish)
         if isinstance(self, Fish):
             # Left boundary

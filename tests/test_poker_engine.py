@@ -1,7 +1,7 @@
 import sys
+
 sys.path.append(r"c:\shared\bolaris\tank")
-from core.poker.core import PokerGameState, BettingAction, simulate_game
-from core.poker.core.cards import Card
+from core.poker.core import BettingAction, PokerGameState, simulate_game
 
 
 def test_is_betting_complete_only_checks_current_bets():

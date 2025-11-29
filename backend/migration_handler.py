@@ -2,7 +2,7 @@
 
 import logging
 import random
-from typing import Any, Optional
+from typing import Any
 
 from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
 from backend.transfer_history import log_transfer

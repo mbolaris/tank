@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { config, type ServerWithTanks } from '../config';
 import { useErrorNotification } from '../hooks/useErrorNotification';
 import { ErrorNotification } from './ErrorNotification';
@@ -64,13 +64,14 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         [activeConnection, connections],
     );
 
-    // Keep form selections in sync with available tanks
+    // Keep form selections in sync with available tanks - initialize once
+    const initializedRef = useRef(false);
     useEffect(() => {
-        if (!sourceId && tanks.length > 0) {
-            setSourceId(tanks[0].id);
-        }
-        if (!destinationId && tanks.length > 1) {
-            setDestinationId(tanks[1].id);
+        if (initializedRef.current) return;
+        if (tanks.length > 0) {
+            if (!sourceId) setSourceId(tanks[0].id);
+            if (!destinationId && tanks.length > 1) setDestinationId(tanks[1].id);
+            initializedRef.current = true;
         }
     }, [tanks, sourceId, destinationId]);
 
@@ -272,7 +273,7 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
     const formatTimestamp = (timestamp: string) => {
         try {
             return new Date(timestamp).toLocaleString();
-        } catch (err) {
+        } catch {
             return timestamp;
         }
     };

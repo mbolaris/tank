@@ -318,7 +318,7 @@ export function AutoEvaluateDisplay({
                 }
                 const data = await response.json();
                 setFullHistory(data);
-            } catch (error) {
+            } catch {
                 // Silently fall back to stats history on error
                 if (stats.performance_history) {
                     setFullHistory(stats.performance_history);
@@ -333,7 +333,7 @@ export function AutoEvaluateDisplay({
             // If we have the full history in stats (e.g. start of game), use it
             setFullHistory(stats.performance_history);
         }
-    }, [stats?.performance_history]);
+    }, [stats, stats?.performance_history]);
 
     if (loading && !stats) {
         return (

@@ -41,7 +41,6 @@ from core.poker.evaluation.strength import (
     get_action_recommendation,
 )
 
-
 # Default aggression constants
 AGGRESSION_LOW = POKER_AGGRESSION_LOW
 AGGRESSION_MEDIUM = POKER_AGGRESSION_MEDIUM
