@@ -577,6 +577,7 @@ def setup_routers():
         server_id=SERVER_ID,
         start_broadcast_callback=start_broadcast_for_tank,
         stop_broadcast_callback=stop_broadcast_for_tank,
+        auto_save_service=auto_save_service,
     )
     app.include_router(tanks_router)
 

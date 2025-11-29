@@ -1,7 +1,7 @@
 """Tank management API endpoints."""
 
 import logging
-from typing import Optional
+from typing import Optional, Any
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
@@ -18,6 +18,7 @@ def setup_router(
     server_id: str,
     start_broadcast_callback,
     stop_broadcast_callback,
+    auto_save_service: Optional[Any] = None,
 ) -> APIRouter:
     """Setup the tanks router with required dependencies.
 
@@ -221,6 +222,10 @@ def setup_router(
         Returns:
             Success message or 404 if not found
         """
+        # Stop auto-save first
+        if auto_save_service:
+            await auto_save_service.stop_tank_autosave(tank_id)
+
         # Stop broadcast first
         await stop_broadcast_callback(tank_id)
 
