@@ -13,12 +13,14 @@ ELDER_METABOLISM_MULTIPLIER = 1.2  # Elders need more energy
 
 # Energy Consumption Constants
 EXISTENCE_ENERGY_COST = 0.02  # Cost just for being alive per frame
-MOVEMENT_ENERGY_COST = 0.015  # Movement-based energy consumption multiplier
+MOVEMENT_ENERGY_COST = 0.02  # Movement-based energy consumption multiplier (was 0.015)
+HIGH_SPEED_ENERGY_COST = 0.015  # Additional quadratic cost for fast movement
+HIGH_SPEED_THRESHOLD = 0.7  # Speed ratio above which high-speed cost applies (70% of max)
 SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns
 SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
 # Direction Change Energy Constants
-DIRECTION_CHANGE_ENERGY_BASE = 0.03  # Base energy cost for direction changes
+DIRECTION_CHANGE_ENERGY_BASE = 0.05  # Base energy cost for direction changes (was 0.03)
 DIRECTION_CHANGE_SIZE_MULTIPLIER = 1.5  # Larger fish use more energy to turn (multiplied by size)
 MOVEMENT_SIZE_MULTIPLIER = 1.2  # Additional size-based movement cost multiplier
 

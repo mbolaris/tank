@@ -12,6 +12,8 @@ from core.constants import (
     CRITICAL_ENERGY_THRESHOLD,
     ELDER_METABOLISM_MULTIPLIER,
     EXISTENCE_ENERGY_COST,
+    HIGH_SPEED_ENERGY_COST,
+    HIGH_SPEED_THRESHOLD,
     INITIAL_ENERGY_RATIO,
     LOW_ENERGY_THRESHOLD,
     MOVEMENT_ENERGY_COST,
@@ -92,11 +94,24 @@ class EnergyComponent:
 
         # Additional cost for movement - scales with body size (larger fish use more energy to move)
         # Size scaling is non-linear: larger fish use disproportionately more energy
-        if velocity.length() > 0:
+        vel_length = velocity.length()
+        if vel_length > 0:
             from core.constants import MOVEMENT_SIZE_MULTIPLIER
 
             size_factor = size**MOVEMENT_SIZE_MULTIPLIER
-            movement_cost = MOVEMENT_ENERGY_COST * velocity.length() / speed * size_factor
+            speed_ratio = vel_length / speed if speed > 0 else 0
+            
+            # Base movement cost (linear with speed)
+            movement_cost = MOVEMENT_ENERGY_COST * speed_ratio * size_factor
+            
+            # Additional quadratic cost for high-speed movement
+            # Fish moving faster than 70% of max speed pay extra
+            if speed_ratio > HIGH_SPEED_THRESHOLD:
+                excess_speed = speed_ratio - HIGH_SPEED_THRESHOLD
+                # Quadratic scaling: small excess = small cost, large excess = large cost
+                high_speed_cost = HIGH_SPEED_ENERGY_COST * (excess_speed ** 2) * size_factor
+                movement_cost += high_speed_cost
+            
             metabolism += movement_cost
 
         # Apply life stage modifiers to metabolism (not existence cost)
