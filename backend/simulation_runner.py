@@ -770,7 +770,6 @@ class SimulationRunner:
                     stable_id = self._next_other_id + 5_000_000  # Use 5M offset for other entities
                     self._entity_stable_ids[python_id] = stable_id
                     self._next_other_id += 1
-                stable_id = entity.plant_id + PLANT_ID_OFFSET
 
             base_data = {
                 "id": stable_id,
