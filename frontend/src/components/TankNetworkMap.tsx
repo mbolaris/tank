@@ -320,6 +320,29 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                                 <stop offset="50%" stopColor="#60a5fa" stopOpacity="0.4" />
                                 <stop offset="100%" stopColor="#a78bfa" stopOpacity="0.25" />
                             </linearGradient>
+                            {/* Arrow marker for tube direction */}
+                            <marker
+                                id="tubeArrow"
+                                viewBox="0 0 10 10"
+                                refX="5"
+                                refY="5"
+                                markerWidth="4"
+                                markerHeight="4"
+                                orient="auto-start-reverse"
+                            >
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#60a5fa" opacity="0.8" />
+                            </marker>
+                            <marker
+                                id="tubeArrowActive"
+                                viewBox="0 0 10 10"
+                                refX="5"
+                                refY="5"
+                                markerWidth="5"
+                                markerHeight="5"
+                                orient="auto-start-reverse"
+                            >
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#22d3ee" />
+                            </marker>
                         </defs>
 
                         {connections.map((connection) => {
@@ -340,6 +363,29 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                             const controlX = (source.x + dest.x) / 2 + (isVertical ? 80 : 0);
                             const controlY = (source.y + dest.y) / 2 - (isVertical ? 0 : 60);
 
+                            // Calculate points along the curve for direction arrows
+                            // Quadratic Bezier: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+                            const getPointOnCurve = (t: number) => {
+                                const mt = 1 - t;
+                                return {
+                                    x: mt * mt * source.x + 2 * mt * t * controlX + t * t * dest.x,
+                                    y: mt * mt * source.y + 2 * mt * t * controlY + t * t * dest.y,
+                                };
+                            };
+
+                            // Get tangent direction at point t
+                            const getTangent = (t: number) => {
+                                const mt = 1 - t;
+                                // Derivative: B'(t) = 2(1-t)(P1-P0) + 2t(P2-P1)
+                                const tx = 2 * mt * (controlX - source.x) + 2 * t * (dest.x - controlX);
+                                const ty = 2 * mt * (controlY - source.y) + 2 * t * (dest.y - controlY);
+                                const len = Math.sqrt(tx * tx + ty * ty);
+                                return { x: tx / len, y: ty / len };
+                            };
+
+                            // Place arrows at 33% and 66% along the curve
+                            const arrowPositions = [0.35, 0.65];
+
                             return (
                                 <g key={connection.id}>
                                     <path
@@ -351,6 +397,23 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
                                         className={isActive ? 'tube-flow' : undefined}
                                         strokeLinecap="round"
                                     />
+                                    {/* Direction arrows along the tube */}
+                                    {arrowPositions.map((t, idx) => {
+                                        const point = getPointOnCurve(t);
+                                        const tangent = getTangent(t);
+                                        const angle = Math.atan2(tangent.y, tangent.x) * (180 / Math.PI);
+                                        const arrowSize = Math.max(8, thickness * 0.8);
+                                        return (
+                                            <g key={idx} transform={`translate(${point.x}, ${point.y}) rotate(${angle})`}>
+                                                <polygon
+                                                    points={`${arrowSize},0 ${-arrowSize * 0.6},${arrowSize * 0.6} ${-arrowSize * 0.6},${-arrowSize * 0.6}`}
+                                                    fill={isActive ? '#22d3ee' : '#60a5fa'}
+                                                    opacity={isActive ? 1 : 0.7}
+                                                    className={isActive ? 'tube-pulse' : undefined}
+                                                />
+                                            </g>
+                                        );
+                                    })}
                                     {isActive && (
                                         <circle
                                             cx={(source.x * 2 + dest.x) / 3}
