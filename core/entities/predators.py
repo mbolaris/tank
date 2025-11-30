@@ -40,8 +40,8 @@ class Crab(Agent):
 
         super().__init__(environment, x, y, speed, screen_width, screen_height)
 
-        # Energy system
-        self.max_energy: float = CRAB_INITIAL_ENERGY * self.genome.max_energy
+        # Energy system - max energy based on size
+        self.max_energy: float = CRAB_INITIAL_ENERGY * self.genome.size_modifier
         self.energy: float = self.max_energy
 
         # Hunting mechanics

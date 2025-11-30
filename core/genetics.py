@@ -43,10 +43,9 @@ class Genome:
 
     Attributes:
         speed_modifier: Multiplier for base speed (0.5-1.5)
-        size_modifier: Multiplier for base size (0.7-1.3)
+        size_modifier: Multiplier for base size (0.7-1.3), also determines max energy capacity
         vision_range: Multiplier for detection range (0.7-1.3)
         metabolism_rate: Multiplier for energy consumption (0.7-1.3)
-        max_energy: Multiplier for maximum energy capacity (0.7-1.5)
         fertility: Multiplier for reproduction rate (0.6-1.4)
         aggression: Territorial/competitive behavior (0.0-1.0)
         social_tendency: Preference for schooling (0.0-1.0)
@@ -73,7 +72,6 @@ class Genome:
 
     # Metabolic traits
     metabolism_rate: float = 1.0
-    max_energy: float = 1.0
     fertility: float = 1.0
 
     # Behavioral traits
@@ -153,7 +151,6 @@ class Genome:
             size_modifier=rng.uniform(0.7, 1.3),
             vision_range=rng.uniform(0.7, 1.3),
             metabolism_rate=rng.uniform(0.7, 1.3),
-            max_energy=rng.uniform(0.7, 1.5),
             fertility=rng.uniform(0.6, 1.4),
             aggression=rng.uniform(0.0, 1.0),
             social_tendency=rng.uniform(0.0, 1.0),
@@ -365,7 +362,6 @@ class Genome:
             size_modifier=weighted_inherit(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
             vision_range=weighted_inherit(parent1.vision_range, parent2.vision_range, 0.7, 1.3),
             metabolism_rate=metabolism,
-            max_energy=weighted_inherit(parent1.max_energy, parent2.max_energy, 0.7, 1.5),
             fertility=weighted_inherit(parent1.fertility, parent2.fertility, 0.6, 1.4),
             aggression=weighted_inherit(parent1.aggression, parent2.aggression, 0.0, 1.0),
             social_tendency=weighted_inherit(
@@ -543,9 +539,6 @@ class Genome:
                 parent1.vision_range, parent2.vision_range, 0.7, 1.3
             ),
             metabolism_rate=metabolism,
-            max_energy=inherit_trait_with_mode(
-                parent1.max_energy, parent2.max_energy, 0.7, 1.5
-            ),
             fertility=inherit_trait_with_mode(
                 parent1.fertility, parent2.fertility, 0.6, 1.4
             ),

@@ -45,7 +45,7 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
         "vel_y": fish.vel.y,
         "speed": fish.speed,
         "energy": fish.energy,
-        "max_energy": fish.max_energy,
+        # max_energy is computed from size, not stored (removed in schema v2)
         "age": fish.age,
         "max_age": fish.max_age,
         "generation": fish.generation,
@@ -55,7 +55,6 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
             "size_modifier": fish.genome.size_modifier,
             "vision_range": fish.genome.vision_range,
             "metabolism_rate": fish.genome.metabolism_rate,
-            "max_energy": fish.genome.max_energy,
             "fertility": fish.genome.fertility,
             "color_hue": fish.genome.color_hue,
             "aggression": fish.genome.aggression,
@@ -171,7 +170,6 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             size_modifier=genome_data.get("size_modifier", 1.0),
             vision_range=genome_data.get("vision_range", 1.0),
             metabolism_rate=genome_data.get("metabolism_rate", 1.0),
-            max_energy=genome_data.get("max_energy", 1.0),
             fertility=genome_data.get("fertility", 1.0),
             color_hue=genome_data.get("color_hue", 0.5),
             aggression=genome_data.get("aggression", 0.5),
@@ -217,11 +215,13 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             parent_id=data.get("parent_id"),
         )
 
-        # Restore additional state via internal components (age/max_age/max_energy are read-only properties)
+        # Restore additional state via internal components (age/max_age are read-only properties)
+        # Note: max_energy is now computed from fish size, not stored separately
         fish._lifecycle_component.age = data["age"]
         fish._lifecycle_component.max_age = data["max_age"]
         fish._lifecycle_component.update_life_stage()  # Update life stage based on restored age
-        fish._energy_component.max_energy = data["max_energy"]
+        # max_energy is computed from size, so we don't restore it directly
+        # Old saves may have max_energy, but it's ignored
         fish.vel.x = data["vel_x"]
         fish.vel.y = data["vel_y"]
         fish.reproduction_cooldown = data["reproduction_cooldown"]

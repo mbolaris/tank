@@ -107,13 +107,14 @@ class Fish(Agent):
         # Life cycle - managed by LifecycleComponent for better code organization
         from core.fish.lifecycle_component import LifecycleComponent
 
-        max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.max_energy)  # Hardier fish live longer
+        max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.size_modifier)  # Larger fish live longer
         self._lifecycle_component = LifecycleComponent(max_age, self.genome.size_modifier)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization
         from core.fish.energy_component import EnergyComponent
 
-        max_energy = ENERGY_MAX_DEFAULT * self.genome.max_energy
+        # Max energy is based on fish size - bigger fish can store more energy
+        max_energy = ENERGY_MAX_DEFAULT * self.genome.size_modifier
         base_metabolism = ENERGY_MODERATE_MULTIPLIER * self.genome.metabolism_rate
         # Use custom initial energy if provided (for reproduction), otherwise use default ratio
         if initial_energy is not None:
@@ -243,8 +244,13 @@ class Fish(Agent):
 
     @property
     def max_energy(self) -> float:
-        """Maximum energy capacity (read-only property delegating to EnergyComponent)."""
-        return self._energy_component.max_energy
+        """Maximum energy capacity based on current size (age + genetics).
+        
+        A fish's max energy grows as they physically grow from baby to adult.
+        Baby fish (size ~0.35-0.5) have less capacity than adults (size ~0.7-1.3).
+        """
+        from core.constants import ENERGY_MAX_DEFAULT
+        return ENERGY_MAX_DEFAULT * self.size
 
     # Reproduction properties for backward compatibility
     @property
@@ -322,16 +328,31 @@ class Fish(Agent):
         """Update life stage based on age (delegates to LifecycleComponent)."""
         self._lifecycle_component.update_life_stage()
 
+    def gain_energy(self, amount: float) -> None:
+        """Gain energy from consuming food, capped at current max_energy.
+        
+        Uses the fish's dynamic max_energy (based on current size) rather than
+        the static value in EnergyComponent.
+        
+        Args:
+            amount: Amount of energy to gain.
+        """
+        self._energy_component.energy = min(self.max_energy, self._energy_component.energy + amount)
+
     def modify_energy(self, amount: float) -> None:
         """Adjust energy by a specified amount.
 
-        Positive amounts restore energy through the component's gain logic,
-        while negative amounts directly subtract energy without going below
-        zero. This provides a simple interface for external systems (like
+        Positive amounts are capped at max_energy, negative amounts won't go
+        below zero. This provides a simple interface for external systems (like
         poker) to modify energy without embedding their logic in the fish.
         """
-
-        self._energy_component.energy = max(0.0, self._energy_component.energy + amount)
+        new_energy = self._energy_component.energy + amount
+        if amount > 0:
+            # Cap at dynamic max_energy
+            self._energy_component.energy = min(self.max_energy, new_energy)
+        else:
+            # Don't go below zero
+            self._energy_component.energy = max(0.0, new_energy)
 
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
@@ -757,7 +778,7 @@ class Fish(Agent):
         """
         # Take a bite from the food
         energy_gained = food.take_bite(self.bite_size)
-        self._energy_component.gain_energy(energy_gained)
+        self.gain_energy(energy_gained)
 
         # Track food consumption in fitness
         self.genome.update_fitness(food_eaten=1)

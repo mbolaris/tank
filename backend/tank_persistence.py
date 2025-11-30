@@ -2,6 +2,16 @@
 
 This module handles saving and loading complete tank states to/from disk,
 enabling durable simulations that can be resumed after restarts.
+
+Schema Versioning:
+    - Version 1.0: Original schema with genome.max_energy
+    - Version 2.0: Removed genome.max_energy (now computed from size)
+                   Fish max_energy is dynamically computed from fish.size
+                   
+Backwards Compatibility:
+    - All genome fields use .get() with sensible defaults
+    - Old saves with max_energy are loaded successfully (max_energy ignored)
+    - New fields added to Genome will have defaults in Genome dataclass
 """
 
 import json
@@ -12,6 +22,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# Current schema version for saved snapshots
+SCHEMA_VERSION = "2.0"
 
 # Base directory for all tank data
 DATA_DIR = Path("data/tanks")
@@ -99,7 +112,6 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
                     genome_data = {
                         "speed_modifier": entity.genome.speed_modifier,
                         "size_modifier": entity.genome.size_modifier,
-                        "max_energy": entity.genome.max_energy,
                         "metabolism_rate": entity.genome.metabolism_rate,
                         "color_hue": entity.genome.color_hue,
                         "vision_range": entity.genome.vision_range,
@@ -116,7 +128,7 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
 
         # Build complete snapshot
         snapshot = {
-            "version": "1.0",
+            "version": SCHEMA_VERSION,
             "tank_id": tank_id,
             "saved_at": datetime.utcnow().isoformat(),
             "frame": manager.world.frame_count,
@@ -162,6 +174,11 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
 
     Returns:
         Snapshot data dictionary, or None if load failed
+        
+    Note:
+        This function handles schema migrations automatically:
+        - v1.0 snapshots: genome.max_energy will be ignored on load
+        - v2.0 snapshots: max_energy computed from fish size
     """
     try:
         with open(snapshot_path) as f:
@@ -173,6 +190,11 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
             if field not in snapshot:
                 logger.error(f"Invalid snapshot: missing field '{field}'")
                 return None
+
+        # Log version info for debugging
+        version = snapshot.get("version", "unknown")
+        if version != SCHEMA_VERSION:
+            logger.info(f"Loading snapshot with schema version {version} (current: {SCHEMA_VERSION})")
 
         logger.info(
             f"Loaded snapshot for tank {snapshot['tank_id'][:8]} "
@@ -293,7 +315,6 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 genome = Genome(
                     speed_modifier=genome_data.get("speed_modifier", 1.0),
                     size_modifier=genome_data.get("size_modifier", 1.0),
-                    max_energy=genome_data.get("max_energy", 1.0),
                     metabolism_rate=genome_data.get("metabolism_rate", 1.0),
                     color_hue=genome_data.get("color_hue", 0.5),
                     vision_range=genome_data.get("vision_range", 100.0),

@@ -30,7 +30,7 @@ def test_reproduction_threshold_logic():
     # Create a test fish
     genome = Genome.random(use_algorithm=True)
     genome.behavior_algorithm = GreedyFoodSeeker()
-    genome.max_energy = 1.0  # Normal energy modifier
+    genome.size_modifier = 1.0  # Normal size (determines max energy)
 
     fish = make_adult_fish(
         environment=None,
@@ -254,7 +254,7 @@ def test_energy_threshold_comparison():
     for max_e in max_energies:
         genome = Genome.random(use_algorithm=True)
         genome.behavior_algorithm = GreedyFoodSeeker()
-        genome.max_energy = max_e / 100.0  # Normalize
+        genome.size_modifier = max_e / 100.0  # Normalize (size determines max energy)
 
         fish = make_adult_fish(
             environment=None,

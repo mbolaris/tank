@@ -146,7 +146,7 @@ def update_population_stats(ecosystem: EcosystemManager, fish_list: List[Fish]) 
         if fishes_with_genome:
             stats.avg_speed = sum(f.genome.speed_modifier for f in fishes_with_genome) / len(fishes)
             stats.avg_size = sum(f.genome.size_modifier for f in fishes_with_genome) / len(fishes)
-            stats.avg_energy = sum(f.genome.max_energy for f in fishes_with_genome) / len(fishes)
+            stats.avg_energy = sum(f.genome.size_modifier for f in fishes_with_genome) / len(fishes)  # Max energy is based on size
 
     update_genetic_diversity_stats(ecosystem, fish_list)
 

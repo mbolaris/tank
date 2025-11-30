@@ -228,7 +228,6 @@ class EnhancedStatisticsTracker:
         self.trait_fitness_data["vision"].append((genome.vision_range, fitness))
         self.trait_fitness_data["aggression"].append((genome.aggression, fitness))
         self.trait_fitness_data["social_tendency"].append((genome.social_tendency, fitness))
-        self.trait_fitness_data["max_energy"].append((genome.max_energy, fitness))
 
         # Limit sample size to prevent memory bloat
         max_samples = 500
