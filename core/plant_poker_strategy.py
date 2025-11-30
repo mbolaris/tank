@@ -9,7 +9,7 @@ interface used throughout the fish poker code.
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -54,7 +54,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-    ) -> tuple[BettingAction, float]:
+    ) -> Tuple[BettingAction, float]:
         call_amount = max(0.0, opponent_bet - current_bet)
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)

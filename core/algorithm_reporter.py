@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Tuple
+
 from core.ecosystem_stats import AlgorithmStats
 
 
@@ -18,7 +20,7 @@ def _get_report_header(ecosystem) -> list[str]:
 
 
 def _get_top_performers_section(
-    algorithms_with_data: list[tuple[int, AlgorithmStats]]
+    algorithms_with_data: list[Tuple[int, AlgorithmStats]]
 ) -> list[str]:
     algorithms_sorted = sorted(
         algorithms_with_data, key=lambda item: item[1].get_reproduction_rate(), reverse=True
@@ -48,7 +50,7 @@ def _get_top_performers_section(
 
 
 def _get_survival_section(
-    algorithms_with_data: list[tuple[int, AlgorithmStats]]
+    algorithms_with_data: list[Tuple[int, AlgorithmStats]]
 ) -> list[str]:
     algorithms_sorted = sorted(
         algorithms_with_data, key=lambda item: item[1].get_survival_rate(), reverse=True
@@ -71,7 +73,7 @@ def _get_survival_section(
 
 
 def _get_longevity_section(
-    algorithms_with_data: list[tuple[int, AlgorithmStats]]
+    algorithms_with_data: list[Tuple[int, AlgorithmStats]]
 ) -> list[str]:
     algorithms_sorted = sorted(
         algorithms_with_data, key=lambda item: item[1].get_avg_lifespan(), reverse=True
@@ -130,7 +132,7 @@ def _get_worst_performers_section(
 
 
 def _get_recommendations_section(
-    algorithm_stats: dict[int, AlgorithmStats], algorithms_with_data: list[tuple[int, AlgorithmStats]]
+    algorithm_stats: dict[int, AlgorithmStats], algorithms_with_data: list[Tuple[int, AlgorithmStats]]
 ) -> list[str]:
     lines = ["-" * 80, "RECOMMENDATIONS FOR NEXT GENERATION", "-" * 80, ""]
 
