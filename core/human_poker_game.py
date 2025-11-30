@@ -316,7 +316,7 @@ class HumanPokerGame:
 
         # Evaluate hands
         best_hand: Optional[PokerHand] = None
-        winning_player_indices: list[int] = []
+        winning_player_indices: List[int] = []
 
         for i, player in enumerate(self.players):
             if player.folded:
