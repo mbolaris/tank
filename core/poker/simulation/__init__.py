@@ -10,10 +10,18 @@ from core.poker.simulation.engine import (
     simulate_game,
     simulate_multi_round_game,
 )
+from core.poker.simulation.multiplayer_engine import (
+    MultiplayerGameState,
+    MultiplayerPlayerContext,
+    simulate_multiplayer_game,
+)
 
 __all__ = [
     "finalize_pot",
     "resolve_bet",
     "simulate_game",
     "simulate_multi_round_game",
+    "MultiplayerGameState",
+    "MultiplayerPlayerContext",
+    "simulate_multiplayer_game",
 ]

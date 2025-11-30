@@ -774,17 +774,29 @@ class MixedPokerInteraction:
             loser_ids = []
             loser_types = []
             loser_hands = []
+            
+            # Calculate how much the winner received from each loser
+            # Each loser's contribution is proportional to their bet
+            total_loser_bets = total_pot - winner_bet
+            
             for i, player in enumerate(self.players):
                 if i != best_hand_idx:
                     loser_ids.append(self._get_player_id(player))
                     loser_types.append(self._get_player_type(player))
                     loser_hands.append(self.player_hands[i])
-                    # Show energy transferred (winner's gain) on the arrow
-                    # rather than individual loser's bet which may be 0 if they folded early
+                    
+                    # Calculate this loser's contribution to the winner's gain
+                    # (proportional to their bet, minus house cut)
+                    loser_bet = game_state.player_total_bets[i]
+                    if total_loser_bets > 0:
+                        loser_contribution = loser_bet * (energy_transferred / total_loser_bets)
+                    else:
+                        loser_contribution = 0.0
+                    
                     self._set_poker_effect(
                         player, 
                         won=False,
-                        amount=energy_transferred,
+                        amount=loser_contribution,
                         target_id=winner_id,
                         target_type=winner_type
                     )
@@ -845,11 +857,12 @@ class MixedPokerInteraction:
                     loser_ids.append(self._get_player_id(player))
                     loser_types.append(self._get_player_type(player))
                     loser_hands.append(self.player_hands[i])
-                    # Show total lost by all losers (split among tied winners)
+                    # Show each loser's individual bet (what they lost / contributed to pot)
+                    loser_bet = game_state.player_total_bets[i]
                     self._set_poker_effect(
                         player, 
                         won=False,
-                        amount=total_loser_bets,
+                        amount=loser_bet,
                         target_id=first_winner_id,
                         target_type=first_winner_type
                     )
