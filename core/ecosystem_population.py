@@ -19,8 +19,8 @@ def record_birth(
     fish_id: int,
     generation: int,
     parent_ids: Optional[List[int]] = None,
-    algorithm_id: int | None = None,
-    color: str | None = None,
+    algorithm_id: Optional[int] = None,
+    color: Optional[str] = None,
 ) -> None:
     ecosystem.total_births += 1
 
@@ -76,8 +76,8 @@ def record_death(
     generation: int,
     age: int,
     cause: str = "unknown",
-    genome: Genome | None = None,
-    algorithm_id: int | None = None,
+    genome: Optional[Genome] = None,
+    algorithm_id: Optional[int] = None,
     remaining_energy: float = 0.0,
 ) -> None:
     ecosystem.total_deaths += 1

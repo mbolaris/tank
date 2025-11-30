@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Tuple
+from typing import Optional, Tuple
 
 from core.entities.fractal_plant import FractalPlant
 from core.environment import Environment
@@ -21,7 +21,7 @@ def verify_single_plant(spot_id: int = 10, frames: int = 100) -> int:
     """Run a short plant simulation and print energy every 10 frames."""
 
     environment, manager = create_environment()
-    spot: RootSpot | None = manager.get_spot_by_id(spot_id)
+    spot: Optional[RootSpot] = manager.get_spot_by_id(spot_id)
     if spot is None:
         print(f"No spot with id {spot_id}")
         return 1
