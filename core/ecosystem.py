@@ -386,6 +386,20 @@ class EcosystemManager:
             won_by_fold,
         )
 
+    def record_mixed_poker_energy_transfer(
+        self,
+        energy_to_fish: float,
+        is_plant_game: bool = True,
+    ) -> None:
+        """Record energy transfer from a mixed poker game (fish + plants).
+        
+        Args:
+            energy_to_fish: Net energy transferred to fish (positive = fish gained from plants,
+                           negative = plants gained from fish)
+            is_plant_game: Whether this game involved plants (for counting)
+        """
+        self.poker_manager.record_mixed_poker_energy_transfer(energy_to_fish, is_plant_game)
+
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         from core import algorithm_reporter
 

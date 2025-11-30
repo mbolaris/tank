@@ -172,16 +172,23 @@ class PokerInteraction:
 
     # Cooldown between poker games for the same fish (in frames)
     POKER_COOLDOWN = 60  # 2 seconds at 30fps
+    
+    # Maximum players per game (limited by 52-card deck: 2 hole cards per player + 8 community/burns)
+    # With 52 cards: max = (52 - 8) / 2 = 22, but we use 6 for gameplay balance
+    MAX_PLAYERS = 6
 
     def __init__(self, *fish: "Fish"):
         """
         Initialize a poker interaction between multiple fish.
 
         Args:
-            *fish: Variable number of Fish objects (minimum 2)
+            *fish: Variable number of Fish objects (minimum 2, maximum MAX_PLAYERS)
         """
         if len(fish) < 2:
             raise ValueError("Poker requires at least 2 fish")
+        if len(fish) > self.MAX_PLAYERS:
+            # Truncate to max players instead of raising error
+            fish = fish[:self.MAX_PLAYERS]
 
         self.fish_list = list(fish)
         self.participants = [_get_participant(f) for f in self.fish_list]

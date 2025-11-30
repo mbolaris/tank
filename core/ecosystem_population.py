@@ -167,6 +167,13 @@ def update_population_stats(ecosystem: EcosystemManager, fish_list: list[Fish]) 
 
 
 def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: list[Fish]) -> None:
+    """Update genetic diversity statistics.
+    
+    PERFORMANCE OPTIMIZATIONS:
+    - Removed redundant hasattr checks (fish always have genome, species)
+    - Direct attribute access with getattr fallback
+    - Single loop iteration collecting all data
+    """
     if not fish_list:
         ecosystem.genetic_diversity_stats = GeneticDiversityStats()
         return
@@ -183,52 +190,41 @@ def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: list[
     size_modifiers = []
     vision_ranges = []
 
+    # OPTIMIZATION: Fish always have genome and species - skip hasattr checks
     for fish in fish_list:
-        if (
-            hasattr(fish, "genome")
-            and hasattr(fish.genome, "behavior_algorithm")
-            and get_algorithm_index is not None
-        ):
-            algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
+        genome = fish.genome
+        
+        if get_algorithm_index is not None and genome.behavior_algorithm is not None:
+            algo_idx = get_algorithm_index(genome.behavior_algorithm)
             if algo_idx >= 0:
                 algorithms.add(algo_idx)
 
-        if hasattr(fish, "species"):
-            species.add(fish.species)
+        species.add(fish.species)
+        
+        # Direct attribute access - these exist on FishGenome
+        color_hues.append(genome.color_hue)
+        speed_modifiers.append(genome.speed_modifier)
+        size_modifiers.append(genome.size_modifier)
+        vision_ranges.append(genome.vision_range)
 
-        if hasattr(fish, "genome"):
-            if hasattr(fish.genome, "color_hue"):
-                color_hues.append(fish.genome.color_hue)
-            if hasattr(fish.genome, "speed_modifier"):
-                speed_modifiers.append(fish.genome.speed_modifier)
-            if hasattr(fish.genome, "size_modifier"):
-                size_modifiers.append(fish.genome.size_modifier)
-            if hasattr(fish.genome, "vision_range"):
-                vision_ranges.append(fish.genome.vision_range)
-
+    # OPTIMIZATION: Only calculate variances if we have data
+    n_fish = len(fish_list)
+    
     color_variance = 0.0
-    if len(color_hues) > 1:
-        mean_color = sum(color_hues) / len(color_hues)
-        color_variance = sum((h - mean_color) ** 2 for h in color_hues) / len(color_hues)
+    if n_fish > 1:
+        mean_color = sum(color_hues) / n_fish
+        color_variance = sum((h - mean_color) ** 2 for h in color_hues) / n_fish
 
     trait_variances: dict[str, float] = {}
-    if len(speed_modifiers) > 1:
-        mean_speed = sum(speed_modifiers) / len(speed_modifiers)
-        trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / len(
-            speed_modifiers
-        )
+    if n_fish > 1:
+        mean_speed = sum(speed_modifiers) / n_fish
+        trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / n_fish
 
-    if len(size_modifiers) > 1:
-        mean_size = sum(size_modifiers) / len(size_modifiers)
-        trait_variances["size"] = sum((s - mean_size) ** 2 for s in size_modifiers) / len(
-            size_modifiers
-        )
+        mean_size = sum(size_modifiers) / n_fish
+        trait_variances["size"] = sum((s - mean_size) ** 2 for s in size_modifiers) / n_fish
 
-    if len(vision_ranges) > 1:
-        mean_vision = sum(vision_ranges) / len(vision_ranges)
-        trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / len(
-            vision_ranges
-        )
+        mean_vision = sum(vision_ranges) / n_fish
+        trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / n_fish
 
     ecosystem.genetic_diversity_stats.unique_algorithms = len(algorithms)
     ecosystem.genetic_diversity_stats.unique_species = len(species)

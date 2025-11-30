@@ -328,6 +328,54 @@ class SpatialGrid:
                 (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
         ]
 
+    def query_poker_entities(self, agent: Agent, radius: float) -> List[Agent]:
+        """
+        Optimized query for poker-eligible entities (Fish and FractalPlant).
+        
+        PERFORMANCE: Single pass through spatial grid for both fish and plants.
+        Uses dedicated fish_grid and type-specific plant lookup.
+        """
+        from core.entities.fractal_plant import FractalPlant
+        
+        if not hasattr(agent, "pos"):
+            return []
+
+        agent_x = agent.pos.x
+        agent_y = agent.pos.y
+        radius_sq = radius * radius
+
+        cell_size = self.cell_size
+        min_col = max(0, int((agent_x - radius) / cell_size))
+        max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
+        min_row = max(0, int((agent_y - radius) / cell_size))
+        max_row = min(self.rows - 1, int((agent_y + radius) / cell_size))
+
+        candidates = []
+        fish_grid = self.fish_grid
+        grid = self.grid
+
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cell = (col, row)
+
+                # Get fish from dedicated grid (fast)
+                cell_fish = fish_grid.get(cell)
+                if cell_fish:
+                    candidates.extend(cell_fish)
+
+                # Get plants from type-specific bucket
+                cell_agents = grid.get(cell)
+                if cell_agents and FractalPlant in cell_agents:
+                    candidates.extend(cell_agents[FractalPlant])
+
+        return [
+            other
+            for other in candidates
+            if other is not agent
+            and (other.pos.x - agent_x) * (other.pos.x - agent_x) +
+                (other.pos.y - agent_y) * (other.pos.y - agent_y) <= radius_sq
+        ]
+
     def clear(self):
         """Clear all agents from the grid."""
         self.grid.clear()
@@ -347,6 +395,10 @@ class Environment:
     The environment in which the agents operate.
     This class provides methods to interact with and query the state of the environment.
     """
+
+    # Class-level cache for issubclass results to avoid repeated checks
+    # Key: (type_key, agent_class), Value: bool
+    _subclass_cache: Dict[Tuple[Type, Type], bool] = {}
 
     def __init__(
         self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600, time_system: Optional[Any] = None
@@ -512,6 +564,7 @@ class Environment:
         radius_sq = radius * radius
         result = []
         grid_dict = grid.grid
+        subclass_cache = Environment._subclass_cache
 
         # Iterate cells
         for col in range(min_col, max_col + 1):
@@ -524,9 +577,14 @@ class Environment:
 
                 # Iterate over type buckets
                 for type_key, agents in cell_buckets.items():
-                    # Check if this type is relevant (subclass check)
-                    # This handles inheritance (e.g. asking for Fish gets all Fish subclasses)
-                    if issubclass(type_key, agent_class):
+                    # OPTIMIZATION: Use cached issubclass check
+                    cache_key = (type_key, agent_class)
+                    is_match = subclass_cache.get(cache_key)
+                    if is_match is None:
+                        is_match = issubclass(type_key, agent_class)
+                        subclass_cache[cache_key] = is_match
+                    
+                    if is_match:
                         for other in agents:
                             if other is agent:
                                 continue
@@ -556,6 +614,14 @@ class Environment:
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
         return self.spatial_grid.query_interaction_candidates(agent, radius, crab_type)
+
+    def nearby_poker_entities(self, agent: Agent, radius: int) -> List[Agent]:
+        """
+        Optimized method to get nearby fish and FractalPlant entities for poker.
+        
+        PERFORMANCE: Single pass through spatial grid collecting both fish and plants.
+        """
+        return self.spatial_grid.query_poker_entities(agent, radius)
 
     # Convenient entity filtering helpers for improved code clarity
     def get_all_fish(self) -> List[Agent]:

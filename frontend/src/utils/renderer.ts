@@ -99,6 +99,8 @@ export class Renderer {
     private initialized = false;
     private currentPalette: TimeOfDayPalette | null = null;
     private entityFacingLeft: Map<number, boolean> = new Map();
+    // Track when poker effects started for each entity (for one-time animation)
+    private pokerEffectStartTime: Map<number, number> = new Map();
 
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
@@ -135,6 +137,12 @@ export class Renderer {
         for (const cachedId of this.entityFacingLeft.keys()) {
             if (!activeIds.has(cachedId)) {
                 this.entityFacingLeft.delete(cachedId);
+            }
+        }
+        // Also prune poker effect start times
+        for (const cachedId of this.pokerEffectStartTime.keys()) {
+            if (!activeIds.has(cachedId)) {
+                this.pokerEffectStartTime.delete(cachedId);
             }
         }
     }
@@ -428,6 +436,7 @@ export class Renderer {
 
         if (fish.poker_effect_state) {
             this.renderPokerStatus(
+                fish.id,
                 x + scaledWidth / 2,
                 y - 25,
                 fish.poker_effect_state,
@@ -439,6 +448,7 @@ export class Renderer {
     }
 
     private renderPokerStatus(
+        entityId: number,
         x: number,
         y: number,
         state: { status: string; amount: number; target_id?: number; target_type?: string },
@@ -457,11 +467,26 @@ export class Renderer {
                 const targetX = target.x + target.width / 2;
                 const targetY = target.y + target.height / 2;
 
+                // Track when this poker effect started for one-time animation
+                const now = Date.now();
+                if (!this.pokerEffectStartTime.has(entityId)) {
+                    this.pokerEffectStartTime.set(entityId, now);
+                }
+                const startTime = this.pokerEffectStartTime.get(entityId)!;
+                const elapsed = now - startTime;
+                const animationDuration = 1000; // 1 second animation
+                
+                // Calculate progress (0 to 1, clamped)
+                const progress = Math.min(elapsed / animationDuration, 1);
+                
+                // If animation is complete, clear the tracking and don't render
+                if (progress >= 1) {
+                    this.pokerEffectStartTime.delete(entityId);
+                    return;
+                }
+
                 // Draw green energy arrow
                 ctx.save();
-
-                // Animated arrow effect
-                const time = Date.now();
 
                 // Draw the main line (solid)
                 ctx.beginPath();
@@ -501,8 +526,7 @@ export class Renderer {
                 ctx.closePath();
                 ctx.fill();
 
-                // Draw energy amount moving along the line
-                const progress = ((time * 0.002) % 1);
+                // Draw energy amount moving along the line (one-time animation)
                 const particleX = entityX + (targetX - entityX) * progress;
                 const particleY = entityY + (targetY - entityY) * progress;
 
@@ -524,6 +548,16 @@ export class Renderer {
             return;
         }
 
+        // Don't draw text bubble for losers either - arrow with number is the only indicator
+        if (state.status === 'lost') {
+            return;
+        }
+
+        // Only show bubble for ties (no arrow for ties)
+        if (state.status !== 'tie') {
+            return;
+        }
+
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -535,28 +569,10 @@ export class Renderer {
         ctx.roundRect(x - 30, y - 15, 60, 30, 15);
         ctx.fill();
 
-        let color = '#ffffff';
-        let text = '';
-
-        switch (state.status) {
-            case 'won':
-                color = '#4ade80'; // Green
-                text = `+${state.amount.toFixed(0)}`;
-                break;
-            case 'lost':
-                color = '#f87171'; // Red
-                text = `-${state.amount.toFixed(0)}`;
-                break;
-            case 'tie':
-                color = '#fbbf24'; // Amber
-                text = 'TIE';
-                break;
-        }
-
-        // Just text, no icons
-        ctx.fillStyle = color;
+        // Tie indicator
+        ctx.fillStyle = '#fbbf24'; // Amber
         ctx.font = 'bold 18px Arial';
-        ctx.fillText(text, x, y);
+        ctx.fillText('TIE', x, y);
 
         ctx.restore();
     }
@@ -655,6 +671,7 @@ export class Renderer {
 
         if (fish.poker_effect_state) {
             this.renderPokerStatus(
+                fish.id,
                 x + scaledSize / 2,
                 y - 25,
                 fish.poker_effect_state,
@@ -1216,6 +1233,7 @@ export class Renderer {
         // Render poker effect if present
         if (plant.poker_effect_state) {
             this.renderPokerStatus(
+                plant.id,
                 x + width / 2,
                 y - 25,
                 plant.poker_effect_state,

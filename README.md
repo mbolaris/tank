@@ -55,12 +55,14 @@ Fish can play poker against each other and against plants for energy rewards!
 - **Automatic**: Fish play when they collide and have >10 energy
 - **5-Card Draw**: Standard poker hand rankings
 - **Energy Stakes**: Winner takes energy from loser (house cut only for fish-vs-fish)
+- **Mixed Games**: Fish and plants can play together (requires at least 1 fish per game)
+- **Energy Flow Tracking**: Stats panel shows 🌱⚡→🐟 indicator for net plant-to-fish energy transfers
 - **Evolving Poker Strategies**: Fish use genome-based poker aggression that evolves across generations!
   - Each fish's poker playing style is determined by their genome's aggression trait
   - Evolutionary pressure: Fish with optimal poker aggression win more energy and reproduce more
   - 8 specialized poker behavior algorithms (Challenger, Dodger, Gambler, Strategist, Bluffer, Conservative, and more)
-- **Live Events**: See poker games happen in real-time in the UI
-- **Statistics**: Track total games, wins/losses, best hands
+- **Live Events**: See poker games happen in real-time in the UI with animated energy transfer arrows
+- **Statistics**: Track total games, wins/losses, best hands, and plant-fish energy flow
 
 ### 🌿 **Fractal Plants with L-System Genetics**
 Plants in the ecosystem are procedurally generated using **L-system fractals** with genetic inheritance:

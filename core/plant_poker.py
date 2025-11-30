@@ -286,18 +286,21 @@ class PlantPokerInteraction:
         return True
 
 
-def check_fish_plant_poker_collision(
-    fish: "Fish", plant: "FractalPlant", collision_distance: float = 50.0
+def check_fish_plant_poker_proximity(
+    fish: "Fish", plant: "FractalPlant", min_distance: float = 40.0, max_distance: float = 80.0
 ) -> bool:
-    """Check if a fish and plant are close enough for poker.
+    """Check if a fish and plant are close enough for poker but not touching.
+
+    Poker triggers when entities are near each other but not overlapping.
 
     Args:
         fish: The fish
         plant: The fractal plant
-        collision_distance: Distance threshold for collision
+        min_distance: Minimum center-to-center distance (must be farther than this to not be touching)
+        max_distance: Maximum center-to-center distance for poker trigger
 
     Returns:
-        True if they can interact
+        True if they are in the poker proximity zone (close but not touching)
     """
     # Calculate centers
     fish_cx = fish.pos.x + fish.width / 2
@@ -308,4 +311,14 @@ def check_fish_plant_poker_collision(
     dx = fish_cx - plant_cx
     dy = fish_cy - plant_cy
     distance_sq = dx * dx + dy * dy
-    return distance_sq <= collision_distance * collision_distance
+    
+    # Must be within max distance but farther than min distance (not touching)
+    return min_distance * min_distance < distance_sq <= max_distance * max_distance
+
+
+# Legacy alias for backwards compatibility
+def check_fish_plant_poker_collision(
+    fish: "Fish", plant: "FractalPlant", collision_distance: float = 50.0
+) -> bool:
+    """Legacy function - now uses proximity check instead of collision."""
+    return check_fish_plant_poker_proximity(fish, plant, min_distance=40.0, max_distance=collision_distance)

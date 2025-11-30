@@ -52,5 +52,9 @@ FRACTAL_PLANT_MAX_ITERATIONS = 3  # Maximum L-system iterations (large plants)
 FRACTAL_PLANT_DEFAULT_ANGLE = 25.0  # Default branching angle (degrees)
 FRACTAL_PLANT_DEFAULT_LENGTH_RATIO = 0.7  # Default length reduction per iteration
 
-# Plant Collision Detection
-FRACTAL_PLANT_POKER_COLLISION_DISTANCE = 150.0  # Distance for poker collision - Reduced to limit frequency
+# Plant Poker Proximity Detection (close but not touching)
+# Plants are stationary at root spots - poker should only trigger when reasonably close
+# Fish swim to plants, so fish-plant games use fish proximity settings
+# Plant-plant games are rare and only happen between adjacent plants
+FRACTAL_PLANT_POKER_MIN_DISTANCE = 10.0  # Minimum center-to-center distance (allows close contact)
+FRACTAL_PLANT_POKER_MAX_DISTANCE = 80.0  # Maximum distance - tighter for closer interactions

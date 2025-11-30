@@ -355,6 +355,26 @@ class PokerStatsManager:
         except Exception as error:  # pragma: no cover - defensive logging
             logger.error(f"Failed to save poker totals: {error}", exc_info=True)
 
+    def record_mixed_poker_energy_transfer(
+        self,
+        energy_to_fish: float,
+        is_plant_game: bool = True,
+    ) -> None:
+        """Record energy transfer from a mixed poker game (fish + plants).
+        
+        Args:
+            energy_to_fish: Net energy transferred to fish (positive = fish gained from plants,
+                           negative = plants gained from fish)
+            is_plant_game: Whether this game involved plants (for counting)
+        """
+        self.total_plant_poker_energy_transferred += energy_to_fish
+        if is_plant_game:
+            self.total_plant_poker_games += 1
+            try:
+                self._save_poker_totals()
+            except Exception as error:  # pragma: no cover - defensive logging
+                logger.error(f"Failed to save poker totals: {error}", exc_info=True)
+
     def _update_tie_stats(self, algo_id: Optional[int], hand: "PokerHand") -> None:
         if algo_id is not None and algo_id in self.poker_stats:
             stats = self.poker_stats[algo_id]

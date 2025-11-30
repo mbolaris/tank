@@ -26,3 +26,8 @@ SPAWN_MARGIN_PIXELS = 100  # Margin from screen edges for spawning
 # Spatial Query Constants (for collision detection and mating)
 COLLISION_QUERY_RADIUS = 100  # Radius for nearby entity queries during collision detection (pixels)
 MATING_QUERY_RADIUS = 150  # Radius for finding potential mates (pixels)
+
+# Poker Proximity Constants (close but not touching)
+FISH_POKER_MIN_DISTANCE = 10  # Minimum center-to-center distance (allows close contact)
+FISH_POKER_MAX_DISTANCE = 80  # Maximum center-to-center distance for poker trigger
+POKER_PROXIMITY_QUERY_RADIUS = 100  # Radius for finding nearby poker candidates (fish and plants)

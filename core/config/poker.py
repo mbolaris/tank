@@ -1,5 +1,8 @@
 """Poker game configuration constants."""
 
+# Poker Game Limits
+POKER_MAX_PLAYERS = 6  # Maximum players (fish + plants) in a single poker game
+
 # Poker Aggression Factors
 POKER_AGGRESSION_LOW = 0.3  # Low aggression factor
 POKER_AGGRESSION_MEDIUM = 0.6  # Medium aggression factor
