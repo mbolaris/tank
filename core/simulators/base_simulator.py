@@ -65,6 +65,8 @@ class BaseSimulator(ABC):
         self.auto_food_timer: int = 0
         self.ecosystem: Optional[EcosystemManager] = None
         self.environment: Optional[Environment] = None
+        # OPTIMIZATION: Throttle poker games to run every N frames when population is high
+        self._poker_throttle_counter: int = 0
 
     @abstractmethod
     def get_all_entities(self) -> List["Agent"]:
@@ -179,11 +181,29 @@ class BaseSimulator(ABC):
             self.environment.rebuild_spatial_grid()
 
     def handle_collisions(self) -> None:
-        """Handle collisions between entities."""
+        """Handle collisions between entities.
+        
+        OPTIMIZATION: Throttle expensive poker games based on population size.
+        - Under 100 entities: every frame
+        - 100-200 entities: every 2 frames  
+        - 200+ entities: every 3 frames
+        """
         self.handle_fish_collisions()
         self.handle_food_collisions()
-        # Mixed poker handles both fish-plant and plant-plant interactions
-        self.handle_mixed_poker_games()
+        
+        # OPTIMIZATION: Throttle poker games at high populations
+        entity_count = len(self.get_all_entities())
+        throttle_interval = 1  # Default: every frame
+        if entity_count >= 200:
+            throttle_interval = 3
+        elif entity_count >= 100:
+            throttle_interval = 2
+            
+        self._poker_throttle_counter += 1
+        if self._poker_throttle_counter >= throttle_interval:
+            self._poker_throttle_counter = 0
+            # Mixed poker handles both fish-plant and plant-plant interactions
+            self.handle_mixed_poker_games()
 
     def handle_fish_crab_collision(self, fish: "Agent", crab: "Agent") -> bool:
         """Handle collision between a fish and a crab (predator).
@@ -448,18 +468,19 @@ class BaseSimulator(ABC):
                 if other not in all_entities_set:
                     continue
                 # Skip if already connected (avoid redundant checks)
-                if other in entity_contacts[entity]:
+                entity_contact_set = entity_contacts[entity]
+                if other in entity_contact_set:
                     continue
 
-                # OPTIMIZATION: Use cached positions
-                e2_cx, e2_cy = entity_centers.get(other, (other.pos.x + other.width * 0.5, other.pos.y + other.height * 0.5))
+                # OPTIMIZATION: Direct dict access (we know all poker entities are in the dict)
+                e2_cx, e2_cy = entity_centers[other]
                 dx = e1_cx - e2_cx
                 dy = e1_cy - e2_cy
                 distance_sq = dx * dx + dy * dy
 
                 # Must be within max distance but farther than min distance
                 if proximity_min_sq < distance_sq <= proximity_max_sq:
-                    entity_contacts[entity].add(other)
+                    entity_contact_set.add(other)
                     entity_contacts[other].add(entity)
 
         # Find connected components using DFS
@@ -486,7 +507,8 @@ class BaseSimulator(ABC):
                 if current not in removed_entities and current in all_entities_set:
                     group.append(current)
 
-                for neighbor in entity_contacts.get(current, set()):
+                # Direct access - all poker entities are in the dict
+                for neighbor in entity_contacts[current]:
                     if neighbor not in visited:
                         stack.append(neighbor)
 
@@ -559,6 +581,7 @@ class BaseSimulator(ABC):
         
         PERFORMANCE OPTIMIZATIONS:
         - Use squared distances throughout (avoid sqrt)
+        - Use 2D list instead of dict (no hash/get overhead)
         - Pre-cache player positions
         - Early exit when best possible group is found
         - Inline distance calculations
@@ -581,16 +604,20 @@ class BaseSimulator(ABC):
         # Pre-cache player positions for faster access
         positions = [(p.pos.x, p.pos.y) for p in players]
         
-        # Calculate pairwise squared distances and build adjacency matrix
-        # Use a flat dict with (i,j) keys where i < j
-        distances_sq: dict = {}
+        # OPTIMIZATION: Use 2D list instead of dict for O(1) access without hash overhead
+        # Build adjacency matrix as boolean: True = within distance
+        # Only upper triangle needed (i < j)
+        adjacent = [[False] * n for _ in range(n)]
+        
         for i in range(n):
             x1, y1 = positions[i]
             for j in range(i + 1, n):
                 x2, y2 = positions[j]
                 dx = x1 - x2
                 dy = y1 - y2
-                distances_sq[(i, j)] = dx * dx + dy * dy
+                if dx * dx + dy * dy <= max_dist_sq:
+                    adjacent[i][j] = True
+                    adjacent[j][i] = True  # Symmetric
         
         # Simple greedy approach: start with each player, build largest valid group
         best_group: List[int] = []
@@ -602,14 +629,17 @@ class BaseSimulator(ABC):
                 break
                 
             group = [start_idx]
+            adj_row = adjacent[start_idx]  # Cache row for start player
             
             for candidate_idx in range(start_idx + 1, n):
+                # Quick check: must be adjacent to start player
+                if not adj_row[candidate_idx]:
+                    continue
+                    
                 # Check if candidate is within distance of ALL current group members
                 can_add = True
                 for member_idx in group:
-                    # Get key with smaller index first
-                    key = (member_idx, candidate_idx) if member_idx < candidate_idx else (candidate_idx, member_idx)
-                    if distances_sq.get(key, float('inf')) > max_dist_sq:
+                    if not adjacent[member_idx][candidate_idx]:
                         can_add = False
                         break
                 if can_add:

@@ -479,7 +479,8 @@ class BehaviorAlgorithm(BehaviorStrategy):
 def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] = None) -> Optional[Any]:
     """Find nearest agent of given type within optional distance limit.
 
-    Performance optimized to use squared distances for comparisons.
+    PERFORMANCE: Uses spatial queries when max_distance is specified (O(k) vs O(n)).
+    Falls back to get_agents_of_type only when no distance limit is given.
 
     Args:
         fish: The fish searching for agents
@@ -489,25 +490,26 @@ def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] 
     Returns:
         Nearest agent within range, or None if no agents found/in range
     """
-    agents = fish.environment.get_agents_of_type(agent_type)
-    if not agents:
-        return None
-
-    # Performance: Use squared distances to avoid expensive sqrt operations
-    # Also use static Vector2.distance_squared to avoid Vector2 allocations
+    env = fish.environment
     fish_x = fish.pos.x
     fish_y = fish.pos.y
 
     if max_distance is not None:
-        max_distance_sq = max_distance * max_distance
+        # OPTIMIZATION: Use spatial query instead of get_agents_of_type
+        # This reduces from O(n) to O(k) where k is nearby agents
+        agents = env.nearby_agents_by_type(fish, int(max_distance) + 1, agent_type)
+        if not agents:
+            return None
 
-        # Find nearest using squared distances
+        max_distance_sq = max_distance * max_distance
         min_dist_sq = float('inf')
         nearest = None
 
         for agent in agents:
-            # Use static method - no Vector2 allocation
-            dist_sq = Vector2.distance_squared(fish_x, fish_y, agent.pos.x, agent.pos.y)
+            # Inline distance calculation to avoid function call overhead
+            dx = agent.pos.x - fish_x
+            dy = agent.pos.y - fish_y
+            dist_sq = dx * dx + dy * dy
 
             if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
                 min_dist_sq = dist_sq
@@ -515,12 +517,18 @@ def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] 
 
         return nearest
     else:
-        # No distance limit - find closest using squared distances
+        # No distance limit - must check all agents
+        agents = env.get_agents_of_type(agent_type)
+        if not agents:
+            return None
+
         min_dist_sq = float('inf')
         nearest = None
 
         for agent in agents:
-            dist_sq = Vector2.distance_squared(fish_x, fish_y, agent.pos.x, agent.pos.y)
+            dx = agent.pos.x - fish_x
+            dy = agent.pos.y - fish_y
+            dist_sq = dx * dx + dy * dy
             if dist_sq < min_dist_sq:
                 min_dist_sq = dist_sq
                 nearest = agent
@@ -579,10 +587,13 @@ def _get_predator_threat(
 def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
     """Find nearest food within time-based detection range.
 
+    PERFORMANCE: Uses dedicated spatial food query (nearby_food) which is
+    faster than generic nearby_agents_by_type.
+
     Fish have reduced ability to detect food at night due to lower visibility.
     Detection range is modified by time of day:
     - Night: 25% of base range
-    - Dawn/Dusk: 75% of base range
+    - Dawn/Dusk: 75% of base range  
     - Day: 100% of base range
 
     Args:
@@ -592,14 +603,39 @@ def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
         Nearest food within detection range, or None if no food detected
     """
     from core.constants import BASE_FOOD_DETECTION_RANGE
-    from core.entities import Food
 
+    env = fish.environment
+    
     # Performance: Use cached detection modifier from environment (updated once per frame)
-    detection_modifier = fish.environment.get_detection_modifier()
+    detection_modifier = env.get_detection_modifier()
     max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+    max_distance_sq = max_distance * max_distance
 
-    # Use the updated _find_nearest with max_distance parameter
-    return self._find_nearest(fish, Food, max_distance)
+    # OPTIMIZATION: Use dedicated nearby_food spatial query
+    # This uses the optimized food_grid in SpatialGrid
+    if hasattr(env, "nearby_food"):
+        nearby = env.nearby_food(fish, int(max_distance) + 1)
+    else:
+        from core.entities import Food
+        nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, Food)
+
+    if not nearby:
+        return None
+
+    fish_x = fish.pos.x
+    fish_y = fish.pos.y
+    min_dist_sq = float('inf')
+    nearest = None
+
+    for food in nearby:
+        dx = food.pos.x - fish_x
+        dy = food.pos.y - fish_y
+        dist_sq = dx * dx + dy * dy
+        if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
+            min_dist_sq = dist_sq
+            nearest = food
+
+    return nearest
 
 
 def _should_flee_predator(self, fish: "Fish") -> Tuple[bool, float, float]:

@@ -205,9 +205,9 @@ class WallFollower(BehaviorAlgorithm):
 
         # Move parallel to nearest wall
         if min_dist in (dist_to_left, dist_to_right):
-            return 0, self.parameters["follow_speed"]
+            return 0, random.choice([-1, 1]) * self.parameters["follow_speed"]
         else:
-            return self.parameters["follow_speed"], 0
+            return random.choice([-1, 1]) * self.parameters["follow_speed"], 0
 
 
 @dataclass

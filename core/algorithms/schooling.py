@@ -16,11 +16,23 @@ This module contains 10 algorithms focused on group behavior and social interact
 import math
 import random
 from dataclasses import dataclass
-from typing import Tuple
+from typing import List, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.entities import Crab
 from core.entities import Fish as FishClass
+
+
+def _get_nearby_fish(fish: "FishClass", radius: float) -> List["FishClass"]:
+    """Get nearby fish using the fastest available spatial query method.
+    
+    OPTIMIZATION: Use dedicated nearby_fish method when available (faster).
+    """
+    env = fish.environment
+    if hasattr(env, "nearby_fish"):
+        return env.nearby_fish(fish, radius)
+    else:
+        return env.nearby_agents_by_type(fish, radius, FishClass)
 
 
 @dataclass
@@ -46,12 +58,19 @@ class TightSchooler(BehaviorAlgorithm):
         QUERY_RADIUS = 200
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+            for f in _get_nearby_fish(fish, QUERY_RADIUS)
             if f.species == fish.species
         ]
         if allies:
-            center = sum((f.pos for f in allies), Vector2()) / len(allies)
-            direction = self._safe_normalize(center - fish.pos)
+            # OPTIMIZATION: Inline center calculation to avoid Vector2.__add__ overhead
+            center_x, center_y = 0.0, 0.0
+            for f in allies:
+                center_x += f.pos.x
+                center_y += f.pos.y
+            n = len(allies)
+            center_x /= n
+            center_y /= n
+            direction = self._safe_normalize(Vector2(center_x - fish.pos.x, center_y - fish.pos.y))
             return (
                 direction.x * self.parameters["cohesion_strength"],
                 direction.y * self.parameters["cohesion_strength"],
@@ -82,14 +101,23 @@ class LooseSchooler(BehaviorAlgorithm):
         QUERY_RADIUS = 300
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+            for f in _get_nearby_fish(fish, QUERY_RADIUS)
             if f.species == fish.species
         ]
         if allies:
-            center = sum((f.pos for f in allies), Vector2()) / len(allies)
-            distance = (center - fish.pos).length()
+            # OPTIMIZATION: Inline center calculation to avoid Vector2.__add__ overhead
+            center_x, center_y = 0.0, 0.0
+            for f in allies:
+                center_x += f.pos.x
+                center_y += f.pos.y
+            n = len(allies)
+            center_x /= n
+            center_y /= n
+            fish_x, fish_y = fish.pos.x, fish.pos.y
+            dx, dy = center_x - fish_x, center_y - fish_y
+            distance = (dx * dx + dy * dy) ** 0.5
             if distance > self.parameters["max_distance"]:
-                direction = self._safe_normalize(center - fish.pos)
+                direction = self._safe_normalize(Vector2(dx, dy))
                 return (
                     direction.x * self.parameters["cohesion_strength"],
                     direction.y * self.parameters["cohesion_strength"],
@@ -120,7 +148,7 @@ class LeaderFollower(BehaviorAlgorithm):
         QUERY_RADIUS = 250
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+            for f in _get_nearby_fish(fish, QUERY_RADIUS)
             if f.species == fish.species
         ]
         if allies:
@@ -158,19 +186,26 @@ class AlignmentMatcher(BehaviorAlgorithm):
         # This eliminates the double O(N²) problem: get_all + distance_filter
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(
-                fish, int(self.parameters["alignment_radius"]), FishClass
-            )
+            for f in _get_nearby_fish(fish, int(self.parameters["alignment_radius"]))
             if f.species == fish.species
         ]
 
         if allies:
-            avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)
-            if avg_vel.length() > 0:
-                avg_vel = self._safe_normalize(avg_vel)
+            # OPTIMIZATION: Inline average velocity calculation
+            avg_vel_x, avg_vel_y = 0.0, 0.0
+            for f in allies:
+                avg_vel_x += f.vel.x
+                avg_vel_y += f.vel.y
+            n = len(allies)
+            avg_vel_x /= n
+            avg_vel_y /= n
+            avg_vel_len = (avg_vel_x * avg_vel_x + avg_vel_y * avg_vel_y) ** 0.5
+            if avg_vel_len > 0:
+                avg_vel_x /= avg_vel_len
+                avg_vel_y /= avg_vel_len
                 return (
-                    avg_vel.x * self.parameters["alignment_strength"],
-                    avg_vel.y * self.parameters["alignment_strength"],
+                    avg_vel_x * self.parameters["alignment_strength"],
+                    avg_vel_y * self.parameters["alignment_strength"],
                 )
         return 0, 0
 
@@ -196,7 +231,7 @@ class SeparationSeeker(BehaviorAlgorithm):
         # Use spatial query with min_distance (O(N) instead of O(N²))
         # Only check fish within separation range
         QUERY_RADIUS = int(self.parameters["min_distance"] * 1.5)
-        allies = fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+        allies = _get_nearby_fish(fish, QUERY_RADIUS)
 
         vx, vy = 0, 0
         for ally in allies:
@@ -236,20 +271,29 @@ class FrontRunner(BehaviorAlgorithm):
         # Move in a consistent direction
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+            for f in _get_nearby_fish(fish, QUERY_RADIUS)
             if f.species == fish.species
         ]
         if allies:
-            center = sum((f.pos for f in allies), Vector2()) / len(allies)
+            # OPTIMIZATION: Inline center calculation
+            center_x, center_y = 0.0, 0.0
+            for f in allies:
+                center_x += f.pos.x
+                center_y += f.pos.y
+            n = len(allies)
+            center_x /= n
+            center_y /= n
             # Move away from center to lead
-            direction = self._safe_normalize(fish.pos - center)
+            direction = self._safe_normalize(Vector2(fish.pos.x - center_x, fish.pos.y - center_y))
             return (
                 direction.x * self.parameters["leadership_strength"],
                 direction.y * self.parameters["leadership_strength"],
             )
 
-        # If alone, just move forward
-        return self.parameters["independence"], 0
+        # If alone, move in a random direction
+        angle = random.random() * 6.283185307
+        speed = self.parameters["independence"]
+        return speed * math.cos(angle), speed * math.sin(angle)
 
 
 @dataclass
@@ -275,28 +319,44 @@ class PerimeterGuard(BehaviorAlgorithm):
         QUERY_RADIUS = int(self.parameters["orbit_radius"] * 2)
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+            for f in _get_nearby_fish(fish, QUERY_RADIUS)
             if f.species == fish.species
         ]
         if allies:
-            center = sum((f.pos for f in allies), Vector2()) / len(allies)
-            to_center = center - fish.pos
-            distance = to_center.length()
+            # OPTIMIZATION: Inline center calculation
+            center_x, center_y = 0.0, 0.0
+            for f in allies:
+                center_x += f.pos.x
+                center_y += f.pos.y
+            n = len(allies)
+            center_x /= n
+            center_y /= n
+            fish_x, fish_y = fish.pos.x, fish.pos.y
+            to_center_x = center_x - fish_x
+            to_center_y = center_y - fish_y
+            distance = (to_center_x * to_center_x + to_center_y * to_center_y) ** 0.5
 
             if distance < self.parameters["orbit_radius"]:
                 # Move away from center
-                normalized = self._safe_normalize(to_center)
-                direction = Vector2(-normalized.x, -normalized.y)
+                if distance > 0.001:
+                    dir_x = -to_center_x / distance
+                    dir_y = -to_center_y / distance
+                else:
+                    dir_x, dir_y = 1.0, 0.0
                 return (
-                    direction.x * self.parameters["orbit_speed"],
-                    direction.y * self.parameters["orbit_speed"],
+                    dir_x * self.parameters["orbit_speed"],
+                    dir_y * self.parameters["orbit_speed"],
                 )
             elif distance > self.parameters["orbit_radius"] * 1.3:
                 # Move toward center
-                direction = self._safe_normalize(to_center)
+                if distance > 0.001:
+                    dir_x = to_center_x / distance
+                    dir_y = to_center_y / distance
+                else:
+                    dir_x, dir_y = 1.0, 0.0
                 return (
-                    direction.x * self.parameters["orbit_speed"],
-                    direction.y * self.parameters["orbit_speed"],
+                    dir_x * self.parameters["orbit_speed"],
+                    dir_y * self.parameters["orbit_speed"],
                 )
         return 0, 0
 
@@ -321,11 +381,7 @@ class MirrorMover(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query with mirror_distance (O(N) instead of O(N²))
         # This eliminates the double O(N²) problem: get_all + distance_filter
-        allies = list(
-            fish.environment.nearby_agents_by_type(
-                fish, int(self.parameters["mirror_distance"]), FishClass
-            )
-        )
+        allies = _get_nearby_fish(fish, int(self.parameters["mirror_distance"]))
 
         if allies:
             nearest = min(allies, key=lambda f: (f.pos - fish.pos).length())
@@ -363,7 +419,7 @@ class BoidsBehavior(BehaviorAlgorithm):
         QUERY_RADIUS = 200
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+            for f in _get_nearby_fish(fish, QUERY_RADIUS)
             if f.species == fish.species
         ]
 
@@ -549,13 +605,19 @@ class DynamicSchooler(BehaviorAlgorithm):
         QUERY_RADIUS = int(self.parameters["danger_threshold"] * 1.5)
         allies = [
             f
-            for f in fish.environment.nearby_agents_by_type(fish, QUERY_RADIUS, FishClass)
+            for f in _get_nearby_fish(fish, QUERY_RADIUS)
             if f.species == fish.species
         ]
         if allies:
-            # Move toward school center
-            center = sum((f.pos for f in allies), Vector2()) / len(allies)
-            direction = self._safe_normalize(center - fish.pos)
+            # OPTIMIZATION: Inline center calculation
+            center_x, center_y = 0.0, 0.0
+            for f in allies:
+                center_x += f.pos.x
+                center_y += f.pos.y
+            n = len(allies)
+            center_x /= n
+            center_y /= n
+            direction = self._safe_normalize(Vector2(center_x - fish.pos.x, center_y - fish.pos.y))
 
             vx = direction.x * cohesion
             vy = direction.y * cohesion

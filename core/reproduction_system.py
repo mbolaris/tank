@@ -31,9 +31,13 @@ class ReproductionSystem:
                 continue
 
             if environment is not None:
-                nearby_fish = environment.nearby_agents_by_type(
-                    fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
-                )
+                # OPTIMIZATION: Use dedicated nearby_fish query when available
+                if hasattr(environment, "nearby_fish"):
+                    nearby_fish = environment.nearby_fish(fish, MATING_QUERY_RADIUS)
+                else:
+                    nearby_fish = environment.nearby_agents_by_type(
+                        fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
+                    )
             else:
                 nearby_fish = [f for f in fish_list if f is not fish]
 

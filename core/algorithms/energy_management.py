@@ -220,7 +220,14 @@ class OpportunisticRester(BehaviorAlgorithm):
         )
 
         if has_nearby_food or has_nearby_threat:
-            return self.parameters["active_speed"], 0
+            # Move in fish's current direction at active speed
+            vel_len_sq = fish.vel.length_squared()
+            if vel_len_sq > 0.01:
+                vel_len = math.sqrt(vel_len_sq)
+                return fish.vel.x / vel_len * self.parameters["active_speed"], fish.vel.y / vel_len * self.parameters["active_speed"]
+            # If stationary, pick a random direction
+            angle = random.random() * 6.283185307
+            return self.parameters["active_speed"] * math.cos(angle), self.parameters["active_speed"] * math.sin(angle)
 
         # Idle wandering when no stimuli detected
         idle_speed = self.parameters["idle_wander_speed"]
@@ -274,8 +281,14 @@ class EnergyBalancer(BehaviorAlgorithm):
                 if distance < 150:
                     direction = self._safe_normalize(nearest_food.pos - fish.pos)
                     return direction.x * 0.9, direction.y * 0.9
-            # Otherwise minimize activity
-            return 0.1, 0
+            # Otherwise minimize activity - continue current direction slowly
+            vel_len_sq = fish.vel.length_squared()
+            if vel_len_sq > 0.01:
+                vel_len = math.sqrt(vel_len_sq)
+                return fish.vel.x / vel_len * 0.1, fish.vel.y / vel_len * 0.1
+            # If stationary, pick a random direction to explore
+            angle = random.random() * 6.283185307
+            return 0.1 * math.cos(angle), 0.1 * math.sin(angle)
 
         # Safe energy: normal activity based on ratio
         if energy_ratio < self.parameters["min_energy_ratio"]:
@@ -289,7 +302,14 @@ class EnergyBalancer(BehaviorAlgorithm):
                 / (self.parameters["max_energy_ratio"] - self.parameters["min_energy_ratio"])
             )
 
-        return activity, 0
+        # Move in fish's current direction at calculated activity level
+        vel_len_sq = fish.vel.length_squared()
+        if vel_len_sq > 0.01:
+            vel_len = math.sqrt(vel_len_sq)
+            return fish.vel.x / vel_len * activity, fish.vel.y / vel_len * activity
+        # If stationary, pick random direction
+        angle = random.random() * 6.283185307
+        return activity * math.cos(angle), activity * math.sin(angle)
 
 
 @dataclass
@@ -310,8 +330,15 @@ class SustainableCruiser(BehaviorAlgorithm):
         return cls()
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-        # Just maintain steady pace
-        return self.parameters["cruise_speed"] * self.parameters["consistency"], 0
+        # Just maintain steady pace in current direction
+        cruise = self.parameters["cruise_speed"] * self.parameters["consistency"]
+        vel_len_sq = fish.vel.length_squared()
+        if vel_len_sq > 0.01:
+            vel_len = math.sqrt(vel_len_sq)
+            return fish.vel.x / vel_len * cruise, fish.vel.y / vel_len * cruise
+        # If stationary, pick random direction
+        angle = random.random() * 6.283185307
+        return cruise * math.cos(angle), cruise * math.sin(angle)
 
 
 @dataclass
@@ -415,7 +442,14 @@ class MetabolicOptimizer(BehaviorAlgorithm):
         else:
             speed = self.parameters["low_efficiency_speed"]
 
-        return speed, 0
+        # Move in fish's current direction at calculated speed
+        vel_len_sq = fish.vel.length_squared()
+        if vel_len_sq > 0.01:
+            vel_len = math.sqrt(vel_len_sq)
+            return fish.vel.x / vel_len * speed, fish.vel.y / vel_len * speed
+        # If stationary, pick random direction
+        angle = random.random() * 6.283185307
+        return speed * math.cos(angle), speed * math.sin(angle)
 
 
 @dataclass
