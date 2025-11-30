@@ -72,7 +72,14 @@ class AlgorithmicMovement(MovementStrategy):
     - Imports moved to module level
     - Pre-computed squared constant for speed comparison
     - Avoid sqrt when not needed
+    - Reduced poker query radius for better performance
     """
+
+    # Reduced radius for poker weight calculation (was 200, now 100)
+    # This significantly reduces the number of fish checked while still
+    # providing accurate poker behavior weighting for nearby fish
+    POKER_WEIGHT_RADIUS = 100
+    POKER_WEIGHT_RADIUS_SQ = POKER_WEIGHT_RADIUS * POKER_WEIGHT_RADIUS
 
     def move(self, sprite: Fish) -> None:
         """Move using the fish's behavior algorithms (mix-and-match).
@@ -80,7 +87,8 @@ class AlgorithmicMovement(MovementStrategy):
         Performance optimizations:
         - Cache frequently accessed attributes
         - Use squared distances to avoid sqrt
-        - Batch calculations
+        - Skip nearby fish query if no poker algorithm
+        - Use smaller radius for poker weight calculation
         """
         genome = sprite.genome
 
@@ -104,13 +112,13 @@ class AlgorithmicMovement(MovementStrategy):
             # Get the sprite entity (unwrap if it's a sprite wrapper)
             sprite_entity: Fish = sprite._entity if hasattr(sprite, "_entity") else sprite
 
-            # Optimize: Use spatial query to only check nearby fish
-            # We only care about fish within 200 units for poker behavior
-            # Use optimized nearby_fish query if available
+            # OPTIMIZATION: Use smaller radius (100 instead of 200) for poker weight
+            # This still captures the most relevant nearby fish while reducing query cost
+            poker_radius = self.POKER_WEIGHT_RADIUS
             if hasattr(sprite.environment, "nearby_fish"):
-                nearby_fish = sprite.environment.nearby_fish(sprite_entity, 200)
+                nearby_fish = sprite.environment.nearby_fish(sprite_entity, poker_radius)
             else:
-                nearby_fish = sprite.environment.nearby_agents_by_type(sprite_entity, 200, FishClass)
+                nearby_fish = sprite.environment.nearby_agents_by_type(sprite_entity, poker_radius, FishClass)
 
             # Calculate poker behavior weight based on context
             poker_weight: float = 0.0
@@ -121,22 +129,23 @@ class AlgorithmicMovement(MovementStrategy):
             sprite_y = sprite.pos.y
 
             # Find nearest fish using squared distance (avoid sqrt)
-            nearest_dist_sq: float = 40000.0  # 200^2 - anything beyond this is irrelevant
+            nearest_dist_sq: float = self.POKER_WEIGHT_RADIUS_SQ
 
             for f in nearby_fish:
                 if f.fish_id != fish_id:
-                    # Use static method to avoid Vector2 allocation
-                    dist_sq = Vector2.distance_squared(sprite_x, sprite_y, f.pos.x, f.pos.y)
+                    # Inline distance calculation to avoid function call overhead
+                    dx = sprite_x - f.pos.x
+                    dy = sprite_y - f.pos.y
+                    dist_sq = dx * dx + dy * dy
                     if dist_sq < nearest_dist_sq:
                         nearest_dist_sq = dist_sq
 
-
             # Only compute weight if a nearby fish was found
-            if nearest_dist_sq < 40000.0:
+            if nearest_dist_sq < self.POKER_WEIGHT_RADIUS_SQ:
                 distance = math.sqrt(nearest_dist_sq)
-                # Poker is more relevant when fish are nearby (within 200 units)
-                # Weight increases as fish get closer
-                poker_weight = 1.0 - distance * 0.005  # Equivalent to distance / 200.0
+                # Poker is more relevant when fish are nearby
+                # Weight increases as fish get closer (scale to 100 radius)
+                poker_weight = 1.0 - distance / self.POKER_WEIGHT_RADIUS
                 # Also consider energy - poker more relevant with higher energy
                 max_energy = sprite.max_energy
                 if max_energy > 0:

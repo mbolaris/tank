@@ -360,6 +360,8 @@ class BaseSimulator(ABC):
         - Inline proximity check to avoid method call overhead
         - Pre-compute squared distances to avoid sqrt
         - Use local variables for frequently accessed attributes
+        - Cache entity positions to avoid repeated attribute access
+        - Skip spatial query for entities with no nearby_poker_entities method
         """
         from core.entities import Fish
         from core.entities.fractal_plant import FractalPlant
@@ -368,41 +370,55 @@ class BaseSimulator(ABC):
             return
 
         all_entities = self.get_all_entities()
-        all_entities_set = set(all_entities)
+        
+        # Early exit if not enough entities
+        if len(all_entities) < 2:
+            return
 
-        # Get all poker-eligible entities
-        fish_list = [e for e in all_entities if isinstance(e, Fish)]
+        all_entities_set = set(all_entities)
+        
+        # Performance: Use type() for exact match (faster than isinstance)
+        fish_list = [e for e in all_entities if type(e) is Fish]
+        
+        # For plants, we need isinstance since we also check is_dead
         plant_list = [e for e in all_entities if isinstance(e, FractalPlant) and not e.is_dead()]
 
-        # Need at least 2 total entities for poker
-        total_players = len(fish_list) + len(plant_list)
-        if total_players < 2:
+        # Need at least 1 fish and 1 other entity for poker
+        n_fish = len(fish_list)
+        n_plants = len(plant_list)
+        if n_fish < 1 or (n_fish + n_plants) < 2:
             return
 
         # Combine into one list for proximity checking
         all_poker_entities: List[PokerPlayer] = fish_list + plant_list  # type: ignore
+        n_entities = len(all_poker_entities)
+
+        # Pre-compute squared proximity values
+        proximity_max = max(FISH_POKER_MAX_DISTANCE, FRACTAL_PLANT_POKER_MAX_DISTANCE)
+        proximity_min = min(FISH_POKER_MIN_DISTANCE, FRACTAL_PLANT_POKER_MIN_DISTANCE)
+        proximity_max_sq = proximity_max * proximity_max
+        proximity_min_sq = proximity_min * proximity_min
+        
+        # Cache entity center positions for fast access
+        # Store as (center_x, center_y) tuples
+        entity_centers = {}
+        for e in all_poker_entities:
+            entity_centers[e] = (e.pos.x + e.width * 0.5, e.pos.y + e.height * 0.5)
 
         # Build adjacency graph for entities in poker proximity
         entity_contacts: Dict[PokerPlayer, Set[PokerPlayer]] = {e: set() for e in all_poker_entities}
 
         environment = self.environment
-        
-        # Use a common proximity distance for mixed games
-        # Pre-compute squared values to avoid sqrt in inner loop
-        proximity_max = max(FISH_POKER_MAX_DISTANCE, FRACTAL_PLANT_POKER_MAX_DISTANCE)
-        proximity_min = min(FISH_POKER_MIN_DISTANCE, FRACTAL_PLANT_POKER_MIN_DISTANCE)
-        proximity_max_sq = proximity_max * proximity_max
-        proximity_min_sq = proximity_min * proximity_min
-
-        # OPTIMIZATION: Build a set for O(1) lookup of poker entities
         poker_entity_set = set(all_poker_entities)
 
         for entity in all_poker_entities:
             if entity not in all_entities_set:
                 continue
 
+            e1_cx, e1_cy = entity_centers[entity]
+
             # Get nearby entities - OPTIMIZATION: Single combined query
-            search_radius = proximity_max + max(entity.width, entity.height) / 2
+            search_radius = proximity_max + max(entity.width, entity.height) * 0.5
             nearby: List[PokerPlayer] = []
             
             if environment is not None:
@@ -426,19 +442,17 @@ class BaseSimulator(ABC):
             else:
                 nearby = [e for e in all_poker_entities if e is not entity]
 
-            # OPTIMIZATION: Cache entity position for inner loop
-            e1_cx = entity.pos.x + entity.width * 0.5
-            e1_cy = entity.pos.y + entity.height * 0.5
-
             for other in nearby:
                 if other is entity:
                     continue
                 if other not in all_entities_set:
                     continue
+                # Skip if already connected (avoid redundant checks)
+                if other in entity_contacts[entity]:
+                    continue
 
-                # OPTIMIZATION: Inline proximity check to avoid method call overhead
-                e2_cx = other.pos.x + other.width * 0.5
-                e2_cy = other.pos.y + other.height * 0.5
+                # OPTIMIZATION: Use cached positions
+                e2_cx, e2_cy = entity_centers.get(other, (other.pos.x + other.width * 0.5, other.pos.y + other.height * 0.5))
                 dx = e1_cx - e2_cx
                 dy = e1_cy - e2_cy
                 distance_sq = dx * dx + dy * dy
@@ -543,6 +557,12 @@ class BaseSimulator(ABC):
         This prevents chain-connected players (A near B, B near C, but A far from C)
         from ending up in the same poker game.
         
+        PERFORMANCE OPTIMIZATIONS:
+        - Use squared distances throughout (avoid sqrt)
+        - Pre-cache player positions
+        - Early exit when best possible group is found
+        - Inline distance calculations
+        
         Args:
             players: List of potential players
             max_distance: Maximum distance between any two players
@@ -550,54 +570,57 @@ class BaseSimulator(ABC):
         Returns:
             Largest subset where all players are mutually within max_distance
         """
-        if len(players) <= 2:
+        n = len(players)
+        if n <= 2:
             # For 2 players, they were already verified as proximate
             return players
         
-        import math
+        # Pre-compute squared max distance (avoid sqrt entirely)
+        max_dist_sq = max_distance * max_distance
         
-        # Calculate pairwise distances
-        n = len(players)
-        distances = {}
+        # Pre-cache player positions for faster access
+        positions = [(p.pos.x, p.pos.y) for p in players]
+        
+        # Calculate pairwise squared distances and build adjacency matrix
+        # Use a flat dict with (i,j) keys where i < j
+        distances_sq: dict = {}
         for i in range(n):
+            x1, y1 = positions[i]
             for j in range(i + 1, n):
-                p1, p2 = players[i], players[j]
-                dx = p1.pos.x - p2.pos.x
-                dy = p1.pos.y - p2.pos.y
-                dist = math.sqrt(dx * dx + dy * dy)
-                distances[(i, j)] = dist
+                x2, y2 = positions[j]
+                dx = x1 - x2
+                dy = y1 - y2
+                distances_sq[(i, j)] = dx * dx + dy * dy
         
-        # Find largest clique where all pairs are within max_distance
-        # Start with all players and remove those that violate the constraint
-        def is_valid_group(indices: List[int]) -> bool:
-            """Check if all pairs in the group are within max_distance."""
-            for i in range(len(indices)):
-                for j in range(i + 1, len(indices)):
-                    key = (min(indices[i], indices[j]), max(indices[i], indices[j]))
-                    if distances.get(key, float('inf')) > max_distance:
-                        return False
-            return True
-        
-        # Simple greedy approach: start with first player, add others that work
+        # Simple greedy approach: start with each player, build largest valid group
         best_group: List[int] = []
+        best_size = 0
         
         for start_idx in range(n):
+            # Early exit: can't beat current best if remaining players aren't enough
+            if n - start_idx <= best_size:
+                break
+                
             group = [start_idx]
-            for candidate_idx in range(n):
-                if candidate_idx == start_idx:
-                    continue
+            
+            for candidate_idx in range(start_idx + 1, n):
                 # Check if candidate is within distance of ALL current group members
                 can_add = True
                 for member_idx in group:
-                    key = (min(candidate_idx, member_idx), max(candidate_idx, member_idx))
-                    if distances.get(key, float('inf')) > max_distance:
+                    # Get key with smaller index first
+                    key = (member_idx, candidate_idx) if member_idx < candidate_idx else (candidate_idx, member_idx)
+                    if distances_sq.get(key, float('inf')) > max_dist_sq:
                         can_add = False
                         break
                 if can_add:
                     group.append(candidate_idx)
             
-            if len(group) > len(best_group):
+            if len(group) > best_size:
                 best_group = group
+                best_size = len(group)
+                # Early exit if we found a group with all remaining players
+                if best_size == n - start_idx:
+                    break
         
         return [players[i] for i in best_group]
 
@@ -796,7 +819,10 @@ class BaseSimulator(ABC):
         # Performance: Cache environment and check_collision references
         environment = self.environment
         check_collision = self.check_collision
-        check_poker_proximity = self.check_fish_poker_proximity
+        
+        # Pre-compute squared distance constants for inline proximity check
+        poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE
+        poker_max_sq = FISH_POKER_MAX_DISTANCE * FISH_POKER_MAX_DISTANCE
 
         # Single pass over all fish
         for fish in fish_list:
@@ -821,6 +847,10 @@ class BaseSimulator(ABC):
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in all_entities if e is not fish]
 
+            # Cache fish position for inner loop
+            fish_cx = fish.pos.x + fish.width * 0.5
+            fish_cy = fish.pos.y + fish.height * 0.5
+
             for other in nearby_entities:
                 if other is fish:
                     continue
@@ -833,8 +863,16 @@ class BaseSimulator(ABC):
                 other_type = type(other)
 
                 if other_type is Fish:
-                    # For fish-fish poker: use proximity check (close but not touching)
-                    if check_poker_proximity(fish, other):
+                    # OPTIMIZATION: Inline poker proximity check to avoid method call overhead
+                    # Calculate center-to-center distance squared
+                    o_cx = other.pos.x + other.width * 0.5
+                    o_cy = other.pos.y + other.height * 0.5
+                    dx = fish_cx - o_cx
+                    dy = fish_cy - o_cy
+                    dist_sq = dx * dx + dy * dy
+                    
+                    # Must be within max distance but farther than min distance
+                    if poker_min_sq < dist_sq <= poker_max_sq:
                         fish_poker_contacts[fish].add(other)
 
                 elif other_type is Crab or isinstance(other, Crab):

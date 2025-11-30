@@ -9,15 +9,85 @@ This module contains algorithms focused on poker-based fish interactions:
 - PokerStrategist: Uses opponent modeling and position awareness
 - PokerBluffer: Varies behavior unpredictably to confuse opponents
 - PokerConservative: Risk-averse, plays only when highly favorable
+
+Performance optimizations:
+- Uses spatial queries (nearby_fish) instead of get_agents_of_type
+- Uses squared distances to avoid sqrt overhead
+- Caches fish position coordinates
 """
 
 import random
 from dataclasses import dataclass
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple, Optional, List
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.entities import Crab
 from core.entities import Fish as FishClass
+
+if TYPE_CHECKING:
+    from core.entities import Fish
+
+
+def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["Fish"], float]:
+    """Find nearest other fish using optimized spatial query.
+    
+    Performance: Uses spatial grid query instead of iterating all fish.
+    Returns squared distance to avoid sqrt overhead.
+    
+    Args:
+        fish: The fish searching for others
+        radius: Search radius
+        
+    Returns:
+        Tuple of (nearest_fish, distance_squared) or (None, inf)
+    """
+    env = fish.environment
+    if hasattr(env, "nearby_fish"):
+        nearby = env.nearby_fish(fish, radius)
+    else:
+        nearby = env.nearby_agents_by_type(fish, radius, FishClass)
+    
+    if not nearby:
+        return None, float('inf')
+    
+    fish_x, fish_y = fish.pos.x, fish.pos.y
+    fish_id = fish.fish_id
+    
+    min_dist_sq = float('inf')
+    nearest = None
+    
+    for other in nearby:
+        if other.fish_id == fish_id:
+            continue
+        dx = other.pos.x - fish_x
+        dy = other.pos.y - fish_y
+        dist_sq = dx * dx + dy * dy
+        if dist_sq < min_dist_sq:
+            min_dist_sq = dist_sq
+            nearest = other
+    
+    return nearest, min_dist_sq
+
+
+def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> List["Fish"]:
+    """Get nearby fish using optimized spatial query.
+    
+    Args:
+        fish: The fish searching for others
+        radius: Search radius
+        
+    Returns:
+        List of nearby fish (excluding self)
+    """
+    env = fish.environment
+    fish_id = fish.fish_id
+    
+    if hasattr(env, "nearby_fish"):
+        nearby = env.nearby_fish(fish, radius)
+    else:
+        nearby = env.nearby_agents_by_type(fish, radius, FishClass)
+    
+    return [f for f in nearby if f.fish_id != fish_id]
 
 
 @dataclass
@@ -55,20 +125,15 @@ class PokerChallenger(BehaviorAlgorithm):
                 return direction.x * 0.8, direction.y * 0.8
             return 0, 0
 
-        # Find nearest other fish within challenge radius
-        all_fish = fish.environment.get_agents_of_type(FishClass)
-        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+        # OPTIMIZATION: Use spatial query instead of get_agents_of_type
+        challenge_radius = self.parameters["challenge_radius"]
+        nearest_fish, dist_sq = _find_nearest_fish_spatial(fish, challenge_radius)
 
-        if other_fish:
-            # Find closest fish
-            nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
-            distance = (nearest_fish.pos - fish.pos).length()
-
-            if distance < self.parameters["challenge_radius"]:
-                # Move toward the fish for poker
-                direction = self._safe_normalize(nearest_fish.pos - fish.pos)
-                speed = self.parameters["challenge_speed"]
-                return direction.x * speed, direction.y * speed
+        if nearest_fish is not None:
+            # Move toward the fish for poker
+            direction = self._safe_normalize(nearest_fish.pos - fish.pos)
+            speed = self.parameters["challenge_speed"]
+            return direction.x * speed, direction.y * speed
 
         # No fish nearby - wander
         return random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)
@@ -99,23 +164,28 @@ class PokerDodger(BehaviorAlgorithm):
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.2, direction.y * 1.2
 
-        # Check for nearby fish to avoid
-        all_fish = fish.environment.get_agents_of_type(FishClass)
-        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+        # OPTIMIZATION: Use spatial query with avoidance radius
+        avoidance_radius = self.parameters["avoidance_radius"]
+        other_fish = _get_nearby_fish_spatial(fish, avoidance_radius)
 
         # Calculate avoidance vector
         avoidance_vector = Vector2(0, 0)
         fish_nearby = 0
+        fish_x, fish_y = fish.pos.x, fish.pos.y
 
         for other in other_fish:
-            distance = (other.pos - fish.pos).length()
-            if distance < self.parameters["avoidance_radius"] and distance > 0:
+            # Use squared distance to avoid sqrt
+            dx = other.pos.x - fish_x
+            dy = other.pos.y - fish_y
+            dist_sq = dx * dx + dy * dy
+            
+            if dist_sq > 0:
+                import math
+                distance = math.sqrt(dist_sq)
                 # Avoid this fish
                 avoid_dir = self._safe_normalize(fish.pos - other.pos)
                 # Stronger avoidance for closer fish
-                strength = (self.parameters["avoidance_radius"] - distance) / self.parameters[
-                    "avoidance_radius"
-                ]
+                strength = (avoidance_radius - distance) / avoidance_radius
                 avoidance_vector = avoidance_vector + (avoid_dir * strength)
                 fish_nearby += 1
 
@@ -175,12 +245,9 @@ class PokerGambler(BehaviorAlgorithm):
 
         # If energy is high, gamble!
         if energy_ratio > self.parameters["high_energy_threshold"]:
-            # Find all fish and challenge the nearest
-            all_fish = fish.environment.get_agents_of_type(FishClass)
-            other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
-
-            if other_fish:
-                nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
+            # OPTIMIZATION: Use spatial query
+            nearest_fish, _ = _find_nearest_fish_spatial(fish, 200)
+            if nearest_fish is not None:
                 direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                 speed = self.parameters["challenge_speed"]
                 return direction.x * speed, direction.y * speed
@@ -189,10 +256,9 @@ class PokerGambler(BehaviorAlgorithm):
         elif energy_ratio > 0.3:
             # 50/50 chance between seeking fish or food
             if random.random() < 0.5:
-                all_fish = fish.environment.get_agents_of_type(FishClass)
-                other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
-                if other_fish:
-                    nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
+                # OPTIMIZATION: Use spatial query
+                nearest_fish, _ = _find_nearest_fish_spatial(fish, 200)
+                if nearest_fish is not None:
                     direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                     return direction.x * 0.8, direction.y * 0.8
 
@@ -238,19 +304,13 @@ class SelectivePoker(BehaviorAlgorithm):
 
             # Be selective - only challenge sometimes
             if random.random() < self.parameters["selectivity"]:
-                all_fish = fish.environment.get_agents_of_type(FishClass)
-                other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+                # OPTIMIZATION: Use spatial query with max distance 150
+                nearest_fish, dist_sq = _find_nearest_fish_spatial(fish, 150)
 
-                if other_fish:
-                    # Find nearest fish
-                    nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
-                    distance = (nearest_fish.pos - fish.pos).length()
-
-                    # Only challenge if reasonably close
-                    if distance < 150:
-                        direction = self._safe_normalize(nearest_fish.pos - fish.pos)
-                        speed = self.parameters["challenge_speed"]
-                        return direction.x * speed, direction.y * speed
+                if nearest_fish is not None:
+                    direction = self._safe_normalize(nearest_fish.pos - fish.pos)
+                    speed = self.parameters["challenge_speed"]
+                    return direction.x * speed, direction.y * speed
 
         # Default to food seeking
         nearest_food = self._find_nearest_food(fish)
@@ -288,8 +348,10 @@ class PokerOpportunist(BehaviorAlgorithm):
 
         # Look for both food and fish opportunities
         nearest_food = self._find_nearest_food(fish)
-        all_fish = fish.environment.get_agents_of_type(FishClass)
-        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+        
+        # OPTIMIZATION: Use spatial query
+        opportunity_radius = self.parameters["opportunity_radius"]
+        nearest_fish, _ = _find_nearest_fish_spatial(fish, opportunity_radius)
 
         food_vector = Vector2(0, 0)
         poker_vector = Vector2(0, 0)
@@ -301,11 +363,8 @@ class PokerOpportunist(BehaviorAlgorithm):
                 food_vector = self._safe_normalize(nearest_food.pos - fish.pos)
 
         # Calculate poker attraction (nearest fish)
-        if other_fish:
-            nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
-            poker_dist = (nearest_fish.pos - fish.pos).length()
-            if poker_dist < self.parameters["opportunity_radius"] and poker_dist > 0:
-                poker_vector = self._safe_normalize(nearest_fish.pos - fish.pos)
+        if nearest_fish is not None:
+            poker_vector = self._safe_normalize(nearest_fish.pos - fish.pos)
 
         # Blend the two behaviors based on weights and energy
         energy_ratio = fish.energy / fish.max_energy
@@ -369,9 +428,8 @@ class PokerStrategist(BehaviorAlgorithm):
                 return direction.x * 0.9, direction.y * 0.9
             return 0, 0
 
-        # Find potential poker opponents
-        all_fish = fish.environment.get_agents_of_type(FishClass)
-        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+        # OPTIMIZATION: Use spatial query instead of get_agents_of_type
+        other_fish = _get_nearby_fish_spatial(fish, 200)
 
         if not other_fish:
             # No opponents - seek food
@@ -384,11 +442,19 @@ class PokerStrategist(BehaviorAlgorithm):
         # Strategic target selection based on position and energy
         best_target = None
         best_score = -float("inf")
+        fish_x, fish_y = fish.pos.x, fish.pos.y
 
         for target in other_fish:
-            distance = (target.pos - fish.pos).length()
-            if distance > 200:  # Too far
+            # Use squared distance for initial filter
+            dx = target.pos.x - fish_x
+            dy = target.pos.y - fish_y
+            dist_sq = dx * dx + dy * dy
+            
+            if dist_sq > 40000:  # 200^2 - Too far
                 continue
+
+            import math
+            distance = math.sqrt(dist_sq)
 
             # Calculate strategic score
             score = 0
@@ -478,15 +544,14 @@ class PokerBluffer(BehaviorAlgorithm):
                 return direction.x, direction.y
             return 0, 0
 
-        # Find nearest fish
-        all_fish = fish.environment.get_agents_of_type(FishClass)
-        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+        # OPTIMIZATION: Use spatial query instead of get_agents_of_type
+        other_fish = _get_nearby_fish_spatial(fish, 150)
 
         # Behavior based on current mode
         if self.current_mode == "aggressive":
             # Aggressively seek poker
-            if other_fish:
-                nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
+            nearest_fish, _ = _find_nearest_fish_spatial(fish, 200)
+            if nearest_fish is not None:
                 direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                 speed = 1.0 + self.parameters["aggression_swing"]
                 return direction.x * speed, direction.y * speed
@@ -495,11 +560,14 @@ class PokerBluffer(BehaviorAlgorithm):
             # Avoid fish, focus on food
             nearest_food = self._find_nearest_food(fish)
             avoidance = Vector2(0, 0)
+            fish_x, fish_y = fish.pos.x, fish.pos.y
 
             # Calculate avoidance from nearby fish
             for other in other_fish:
-                distance = (other.pos - fish.pos).length()
-                if distance < 100 and distance > 0:
+                dx = other.pos.x - fish_x
+                dy = other.pos.y - fish_y
+                dist_sq = dx * dx + dy * dy
+                if dist_sq < 10000 and dist_sq > 0:  # 100^2
                     avoid_dir = self._safe_normalize(fish.pos - other.pos)
                     avoidance = avoidance + avoid_dir
 
@@ -516,10 +584,8 @@ class PokerBluffer(BehaviorAlgorithm):
         else:  # normal mode
             # Balanced approach with unpredictability
             if other_fish and random.random() < 0.6:
-                nearest_fish = min(other_fish, key=lambda f: (f.pos - fish.pos).length())
-                distance = (nearest_fish.pos - fish.pos).length()
-
-                if distance < 150:
+                nearest_fish, _ = _find_nearest_fish_spatial(fish, 150)
+                if nearest_fish is not None:
                     direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                     # Add unpredictable speed variation
                     speed = 0.8 + random.uniform(0, self.parameters["unpredictability"])
@@ -572,26 +638,21 @@ class PokerConservative(BehaviorAlgorithm):
                 return direction.x, direction.y
             return 0, 0
 
-        # Even with high energy, be very selective
-        all_fish = fish.environment.get_agents_of_type(FishClass)
-        other_fish = [f for f in all_fish if f.fish_id != fish.fish_id]
+        # OPTIMIZATION: Use spatial query with safety distance
+        safety_distance = self.parameters["safety_distance"]
+        other_fish = _get_nearby_fish_spatial(fish, safety_distance)
 
         best_target = None
         best_advantage = 0
+        energy_advantage_required = self.parameters["energy_advantage_required"]
 
         for other in other_fish:
-            distance = (other.pos - fish.pos).length()
-
-            # Only consider fish within safety distance
-            if distance > self.parameters["safety_distance"]:
-                continue
-
             # Check if we have energy advantage
             if hasattr(other, "energy") and other.energy is not None:
                 energy_advantage = fish.energy - other.energy
 
                 # Only challenge if we have significant energy advantage
-                if energy_advantage > self.parameters["energy_advantage_required"]:
+                if energy_advantage > energy_advantage_required:
                     if energy_advantage > best_advantage:
                         best_advantage = energy_advantage
                         best_target = other
@@ -605,8 +666,8 @@ class PokerConservative(BehaviorAlgorithm):
         # Default to safe food seeking
         nearest_food = self._find_nearest_food(fish)
         if nearest_food:
-            # Check if any fish are too close while seeking food
-            close_fish = [f for f in other_fish if (f.pos - fish.pos).length() < 80]
+            # Check if any fish are too close while seeking food (use spatial query)
+            close_fish = _get_nearby_fish_spatial(fish, 80)
             if close_fish:
                 # Avoid close fish while seeking food
                 avoidance = Vector2(0, 0)
