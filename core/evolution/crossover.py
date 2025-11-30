@@ -122,7 +122,7 @@ def crossover_dict_values(
         Blended dictionary
     """
     rng = rng or random
-    result = {}
+    result: Dict[str, float] = {}
 
     # Get all keys from both parents
     all_keys = set(dict1.keys()) | set(dict2.keys())
