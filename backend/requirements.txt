@@ -4,3 +4,7 @@ websockets==12.0
 pydantic==2.5.3
 python-multipart==0.0.6
 httpx==0.26.0
+
+# Production dependencies
+psutil>=5.9.0  # Server resource monitoring
+slowapi>=0.1.9  # Rate limiting (optional, we have built-in)

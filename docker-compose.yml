@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  fishtank:
+    build: .
+    container_name: fishtank-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - TANK_SERVER_ID=${TANK_SERVER_ID:-docker-fishtank}
+      - PRODUCTION=${PRODUCTION:-true}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-60}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60}
+    volumes:
+      - fishtank-data:/app/data
+      - fishtank-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+volumes:
+  fishtank-data:
+  fishtank-logs:

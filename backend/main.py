@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.logging_config import configure_logging
+from backend.security import setup_security_middleware, websocket_limiter
 
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -73,6 +74,10 @@ connected_clients = None
 SERVER_ID = os.getenv("TANK_SERVER_ID", "local-server")  # Local server ID
 SERVER_VERSION = "1.0.0"  # Server version
 _server_start_time = time.time()  # Track server uptime
+
+# Production settings
+PRODUCTION_MODE = os.getenv("PRODUCTION", "false").lower() == "true"
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")  # Comma-separated list
 
 # Allow port override for testing multiple servers
 _api_port_override = os.getenv("TANK_API_PORT")
@@ -545,16 +550,24 @@ async def lifespan(app: FastAPI):
 
 
 # Create FastAPI app with lifespan handler
-app = FastAPI(title="Fish Tank Simulation API", lifespan=lifespan)
+app = FastAPI(
+    title="Fish Tank Simulation API",
+    lifespan=lifespan,
+    docs_url=None if PRODUCTION_MODE else "/docs",  # Disable docs in production
+    redoc_url=None if PRODUCTION_MODE else "/redoc",
+)
 
-# Add CORS middleware
+# Add CORS middleware (environment-aware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=ALLOWED_ORIGINS if PRODUCTION_MODE else ["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Add security middleware (rate limiting, security headers)
+setup_security_middleware(app, enable_rate_limiting=PRODUCTION_MODE)
 
 
 # =============================================================================
