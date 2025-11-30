@@ -522,7 +522,7 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
                         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
                         gap: '16px',
                     }}>
-                        {tanks.map((tankStatus) => (
+                        {[...tanks].sort((a, b) => (b.frame ?? 0) - (a.frame ?? 0)).map((tankStatus) => (
                             <TankCard
                                 key={tankStatus.tank.tank_id}
                                 tankStatus={tankStatus}
