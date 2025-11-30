@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from typing import Tuple
 
 from core.entities.fractal_plant import FractalPlant
 from core.environment import Environment
@@ -8,7 +9,7 @@ from core.plant_genetics import PlantGenome
 from core.root_spots import RootSpot, RootSpotManager
 
 
-def create_environment() -> tuple[Environment, RootSpotManager]:
+def create_environment() -> Tuple[Environment, RootSpotManager]:
     """Set up a minimal environment and root spot manager for plant simulation."""
 
     return Environment(agents=[], width=800, height=600), RootSpotManager(

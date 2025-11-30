@@ -42,6 +42,7 @@ from __future__ import annotations
 import math
 import statistics
 from dataclasses import dataclass, field
+from typing import Tuple
 
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
@@ -85,7 +86,7 @@ class SingleBenchmarkResult:
     benchmark_id: str
     hands_played: int
     bb_per_100: float
-    bb_per_100_ci_95: tuple[float, float]
+    bb_per_100_ci_95: Tuple[float, float]
     sample_variance: float
     is_statistically_significant: bool
 
@@ -99,10 +100,10 @@ class BenchmarkSuiteResult:
     per_benchmark: dict[str, SingleBenchmarkResult]
     # weighted aggregate
     weighted_bb_per_100: float
-    weighted_bb_per_100_ci_95: tuple[float, float]
+    weighted_bb_per_100_ci_95: Tuple[float, float]
 
 
-def _compute_ci_95(values: list[float]) -> tuple[float, float]:
+def _compute_ci_95(values: list[float]) -> Tuple[float, float]:
     """Basic t-approximation CI. Good enough for our use;
     if you want bootstrap later, you can swap this out.
     """
