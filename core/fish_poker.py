@@ -18,6 +18,7 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from core.constants import POST_POKER_PARENT_ENERGY_CONTRIBUTION
 from core.entities import LifeStage
 from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW, BettingAction
 from core.poker.core import PokerHand
@@ -446,7 +447,10 @@ class PokerInteraction:
         return min(base_bet, *max_bets)
 
     def try_post_poker_reproduction(
-        self, winner_fish: "Fish", loser_fish: "Fish", energy_transferred: float
+        self,
+        winner_fish: "Fish",
+        loser_fish: "Fish",
+        energy_transferred: float,
     ) -> Optional["Fish"]:
         """Attempt voluntary sexual reproduction after poker game.
 
@@ -466,6 +470,13 @@ class PokerInteraction:
         # net energy change negative, which violates gameplay expectations and tests
         # that require winners to gain energy.
         if winner_fish.environment is None or loser_fish.environment is None:
+            return None
+
+        # Protect winners from immediately losing more energy than they gained.
+        # If the reproduction energy cost would wipe out the poker winnings,
+        # skip reproduction and keep the positive feedback loop intact.
+        winner_energy_contribution = winner_fish.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION
+        if energy_transferred <= winner_energy_contribution:
             return None
 
         from core.constants import (
@@ -524,7 +535,6 @@ class PokerInteraction:
         from core.constants import (
             POST_POKER_MUTATION_RATE,
             POST_POKER_MUTATION_STRENGTH,
-            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
         )
 
         offspring_genome = Genome.from_parents_weighted(
@@ -953,6 +963,12 @@ class PokerInteraction:
             else None
         )
 
+        # Track starting energy to report actual deltas after bets and house cuts
+        starting_energy = {
+            self.fish1.fish_id: self.fish1.energy,
+            self.fish2.fish_id: self.fish2.energy,
+        }
+
         # Simulate multi-round Texas Hold'em game with blinds and position
         # Use evolved poker strategies if available, otherwise fall back to aggression
         game_state = simulate_multi_round_game(
@@ -996,6 +1012,8 @@ class PokerInteraction:
 
         # Calculate energy transfer based on pot
         house_cut = 0.0
+        winner_fish = None
+        loser_fish = None
         if winner_id != -1:
             # Determine winner and loser fish
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
@@ -1027,11 +1045,19 @@ class PokerInteraction:
             # Winner receives the pot minus house cut
             winner_fish.modify_energy(total_pot - house_cut)
 
-            # For reporting purposes, energy_transferred is the loser's loss (what they bet)
-            # This is used for display and statistics tracking
-            energy_transferred = loser_total_bet
-            # Also calculate the winner's actual gain (less than loser's loss due to house cut)
-            winner_actual_gain = net_gain - house_cut
+        # Compute actual energy deltas after all deductions and additions
+        actual_deltas = {
+            self.fish1.fish_id: self.fish1.energy
+            - starting_energy[self.fish1.fish_id],
+            self.fish2.fish_id: self.fish2.energy
+            - starting_energy[self.fish2.fish_id],
+        }
+
+        if winner_id != -1 and winner_fish is not None and loser_fish is not None:
+            winner_actual_gain = actual_deltas[winner_id]
+            loser_delta = actual_deltas[loser_id]
+            # For reporting purposes, energy_transferred is the energy the loser lost
+            energy_transferred = max(0.0, -loser_delta)
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0
@@ -1199,8 +1225,8 @@ class PokerInteraction:
         self.result = PokerResult(
             player_hands=[self.hand1, self.hand2],
             player_ids=[self.fish1.fish_id, self.fish2.fish_id],
-            energy_transferred=abs(energy_transferred),
-            winner_actual_gain=abs(winner_actual_gain) if winner_id != -1 else 0.0,
+            energy_transferred=energy_transferred,
+            winner_actual_gain=winner_actual_gain if winner_id != -1 else 0.0,
             winner_id=winner_id,
             loser_ids=[loser_id] if loser_id != -1 else [],
             won_by_fold=won_by_fold,
