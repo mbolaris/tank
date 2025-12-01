@@ -535,7 +535,6 @@ class PokerInteraction:
         from core.constants import (
             POST_POKER_MUTATION_RATE,
             POST_POKER_MUTATION_STRENGTH,
-            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
         )
 
         offspring_genome = Genome.from_parents_weighted(
