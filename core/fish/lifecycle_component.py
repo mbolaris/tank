@@ -79,6 +79,22 @@ class LifecycleComponent:
         # Apply genetic size modifier to get final size
         self.size = base_size * self.genetic_size_modifier
 
+    @property
+    def current_stage(self):
+        """Backward-compatible alias for the current life stage."""
+
+        return self.life_stage
+
+    @current_stage.setter
+    def current_stage(self, stage) -> None:
+        """Directly set life stage (used by legacy tests) and sync size."""
+
+        from core.entities.base import LifeStage
+
+        self.life_stage = stage
+        base_size = FISH_BABY_SIZE if stage == LifeStage.BABY else FISH_ADULT_SIZE
+        self.size = base_size * self.genetic_size_modifier
+
     def is_baby(self) -> bool:
         """Check if fish is in baby stage.
 
