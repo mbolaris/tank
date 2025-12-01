@@ -525,6 +525,15 @@ class MixedPokerInteraction:
         players_acted = set()
         
         while actions_this_round < POKER_MAX_ACTIONS_PER_ROUND * self.num_players:
+            # Safety check: if all active players are all-in, we're done
+            # This prevents infinite loop where we keep skipping all-in players
+            active_can_act = [
+                i for i in range(self.num_players)
+                if not contexts[i].folded and not contexts[i].is_all_in
+            ]
+            if not active_can_act:
+                return game_state.get_active_player_count() > 1
+
             # Skip folded or all-in players
             if contexts[current_pos].folded or contexts[current_pos].is_all_in:
                 current_pos = (current_pos + 1) % self.num_players

@@ -44,6 +44,44 @@ def ensure_tank_directory(tank_id: str) -> Path:
     return tank_dir
 
 
+def save_snapshot_data(tank_id: str, snapshot: Dict[str, Any]) -> Optional[str]:
+    """Save pre-captured snapshot data to disk.
+
+    Args:
+        tank_id: The tank identifier
+        snapshot: The complete snapshot dictionary
+
+    Returns:
+        Filepath of saved snapshot, or None if save failed
+    """
+    try:
+        # Generate snapshot filename with timestamp
+        # Use the timestamp from the snapshot if available, otherwise current time
+        saved_at = snapshot.get("saved_at")
+        if saved_at:
+            try:
+                timestamp = datetime.fromisoformat(saved_at).strftime("%Y%m%d_%H%M%S")
+            except ValueError:
+                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        else:
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            snapshot["saved_at"] = datetime.utcnow().isoformat()
+
+        tank_dir = ensure_tank_directory(tank_id)
+        snapshot_file = tank_dir / f"snapshot_{timestamp}.json"
+
+        # Write to file
+        with open(snapshot_file, "w") as f:
+            json.dump(snapshot, f, indent=2)
+
+        logger.info(f"Saved tank {tank_id[:8]} state to {snapshot_file.name} ({len(snapshot.get('entities', []))} entities)")
+        return str(snapshot_file)
+
+    except Exception as e:
+        logger.error(f"Failed to save tank {tank_id[:8]} state: {e}", exc_info=True)
+        return None
+
+
 def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
     """Save complete tank state to disk.
 
@@ -54,113 +92,21 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
     Returns:
         Filepath of saved snapshot, or None if save failed
     """
+    # For backward compatibility or direct synchronous usage
+    if hasattr(manager, "capture_state_for_save"):
+        snapshot = manager.capture_state_for_save()
+        if snapshot:
+            return save_snapshot_data(tank_id, snapshot)
+        return None
+    
+    # Fallback to old logic if manager doesn't support capture_state_for_save
+    # (This shouldn't happen with updated SimulationManager, but good for safety)
     try:
         from backend.entity_transfer import serialize_entity_for_transfer
-
-        # Generate snapshot filename with timestamp
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        tank_dir = ensure_tank_directory(tank_id)
-        snapshot_file = tank_dir / f"snapshot_{timestamp}.json"
-
-        # Serialize all entities
-        entities = []
-        for entity in manager.world.engine.entities_list:
-            # Only attempt to serialize transferable entities using the transfer logic
-            # This prevents "Cannot transfer entity of type X" warnings for things like Food, Crab, etc.
-            from core.entities import Fish, FractalPlant
-
-            if isinstance(entity, (Fish, FractalPlant)):
-                serialized = serialize_entity_for_transfer(entity)
-                if serialized:
-                    entities.append(serialized)
-            else:
-                # Also serialize Food, Nectar, Castle, and Crab for complete state
-                from core.entities import Food, PlantNectar
-                from core.entities.base import Castle
-                from core.entities.predators import Crab
-
-                if isinstance(entity, PlantNectar):
-                    entities.append({
-                        "type": "plant_nectar",
-                        "id": id(entity),
-                        "x": entity.pos.x,
-                        "y": entity.pos.y,
-                        "energy": entity.energy,
-                        "source_plant_id": getattr(entity, "source_plant_id", None),
-                        "source_plant_x": getattr(entity, "source_plant_x", entity.pos.x),
-                        "source_plant_y": getattr(entity, "source_plant_y", entity.pos.y),
-                    })
-                elif isinstance(entity, Food):
-                    entities.append({
-                        "type": "food",
-                        "id": id(entity),
-                        "x": entity.pos.x,
-                        "y": entity.pos.y,
-                        "energy": entity.energy,
-                        "food_type": entity.food_type,
-                    })
-                elif isinstance(entity, Castle):
-                    entities.append({
-                        "type": "castle",
-                        "x": entity.pos.x,
-                        "y": entity.pos.y,
-                        "width": entity.width,
-                        "height": entity.height,
-                    })
-                elif isinstance(entity, Crab):
-                    # Serialize crab with genome
-                    genome_data = {
-                        "speed_modifier": entity.genome.speed_modifier,
-                        "size_modifier": entity.genome.size_modifier,
-                        "metabolism_rate": entity.genome.metabolism_rate,
-                        "color_hue": entity.genome.color_hue,
-                        "vision_range": entity.genome.vision_range,
-                    }
-                    entities.append({
-                        "type": "crab",
-                        "x": entity.pos.x,
-                        "y": entity.pos.y,
-                        "energy": entity.energy,
-                        "max_energy": entity.max_energy,
-                        "genome": genome_data,
-                        "hunt_cooldown": entity.hunt_cooldown,
-                    })
-
-        # Build complete snapshot
-        snapshot = {
-            "version": SCHEMA_VERSION,
-            "tank_id": tank_id,
-            "saved_at": datetime.utcnow().isoformat(),
-            "frame": manager.world.frame_count,
-            "metadata": {
-                "name": manager.tank_info.name,
-                "description": manager.tank_info.description,
-                "allow_transfers": manager.tank_info.allow_transfers,
-                "is_public": manager.tank_info.is_public,
-                "owner": manager.tank_info.owner,
-                "seed": manager.tank_info.seed,
-            },
-            "entities": entities,
-            "ecosystem": {
-                "total_births": manager.world.engine.ecosystem.total_births,
-                "total_deaths": manager.world.engine.ecosystem.total_deaths,
-                "current_generation": manager.world.engine.ecosystem.current_generation,
-                "death_causes": dict(manager.world.engine.ecosystem.death_causes),
-                "poker_stats": {
-                    "total_fish_games": manager.world.engine.ecosystem.total_fish_poker_games,
-                    "total_plant_games": manager.world.engine.ecosystem.total_plant_poker_games,
-                },
-            },
-            "paused": manager.world.paused,
-        }
-
-        # Write to file
-        with open(snapshot_file, "w") as f:
-            json.dump(snapshot, f, indent=2)
-
-        logger.info(f"Saved tank {tank_id[:8]} state to {snapshot_file.name} ({len(entities)} entities)")
-        return str(snapshot_file)
-
+        
+        # ... (rest of the old logic would go here, but we can just fail or warn)
+        logger.warning("save_tank_state called on manager without capture_state_for_save")
+        return None
     except Exception as e:
         logger.error(f"Failed to save tank {tank_id[:8]} state: {e}", exc_info=True)
         return None

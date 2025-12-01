@@ -6,6 +6,7 @@ in Tank World Net.
 """
 
 import logging
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -240,6 +241,158 @@ class SimulationManager:
             Serialized bytes
         """
         return self._runner.serialize_state(state)
+
+    def capture_state_for_save(self) -> Optional[Dict[str, Any]]:
+        """Capture a thread-safe snapshot of the tank state for saving.
+
+        This method acquires the simulation lock to ensure a consistent state,
+        then creates a deep copy of the necessary data so that serialization
+        and file I/O can happen outside the lock.
+        """
+        if not self.running:
+            # If not running, we can just access the world directly
+            # But we should still be careful about concurrent access
+            pass
+
+        try:
+            # Phase 1: Capture mutable state inside the lock (FAST)
+            captured_data = {}
+            captured_entities = []
+            
+            # Try to acquire lock with timeout to prevent blocking indefinitely
+            # This is critical because this runs in the main thread (via auto_save_service)
+            lock_acquired = self._runner.lock.acquire(timeout=0.5)
+            if not lock_acquired:
+                logger.warning(f"capture_state_for_save: Lock acquisition timed out for tank {self.tank_id}")
+                return None
+            
+            try:
+                # Import here to avoid circular imports
+                from backend.entity_transfer import capture_fish_mutable_state, capture_plant_mutable_state
+                from core.entities import Fish, FractalPlant, Food, PlantNectar
+                from core.entities.base import Castle
+                from core.entities.predators import Crab
+
+                world = self.world
+                engine = world.engine
+                
+                # 1. Capture metadata
+                captured_data["version"] = "2.0"
+                captured_data["tank_id"] = self.tank_id
+                captured_data["saved_at"] = datetime.utcnow().isoformat()
+                captured_data["frame"] = world.frame_count
+                captured_data["metadata"] = {
+                    "name": self.tank_info.name,
+                    "description": self.tank_info.description,
+                    "allow_transfers": self.tank_info.allow_transfers,
+                    "is_public": self.tank_info.is_public,
+                    "owner": self.tank_info.owner,
+                    "seed": self.tank_info.seed,
+                }
+                captured_data["paused"] = world.paused
+                
+                # 2. Capture ecosystem stats
+                captured_data["ecosystem"] = {
+                    "total_births": engine.ecosystem.total_births,
+                    "total_deaths": engine.ecosystem.total_deaths,
+                    "current_generation": engine.ecosystem.current_generation,
+                    "death_causes": dict(engine.ecosystem.death_causes),
+                    "poker_stats": {
+                        "total_fish_games": engine.ecosystem.total_fish_poker_games,
+                        "total_plant_games": engine.ecosystem.total_plant_poker_games,
+                    },
+                }
+                
+                # 3. Capture entities (mutable state only)
+                for entity in engine.entities_list:
+                    if isinstance(entity, Fish):
+                        captured_entities.append(("fish", entity, capture_fish_mutable_state(entity)))
+                    elif isinstance(entity, FractalPlant):
+                        captured_entities.append(("plant", entity, capture_plant_mutable_state(entity)))
+                    elif isinstance(entity, (PlantNectar, Food, Castle, Crab)):
+                        # For simple entities, we can just capture them directly or copy needed data
+                        # Since they are small/few, full copy here is fine
+                        captured_entities.append(("other", entity, None))
+            finally:
+                self._runner.lock.release()
+            
+            # Phase 2: Finalize serialization outside the lock (SLOW)
+            from backend.entity_transfer import finalize_fish_serialization, finalize_plant_serialization
+            from core.entities import Fish, FractalPlant, Food, PlantNectar
+            from core.entities.base import Castle
+            from core.entities.predators import Crab
+            
+            entities_data = []
+            for idx, (entity_type, entity, mutable_state) in enumerate(captured_entities):
+                try:
+                    if entity_type == "fish":
+                        serialized = finalize_fish_serialization(entity, mutable_state)
+                        entities_data.append(serialized)
+                    elif entity_type == "plant":
+                        serialized = finalize_plant_serialization(entity, mutable_state)
+                        entities_data.append(serialized)
+                    else:
+                        # Manual serialization for other types (same as before)
+                        if isinstance(entity, PlantNectar):
+                            entities_data.append({
+                                "type": "plant_nectar",
+                                "id": id(entity),
+                                "x": entity.pos.x,
+                                "y": entity.pos.y,
+                                "energy": entity.energy,
+                                "source_plant_id": getattr(entity, "source_plant_id", None),
+                                "source_plant_x": getattr(entity, "source_plant_x", entity.pos.x),
+                                "source_plant_y": getattr(entity, "source_plant_y", entity.pos.y),
+                            })
+                        elif isinstance(entity, Food):
+                            entities_data.append({
+                                "type": "food",
+                                "id": id(entity),
+                                "x": entity.pos.x,
+                                "y": entity.pos.y,
+                                "energy": entity.energy,
+                                "food_type": entity.food_type,
+                            })
+                        elif isinstance(entity, Castle):
+                            entities_data.append({
+                                "type": "castle",
+                                "x": entity.pos.x,
+                                "y": entity.pos.y,
+                                "width": entity.width,
+                                "height": entity.height,
+                            })
+                        elif isinstance(entity, Crab):
+                            # Serialize crab with genome
+                            genome_data = {
+                                "speed_modifier": entity.genome.speed_modifier,
+                                "size_modifier": entity.genome.size_modifier,
+                                "metabolism_rate": entity.genome.metabolism_rate,
+                                "color_hue": entity.genome.color_hue,
+                                "vision_range": entity.genome.vision_range,
+                            }
+                            entities_data.append({
+                                "type": "crab",
+                                "x": entity.pos.x,
+                                "y": entity.pos.y,
+                                "energy": entity.energy,
+                                "max_energy": entity.max_energy,
+                                "genome": genome_data,
+                                "hunt_cooldown": entity.hunt_cooldown,
+                            })
+                except Exception as e:
+                    logger.warning(f"Failed to serialize entity {type(entity).__name__}: {e}")
+                    continue
+                
+                # Yield GIL periodically to prevent starving other threads
+                if idx % 50 == 0 and idx > 0:
+                    time.sleep(0.001)
+
+            captured_data["entities"] = entities_data
+            return captured_data
+
+        except Exception as e:
+            logger.error(f"Failed to capture state for tank {self.tank_id}: {e}", exc_info=True)
+            return None
 
     async def handle_command_async(
         self, command: str, data: Optional[Dict[str, Any]] = None

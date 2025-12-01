@@ -35,18 +35,57 @@ def serialize_entity_for_transfer(entity: Any, migration_direction: Optional[str
 
 def _serialize_fish(fish: Any) -> Dict[str, Any]:
     """Serialize a Fish entity."""
+    mutable_state = capture_fish_mutable_state(fish)
+    return finalize_fish_serialization(fish, mutable_state)
+
+
+def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
+    """Capture mutable state of a fish that must be read under lock."""
+    # Capture genome parameters if they are mutable
+    # We capture them as dicts here to ensure thread safety
+    behavior_params = None
+    if fish.genome.behavior_algorithm:
+        behavior_params = fish.genome.behavior_algorithm.to_dict()
+    
+    poker_algo_params = None
+    if fish.genome.poker_algorithm:
+        poker_algo_params = fish.genome.poker_algorithm.to_dict()
+        
+    poker_strat_params = None
+    if fish.genome.poker_strategy_algorithm:
+        poker_strat_params = fish.genome.poker_strategy_algorithm.to_dict()
+
     return {
-        "type": "fish",
-        "id": fish.fish_id,
-        "species": fish.species,
         "x": fish.pos.x,
         "y": fish.pos.y,
         "vel_x": fish.vel.x,
         "vel_y": fish.vel.y,
-        "speed": fish.speed,
         "energy": fish.energy,
-        # max_energy is computed from size, not stored (removed in schema v2)
         "age": fish.age,
+        "reproduction_cooldown": fish.reproduction_cooldown,
+        "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
+        "predator_last_seen": fish.memory.predator_last_seen if hasattr(fish, "memory") else 0,
+        # Capture algorithm states here as they might change
+        "behavior_params": behavior_params,
+        "poker_algo_params": poker_algo_params,
+        "poker_strat_params": poker_strat_params,
+    }
+
+
+def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Dict[str, Any]:
+    """Construct full fish serialization using captured mutable state."""
+    return {
+        "type": "fish",
+        "id": fish.fish_id,
+        "species": fish.species,
+        "x": mutable_state["x"],
+        "y": mutable_state["y"],
+        "vel_x": mutable_state["vel_x"],
+        "vel_y": mutable_state["vel_y"],
+        "speed": fish.speed,
+        "energy": mutable_state["energy"],
+        # max_energy is computed from size, not stored (removed in schema v2)
+        "age": mutable_state["age"],
         "max_age": fish.max_age,
         "generation": fish.generation,
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
@@ -60,49 +99,68 @@ def _serialize_fish(fish: Any) -> Dict[str, Any]:
             "aggression": fish.genome.aggression,
             "social_tendency": fish.genome.social_tendency,
             "template_id": fish.genome.template_id,
-            # Serialize behavior algorithms so fish keep their evolved behaviors when migrating
-            "behavior_algorithm": fish.genome.behavior_algorithm.to_dict() if fish.genome.behavior_algorithm else None,
-            "poker_algorithm": fish.genome.poker_algorithm.to_dict() if fish.genome.poker_algorithm else None,
-            "poker_strategy_algorithm": fish.genome.poker_strategy_algorithm.to_dict() if fish.genome.poker_strategy_algorithm else None,
+            # Use captured params
+            "behavior_algorithm": mutable_state["behavior_params"],
+            "poker_algorithm": mutable_state["poker_algo_params"],
+            "poker_strategy_algorithm": mutable_state["poker_strat_params"],
         },
         "memory": {
-            "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
-            "predator_last_seen": fish.memory.predator_last_seen if hasattr(fish, "memory") else 0,
+            "food_memories": mutable_state["food_memories"],
+            "predator_last_seen": mutable_state["predator_last_seen"],
         },
-        "reproduction_cooldown": fish.reproduction_cooldown,
+        "reproduction_cooldown": mutable_state["reproduction_cooldown"],
     }
 
 
 def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> Dict[str, Any]:
-    """Serialize a FractalPlant entity.
+    """Serialize a FractalPlant entity."""
+    mutable_state = capture_plant_mutable_state(plant, migration_direction)
+    return finalize_plant_serialization(plant, mutable_state)
 
-    Args:
-        plant: The FractalPlant to serialize
-        migration_direction: Optional direction of migration ("left" or "right")
 
-    Returns:
-        Dictionary containing plant state
-    """
+def capture_plant_mutable_state(plant: Any, migration_direction: Optional[str] = None) -> Dict[str, Any]:
+    """Capture mutable state of a plant that must be read under lock."""
     # Get plant ID - try both id and plant_id
     plant_id = getattr(plant, 'id', getattr(plant, 'plant_id', None))
     # Get root spot ID if available
     root_spot_id = plant.root_spot.spot_id if hasattr(plant, 'root_spot') and plant.root_spot else None
+    
     return {
-        "type": "fractal_plant",
         "id": plant_id,
         "x": plant.pos.x,
         "y": plant.pos.y,
         "root_spot_id": root_spot_id,
-        "migration_direction": migration_direction,  # Used to select appropriate edge spot
+        "migration_direction": migration_direction,
         "energy": plant.energy,
-        "max_energy": plant.max_energy,
         "age": plant.age,
-        "generation": getattr(plant, "generation", 0),  # FractalPlant doesn't have generation
         "poker_cooldown": getattr(plant, "poker_cooldown", 0),
         "nectar_cooldown": getattr(plant, "nectar_cooldown", 0),
         "poker_wins": getattr(plant, "poker_wins", 0),
         "poker_losses": getattr(plant, "poker_losses", 0),
         "nectar_produced": getattr(plant, "nectar_produced", 0),
+        "growth_stage": plant.growth_stage if hasattr(plant, "growth_stage") else 1.0,
+        "nectar_ready": plant.nectar_ready if hasattr(plant, "nectar_ready") else False,
+    }
+
+
+def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> Dict[str, Any]:
+    """Construct full plant serialization using captured mutable state."""
+    return {
+        "type": "fractal_plant",
+        "id": mutable_state["id"],
+        "x": mutable_state["x"],
+        "y": mutable_state["y"],
+        "root_spot_id": mutable_state["root_spot_id"],
+        "migration_direction": mutable_state["migration_direction"],
+        "energy": mutable_state["energy"],
+        "max_energy": plant.max_energy,
+        "age": mutable_state["age"],
+        "generation": getattr(plant, "generation", 0),
+        "poker_cooldown": mutable_state["poker_cooldown"],
+        "nectar_cooldown": mutable_state["nectar_cooldown"],
+        "poker_wins": mutable_state["poker_wins"],
+        "poker_losses": mutable_state["poker_losses"],
+        "nectar_produced": mutable_state["nectar_produced"],
         "genome_data": {
             "axiom": plant.genome.axiom,
             "angle": plant.genome.angle,
@@ -128,8 +186,8 @@ def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> D
             "floral_saturation": plant.genome.floral_saturation,
             "fitness_score": plant.genome.fitness_score,
         },
-        "growth_stage": plant.growth_stage if hasattr(plant, "growth_stage") else 1.0,
-        "nectar_ready": plant.nectar_ready if hasattr(plant, "nectar_ready") else False,
+        "growth_stage": mutable_state["growth_stage"],
+        "nectar_ready": mutable_state["nectar_ready"],
     }
 
 

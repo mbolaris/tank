@@ -110,10 +110,11 @@ class AutoSaveService:
         Args:
             manager: The SimulationManager to save
         """
-        from backend.tank_persistence import cleanup_old_snapshots, save_tank_state
+        from backend.tank_persistence import cleanup_old_snapshots, save_snapshot_data
 
         tank_id = manager.tank_id
         interval = manager.tank_info.auto_save_interval
+        loop = asyncio.get_running_loop()
 
         try:
             while self._running:
@@ -122,20 +123,33 @@ class AutoSaveService:
 
                 # Save the tank state
                 try:
-                    snapshot_path = save_tank_state(tank_id, manager)
-                    if snapshot_path:
-                        logger.info(
-                            f"Auto-saved tank {tank_id[:8]} to {snapshot_path}"
+                    # 1. Capture state (fast, thread-safe, holds lock briefly)
+                    snapshot = manager.capture_state_for_save()
+                    
+                    if snapshot:
+                        # 2. Write to disk (slow, run in thread pool to avoid blocking event loop)
+                        snapshot_path = await loop.run_in_executor(
+                            None, save_snapshot_data, tank_id, snapshot
                         )
-
-                        # Cleanup old snapshots (keep last 10)
-                        deleted = cleanup_old_snapshots(tank_id, max_snapshots=10)
-                        if deleted > 0:
-                            logger.debug(
-                                f"Cleaned up {deleted} old snapshots for tank {tank_id[:8]}"
+                        
+                        if snapshot_path:
+                            logger.info(
+                                f"Auto-saved tank {tank_id[:8]} to {snapshot_path}"
                             )
+
+                            # Cleanup old snapshots (keep last 10)
+                            # Also run in executor as it involves file I/O
+                            deleted = await loop.run_in_executor(
+                                None, cleanup_old_snapshots, tank_id, 10
+                            )
+                            if deleted > 0:
+                                logger.debug(
+                                    f"Cleaned up {deleted} old snapshots for tank {tank_id[:8]}"
+                                )
+                        else:
+                            logger.error(f"Auto-save failed for tank {tank_id[:8]}")
                     else:
-                        logger.error(f"Auto-save failed for tank {tank_id[:8]}")
+                        logger.warning(f"Could not capture state for auto-save of tank {tank_id[:8]}")
 
                 except Exception as e:
                     logger.error(
@@ -161,22 +175,38 @@ class AutoSaveService:
         Returns:
             Path to saved snapshot, or None if failed
         """
-        from backend.tank_persistence import cleanup_old_snapshots, save_tank_state
+        from backend.tank_persistence import cleanup_old_snapshots, save_snapshot_data
 
         manager = self._tank_registry.get_tank(tank_id)
         if not manager:
             logger.error(f"Cannot save tank {tank_id[:8]}: not found")
             return None
 
+        loop = asyncio.get_running_loop()
+
         try:
-            snapshot_path = save_tank_state(tank_id, manager)
-            if snapshot_path:
-                logger.info(f"Manual save completed for tank {tank_id[:8]}")
-                cleanup_old_snapshots(tank_id, max_snapshots=10)
-                return snapshot_path
+            # 1. Capture state
+            snapshot = manager.capture_state_for_save()
+            
+            if snapshot:
+                # 2. Write to disk in thread pool
+                snapshot_path = await loop.run_in_executor(
+                    None, save_snapshot_data, tank_id, snapshot
+                )
+                
+                if snapshot_path:
+                    logger.info(f"Manual save completed for tank {tank_id[:8]}")
+                    await loop.run_in_executor(
+                        None, cleanup_old_snapshots, tank_id, 10
+                    )
+                    return snapshot_path
+                else:
+                    logger.error(f"Manual save failed for tank {tank_id[:8]}")
+                    return None
             else:
-                logger.error(f"Manual save failed for tank {tank_id[:8]}")
+                logger.error(f"Manual save failed: could not capture state for tank {tank_id[:8]}")
                 return None
+                
         except Exception as e:
             logger.error(f"Error saving tank {tank_id[:8]}: {e}", exc_info=True)
             return None

@@ -500,7 +500,25 @@ class SimulationRunner:
 
         self.frames_since_websocket_update = 0
 
-        with self.lock:
+        # Try to acquire lock with timeout to prevent blocking indefinitely
+        lock_acquired = self.lock.acquire(timeout=0.5)
+        if not lock_acquired:
+            # If we can't get the lock, return cached state to avoid blocking
+            logger.debug("get_state: Lock acquisition timed out, returning cached state")
+            if self._cached_state is not None:
+                return self._cached_state
+            # No cached state, create minimal emergency state
+            return DeltaStatePayload(
+                frame=current_frame,
+                elapsed_time=elapsed_time,
+                updates=[],
+                added=[],
+                removed=[],
+                poker_events=[],
+                stats=None,
+            )
+        
+        try:
             send_full = (
                 force_full
                 or not allow_delta
@@ -536,6 +554,8 @@ class SimulationRunner:
             self._cached_state = state
             self._cached_state_frame = current_frame
             return state
+        finally:
+            self.lock.release()
 
     async def get_state_async(self, force_full: bool = False, allow_delta: bool = True):
         """Async wrapper to fetch simulation state without blocking the event loop."""

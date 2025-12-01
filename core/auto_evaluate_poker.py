@@ -20,6 +20,7 @@ For fair evaluation with minimal positional variance:
 """
 
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -572,6 +573,9 @@ class AutoEvaluatePokerGame:
 
             # Play one hand
             self.play_hand()
+            
+            # Yield GIL to prevent starving main thread
+            time.sleep(0.001)
 
         # If we completed all hands, determine winner by energy
         if not self.game_over:
