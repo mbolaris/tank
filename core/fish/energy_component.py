@@ -87,8 +87,10 @@ class EnergyComponent:
         # Import LifeStage at runtime to avoid circular dependency
         from core.entities.base import LifeStage
 
-        # Existence cost - scales with body size (larger fish need more energy to exist)
-        total_cost = EXISTENCE_ENERGY_COST * time_modifier * size
+        # Existence cost - scales with body size squared (larger fish need much more energy to exist)
+        # Using size^1.3 makes existence more expensive for large fish while not punishing small ones too much
+        existence_size_factor = size ** 1.3
+        total_cost = EXISTENCE_ENERGY_COST * time_modifier * existence_size_factor
 
         # Base metabolism (affected by genes and life stage)
         metabolism = self.base_metabolism * time_modifier
@@ -103,13 +105,19 @@ class EnergyComponent:
             # Base movement cost (linear with speed)
             movement_cost = MOVEMENT_ENERGY_COST * speed_ratio * size_factor
 
-            # Additional quadratic cost for high-speed movement
-            # Fish moving faster than 70% of max speed pay extra
+            # Progressive speed cost - scales smoothly from 0 to max
+            # Uses quadratic scaling so going faster is increasingly expensive
+            # This replaces the threshold-based system with smooth progression
+            # At 50% speed: 0.25x multiplier, at 100% speed: 1.0x multiplier
+            progressive_speed_cost = HIGH_SPEED_ENERGY_COST * (speed_ratio ** 2) * size_factor
+            movement_cost += progressive_speed_cost
+
+            # Additional penalty above threshold for really fast movement (stacks with progressive)
             if speed_ratio > HIGH_SPEED_THRESHOLD:
                 excess_speed = speed_ratio - HIGH_SPEED_THRESHOLD
-                # Quadratic scaling: small excess = small cost, large excess = large cost
-                high_speed_cost = HIGH_SPEED_ENERGY_COST * (excess_speed ** 2) * size_factor
-                movement_cost += high_speed_cost
+                # Cubic scaling above threshold - very expensive to go full speed
+                burst_speed_cost = HIGH_SPEED_ENERGY_COST * 2.0 * (excess_speed ** 3) * size_factor
+                movement_cost += burst_speed_cost
 
             metabolism += movement_cost
 

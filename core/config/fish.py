@@ -9,20 +9,20 @@ FISH_GROWTH_RATE = 0.1
 # Fish Energy and Metabolism Constants
 INITIAL_ENERGY_RATIO = 0.5  # Start with 50% energy
 BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
-ELDER_METABOLISM_MULTIPLIER = 1.2  # Elders need more energy
+ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy (was 1.2) - older fish are larger
 
 # Energy Consumption Constants
-EXISTENCE_ENERGY_COST = 0.02  # Cost just for being alive per frame
-MOVEMENT_ENERGY_COST = 0.02  # Movement-based energy consumption multiplier (was 0.015)
-HIGH_SPEED_ENERGY_COST = 0.015  # Additional quadratic cost for fast movement
-HIGH_SPEED_THRESHOLD = 0.7  # Speed ratio above which high-speed cost applies (70% of max)
-SHARP_TURN_ENERGY_COST = 0.05  # Additional cost for sharp turns
+EXISTENCE_ENERGY_COST = 0.035  # Cost just for being alive per frame (was 0.02) - larger fish pay more
+MOVEMENT_ENERGY_COST = 0.03  # Movement-based energy consumption multiplier (was 0.02)
+HIGH_SPEED_ENERGY_COST = 0.04  # Progressive speed cost multiplier (was 0.025) - scales quadratically with speed
+HIGH_SPEED_THRESHOLD = 0.65  # Speed ratio above which burst penalty kicks in (was 0.7)
+SHARP_TURN_ENERGY_COST = 0.07  # Additional cost for sharp turns (was 0.05)
 SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
 # Direction Change Energy Constants
-DIRECTION_CHANGE_ENERGY_BASE = 0.05  # Base energy cost for direction changes (was 0.03)
-DIRECTION_CHANGE_SIZE_MULTIPLIER = 1.5  # Larger fish use more energy to turn (multiplied by size)
-MOVEMENT_SIZE_MULTIPLIER = 1.2  # Additional size-based movement cost multiplier
+DIRECTION_CHANGE_ENERGY_BASE = 0.08  # Base energy cost for direction changes (was 0.05)
+DIRECTION_CHANGE_SIZE_MULTIPLIER = 1.8  # Larger fish use more energy to turn (was 1.5)
+MOVEMENT_SIZE_MULTIPLIER = 1.5  # Additional size-based movement cost multiplier (was 1.2)
 
 # Energy Thresholds (centralized for consistency across the codebase)
 STARVATION_THRESHOLD = 15.0  # Below this, fish dies from starvation
@@ -42,7 +42,7 @@ LIFE_STAGE_MATURE_MAX = 5400  # 180 seconds (3 minutes)
 ENERGY_MAX_DEFAULT = 100.0  # Maximum energy for a fish
 ENERGY_IDLE_CONSUMPTION = 1.0  # Energy consumed per frame when idle
 ENERGY_LOW_MULTIPLIER = 0.01  # Low energy consumption multiplier
-ENERGY_MODERATE_MULTIPLIER = 0.025  # Moderate energy consumption multiplier
+ENERGY_MODERATE_MULTIPLIER = 0.035  # Moderate energy consumption multiplier (was 0.025)
 ENERGY_HIGH_MULTIPLIER = 0.015  # High energy consumption multiplier
 ENERGY_MATE_SEARCH_COST = -0.85  # Energy cost per frame when searching for mate
 ENERGY_MOVEMENT_BASE_COST = 0.05  # Base energy cost for movement
