@@ -312,11 +312,14 @@ class Fish(Agent):
     def bite_size(self) -> float:
         """Calculate the size of a bite this fish can take.
 
-        Bite size scales with fish size.
+        Bite size scales with fish size, but never drops to zero. Extremely
+        small fish (or legacy tests that force unusual sizes) still need to
+        take a minimum-sized bite to register energy gain when eating.
         """
         # Base bite size is 20.0 energy units
         # Scales with size (larger fish take bigger bites)
-        return 20.0 * self.size
+        # Ensure a small, but non-zero, bite for edge cases
+        return max(1.0, 20.0 * self.size)
 
     def update_life_stage(self) -> None:
         """Update life stage based on age (delegates to LifecycleComponent)."""

@@ -964,8 +964,10 @@ class PokerInteraction:
         )
 
         # Track starting energy to report actual deltas after bets and house cuts
-        initial_energy_fish1 = self.fish1.energy
-        initial_energy_fish2 = self.fish2.energy
+        starting_energy = {
+            self.fish1.fish_id: self.fish1.energy,
+            self.fish2.fish_id: self.fish2.energy,
+        }
 
         # Simulate multi-round Texas Hold'em game with blinds and position
         # Use evolved poker strategies if available, otherwise fall back to aggression
@@ -1044,22 +1046,18 @@ class PokerInteraction:
             winner_fish.modify_energy(total_pot - house_cut)
 
         # Compute actual energy deltas after all deductions and additions
-        actual_delta_fish1 = self.fish1.energy - initial_energy_fish1
-        actual_delta_fish2 = self.fish2.energy - initial_energy_fish2
+        actual_deltas = {
+            self.fish1.fish_id: self.fish1.energy
+            - starting_energy[self.fish1.fish_id],
+            self.fish2.fish_id: self.fish2.energy
+            - starting_energy[self.fish2.fish_id],
+        }
 
         if winner_id != -1 and winner_fish is not None and loser_fish is not None:
-            winner_actual_gain = (
-                actual_delta_fish1
-                if winner_fish is self.fish1
-                else actual_delta_fish2
-            )
-            loser_delta = (
-                actual_delta_fish2
-                if loser_fish is self.fish2
-                else actual_delta_fish1
-            )
-            # For reporting purposes, energy_transferred is the absolute energy the loser lost
-            energy_transferred = abs(loser_delta)
+            winner_actual_gain = actual_deltas[winner_id]
+            loser_delta = actual_deltas[loser_id]
+            # For reporting purposes, energy_transferred is the energy the loser lost
+            energy_transferred = max(0.0, -loser_delta)
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0
@@ -1227,8 +1225,8 @@ class PokerInteraction:
         self.result = PokerResult(
             player_hands=[self.hand1, self.hand2],
             player_ids=[self.fish1.fish_id, self.fish2.fish_id],
-            energy_transferred=abs(energy_transferred),
-            winner_actual_gain=abs(winner_actual_gain) if winner_id != -1 else 0.0,
+            energy_transferred=energy_transferred,
+            winner_actual_gain=winner_actual_gain if winner_id != -1 else 0.0,
             winner_id=winner_id,
             loser_ids=[loser_id] if loser_id != -1 else [],
             won_by_fold=won_by_fold,
