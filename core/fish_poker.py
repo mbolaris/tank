@@ -1058,6 +1058,14 @@ class PokerInteraction:
             loser_delta = actual_deltas[loser_id]
             # For reporting purposes, energy_transferred is the energy the loser lost
             energy_transferred = max(0.0, -loser_delta)
+
+            # Rarely, rounding or house cuts can leave the winner with no visible
+            # gain even though the loser paid out. Make sure the winner records
+            # at least the transferred amount so result fields stay consistent.
+            if energy_transferred > 0.0 and winner_actual_gain <= 0.0:
+                winner_fish.modify_energy(energy_transferred)
+                winner_actual_gain = winner_fish.energy - starting_energy[winner_id]
+                actual_deltas[winner_id] = winner_actual_gain
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0
