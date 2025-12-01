@@ -1,5 +1,6 @@
 """Base entity classes for the simulation."""
 
+import math
 import random
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Tuple
@@ -185,25 +186,31 @@ class Agent:
     def avoid(self, other_sprites: List["Agent"], min_distance: float) -> None:
         """Avoid other agents."""
         any_sprite_close = False
+        min_distance_sq = min_distance * min_distance
 
         for other in other_sprites:
-            dist_vector = other.pos - self.pos
-            dist_length = dist_vector.length()
+            dx = other.pos.x - self.pos.x
+            dy = other.pos.y - self.pos.y
+            dist_sq = dx * dx + dy * dy
 
-            if 0 < dist_length < min_distance:
+            if 0 < dist_sq < min_distance_sq:
                 any_sprite_close = True
-                # Safety check: only normalize if vector has length
-                if dist_length > 0:
-                    velocity_change = dist_vector.normalize()
-                    from core.entities.predators import Crab
+                inv_length = 1.0 / math.sqrt(dist_sq)
+                from core.entities.predators import Crab
 
-                    if isinstance(other, Crab):
-                        velocity_change.y = abs(velocity_change.y)
-                    self.avoidance_velocity -= velocity_change * AVOIDANCE_SPEED_CHANGE
+                velocity_change_x = dx * inv_length
+                velocity_change_y = dy * inv_length
+
+                if isinstance(other, Crab):
+                    velocity_change_y = abs(velocity_change_y)
+
+                self.avoidance_velocity.x -= velocity_change_x * AVOIDANCE_SPEED_CHANGE
+                self.avoidance_velocity.y -= velocity_change_y * AVOIDANCE_SPEED_CHANGE
 
         # Only reset avoidance_velocity when no sprites are close
         if not any_sprite_close:
-            self.avoidance_velocity = Vector2(0, 0)
+            self.avoidance_velocity.x = 0.0
+            self.avoidance_velocity.y = 0.0
 
     def align_near(self, other_sprites: List["Agent"], min_distance: float) -> None:
         """Align with nearby agents."""
@@ -213,40 +220,55 @@ class Agent:
         self.adjust_velocity_towards_or_away_from_other_sprites(
             other_sprites, avg_pos, min_distance
         )
-        if self.vel.x != 0 or self.vel.y != 0:  # Checking if it's a zero vector
-            self.vel = self.vel.normalize() * abs(self.speed)
+
+        vel_x = self.vel.x
+        vel_y = self.vel.y
+        vel_length_sq = vel_x * vel_x + vel_y * vel_y
+        if vel_length_sq > 0:
+            scale = abs(self.speed) / math.sqrt(vel_length_sq)
+            self.vel.x = vel_x * scale
+            self.vel.y = vel_y * scale
 
     def get_average_position(self, other_sprites: List["Agent"]) -> Vector2:
         """Calculate the average position of other agents."""
-        return sum((other.pos for other in other_sprites), Vector2()) / len(other_sprites)
+        count = len(other_sprites)
+        if count == 0:
+            return Vector2()
+
+        total_x = 0.0
+        total_y = 0.0
+        for other in other_sprites:
+            total_x += other.pos.x
+            total_y += other.pos.y
+
+        inv_count = 1.0 / count
+        return Vector2(total_x * inv_count, total_y * inv_count)
 
     def adjust_velocity_towards_or_away_from_other_sprites(
         self, other_sprites: List["Agent"], avg_pos: Vector2, min_distance: float
     ) -> None:
         """Adjust velocity based on the position of other agents."""
+        min_distance_sq = min_distance * min_distance
+        avg_pos_x = avg_pos.x
+        avg_pos_y = avg_pos.y
+
         for other in other_sprites:
-            dist_vector = other.pos - self.pos
-            dist_length = dist_vector.length()
-            if 0 < dist_length < min_distance:
-                self.move_away(dist_vector)
+            dx = other.pos.x - self.pos.x
+            dy = other.pos.y - self.pos.y
+            dist_sq = dx * dx + dy * dy
+
+            if 0 < dist_sq < min_distance_sq:
+                inv_length = 1.0 / math.sqrt(dist_sq)
+                self.vel.x -= dx * inv_length * AVOIDANCE_SPEED_CHANGE
+                self.vel.y -= dy * inv_length * AVOIDANCE_SPEED_CHANGE
             else:
-                difference = avg_pos - self.pos
-                difference_length = difference.length()
-
-                if difference_length > 0:
-                    self.move_towards(difference)
-
-    def move_away(self, dist_vector: Vector2) -> None:
-        """Adjust velocity to move away from another agent."""
-        dist_length = dist_vector.length()
-        if dist_length > 0:
-            self.vel -= dist_vector.normalize() * AVOIDANCE_SPEED_CHANGE
-
-    def move_towards(self, difference: Vector2) -> None:
-        """Adjust velocity to move towards the average position of other agents."""
-        diff_length = difference.length()
-        if diff_length > 0:
-            self.vel += difference.normalize() * ALIGNMENT_SPEED_CHANGE
+                diff_x = avg_pos_x - self.pos.x
+                diff_y = avg_pos_y - self.pos.y
+                diff_sq = diff_x * diff_x + diff_y * diff_y
+                if diff_sq > 0:
+                    inv_length = 1.0 / math.sqrt(diff_sq)
+                    self.vel.x += diff_x * inv_length * ALIGNMENT_SPEED_CHANGE
+                    self.vel.y += diff_y * inv_length * ALIGNMENT_SPEED_CHANGE
 
     def add_internal(self, group) -> None:
         """Track group for kill() method."""
