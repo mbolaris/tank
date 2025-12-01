@@ -18,6 +18,7 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from core.constants import POST_POKER_PARENT_ENERGY_CONTRIBUTION
 from core.entities import LifeStage
 from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW, BettingAction
 from core.poker.core import PokerHand
@@ -446,7 +447,10 @@ class PokerInteraction:
         return min(base_bet, *max_bets)
 
     def try_post_poker_reproduction(
-        self, winner_fish: "Fish", loser_fish: "Fish", energy_transferred: float
+        self,
+        winner_fish: "Fish",
+        loser_fish: "Fish",
+        energy_transferred: float,
     ) -> Optional["Fish"]:
         """Attempt voluntary sexual reproduction after poker game.
 
@@ -466,6 +470,13 @@ class PokerInteraction:
         # net energy change negative, which violates gameplay expectations and tests
         # that require winners to gain energy.
         if winner_fish.environment is None or loser_fish.environment is None:
+            return None
+
+        # Protect winners from immediately losing more energy than they gained.
+        # If the reproduction energy cost would wipe out the poker winnings,
+        # skip reproduction and keep the positive feedback loop intact.
+        winner_energy_contribution = winner_fish.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION
+        if energy_transferred <= winner_energy_contribution:
             return None
 
         from core.constants import (
