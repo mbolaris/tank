@@ -963,6 +963,10 @@ class PokerInteraction:
             else None
         )
 
+        # Track starting energy to report actual deltas after bets and house cuts
+        initial_energy_fish1 = self.fish1.energy
+        initial_energy_fish2 = self.fish2.energy
+
         # Simulate multi-round Texas Hold'em game with blinds and position
         # Use evolved poker strategies if available, otherwise fall back to aggression
         game_state = simulate_multi_round_game(
@@ -1006,6 +1010,8 @@ class PokerInteraction:
 
         # Calculate energy transfer based on pot
         house_cut = 0.0
+        winner_fish = None
+        loser_fish = None
         if winner_id != -1:
             # Determine winner and loser fish
             winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
@@ -1037,11 +1043,23 @@ class PokerInteraction:
             # Winner receives the pot minus house cut
             winner_fish.modify_energy(total_pot - house_cut)
 
-            # For reporting purposes, energy_transferred is the loser's loss (what they bet)
-            # This is used for display and statistics tracking
-            energy_transferred = loser_total_bet
-            # Also calculate the winner's actual gain (less than loser's loss due to house cut)
-            winner_actual_gain = net_gain - house_cut
+        # Compute actual energy deltas after all deductions and additions
+        actual_delta_fish1 = self.fish1.energy - initial_energy_fish1
+        actual_delta_fish2 = self.fish2.energy - initial_energy_fish2
+
+        if winner_id != -1 and winner_fish is not None and loser_fish is not None:
+            winner_actual_gain = (
+                actual_delta_fish1
+                if winner_fish is self.fish1
+                else actual_delta_fish2
+            )
+            loser_delta = (
+                actual_delta_fish2
+                if loser_fish is self.fish2
+                else actual_delta_fish1
+            )
+            # For reporting purposes, energy_transferred is the absolute energy the loser lost
+            energy_transferred = abs(loser_delta)
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0
