@@ -189,6 +189,8 @@ export interface StatsData {
     death_causes: Record<string, number>;
     fish_count: number;
     food_count: number;
+    live_food_count: number;  // Count of active LiveFood entities
+    live_food_energy: number;  // Total energy in LiveFood
     plant_count: number;
     total_energy: number;
     fish_energy: number;  // Total energy of all fish

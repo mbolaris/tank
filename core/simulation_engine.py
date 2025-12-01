@@ -543,6 +543,11 @@ class SimulationEngine(BaseSimulator):
             if entity_type is Food or (isinstance(entity, Food) and not isinstance(entity, LiveFood)):
                 if entity.pos.y >= SCREEN_HEIGHT - entity.height:
                     entities_to_remove.append(entity)
+            
+            # Remove expired LiveFood to prevent unbounded accumulation
+            elif entity_type is LiveFood or isinstance(entity, LiveFood):
+                if entity.is_expired():
+                    entities_to_remove.append(entity)
 
         # Batch entity removals (more efficient than removing during iteration)
         for entity in entities_to_remove:
@@ -801,6 +806,12 @@ class SimulationEngine(BaseSimulator):
         fish_list = self.get_fish_list()
         stats["fish_count"] = len(fish_list)
         stats["food_count"] = len(self.get_food_list())
+        
+        # Add LiveFood stats (separate from regular food)
+        live_food_list = [e for e in self.entities_list if isinstance(e, entities.LiveFood)]
+        stats["live_food_count"] = len(live_food_list)
+        stats["live_food_energy"] = sum(food.energy for food in live_food_list)
+        
         # Add separate fish and plant energy
         stats["fish_energy"] = sum(fish.energy for fish in fish_list)
         plant_list = [e for e in self.entities_list if isinstance(e, FractalPlant)]

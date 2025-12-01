@@ -26,6 +26,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         <span className={styles.label}>Food:</span>
                         <span className={styles.value}>{stats.food_count}</span>
                     </div>
+                    <div className={styles.statItem}>
+                        <span className={styles.label}>Live Food:</span>
+                        <span className={styles.value}>
+                            {stats.live_food_count} ({Math.round(stats.live_food_energy)}E)
+                        </span>
+                    </div>
 
                 </div>
             </div>

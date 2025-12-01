@@ -330,6 +330,8 @@ class LiveFood(Food):
     Live food moves around the tank instead of sinking, making it harder to
     catch. It makes small wandering motions and steers away from nearby fish
     to simulate evasive movement.
+    
+    After a set lifespan, LiveFood expires and is removed to prevent accumulation.
     """
 
     def __init__(
@@ -339,7 +341,8 @@ class LiveFood(Food):
         y: float,
         screen_width: int = 800,
         screen_height: int = 600,
-        speed: float = 1.8,
+        speed: float = 1.5,
+        max_lifespan: int = 900,  # 30 seconds at 30fps
     ) -> None:
         super().__init__(
             environment,
@@ -352,12 +355,24 @@ class LiveFood(Food):
             screen_height=screen_height,
             speed=speed,
         )
-        self.max_speed = speed * 1.6
+        # BALANCE: Reduced max_speed from 2.88 to 2.4 to make it catchable
+        # Fast fish with speed_modifier=1.3 can now catch it (2.6 > 2.4)
+        self.max_speed = speed * 1.6  # 1.5 * 1.6 = 2.4
         self.wander_timer = random.randint(20, 45)
-        self.avoid_radius = 180
+        # BALANCE: Reduced avoid_radius from 180 to 120 so fish can get closer
+        self.avoid_radius = 120
         self.wander_strength = 0.25
+        
+        # Lifespan tracking to prevent unbounded accumulation
+        self.max_lifespan = max_lifespan
+        self.age = 0
+
+    def is_expired(self) -> bool:
+        """Check if this LiveFood has exceeded its lifespan."""
+        return self.age >= self.max_lifespan
 
     def update(self, elapsed_time: int) -> None:
+        self.age += 1
         self._apply_wander()
         self._avoid_nearby_fish()
         self._limit_speed()
@@ -378,12 +393,12 @@ class LiveFood(Food):
         for fish in nearby_fish:
             offset = self.pos - fish.pos
             distance_sq = max(offset.length_squared(), 1)
-            # Stronger avoidance - inverse square law for more pronounced fleeing
+            # Avoidance using inverse square law
             flee_vector += offset / distance_sq
 
         if flee_vector.length_squared() > 0:
-            # Increased avoidance force from 0.8 to 1.2 for more obvious fleeing
-            self.vel += flee_vector.normalize() * 1.2
+            # BALANCE: Reduced avoidance force from 1.2 to 0.9 to make catching easier
+            self.vel += flee_vector.normalize() * 0.9
 
     def _limit_speed(self) -> None:
         speed = self.vel.length()
