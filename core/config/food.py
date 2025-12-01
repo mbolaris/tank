@@ -4,7 +4,7 @@
 FOOD_SINK_ACCELERATION = 0.01
 
 # Automatic food spawning
-AUTO_FOOD_SPAWN_RATE = 90  # Spawn food every 3 seconds (90 frames at 30fps) - Base rate
+AUTO_FOOD_SPAWN_RATE = 30  # Spawn food every 1 second (30 frames at 30fps) - Base rate
 AUTO_FOOD_ENABLED = True  # Enable/disable automatic food spawning
 
 # Dynamic food spawn scaling based on population and energy
@@ -21,7 +21,7 @@ FOOD_TYPES = {
     "algae": {
         "name": "Algae Flake",
         "files": ["food_algae1.png", "food_algae2.png"],
-        "energy": 45.0,  # Low energy - basic food source
+        "energy": 100.0,  # Low energy - basic food source
         "rarity": 0.35,  # 35% spawn rate
         "sink_multiplier": 0.8,  # Sinks slower (lighter)
         "stationary": False,
@@ -29,7 +29,7 @@ FOOD_TYPES = {
     "protein": {
         "name": "Protein Flake",
         "files": ["food_protein1.png", "food_protein2.png"],
-        "energy": 75.0,  # Good energy - valuable food
+        "energy": 150.0,  # Good energy - valuable food
         "rarity": 0.25,  # 25% spawn rate
         "sink_multiplier": 1.2,  # Sinks faster (heavier)
         "stationary": False,
@@ -37,7 +37,7 @@ FOOD_TYPES = {
     "vitamin": {
         "name": "Vitamin Flake",
         "files": ["food_vitamin1.png", "food_vitamin2.png"],
-        "energy": 60.0,  # Moderate energy
+        "energy": 120.0,  # Moderate energy
         "rarity": 0.20,  # 20% spawn rate
         "sink_multiplier": 0.9,  # Sinks slightly slower
         "stationary": False,
@@ -45,7 +45,7 @@ FOOD_TYPES = {
     "energy": {
         "name": "Energy Flake",
         "files": ["food_energy1.png", "food_energy2.png"],
-        "energy": 70.0,  # Good energy
+        "energy": 140.0,  # Good energy
         "rarity": 0.15,  # 15% spawn rate
         "sink_multiplier": 1.0,  # Normal sink rate
         "stationary": False,
@@ -53,7 +53,7 @@ FOOD_TYPES = {
     "rare": {
         "name": "Rainbow Flake",
         "files": ["food_rare1.png", "food_rare2.png"],
-        "energy": 115.0,  # High energy - rare treat
+        "energy": 250.0,  # High energy - rare treat
         "rarity": 0.05,  # 5% spawn rate (rare)
         "sink_multiplier": 1.1,  # Sinks bit faster
         "stationary": False,
@@ -61,7 +61,7 @@ FOOD_TYPES = {
     "nectar": {
         "name": "Plant Nectar",
         "files": ["food_vitamin1.png", "food_vitamin2.png"],
-        "energy": 90.0,  # Rewarding stationary food
+        "energy": 180.0,  # Rewarding stationary food
         "rarity": 0.15,  # Used for plant-only spawn weighting
         "sink_multiplier": 0.0,  # Remains in place
         "stationary": True,
@@ -69,7 +69,7 @@ FOOD_TYPES = {
     "live": {
         "name": "Live Treat",
         "files": ["food_energy1.png", "food_energy2.png"],
-        "energy": 110.0,  # High energy density - small but nutritious zooplankton
+        "energy": 220.0,  # High energy density - small but nutritious zooplankton
         "rarity": 0.12,  # Appears occasionally
         "sink_multiplier": 0.0,  # Self-propelled, so no sinking
         "stationary": False,
