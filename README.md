@@ -1,12 +1,37 @@
-# 🐠 Artificial Life Fish Tank Simulation
+# 🐠 TankWorld
 
-An advanced artificial life ecosystem simulation featuring **58 parametrizable behavior algorithms**, genetics, evolution, energy systems, and emergent population dynamics with a **React-based web UI**.
+TankWorld is an artificial-life project where agents evolve algorithms. You can watch a simulation (like a fish tank) while the underlying system uses evolution to improve real algorithmic tasks.
 
-## 🎯 Overview
+## 🎯 What It Does
 
-This is a **cutting-edge ALife simulation** with a modern web interface that demonstrates complex ecosystem behaviors through **algorithmic evolution** and competitive dynamics. Fish evolve diverse survival strategies through genetic algorithms, with each fish inheriting and mutating behavior algorithms across generations. The simulation features:
+* **Runs agents whose "brains" are algorithm modules** - 58 parametrizable behavior strategies
+* **Evolves those modules and parameters over generations** - Natural selection optimizes algorithms
+* **Visualizes the results in an entertaining simulation** - Watch fish, plants, and predators interact
+* **Lets you plug in any task** - Poker is the current example, but the system is extensible
+
+## 🔄 Two-Layer Evolution
+
+### **Layer 1 – Inside the Tank**
+Agents evolve combinations of algorithms and parameters. The system evaluates performance and keeps the best.
+- Fish inherit behavior algorithms from parents with parameter mutations
+- Better algorithms = more reproduction and survival
+- Population naturally discovers optimal strategies over generations
+
+### **Layer 2 – Outside the Tank**
+A coding agent looks at results and adjusts the actual codebase for the next cycle—removing dead code, merging similar modules, and adding new variants.
+
+This creates a loop: **Evolve → Analyze → Rewrite Code → Evolve Again**
+
+See the **AI Code Evolution Workflow** section below for how this works in practice.
+
+## 🚀 Long-Term Vision
+
+Eventually TankWorld becomes a **distributed computing platform** where people contribute compute because the simulation itself is fun to watch. Under the surface, their compute helps solve real problems.
+
+## 🌟 Current Features
 
 - 🧬 **ALGORITHMIC EVOLUTION** - 58 unique parametrizable behavior strategies that evolve!
+- 🤖 **AI CODE EVOLUTION** - Automated coding agent improves algorithms between generations
 - 🦀 **Predator-Prey Dynamics** - Crabs hunt fish in the ecosystem
 - 🌿 **Fractal Plants** - L-system plants with genetic evolution and nectar production
 - 🔬 **Genetic Evolution** - Traits and algorithms evolve across generations
@@ -16,7 +41,7 @@ This is a **cutting-edge ALife simulation** with a modern web interface that dem
 - 🎴 **Poker Minigame** - Fish can play poker against each other for energy!
 - ⚡ **Headless Mode** - Run 10-300x faster for data collection and testing
 
-## 🌟 **Key Features**
+## 📋 **Detailed Feature Breakdown**
 
 ### 🧬 **ALGORITHMIC EVOLUTION SYSTEM** 🚀
 
@@ -503,6 +528,7 @@ Built with:
 ## 📚 Additional Resources
 
 For more information:
+- **Roadmap**: See `ROADMAP.md` - Project vision and development roadmap
 - **AI Code Evolution**: See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` - Complete guide to automated algorithm improvement
 - **AI Improvement Proof**: See `docs/PROOF_OF_AI_IMPROVEMENT.md` - Real-world example (0% → 100% reproduction)
 - **Architecture details**: See `docs/ARCHITECTURE.md`
