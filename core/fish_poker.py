@@ -708,17 +708,18 @@ class PokerInteraction:
         for i, fish in enumerate(self.fish_list):
             player_total_bet = game_state.players[i].total_bet
             fish.energy = max(0, fish.energy - player_total_bet)
-        
+
         if winner_id != -1:
             winner_fish = self.fish_list[winner_idx]
             winner_total_bet = game_state.players[winner_idx].total_bet
-            
+
             # Calculate house cut based on winner's size
             net_gain = total_pot - winner_total_bet
             house_cut = self.calculate_house_cut(winner_fish.size, net_gain)
-            
+
             # Winner receives pot minus house cut
-            winner_fish.modify_energy(total_pot - house_cut)
+            # Use direct energy assignment to bypass max_energy cap (poker winnings can exceed capacity)
+            winner_fish.energy += total_pot - house_cut
             winner_actual_gain = net_gain - house_cut
             
             # Collect loser IDs
@@ -1025,7 +1026,8 @@ class PokerInteraction:
             house_cut = self.calculate_house_cut(winner_fish.size, net_gain)
 
             # Winner receives the pot minus house cut
-            winner_fish.modify_energy(total_pot - house_cut)
+            # Use direct energy assignment to bypass max_energy cap (poker winnings can exceed capacity)
+            winner_fish.energy += total_pot - house_cut
 
             # For reporting purposes, energy_transferred is the loser's loss (what they bet)
             # This is used for display and statistics tracking

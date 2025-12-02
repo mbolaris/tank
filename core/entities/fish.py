@@ -114,7 +114,10 @@ class Fish(Agent):
         from core.fish.energy_component import EnergyComponent
 
         # Max energy is based on fish size - bigger fish can store more energy
-        max_energy = ENERGY_MAX_DEFAULT * self.genome.size_modifier
+        # Use the actual lifecycle size (which includes FISH_BABY_SIZE for newborns)
+        # not just genome.size_modifier, to match the dynamic max_energy property
+        initial_size = self._lifecycle_component.size
+        max_energy = ENERGY_MAX_DEFAULT * initial_size
         base_metabolism = ENERGY_MODERATE_MULTIPLIER * self.genome.metabolism_rate
         # Use custom initial energy if provided (for reproduction), otherwise use default ratio
         if initial_energy is not None:
