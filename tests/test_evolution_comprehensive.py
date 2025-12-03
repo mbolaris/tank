@@ -147,17 +147,16 @@ class TestEdgeCasesAndBoundaries:
         """Test genome creation with extreme trait values."""
         genome = Genome(
             speed_modifier=1.5,  # Max
-            size_modifier=0.5,   # Min
+            size_modifier=0.7,   # Min (valid range is 0.7-1.3)
             vision_range=1.3,    # Max
             metabolism_rate=0.7, # Min
-            max_energy=1.5,      # Max (valid range is 0.7-1.5)
             aggression=1.0,      # Max
             social_tendency=0.0, # Min
         )
 
         # Should be valid
         assert genome.speed_modifier == 1.5
-        assert genome.max_energy == 1.5
+        assert genome.size_modifier == 0.7
         assert genome.aggression == 1.0
         assert genome.social_tendency == 0.0
 
