@@ -16,7 +16,6 @@ sys.path.insert(0, "/home/user/tank")
 from core.poker.core import (
     BettingAction,
     PokerGameState,
-    _evaluate_five_cards,
     decide_action,
     evaluate_hand,
     finalize_pot,
@@ -24,6 +23,7 @@ from core.poker.core import (
     simulate_multi_round_game,
 )
 from core.poker.core.cards import Card, Rank, Suit
+from core.poker.evaluation.hand_evaluator import _evaluate_five_cards
 
 
 def test_minimum_raise_enforcement():
