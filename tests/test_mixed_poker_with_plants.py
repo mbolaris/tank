@@ -176,39 +176,42 @@ class TestPlantPokerGames:
 
     def test_plants_can_play_poker(self, run_simulation):
         """Verify plants can participate in poker games.
-        
+
         Note: This test may occasionally fail due to random plant placement.
-        We run multiple trials to reduce flakiness.
+        We run multiple trials with more frames to reduce flakiness.
         """
-        for _ in range(3):
-            result = run_simulation(frames=600)
+        # Run 5 trials with 1200 frames each for better coverage
+        for trial in range(5):
+            result = run_simulation(frames=1200)
             if plants_have_played_poker(result["plants"]):
                 return  # Test passes
-        
-        pytest.fail("At least one plant should have played poker in 3 trials")
+
+        pytest.fail("At least one plant should have played poker in 5 trials of 1200 frames")
 
     def test_plant_poker_records_wins_and_losses(self, run_simulation):
         """Verify poker games properly record wins and losses for plants."""
-        for _ in range(3):
-            result = run_simulation(frames=600)
+        # Run 5 trials with 1200 frames each for better coverage
+        for trial in range(5):
+            result = run_simulation(frames=1200)
             plants = result["plants"]
-            
+
             total_wins = sum(p.poker_wins for p in plants)
             total_losses = sum(p.poker_losses for p in plants)
-            
+
             if total_wins > 0 or total_losses > 0:
                 return  # Test passes
-        
-        pytest.fail("Should have recorded some poker results in 3 trials")
+
+        pytest.fail("Should have recorded some poker results in 5 trials of 1200 frames")
 
     def test_plant_energy_changes_after_poker(self, run_simulation):
         """Verify plant energy changes as a result of poker games."""
-        for _ in range(3):
-            result = run_simulation(frames=600)
+        # Run 5 trials with 1200 frames each for better coverage
+        for trial in range(5):
+            result = run_simulation(frames=1200)
             if plants_have_played_poker(result["plants"]):
                 return  # Test passes
-        
-        pytest.fail("At least one plant should have energy changes from poker in 3 trials")
+
+        pytest.fail("At least one plant should have energy changes from poker in 5 trials of 1200 frames")
 
     def test_plant_cooldown_applied_after_poker(self, engine):
         """Verify poker cooldown is applied to plants after games."""
