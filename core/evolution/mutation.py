@@ -16,7 +16,7 @@ Adaptive Mutation:
 
 import random
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
 
 
 @dataclass
@@ -55,7 +55,7 @@ def calculate_adaptive_mutation_rate(
     base_strength: float,
     population_stress: float = 0.0,
     config: Optional[MutationConfig] = None,
-) -> tuple[float, float]:
+) -> Tuple[float, float]:
     """Calculate mutation rate and strength based on population stress.
     
     Population stress is NOT fitness - it's environmental pressure:
