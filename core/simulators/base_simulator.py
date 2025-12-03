@@ -602,7 +602,7 @@ class BaseSimulator(ABC):
         max_dist_sq = max_distance * max_distance
         
         # Pre-cache player positions for faster access
-        positions = [(p.pos.x, p.pos.y) for p in players]
+        positions = [(p.pos.x + p.width / 2, p.pos.y + p.height / 2) for p in players]
         
         # OPTIMIZATION: Use 2D list instead of dict for O(1) access without hash overhead
         # Build adjacency matrix as boolean: True = within distance

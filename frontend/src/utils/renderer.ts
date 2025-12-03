@@ -475,13 +475,22 @@ export class Renderer {
                 const startTime = this.pokerEffectStartTime.get(entityId)!;
                 const elapsed = now - startTime;
                 const animationDuration = 1000; // 1 second animation
-                
+
                 // Calculate progress (0 to 1, clamped)
                 const progress = Math.min(elapsed / animationDuration, 1);
-                
+
                 // If animation is complete, clear the tracking and don't render
                 if (progress >= 1) {
                     this.pokerEffectStartTime.delete(entityId);
+                    return;
+                }
+
+                // Check distance - if too far, stop rendering to prevent "stretching" artifact
+                // Use 120px (1.5x max poker distance) as cutoff
+                const dx = targetX - entityX;
+                const dy = targetY - entityY;
+                const distSq = dx * dx + dy * dy;
+                if (distSq > 120 * 120) {
                     return;
                 }
 

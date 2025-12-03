@@ -204,6 +204,12 @@ class Agent:
         # Only reset avoidance_velocity when no sprites are close
         if not any_sprite_close:
             self.avoidance_velocity = Vector2(0, 0)
+        else:
+            # Cap avoidance velocity to prevent explosion
+            # Limit to 50% of base speed
+            max_avoidance = self.speed * 0.5
+            if self.avoidance_velocity.length_squared() > max_avoidance * max_avoidance:
+                self.avoidance_velocity = self.avoidance_velocity.normalize() * max_avoidance
 
     def align_near(self, other_sprites: List["Agent"], min_distance: float) -> None:
         """Align with nearby agents."""
