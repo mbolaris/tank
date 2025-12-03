@@ -10,6 +10,7 @@ from core.constants import (
     ENERGY_MAX_DEFAULT,
     ENERGY_MODERATE_MULTIPLIER,
     FISH_BASE_HEIGHT,
+    FISH_BASE_SPEED,
     FISH_BASE_WIDTH,
     FISH_FOOD_MEMORY_DECAY,
     FISH_LAST_EVENT_INITIAL_AGE,
@@ -181,6 +182,12 @@ class Fish(Agent):
 
         # Apply genetic modifiers to speed
         modified_speed = speed * self.genome.speed_modifier
+        
+        # Safety cap: Ensure speed doesn't explode due to legacy bugs
+        # Max reasonable speed is base * max_modifier (1.5) * safety_margin (1.2)
+        max_allowed_speed = FISH_BASE_SPEED * 1.5 * 1.2
+        if modified_speed > max_allowed_speed:
+             modified_speed = max_allowed_speed
 
         super().__init__(environment, x, y, modified_speed, screen_width, screen_height)
 
@@ -664,7 +671,7 @@ class Fish(Agent):
             species=self.species,  # Same species
             x=baby_x,
             y=baby_y,
-            speed=self.speed / self.genome.speed_modifier,  # Base speed
+            speed=FISH_BASE_SPEED,  # Base speed
             genome=offspring_genome,
             generation=self.generation + 1,
             ecosystem=self.ecosystem,
@@ -743,7 +750,15 @@ class Fish(Agent):
         previous_direction = self.last_direction
 
         # Movement (algorithms handle critical energy internally)
+        # Calculate acceleration for diagnostics
+        prev_vel = Vector2(self.vel.x, self.vel.y)
         self.movement_strategy.move(self)
+        
+        # Diagnostic: Record velocity and acceleration
+        from core.diagnostics import VelocityTracker
+        current_speed = self.vel.length()
+        acceleration = (self.vel - prev_vel).length()
+        VelocityTracker().record_movement(self.fish_id, self.vel, acceleration)
 
         self._apply_turn_energy_cost(previous_direction)
 

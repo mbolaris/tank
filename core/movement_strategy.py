@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 # Movement smoothing constants (lower = smoother, higher = more responsive)
-ALGORITHMIC_MOVEMENT_SMOOTHING = 0.2  # Slightly more responsive for algorithms
-ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.2  # Allow 20% speed variation
+ALGORITHMIC_MOVEMENT_SMOOTHING = 0.02  # Slightly more responsive for algorithms
+ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.0  # Cap at base speed (was 0.6)
 ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
 
 VelocityComponents = Tuple[float, float]

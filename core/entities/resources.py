@@ -355,9 +355,9 @@ class LiveFood(Food):
             screen_height=screen_height,
             speed=speed,
         )
-        # BALANCE: Reduced max_speed from 2.88 to 2.4 to make it catchable
-        # Fast fish with speed_modifier=1.3 can now catch it (2.6 > 2.4)
-        self.max_speed = speed * 1.6  # 1.5 * 1.6 = 2.4
+        # BALANCE: Reduced max_speed from 2.4 to 1.8 to make it catchable by average fish
+        # Fish with base speed 2.2 can now catch it (2.2 > 1.8)
+        self.max_speed = speed * 1.2  # 1.5 * 1.2 = 1.8
         self.wander_timer = random.randint(20, 45)
         # BALANCE: Reduced avoid_radius from 180 to 120 so fish can get closer
         self.avoid_radius = 120

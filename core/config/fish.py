@@ -1,6 +1,7 @@
 """Fish-specific configuration constants."""
 
 # Fish movement constraints
+FISH_BASE_SPEED = 2.2  # Base speed for all fish (was 1.5)
 FISH_TOP_MARGIN = 20  # Minimum pixels from top to keep energy bar visible
 
 # Fish growth rate when eating food
@@ -12,10 +13,10 @@ BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
 ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy (was 1.2) - older fish are larger
 
 # Energy Consumption Constants
-EXISTENCE_ENERGY_COST = 0.035  # Cost just for being alive per frame (was 0.02) - larger fish pay more
-MOVEMENT_ENERGY_COST = 0.03  # Movement-based energy consumption multiplier (was 0.02)
-HIGH_SPEED_ENERGY_COST = 0.04  # Progressive speed cost multiplier (was 0.025) - scales quadratically with speed
-HIGH_SPEED_THRESHOLD = 0.65  # Speed ratio above which burst penalty kicks in (was 0.7)
+EXISTENCE_ENERGY_COST = 0.05  # Cost just for being alive per frame (was 0.02) - larger fish pay more
+MOVEMENT_ENERGY_COST = 0.1  # Movement-based energy consumption multiplier (was 0.03)
+HIGH_SPEED_ENERGY_COST = 0.25  # Progressive speed cost multiplier (was 0.15) - scales quadratically with speed
+HIGH_SPEED_THRESHOLD = 0.6  # Speed ratio above which burst penalty kicks in (was 0.65)
 SHARP_TURN_ENERGY_COST = 0.07  # Additional cost for sharp turns (was 0.05)
 SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
@@ -88,17 +89,17 @@ BABY_POSITION_RANDOM_RANGE = 20  # Random offset range for baby position (pixels
 BABY_SPAWN_MARGIN = 50  # Margin from screen edges for baby spawning (pixels)
 
 # Movement algorithm constants
-AVOIDANCE_SPEED_CHANGE = 0.2  # Rate at which speed changes when avoiding
-ALIGNMENT_SPEED_CHANGE = 0.1  # Rate at which speed changes when aligning
+AVOIDANCE_SPEED_CHANGE = 0.1  # Rate at which speed changes when avoiding
+ALIGNMENT_SPEED_CHANGE = 0.05  # Rate at which speed changes when aligning
 RANDOM_MOVE_PROBABILITIES = [0.05, 0.9, 0.05]  # [left, straight, right]
-RANDOM_VELOCITY_DIVISOR = 10.0  # Velocity change divisor for random movements
+RANDOM_VELOCITY_DIVISOR = 15.0  # Velocity change divisor for random movements
 
 # Predator Avoidance Constants (for algorithms)
 FLEE_THRESHOLD_CRITICAL = 45  # Flee distance when energy is critical
 FLEE_THRESHOLD_LOW = 80  # Flee distance when energy is low
 FLEE_THRESHOLD_NORMAL = 120  # Flee distance when energy is normal
-FLEE_SPEED_CRITICAL = 1.1  # Flee speed when energy is critical
-FLEE_SPEED_NORMAL = 1.3  # Flee speed when energy is normal
+FLEE_SPEED_CRITICAL = 0.95  # Flee speed when energy is critical
+FLEE_SPEED_NORMAL = 0.9  # Flee speed when energy is normal
 
 # Movement Calculation Constants
 MOVEMENT_ESCAPE_DIRECT_WEIGHT = 0.7  # Weight of direct escape direction
