@@ -583,8 +583,13 @@ class TestComplexIntegration:
         # Mutate parameters slightly (detection_range not search_radius)
         parent2_algo.parameters["detection_range"] = 0.8
 
-        # Crossover
-        child_algo = crossover_algorithms(parent1_algo, parent2_algo, 0.5, 0.1)
+        # Crossover (disable algorithm_switch_rate to ensure type preservation)
+        child_algo = crossover_algorithms(
+            parent1_algo, parent2_algo,
+            mutation_rate=0.5,
+            mutation_strength=0.1,
+            algorithm_switch_rate=0.0  # Disable random algorithm switching for this test
+        )
 
         # Should still be GreedyFoodSeeker
         assert isinstance(child_algo, GreedyFoodSeeker)
