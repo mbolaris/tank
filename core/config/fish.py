@@ -13,10 +13,10 @@ BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
 ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy (was 1.2) - older fish are larger
 
 # Energy Consumption Constants
-EXISTENCE_ENERGY_COST = 0.05  # Cost just for being alive per frame (was 0.02) - larger fish pay more
-MOVEMENT_ENERGY_COST = 0.1  # Movement-based energy consumption multiplier (was 0.03)
-HIGH_SPEED_ENERGY_COST = 0.25  # Progressive speed cost multiplier (was 0.15) - scales quadratically with speed
-HIGH_SPEED_THRESHOLD = 0.6  # Speed ratio above which burst penalty kicks in (was 0.65)
+EXISTENCE_ENERGY_COST = 0.035  # Cost just for being alive per frame (reduced from 0.05)
+MOVEMENT_ENERGY_COST = 0.07  # Movement-based energy consumption multiplier (reduced from 0.1)
+HIGH_SPEED_ENERGY_COST = 0.18  # Progressive speed cost multiplier (reduced from 0.25) - scales quadratically with speed
+HIGH_SPEED_THRESHOLD = 0.6  # Speed ratio above which burst penalty kicks in
 SHARP_TURN_ENERGY_COST = 0.07  # Additional cost for sharp turns (was 0.05)
 SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
