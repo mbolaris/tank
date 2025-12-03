@@ -176,5 +176,51 @@ class Vector2:
         dy = y2 - y1
         return math.sqrt(dx * dx + dy * dy)
 
+    @staticmethod
+    def distance_between(v1: Vector2, v2: Vector2) -> float:
+        """Calculate distance between two Vector2 objects.
+
+        This is a convenience method that avoids creating temporary Vector2 objects
+        from subtraction. Use this instead of (v1 - v2).length() for better performance.
+
+        Args:
+            v1: First vector/position
+            v2: Second vector/position
+
+        Returns:
+            Distance between the vectors
+
+        Example:
+            >>> pos1 = Vector2(0, 0)
+            >>> pos2 = Vector2(3, 4)
+            >>> distance = Vector2.distance_between(pos1, pos2)  # Returns 5.0
+        """
+        dx = v2.x - v1.x
+        dy = v2.y - v1.y
+        return math.sqrt(dx * dx + dy * dy)
+
+    @staticmethod
+    def distance_squared_between(v1: Vector2, v2: Vector2) -> float:
+        """Calculate squared distance between two Vector2 objects.
+
+        This is a convenience method for distance comparisons where you don't need
+        the actual distance value. Avoids the expensive sqrt() operation.
+
+        Args:
+            v1: First vector/position
+            v2: Second vector/position
+
+        Returns:
+            Squared distance between the vectors
+
+        Example:
+            >>> pos1 = Vector2(0, 0)
+            >>> pos2 = Vector2(3, 4)
+            >>> dist_sq = Vector2.distance_squared_between(pos1, pos2)  # Returns 25.0
+        """
+        dx = v2.x - v1.x
+        dy = v2.y - v1.y
+        return dx * dx + dy * dy
+
 
 __all__ = ["Vector2"]

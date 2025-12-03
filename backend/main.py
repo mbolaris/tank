@@ -62,6 +62,7 @@ migration_scheduler: Optional[MigrationScheduler] = None  # Will be initialized 
 
 # Auto-save service for periodic tank state persistence
 from backend.auto_save_service import AutoSaveService
+from backend.startup_manager import StartupManager
 
 auto_save_service: Optional[AutoSaveService] = None  # Will be initialized in lifespan
 
@@ -75,6 +76,9 @@ SERVER_ID = os.getenv("TANK_SERVER_ID", "local-server")  # Local server ID
 SERVER_VERSION = "1.0.0"  # Server version
 _server_start_time = time.time()  # Track server uptime
 
+# Startup manager for clean initialization/shutdown
+startup_manager: Optional[StartupManager] = None
+
 # Production settings
 PRODUCTION_MODE = os.getenv("PRODUCTION", "false").lower() == "true"
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")  # Comma-separated list
@@ -86,7 +90,6 @@ if _api_port_override:
 
 # Discovery hub configuration
 DISCOVERY_SERVER_URL = os.getenv("DISCOVERY_SERVER_URL")  # e.g., "http://192.168.1.10:8000"
-_discovery_hub_info: Optional[ServerInfo] = None  # Parsed discovery hub server info
 
 
 def _get_network_ip() -> str:
@@ -107,41 +110,6 @@ def _get_network_ip() -> str:
         # Fallback to localhost if we can't determine network IP
         logger.debug(f"Could not determine network IP: {e}")
         return "localhost"
-
-
-def _parse_discovery_url(url: str) -> Optional[ServerInfo]:
-    """Parse DISCOVERY_SERVER_URL into a ServerInfo object.
-
-    Args:
-        url: Discovery server URL (e.g., "http://192.168.1.10:8000")
-
-    Returns:
-        ServerInfo for the discovery server, or None if invalid
-    """
-    try:
-        from urllib.parse import urlparse
-        parsed = urlparse(url)
-
-        if not parsed.hostname:
-            logger.error(f"Invalid DISCOVERY_SERVER_URL: {url} (no hostname)")
-            return None
-
-        port = parsed.port or 8000
-
-        # Create a minimal ServerInfo for the discovery hub
-        return ServerInfo(
-            server_id="discovery-hub",
-            hostname=parsed.hostname,
-            host=parsed.hostname,
-            port=port,
-            status="online",
-            tank_count=0,
-            version="unknown",
-            is_local=False,
-        )
-    except Exception as e:
-        logger.error(f"Failed to parse DISCOVERY_SERVER_URL: {url} - {e}")
-        return None
 
 
 def _handle_task_exception(task: asyncio.Task) -> None:
@@ -204,114 +172,33 @@ def get_server_info() -> ServerInfo:
     )
 
 
-# Track background tasks
-_heartbeat_task: Optional[asyncio.Task] = None
-
-
-async def _heartbeat_loop() -> None:
-    """Background task to send periodic heartbeats to discovery service."""
-    while True:
-        try:
-            await asyncio.sleep(DiscoveryService.HEARTBEAT_INTERVAL)
-
-            # Update local server info and send heartbeat
-            server_info = get_server_info()
-            await discovery_service.heartbeat(SERVER_ID, server_info)
-            logger.debug("Heartbeat sent to local discovery service")
-
-            # Also send heartbeat to remote discovery hub if configured
-            if _discovery_hub_info:
-                try:
-                    success = await server_client.send_heartbeat(_discovery_hub_info, server_info)
-                    if success:
-                        logger.debug(f"Heartbeat sent to remote discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
-                    else:
-                        logger.warning(f"Failed to send heartbeat to discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
-                except Exception as e:
-                    logger.warning(f"Error sending heartbeat to discovery hub: {e}")
-
-        except asyncio.CancelledError:
-            logger.info("Heartbeat loop cancelled")
-            break
-        except Exception as e:
-            logger.error(f"Error in heartbeat loop: {e}", exc_info=True)
+# Note: _heartbeat_loop and _heartbeat_task now managed by StartupManager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup and shutdown."""
-    global _heartbeat_task, auto_save_service, simulation_manager, simulation, connected_clients
+    """Lifespan context manager for startup and shutdown.
+
+    Now uses StartupManager for clean separation of concerns and better testability.
+    """
+    global startup_manager, auto_save_service, migration_scheduler
+    global simulation_manager, simulation, connected_clients
 
     try:
-        # Startup
-        logger.info("=" * 60)
-        logger.info("LIFESPAN STARTUP: Beginning initialization")
-        logger.info(f"Platform: {platform.system()} {platform.release()}")
-        logger.info(f"Python: {sys.version}")
-        logger.info("=" * 60)
+        # Create and initialize startup manager
+        startup_manager = StartupManager(
+            tank_registry=tank_registry,
+            connection_manager=connection_manager,
+            discovery_service=discovery_service,
+            server_client=server_client,
+            server_id=SERVER_ID,
+            discovery_server_url=DISCOVERY_SERVER_URL,
+            start_broadcast_callback=start_broadcast_for_tank,
+            stop_broadcast_callback=stop_broadcast_for_tank,
+        )
 
-        # Restore tanks from snapshots if available
-        logger.info("Checking for saved tank snapshots...")
-        try:
-            from backend.tank_persistence import find_all_tank_snapshots
-
-            tank_snapshots = find_all_tank_snapshots()
-            if tank_snapshots:
-                logger.info(f"Found {len(tank_snapshots)} tank(s) with saved snapshots")
-                for tank_id, snapshot_path in tank_snapshots.items():
-                    logger.info(f"Restoring tank {tank_id[:8]} from {snapshot_path}")
-                    restored_manager = tank_registry.restore_tank_from_snapshot(
-                        snapshot_path,
-                        start_paused=True,
-                    )
-                    if restored_manager:
-                        logger.info(f"Successfully restored tank {tank_id[:8]}")
-                        # Set as default if it's the first tank
-                        if tank_registry._default_tank_id is None:
-                            tank_registry._default_tank_id = tank_id
-                    else:
-                        logger.error(f"Failed to restore tank {tank_id[:8]}")
-            else:
-                logger.info("No saved snapshots found, will create default tank")
-        except Exception as e:
-            logger.error(f"Error restoring tanks from snapshots: {e}", exc_info=True)
-            logger.info("Will create default tank instead")
-
-        # Create default tank if no tanks were restored
-        if tank_registry.tank_count == 0:
-            logger.info("No tanks in registry, creating default tank...")
-            default_manager = tank_registry.create_tank(
-                name="Tank 1",
-                description="A local fish tank simulation",
-                persistent=True,
-            )
-            tank_registry._default_tank_id = default_manager.tank_id
-            logger.info(f"Created default tank: {default_manager.tank_id[:8]}")
-
-            # Create initial snapshot immediately so it can be restored on next startup
-            try:
-                from backend.tank_persistence import save_tank_state
-
-                snapshot_path = save_tank_state(default_manager.tank_id, default_manager)
-                if snapshot_path:
-                    logger.info(f"Created initial snapshot for default tank: {snapshot_path}")
-                else:
-                    logger.warning("Failed to create initial snapshot for default tank")
-            except Exception as e:
-                logger.error(f"Error creating initial snapshot: {e}", exc_info=True)
-
-        logger.info(f"Tank registry has {tank_registry.tank_count} tank(s)")
-
-        # Restore connections from saved file
-        logger.info("Restoring tank connections...")
-        try:
-            from backend.connection_persistence import load_connections
-
-            restored_connections = load_connections(connection_manager)
-            logger.info(f"Restored {restored_connections} connection(s)")
-        except Exception as e:
-            logger.error(f"Error restoring connections: {e}", exc_info=True)
-            logger.info("Continuing without restored connections")
+        # Perform all initialization steps
+        await startup_manager.initialize(get_server_info_callback=get_server_info)
 
         # Update backwards-compatible aliases
         simulation_manager = tank_registry.default_tank
@@ -320,128 +207,9 @@ async def lifespan(app: FastAPI):
             connected_clients = simulation_manager.connected_clients
             logger.info(f"Default tank set: {simulation_manager.tank_id[:8]}")
 
-        # Start all tanks in the registry
-        logger.info("Starting all tank simulations...")
-        try:
-            for manager in tank_registry:
-                # Inject connection manager and tank registry for migrations
-                manager.runner.connection_manager = connection_manager
-                manager.runner.tank_registry = tank_registry
-                manager.runner.tank_id = manager.tank_id
-                manager.runner._update_environment_migration_context()
-
-                manager.start(start_paused=True)
-                logger.info(f"Tank {manager.tank_id[:8]} started")
-        except Exception as e:
-            logger.error(f"Failed to start simulations: {e}", exc_info=True)
-            raise
-
-        # Start broadcast tasks for all tanks
-        logger.info("Starting broadcast tasks...")
-        try:
-            for manager in tank_registry:
-                await start_broadcast_for_tank(manager)
-                logger.info(f"Broadcast task started for tank {manager.tank_id[:8]}")
-        except Exception as e:
-            logger.error(f"Failed to start broadcast tasks: {e}", exc_info=True)
-            raise
-
-        # Start discovery service
-        logger.info("Starting discovery service...")
-        try:
-            await discovery_service.start()
-            logger.info("Discovery service started")
-
-            # Register local server
-            local_server_info = get_server_info()
-            await discovery_service.register_server(local_server_info)
-            logger.info(f"Local server registered: {SERVER_ID}")
-
-            # Parse discovery hub URL if provided
-            global _discovery_hub_info
-            if DISCOVERY_SERVER_URL:
-                _discovery_hub_info = _parse_discovery_url(DISCOVERY_SERVER_URL)
-                if _discovery_hub_info:
-                    logger.info(f"Discovery hub configured: {_discovery_hub_info.host}:{_discovery_hub_info.port}")
-                else:
-                    logger.warning(f"Failed to parse DISCOVERY_SERVER_URL: {DISCOVERY_SERVER_URL}")
-
-            # Start heartbeat loop
-            _heartbeat_task = asyncio.create_task(_heartbeat_loop())
-            _heartbeat_task.add_done_callback(_handle_task_exception)
-            logger.info("Heartbeat task started")
-
-        except Exception as e:
-            logger.error(f"Failed to start discovery service: {e}", exc_info=True)
-            # Non-fatal - continue without discovery
-
-        # Start server client
-        logger.info("Starting server client...")
-        try:
-            await server_client.start()
-            logger.info("Server client started")
-        except Exception as e:
-            logger.error(f"Failed to start server client: {e}", exc_info=True)
-            # Non-fatal - continue without server client
-
-        # Register with remote discovery hub if configured
-        if _discovery_hub_info:
-            logger.info("Registering with remote discovery hub...")
-            try:
-                local_server_info = get_server_info()
-                success = await server_client.register_server(_discovery_hub_info, local_server_info)
-                if success:
-                    logger.info(f"Successfully registered with discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
-                else:
-                    logger.warning(f"Failed to register with discovery hub at {_discovery_hub_info.host}:{_discovery_hub_info.port}")
-            except Exception as e:
-                logger.error(f"Error registering with discovery hub: {e}", exc_info=True)
-                # Non-fatal - continue without hub registration
-
-        # Configure TankRegistry with distributed services
-        logger.info("Configuring TankRegistry for distributed operations...")
-        try:
-            tank_registry.set_distributed_services(discovery_service, server_client)
-            tank_registry.set_connection_manager(connection_manager)
-            logger.info("TankRegistry configured for distributed operations and connection management")
-
-            # Clean up invalid connections on startup
-            valid_tank_ids = tank_registry.list_tank_ids()
-            removed_count = connection_manager.validate_connections(valid_tank_ids)
-            if removed_count > 0:
-                logger.info(f"Startup cleanup: Removed {removed_count} invalid connections")
-
-        except Exception as e:
-            logger.error(f"Failed to configure TankRegistry: {e}", exc_info=True)
-            # Non-fatal - continue without distributed tank queries
-
-        # Start migration scheduler
-        logger.info("Starting migration scheduler...")
-        try:
-            global migration_scheduler
-            migration_scheduler = MigrationScheduler(
-                connection_manager=connection_manager,
-                tank_registry=tank_registry,
-                check_interval=2.0,
-                discovery_service=discovery_service,
-                server_client=server_client,
-                local_server_id=SERVER_ID,
-            )
-            await migration_scheduler.start()
-            logger.info("Migration scheduler started")
-        except Exception as e:
-            logger.error(f"Failed to start migration scheduler: {e}", exc_info=True)
-            # Non-fatal - continue without automated migrations
-
-        # Start auto-save service
-        logger.info("Starting auto-save service...")
-        try:
-            auto_save_service = AutoSaveService(tank_registry)
-            await auto_save_service.start()
-            logger.info("Auto-save service started")
-        except Exception as e:
-            logger.error(f"Failed to start auto-save service: {e}", exc_info=True)
-            # Non-fatal - continue without auto-save
+        # Update global references to services
+        auto_save_service = startup_manager.auto_save_service
+        migration_scheduler = startup_manager.migration_scheduler
 
         # Setup API routers (must be done after all dependencies are initialized)
         logger.info("Setting up API routers...")
@@ -452,101 +220,17 @@ async def lifespan(app: FastAPI):
             logger.error(f"Failed to setup API routers: {e}", exc_info=True)
             raise  # Fatal - routers are required for API functionality
 
-        logger.info("LIFESPAN STARTUP: Complete - yielding control to app")
+        logger.info("LIFESPAN: Startup complete - yielding control to app")
         yield
-        logger.info("LIFESPAN SHUTDOWN: Received shutdown signal")
+        logger.info("LIFESPAN: Received shutdown signal")
 
     except Exception as e:
         logger.error(f"Exception in lifespan startup: {e}", exc_info=True)
         raise
     finally:
-        # Shutdown
-        logger.info("LIFESPAN SHUTDOWN: Cleaning up resources...")
-
-        # Save all persistent tanks before shutdown
-        logger.info("Saving all persistent tanks...")
-        if auto_save_service:
-            try:
-                saved_count = await auto_save_service.save_all_now()
-                logger.info(f"Saved {saved_count} persistent tank(s) before shutdown")
-            except Exception as e:
-                logger.error(f"Error saving tanks on shutdown: {e}", exc_info=True)
-
-        # Save all connections before shutdown
-        logger.info("Saving tank connections...")
-        try:
-            from backend.connection_persistence import save_connections
-
-            if save_connections(connection_manager):
-                logger.info("Tank connections saved successfully")
-            else:
-                logger.warning("Failed to save tank connections")
-        except Exception as e:
-            logger.error(f"Error saving connections on shutdown: {e}", exc_info=True)
-
-        # Stop auto-save service
-        logger.info("Stopping auto-save service...")
-        if auto_save_service:
-            try:
-                await auto_save_service.stop()
-                logger.info("Auto-save service stopped")
-            except Exception as e:
-                logger.error(f"Error stopping auto-save service: {e}", exc_info=True)
-
-        # Stop all broadcast tasks
-        logger.info("Stopping broadcast tasks...")
-        for tank_id in list(_broadcast_tasks.keys()):
-            try:
-                await stop_broadcast_for_tank(tank_id)
-                logger.info(f"Broadcast task stopped for tank {tank_id[:8]}")
-            except Exception as e:
-                logger.error(f"Error stopping broadcast for tank {tank_id[:8]}: {e}", exc_info=True)
-
-        # Stop migration scheduler
-        logger.info("Stopping migration scheduler...")
-        if migration_scheduler:
-            try:
-                await migration_scheduler.stop()
-                logger.info("Migration scheduler stopped")
-            except Exception as e:
-                logger.error(f"Error stopping migration scheduler: {e}", exc_info=True)
-
-        # Stop all simulations
-        logger.info("Stopping all simulations...")
-        try:
-            tank_registry.stop_all()
-            logger.info("All simulations stopped!")
-        except Exception as e:
-            logger.error(f"Error stopping simulations: {e}", exc_info=True)
-
-        # Stop heartbeat task
-        logger.info("Stopping heartbeat task...")
-        if _heartbeat_task and not _heartbeat_task.done():
-            _heartbeat_task.cancel()
-            try:
-                await _heartbeat_task
-            except asyncio.CancelledError:
-                pass
-            logger.info("Heartbeat task stopped")
-
-        # Stop discovery service
-        logger.info("Stopping discovery service...")
-        try:
-            await discovery_service.stop()
-            logger.info("Discovery service stopped")
-        except Exception as e:
-            logger.error(f"Error stopping discovery service: {e}", exc_info=True)
-
-        # Stop server client
-        logger.info("Stopping server client...")
-        try:
-            await server_client.close()
-            logger.info("Server client stopped")
-        except Exception as e:
-            logger.error(f"Error stopping server client: {e}", exc_info=True)
-
-        logger.info("LIFESPAN SHUTDOWN: Complete")
-        logger.info("=" * 60)
+        # Shutdown using startup manager
+        if startup_manager:
+            await startup_manager.shutdown()
 
 
 # Create FastAPI app with lifespan handler
