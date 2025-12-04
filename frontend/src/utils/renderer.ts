@@ -372,7 +372,7 @@ export class Renderer {
                 this.renderCastle(entity);
                 break;
             case 'fractal_plant':
-                this.renderFractalPlant(entity, elapsedTime, allEntities);
+                this.renderFractalPlant(entity, elapsedTime, allEntities, showEffects);
                 break;
             case 'plant_nectar':
                 this.renderPlantNectar(entity, elapsedTime);
@@ -1291,7 +1291,7 @@ export class Renderer {
     /**
      * Render an evolving fractal plant using L-system genetics.
      */
-    private renderFractalPlant(plant: EntityData, elapsedTime: number, allEntities?: EntityData[]) {
+    private renderFractalPlant(plant: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
         const { ctx } = this;
         const { x, y, width, height } = plant;
 
@@ -1333,7 +1333,7 @@ export class Renderer {
         );
 
         // Render poker effect if present
-        if (plant.poker_effect_state) {
+        if (showEffects && plant.poker_effect_state) {
             this.renderPokerStatus(
                 plant.id,
                 x + width / 2,
