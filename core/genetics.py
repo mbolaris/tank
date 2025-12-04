@@ -6,7 +6,7 @@ mutations, and evolutionary dynamics.
 Uses core.evolution module for crossover, mutation, and inheritance operations.
 """
 
-import random
+import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, Generic, Optional, Tuple, TypeVar
@@ -26,6 +26,76 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+
+def _inherit_trait_with_metadata(
+    trait1: "GeneticTrait[float]",
+    trait2: "GeneticTrait[float]",
+    *,
+    min_val: float,
+    max_val: float,
+    weight1: float,
+    base_mutation_rate: float,
+    base_mutation_strength: float,
+    rng: pyrandom.Random,
+) -> "GeneticTrait[float]":
+    """Inherit a numeric trait while blending metadata and mutating it."""
+
+    eff_rate = base_mutation_rate * (trait1.mutation_rate + trait2.mutation_rate) / 2
+    eff_strength = base_mutation_strength * (trait1.mutation_strength + trait2.mutation_strength) / 2
+
+    new_val = _inherit_trait(
+        trait1.value,
+        trait2.value,
+        min_val,
+        max_val,
+        weight1=weight1,
+        mutation_rate=eff_rate,
+        mutation_strength=eff_strength,
+        rng=rng,
+    )
+
+    new_trait = GeneticTrait(
+        new_val,
+        mutation_rate=(trait1.mutation_rate + trait2.mutation_rate) / 2,
+        mutation_strength=(trait1.mutation_strength + trait2.mutation_strength) / 2,
+        hgt_probability=(trait1.hgt_probability + trait2.hgt_probability) / 2,
+    )
+    new_trait.mutate_meta(rng)
+    return new_trait
+
+
+def _inherit_discrete_trait_with_metadata(
+    trait1: "GeneticTrait[int]",
+    trait2: "GeneticTrait[int]",
+    *,
+    min_val: int,
+    max_val: int,
+    weight1: float,
+    base_mutation_rate: float,
+    rng: pyrandom.Random,
+) -> "GeneticTrait[int]":
+    """Inherit a discrete trait while preserving and mutating metadata."""
+
+    eff_rate = base_mutation_rate * (trait1.mutation_rate + trait2.mutation_rate) / 2
+    new_val = _inherit_discrete_trait(
+        trait1.value,
+        trait2.value,
+        min_val,
+        max_val,
+        weight1=weight1,
+        mutation_rate=eff_rate,
+        rng=rng,
+    )
+
+    new_trait = GeneticTrait(
+        new_val,
+        mutation_rate=(trait1.mutation_rate + trait2.mutation_rate) / 2,
+        mutation_strength=(trait1.mutation_strength + trait2.mutation_strength) / 2,
+        hgt_probability=(trait1.hgt_probability + trait2.hgt_probability) / 2,
+    )
+    new_trait.mutate_meta(rng)
+    return new_trait
+
 @dataclass
 class GeneticTrait(Generic[T]):
     """A genetic trait with metadata for evolution.
@@ -41,7 +111,7 @@ class GeneticTrait(Generic[T]):
     mutation_strength: float = 1.0
     hgt_probability: float = 0.1
 
-    def mutate_meta(self, rng: random.Random = random) -> None:
+    def mutate_meta(self, rng: pyrandom.Random = pyrandom) -> None:
         """Mutate the metadata itself (evolution of evolution)."""
         if rng.random() < 0.05:
             self.mutation_rate = max(0.1, min(5.0, self.mutation_rate + rng.gauss(0, 0.1)))
@@ -65,7 +135,7 @@ class PhysicalTraits:
     pattern_type: GeneticTrait[int]
 
     @classmethod
-    def random(cls, rng: random.Random) -> "PhysicalTraits":
+    def random(cls, rng: pyrandom.Random) -> "PhysicalTraits":
         return cls(
             size_modifier=GeneticTrait(rng.uniform(0.7, 1.3)),
             fertility=GeneticTrait(rng.uniform(0.6, 1.4)),
@@ -96,7 +166,7 @@ class BehavioralTraits:
     mate_preferences: GeneticTrait[Dict[str, float]]
 
     @classmethod
-    def random(cls, rng: random.Random, use_algorithm: bool = True) -> "BehavioralTraits":
+    def random(cls, rng: pyrandom.Random, use_algorithm: bool = True) -> "BehavioralTraits":
         algorithm = None
         poker_algorithm = None
         poker_strategy_algorithm = None
@@ -280,8 +350,8 @@ class Genome:
         return max(0.5, cost)
 
     @classmethod
-    def random(cls, use_algorithm: bool = True, rng: Optional[random.Random] = None) -> "Genome":
-        rng = rng or random
+    def random(cls, use_algorithm: bool = True, rng: Optional[pyrandom.Random] = None) -> "Genome":
+        rng = rng or pyrandom
         return cls(
             physical=PhysicalTraits.random(rng),
             behavioral=BehavioralTraits.random(rng, use_algorithm)
@@ -322,56 +392,125 @@ class Genome:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         population_stress: float = 0.0,
+        rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
-        """Create offspring genome with weighted contributions from parents."""
+        """Create offspring genome with weighted contributions from parents.
+
+        Args:
+            parent1: First parent genome
+            parent2: Second parent genome
+            parent1_weight: Weight for the first parent in blended inheritance
+            mutation_rate: Baseline mutation chance
+            mutation_strength: Baseline mutation magnitude
+            population_stress: Environmental pressure to scale mutation settings
+            rng: Optional random generator for deterministic inheritance
+        """
+        rng = rng or pyrandom
         parent1_weight = max(0.0, min(1.0, parent1_weight))
         adaptive_rate, adaptive_strength = calculate_adaptive_mutation_rate(
             mutation_rate, mutation_strength, population_stress
         )
 
-        def inherit_trait_val(
-            t1: GeneticTrait[float], 
-            t2: GeneticTrait[float], 
-            min_val: float, 
-            max_val: float
-        ) -> GeneticTrait[float]:
-            # Use trait-specific multipliers
-            eff_rate = adaptive_rate * (t1.mutation_rate + t2.mutation_rate) / 2
-            eff_strength = adaptive_strength * (t1.mutation_strength + t2.mutation_strength) / 2
-            
-            new_val = _inherit_trait(
-                t1.value, t2.value, min_val, max_val,
-                weight1=parent1_weight,
-                mutation_rate=eff_rate,
-                mutation_strength=eff_strength,
-            )
-            
-            # Create new trait with inherited/mutated metadata
-            new_trait = GeneticTrait(new_val)
-            new_trait.mutation_rate = (t1.mutation_rate + t2.mutation_rate) / 2
-            new_trait.mutation_strength = (t1.mutation_strength + t2.mutation_strength) / 2
-            new_trait.hgt_probability = (t1.hgt_probability + t2.hgt_probability) / 2
-            new_trait.mutate_meta()
-            return new_trait
-
         # Physical Traits
         physical = PhysicalTraits(
-            size_modifier=inherit_trait_val(parent1.physical.size_modifier, parent2.physical.size_modifier, 0.7, 1.3),
-            fertility=inherit_trait_val(parent1.physical.fertility, parent2.physical.fertility, 0.6, 1.4),
-            color_hue=inherit_trait_val(parent1.physical.color_hue, parent2.physical.color_hue, 0.0, 1.0),
-            template_id=GeneticTrait(_inherit_discrete_trait(
-                parent1.template_id, parent2.template_id, 0, FISH_TEMPLATE_COUNT - 1,
-                weight1=parent1_weight, mutation_rate=adaptive_rate
-            )),
-            fin_size=inherit_trait_val(parent1.physical.fin_size, parent2.physical.fin_size, 0.6, 1.4),
-            tail_size=inherit_trait_val(parent1.physical.tail_size, parent2.physical.tail_size, 0.6, 1.4),
-            body_aspect=inherit_trait_val(parent1.physical.body_aspect, parent2.physical.body_aspect, 0.7, 1.3),
-            eye_size=inherit_trait_val(parent1.physical.eye_size, parent2.physical.eye_size, 0.7, 1.3),
-            pattern_intensity=inherit_trait_val(parent1.physical.pattern_intensity, parent2.physical.pattern_intensity, 0.0, 1.0),
-            pattern_type=GeneticTrait(_inherit_discrete_trait(
-                parent1.pattern_type, parent2.pattern_type, 0, FISH_PATTERN_COUNT - 1,
-                weight1=parent1_weight, mutation_rate=adaptive_rate
-            )),
+            size_modifier=_inherit_trait_with_metadata(
+                parent1.physical.size_modifier,
+                parent2.physical.size_modifier,
+                min_val=0.7,
+                max_val=1.3,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            fertility=_inherit_trait_with_metadata(
+                parent1.physical.fertility,
+                parent2.physical.fertility,
+                min_val=0.6,
+                max_val=1.4,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            color_hue=_inherit_trait_with_metadata(
+                parent1.physical.color_hue,
+                parent2.physical.color_hue,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            template_id=_inherit_discrete_trait_with_metadata(
+                parent1.physical.template_id,
+                parent2.physical.template_id,
+                min_val=0,
+                max_val=FISH_TEMPLATE_COUNT - 1,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                rng=rng,
+            ),
+            fin_size=_inherit_trait_with_metadata(
+                parent1.physical.fin_size,
+                parent2.physical.fin_size,
+                min_val=0.6,
+                max_val=1.4,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            tail_size=_inherit_trait_with_metadata(
+                parent1.physical.tail_size,
+                parent2.physical.tail_size,
+                min_val=0.6,
+                max_val=1.4,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            body_aspect=_inherit_trait_with_metadata(
+                parent1.physical.body_aspect,
+                parent2.physical.body_aspect,
+                min_val=0.7,
+                max_val=1.3,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            eye_size=_inherit_trait_with_metadata(
+                parent1.physical.eye_size,
+                parent2.physical.eye_size,
+                min_val=0.7,
+                max_val=1.3,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            pattern_intensity=_inherit_trait_with_metadata(
+                parent1.physical.pattern_intensity,
+                parent2.physical.pattern_intensity,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            pattern_type=_inherit_discrete_trait_with_metadata(
+                parent1.physical.pattern_type,
+                parent2.physical.pattern_type,
+                min_val=0,
+                max_val=FISH_PATTERN_COUNT - 1,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                rng=rng,
+            ),
         )
 
         # Behavioral Traits
@@ -382,6 +521,7 @@ class Genome:
             mutation_rate=adaptive_rate * 1.5,
             mutation_strength=adaptive_strength * 1.5,
             algorithm_switch_rate=0.03,
+            rng=rng,
         )
         
         poker_algo_val = None
@@ -395,7 +535,7 @@ class Genome:
             )
         else:
             from core.algorithms import get_random_algorithm
-            poker_algo_val = get_random_algorithm()
+            poker_algo_val = get_random_algorithm(rng=rng)
 
         poker_strat_val = None
         if parent1.poker_strategy_algorithm is not None or parent2.poker_strategy_algorithm is not None:
@@ -407,7 +547,7 @@ class Genome:
             )
         else:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            poker_strat_val = get_random_poker_strategy()
+            poker_strat_val = get_random_poker_strategy(rng=rng)
 
         # Mate preferences
         mate_prefs = {}
@@ -415,14 +555,68 @@ class Genome:
             p1_val = parent1.mate_preferences.get(pref_key, 0.5)
             p2_val = parent2.mate_preferences.get(pref_key, 0.5)
             # Simple inheritance for now
-            mate_prefs[pref_key] = _inherit_trait(p1_val, p2_val, 0.0, 1.0, weight1=parent1_weight, mutation_rate=adaptive_rate)
+            mate_prefs[pref_key] = _inherit_trait(
+                p1_val,
+                p2_val,
+                0.0,
+                1.0,
+                weight1=parent1_weight,
+                mutation_rate=adaptive_rate,
+                mutation_strength=adaptive_strength,
+                rng=rng,
+            )
 
         behavioral = BehavioralTraits(
-            aggression=inherit_trait_val(parent1.behavioral.aggression, parent2.behavioral.aggression, 0.0, 1.0),
-            social_tendency=inherit_trait_val(parent1.behavioral.social_tendency, parent2.behavioral.social_tendency, 0.0, 1.0),
-            pursuit_aggression=inherit_trait_val(parent1.behavioral.pursuit_aggression, parent2.behavioral.pursuit_aggression, 0.0, 1.0),
-            prediction_skill=inherit_trait_val(parent1.behavioral.prediction_skill, parent2.behavioral.prediction_skill, 0.0, 1.0),
-            hunting_stamina=inherit_trait_val(parent1.behavioral.hunting_stamina, parent2.behavioral.hunting_stamina, 0.0, 1.0),
+            aggression=_inherit_trait_with_metadata(
+                parent1.behavioral.aggression,
+                parent2.behavioral.aggression,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            social_tendency=_inherit_trait_with_metadata(
+                parent1.behavioral.social_tendency,
+                parent2.behavioral.social_tendency,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            pursuit_aggression=_inherit_trait_with_metadata(
+                parent1.behavioral.pursuit_aggression,
+                parent2.behavioral.pursuit_aggression,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            prediction_skill=_inherit_trait_with_metadata(
+                parent1.behavioral.prediction_skill,
+                parent2.behavioral.prediction_skill,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
+            hunting_stamina=_inherit_trait_with_metadata(
+                parent1.behavioral.hunting_stamina,
+                parent2.behavioral.hunting_stamina,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
             behavior_algorithm=GeneticTrait(algo_val),
             poker_algorithm=GeneticTrait(poker_algo_val),
             poker_strategy_algorithm=GeneticTrait(poker_strat_val),
@@ -452,6 +646,7 @@ class Genome:
         mutation_strength: float = 0.1,
         population_stress: float = 0.0,
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
+        rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations.
 
@@ -463,6 +658,7 @@ class Genome:
             population_stress: Environmental pressure (increases mutation)
             crossover_mode: Currently unused - all modes use 50/50 weighted blend.
                 Kept for API compatibility with crossover.py module.
+            rng: Optional random generator for deterministic inheritance
 
         Returns:
             New offspring Genome with inherited and potentially mutated traits.
@@ -474,7 +670,7 @@ class Genome:
         # All crossover modes currently delegate to weighted blend with 50/50 split.
         # The crossover_mode parameter is retained for API compatibility.
         return cls.from_parents_weighted(
-            parent1, parent2, 0.5, mutation_rate, mutation_strength, population_stress
+            parent1, parent2, 0.5, mutation_rate, mutation_strength, population_stress, rng
         )
 
     def get_color_tint(self) -> Tuple[int, int, int]:
