@@ -215,7 +215,7 @@ class PlantPokerInteraction:
             self.fish.energy += energy_transferred
             self.plant.gain_energy(winnings / 2)
             self.plant.poker_wins += 1
-            self.plant.genome.update_fitness(poker_won=1)
+            # Note: update_fitness() removed - fitness is tracked implicitly via poker_wins
 
         # Set poker cooldown for both
         self.fish.poker_cooldown = self.POKER_COOLDOWN

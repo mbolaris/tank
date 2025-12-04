@@ -332,9 +332,10 @@ class TestFullGenomeEvolution:
         """Weighted crossover should favor the higher-weighted parent."""
         random.Random(42)
 
-        # Create parents with distinct traits
-        parent1 = Genome(aggression=0.1, speed_modifier=0.6)
-        parent2 = Genome(aggression=0.9, speed_modifier=1.4)
+        # Create parents with distinct traits (using actual dataclass fields)
+        # Note: speed_modifier is a computed property, so we use fin_size/tail_size instead
+        parent1 = Genome(aggression=0.1, fin_size=0.8, tail_size=0.8)
+        parent2 = Genome(aggression=0.9, fin_size=1.3, tail_size=1.3)
 
         # Run multiple times to get average
         aggression_sum = 0.0
@@ -371,9 +372,9 @@ class TestFullGenomeEvolution:
             for _ in range(20)
         ]
 
-        # Calculate variance in speed_modifier
+        # Calculate variance in fin_size (a directly inherited trait)
         def variance(genomes):
-            values = [g.speed_modifier for g in genomes]
+            values = [g.fin_size for g in genomes]
             mean = sum(values) / len(values)
             return sum((v - mean) ** 2 for v in values) / len(values)
 
