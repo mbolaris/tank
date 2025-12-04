@@ -945,7 +945,7 @@ class MixedPokerInteraction:
 
             if is_winner and not is_tie:
                 player.poker_wins = getattr(player, "poker_wins", 0) + 1
-                player.genome.update_fitness(poker_won=1)
+                # Note: update_fitness() removed - fitness_score deprecated
             elif not is_winner:
                 player.poker_losses = getattr(player, "poker_losses", 0) + 1
 

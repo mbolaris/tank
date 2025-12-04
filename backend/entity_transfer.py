@@ -348,6 +348,19 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             growth_efficiency=genome_data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=genome_data.get("nectar_threshold_ratio", 0.75),
             fractal_type=genome_data.get("fractal_type", "lsystem"),
+            # Floral traits
+            floral_type=genome_data.get("floral_type", "spiral"),
+            floral_petals=genome_data.get("floral_petals", 5),
+            floral_layers=genome_data.get("floral_layers", 3),
+            floral_spin=genome_data.get("floral_spin", 0.3),
+            floral_hue=genome_data.get("floral_hue", 0.12),
+            floral_saturation=genome_data.get("floral_saturation", 0.8),
+        )
+
+        # Create plant with proper constructor
+        plant = FractalPlant(
+            environment=target_world.engine.environment,
+            genome=genome,
             root_spot=root_spot,
             initial_energy=data["energy"],
             screen_width=getattr(target_world.engine, 'screen_width', 800),
