@@ -844,6 +844,7 @@ class SimulationRunner:
                     genome_data=genome_data,
                     poker_effect_state=entity.poker_effect_state if hasattr(entity, "poker_effect_state") else None,
                     birth_effect_timer=entity.birth_effect_timer if hasattr(entity, "birth_effect_timer") else 0,
+                    max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100.0,
                     **base_data,
                 )
 

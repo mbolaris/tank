@@ -417,8 +417,11 @@ export class Renderer {
         this.drawShadow(x + scaledWidth / 2, y + scaledHeight, scaledWidth * 0.8, scaledHeight * 0.3);
 
         const energy = fish.energy !== undefined ? fish.energy : 100;
-        if (energy > 70) {
-            this.drawGlow(x + scaledWidth / 2, y + scaledHeight / 2, scaledWidth * 0.7, energy);
+        const maxEnergy = fish.max_energy || 100;
+        const reproductionThreshold = maxEnergy * 0.7; // 70% of max energy
+
+        if (energy > reproductionThreshold) {
+            this.drawGlow(x + scaledWidth / 2, y + scaledHeight / 2, scaledWidth * 0.7, energy, maxEnergy);
         }
 
         ctx.save();
@@ -706,8 +709,11 @@ export class Renderer {
 
         // Draw glow effect based on energy
         const energy = fish.energy !== undefined ? fish.energy : 100;
-        if (energy > 70) {
-            this.drawGlow(x + scaledSize / 2, y + scaledSize / 2, scaledSize * 0.7, energy);
+        const maxEnergy = fish.max_energy || 100;
+        const reproductionThreshold = maxEnergy * 0.7; // 70% of max energy
+
+        if (energy > reproductionThreshold) {
+            this.drawGlow(x + scaledSize / 2, y + scaledSize / 2, scaledSize * 0.7, energy, maxEnergy);
         }
 
         ctx.save();
@@ -858,9 +864,11 @@ export class Renderer {
         ctx.restore();
     }
 
-    private drawGlow(x: number, y: number, size: number, energy: number) {
+    private drawGlow(x: number, y: number, size: number, energy: number, maxEnergy: number = 100) {
         const { ctx } = this;
-        const intensity = (energy - 70) / 30; // 0 to 1 for energy 70-100
+        const threshold = maxEnergy * 0.7;
+        const range = maxEnergy - threshold;
+        const intensity = Math.max(0, Math.min(1, (energy - threshold) / range));
 
         ctx.save();
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
