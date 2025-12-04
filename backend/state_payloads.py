@@ -61,6 +61,8 @@ class EntitySnapshot:
     floral_saturation: Optional[float] = None
     # Poker effects
     poker_effect_state: Optional[Dict[str, Any]] = None
+    # Birth effects
+    birth_effect_timer: Optional[int] = None
 
     def to_full_dict(self) -> Dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -97,6 +99,7 @@ class EntitySnapshot:
                 "floral_hue": self.floral_hue,
                 "floral_saturation": self.floral_saturation,
                 "poker_effect_state": self.poker_effect_state,
+                "birth_effect_timer": self.birth_effect_timer,
             }
         )
 
@@ -110,6 +113,7 @@ class EntitySnapshot:
             "vel_x": self.vel_x,
             "vel_y": self.vel_y,
             "poker_effect_state": self.poker_effect_state,
+            "birth_effect_timer": self.birth_effect_timer,
         }
 
 

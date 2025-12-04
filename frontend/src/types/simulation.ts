@@ -76,6 +76,7 @@ export interface EntityData {
         target_id?: number;
         target_type?: 'fish' | 'fractal_plant';
     };
+    birth_effect_timer?: number;  // Frames remaining for birth visual effect
 
     // Food-specific
     food_type?: string;

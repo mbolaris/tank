@@ -223,6 +223,9 @@ class Fish(Agent):
         self.poker_effect_timer: int = 0
         self.poker_cooldown: int = 0  # Cooldown between poker games
 
+        # Visual effects for births
+        self.birth_effect_timer: int = 0  # Frames remaining for birth visual effect (hearts + particles)
+
     def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
         """Set a visual effect for poker status.
 
@@ -678,8 +681,11 @@ class Fish(Agent):
             screen_width=self.screen_width,
             screen_height=self.screen_height,
             initial_energy=energy_to_transfer,  # Baby gets only transferred energy
-            parent_id=self.fish_id,  # Track lineage for phylogenetic tree
+            parent_id=self.fish_id,  # Track lineage for phylogenet ic tree
         )
+
+        # Set visual birth effect timer (60 frames = 2 seconds at 30fps)
+        self.birth_effect_timer = 60
 
         return baby
 
@@ -767,6 +773,10 @@ class Fish(Agent):
             self.poker_effect_timer -= 1
             if self.poker_effect_timer <= 0:
                 self.poker_effect_state = None
+
+        # Update birth visual effects
+        if self.birth_effect_timer > 0:
+            self.birth_effect_timer -= 1
 
         # Update poker cooldown
         if self.poker_cooldown > 0:
