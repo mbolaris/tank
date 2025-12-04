@@ -205,8 +205,12 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
-        fish.is_low_energy()
+        is_low = fish.is_low_energy()
         energy_ratio = fish.get_energy_ratio()
+
+        # Get hunting traits
+        pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+        hunting_stamina = getattr(fish.genome, "hunting_stamina", 0.5)
 
         # Check for predators - even urgent fish should avoid immediate danger
         nearest_predator = self._find_nearest(fish, Crab)
@@ -231,9 +235,14 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
                         perp_x, perp_y = -to_food.y, to_food.x
                         return perp_x * 0.8, perp_y * 0.8
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                
+                # Hunting traits boost speed
+                trait_boost = pursuit_aggression * 0.4 + hunting_stamina * 0.2
+                speed = self.parameters["urgent_speed"] * (1.0 + trait_boost)
+                
                 return (
-                    direction.x * self.parameters["urgent_speed"],
-                    direction.y * self.parameters["urgent_speed"],
+                    direction.x * speed,
+                    direction.y * speed,
                 )
 
         # Flee if predator too close
@@ -249,6 +258,10 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
             else:
                 # Scale speed based on energy - conserve when high energy
                 speed = self.parameters["calm_speed"] + (1.0 - energy_ratio) * 0.3
+            
+            # Apply hunting stamina bonus - maintain higher speed longer
+            if hunting_stamina > 0.6:
+                speed *= (1.0 + (hunting_stamina - 0.6) * 0.5)
 
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * speed, direction.y * speed
@@ -306,6 +319,11 @@ class OpportunisticFeeder(BehaviorAlgorithm):
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 # IMPROVEMENT: Speed up when close and when hungry
                 speed = self.parameters["speed"]
+                
+                # Hunting traits
+                pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+                speed *= (1.0 + pursuit_aggression * 0.3)
+                
                 if distance < FOOD_SPEED_BOOST_DISTANCE:
                     speed *= 1.3
                 if is_critical:
@@ -428,10 +446,30 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
 
         if best_food and best_score > min_score_threshold:
             distance_to_food = (best_food.pos - fish.pos).length()
-            direction = self._safe_normalize(best_food.pos - fish.pos)
+            
+            # Use prediction for moving food
+            prediction_skill = getattr(fish.genome, "prediction_skill", 0.5)
+            target_pos = best_food.pos
+            
+            if hasattr(best_food, "vel") and best_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
+                intercept_point, _ = predict_intercept_point(
+                    fish.pos, fish.speed, best_food.pos, best_food.vel
+                )
+                if intercept_point and prediction_skill > 0.3:
+                     target_pos = Vector2(
+                        best_food.pos.x * (1 - prediction_skill) + intercept_point.x * prediction_skill,
+                        best_food.pos.y * (1 - prediction_skill) + intercept_point.y * prediction_skill,
+                    )
+            
+            direction = self._safe_normalize(target_pos - fish.pos)
             # IMPROVEMENT: Speed based on urgency and distance
             base_speed = 1.1 if is_critical else 0.9
             speed = base_speed + min(50 / max(distance_to_food, 1), 0.5)
+            
+            # Hunting traits boost
+            pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+            speed *= (1.0 + pursuit_aggression * 0.2)
+            
             return direction.x * speed, direction.y * speed
 
         # IMPROVEMENT: If no good food found but have memories and critically low, go to memory
@@ -467,10 +505,24 @@ class AmbushFeeder(BehaviorAlgorithm):
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
             if distance < self.parameters["strike_distance"]:
-                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                # Prediction skill helps aim the strike
+                prediction_skill = getattr(fish.genome, "prediction_skill", 0.5)
+                target_pos = nearest_food.pos
+                
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
+                     # Simple lead based on skill
+                     lead_factor = prediction_skill * 15
+                     target_pos = nearest_food.pos + nearest_food.vel * lead_factor
+
+                direction = self._safe_normalize(target_pos - fish.pos)
+                
+                # Aggression boosts strike speed
+                pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+                strike_speed = self.parameters["strike_speed"] * (1.0 + pursuit_aggression * 0.4)
+                
                 return (
-                    direction.x * self.parameters["strike_speed"],
-                    direction.y * self.parameters["strike_speed"],
+                    direction.x * strike_speed,
+                    direction.y * strike_speed,
                 )
         return 0, 0
 
@@ -515,6 +567,11 @@ class PatrolFeeder(BehaviorAlgorithm):
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             # IMPROVEMENT: Faster when desperate
             speed = self.parameters["food_priority"] * (1.3 if is_desperate else 1.0)
+            
+            # Hunting traits
+            pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+            speed *= (1.0 + pursuit_aggression * 0.25)
+            
             return direction.x * speed, direction.y * speed
 
         # Otherwise patrol - FASTER rotation
@@ -574,8 +631,20 @@ class SurfaceSkimmer(BehaviorAlgorithm):
             # IMPROVEMENT: Dive for food if desperate or food is reasonably close
             if is_desperate or food_dist < self.parameters["dive_for_food_threshold"]:
                 # Go directly for food, abandoning surface position
-                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                
+                # Use prediction for diving
+                prediction_skill = getattr(fish.genome, "prediction_skill", 0.5)
+                target_pos = nearest_food.pos
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
+                     target_pos = nearest_food.pos + nearest_food.vel * (prediction_skill * 10)
+
+                direction = self._safe_normalize(target_pos - fish.pos)
                 speed = 1.2 if is_desperate else 1.0
+                
+                # Aggression boosts dive speed
+                pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+                speed *= (1.0 + pursuit_aggression * 0.3)
+                
                 return direction.x * speed, direction.y * speed
             else:
                 # Move horizontally toward food while maintaining depth
@@ -620,7 +689,17 @@ class BottomFeeder(BehaviorAlgorithm):
         nearest_food = self._find_nearest_food(fish)
         vx = 0
         if nearest_food:
-            vx = (nearest_food.pos.x - fish.pos.x) / 100
+            # Prediction helps catch sinking food
+            prediction_skill = getattr(fish.genome, "prediction_skill", 0.5)
+            target_x = nearest_food.pos.x
+            if hasattr(nearest_food, "vel"):
+                 target_x += nearest_food.vel.x * (prediction_skill * 20)
+            
+            vx = (target_x - fish.pos.x) / 100
+            
+            # Aggression boosts tracking speed
+            pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+            vx *= (1.0 + pursuit_aggression * 0.5)
         else:
             vx = (
                 self.parameters["search_speed"]
@@ -656,7 +735,12 @@ class ZigZagForager(BehaviorAlgorithm):
         nearest_food = self._find_nearest_food(fish)
         if nearest_food and (nearest_food.pos - fish.pos).length() < FOOD_PURSUIT_RANGE_CLOSE:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
-            return direction.x, direction.y
+            
+            # Aggression boosts chase speed
+            pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+            speed_boost = 1.0 + pursuit_aggression * 0.3
+            
+            return direction.x * speed_boost, direction.y * speed_boost
 
         # Zigzag movement
         self.zigzag_phase += self.parameters["zigzag_frequency"]
@@ -727,13 +811,24 @@ class CircularHunter(BehaviorAlgorithm):
         if is_desperate or is_low_energy:
             direction = self._safe_normalize(food_future_pos - fish.pos)
             speed = 1.3  # Fast, direct approach when hungry
+            
+            # Hunting traits
+            pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+            speed *= (1.0 + pursuit_aggression * 0.3)
+            
             return direction.x * speed, direction.y * speed
 
         # IMPROVEMENT: Larger strike distance to actually catch food
         if distance < self.parameters["strike_distance"]:
             direction = self._safe_normalize(food_future_pos - fish.pos)
             # Fast strike
-            return direction.x * 1.5, direction.y * 1.5
+            strike_speed = 1.5
+            
+            # Aggression boosts strike speed
+            pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+            strike_speed *= (1.0 + pursuit_aggression * 0.4)
+            
+            return direction.x * strike_speed, direction.y * strike_speed
 
         # Only circle when well-fed (this is the "hunting" behavior)
         # IMPROVEMENT: Much faster circling to not waste time
