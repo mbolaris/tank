@@ -149,20 +149,28 @@ class TestEdgeCasesAndBoundaries:
 
     def test_genome_with_extreme_traits(self):
         """Test genome creation with extreme trait values."""
+        # Note: speed_modifier, vision_range, metabolism_rate are now computed properties
+        # derived from template_id, fin_size, tail_size, body_aspect, and eye_size
         genome = Genome(
-            speed_modifier=1.5,  # Max
             size_modifier=0.7,   # Min (valid range is 0.7-1.3)
-            vision_range=1.3,    # Max
-            metabolism_rate=0.7, # Min
             aggression=1.0,      # Max
             social_tendency=0.0, # Min
+            # Set visual traits that affect computed properties
+            template_id=1,       # Streamlined (1.2x speed)
+            fin_size=1.4,        # Max fins
+            tail_size=1.4,       # Max tail
+            body_aspect=0.8,     # Optimal for speed
+            eye_size=1.3,        # Max eyes (affects vision_range)
         )
 
         # Should be valid
-        assert genome.speed_modifier == 1.5
         assert genome.size_modifier == 0.7
         assert genome.aggression == 1.0
         assert genome.social_tendency == 0.0
+        # speed_modifier is computed from visual traits
+        assert genome.speed_modifier > 1.0  # Should be high with these settings
+        # vision_range equals eye_size
+        assert genome.vision_range == 1.3
 
     def test_blend_discrete_distribution(self):
         """Test discrete blending follows probability distribution."""
@@ -216,9 +224,9 @@ class TestMultiGenerationEvolution:
 
     def test_weighted_evolution_favors_winner(self):
         """Test that weighted crossover favors winner's traits."""
-        # Create genomes with distinct traits
-        winner = Genome(speed_modifier=1.5, aggression=1.0)
-        loser = Genome(speed_modifier=0.5, aggression=0.0)
+        # Create genomes with distinct traits (using actual dataclass fields, not computed properties)
+        winner = Genome(aggression=1.0, fin_size=1.4, tail_size=1.4)  # High aggression, large fins
+        loser = Genome(aggression=0.0, fin_size=0.6, tail_size=0.6)   # Low aggression, small fins
 
         # Generate many offspring with parent1_weight (not winner_weight)
         offspring = []
@@ -231,17 +239,17 @@ class TestMultiGenerationEvolution:
             offspring.append(child)
 
         # Offspring should be biased toward winner (parent1)
-        avg_speed = sum(o.speed_modifier for o in offspring) / len(offspring)
+        avg_fin_size = sum(o.fin_size for o in offspring) / len(offspring)
         avg_aggression = sum(o.aggression for o in offspring) / len(offspring)
 
-        # Should be closer to winner (1.5, 1.0) than loser (0.5, 0.0)
-        assert avg_speed > 1.0, f"Speed {avg_speed:.3f} should favor winner's 1.5"
+        # Should be closer to winner (1.4, 1.0) than loser (0.6, 0.0)
+        assert avg_fin_size > 1.0, f"Fin size {avg_fin_size:.3f} should favor winner's 1.4"
         assert avg_aggression > 0.5, f"Aggression {avg_aggression:.3f} should favor winner's 1.0"
 
     def test_population_stress_increases_variation(self):
         """Test that population stress increases genetic variation."""
-        parent1 = Genome(speed_modifier=1.0)
-        parent2 = Genome(speed_modifier=1.0)
+        parent1 = Genome(fin_size=1.0, tail_size=1.0)
+        parent2 = Genome(fin_size=1.0, tail_size=1.0)
 
         # Low stress offspring
         low_stress_offspring = [
@@ -255,9 +263,9 @@ class TestMultiGenerationEvolution:
             for _ in range(100)
         ]
 
-        # Calculate variance
-        low_variance = sum((o.speed_modifier - 1.0) ** 2 for o in low_stress_offspring) / 100
-        high_variance = sum((o.speed_modifier - 1.0) ** 2 for o in high_stress_offspring) / 100
+        # Calculate variance using fin_size (directly inherited trait)
+        low_variance = sum((o.fin_size - 1.0) ** 2 for o in low_stress_offspring) / 100
+        high_variance = sum((o.fin_size - 1.0) ** 2 for o in high_stress_offspring) / 100
 
         assert high_variance > low_variance, \
             f"High stress variance {high_variance:.4f} should exceed low stress {low_variance:.4f}"
@@ -492,20 +500,21 @@ class TestStatisticalProperties:
 
     def test_trait_correlation_in_offspring(self):
         """Test that offspring traits correlate with parents."""
-        parent1 = Genome(speed_modifier=1.5, size_modifier=1.5)
-        parent2 = Genome(speed_modifier=0.5, size_modifier=0.5)
+        # Use actual dataclass fields (fin_size, tail_size) instead of computed speed_modifier
+        parent1 = Genome(fin_size=1.4, tail_size=1.4, size_modifier=1.3)
+        parent2 = Genome(fin_size=0.6, tail_size=0.6, size_modifier=0.7)
 
         offspring = [
             Genome.from_parents(parent1, parent2, population_stress=0.0)
             for _ in range(200)
         ]
 
-        # Offspring speeds and sizes should correlate with parents
-        avg_speed = sum(o.speed_modifier for o in offspring) / len(offspring)
+        # Offspring fin_size and sizes should correlate with parents
+        avg_fin_size = sum(o.fin_size for o in offspring) / len(offspring)
         avg_size = sum(o.size_modifier for o in offspring) / len(offspring)
 
         # Should be between parents (roughly average)
-        assert 0.8 < avg_speed < 1.2, f"Average speed {avg_speed:.3f} should be near 1.0"
+        assert 0.8 < avg_fin_size < 1.2, f"Average fin_size {avg_fin_size:.3f} should be near 1.0"
         assert 0.8 < avg_size < 1.2, f"Average size {avg_size:.3f} should be near 1.0"
 
 
@@ -514,24 +523,28 @@ class TestComplexIntegration:
 
     def test_mate_compatibility_calculation(self):
         """Test mate compatibility scoring (lower score = more compatible)."""
+        # Note: speed_modifier is a computed property, so we set underlying traits instead
         fish1 = Genome(
-            speed_modifier=1.0,
             size_modifier=1.0,
             color_hue=0.5,
+            fin_size=1.0,
+            tail_size=1.0,
         )
 
         # Similar fish - better compatibility (lower score)
         fish2 = Genome(
-            speed_modifier=1.05,
             size_modifier=1.0,
             color_hue=0.51,
+            fin_size=1.0,
+            tail_size=1.05,
         )
 
         # Very different fish - worse compatibility (higher score)
         fish3 = Genome(
-            speed_modifier=0.5,
-            size_modifier=1.5,
+            size_modifier=1.3,  # Changed from 1.5 to valid range
             color_hue=0.0,
+            fin_size=0.6,
+            tail_size=0.6,
         )
 
         compatibility_similar = fish1.calculate_mate_compatibility(fish2)
@@ -541,21 +554,8 @@ class TestComplexIntegration:
         assert compatibility_similar < compatibility_different, \
             f"Similar fish compatibility {compatibility_similar:.3f} should be less than different fish {compatibility_different:.3f}"
 
-    def test_fitness_tracking_updates(self):
-        """Test fitness score updates across lifetime."""
-        genome = Genome.random()
-
-        # Simulate lifetime events (correct param names: food_eaten, survived_frames, reproductions, energy_ratio)
-        genome.update_fitness(food_eaten=10, survived_frames=100, reproductions=1, energy_ratio=0.8)
-
-        initial_fitness = genome.fitness_score
-        assert initial_fitness > 0, "Fitness should increase from achievements"
-
-        # More achievements
-        genome.update_fitness(food_eaten=20, survived_frames=200, reproductions=2, energy_ratio=0.9)
-
-        assert genome.fitness_score > initial_fitness, \
-            "Fitness should increase with more achievements"
+    # Note: test_fitness_tracking_updates removed - fitness_score tracking was deprecated
+    # Fitness is now implicit through survival and reproduction success
 
     def test_learned_behaviors_inheritance(self):
         """Test learned behaviors are inherited culturally."""
