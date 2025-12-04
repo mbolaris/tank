@@ -129,7 +129,7 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, on
                     onClick={onToggleEffects}
                     variant={showEffects ? 'primary' : 'secondary'}
                 >
-                    {showEffects ? 'Hide Effects' : '✨ Show Effects'}
+                    {showEffects ? 'Hide Overlay' : '📊 Show Overlay'}
                 </Button>
             )}
         </div>
