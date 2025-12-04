@@ -9,17 +9,13 @@ Uses core.evolution module for crossover, mutation, and inheritance operations.
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Generic, TypeVar, Any, Union
+from typing import TYPE_CHECKING, Dict, Generic, Optional, Tuple, TypeVar
 
 from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
 from core.evolution.inheritance import (
     inherit_algorithm,
-    inherit_learned_behaviors,
-)
-from core.evolution.inheritance import (
     inherit_discrete_trait as _inherit_discrete_trait,
-)
-from core.evolution.inheritance import (
+    inherit_learned_behaviors,
     inherit_trait as _inherit_trait,
 )
 from core.evolution.mutation import calculate_adaptive_mutation_rate
@@ -145,7 +141,15 @@ class Genome:
     learned_behaviors: Dict[str, float] = field(default_factory=dict)
     epigenetic_modifiers: Dict[str, float] = field(default_factory=dict)
 
-    # Backward compatibility properties
+    # =========================================================================
+    # Backward Compatibility Properties
+    # =========================================================================
+    # These properties provide direct access to trait values (genome.size_modifier)
+    # instead of requiring genome.physical.size_modifier.value. This maintains
+    # compatibility with code written before the GeneticTrait refactor.
+    # =========================================================================
+
+    # --- Physical Traits ---
     @property
     def size_modifier(self) -> float: return self.physical.size_modifier.value
     @size_modifier.setter
@@ -195,7 +199,8 @@ class Genome:
     def pattern_type(self) -> int: return self.physical.pattern_type.value
     @pattern_type.setter
     def pattern_type(self, v: int): self.physical.pattern_type.value = v
-    
+
+    # --- Behavioral Traits ---
     @property
     def aggression(self) -> float: return self.behavioral.aggression.value
     @aggression.setter
@@ -241,9 +246,20 @@ class Genome:
     @mate_preferences.setter
     def mate_preferences(self, v: Dict[str, float]): self.behavioral.mate_preferences.value = v
 
+    # =========================================================================
+    # Derived Properties (computed from base traits)
+    # =========================================================================
+
     @property
     def speed_modifier(self) -> float:
-        """Calculate speed modifier based on physical traits."""
+        """Calculate speed modifier based on physical traits.
+
+        Speed = template_bonus * propulsion * hydrodynamics where:
+        - template_bonus: Body shape efficiency (template 1=fast, 2=slow)
+        - propulsion: fin_size*0.4 + tail_size*0.6 (larger fins/tail = faster)
+        - hydrodynamics: Penalty for body_aspect deviation from 0.8 (streamlined)
+        """
+        # Template speed bonuses: 0=standard, 1=fast, 2=slow, 3=standard, 4=sluggish, 5=swift
         template_speed_bonus = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}.get(self.template_id, 1.0)
         propulsion = (self.fin_size * 0.4 + self.tail_size * 0.6)
         hydrodynamics = 1.0 - abs(self.body_aspect - 0.8) * 0.5
@@ -344,7 +360,8 @@ class Genome:
             fertility=inherit_trait_val(parent1.physical.fertility, parent2.physical.fertility, 0.6, 1.4),
             color_hue=inherit_trait_val(parent1.physical.color_hue, parent2.physical.color_hue, 0.0, 1.0),
             template_id=GeneticTrait(_inherit_discrete_trait(
-                parent1.template_id, parent2.template_id, 0, 5, weight1=parent1_weight, mutation_rate=adaptive_rate
+                parent1.template_id, parent2.template_id, 0, FISH_TEMPLATE_COUNT - 1,
+                weight1=parent1_weight, mutation_rate=adaptive_rate
             )),
             fin_size=inherit_trait_val(parent1.physical.fin_size, parent2.physical.fin_size, 0.6, 1.4),
             tail_size=inherit_trait_val(parent1.physical.tail_size, parent2.physical.tail_size, 0.6, 1.4),
@@ -352,7 +369,8 @@ class Genome:
             eye_size=inherit_trait_val(parent1.physical.eye_size, parent2.physical.eye_size, 0.7, 1.3),
             pattern_intensity=inherit_trait_val(parent1.physical.pattern_intensity, parent2.physical.pattern_intensity, 0.0, 1.0),
             pattern_type=GeneticTrait(_inherit_discrete_trait(
-                parent1.pattern_type, parent2.pattern_type, 0, 3, weight1=parent1_weight, mutation_rate=adaptive_rate
+                parent1.pattern_type, parent2.pattern_type, 0, FISH_PATTERN_COUNT - 1,
+                weight1=parent1_weight, mutation_rate=adaptive_rate
             )),
         )
 
@@ -435,14 +453,26 @@ class Genome:
         population_stress: float = 0.0,
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
     ) -> "Genome":
-        """Create offspring genome by mixing parent genes with mutations."""
-        # For simplicity in this refactor, we'll delegate to from_parents_weighted with 0.5 weight
-        # unless specific crossover logic is needed.
-        # The original code had specific logic for DOMINANT_RECESSIVE.
-        # We can approximate that by choosing a weight close to 0 or 1 per trait, but that's complex to map.
-        # For now, let's use 0.5 weight which maps to AVERAGING/RECOMBINATION.
-        
-        # TODO: Fully implement DOMINANT_RECESSIVE logic if needed.
+        """Create offspring genome by mixing parent genes with mutations.
+
+        Args:
+            parent1: First parent genome
+            parent2: Second parent genome
+            mutation_rate: Base probability of trait mutation (0.0-1.0)
+            mutation_strength: Magnitude of mutations when they occur
+            population_stress: Environmental pressure (increases mutation)
+            crossover_mode: Currently unused - all modes use 50/50 weighted blend.
+                Kept for API compatibility with crossover.py module.
+
+        Returns:
+            New offspring Genome with inherited and potentially mutated traits.
+
+        Note:
+            For weighted inheritance (e.g., poker winner gets more DNA contribution),
+            use from_parents_weighted() directly instead.
+        """
+        # All crossover modes currently delegate to weighted blend with 50/50 split.
+        # The crossover_mode parameter is retained for API compatibility.
         return cls.from_parents_weighted(
             parent1, parent2, 0.5, mutation_rate, mutation_strength, population_stress
         )
