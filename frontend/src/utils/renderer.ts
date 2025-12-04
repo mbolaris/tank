@@ -445,6 +445,11 @@ export class Renderer {
                 y + scaledHeight / 2
             );
         }
+
+        // Birth effect (hearts + particle burst)
+        if (fish.birth_effect_timer && fish.birth_effect_timer > 0) {
+            this.renderBirthEffect(x + scaledWidth / 2, y, fish.birth_effect_timer);
+        }
     }
 
     private renderPokerStatus(
@@ -586,6 +591,89 @@ export class Renderer {
         ctx.restore();
     }
 
+    private renderBirthEffect(x: number, y: number, timerRemaining: number) {
+        const { ctx } = this;
+        const maxDuration = 60; // Max frames (2 seconds at 30fps)
+        const progress = 1 - (timerRemaining / maxDuration); // 0 to 1
+
+        ctx.save();
+
+        // === HEARTS === //
+        // Float 3-5 hearts upward with fade out
+        const heartCount = 4;
+        for (let i = 0; i < heartCount; i++) {
+            const heartProgress = Math.min(1, (progress * 1.5) - (i * 0.1)); // Stagger appearance
+            if (heartProgress <= 0) continue;
+
+            const heartX = x + (Math.sin((i + progress) * 2) * 15); // Wobble side to side
+            const heartY = y - (heartProgress * 40) - (i * 8); // Float upward
+            const heartSize = 8 + (i * 2);
+            const alpha = (1 - heartProgress) * 0.9; // Fade out as they rise
+
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#ff69b4'; // Hot pink
+
+            // Draw heart shape
+            ctx.beginPath();
+            const topCurveHeight = heartSize * 0.3;
+            ctx.moveTo(heartX, heartY + topCurveHeight);
+            // Left curve
+            ctx.bezierCurveTo(
+                heartX, heartY,
+                heartX - heartSize / 2, heartY,
+                heartX - heartSize / 2, heartY + topCurveHeight
+            );
+            ctx.bezierCurveTo(
+                heartX - heartSize / 2, heartY + (heartSize + topCurveHeight) / 2,
+                heartX, heartY + (heartSize + topCurveHeight) / 1.5,
+                heartX, heartY + heartSize
+            );
+            // Right curve
+            ctx.bezierCurveTo(
+                heartX, heartY + (heartSize + topCurveHeight) / 1.5,
+                heartX + heartSize / 2, heartY + (heartSize + topCurveHeight) / 2,
+                heartX + heartSize / 2, heartY + topCurveHeight
+            );
+            ctx.bezierCurveTo(
+                heartX + heartSize / 2, heartY,
+                heartX, heartY,
+                heartX, heartY + topCurveHeight
+            );
+            ctx.fill();
+        }
+
+        // === PARTICLE BURST === //
+        // Explosion of colorful particles at the start
+        if (progress < 0.6) { // Show particles only for first 60% of animation
+            const particleCount = 12;
+            const burstProgress = Math.min(1, progress / 0.6); // 0 to 1 over first 60%
+
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (Math.PI * 2 * i) / particleCount;
+                const distance = burstProgress * 35; // Expand outward
+                const particleX = x + Math.cos(angle) * distance;
+                const particleY = y + Math.sin(angle) * distance;
+                const size = 4 * (1 - burstProgress); // Shrink as they expand
+                const alpha = (1 - burstProgress) * 0.8; // Fade out
+
+                // Use different colors for each particle
+                const colors = ['#ff69b4', '#ffd700', '#87ceeb', '#98fb98', '#ff6b6b'];
+                const particleColor = colors[i % colors.length];
+
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = particleColor;
+                ctx.shadowColor = particleColor;
+                ctx.shadowBlur = 5;
+                ctx.beginPath();
+                ctx.arc(particleX, particleY, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.restore();
+    }
+
     private renderSVGFish(fish: EntityData, allEntities?: EntityData[]) {
         const { ctx } = this;
         const { x, y, width, height, vel_x = 1, genome_data } = fish;
@@ -688,6 +776,11 @@ export class Renderer {
                 x + scaledSize / 2,
                 y + scaledSize / 2
             );
+        }
+
+        // Birth effect (hearts + particle burst)
+        if (fish.birth_effect_timer && fish.birth_effect_timer > 0) {
+            this.renderBirthEffect(x + scaledSize / 2, y, fish.birth_effect_timer);
         }
     }
 
