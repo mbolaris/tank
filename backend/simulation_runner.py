@@ -906,6 +906,7 @@ class SimulationRunner:
                 return EntitySnapshot(
                     type="crab",
                     energy=entity.energy if hasattr(entity, "energy") else 100,
+                    can_hunt=entity.can_hunt() if hasattr(entity, "can_hunt") else True,
                     **base_data,
                 )
 
