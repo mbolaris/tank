@@ -1100,7 +1100,8 @@ export class Renderer {
     }
 
     private renderCrab(crab: EntityData, elapsedTime: number) {
-        const { x, y, width, height, vel_x = 1 } = crab;
+        const { x, y, width, height, vel_x = 1, can_hunt = true } = crab;
+        const { ctx } = this;
 
         // Get animation frames for crab
         const imageFiles = ['crab1.png', 'crab2.png'];
@@ -1115,7 +1116,18 @@ export class Renderer {
 
         // Flip based on velocity
         const flipHorizontal = vel_x < 0;
+
+        // If crab is on cooldown (can't hunt), dim it slightly
+        if (!can_hunt) {
+            ctx.save();
+            ctx.globalAlpha = 0.6;
+        }
+
         this.drawImage(image, x, y, width, height, flipHorizontal);
+
+        if (!can_hunt) {
+            ctx.restore();
+        }
     }
 
     private renderCastle(castle: EntityData) {

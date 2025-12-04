@@ -103,6 +103,8 @@ export interface EntityData {
     floral_hue?: number;
     floral_saturation?: number;
 
+    // Crab-specific
+    can_hunt?: boolean;  // True if crab can kill fish (not on cooldown)
 }
 
 export interface PokerEventData {

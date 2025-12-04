@@ -63,6 +63,8 @@ class EntitySnapshot:
     poker_effect_state: Optional[Dict[str, Any]] = None
     # Birth effects
     birth_effect_timer: Optional[int] = None
+    # Crab hunt state
+    can_hunt: Optional[bool] = None
 
     def to_full_dict(self) -> Dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -100,6 +102,7 @@ class EntitySnapshot:
                 "floral_saturation": self.floral_saturation,
                 "poker_effect_state": self.poker_effect_state,
                 "birth_effect_timer": self.birth_effect_timer,
+                "can_hunt": self.can_hunt,
             }
         )
 
