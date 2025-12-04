@@ -191,12 +191,6 @@ class FractalPlant(Agent):
         # Update size based on new energy
         self._update_size()
 
-        # Update fitness
-        self.genome.update_fitness(
-            energy_gained=self.genome.base_energy_rate,
-            survived_frames=1,
-        )
-
         # Check if can produce nectar
         nectar = self._try_produce_nectar(time_of_day)
 
@@ -269,7 +263,6 @@ class FractalPlant(Agent):
         # Produce nectar
         self.nectar_cooldown = FRACTAL_PLANT_NECTAR_COOLDOWN
         self.nectar_produced += 1
-        self.genome.update_fitness(nectar_produced=1)
 
         # Nectar spawns in the upper portion of the plant visual
         # The visual plant only fills about 50-70% of the bounding box height

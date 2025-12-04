@@ -157,7 +157,8 @@ class EnhancedStatisticsTracker:
 
         # Calculate aggregates
         population = len(fish_list)
-        avg_fitness = sum(f.genome.fitness_score for f in fish_list) / population
+        # Use average energy as a proxy for success (replaces fitness_score)
+        avg_fitness = sum(f.energy / f.max_energy for f in fish_list) / population
         avg_speed = sum(f.genome.speed_modifier for f in fish_list) / population
         avg_size = sum(f.genome.size_modifier for f in fish_list) / population
         avg_metabolism = sum(f.genome.metabolism_rate for f in fish_list) / population
@@ -215,28 +216,16 @@ class EnhancedStatisticsTracker:
 
     def record_trait_fitness_sample(self, genome: "Genome") -> None:
         """Record a trait-fitness data point for correlation analysis.
+        
+        Note: fitness_score has been removed. This method is now deprecated
+        and does nothing. Kept for backward compatibility.
 
         Args:
-            genome: Genome to sample from
+            genome: Genome to sample from (unused)
         """
-        fitness = genome.fitness_score
-
-        # Record various traits
-        self.trait_fitness_data["speed"].append((genome.speed_modifier, fitness))
-        self.trait_fitness_data["size"].append((genome.size_modifier, fitness))
-        self.trait_fitness_data["metabolism"].append((genome.metabolism_rate, fitness))
-        self.trait_fitness_data["vision"].append((genome.vision_range, fitness))
-        self.trait_fitness_data["aggression"].append((genome.aggression, fitness))
-        self.trait_fitness_data["social_tendency"].append((genome.social_tendency, fitness))
-
-        # Limit sample size to prevent memory bloat
-        max_samples = 500
-        for trait_name in self.trait_fitness_data:
-            if len(self.trait_fitness_data[trait_name]) > max_samples:
-                # Keep most recent samples
-                self.trait_fitness_data[trait_name] = self.trait_fitness_data[trait_name][
-                    -max_samples:
-                ]
+        # Method deprecated - fitness_score removed
+        # Correlation analysis now done differently
+        pass
 
     def calculate_trait_correlations(self) -> List[TraitCorrelation]:
         """Calculate correlations between traits and fitness.

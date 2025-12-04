@@ -90,10 +90,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Dic
         "generation": fish.generation,
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
         "genome_data": {
-            "speed_modifier": fish.genome.speed_modifier,
             "size_modifier": fish.genome.size_modifier,
-            "vision_range": fish.genome.vision_range,
-            "metabolism_rate": fish.genome.metabolism_rate,
             "fertility": fish.genome.fertility,
             "color_hue": fish.genome.color_hue,
             "aggression": fish.genome.aggression,
@@ -184,12 +181,10 @@ def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> D
             "floral_spin": plant.genome.floral_spin,
             "floral_hue": plant.genome.floral_hue,
             "floral_saturation": plant.genome.floral_saturation,
-            "fitness_score": plant.genome.fitness_score,
         },
         "growth_stage": mutable_state["growth_stage"],
         "nectar_ready": mutable_state["nectar_ready"],
     }
-
 
 def deserialize_entity(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize entity data and create a new entity in the target world.
@@ -224,10 +219,7 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         genome_data = data["genome_data"]
 
         genome = Genome(
-            speed_modifier=genome_data.get("speed_modifier", 1.0),
             size_modifier=genome_data.get("size_modifier", 1.0),
-            vision_range=genome_data.get("vision_range", 1.0),
-            metabolism_rate=genome_data.get("metabolism_rate", 1.0),
             fertility=genome_data.get("fertility", 1.0),
             color_hue=genome_data.get("color_hue", 0.5),
             aggression=genome_data.get("aggression", 0.5),
@@ -356,19 +348,6 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             growth_efficiency=genome_data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=genome_data.get("nectar_threshold_ratio", 0.75),
             fractal_type=genome_data.get("fractal_type", "lsystem"),
-            floral_type=genome_data.get("floral_type", "spiral"),
-            floral_petals=genome_data.get("floral_petals", 5),
-            floral_layers=genome_data.get("floral_layers", 3),
-            floral_spin=genome_data.get("floral_spin", 0.3),
-            floral_hue=genome_data.get("floral_hue", 0.12),
-            floral_saturation=genome_data.get("floral_saturation", 0.8),
-            fitness_score=genome_data.get("fitness_score", 0.0),
-        )
-
-        # Create plant with proper constructor
-        plant = FractalPlant(
-            environment=target_world.engine.environment,
-            genome=genome,
             root_spot=root_spot,
             initial_energy=data["energy"],
             screen_width=getattr(target_world.engine, 'screen_width', 800),

@@ -729,11 +729,8 @@ class Fish(Agent):
         self._lifecycle_component.increment_age()
         age = self._lifecycle_component.age  # Cache for use below
 
-        # Performance: Only update fitness every 10 frames (reduces overhead significantly)
+        # Performance: Update enhanced memory system less frequently (every 10 frames)
         if age % 10 == 0:
-            energy_ratio = self._energy_component.energy / self._energy_component.max_energy
-            self.genome.update_fitness(survived_frames=10, energy_ratio=energy_ratio)
-
             # Update enhanced memory system less frequently
             self.memory_system.update(age)
 
@@ -765,10 +762,6 @@ class Fish(Agent):
         # Reproduction
         newborn = self.update_reproduction()
 
-        # Track reproduction in fitness
-        if newborn is not None:
-            self.genome.update_fitness(reproductions=1)
-
         # Update poker visual effects
         if self.poker_effect_timer > 0:
             self.poker_effect_timer -= 1
@@ -797,9 +790,6 @@ class Fish(Agent):
         # Take a bite from the food
         energy_gained = food.take_bite(self.bite_size)
         self.gain_energy(energy_gained)
-
-        # Track food consumption in fitness
-        self.genome.update_fitness(food_eaten=1)
 
         # IMPROVEMENT: Remember this food location for future reference
         self.remember_food_location(food.pos)

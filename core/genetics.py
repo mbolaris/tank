@@ -29,6 +29,58 @@ if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 
+@dataclass
+class MetaGeneticTraits:
+    """Meta-genetic traits that control inheritance and mutation of base traits.
+    
+    These meta-traits are themselves heritable and mutable, creating a second
+    level of evolution that controls HOW traits evolve.
+    
+    For each base genetic trait, we store:
+    - HGT probability: Chance of inheriting trait directly from mate (vs averaging)
+    - Mutation rate multiplier: Per-trait mutation rate modifier
+    """
+    
+    # Performance traits
+    size_modifier_hgt_prob: float = 0.1
+    size_modifier_mutation_mult: float = 1.0
+    fertility_hgt_prob: float = 0.1
+    fertility_mutation_mult: float = 1.0
+    
+    # Behavioral traits
+    aggression_hgt_prob: float = 0.1
+    aggression_mutation_mult: float = 1.0
+    social_tendency_hgt_prob: float = 0.1
+    social_tendency_mutation_mult: float = 1.0
+    
+    # Hunting traits
+    pursuit_aggression_hgt_prob: float = 0.1
+    pursuit_aggression_mutation_mult: float = 1.0
+    prediction_skill_hgt_prob: float = 0.1
+    prediction_skill_mutation_mult: float = 1.0
+    hunting_stamina_hgt_prob: float = 0.1
+    hunting_stamina_mutation_mult: float = 1.0
+    
+    # Visual traits
+    color_hue_hgt_prob: float = 0.1
+    color_hue_mutation_mult: float = 1.0
+    fin_size_hgt_prob: float = 0.1
+    fin_size_mutation_mult: float = 1.0
+    tail_size_hgt_prob: float = 0.1
+    tail_size_mutation_mult: float = 1.0
+    body_aspect_hgt_prob: float = 0.1
+    body_aspect_mutation_mult: float = 1.0
+    eye_size_hgt_prob: float = 0.1
+    eye_size_mutation_mult: float = 1.0
+    pattern_intensity_hgt_prob: float = 0.1
+    pattern_intensity_mutation_mult: float = 1.0
+    
+    # Discrete traits (template_id, pattern_type) don't use HGT - they use Mendelian inheritance
+    # But they can still have custom mutation rates
+    template_id_mutation_mult: float = 1.0
+    pattern_type_mutation_mult: float = 1.0
+
+
 class GeneticCrossoverMode(Enum):
     """Different modes for genetic crossover during reproduction."""
 
@@ -42,10 +94,7 @@ class Genome:
     """Represents the genetic makeup of a fish.
 
     Attributes:
-        speed_modifier: Multiplier for base speed (0.5-1.5)
         size_modifier: Multiplier for base size (0.7-1.3), also determines max energy capacity
-        vision_range: Multiplier for detection range (0.7-1.3)
-        metabolism_rate: Multiplier for energy consumption (0.7-1.3)
         fertility: Multiplier for reproduction rate (0.6-1.4)
         aggression: Territorial/competitive behavior (0.0-1.0)
         social_tendency: Preference for schooling (0.0-1.0)
@@ -59,19 +108,14 @@ class Genome:
         pattern_type: Pattern style: 0=stripes, 1=spots, 2=solid, 3=gradient
         behavior_algorithm: Primary behavior algorithm for general movement decisions
         poker_algorithm: Poker-specific behavior algorithm (mix-and-match evolution)
-        fitness_score: Accumulated fitness over lifetime (0.0+)
+        meta_traits: Meta-genetic traits controlling per-trait HGT and mutation
         learned_behaviors: Behavioral improvements from experience
         epigenetic_modifiers: Environmental effects on gene expression
         mate_preferences: Preferences for mate selection
     """
 
-    # Performance traits
-    speed_modifier: float = 1.0
+    # Performance traits (Now derived from visuals, except fertility)
     size_modifier: float = 1.0
-    vision_range: float = 1.0
-
-    # Metabolic traits
-    metabolism_rate: float = 1.0
     fertility: float = 1.0
 
     # Behavioral traits
@@ -106,8 +150,8 @@ class Genome:
     # This is separate from poker_algorithm which controls movement when seeking/avoiding poker
     poker_strategy_algorithm: Optional["PokerStrategyAlgorithm"] = None
 
-    # Fitness tracking (NEW: for selection pressure)
-    fitness_score: float = field(default=0.0)
+    # Meta-genetic traits (NEW: control per-trait HGT and mutation rates)
+    meta_traits: MetaGeneticTraits = field(default_factory=MetaGeneticTraits)
 
     # Learned behaviors (NEW: improve within lifetime)
     learned_behaviors: Dict[str, float] = field(default_factory=dict)
@@ -118,12 +162,76 @@ class Genome:
     # Mate preferences (NEW: sexual selection)
     mate_preferences: Dict[str, float] = field(
         default_factory=lambda: {
-            "prefer_high_fitness": 0.5,
             "prefer_similar_size": 0.5,
             "prefer_different_color": 0.5,
             "prefer_high_energy": 0.5,
         }
     )
+
+
+    @property
+    def speed_modifier(self) -> float:
+        """Calculate speed modifier based on physical traits.
+        
+        Derived from:
+        - template_id: Body shape aerodynamics
+        - fin_size: Propulsion power
+        - tail_size: Propulsion power
+        - body_aspect: Hydrodynamic efficiency
+        """
+        # Template stats (base speed factor)
+        # 0: Standard (1.0)
+        # 1: Streamlined/Torpedo (1.2) - Fast
+        # 2: Round/Discus (0.8) - Slow but maneuverable
+        # 3: Eel-like (1.0)
+        # 4: Boxy (0.9)
+        # 5: Flat (1.1)
+        template_speed_bonus = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}.get(self.template_id, 1.0)
+        
+        # Fins and Tail provide thrust
+        # Larger fins = more thrust
+        propulsion = (self.fin_size * 0.4 + self.tail_size * 0.6)
+        
+        # Body aspect: 1.0 is balanced. 
+        # Streamlined (0.7-0.9) is faster than Round (1.1-1.3)
+        # Optimal aspect for speed is around 0.8
+        hydrodynamics = 1.0 - abs(self.body_aspect - 0.8) * 0.5
+        
+        return template_speed_bonus * propulsion * hydrodynamics
+
+    @property
+    def vision_range(self) -> float:
+        """Calculate vision range based on eye size.
+        
+        Larger eyes = better vision.
+        """
+        return self.eye_size
+
+    @property
+    def metabolism_rate(self) -> float:
+        """Calculate metabolism rate based on physical traits.
+        
+        Costs:
+        - Size: Larger bodies require more energy (Cube law approximation)
+        - Speed: Muscle mass for speed requires maintenance
+        - Brain/Senses: Large eyes and sensory processing cost energy
+        """
+        # Base cost
+        cost = 1.0
+        
+        # Size cost (Fish.max_energy scales with size, so this is relative consumption)
+        # Larger fish burn more absolute energy, but we also want them to be less efficient per unit of mass?
+        # Or maybe just proportional. Let's make it slightly super-linear to punish excessive size without food.
+        cost += (self.size_modifier - 1.0) * 0.5
+        
+        # Speed cost (Muscle mass maintenance)
+        # Faster fish burn significantly more energy
+        cost += (self.speed_modifier - 1.0) * 0.8
+        
+        # Sensory cost (Brain power for vision)
+        cost += (self.eye_size - 1.0) * 0.3
+        
+        return max(0.5, cost)
 
     @classmethod
     def random(cls, use_algorithm: bool = True, rng: Optional[random.Random] = None) -> "Genome":
@@ -152,10 +260,8 @@ class Genome:
             poker_strategy_algorithm = get_random_poker_strategy(rng=rng)
 
         return cls(
-            speed_modifier=rng.uniform(0.7, 1.3),
+            # Removed independent speed_modifier, vision_range, metabolism_rate
             size_modifier=rng.uniform(0.7, 1.3),
-            vision_range=rng.uniform(0.5, 1.8),  # WIDENED range for better evolution (was 0.7-1.3)
-            metabolism_rate=rng.uniform(0.7, 1.3),
             fertility=rng.uniform(0.6, 1.4),
             aggression=rng.uniform(0.0, 1.0),
             social_tendency=rng.uniform(0.0, 1.0),
@@ -177,40 +283,10 @@ class Genome:
             poker_strategy_algorithm=poker_strategy_algorithm,
         )
 
-    def update_fitness(
-        self,
-        food_eaten: int = 0,
-        survived_frames: int = 0,
-        reproductions: int = 0,
-        energy_ratio: float = 0.0,
-    ):
-        """Update fitness score based on life events.
-
-        NOTE: This is used for mate preference calculations, not for selection pressure.
-        In ALife simulations, selection pressure emerges naturally from survival mechanics:
-        - Fish that eat more survive longer
-        - Fish with more energy can reproduce
-        - Live food (220 energy) rewards hunters who can catch it
-
-        The fitness_score is just a tracking metric for mate compatibility, not a
-        selection mechanism. Natural selection happens through survival and reproduction.
-
-        Args:
-            food_eaten: Number of food items consumed
-            survived_frames: Frames survived this update
-            reproductions: Number of successful reproductions
-            energy_ratio: Current energy / max energy ratio
-        """
-        # Simple tracking for mate selection preferences
-        self.fitness_score += (
-            food_eaten * 2.0  # Eating events
-            + survived_frames * 0.01  # Time alive
-            + reproductions * 50.0  # Reproduction events
-            + energy_ratio * 0.1  # Current energy state
-        )
-
     def calculate_mate_compatibility(self, other: "Genome") -> float:
         """Calculate compatibility score with potential mate (0.0-1.0).
+        
+        Used for standard reproduction (not poker-driven).
 
         Args:
             other: Potential mate's genome
@@ -220,29 +296,26 @@ class Genome:
         """
         compatibility = 0.0
 
-        # Fitness preference
-        if other.fitness_score > self.fitness_score:
-            compatibility += self.mate_preferences.get("prefer_high_fitness", 0.5) * 0.3
-
         # Size similarity preference
         size_diff = abs(self.size_modifier - other.size_modifier)
         size_score = 1.0 - min(size_diff / 0.6, 1.0)  # 0.6 is max diff
-        compatibility += self.mate_preferences.get("prefer_similar_size", 0.5) * size_score * 0.2
+        compatibility += self.mate_preferences.get("prefer_similar_size", 0.5) * size_score * 0.3
 
         # Color diversity preference
         color_diff = abs(self.color_hue - other.color_hue)
         color_score = min(color_diff / 0.5, 1.0)  # Prefer different colors
         compatibility += (
-            self.mate_preferences.get("prefer_different_color", 0.5) * color_score * 0.2
+            self.mate_preferences.get("prefer_different_color", 0.5) * color_score * 0.3
         )
 
         # General genetic diversity (trait variance)
+        # Use derived traits for comparison
         trait_variance = (
             abs(self.speed_modifier - other.speed_modifier)
             + abs(self.metabolism_rate - other.metabolism_rate)
             + abs(self.vision_range - other.vision_range)
         ) / 3.0
-        compatibility += min(trait_variance / 0.3, 1.0) * 0.3
+        compatibility += min(trait_variance / 0.3, 1.0) * 0.4
 
         return min(compatibility, 1.0)
 
@@ -344,13 +417,8 @@ class Genome:
             0, 3, weight1=parent1_weight, mutation_rate=adaptive_rate,
         )
 
-        # Linked traits: speed influences metabolism
-        speed = weighted_inherit(parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5)
-        base_metabolism = weighted_inherit(
-            parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3
-        )
-        metabolism_link_factor = (speed - 1.0) * 0.2
-        metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
+        # Removed independent inheritance of speed, metabolism, vision
+        # They are now derived from the visual traits below
 
         # Inherit hunting traits (NEW)
         pursuit_aggression = weighted_inherit(
@@ -385,10 +453,8 @@ class Genome:
 
         # Create offspring genome
         offspring = cls(
-            speed_modifier=speed,
+            # Derived traits removed from init  
             size_modifier=weighted_inherit(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
-            vision_range=weighted_inherit(parent1.vision_range, parent2.vision_range, 0.5, 1.8),  # WIDENED range
-            metabolism_rate=metabolism,
             fertility=weighted_inherit(parent1.fertility, parent2.fertility, 0.6, 1.4),
             aggression=weighted_inherit(parent1.aggression, parent2.aggression, 0.0, 1.0),
             social_tendency=weighted_inherit(
@@ -411,7 +477,6 @@ class Genome:
             behavior_algorithm=algorithm,
             poker_algorithm=poker_algorithm,
             poker_strategy_algorithm=poker_strategy_algorithm,
-            fitness_score=0.0,
             learned_behaviors={},
             epigenetic_modifiers=epigenetic,
             mate_preferences=mate_prefs,
@@ -455,9 +520,8 @@ class Genome:
         is_dominant = crossover_mode == GeneticCrossoverMode.DOMINANT_RECESSIVE
 
         # Determine dominant genes randomly (for DOMINANT_RECESSIVE mode)
-        speed_dominant = 0 if random.random() < 0.5 else 1
+        # Removed speed/metabolism dominance checks as they are now derived
         size_dominant = 0 if random.random() < 0.5 else 1
-        metabolism_dominant = 0 if random.random() < 0.5 else 1
 
         def inherit_trait_with_mode(
             val1: float,
@@ -521,15 +585,8 @@ class Genome:
             from core.poker.strategy.implementations import get_random_poker_strategy
             poker_strategy_algorithm = get_random_poker_strategy()
 
-        # Trait linkage: speed and metabolism are linked
-        speed = inherit_trait_with_mode(
-            parent1.speed_modifier, parent2.speed_modifier, 0.5, 1.5, speed_dominant
-        )
-        base_metabolism = inherit_trait_with_mode(
-            parent1.metabolism_rate, parent2.metabolism_rate, 0.7, 1.3, metabolism_dominant
-        )
-        metabolism_link_factor = (speed - 1.0) * 0.2
-        metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
+        # Removed independent inheritance of speed and metabolism
+        # They are now derived from the visual traits below
 
         # Inherit hunting traits (NEW)
         pursuit_aggression = inherit_trait_with_mode(
@@ -573,14 +630,10 @@ class Genome:
         )
 
         offspring = cls(
-            speed_modifier=speed,
+            # Derived traits removed from init
             size_modifier=inherit_trait_with_mode(
                 parent1.size_modifier, parent2.size_modifier, 0.7, 1.3, size_dominant
             ),
-            vision_range=inherit_trait_with_mode(
-                parent1.vision_range, parent2.vision_range, 0.5, 1.8  # WIDENED range
-            ),
-            metabolism_rate=metabolism,
             fertility=inherit_trait_with_mode(
                 parent1.fertility, parent2.fertility, 0.6, 1.4
             ),
@@ -617,7 +670,6 @@ class Genome:
             behavior_algorithm=algorithm,
             poker_algorithm=poker_algorithm,
             poker_strategy_algorithm=poker_strategy_algorithm,
-            fitness_score=0.0,
             learned_behaviors={},
             epigenetic_modifiers=epigenetic,
             mate_preferences=mate_prefs,

@@ -62,9 +62,6 @@ class PlantGenome:
     floral_hue: float = 0.12  # Base color hue (0-1), defaults to amber/gold
     floral_saturation: float = 0.8  # Color saturation (0-1)
 
-    # Fitness tracking
-    fitness_score: float = field(default=0.0)
-
     _production_rules: List[Tuple[str, str, float]] = field(default_factory=list)
 
     def __post_init__(self):
@@ -520,7 +517,6 @@ class PlantGenome:
             floral_spin=mutate_float(parent.floral_spin, 0.0, 1.0),
             floral_hue=mutate_float(parent.floral_hue, 0.0, 1.0),
             floral_saturation=mutate_float(parent.floral_saturation, 0.5, 1.0),
-            fitness_score=0.0,
         )
 
         # Copy parent's production rules and potentially mutate
@@ -556,20 +552,7 @@ class PlantGenome:
                 output = output.replace("FF", "F", 1)
         self._production_rules[idx] = (input_char, output, prob)
 
-    def update_fitness(
-        self,
-        energy_gained: float = 0.0,
-        survived_frames: int = 0,
-        nectar_produced: int = 0,
-        poker_won: int = 0,
-    ) -> None:
-        """Update fitness score based on performance metrics."""
-        self.fitness_score += (
-            energy_gained * 1.0
-            + survived_frames * 0.005
-            + nectar_produced * 30.0
-            + poker_won * 20.0
-        )
+    # Note: update_fitness() removed - fitness_score deprecated
 
     def get_color_rgb(self) -> Tuple[int, int, int]:
         hue = self.color_hue
@@ -615,7 +598,6 @@ class PlantGenome:
             "base_energy_rate": self.base_energy_rate,
             "growth_efficiency": self.growth_efficiency,
             "nectar_threshold_ratio": self.nectar_threshold_ratio,
-            "fitness_score": self.fitness_score,
             "fractal_type": self.fractal_type,
             # Floral traits
             "floral_type": self.floral_type,
@@ -652,7 +634,6 @@ class PlantGenome:
             base_energy_rate=data.get("base_energy_rate", 0.02),
             growth_efficiency=data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.75),
-            fitness_score=data.get("fitness_score", 0.0),
             fractal_type=data.get("fractal_type", "lsystem"),
             # Floral traits
             floral_type=data.get("floral_type", "spiral"),

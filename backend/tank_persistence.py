@@ -256,14 +256,11 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 from core.entities.predators import Crab
                 from core.genetics import Genome
 
-                # Reconstruct genome
+                # Reconstruct genome - old saves may have deprecated fields, just use size and color
                 genome_data = entity_data.get("genome", {})
                 genome = Genome(
-                    speed_modifier=genome_data.get("speed_modifier", 1.0),
                     size_modifier=genome_data.get("size_modifier", 1.0),
-                    metabolism_rate=genome_data.get("metabolism_rate", 1.0),
                     color_hue=genome_data.get("color_hue", 0.5),
-                    vision_range=genome_data.get("vision_range", 100.0),
                 )
 
                 crab = Crab(
