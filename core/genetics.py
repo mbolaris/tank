@@ -78,6 +78,11 @@ class Genome:
     aggression: float = 0.5
     social_tendency: float = 0.5
 
+    # Hunting traits (NEW: for evolving better live food catching ability)
+    pursuit_aggression: float = 0.5  # How aggressively fish chase moving food (0.0-1.0)
+    prediction_skill: float = 0.5  # Ability to predict where moving food will be (0.0-1.0)
+    hunting_stamina: float = 0.5  # How long fish can sustain high-speed pursuit (0.0-1.0)
+
     # Visual traits
     color_hue: float = 0.5
 
@@ -149,11 +154,15 @@ class Genome:
         return cls(
             speed_modifier=rng.uniform(0.7, 1.3),
             size_modifier=rng.uniform(0.7, 1.3),
-            vision_range=rng.uniform(0.7, 1.3),
+            vision_range=rng.uniform(0.5, 1.8),  # WIDENED range for better evolution (was 0.7-1.3)
             metabolism_rate=rng.uniform(0.7, 1.3),
             fertility=rng.uniform(0.6, 1.4),
             aggression=rng.uniform(0.0, 1.0),
             social_tendency=rng.uniform(0.0, 1.0),
+            # Hunting traits (NEW)
+            pursuit_aggression=rng.uniform(0.0, 1.0),
+            prediction_skill=rng.uniform(0.0, 1.0),
+            hunting_stamina=rng.uniform(0.0, 1.0),
             color_hue=rng.random(),
             # Visual traits for parametric fish templates
             template_id=rng.randint(0, FISH_TEMPLATE_COUNT - 1),
@@ -177,7 +186,14 @@ class Genome:
     ):
         """Update fitness score based on life events.
 
-        Performance: Combined into single addition to reduce attribute access.
+        NOTE: This is used for mate preference calculations, not for selection pressure.
+        In ALife simulations, selection pressure emerges naturally from survival mechanics:
+        - Fish that eat more survive longer
+        - Fish with more energy can reproduce
+        - Live food (220 energy) rewards hunters who can catch it
+
+        The fitness_score is just a tracking metric for mate compatibility, not a
+        selection mechanism. Natural selection happens through survival and reproduction.
 
         Args:
             food_eaten: Number of food items consumed
@@ -185,12 +201,12 @@ class Genome:
             reproductions: Number of successful reproductions
             energy_ratio: Current energy / max energy ratio
         """
-        # Performance: Single addition instead of multiple increments
+        # Simple tracking for mate selection preferences
         self.fitness_score += (
-            food_eaten * 2.0  # Eating is valuable
-            + survived_frames * 0.01  # Survival matters
-            + reproductions * 50.0  # Reproduction is highly valuable
-            + energy_ratio * 0.1  # Maintaining energy is good
+            food_eaten * 2.0  # Eating events
+            + survived_frames * 0.01  # Time alive
+            + reproductions * 50.0  # Reproduction events
+            + energy_ratio * 0.1  # Current energy state
         )
 
     def calculate_mate_compatibility(self, other: "Genome") -> float:
@@ -336,6 +352,17 @@ class Genome:
         metabolism_link_factor = (speed - 1.0) * 0.2
         metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
 
+        # Inherit hunting traits (NEW)
+        pursuit_aggression = weighted_inherit(
+            parent1.pursuit_aggression, parent2.pursuit_aggression, 0.0, 1.0
+        )
+        prediction_skill = weighted_inherit(
+            parent1.prediction_skill, parent2.prediction_skill, 0.0, 1.0
+        )
+        hunting_stamina = weighted_inherit(
+            parent1.hunting_stamina, parent2.hunting_stamina, 0.0, 1.0
+        )
+
         # Weighted mate preferences
         mate_prefs = {}
         for pref_key in parent1.mate_preferences:
@@ -360,13 +387,17 @@ class Genome:
         offspring = cls(
             speed_modifier=speed,
             size_modifier=weighted_inherit(parent1.size_modifier, parent2.size_modifier, 0.7, 1.3),
-            vision_range=weighted_inherit(parent1.vision_range, parent2.vision_range, 0.7, 1.3),
+            vision_range=weighted_inherit(parent1.vision_range, parent2.vision_range, 0.5, 1.8),  # WIDENED range
             metabolism_rate=metabolism,
             fertility=weighted_inherit(parent1.fertility, parent2.fertility, 0.6, 1.4),
             aggression=weighted_inherit(parent1.aggression, parent2.aggression, 0.0, 1.0),
             social_tendency=weighted_inherit(
                 parent1.social_tendency, parent2.social_tendency, 0.0, 1.0
             ),
+            # Hunting traits (NEW)
+            pursuit_aggression=pursuit_aggression,
+            prediction_skill=prediction_skill,
+            hunting_stamina=hunting_stamina,
             color_hue=weighted_inherit(parent1.color_hue, parent2.color_hue, 0.0, 1.0),
             template_id=inherited_template,
             fin_size=weighted_inherit(parent1.fin_size, parent2.fin_size, 0.6, 1.4),
@@ -500,6 +531,17 @@ class Genome:
         metabolism_link_factor = (speed - 1.0) * 0.2
         metabolism = max(0.7, min(1.3, base_metabolism + metabolism_link_factor))
 
+        # Inherit hunting traits (NEW)
+        pursuit_aggression = inherit_trait_with_mode(
+            parent1.pursuit_aggression, parent2.pursuit_aggression, 0.0, 1.0
+        )
+        prediction_skill = inherit_trait_with_mode(
+            parent1.prediction_skill, parent2.prediction_skill, 0.0, 1.0
+        )
+        hunting_stamina = inherit_trait_with_mode(
+            parent1.hunting_stamina, parent2.hunting_stamina, 0.0, 1.0
+        )
+
         # Inherit mate preferences
         mate_prefs = {}
         for pref_key in parent1.mate_preferences:
@@ -536,7 +578,7 @@ class Genome:
                 parent1.size_modifier, parent2.size_modifier, 0.7, 1.3, size_dominant
             ),
             vision_range=inherit_trait_with_mode(
-                parent1.vision_range, parent2.vision_range, 0.7, 1.3
+                parent1.vision_range, parent2.vision_range, 0.5, 1.8  # WIDENED range
             ),
             metabolism_rate=metabolism,
             fertility=inherit_trait_with_mode(
@@ -548,6 +590,10 @@ class Genome:
             social_tendency=inherit_trait_with_mode(
                 parent1.social_tendency, parent2.social_tendency, 0.0, 1.0
             ),
+            # Hunting traits (NEW)
+            pursuit_aggression=pursuit_aggression,
+            prediction_skill=prediction_skill,
+            hunting_stamina=hunting_stamina,
             color_hue=inherit_trait_with_mode(
                 parent1.color_hue, parent2.color_hue, 0.0, 1.0
             ),
