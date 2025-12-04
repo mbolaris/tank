@@ -96,6 +96,17 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Dic
             "aggression": fish.genome.aggression,
             "social_tendency": fish.genome.social_tendency,
             "template_id": fish.genome.template_id,
+            # New hunting traits
+            "pursuit_aggression": fish.genome.pursuit_aggression,
+            "prediction_skill": fish.genome.prediction_skill,
+            "hunting_stamina": fish.genome.hunting_stamina,
+            # Visual traits
+            "fin_size": fish.genome.fin_size,
+            "tail_size": fish.genome.tail_size,
+            "body_aspect": fish.genome.body_aspect,
+            "eye_size": fish.genome.eye_size,
+            "pattern_intensity": fish.genome.pattern_intensity,
+            "pattern_type": fish.genome.pattern_type,
             # Use captured params
             "behavior_algorithm": mutable_state["behavior_params"],
             "poker_algorithm": mutable_state["poker_algo_params"],
@@ -218,14 +229,25 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         # Recreate genome
         genome_data = data["genome_data"]
 
-        genome = Genome(
-            size_modifier=genome_data.get("size_modifier", 1.0),
-            fertility=genome_data.get("fertility", 1.0),
-            color_hue=genome_data.get("color_hue", 0.5),
-            aggression=genome_data.get("aggression", 0.5),
-            social_tendency=genome_data.get("social_tendency", 0.5),
-            template_id=genome_data.get("template_id", 0),
-        )
+        # Create genome using random() then override with saved values
+        genome = Genome.random()
+        genome.size_modifier = genome_data.get("size_modifier", 1.0)
+        genome.fertility = genome_data.get("fertility", 1.0)
+        genome.color_hue = genome_data.get("color_hue", 0.5)
+        genome.aggression = genome_data.get("aggression", 0.5)
+        genome.social_tendency = genome_data.get("social_tendency", 0.5)
+        genome.template_id = genome_data.get("template_id", 0)
+        # Hunting traits (with defaults for old saves)
+        genome.pursuit_aggression = genome_data.get("pursuit_aggression", 0.5)
+        genome.prediction_skill = genome_data.get("prediction_skill", 0.5)
+        genome.hunting_stamina = genome_data.get("hunting_stamina", 0.5)
+        # Visual traits (with defaults for old saves)
+        genome.fin_size = genome_data.get("fin_size", 1.0)
+        genome.tail_size = genome_data.get("tail_size", 1.0)
+        genome.body_aspect = genome_data.get("body_aspect", 1.0)
+        genome.eye_size = genome_data.get("eye_size", 1.0)
+        genome.pattern_intensity = genome_data.get("pattern_intensity", 0.5)
+        genome.pattern_type = genome_data.get("pattern_type", 0)
 
         # Restore behavior algorithm if available
         if "behavior_algorithm" in genome_data and genome_data["behavior_algorithm"]:

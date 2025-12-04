@@ -258,10 +258,10 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
 
                 # Reconstruct genome - old saves may have deprecated fields, just use size and color
                 genome_data = entity_data.get("genome", {})
-                genome = Genome(
-                    size_modifier=genome_data.get("size_modifier", 1.0),
-                    color_hue=genome_data.get("color_hue", 0.5),
-                )
+                # Create genome using random() then override with saved values
+                genome = Genome.random()
+                genome.size_modifier = genome_data.get("size_modifier", 1.0)
+                genome.color_hue = genome_data.get("color_hue", 0.5)
 
                 crab = Crab(
                     environment=target_world.engine.environment,
