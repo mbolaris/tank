@@ -14,9 +14,11 @@ interface ControlPanelProps {
     showTree?: boolean;
     onToggleTree?: () => void;
     fastForwardEnabled?: boolean;
+    showEffects?: boolean;
+    onToggleEffects?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, onToggleTree, fastForwardEnabled }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, onToggleTree, fastForwardEnabled, showEffects, onToggleEffects }: ControlPanelProps) {
     const [isPaused, setIsPaused] = useState(false);
     const [isFastForward, setIsFastForward] = useState(false);
 
@@ -119,6 +121,15 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, showTree, on
                     variant={showTree ? 'primary' : 'secondary'}
                 >
                     {showTree ? 'Hide Tree' : '🌳 Show Tree'}
+                </Button>
+            )}
+
+            {onToggleEffects && (
+                <Button
+                    onClick={onToggleEffects}
+                    variant={showEffects ? 'primary' : 'secondary'}
+                >
+                    {showEffects ? 'Hide Effects' : '✨ Show Effects'}
                 </Button>
             )}
         </div>

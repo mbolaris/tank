@@ -354,10 +354,10 @@ export class Renderer {
         this.ctx.restore();
     }
 
-    renderEntity(entity: EntityData, elapsedTime: number, allEntities?: EntityData[]) {
+    renderEntity(entity: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
         switch (entity.type) {
             case 'fish':
-                this.renderFish(entity, elapsedTime, allEntities);
+                this.renderFish(entity, elapsedTime, allEntities, showEffects);
                 break;
             case 'food':
                 this.renderFood(entity, elapsedTime);
@@ -392,13 +392,13 @@ export class Renderer {
         return facingLeft;
     }
 
-    private renderFish(fish: EntityData, elapsedTime: number, allEntities?: EntityData[]) {
+    private renderFish(fish: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
         const { ctx } = this;
         const { x, y, width, height, vel_x = 1, genome_data } = fish;
 
         // Use SVG-based parametric fish rendering if genome_data is available
         if (genome_data && genome_data.template_id !== undefined) {
-            this.renderSVGFish(fish, allEntities);
+            this.renderSVGFish(fish, allEntities, showEffects);
             return;
         }
 
@@ -429,12 +429,12 @@ export class Renderer {
         }
         ctx.restore();
 
-        if (fish.energy !== undefined) {
+        if (showEffects && fish.energy !== undefined) {
             this.drawEnhancedEnergyBar(x, y - 12, scaledWidth, fish.energy);
         }
 
 
-        if (fish.poker_effect_state) {
+        if (showEffects && fish.poker_effect_state) {
             this.renderPokerStatus(
                 fish.id,
                 x + scaledWidth / 2,
@@ -674,7 +674,7 @@ export class Renderer {
         ctx.restore();
     }
 
-    private renderSVGFish(fish: EntityData, allEntities?: EntityData[]) {
+    private renderSVGFish(fish: EntityData, allEntities?: EntityData[], showEffects: boolean = true) {
         const { ctx } = this;
         const { x, y, width, height, vel_x = 1, genome_data } = fish;
 
@@ -762,11 +762,11 @@ export class Renderer {
         ctx.restore();
 
         // Draw enhanced energy bar
-        if (fish.energy !== undefined) {
+        if (showEffects && fish.energy !== undefined) {
             this.drawEnhancedEnergyBar(x, y - 12, scaledSize, fish.energy);
         }
 
-        if (fish.poker_effect_state) {
+        if (showEffects && fish.poker_effect_state) {
             this.renderPokerStatus(
                 fish.id,
                 x + scaledSize / 2,

@@ -25,6 +25,7 @@ export function TankView({ tankId }: TankViewProps) {
     const [pokerLoading, setPokerLoading] = useState(false);
     const [showTree, setShowTree] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [showEffects, setShowEffects] = useState(true); // Toggle for energy bars and poker effects
 
     // Entity transfer state
     const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
@@ -205,6 +206,8 @@ export function TankView({ tankId }: TankViewProps) {
                     showTree={showTree}
                     onToggleTree={() => setShowTree(!showTree)}
                     fastForwardEnabled={state?.stats?.fast_forward}
+                    showEffects={showEffects}
+                    onToggleEffects={() => setShowEffects(!showEffects)}
                 />
             </div>
 
@@ -289,6 +292,7 @@ export function TankView({ tankId }: TankViewProps) {
                         height={612}
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
+                        showEffects={showEffects}
                     />
                     <div className="canvas-glow" aria-hidden />
                 </div>

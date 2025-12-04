@@ -13,6 +13,7 @@ interface CanvasProps {
     height?: number;
     onEntityClick?: (entityId: number, entityType: string) => void;
     selectedEntityId?: number | null;
+    showEffects?: boolean;
     style?: CSSProperties;
 }
 
@@ -20,15 +21,15 @@ interface CanvasProps {
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
 
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, style }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Use ref to track if error has been set to avoid repeated setState calls
     const errorSetRef = useRef(false);
-    
+
     // Stable error setter that only sets once
     const setErrorOnce = useCallback((message: string) => {
         if (!errorSetRef.current) {
@@ -140,7 +141,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             // Render all entities only if images are loaded
             if (imagesLoaded) {
                 state.entities.forEach((entity) => {
-                    renderer.renderEntity(entity, state.elapsed_time || 0, state.entities);
+                    renderer.renderEntity(entity, state.elapsed_time || 0, state.entities, showEffects);
 
                     // Highlight selected entity
                     if (selectedEntityId === entity.id) {
@@ -165,7 +166,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             // Restore context state
             ctx.restore();
         }
-    }, [state, width, height, imagesLoaded, selectedEntityId, error, setErrorOnce]);
+    }, [state, width, height, imagesLoaded, selectedEntityId, showEffects, error, setErrorOnce]);
 
     if (error) {
         return (
