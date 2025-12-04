@@ -131,18 +131,21 @@ def should_offer_post_poker_reproduction(
     """Decide whether to offer reproduction after a poker game.
 
     DETERMINISTIC reproduction trigger:
-    - Fish must have ≥90% of their max energy (proving successful resource acquisition)
+    - Fish must have ≥65% of their max energy (lowered from 90% for faster evolution)
     - Fish must not be pregnant
     - Fish must be off reproduction cooldown
     - Fish must be adult
     - Fish must be same species as opponent
 
-    No probabilities - if conditions are met, reproduction occurs. This creates strong
-    selection pressure: only successful fish (high energy = good at resource acquisition) reproduce.
+    No probabilities - if conditions are met, reproduction occurs. This creates
+    selection pressure: only moderately successful fish can reproduce after poker.
+
+    IMPROVED: Lowered threshold from 90% to 65% to allow more poker-based breeding,
+    which accelerates poker strategy evolution.
     """
 
-    # Require 90% of max energy (high energy threshold for reproduction)
-    min_energy_for_reproduction = fish.max_energy * 0.9
+    # Require 65% of max energy (lowered from 90% for faster evolution)
+    min_energy_for_reproduction = fish.max_energy * 0.65
     if fish.energy < min_energy_for_reproduction:
         return False
 

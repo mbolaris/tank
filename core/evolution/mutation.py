@@ -26,24 +26,27 @@ class MutationConfig:
     These values can be tuned to control the pace of evolution.
     Higher rates = faster change, potentially less stable.
     Lower rates = slower adaptation, more stable populations.
+
+    TUNED FOR FASTER EVOLUTION: Increased base rates and algorithm switch rate
+    to accelerate adaptation, especially for food hunting and poker skills.
     """
 
-    # Base mutation rates
-    base_rate: float = 0.1  # 10% chance per trait
-    base_strength: float = 0.1  # Gaussian std dev as fraction of range
+    # Base mutation rates (INCREASED for faster evolution)
+    base_rate: float = 0.15  # 15% chance per trait (was 10%)
+    base_strength: float = 0.12  # Gaussian std dev as fraction of range (was 0.1)
 
-    # Adaptive mutation bounds
-    min_rate: float = 0.05  # Never mutate less than 5%
-    max_rate: float = 0.40  # Never mutate more than 40%
-    min_strength: float = 0.05
-    max_strength: float = 0.25
+    # Adaptive mutation bounds (WIDENED for more exploration)
+    min_rate: float = 0.08  # Never mutate less than 8% (was 5%)
+    max_rate: float = 0.50  # Never mutate more than 50% (was 40%)
+    min_strength: float = 0.06  # (was 0.05)
+    max_strength: float = 0.30  # (was 0.25)
 
-    # Population stress multipliers
-    stress_rate_multiplier: float = 2.0  # How much stress increases rate
-    stress_strength_multiplier: float = 1.5  # How much stress increases strength
+    # Population stress multipliers (INCREASED for faster adaptation under pressure)
+    stress_rate_multiplier: float = 2.5  # How much stress increases rate (was 2.0)
+    stress_strength_multiplier: float = 2.0  # How much stress increases strength (was 1.5)
 
-    # Algorithm mutation
-    algorithm_switch_rate: float = 0.05  # 5% chance of completely new algorithm
+    # Algorithm mutation (INCREASED for more behavioral diversity)
+    algorithm_switch_rate: float = 0.08  # 8% chance of completely new algorithm (was 5%)
 
 
 # Default configuration

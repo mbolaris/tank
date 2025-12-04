@@ -30,9 +30,9 @@ class ReproductionComponent:
     """
 
     # Reproduction constants
-    REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Must have 90% of max energy to reproduce
-    REPRODUCTION_COOLDOWN = 240  # 8 seconds (reduced for better breeding)
-    PREGNANCY_DURATION = 300  # 10 seconds
+    REPRODUCTION_ENERGY_PERCENTAGE = 0.70  # Must have 70% of max energy to reproduce (lowered from 90% for faster evolution)
+    REPRODUCTION_COOLDOWN = 180  # 6 seconds (reduced for better breeding and faster generations)
+    PREGNANCY_DURATION = 240  # 8 seconds (reduced for faster generations)
     MATING_DISTANCE = 60.0  # Maximum distance for mating
     REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for initiating mating
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby

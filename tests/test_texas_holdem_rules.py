@@ -24,6 +24,7 @@ from core.poker.core import (
 )
 from core.poker.evaluation.hand_evaluator import _evaluate_five_cards
 from core.poker.core.cards import Card, Rank, Suit
+from core.poker.evaluation.hand_evaluator import _evaluate_five_cards
 
 
 def test_minimum_raise_enforcement():
