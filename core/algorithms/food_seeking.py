@@ -122,17 +122,22 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
             if distance < max_chase_distance:
                 # Use predictive interception for moving food
                 # Better prediction_skill = more accurate interception
+                # CRITICAL for catching live food which is faster than base fish speed
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
                     # Higher prediction_skill = lead target further ahead
-                    prediction_frames = 10 + int(prediction_skill * 15)  # 10-25 frames
+                    # Fish with low prediction_skill will chase where food IS, not where it WILL BE
+                    prediction_frames = 5 + int(prediction_skill * 30)  # 5-35 frames ahead
                     intercept_point, _ = predict_intercept_point(
                         fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
                     )
-                    if intercept_point and prediction_skill > 0.3:
-                        # Blend between direct pursuit and interception based on skill
+                    if intercept_point:
+                        # Skill determines how well fish can intercept vs just chase
+                        # Low skill (0.0): chase directly (will fail on fast live food)
+                        # High skill (1.0): perfect interception (can catch live food)
+                        skill_factor = prediction_skill ** 0.7  # Slightly favor prediction
                         target_pos = Vector2(
-                            nearest_food.pos.x * (1 - prediction_skill) + intercept_point.x * prediction_skill,
-                            nearest_food.pos.y * (1 - prediction_skill) + intercept_point.y * prediction_skill,
+                            nearest_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
+                            nearest_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
                         )
                     else:
                         target_pos = nearest_food.pos
@@ -154,12 +159,13 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                     URGENCY_BOOST_CRITICAL if is_critical else (URGENCY_BOOST_LOW if is_low else 0)
                 )
 
-                # NEW: Hunting traits affect speed
-                # pursuit_aggression adds speed when chasing
-                # hunting_stamina affects whether we maintain speed (simplified for now)
-                pursuit_boost = pursuit_aggression * 0.3  # Up to 30% speed boost
+                # EVOLUTION PRESSURE: Hunting traits significantly affect chase speed
+                # pursuit_aggression: up to 70% speed boost (was 30%)
+                # hunting_stamina: sustains speed over distance
+                pursuit_boost = pursuit_aggression * 0.7  # Up to 70% speed boost
+                stamina_factor = 1.0 + hunting_stamina * 0.3  # Stamina helps maintain speed
 
-                speed = base_speed * (1.0 + proximity_boost + urgency_boost + pursuit_boost)
+                speed = base_speed * (1.0 + proximity_boost + urgency_boost + pursuit_boost) * stamina_factor
 
                 # Remember successful food locations
                 if hasattr(fish, "memory_system") and distance < FOOD_MEMORY_RECORD_DISTANCE:
@@ -208,6 +214,11 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         fish.is_low_energy()
         energy_ratio = fish.get_energy_ratio()
 
+        # Get hunting traits from genome for live food catching
+        pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+        prediction_skill = getattr(fish.genome, "prediction_skill", 0.5)
+        hunting_stamina = getattr(fish.genome, "hunting_stamina", 0.5)
+
         # Check for predators - even urgent fish should avoid immediate danger
         nearest_predator = self._find_nearest(fish, Crab)
         predator_distance = (
@@ -230,11 +241,22 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
                         to_food = (nearest_food.pos - fish.pos).normalize()
                         perp_x, perp_y = -to_food.y, to_food.x
                         return perp_x * 0.8, perp_y * 0.8
-                direction = self._safe_normalize(nearest_food.pos - fish.pos)
-                return (
-                    direction.x * self.parameters["urgent_speed"],
-                    direction.y * self.parameters["urgent_speed"],
-                )
+
+                # Use prediction for moving food
+                target_pos = nearest_food.pos
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
+                    lead_frames = 5 + int(prediction_skill * 35)
+                    predicted_pos = nearest_food.pos + nearest_food.vel * lead_frames
+                    skill_factor = prediction_skill ** 0.7
+                    target_pos = Vector2(
+                        nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+                        nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
+                    )
+
+                direction = self._safe_normalize(target_pos - fish.pos)
+                # Hunting traits boost urgent speed
+                speed = self.parameters["urgent_speed"] * (1.0 + pursuit_aggression * 0.6)
+                return direction.x * speed, direction.y * speed
 
         # Flee if predator too close
         if predator_nearby:
@@ -245,12 +267,25 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         if nearest_food:
             # Graduated urgency based on energy level
             if energy_ratio < self.parameters["urgency_threshold"]:
-                speed = self.parameters["urgent_speed"]
+                base_speed = self.parameters["urgent_speed"]
             else:
                 # Scale speed based on energy - conserve when high energy
-                speed = self.parameters["calm_speed"] + (1.0 - energy_ratio) * 0.3
+                base_speed = self.parameters["calm_speed"] + (1.0 - energy_ratio) * 0.3
 
-            direction = self._safe_normalize(nearest_food.pos - fish.pos)
+            # Use prediction for moving food (live food is fast!)
+            target_pos = nearest_food.pos
+            if hasattr(nearest_food, "vel") and nearest_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
+                lead_frames = 5 + int(prediction_skill * 35)
+                predicted_pos = nearest_food.pos + nearest_food.vel * lead_frames
+                skill_factor = prediction_skill ** 0.7
+                target_pos = Vector2(
+                    nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+                    nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
+                )
+
+            direction = self._safe_normalize(target_pos - fish.pos)
+            # Apply hunting traits to speed
+            speed = base_speed * (1.0 + pursuit_aggression * 0.5) * (0.8 + hunting_stamina * 0.3)
             return direction.x * speed, direction.y * speed
         return 0, 0
 
@@ -279,6 +314,11 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         is_critical = fish.energy / fish.max_energy < 0.3
         is_low = fish.energy / fish.max_energy < 0.5
 
+        # Get hunting traits from genome for live food catching
+        pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+        prediction_skill = getattr(fish.genome, "prediction_skill", 0.5)
+        hunting_stamina = getattr(fish.genome, "hunting_stamina", 0.5)
+
         # IMPROVEMENT: Flee from predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -296,20 +336,34 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()
             # IMPROVEMENT: Expand pursuit when hungry
-            max_dist = self.parameters["max_pursuit_distance"]
+            # pursuit_aggression extends chase range
+            max_dist = self.parameters["max_pursuit_distance"] * (1.0 + pursuit_aggression * 0.4)
             if is_critical:
                 max_dist *= 2  # Desperate: chase much further
             elif is_low:
                 max_dist *= 1.5
 
             if distance < max_dist:
-                direction = self._safe_normalize(nearest_food.pos - fish.pos)
-                # IMPROVEMENT: Speed up when close and when hungry
-                speed = self.parameters["speed"]
+                # Use prediction for moving food (live food is fast!)
+                target_pos = nearest_food.pos
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
+                    lead_frames = 5 + int(prediction_skill * 35)
+                    predicted_pos = nearest_food.pos + nearest_food.vel * lead_frames
+                    skill_factor = prediction_skill ** 0.7
+                    target_pos = Vector2(
+                        nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+                        nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
+                    )
+
+                direction = self._safe_normalize(target_pos - fish.pos)
+                # Speed up when close and when hungry, boosted by hunting traits
+                speed = self.parameters["speed"] * (1.0 + pursuit_aggression * 0.5)
                 if distance < FOOD_SPEED_BOOST_DISTANCE:
                     speed *= 1.3
                 if is_critical:
                     speed *= 1.2
+                # Stamina helps maintain speed
+                speed *= (0.8 + hunting_stamina * 0.3)
                 return direction.x * speed, direction.y * speed
 
         # IMPROVEMENT: Don't just idle - explore!
@@ -347,6 +401,11 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
         fish.get_energy_ratio()
+
+        # Get hunting traits from genome for live food catching
+        pursuit_aggression = getattr(fish.genome, "pursuit_aggression", 0.5)
+        prediction_skill = getattr(fish.genome, "prediction_skill", 0.5)
+        hunting_stamina = getattr(fish.genome, "hunting_stamina", 0.5)
 
         # Check predators first - but be less cautious when critically low energy
         nearest_predator = self._find_nearest(fish, Crab)
@@ -428,10 +487,24 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
 
         if best_food and best_score > min_score_threshold:
             distance_to_food = (best_food.pos - fish.pos).length()
-            direction = self._safe_normalize(best_food.pos - fish.pos)
-            # IMPROVEMENT: Speed based on urgency and distance
+
+            # Use prediction for moving food (live food is fast!)
+            target_pos = best_food.pos
+            if hasattr(best_food, "vel") and best_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
+                lead_frames = 5 + int(prediction_skill * 35)
+                predicted_pos = best_food.pos + best_food.vel * lead_frames
+                skill_factor = prediction_skill ** 0.7
+                target_pos = Vector2(
+                    best_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+                    best_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
+                )
+
+            direction = self._safe_normalize(target_pos - fish.pos)
+            # IMPROVEMENT: Speed based on urgency, distance, and hunting traits
             base_speed = 1.1 if is_critical else 0.9
+            base_speed *= (1.0 + pursuit_aggression * 0.5)  # Hunting trait boost
             speed = base_speed + min(50 / max(distance_to_food, 1), 0.5)
+            speed *= (0.8 + hunting_stamina * 0.3)  # Stamina boost
             return direction.x * speed, direction.y * speed
 
         # IMPROVEMENT: If no good food found but have memories and critically low, go to memory
@@ -860,31 +933,36 @@ class AggressiveHunter(BehaviorAlgorithm):
             # High-speed pursuit within detection range
             if distance < effective_detection:
                 # Predict food movement - skill affects prediction accuracy
+                # CRITICAL: Live food is faster than base fish (3.0 vs 2.2)
+                # Only fish with high prediction_skill can intercept effectively
                 target_pos = nearest_food.pos
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
                     # Higher prediction_skill = better lead calculation
-                    lead_frames = 10 + int(prediction_skill * 20)  # 10-30 frames
+                    lead_frames = 5 + int(prediction_skill * 40)  # 5-45 frames
                     predicted_pos = nearest_food.pos + nearest_food.vel * lead_frames
 
-                    # Blend between direct and predicted based on skill
+                    # Skill factor determines interception accuracy
+                    skill_factor = prediction_skill ** 0.6  # Favor prediction more
                     target_pos = Vector2(
-                        nearest_food.pos.x * (1 - prediction_skill) + predicted_pos.x * prediction_skill,
-                        nearest_food.pos.y * (1 - prediction_skill) + predicted_pos.y * prediction_skill,
+                        nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+                        nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
                     )
 
                 direction = self._safe_normalize(target_pos - fish.pos)
 
-                # Speed boosted by hunting traits
-                pursuit_boost = 1.0 + pursuit_aggression * 0.4  # Up to 40% faster
+                # EVOLUTION PRESSURE: Speed significantly boosted by hunting traits
+                # pursuit_aggression: up to 80% faster (was 40%)
+                pursuit_boost = 1.0 + pursuit_aggression * 0.8
 
                 # Strike mode when very close
                 if distance < FOOD_STRIKE_DISTANCE:
                     strike_speed = self.parameters["strike_speed"] * pursuit_boost
                     return (direction.x * strike_speed, direction.y * strike_speed)
                 else:
-                    # Stamina affects how long we can maintain top speed
-                    # (simplified: higher stamina = faster sustained speed)
-                    pursuit_speed = self.parameters["pursuit_speed"] * pursuit_boost * (0.8 + hunting_stamina * 0.2)
+                    # Stamina significantly affects sustained pursuit speed
+                    # Fish with low stamina slow down during chase
+                    stamina_boost = 0.6 + hunting_stamina * 0.5  # 0.6-1.1 factor
+                    pursuit_speed = self.parameters["pursuit_speed"] * pursuit_boost * stamina_boost
                     return (direction.x * pursuit_speed, direction.y * pursuit_speed)
 
         # No food visible - check last known location

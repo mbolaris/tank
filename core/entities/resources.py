@@ -355,13 +355,14 @@ class LiveFood(Food):
             screen_height=screen_height,
             speed=speed,
         )
-        # BALANCE: Reduced max_speed from 2.4 to 1.8 to make it catchable by average fish
-        # Fish with base speed 2.2 can now catch it (2.2 > 1.8)
-        self.max_speed = speed * 1.2  # 1.5 * 1.2 = 1.8
-        self.wander_timer = random.randint(20, 45)
-        # BALANCE: Reduced avoid_radius from 180 to 120 so fish can get closer
-        self.avoid_radius = 120
-        self.wander_strength = 0.25
+        # EVOLUTION PRESSURE: Live food must be FASTER than base fish speed (2.2)
+        # Only fish with evolved hunting traits (pursuit_aggression, prediction_skill) can catch it
+        # This creates natural selection for hunting ability
+        self.max_speed = speed * 2.0  # 1.5 * 2.0 = 3.0 (faster than fish base 2.2)
+        self.wander_timer = random.randint(15, 35)  # More erratic movement
+        # Detect approaching fish from farther away
+        self.avoid_radius = 200  # Increased from 120
+        self.wander_strength = 0.35  # More active wandering
         
         # Lifespan tracking to prevent unbounded accumulation
         self.max_lifespan = max_lifespan
@@ -381,8 +382,9 @@ class LiveFood(Food):
     def _apply_wander(self) -> None:
         self.wander_timer -= 1
         if self.wander_timer <= 0:
-            self.add_random_velocity_change([0.3, 0.4, 0.3], 4)
-            self.wander_timer = random.randint(20, 45)
+            # More erratic movement requires prediction_skill to catch
+            self.add_random_velocity_change([0.4, 0.5, 0.4], 5)  # Stronger direction changes
+            self.wander_timer = random.randint(12, 30)  # More frequent changes
 
     def _avoid_nearby_fish(self) -> None:
         nearby_fish = self.environment.nearby_agents_by_type(self, self.avoid_radius, Fish)
@@ -397,8 +399,9 @@ class LiveFood(Food):
             flee_vector += offset / distance_sq
 
         if flee_vector.length_squared() > 0:
-            # BALANCE: Reduced avoidance force from 1.2 to 0.9 to make catching easier
-            self.vel += flee_vector.normalize() * 0.9
+            # EVOLUTION PRESSURE: Strong avoidance creates selection for prediction_skill
+            # Fish need to anticipate where live food will flee, not just chase directly
+            self.vel += flee_vector.normalize() * 1.8  # Strong flee response
 
     def _limit_speed(self) -> None:
         speed = self.vel.length()

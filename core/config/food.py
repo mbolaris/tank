@@ -69,7 +69,9 @@ FOOD_TYPES = {
     "live": {
         "name": "Live Treat",
         "files": ["food_energy1.png", "food_energy2.png"],
-        "energy": 220.0,  # High energy density - small but nutritious zooplankton
+        "energy": 400.0,  # EVOLUTION PRESSURE: Very high reward for catching live food
+        # This creates strong selection for hunting traits - fish that can catch
+        # live food get 4x more energy than algae, huge survival advantage
         "rarity": 0.12,  # Appears occasionally
         "sink_multiplier": 0.0,  # Self-propelled, so no sinking
         "stationary": False,
