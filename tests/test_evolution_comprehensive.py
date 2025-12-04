@@ -225,8 +225,15 @@ class TestMultiGenerationEvolution:
     def test_weighted_evolution_favors_winner(self):
         """Test that weighted crossover favors winner's traits."""
         # Create genomes with distinct traits (using actual dataclass fields, not computed properties)
-        winner = Genome(aggression=1.0, fin_size=1.4, tail_size=1.4)  # High aggression, large fins
-        loser = Genome(aggression=0.0, fin_size=0.6, tail_size=0.6)   # Low aggression, small fins
+        winner = Genome.random(use_algorithm=False)
+        winner.aggression = 1.0
+        winner.fin_size = 1.4
+        winner.tail_size = 1.4  # High aggression, large fins
+
+        loser = Genome.random(use_algorithm=False)
+        loser.aggression = 0.0
+        loser.fin_size = 0.6
+        loser.tail_size = 0.6  # Low aggression, small fins
 
         # Generate many offspring with parent1_weight (not winner_weight)
         offspring = []
@@ -248,8 +255,13 @@ class TestMultiGenerationEvolution:
 
     def test_population_stress_increases_variation(self):
         """Test that population stress increases genetic variation."""
-        parent1 = Genome(fin_size=1.0, tail_size=1.0)
-        parent2 = Genome(fin_size=1.0, tail_size=1.0)
+        parent1 = Genome.random(use_algorithm=False)
+        parent1.fin_size = 1.0
+        parent1.tail_size = 1.0
+
+        parent2 = Genome.random(use_algorithm=False)
+        parent2.fin_size = 1.0
+        parent2.tail_size = 1.0
 
         # Low stress offspring
         low_stress_offspring = [
@@ -501,8 +513,15 @@ class TestStatisticalProperties:
     def test_trait_correlation_in_offspring(self):
         """Test that offspring traits correlate with parents."""
         # Use actual dataclass fields (fin_size, tail_size) instead of computed speed_modifier
-        parent1 = Genome(fin_size=1.4, tail_size=1.4, size_modifier=1.3)
-        parent2 = Genome(fin_size=0.6, tail_size=0.6, size_modifier=0.7)
+        parent1 = Genome.random(use_algorithm=False)
+        parent1.fin_size = 1.4
+        parent1.tail_size = 1.4
+        parent1.size_modifier = 1.3
+
+        parent2 = Genome.random(use_algorithm=False)
+        parent2.fin_size = 0.6
+        parent2.tail_size = 0.6
+        parent2.size_modifier = 0.7
 
         offspring = [
             Genome.from_parents(parent1, parent2, population_stress=0.0)

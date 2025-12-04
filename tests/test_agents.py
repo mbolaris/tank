@@ -115,7 +115,8 @@ class TestFish:
         # Create a genome with size_modifier=1.0 for deterministic testing
         from core.genetics import Genome
 
-        genome = Genome(size_modifier=1.0)
+        genome = Genome.random(use_algorithm=False)
+        genome.size_modifier = 1.0
         fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
 
         # Fish start as babies with size 0.5 (when genetic size_modifier is 1.0)
