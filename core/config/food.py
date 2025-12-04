@@ -69,7 +69,7 @@ FOOD_TYPES = {
     "live": {
         "name": "Live Treat",
         "files": ["food_energy1.png", "food_energy2.png"],
-        "energy": 220.0,  # High energy density - small but nutritious zooplankton
+        "energy": 500.0,  # High energy density - small but nutritious zooplankton
         "rarity": 0.12,  # Appears occasionally
         "sink_multiplier": 0.0,  # Self-propelled, so no sinking
         "stationary": False,
