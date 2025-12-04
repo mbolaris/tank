@@ -273,9 +273,9 @@ class TestLearnedBehaviorInheritance:
 
     def test_learned_behaviors_partially_inherited(self):
         """Offspring should inherit fraction of learned behaviors."""
-        parent1 = Genome()
-        parent2 = Genome()
-        offspring = Genome()
+        parent1 = Genome.random()
+        parent2 = Genome.random()
+        offspring = Genome.random()
 
         # Set up learned behaviors
         parent1.learned_behaviors = {"poker_aggression_adj": 0.4}
@@ -290,9 +290,9 @@ class TestLearnedBehaviorInheritance:
 
     def test_counters_not_inherited(self):
         """Counter values (games won, etc.) should not be inherited."""
-        parent1 = Genome()
-        parent2 = Genome()
-        offspring = Genome()
+        parent1 = Genome.random()
+        parent2 = Genome.random()
+        offspring = Genome.random()
 
         parent1.learned_behaviors = {
             "poker_aggression_adj": 0.4,
@@ -314,8 +314,8 @@ class TestFullGenomeEvolution:
 
     def test_genome_from_parents_produces_valid_offspring(self):
         """Genome.from_parents should produce valid offspring."""
-        parent1 = Genome()
-        parent2 = Genome()
+        parent1 = Genome.random()
+        parent2 = Genome.random()
 
         offspring = Genome.from_parents(
             parent1, parent2,
@@ -334,8 +334,14 @@ class TestFullGenomeEvolution:
 
         # Create parents with distinct traits (using actual dataclass fields)
         # Note: speed_modifier is a computed property, so we use fin_size/tail_size instead
-        parent1 = Genome(aggression=0.1, fin_size=0.8, tail_size=0.8)
-        parent2 = Genome(aggression=0.9, fin_size=1.3, tail_size=1.3)
+        parent1 = Genome.random()
+        parent1.aggression = 0.1
+        parent1.fin_size = 0.8
+        parent1.tail_size = 0.8
+        parent2 = Genome.random()
+        parent2.aggression = 0.9
+        parent2.fin_size = 1.3
+        parent2.tail_size = 1.3
 
         # Run multiple times to get average
         aggression_sum = 0.0
@@ -357,8 +363,8 @@ class TestFullGenomeEvolution:
 
     def test_population_stress_increases_variation(self):
         """High population stress should increase offspring variation."""
-        parent1 = Genome()
-        parent2 = Genome()
+        parent1 = Genome.random()
+        parent2 = Genome.random()
 
         # Generate offspring with no stress
         no_stress_offspring = [
@@ -388,7 +394,7 @@ class TestFullGenomeEvolution:
     def test_multi_generation_evolution(self):
         """Evolution should work across multiple generations."""
         # Start with initial population
-        population = [Genome() for _ in range(10)]
+        population = [Genome.random() for _ in range(10)]
 
         # Evolve for several generations
         for generation in range(5):
