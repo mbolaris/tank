@@ -10,7 +10,6 @@ This test suite covers:
 """
 
 import random
-from typing import List, Dict, Any
 
 import pytest
 
@@ -35,7 +34,7 @@ from core.evolution.inheritance import (
     inherit_algorithm,
     inherit_learned_behaviors,
 )
-from core.genetics import Genome
+from core.genetics import Genome, GeneticTrait, PhysicalTraits, BehavioralTraits
 from core.plant_genetics import PlantGenome
 from core.algorithms import (
     BehaviorAlgorithm,
@@ -152,15 +151,33 @@ class TestEdgeCasesAndBoundaries:
         # Note: speed_modifier, vision_range, metabolism_rate are now computed properties
         # derived from template_id, fin_size, tail_size, body_aspect, and eye_size
         genome = Genome(
-            size_modifier=0.7,   # Min (valid range is 0.7-1.3)
-            aggression=1.0,      # Max
-            social_tendency=0.0, # Min
-            # Set visual traits that affect computed properties
-            template_id=1,       # Streamlined (1.2x speed)
-            fin_size=1.4,        # Max fins
-            tail_size=1.4,       # Max tail
-            body_aspect=0.8,     # Optimal for speed
-            eye_size=1.3,        # Max eyes (affects vision_range)
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(0.7),  # Min (valid range is 0.7-1.3)
+                fertility=GeneticTrait(1.0),
+                color_hue=GeneticTrait(0.5),
+                template_id=GeneticTrait(1),      # Streamlined (1.2x speed)
+                fin_size=GeneticTrait(1.4),       # Max fins
+                tail_size=GeneticTrait(1.4),      # Max tail
+                body_aspect=GeneticTrait(0.8),    # Optimal for speed
+                eye_size=GeneticTrait(1.3),       # Max eyes (affects vision_range)
+                pattern_intensity=GeneticTrait(0.5),
+                pattern_type=GeneticTrait(0),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(1.0),       # Max
+                social_tendency=GeneticTrait(0.0),  # Min
+                pursuit_aggression=GeneticTrait(0.5),
+                prediction_skill=GeneticTrait(0.5),
+                hunting_stamina=GeneticTrait(0.5),
+                behavior_algorithm=GeneticTrait(None),
+                poker_algorithm=GeneticTrait(None),
+                poker_strategy_algorithm=GeneticTrait(None),
+                mate_preferences=GeneticTrait({
+                    "prefer_similar_size": 0.5,
+                    "prefer_different_color": 0.5,
+                    "prefer_high_energy": 0.5,
+                }),
+            ),
         )
 
         # Should be valid
@@ -323,15 +340,63 @@ class TestPokerEvolution:
     def test_poker_weighted_genome_crossover(self):
         """Test that poker winners pass more traits to offspring."""
         winner = Genome(
-            aggression=0.9,
-            poker_algorithm=PokerChallenger(),
-            poker_strategy_algorithm=TightAggressiveStrategy(),
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(1.0),
+                fertility=GeneticTrait(1.0),
+                color_hue=GeneticTrait(0.5),
+                template_id=GeneticTrait(0),
+                fin_size=GeneticTrait(1.0),
+                tail_size=GeneticTrait(1.0),
+                body_aspect=GeneticTrait(1.0),
+                eye_size=GeneticTrait(1.0),
+                pattern_intensity=GeneticTrait(0.5),
+                pattern_type=GeneticTrait(0),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(0.9),
+                social_tendency=GeneticTrait(0.5),
+                pursuit_aggression=GeneticTrait(0.5),
+                prediction_skill=GeneticTrait(0.5),
+                hunting_stamina=GeneticTrait(0.5),
+                behavior_algorithm=GeneticTrait(None),
+                poker_algorithm=GeneticTrait(PokerChallenger()),
+                poker_strategy_algorithm=GeneticTrait(TightAggressiveStrategy()),
+                mate_preferences=GeneticTrait({
+                    "prefer_similar_size": 0.5,
+                    "prefer_different_color": 0.5,
+                    "prefer_high_energy": 0.5,
+                }),
+            ),
         )
 
         loser = Genome(
-            aggression=0.1,
-            poker_algorithm=PokerChallenger(),
-            poker_strategy_algorithm=ManiacStrategy(),
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(1.0),
+                fertility=GeneticTrait(1.0),
+                color_hue=GeneticTrait(0.5),
+                template_id=GeneticTrait(0),
+                fin_size=GeneticTrait(1.0),
+                tail_size=GeneticTrait(1.0),
+                body_aspect=GeneticTrait(1.0),
+                eye_size=GeneticTrait(1.0),
+                pattern_intensity=GeneticTrait(0.5),
+                pattern_type=GeneticTrait(0),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(0.1),
+                social_tendency=GeneticTrait(0.5),
+                pursuit_aggression=GeneticTrait(0.5),
+                prediction_skill=GeneticTrait(0.5),
+                hunting_stamina=GeneticTrait(0.5),
+                behavior_algorithm=GeneticTrait(None),
+                poker_algorithm=GeneticTrait(PokerChallenger()),
+                poker_strategy_algorithm=GeneticTrait(ManiacStrategy()),
+                mate_preferences=GeneticTrait({
+                    "prefer_similar_size": 0.5,
+                    "prefer_different_color": 0.5,
+                    "prefer_high_energy": 0.5,
+                }),
+            ),
         )
 
         # Generate offspring with winner advantage (parent1_weight)
@@ -544,26 +609,95 @@ class TestComplexIntegration:
         """Test mate compatibility scoring (lower score = more compatible)."""
         # Note: speed_modifier is a computed property, so we set underlying traits instead
         fish1 = Genome(
-            size_modifier=1.0,
-            color_hue=0.5,
-            fin_size=1.0,
-            tail_size=1.0,
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(1.0),
+                fertility=GeneticTrait(1.0),
+                color_hue=GeneticTrait(0.5),
+                template_id=GeneticTrait(0),
+                fin_size=GeneticTrait(1.0),
+                tail_size=GeneticTrait(1.0),
+                body_aspect=GeneticTrait(1.0),
+                eye_size=GeneticTrait(1.0),
+                pattern_intensity=GeneticTrait(0.5),
+                pattern_type=GeneticTrait(0),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(0.5),
+                social_tendency=GeneticTrait(0.5),
+                pursuit_aggression=GeneticTrait(0.5),
+                prediction_skill=GeneticTrait(0.5),
+                hunting_stamina=GeneticTrait(0.5),
+                behavior_algorithm=GeneticTrait(None),
+                poker_algorithm=GeneticTrait(None),
+                poker_strategy_algorithm=GeneticTrait(None),
+                mate_preferences=GeneticTrait({
+                    "prefer_similar_size": 0.5,
+                    "prefer_different_color": 0.5,
+                    "prefer_high_energy": 0.5,
+                }),
+            ),
         )
 
         # Similar fish - better compatibility (lower score)
         fish2 = Genome(
-            size_modifier=1.0,
-            color_hue=0.51,
-            fin_size=1.0,
-            tail_size=1.05,
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(1.0),
+                fertility=GeneticTrait(1.0),
+                color_hue=GeneticTrait(0.51),
+                template_id=GeneticTrait(0),
+                fin_size=GeneticTrait(1.0),
+                tail_size=GeneticTrait(1.05),
+                body_aspect=GeneticTrait(1.0),
+                eye_size=GeneticTrait(1.0),
+                pattern_intensity=GeneticTrait(0.5),
+                pattern_type=GeneticTrait(0),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(0.5),
+                social_tendency=GeneticTrait(0.5),
+                pursuit_aggression=GeneticTrait(0.5),
+                prediction_skill=GeneticTrait(0.5),
+                hunting_stamina=GeneticTrait(0.5),
+                behavior_algorithm=GeneticTrait(None),
+                poker_algorithm=GeneticTrait(None),
+                poker_strategy_algorithm=GeneticTrait(None),
+                mate_preferences=GeneticTrait({
+                    "prefer_similar_size": 0.5,
+                    "prefer_different_color": 0.5,
+                    "prefer_high_energy": 0.5,
+                }),
+            ),
         )
 
         # Very different fish - worse compatibility (higher score)
         fish3 = Genome(
-            size_modifier=1.3,  # Changed from 1.5 to valid range
-            color_hue=0.0,
-            fin_size=0.6,
-            tail_size=0.6,
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(1.3),  # Changed from 1.5 to valid range
+                fertility=GeneticTrait(1.0),
+                color_hue=GeneticTrait(0.0),
+                template_id=GeneticTrait(0),
+                fin_size=GeneticTrait(0.6),
+                tail_size=GeneticTrait(0.6),
+                body_aspect=GeneticTrait(1.0),
+                eye_size=GeneticTrait(1.0),
+                pattern_intensity=GeneticTrait(0.5),
+                pattern_type=GeneticTrait(0),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(0.5),
+                social_tendency=GeneticTrait(0.5),
+                pursuit_aggression=GeneticTrait(0.5),
+                prediction_skill=GeneticTrait(0.5),
+                hunting_stamina=GeneticTrait(0.5),
+                behavior_algorithm=GeneticTrait(None),
+                poker_algorithm=GeneticTrait(None),
+                poker_strategy_algorithm=GeneticTrait(None),
+                mate_preferences=GeneticTrait({
+                    "prefer_similar_size": 0.5,
+                    "prefer_different_color": 0.5,
+                    "prefer_high_energy": 0.5,
+                }),
+            ),
         )
 
         compatibility_similar = fish1.calculate_mate_compatibility(fish2)
@@ -579,15 +713,93 @@ class TestComplexIntegration:
     def test_learned_behaviors_inheritance(self):
         """Test learned behaviors are inherited culturally."""
         # Use numeric values for learned behaviors (not strings)
+        parent1_physical = PhysicalTraits(
+            size_modifier=GeneticTrait(1.0),
+            fertility=GeneticTrait(1.0),
+            color_hue=GeneticTrait(0.5),
+            template_id=GeneticTrait(0),
+            fin_size=GeneticTrait(1.0),
+            tail_size=GeneticTrait(1.0),
+            body_aspect=GeneticTrait(1.0),
+            eye_size=GeneticTrait(1.0),
+            pattern_intensity=GeneticTrait(0.5),
+            pattern_type=GeneticTrait(0),
+        )
+
+        parent1_behavioral = BehavioralTraits(
+            aggression=GeneticTrait(0.5),
+            social_tendency=GeneticTrait(0.5),
+            pursuit_aggression=GeneticTrait(0.5),
+            prediction_skill=GeneticTrait(0.5),
+            hunting_stamina=GeneticTrait(0.5),
+            behavior_algorithm=GeneticTrait(None),
+            poker_algorithm=GeneticTrait(None),
+            poker_strategy_algorithm=GeneticTrait(None),
+            mate_preferences=GeneticTrait({
+                "prefer_similar_size": 0.5,
+                "prefer_different_color": 0.5,
+                "prefer_high_energy": 0.5,
+            }),
+        )
+
         parent1 = Genome(
-            learned_behaviors={"territory_size": 50.0, "hunting_success": 0.8}
+            physical=parent1_physical,
+            behavioral=parent1_behavioral,
+            learned_behaviors={"territory_size": 50.0, "hunting_success": 0.8},
         )
 
         parent2 = Genome(
-            learned_behaviors={"territory_size": 30.0, "social_rank": 3.0}
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(parent1_physical.size_modifier.value),
+                fertility=GeneticTrait(parent1_physical.fertility.value),
+                color_hue=GeneticTrait(parent1_physical.color_hue.value),
+                template_id=GeneticTrait(parent1_physical.template_id.value),
+                fin_size=GeneticTrait(parent1_physical.fin_size.value),
+                tail_size=GeneticTrait(parent1_physical.tail_size.value),
+                body_aspect=GeneticTrait(parent1_physical.body_aspect.value),
+                eye_size=GeneticTrait(parent1_physical.eye_size.value),
+                pattern_intensity=GeneticTrait(parent1_physical.pattern_intensity.value),
+                pattern_type=GeneticTrait(parent1_physical.pattern_type.value),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(parent1_behavioral.aggression.value),
+                social_tendency=GeneticTrait(parent1_behavioral.social_tendency.value),
+                pursuit_aggression=GeneticTrait(parent1_behavioral.pursuit_aggression.value),
+                prediction_skill=GeneticTrait(parent1_behavioral.prediction_skill.value),
+                hunting_stamina=GeneticTrait(parent1_behavioral.hunting_stamina.value),
+                behavior_algorithm=GeneticTrait(parent1_behavioral.behavior_algorithm.value),
+                poker_algorithm=GeneticTrait(parent1_behavioral.poker_algorithm.value),
+                poker_strategy_algorithm=GeneticTrait(parent1_behavioral.poker_strategy_algorithm.value),
+                mate_preferences=GeneticTrait(dict(parent1_behavioral.mate_preferences.value)),
+            ),
+            learned_behaviors={"territory_size": 30.0, "social_rank": 3.0},
         )
 
-        offspring = Genome()
+        offspring = Genome(
+            physical=PhysicalTraits(
+                size_modifier=GeneticTrait(parent1_physical.size_modifier.value),
+                fertility=GeneticTrait(parent1_physical.fertility.value),
+                color_hue=GeneticTrait(parent1_physical.color_hue.value),
+                template_id=GeneticTrait(parent1_physical.template_id.value),
+                fin_size=GeneticTrait(parent1_physical.fin_size.value),
+                tail_size=GeneticTrait(parent1_physical.tail_size.value),
+                body_aspect=GeneticTrait(parent1_physical.body_aspect.value),
+                eye_size=GeneticTrait(parent1_physical.eye_size.value),
+                pattern_intensity=GeneticTrait(parent1_physical.pattern_intensity.value),
+                pattern_type=GeneticTrait(parent1_physical.pattern_type.value),
+            ),
+            behavioral=BehavioralTraits(
+                aggression=GeneticTrait(parent1_behavioral.aggression.value),
+                social_tendency=GeneticTrait(parent1_behavioral.social_tendency.value),
+                pursuit_aggression=GeneticTrait(parent1_behavioral.pursuit_aggression.value),
+                prediction_skill=GeneticTrait(parent1_behavioral.prediction_skill.value),
+                hunting_stamina=GeneticTrait(parent1_behavioral.hunting_stamina.value),
+                behavior_algorithm=GeneticTrait(parent1_behavioral.behavior_algorithm.value),
+                poker_algorithm=GeneticTrait(parent1_behavioral.poker_algorithm.value),
+                poker_strategy_algorithm=GeneticTrait(parent1_behavioral.poker_strategy_algorithm.value),
+                mate_preferences=GeneticTrait(dict(parent1_behavioral.mate_preferences.value)),
+            ),
+        )
 
         # Inherit behaviors (requires offspring param)
         inherit_learned_behaviors(parent1, parent2, offspring, inheritance_rate=0.7)
