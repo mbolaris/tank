@@ -373,6 +373,22 @@ class EcosystemManager:
         self.enhanced_stats.record_energy_from_food(energy_gained)
         self.record_energy_gain('falling_food', energy_gained)
 
+    def record_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
+        """Record generic food consumption by a fish with the given algorithm.
+
+        This is a convenience method that increments the food eaten counter
+        without specifying the food type. For detailed tracking, use the
+        specific methods: record_nectar_eaten, record_live_food_eaten, or
+        record_falling_food_eaten.
+
+        Args:
+            algorithm_id: Algorithm ID (0-47) of the fish that ate
+            energy_gained: Energy gained from food (default 10.0)
+        """
+        if algorithm_id in self.algorithm_stats:
+            self.algorithm_stats[algorithm_id].total_food_eaten += 1
+        self.enhanced_stats.record_energy_from_food(energy_gained)
+
     def record_poker_outcome(
         self,
         winner_id: int,

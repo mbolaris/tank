@@ -33,7 +33,7 @@ class MiniEcosystem:
     def record_birth(self, fish_id, generation, parent_ids=None, algorithm_id=None, color=None):
         self.births.append((fish_id, generation, parent_ids, algorithm_id))
 
-    def record_reproduction(self, algo_id):
+    def record_reproduction(self, algo_id, is_asexual: bool = False):
         self.reproductions += 1
 
     def record_death(self, *_args, **_kwargs):  # pragma: no cover - not used in this test
