@@ -1,8 +1,7 @@
 """Reproduction helpers for the simulation engine."""
 
+import random
 from typing import TYPE_CHECKING
-
-from core.constants import MATING_QUERY_RADIUS
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
@@ -27,23 +26,11 @@ class ReproductionSystem:
         environment = self.engine.environment
 
         for fish in fish_list:
-            if not fish.can_reproduce():
+            if not fish._reproduction_component.can_asexually_reproduce(
+                fish.life_stage, fish.energy, fish.max_energy
+            ):
                 continue
 
-            if environment is not None:
-                # OPTIMIZATION: Use dedicated nearby_fish query when available
-                if hasattr(environment, "nearby_fish"):
-                    nearby_fish = environment.nearby_fish(fish, MATING_QUERY_RADIUS)
-                else:
-                    nearby_fish = environment.nearby_agents_by_type(
-                        fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
-                    )
-            else:
-                nearby_fish = [f for f in fish_list if f is not fish]
-
-            for potential_mate in nearby_fish:
-                if potential_mate is fish:
-                    continue
-
-                if fish.try_mate(potential_mate):
-                    break
+            asexual_trait = getattr(fish.genome, "asexual_reproduction_chance", 0.0)
+            if random.random() < asexual_trait:
+                fish._reproduction_component.start_asexual_pregnancy()

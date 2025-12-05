@@ -574,45 +574,8 @@ class Fish(Agent):
         Returns:
             True if mating successful
         """
-        # Check if both can reproduce and are same species
-        if not (self.can_reproduce() and other.can_reproduce()):
-            return False
-
-        if self.species != other.species:
-            return False
-
-        # Calculate distance to mate
-        distance = (self.pos - other.pos).length()
-
-        # Attempt mating through reproduction component
-        mating_successful = self._reproduction_component.attempt_mating(
-            self.genome,
-            other.genome,
-            self.energy,
-            self.max_energy,
-            other.energy,
-            other.max_energy,
-            distance,
-        )
-
-        if not mating_successful:
-            return False
-
-        # Other fish also goes on cooldown
-        other.reproduction_cooldown = self._reproduction_component.REPRODUCTION_COOLDOWN
-
-        # Energy cost for reproduction (reduced to prevent post-mating starvation)
-        self.energy -= self._reproduction_component.REPRODUCTION_ENERGY_COST
-
-        # Record successful reproduction in ecosystem
-        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
-            from core.algorithms import get_algorithm_index
-
-            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
-            if algorithm_id >= 0:
-                self.ecosystem.record_reproduction(algorithm_id)
-
-        return True
+        # Standard mating is disabled; fish only reproduce sexually after poker games.
+        return False
 
     def update_reproduction(self) -> Optional["Fish"]:
         """Update reproduction state and potentially give birth.

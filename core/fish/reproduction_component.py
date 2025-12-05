@@ -5,7 +5,6 @@ functionality for fish, including mating, pregnancy, and offspring generation.
 Separating reproduction logic into its own component improves code organization and testability.
 """
 
-import random
 from typing import TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
@@ -30,7 +29,7 @@ class ReproductionComponent:
     """
 
     # Reproduction constants
-    REPRODUCTION_ENERGY_PERCENTAGE = 0.70  # Must have 70% of max energy to reproduce (lowered from 90% for faster evolution)
+    REPRODUCTION_ENERGY_PERCENTAGE = 1.0  # Require full energy before any reproduction path
     REPRODUCTION_COOLDOWN = 180  # 6 seconds (reduced for better breeding and faster generations)
     PREGNANCY_DURATION = 240  # 8 seconds (reduced for faster generations)
     MATING_DISTANCE = 60.0  # Maximum distance for mating
@@ -38,7 +37,13 @@ class ReproductionComponent:
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby
     MIN_ACCEPTANCE_THRESHOLD = 0.3  # Minimum chance to accept mate (30%)
 
-    __slots__ = ("is_pregnant", "pregnancy_timer", "reproduction_cooldown", "mate_genome")
+    __slots__ = (
+        "is_pregnant",
+        "pregnancy_timer",
+        "reproduction_cooldown",
+        "mate_genome",
+        "_asexual_pregnancy",
+    )
 
     def __init__(self) -> None:
         """Initialize the reproduction component."""
@@ -46,6 +51,7 @@ class ReproductionComponent:
         self.pregnancy_timer: int = 0
         self.reproduction_cooldown: int = 0
         self.mate_genome: Optional[Genome] = None
+        self._asexual_pregnancy: bool = False
 
     def can_reproduce(self, life_stage: "LifeStage", energy: float, max_energy: float) -> bool:
         """Check if fish can reproduce.
@@ -70,6 +76,20 @@ class ReproductionComponent:
             and self.reproduction_cooldown <= 0
             and not self.is_pregnant
         )
+
+    def can_asexually_reproduce(
+        self,
+        life_stage: "LifeStage",
+        energy: float,
+        max_energy: float,
+    ) -> bool:
+        """Check if the fish can trigger asexual reproduction."""
+
+        if not self.can_reproduce(life_stage, energy, max_energy):
+            return False
+
+        # Asexual reproduction only triggers when fully energized
+        return energy >= max_energy
 
     def calculate_mate_compatibility(
         self,
@@ -127,31 +147,17 @@ class ReproductionComponent:
         Returns:
             bool: True if mating was successful
         """
-        # Check distance
-        if distance > self.MATING_DISTANCE:
-            return False
+        # Standard mating is disabled; sexual reproduction now occurs only via poker.
+        return False
 
-        # Calculate mate compatibility (sexual selection)
-        total_compatibility = self.calculate_mate_compatibility(
-            own_genome, mate_genome, own_energy, own_max_energy, mate_energy, mate_max_energy
-        )
+    def start_asexual_pregnancy(self) -> None:
+        """Begin asexual reproduction cycle."""
 
-        # Mate selection: use compatibility as probability threshold
-        # Higher compatibility = higher chance of accepting mate
-        # Minimum threshold ensures population doesn't get stuck
-        acceptance_threshold = max(self.MIN_ACCEPTANCE_THRESHOLD, total_compatibility)
-
-        if random.random() > acceptance_threshold:
-            # Mate rejected based on preferences
-            return False
-
-        # Success! Start pregnancy
         self.is_pregnant = True
         self.pregnancy_timer = self.PREGNANCY_DURATION
-        self.mate_genome = mate_genome
         self.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
-
-        return True
+        self.mate_genome = None
+        self._asexual_pregnancy = True
 
     def update_state(self) -> bool:
         """Update reproduction state (cooldown and pregnancy timer).
@@ -188,7 +194,11 @@ class ReproductionComponent:
         """
         from core.genetics import Genome
 
-        if self.mate_genome is not None:
+        if self._asexual_pregnancy:
+            offspring_genome = Genome.clone_with_mutation(
+                own_genome, population_stress=population_stress
+            )
+        elif self.mate_genome is not None:
             offspring_genome = Genome.from_parents(
                 own_genome, self.mate_genome, population_stress=population_stress
             )
@@ -198,6 +208,7 @@ class ReproductionComponent:
 
         # Clear mate genome after birth
         self.mate_genome = None
+        self._asexual_pregnancy = False
 
         # Calculate energy to transfer to baby (as a fraction, to be calculated by caller)
         # The caller will compute: energy_to_transfer = parent.energy * ENERGY_TRANSFER_TO_BABY

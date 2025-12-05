@@ -155,7 +155,8 @@ class BehavioralTraits:
     pursuit_aggression: GeneticTrait[float]
     prediction_skill: GeneticTrait[float]
     hunting_stamina: GeneticTrait[float]
-    
+    asexual_reproduction_chance: GeneticTrait[float]
+
     # Algorithms are complex objects, but we wrap them in GeneticTrait too
     behavior_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]]
     poker_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]]
@@ -182,6 +183,7 @@ class BehavioralTraits:
             pursuit_aggression=GeneticTrait(rng.uniform(0.0, 1.0)),
             prediction_skill=GeneticTrait(rng.uniform(0.0, 1.0)),
             hunting_stamina=GeneticTrait(rng.uniform(0.0, 1.0)),
+            asexual_reproduction_chance=GeneticTrait(rng.uniform(0.0, 1.0)),
             behavior_algorithm=GeneticTrait(algorithm),
             poker_algorithm=GeneticTrait(poker_algorithm),
             poker_strategy_algorithm=GeneticTrait(poker_strategy_algorithm),
@@ -288,6 +290,11 @@ class Genome:
     def hunting_stamina(self) -> float: return self.behavioral.hunting_stamina.value
     @hunting_stamina.setter
     def hunting_stamina(self, v: float): self.behavioral.hunting_stamina.value = v
+
+    @property
+    def asexual_reproduction_chance(self) -> float: return self.behavioral.asexual_reproduction_chance.value
+    @asexual_reproduction_chance.setter
+    def asexual_reproduction_chance(self, v: float): self.behavioral.asexual_reproduction_chance.value = v
 
     @property
     def behavior_algorithm(self) -> Optional["BehaviorAlgorithm"]: return self.behavioral.behavior_algorithm.value
@@ -600,6 +607,16 @@ class Genome:
                 base_mutation_strength=adaptive_strength,
                 rng=rng,
             ),
+            asexual_reproduction_chance=_inherit_trait_with_metadata(
+                parent1.behavioral.asexual_reproduction_chance,
+                parent2.behavioral.asexual_reproduction_chance,
+                min_val=0.0,
+                max_val=1.0,
+                weight1=parent1_weight,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            ),
             behavior_algorithm=GeneticTrait(algo_val),
             poker_algorithm=GeneticTrait(poker_algo_val),
             poker_strategy_algorithm=GeneticTrait(poker_strat_val),
@@ -618,6 +635,235 @@ class Genome:
 
         offspring = cls(physical=physical, behavioral=behavioral, epigenetic_modifiers=epigenetic)
         inherit_learned_behaviors(parent1, parent2, offspring)
+        return offspring
+
+    @classmethod
+    def clone_with_mutation(
+        cls,
+        parent: "Genome",
+        population_stress: float = 0.0,
+        rng: Optional[pyrandom.Random] = None,
+    ) -> "Genome":
+        """Clone a genome while applying mutation pressure (no mate contribution)."""
+
+        return cls.from_parents_weighted(
+            parent1=parent,
+            parent2=parent,
+            parent1_weight=1.0,
+            population_stress=population_stress,
+            rng=rng,
+        )
+
+    @classmethod
+    def from_winner_choice(
+        cls,
+        winner: "Genome",
+        mate: "Genome",
+        population_stress: float = 0.0,
+        mutation_rate: float = 0.1,
+        mutation_strength: float = 0.1,
+        rng: Optional[pyrandom.Random] = None,
+    ) -> "Genome":
+        """Create offspring genome where the winner selectively borrows mate traits."""
+
+        rng = rng or pyrandom
+
+        adaptive_rate, adaptive_strength = calculate_adaptive_mutation_rate(
+            mutation_rate, mutation_strength, population_stress
+        )
+
+        def choose_trait(
+            primary: GeneticTrait[float],
+            secondary: GeneticTrait[float],
+            min_val: float,
+            max_val: float,
+        ) -> GeneticTrait[float]:
+            use_mate = rng.random() < primary.hgt_probability
+            first = secondary if use_mate else primary
+            second = primary
+            return _inherit_trait_with_metadata(
+                first,
+                second,
+                min_val=min_val,
+                max_val=max_val,
+                weight1=1.0,
+                base_mutation_rate=adaptive_rate,
+                base_mutation_strength=adaptive_strength,
+                rng=rng,
+            )
+
+        def choose_discrete_trait(
+            primary: GeneticTrait[int],
+            secondary: GeneticTrait[int],
+            min_val: int,
+            max_val: int,
+        ) -> GeneticTrait[int]:
+            use_mate = rng.random() < primary.hgt_probability
+            first = secondary if use_mate else primary
+            second = primary
+            return _inherit_discrete_trait_with_metadata(
+                first,
+                second,
+                min_val=min_val,
+                max_val=max_val,
+                weight1=1.0,
+                base_mutation_rate=adaptive_rate,
+                rng=rng,
+            )
+
+        physical = PhysicalTraits(
+            size_modifier=choose_trait(
+                winner.physical.size_modifier,
+                mate.physical.size_modifier,
+                min_val=0.7,
+                max_val=1.3,
+            ),
+            color_hue=choose_trait(
+                winner.physical.color_hue,
+                mate.physical.color_hue,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            template_id=choose_discrete_trait(
+                winner.physical.template_id,
+                mate.physical.template_id,
+                min_val=0,
+                max_val=FISH_TEMPLATE_COUNT - 1,
+            ),
+            fin_size=choose_trait(
+                winner.physical.fin_size,
+                mate.physical.fin_size,
+                min_val=0.6,
+                max_val=1.4,
+            ),
+            tail_size=choose_trait(
+                winner.physical.tail_size,
+                mate.physical.tail_size,
+                min_val=0.6,
+                max_val=1.4,
+            ),
+            body_aspect=choose_trait(
+                winner.physical.body_aspect,
+                mate.physical.body_aspect,
+                min_val=0.7,
+                max_val=1.3,
+            ),
+            eye_size=choose_trait(
+                winner.physical.eye_size,
+                mate.physical.eye_size,
+                min_val=0.7,
+                max_val=1.3,
+            ),
+            pattern_intensity=choose_trait(
+                winner.physical.pattern_intensity,
+                mate.physical.pattern_intensity,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            pattern_type=choose_discrete_trait(
+                winner.physical.pattern_type,
+                mate.physical.pattern_type,
+                min_val=0,
+                max_val=FISH_PATTERN_COUNT - 1,
+            ),
+        )
+
+        def choose_algorithm_trait(
+            primary: GeneticTrait[Optional["BehaviorAlgorithm"]],
+            secondary: GeneticTrait[Optional["BehaviorAlgorithm"]],
+        ) -> GeneticTrait[Optional["BehaviorAlgorithm"]]:
+            use_mate = rng.random() < primary.hgt_probability
+            return GeneticTrait(
+                secondary.value if use_mate else primary.value,
+                mutation_rate=primary.mutation_rate,
+                mutation_strength=primary.mutation_strength,
+                hgt_probability=primary.hgt_probability,
+            )
+
+        behavior_algo = choose_algorithm_trait(
+            winner.behavioral.behavior_algorithm, mate.behavioral.behavior_algorithm
+        )
+        poker_algo = choose_algorithm_trait(
+            winner.behavioral.poker_algorithm, mate.behavioral.poker_algorithm
+        )
+        poker_strategy_algo = choose_algorithm_trait(
+            winner.behavioral.poker_strategy_algorithm,
+            mate.behavioral.poker_strategy_algorithm,
+        )
+
+        mate_prefs = {}
+        for pref_key in winner.mate_preferences:
+            primary_pref = winner.mate_preferences.get(pref_key, 0.5)
+            mate_pref_val = mate.mate_preferences.get(pref_key, 0.5)
+            mate_prefs[pref_key] = _inherit_trait(
+                primary_pref,
+                mate_pref_val,
+                0.0,
+                1.0,
+                weight1=1.0,
+                mutation_rate=adaptive_rate,
+                mutation_strength=adaptive_strength,
+                rng=rng,
+            )
+
+        behavioral = BehavioralTraits(
+            aggression=choose_trait(
+                winner.behavioral.aggression,
+                mate.behavioral.aggression,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            social_tendency=choose_trait(
+                winner.behavioral.social_tendency,
+                mate.behavioral.social_tendency,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            pursuit_aggression=choose_trait(
+                winner.behavioral.pursuit_aggression,
+                mate.behavioral.pursuit_aggression,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            prediction_skill=choose_trait(
+                winner.behavioral.prediction_skill,
+                mate.behavioral.prediction_skill,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            hunting_stamina=choose_trait(
+                winner.behavioral.hunting_stamina,
+                mate.behavioral.hunting_stamina,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            asexual_reproduction_chance=choose_trait(
+                winner.behavioral.asexual_reproduction_chance,
+                mate.behavioral.asexual_reproduction_chance,
+                min_val=0.0,
+                max_val=1.0,
+            ),
+            behavior_algorithm=behavior_algo,
+            poker_algorithm=poker_algo,
+            poker_strategy_algorithm=poker_strategy_algo,
+            mate_preferences=GeneticTrait(mate_prefs),
+        )
+
+        epigenetic = {}
+        if winner.epigenetic_modifiers or mate.epigenetic_modifiers:
+            for modifier_key in set(
+                list(winner.epigenetic_modifiers.keys())
+                + list(mate.epigenetic_modifiers.keys())
+            ):
+                primary_val = winner.epigenetic_modifiers.get(modifier_key, 0.0)
+                mate_val = mate.epigenetic_modifiers.get(modifier_key, 0.0)
+                weighted_val = primary_val if rng.random() < 0.8 else mate_val
+                if abs(weighted_val) > 0.01:
+                    epigenetic[modifier_key] = weighted_val * 0.5
+
+        offspring = cls(physical=physical, behavioral=behavioral, epigenetic_modifiers=epigenetic)
+        inherit_learned_behaviors(winner, mate, offspring)
+        offspring.learned_behaviors = inherit_behavioral_traits_with_adjustment(winner, mate, 1.0)
         return offspring
 
     @classmethod

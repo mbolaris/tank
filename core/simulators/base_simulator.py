@@ -1227,9 +1227,16 @@ class BaseSimulator(ABC):
         Args:
             poker: The poker interaction with result
         """
-        # Default implementation does nothing
+        # Default implementation ensures offspring created from poker
+        # reproduction are added to the simulation so evolution can proceed.
+        if (
+            poker.result is not None
+            and poker.result.reproduction_occurred
+            and poker.result.offspring is not None
+        ):
+            self.add_entity(poker.result.offspring)
+
         # Subclasses can override to add notifications, logging, etc.
-        pass
 
     def get_fish_list(self) -> List["Fish"]:
         """Get all fish entities in the simulation.
