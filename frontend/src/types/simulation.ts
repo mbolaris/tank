@@ -206,6 +206,15 @@ export interface StatsData {
     energy_from_poker: number;
     energy_from_poker_plant?: number;
     energy_from_auto_eval: number;
+    // Fish energy distribution
+    avg_fish_energy: number;
+    min_fish_energy: number;
+    max_fish_energy: number;
+    // Fish health status counts (by energy ratio)
+    fish_health_critical: number;  // <15% energy
+    fish_health_low: number;       // 15-30% energy
+    fish_health_healthy: number;   // 30-80% energy
+    fish_health_full: number;      // >80% energy
     poker_stats: PokerStatsData;
     total_sexual_births: number;
     total_asexual_births: number;

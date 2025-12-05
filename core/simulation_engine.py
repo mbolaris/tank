@@ -834,6 +834,42 @@ class SimulationEngine(BaseSimulator):
         regular_plants = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
         stats["plant_count"] = regular_plants + len(plant_list)
 
+        # Fish energy distribution stats
+        if fish_list:
+            fish_energies = [fish.energy for fish in fish_list]
+            stats["avg_fish_energy"] = stats["fish_energy"] / len(fish_list)
+            stats["min_fish_energy"] = min(fish_energies)
+            stats["max_fish_energy"] = max(fish_energies)
+
+            # Count fish in different energy health states
+            # Using energy ratios: critical (<15%), low (<30%), healthy (30-80%), full (>80%)
+            critical_count = 0
+            low_count = 0
+            healthy_count = 0
+            full_count = 0
+            for fish in fish_list:
+                ratio = fish.energy / fish.max_energy if fish.max_energy > 0 else 0
+                if ratio < 0.15:
+                    critical_count += 1
+                elif ratio < 0.30:
+                    low_count += 1
+                elif ratio < 0.80:
+                    healthy_count += 1
+                else:
+                    full_count += 1
+            stats["fish_health_critical"] = critical_count
+            stats["fish_health_low"] = low_count
+            stats["fish_health_healthy"] = healthy_count
+            stats["fish_health_full"] = full_count
+        else:
+            stats["avg_fish_energy"] = 0.0
+            stats["min_fish_energy"] = 0.0
+            stats["max_fish_energy"] = 0.0
+            stats["fish_health_critical"] = 0
+            stats["fish_health_low"] = 0
+            stats["fish_health_healthy"] = 0
+            stats["fish_health_full"] = 0
+
         return stats
 
     def export_stats_json(self, filename: str) -> None:

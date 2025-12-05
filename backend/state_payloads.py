@@ -185,6 +185,15 @@ class StatsPayload:
     energy_from_falling_food: float = 0.0
     energy_from_poker: float = 0.0
     energy_from_auto_eval: float = 0.0
+    # Fish energy distribution
+    avg_fish_energy: float = 0.0
+    min_fish_energy: float = 0.0
+    max_fish_energy: float = 0.0
+    # Fish health status counts (by energy ratio)
+    fish_health_critical: int = 0  # <15% energy
+    fish_health_low: int = 0       # 15-30% energy
+    fish_health_healthy: int = 0   # 30-80% energy
+    fish_health_full: int = 0      # >80% energy
     poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
         total_games=0,
         total_fish_games=0,
