@@ -73,7 +73,7 @@ tank/
   - Age progression
 
 - **genetics.py**: Genetic system
-  - Genome with 7 traits (speed, size, vision, metabolism, fertility, color, lifespan)
+  - Genome with traits (speed, size, vision, metabolism, color, lifespan)
   - Mutation with configurable rates
   - Sexual reproduction via crossover
   - Algorithm inheritance

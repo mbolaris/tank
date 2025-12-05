@@ -124,7 +124,6 @@ class GeneticTrait(Generic[T]):
 class PhysicalTraits:
     """Physical attributes of the fish."""
     size_modifier: GeneticTrait[float]
-    fertility: GeneticTrait[float]
     color_hue: GeneticTrait[float]
     template_id: GeneticTrait[int]
     fin_size: GeneticTrait[float]
@@ -138,7 +137,6 @@ class PhysicalTraits:
     def random(cls, rng: pyrandom.Random) -> "PhysicalTraits":
         return cls(
             size_modifier=GeneticTrait(rng.uniform(0.7, 1.3)),
-            fertility=GeneticTrait(rng.uniform(0.6, 1.4)),
             color_hue=GeneticTrait(rng.random()),
             template_id=GeneticTrait(rng.randint(0, FISH_TEMPLATE_COUNT - 1)),
             fin_size=GeneticTrait(rng.uniform(0.6, 1.4)),
@@ -224,11 +222,6 @@ class Genome:
     def size_modifier(self) -> float: return self.physical.size_modifier.value
     @size_modifier.setter
     def size_modifier(self, v: float): self.physical.size_modifier.value = v
-
-    @property
-    def fertility(self) -> float: return self.physical.fertility.value
-    @fertility.setter
-    def fertility(self, v: float): self.physical.fertility.value = v
 
     @property
     def color_hue(self) -> float: return self.physical.color_hue.value
@@ -418,16 +411,6 @@ class Genome:
                 parent2.physical.size_modifier,
                 min_val=0.7,
                 max_val=1.3,
-                weight1=parent1_weight,
-                base_mutation_rate=adaptive_rate,
-                base_mutation_strength=adaptive_strength,
-                rng=rng,
-            ),
-            fertility=_inherit_trait_with_metadata(
-                parent1.physical.fertility,
-                parent2.physical.fertility,
-                min_val=0.6,
-                max_val=1.4,
                 weight1=parent1_weight,
                 base_mutation_rate=adaptive_rate,
                 base_mutation_strength=adaptive_strength,

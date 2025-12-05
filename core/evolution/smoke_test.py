@@ -18,7 +18,6 @@ def _summarize_population(population: Sequence[Genome]) -> Dict[str, float]:
     """Calculate simple metrics for a population snapshot."""
     speeds = [g.speed_modifier for g in population]
     aggression = [g.aggression for g in population]
-    fertility = [g.fertility for g in population]
     metabolism = [g.metabolism_rate for g in population]
 
     def _mean(values: List[float]) -> float:
@@ -35,7 +34,6 @@ def _summarize_population(population: Sequence[Genome]) -> Dict[str, float]:
         "speed_spread": max(speeds) - min(speeds),
         "speed_stdev": _stdev(speeds),
         "aggression_mean": _mean(aggression),
-        "fertility_mean": _mean(fertility),
         "metabolism_mean": _mean(metabolism),
     }
 
@@ -92,8 +90,8 @@ def format_report(report: Dict[str, object]) -> str:
         "🚀 Evolution smoke test",
         f"Seed: {report['seed']} | Population: {report['population_size']}",
         "",
-        "Gen | speed μ  | spread | σ      | aggression μ | fertility μ",
-        "----+---------+--------+--------+--------------+------------",
+        "Gen | speed μ  | spread | σ      | aggression μ",
+        "----+---------+--------+--------+--------------",
     ]
 
     for gen_snapshot in report["generations"]:
@@ -102,8 +100,7 @@ def format_report(report: Dict[str, object]) -> str:
             f"{gen_snapshot['speed_mean']:.3f} | "
             f"{gen_snapshot['speed_spread']:.3f} | "
             f"{gen_snapshot['speed_stdev']:.3f} | "
-            f"{gen_snapshot['aggression_mean']:.3f}     | "
-            f"{gen_snapshot['fertility_mean']:.3f}"
+            f"{gen_snapshot['aggression_mean']:.3f}"
         )
 
     lines.extend(

@@ -153,7 +153,6 @@ class TestEdgeCasesAndBoundaries:
         genome = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(0.7),  # Min (valid range is 0.7-1.3)
-                fertility=GeneticTrait(1.0),
                 color_hue=GeneticTrait(0.5),
                 template_id=GeneticTrait(1),      # Streamlined (1.2x speed)
                 fin_size=GeneticTrait(1.4),       # Max fins
@@ -342,7 +341,6 @@ class TestPokerEvolution:
         winner = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.0),
-                fertility=GeneticTrait(1.0),
                 color_hue=GeneticTrait(0.5),
                 template_id=GeneticTrait(0),
                 fin_size=GeneticTrait(1.0),
@@ -372,7 +370,6 @@ class TestPokerEvolution:
         loser = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.0),
-                fertility=GeneticTrait(1.0),
                 color_hue=GeneticTrait(0.5),
                 template_id=GeneticTrait(0),
                 fin_size=GeneticTrait(1.0),
@@ -611,7 +608,6 @@ class TestComplexIntegration:
         fish1 = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.0),
-                fertility=GeneticTrait(1.0),
                 color_hue=GeneticTrait(0.5),
                 template_id=GeneticTrait(0),
                 fin_size=GeneticTrait(1.0),
@@ -642,7 +638,6 @@ class TestComplexIntegration:
         fish2 = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.0),
-                fertility=GeneticTrait(1.0),
                 color_hue=GeneticTrait(0.51),
                 template_id=GeneticTrait(0),
                 fin_size=GeneticTrait(1.0),
@@ -673,7 +668,6 @@ class TestComplexIntegration:
         fish3 = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.3),  # Changed from 1.5 to valid range
-                fertility=GeneticTrait(1.0),
                 color_hue=GeneticTrait(0.0),
                 template_id=GeneticTrait(0),
                 fin_size=GeneticTrait(0.6),
@@ -715,7 +709,6 @@ class TestComplexIntegration:
         # Use numeric values for learned behaviors (not strings)
         parent1_physical = PhysicalTraits(
             size_modifier=GeneticTrait(1.0),
-            fertility=GeneticTrait(1.0),
             color_hue=GeneticTrait(0.5),
             template_id=GeneticTrait(0),
             fin_size=GeneticTrait(1.0),
@@ -751,7 +744,6 @@ class TestComplexIntegration:
         parent2 = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(parent1_physical.size_modifier.value),
-                fertility=GeneticTrait(parent1_physical.fertility.value),
                 color_hue=GeneticTrait(parent1_physical.color_hue.value),
                 template_id=GeneticTrait(parent1_physical.template_id.value),
                 fin_size=GeneticTrait(parent1_physical.fin_size.value),
@@ -778,7 +770,6 @@ class TestComplexIntegration:
         offspring = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(parent1_physical.size_modifier.value),
-                fertility=GeneticTrait(parent1_physical.fertility.value),
                 color_hue=GeneticTrait(parent1_physical.color_hue.value),
                 template_id=GeneticTrait(parent1_physical.template_id.value),
                 fin_size=GeneticTrait(parent1_physical.fin_size.value),

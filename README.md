@@ -390,7 +390,7 @@ MAX_FOOD_CAPACITY = 8  # per plant
 ## 🧬 Genetics & Evolution
 
 ### Heritable Traits
-- **Physical traits**: Speed, size, vision range, metabolism, max energy, fertility
+- **Physical traits**: Speed, size, vision range, metabolism, max energy
 - **Visual traits**: Body shape, fin size, tail size, color pattern
 - **Behavior algorithm**: One of 58 parametrizable algorithms (inherited from parent)
 - **Algorithm parameters**: Tunable values that control algorithm behavior

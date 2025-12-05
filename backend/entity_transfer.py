@@ -91,7 +91,6 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Dic
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
         "genome_data": {
             "size_modifier": fish.genome.size_modifier,
-            "fertility": fish.genome.fertility,
             "color_hue": fish.genome.color_hue,
             "aggression": fish.genome.aggression,
             "social_tendency": fish.genome.social_tendency,
@@ -232,7 +231,6 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         # Create genome using random() then override with saved values
         genome = Genome.random()
         genome.size_modifier = genome_data.get("size_modifier", 1.0)
-        genome.fertility = genome_data.get("fertility", 1.0)
         genome.color_hue = genome_data.get("color_hue", 0.5)
         genome.aggression = genome_data.get("aggression", 0.5)
         genome.social_tendency = genome_data.get("social_tendency", 0.5)
