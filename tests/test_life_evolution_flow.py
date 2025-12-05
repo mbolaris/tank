@@ -152,7 +152,7 @@ def test_multi_generation_reproduction(monkeypatch):
     parent_b.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
     parent_b.energy = parent_b.max_energy * 0.1
 
-    helper = _make_adult_fish(env, ecosystem)
+    helper = _make_adult_fish(env, ecosystem, generation=baby.generation)
     engine.add_entity(helper)
 
     # Make sure the baby drives the next reproduction cycle
