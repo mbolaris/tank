@@ -167,6 +167,7 @@ def test_multi_generation_reproduction(monkeypatch):
     grandbaby = second_generation[0]
     assert grandbaby.generation == baby.generation + 1
 
-    # We should now have five fish: two parents + helper + baby + grandbaby
-    assert len(engine.entities_list) == 5
+    # We should now have at least five fish: two parents + helper + baby + grandbaby
+    # Additional offspring can appear if full-energy fish trigger asexual reproduction
+    assert len(engine.entities_list) >= 5
     assert len(ecosystem.births) >= 2, "Multiple births should be tracked during the cycle"
