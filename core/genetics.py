@@ -862,8 +862,7 @@ class Genome:
                     epigenetic[modifier_key] = weighted_val * 0.5
 
         offspring = cls(physical=physical, behavioral=behavioral, epigenetic_modifiers=epigenetic)
-        inherit_learned_behaviors(winner, mate, offspring)
-        offspring.learned_behaviors = inherit_behavioral_traits_with_adjustment(winner, mate, 1.0)
+        inherit_learned_behaviors(winner, mate, offspring, inheritance_rate=1.0)
         return offspring
 
     @classmethod
