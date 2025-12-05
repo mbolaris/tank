@@ -471,11 +471,7 @@ class PokerInteraction:
         if winner_fish.environment is None or loser_fish.environment is None:
             return None
 
-        from core.constants import (
-            POST_POKER_CROSSOVER_WINNER_WEIGHT,
-            POST_POKER_MATING_DISTANCE,
-            REPRODUCTION_COOLDOWN,
-        )
+        from core.constants import POST_POKER_MATING_DISTANCE, REPRODUCTION_COOLDOWN
         from core.genetics import Genome
 
         # Check distance (fish must still be close enough)
@@ -483,18 +479,12 @@ class PokerInteraction:
         if distance > POST_POKER_MATING_DISTANCE:
             return None
 
-        # Check if winner wants to reproduce
+        # Only the winner decides to reproduce after a poker hand.
         winner_wants = should_offer_post_poker_reproduction(
             winner_fish, loser_fish, is_winner=True, energy_gained=energy_transferred
         )
 
-        # Check if loser wants to reproduce
-        loser_wants = should_offer_post_poker_reproduction(
-            loser_fish, winner_fish, is_winner=False, energy_gained=-energy_transferred
-        )
-
-        # Both must agree to reproduce
-        if not (winner_wants and loser_wants):
+        if not winner_wants:
             return None
 
         # Calculate population stress for adaptive mutations
@@ -523,33 +513,29 @@ class PokerInteraction:
                     POPULATION_STRESS_MAX_TOTAL, population_stress + death_rate_stress
                 )
 
-        # Create offspring genome using WEIGHTED crossover (winner contributes more DNA)
+        # Create offspring genome using winner-driven selective inheritance
         from core.constants import (
             POST_POKER_MUTATION_RATE,
             POST_POKER_MUTATION_STRENGTH,
             POST_POKER_PARENT_ENERGY_CONTRIBUTION,
         )
 
-        offspring_genome = Genome.from_parents_weighted(
-            parent1=winner_fish.genome,
-            parent2=loser_fish.genome,
-            parent1_weight=POST_POKER_CROSSOVER_WINNER_WEIGHT,  # Winner contributes 60%
+        offspring_genome = Genome.from_winner_choice(
+            winner=winner_fish.genome,
+            mate=loser_fish.genome,
+            population_stress=population_stress,
             mutation_rate=POST_POKER_MUTATION_RATE,
             mutation_strength=POST_POKER_MUTATION_STRENGTH,
-            population_stress=population_stress,
         )
 
-        # Energy transfer for baby (both parents contribute)
+        # Energy transfer for baby (winner only contributes)
         winner_energy_contribution = POST_POKER_PARENT_ENERGY_CONTRIBUTION
-        loser_energy_contribution = POST_POKER_PARENT_ENERGY_CONTRIBUTION
 
         winner_energy_transfer = winner_fish.energy * winner_energy_contribution
-        loser_energy_transfer = loser_fish.energy * loser_energy_contribution
-        total_baby_energy = winner_energy_transfer + loser_energy_transfer
+        total_baby_energy = winner_energy_transfer
 
-        # Parents pay the energy cost
+        # Winner pays the energy cost
         winner_fish.modify_energy(-winner_energy_transfer)
-        loser_fish.modify_energy(-loser_energy_transfer)
 
         # Set reproduction cooldown for both parents
         winner_fish.reproduction_cooldown = REPRODUCTION_COOLDOWN
