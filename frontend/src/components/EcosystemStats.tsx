@@ -14,6 +14,13 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     const deathCauseEntries = Object.entries(stats.death_causes);
     const pokerTransfer = stats.poker_stats?.total_plant_energy_transferred ?? 0;
+    const energySources = stats.energy_sources ?? {};
+    const energyFromNectar = Math.round(stats.energy_from_nectar ?? energySources.nectar ?? 0);
+    const energyFromLiveFood = Math.round(stats.energy_from_live_food ?? energySources.live_food ?? 0);
+    const energyFromFallingFood = Math.round(stats.energy_from_falling_food ?? energySources.falling_food ?? 0);
+    const energyFromPoker = Math.round(stats.energy_from_poker ?? energySources.poker_fish ?? 0);
+    const energyFromPokerPlant = Math.round(stats.energy_from_poker_plant ?? energySources.poker_plant ?? 0);
+    const energyFromAutoEval = Math.round(stats.energy_from_auto_eval ?? energySources.auto_eval ?? 0);
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
@@ -70,6 +77,30 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         subValue={`S: ${stats.total_sexual_births ?? 0} / A: ${stats.total_asexual_births ?? 0}`}
                     />
                     <RowItem label="Total Deaths" value={stats.deaths} valueColor="var(--color-danger)" />
+                </div>
+            </div>
+
+            {/* Energy Origins Card */}
+            <div className="glass-panel" style={{ padding: '12px' }}>
+                <h3 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '12px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                }}>
+                    <span>⚡</span> Fish Energy Sources (Last 10s)
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' }}>
+                    <StatItem label="Nectar" value={energyFromNectar.toLocaleString()} subValue="🌸" color="#ec4899" />
+                    <StatItem label="Live Food" value={energyFromLiveFood.toLocaleString()} subValue="🦐" color="#fbbf24" />
+                    <StatItem label="Falling Food" value={energyFromFallingFood.toLocaleString()} subValue="🍽️" color="var(--color-success)" />
+                    <StatItem label="Fish Poker" value={energyFromPoker.toLocaleString()} subValue="🐟🃏" color="var(--color-primary)" />
+                    <StatItem label="Plant Poker" value={energyFromPokerPlant.toLocaleString()} subValue="🌿🃏" color="#8b5cf6" />
+                    <StatItem label="Auto Eval" value={energyFromAutoEval.toLocaleString()} subValue="🏆" color="#8b5cf6" />
                 </div>
             </div>
 

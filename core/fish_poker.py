@@ -710,18 +710,24 @@ class PokerInteraction:
             # Use direct energy assignment to bypass max_energy cap (poker winnings can exceed capacity)
             winner_fish.energy += total_pot - house_cut
             winner_actual_gain = net_gain - house_cut
+            if winner_actual_gain > 0 and winner_fish.ecosystem is not None:
+                winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain)
             
-            # Collect loser IDs
-            loser_ids = [
-                self.fish_list[i].fish_id 
-                for i in range(self.num_players) 
-                if i != winner_idx
-            ]
+            # Collect loser IDs and record their losses
+            loser_ids = []
+            for i in range(self.num_players):
+                if i != winner_idx:
+                    loser_ids.append(self.fish_list[i].fish_id)
+                    # Record loser's loss as negative amount
+                    loser_loss = game_state.players[i].total_bet
+                    if loser_loss > 0 and self.fish_list[i].ecosystem is not None:
+                        self.fish_list[i].ecosystem.record_poker_energy_gain(-loser_loss)
         else:
             # Tie - split pot among tied players (no house cut on ties)
             split_amount = total_pot / len(tied_players)
             for player_idx in tied_players:
                 self.fish_list[player_idx].modify_energy(split_amount)
+            # For ties, no net gain/loss to record (they split evenly)
         
         # Set cooldowns for all players
         for participant in self.participants:
@@ -1023,6 +1029,11 @@ class PokerInteraction:
             energy_transferred = loser_total_bet
             # Also calculate the winner's actual gain (less than loser's loss due to house cut)
             winner_actual_gain = net_gain - house_cut
+            if winner_actual_gain > 0 and winner_fish.ecosystem is not None:
+                winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain)
+            # Record loser's loss as negative amount
+            if loser_total_bet > 0 and loser_fish.ecosystem is not None:
+                loser_fish.ecosystem.record_poker_energy_gain(-loser_total_bet)
         else:
             # Tie - no energy transfer
             energy_transferred = 0.0

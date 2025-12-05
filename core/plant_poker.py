@@ -207,12 +207,17 @@ class PlantPokerInteraction:
             # Fish wins - takes energy from plant
             energy_transferred = winnings / 2
             self.fish.energy += energy_transferred
+            if self.fish.ecosystem is not None:
+                self.fish.ecosystem.record_plant_poker_energy_gain(energy_transferred)
             self.plant.lose_energy(total_pot / 2)
             self.plant.poker_losses += 1
         else:
             # Plant wins - takes energy from fish
             energy_transferred = -(total_pot / 2)
             self.fish.energy += energy_transferred
+            # Record fish's loss as negative amount
+            if self.fish.ecosystem is not None:
+                self.fish.ecosystem.record_plant_poker_energy_gain(energy_transferred)
             self.plant.gain_energy(winnings / 2)
             self.plant.poker_wins += 1
             # Note: update_fitness() removed - fitness is tracked implicitly via poker_wins

@@ -461,6 +461,8 @@ class SimulationRunner:
                         reward = min(net_energy, fish.max_energy - fish.energy)
                         if reward > 0:
                             fish.energy += reward
+                            if fish.ecosystem is not None:
+                                fish.ecosystem.record_auto_eval_energy_gain(reward)
                             logger.info(f"Auto-eval reward: Fish #{fish_id} gained {reward:.1f} energy")
 
                 elif plant_id is not None:
@@ -684,6 +686,12 @@ class SimulationRunner:
             live_food_energy=stats.get("live_food_energy", 0.0),
             fish_energy=stats.get("fish_energy", 0.0),
             plant_energy=stats.get("plant_energy", 0.0),
+            energy_sources=stats.get("energy_sources", {}),
+            energy_from_nectar=stats.get("energy_from_nectar", 0.0),
+            energy_from_live_food=stats.get("energy_from_live_food", 0.0),
+            energy_from_falling_food=stats.get("energy_from_falling_food", 0.0),
+            energy_from_poker=stats.get("energy_from_poker", 0.0),
+            energy_from_auto_eval=stats.get("energy_from_auto_eval", 0.0),
             poker_stats=poker_stats_payload,
             total_sexual_births=stats.get("reproduction_stats", {}).get("total_sexual_reproductions", 0),
             total_asexual_births=stats.get("reproduction_stats", {}).get("total_asexual_reproductions", 0),

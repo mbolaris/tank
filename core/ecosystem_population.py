@@ -250,6 +250,9 @@ def get_summary_stats(
     total_pop = get_total_population(ecosystem)
     poker_summary = ecosystem.get_poker_stats_summary()
 
+    energy_summary = ecosystem.get_energy_source_summary()
+    recent_energy = ecosystem.get_recent_energy_breakdown(window_frames=300)
+
     total_energy = 0.0
     if entities is not None:
         from core.entities import Fish
@@ -277,6 +280,13 @@ def get_summary_stats(
         "generations_alive": len(alive_generations),
         "poker_stats": poker_summary,
         "total_energy": total_energy,
+        "energy_sources": energy_summary,
+        "energy_from_nectar": recent_energy.get("nectar", 0.0),
+        "energy_from_live_food": recent_energy.get("live_food", 0.0),
+        "energy_from_falling_food": recent_energy.get("falling_food", 0.0),
+        "energy_from_poker": recent_energy.get("poker_fish", 0.0),
+        "energy_from_poker_plant": recent_energy.get("poker_plant", 0.0),
+        "energy_from_auto_eval": recent_energy.get("auto_eval", 0.0),
         "reproduction_stats": ecosystem.get_reproduction_summary(),
         "diversity_stats": ecosystem.get_diversity_summary(),
     }

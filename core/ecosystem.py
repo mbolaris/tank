@@ -4,8 +4,8 @@ This module manages population dynamics, statistics, and ecosystem health.
 """
 
 import logging
-from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from collections import defaultdict, deque
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import (
@@ -96,6 +96,14 @@ class EcosystemManager:
         # Extinction tracking
         self.total_extinctions: int = 0  # Count of times population went to 0
         self._last_max_generation: int = 0  # Track previous max generation to detect drops
+
+        # Track where fish energy increments are coming from (cumulative)
+        self.energy_sources: Dict[str, float] = defaultdict(float)
+        
+        # Track recent energy gains for source breakdown (rolling window of 300 frames)
+        # Each entry: (frame_number, source, amount)
+        self.recent_energy_gains: deque[Tuple[int, str, float]] = deque(maxlen=10000)
+        self.current_frame: int = 0
 
     @property
     def reproduction_stats(self):
@@ -323,18 +331,47 @@ class EcosystemManager:
         """Update the count of currently pregnant fish."""
         self.reproduction_manager.update_pregnant_count(count)
 
-    def record_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
-        """Record food consumption by a fish with the given algorithm.
+    def record_nectar_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
+        """Record nectar consumption by a fish with the given algorithm.
 
         Args:
             algorithm_id: Algorithm ID (0-47) of the fish that ate
-            energy_gained: Energy gained from food
+            energy_gained: Energy gained from nectar
         """
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
 
-        # NEW: Track energy from food for efficiency metrics
+        # NEW: Track energy from nectar for efficiency metrics
         self.enhanced_stats.record_energy_from_food(energy_gained)
+        self.record_energy_gain('nectar', energy_gained)
+
+    def record_live_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
+        """Record live food consumption by a fish with the given algorithm.
+
+        Args:
+            algorithm_id: Algorithm ID (0-47) of the fish that ate
+            energy_gained: Energy gained from live food
+        """
+        if algorithm_id in self.algorithm_stats:
+            self.algorithm_stats[algorithm_id].total_food_eaten += 1
+
+        # NEW: Track energy from live food for efficiency metrics
+        self.enhanced_stats.record_energy_from_food(energy_gained)
+        self.record_energy_gain('live_food', energy_gained)
+
+    def record_falling_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
+        """Record falling food consumption by a fish with the given algorithm.
+
+        Args:
+            algorithm_id: Algorithm ID (0-47) of the fish that ate
+            energy_gained: Energy gained from falling food
+        """
+        if algorithm_id in self.algorithm_stats:
+            self.algorithm_stats[algorithm_id].total_food_eaten += 1
+
+        # NEW: Track energy from falling food for efficiency metrics
+        self.enhanced_stats.record_energy_from_food(energy_gained)
+        self.record_energy_gain('falling_food', energy_gained)
 
     def record_poker_outcome(
         self,
@@ -399,6 +436,48 @@ class EcosystemManager:
             is_plant_game: Whether this game involved plants (for counting)
         """
         self.poker_manager.record_mixed_poker_energy_transfer(energy_to_fish, is_plant_game)
+
+    def record_poker_energy_gain(self, amount: float) -> None:
+        """Track net energy fish gained from fish-vs-fish poker."""
+        self.record_energy_gain('poker_fish', amount)
+
+    def record_plant_poker_energy_gain(self, amount: float) -> None:
+        """Track net energy fish gained from fish-vs-plant poker."""
+        self.record_energy_gain('poker_plant', amount)
+
+    def record_auto_eval_energy_gain(self, amount: float) -> None:
+        """Track energy awarded through auto-evaluation benchmarks."""
+        self.record_energy_gain('auto_eval', amount)
+
+    def record_energy_gain(self, source: str, amount: float) -> None:
+        """Accumulate energy gains by source for downstream stats."""
+        if amount == 0:
+            return
+        self.energy_sources[source] += amount
+        self.recent_energy_gains.append((self.current_frame, source, amount))
+
+    def get_energy_source_summary(self) -> Dict[str, float]:
+        """Return a snapshot of accumulated energy gains."""
+        return dict(self.energy_sources)
+    
+    def get_recent_energy_breakdown(self, window_frames: int = 300) -> Dict[str, float]:
+        """Get energy source breakdown over recent frames.
+        
+        Args:
+            window_frames: Number of recent frames to include (default 300 = ~10 seconds at 30fps)
+            
+        Returns:
+            Dictionary mapping source names to net energy gained in the window
+        """
+        cutoff_frame = self.current_frame - window_frames
+        recent_totals: Dict[str, float] = defaultdict(float)
+        
+        # Sum up energy from recent frames
+        for frame, source, amount in self.recent_energy_gains:
+            if frame >= cutoff_frame:
+                recent_totals[source] += amount
+        
+        return dict(recent_totals)
 
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         from core import algorithm_reporter

@@ -802,10 +802,18 @@ class Fish(Agent):
         behavior_algorithm = self.genome.behavior_algorithm
         if ecosystem is not None and behavior_algorithm is not None:
             from core.algorithms import get_algorithm_index
+            from core.entities.fractal_plant import PlantNectar
+            from core.entities.resources import LiveFood
 
             algorithm_id = get_algorithm_index(behavior_algorithm)
             if algorithm_id >= 0:
-                ecosystem.record_food_eaten(algorithm_id)
+                # Determine food type and call appropriate tracking method
+                if isinstance(food, PlantNectar):
+                    ecosystem.record_nectar_eaten(algorithm_id, energy_gained)
+                elif isinstance(food, LiveFood):
+                    ecosystem.record_live_food_eaten(algorithm_id, energy_gained)
+                else:
+                    ecosystem.record_falling_food_eaten(algorithm_id, energy_gained)
 
     def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
         """Apply an energy penalty for direction changes, scaled by turn angle and fish size.

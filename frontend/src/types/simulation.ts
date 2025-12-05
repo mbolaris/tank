@@ -199,6 +199,13 @@ export interface StatsData {
     total_energy: number;
     fish_energy: number;  // Total energy of all fish
     plant_energy: number; // Total energy of all plants
+    energy_sources: Record<string, number>;
+    energy_from_nectar: number;
+    energy_from_live_food: number;
+    energy_from_falling_food: number;
+    energy_from_poker: number;
+    energy_from_poker_plant?: number;
+    energy_from_auto_eval: number;
     poker_stats: PokerStatsData;
     total_sexual_births: number;
     total_asexual_births: number;

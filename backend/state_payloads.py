@@ -179,7 +179,26 @@ class StatsPayload:
     live_food_energy: float  # Total energy of all live food
     fish_energy: float  # Total energy of all fish
     plant_energy: float  # Total energy of all plants
-    poker_stats: PokerStatsPayload
+    energy_sources: Dict[str, float] = field(default_factory=dict)
+    energy_from_nectar: float = 0.0
+    energy_from_live_food: float = 0.0
+    energy_from_falling_food: float = 0.0
+    energy_from_poker: float = 0.0
+    energy_from_auto_eval: float = 0.0
+    poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
+        total_games=0,
+        total_fish_games=0,
+        total_plant_games=0,
+        total_plant_energy_transferred=0.0,
+        total_wins=0,
+        total_losses=0,
+        total_ties=0,
+        total_energy_won=0.0,
+        total_energy_lost=0.0,
+        net_energy=0.0,
+        best_hand_rank=0,
+        best_hand_name="",
+    ))
     total_sexual_births: int = 0
     total_asexual_births: int = 0
     fps: float = 0.0
