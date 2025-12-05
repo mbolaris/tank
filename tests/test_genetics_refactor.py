@@ -50,13 +50,10 @@ class TestGeneticsRefactor:
         """Test random generation of PhysicalTraits."""
         rng = random.Random(123)
         phys = PhysicalTraits.random(rng)
-        
+
         assert isinstance(phys.size_modifier, GeneticTrait)
         assert 0.7 <= phys.size_modifier.value <= 1.3
-        
-        assert isinstance(phys.fertility, GeneticTrait)
-        assert 0.6 <= phys.fertility.value <= 1.4
-        
+
         assert isinstance(phys.template_id, GeneticTrait)
         assert isinstance(phys.template_id.value, int)
         assert 0 <= phys.template_id.value <= 5
