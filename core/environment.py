@@ -220,6 +220,10 @@ class SpatialGrid:
         
         PERFORMANCE: Avoids intermediate list creation by directly filtering
         during iteration. Uses local variables for faster attribute access.
+        
+        NOTE: Filters out dead/migrated fish to prevent "ghost attraction"
+        where live fish are attracted to positions of fish that have died
+        but haven't been removed from the grid yet.
         """
         if not hasattr(agent, "pos"):
             return []
@@ -246,6 +250,9 @@ class SpatialGrid:
                     # OPTIMIZATION: Filter directly during iteration
                     for other in cell_fish:
                         if other is not agent:
+                            # Filter out dead or migrated fish to prevent ghost attraction
+                            if hasattr(other, 'is_dead') and other.is_dead():
+                                continue
                             dx = other.pos.x - agent_x
                             dy = other.pos.y - agent_y
                             if dx * dx + dy * dy <= radius_sq:
@@ -566,6 +573,8 @@ class Environment:
 
         Uses spatial grid partitioning for O(k) performance instead of O(n),
         where k is the number of agents in nearby cells.
+        
+        NOTE: Filters out dead/migrated fish to prevent targeting invalid entities.
 
         Args:
             agent (Agent): The agent to consider.
@@ -621,6 +630,10 @@ class Environment:
                     if is_match:
                         for other in agents:
                             if other is agent:
+                                continue
+                            
+                            # Filter out dead/migrated entities to prevent ghost targeting
+                            if hasattr(other, 'is_dead') and other.is_dead():
                                 continue
 
                             # Distance check

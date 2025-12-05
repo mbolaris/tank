@@ -197,6 +197,13 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 # Use existing deserialization logic
                 entity = deserialize_entity(entity_data, target_world)
                 if entity:
+                    # Fix for ID mismatch: Restore original ID for consistency (critical for Nectar->Plant links)
+                    if isinstance(entity, FractalPlant) and "id" in entity_data:
+                        entity.plant_id = entity_data["id"]
+                        # Ensure internal ID counter is higher than this ID to avoid collisions
+                        if entity.plant_id >= FractalPlant._next_id:
+                            FractalPlant._next_id = entity.plant_id + 1
+                            
                     target_world.engine.add_entity(entity)
                     restored_count += 1
                     if isinstance(entity, FractalPlant):

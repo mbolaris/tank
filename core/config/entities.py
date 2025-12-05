@@ -5,7 +5,7 @@ CRAB_INITIAL_ENERGY = 150.0  # Starting energy for crabs
 CRAB_ATTACK_ENERGY_TRANSFER = 60.0  # Energy stolen from fish when attacked
 CRAB_ATTACK_DAMAGE = 20.0  # Damage dealt to fish
 CRAB_IDLE_CONSUMPTION = 0.01  # Energy consumed per frame when idle
-CRAB_ATTACK_COOLDOWN = 120  # Frames between attacks (4 seconds)
+CRAB_ATTACK_COOLDOWN = 15  # Frames between attacks (0.5 seconds)
 
 # Entity ID Offsets (For Stable Identification)
 # These offsets are added to internal monotonic IDs to generate globally unique

@@ -1,6 +1,7 @@
 """Predator entity logic for crabs."""
 
 from typing import TYPE_CHECKING, Optional
+import random
 
 from core.constants import (
     CRAB_ATTACK_COOLDOWN,
@@ -67,7 +68,11 @@ class Crab(Agent):
         self.energy = min(self.max_energy, self.energy + energy_gained)
 
     def update(self, elapsed_time: int) -> None:
-        """Update the crab state."""
+        """Update the crab state.
+        
+        Simple patrol behavior: crab walks back and forth across the tank bottom.
+        Eating is handled by the collision system when the crab bumps into food/fish.
+        """
         # Update cooldown
         if self.hunt_cooldown > 0:
             self.hunt_cooldown -= 1
@@ -75,22 +80,14 @@ class Crab(Agent):
         # Consume energy
         self.consume_energy()
 
-        # Hunt for food (prefers food over fish now - less aggressive)
-        food_sprites = self.environment.nearby_agents_by_type(
-            self, 100, Food
-        )  # Increased radius for food seeking
-        if food_sprites:
-            self.align_near(food_sprites, 1)
-        else:
-            # Only hunt fish if no food available and can hunt
-            if self.can_hunt() and self.energy < self.max_energy * 0.7:  # Only hunt when hungry
-                fish_sprites = self.environment.nearby_agents_by_type(
-                    self, 80, Fish
-                )  # Reduced hunting radius
-                if fish_sprites:
-                    # Move toward nearest fish slowly
-                    self.align_near(fish_sprites, 1)
-
-        # Stay on bottom
+        # Simple patrol: just keep walking in current direction
+        # If no horizontal velocity, pick a random direction
+        if abs(self.vel.x) < 0.1:
+            direction = random.choice([-1, 1])
+            self.vel.x = direction * self.speed
+        
+        # Stay on bottom (no vertical movement)
         self.vel.y = 0
+
+        # Call parent update which handles position updates and boundary bouncing
         super().update(elapsed_time)

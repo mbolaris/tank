@@ -29,10 +29,15 @@ def _get_nearby_fish(fish: "FishClass", radius: float) -> List["FishClass"]:
     OPTIMIZATION: Use dedicated nearby_fish method when available (faster).
     """
     env = fish.environment
+    nearby = []
     if hasattr(env, "nearby_fish"):
-        return env.nearby_fish(fish, radius)
+        nearby = env.nearby_fish(fish, radius)
     else:
-        return env.nearby_agents_by_type(fish, radius, FishClass)
+        nearby = env.nearby_agents_by_type(fish, radius, FishClass)
+    
+    # Filter out dead or migrated fish
+    # This prevents "ghost attraction" where fish school towards empty spots
+    return [f for f in nearby if not f.is_dead()]
 
 
 @dataclass
