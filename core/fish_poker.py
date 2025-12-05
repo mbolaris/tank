@@ -585,12 +585,12 @@ class PokerInteraction:
             if winner_fish.genome.behavior_algorithm is not None:
                 winner_algo_id = get_algorithm_index(winner_fish.genome.behavior_algorithm)
                 if winner_algo_id >= 0:
-                    winner_fish.ecosystem.record_reproduction(winner_algo_id)
+                    winner_fish.ecosystem.record_reproduction(winner_algo_id, is_asexual=False)
 
             if loser_fish.genome.behavior_algorithm is not None:
                 loser_algo_id = get_algorithm_index(loser_fish.genome.behavior_algorithm)
                 if loser_algo_id >= 0:
-                    loser_fish.ecosystem.record_reproduction(loser_algo_id)
+                    loser_fish.ecosystem.record_reproduction(loser_algo_id, is_asexual=False)
 
         return baby
 

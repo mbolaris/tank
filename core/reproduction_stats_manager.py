@@ -24,15 +24,22 @@ class ReproductionStatsManager:
             "current_pregnant_fish": self.reproduction_stats.current_pregnant_fish,
             "total_offspring": self.reproduction_stats.total_offspring,
             "offspring_per_reproduction": self.reproduction_stats.get_offspring_per_reproduction(),
+            "total_sexual_reproductions": self.reproduction_stats.total_sexual_reproductions,
+            "total_asexual_reproductions": self.reproduction_stats.total_asexual_reproductions,
         }
 
-    def record_reproduction(self, algorithm_id: int) -> None:
+    def record_reproduction(self, algorithm_id: int, is_asexual: bool = False) -> None:
         """Record a successful reproduction by a fish with the given algorithm."""
         if algorithm_id in self._algorithm_stats:
             self._algorithm_stats[algorithm_id].total_reproductions += 1
 
         self.reproduction_stats.total_reproductions += 1
         self.reproduction_stats.total_offspring += 1  # Assume 1 offspring per reproduction
+        
+        if is_asexual:
+            self.reproduction_stats.total_asexual_reproductions += 1
+        else:
+            self.reproduction_stats.total_sexual_reproductions += 1
 
     def record_mating_attempt(self, success: bool) -> None:
         """Record a mating attempt (successful or failed)."""

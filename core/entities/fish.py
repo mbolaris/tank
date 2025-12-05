@@ -214,6 +214,10 @@ class Fish(Agent):
                 color=color_hex,
             )
 
+            # Record initial reproduction stats if this is a spontaneous birth (e.g. from loaded state)
+            # but usually this is handled by the parent calling record_reproduction
+
+
         self.last_direction: Optional[Vector2] = (
             self.vel.normalize() if self.vel.length_squared() > 0 else None
         )
@@ -610,6 +614,9 @@ class Fish(Agent):
                 death_rate_stress = min(0.4, self.ecosystem.recent_death_rate)  # Up to 40% stress
                 population_stress = min(1.0, population_stress + death_rate_stress)
 
+        # Capture reproduction type before it's reset in give_birth
+        is_asexual = self._reproduction_component._asexual_pregnancy
+
         # Generate offspring genome using reproduction component
         offspring_genome, energy_transfer_fraction = self._reproduction_component.give_birth(
             self.genome, population_stress
@@ -646,6 +653,14 @@ class Fish(Agent):
             initial_energy=energy_to_transfer,  # Baby gets only transferred energy
             parent_id=self.fish_id,  # Track lineage for phylogenet ic tree
         )
+
+        # Record reproduction stats
+        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
+            from core.algorithms import get_algorithm_index
+
+            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            if algorithm_id >= 0:
+                self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
 
         # Set visual birth effect timer (60 frames = 2 seconds at 30fps)
         self.birth_effect_timer = 60

@@ -311,9 +311,9 @@ class EcosystemManager:
         """
         return self.enhanced_stats.get_full_report()
 
-    def record_reproduction(self, algorithm_id: int) -> None:
+    def record_reproduction(self, algorithm_id: int, is_asexual: bool = False) -> None:
         """Record a successful reproduction by a fish with the given algorithm."""
-        self.reproduction_manager.record_reproduction(algorithm_id)
+        self.reproduction_manager.record_reproduction(algorithm_id, is_asexual=is_asexual)
 
     def record_mating_attempt(self, success: bool) -> None:
         """Record a mating attempt (successful or failed)."""

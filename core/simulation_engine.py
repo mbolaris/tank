@@ -807,10 +807,17 @@ class SimulationEngine(BaseSimulator):
         # Add entity counts (use cached lists)
         fish_list = self.get_fish_list()
         stats["fish_count"] = len(fish_list)
-        stats["food_count"] = len(self.get_food_list())
         
-        # Add LiveFood stats (separate from regular food)
-        live_food_list = [e for e in self.entities_list if isinstance(e, entities.LiveFood)]
+        # Get all food and separate types
+        all_food_list = self.get_food_list()
+        live_food_list = [e for e in all_food_list if isinstance(e, entities.LiveFood)]
+        regular_food_list = [e for e in all_food_list if not isinstance(e, entities.LiveFood)]
+        
+        # Regular Food Stats (Pellets/Nectar)
+        stats["food_count"] = len(regular_food_list)
+        stats["food_energy"] = sum(food.energy for food in regular_food_list)
+        
+        # Live Food Stats
         stats["live_food_count"] = len(live_food_list)
         stats["live_food_energy"] = sum(food.energy for food in live_food_list)
         

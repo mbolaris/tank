@@ -192,6 +192,7 @@ export interface StatsData {
     death_causes: Record<string, number>;
     fish_count: number;
     food_count: number;
+    food_energy: number; // Total energy in regular food (pellets/nectar)
     live_food_count: number;  // Count of active LiveFood entities
     live_food_energy: number;  // Total energy in LiveFood
     plant_count: number;
@@ -199,6 +200,8 @@ export interface StatsData {
     fish_energy: number;  // Total energy of all fish
     plant_energy: number; // Total energy of all plants
     poker_stats: PokerStatsData;
+    total_sexual_births: number;
+    total_asexual_births: number;
     fps?: number;
     fast_forward?: boolean;
 }
@@ -228,7 +231,7 @@ export interface DeltaUpdate {
 }
 
 export interface Command {
-    command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_action' | 'poker_new_round' | 'standard_poker_series' | 'poker_autopilot_action' | 'fast_forward';
+    command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_process_ai_turn' | 'poker_action' | 'poker_new_round' | 'standard_poker_series' | 'poker_autopilot_action' | 'fast_forward';
     data?: Record<string, unknown>;
 }
 
@@ -340,4 +343,5 @@ export interface CommandResponse {
     error?: string;
     state?: PokerGameState;
     stats?: AutoEvaluateStats;
+    action_taken?: boolean;
 }

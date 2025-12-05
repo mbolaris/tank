@@ -174,9 +174,14 @@ class StatsPayload:
     food_count: int
     plant_count: int
     total_energy: float
+    food_energy: float  # Total energy of all regular food
+    live_food_count: int
+    live_food_energy: float  # Total energy of all live food
     fish_energy: float  # Total energy of all fish
     plant_energy: float  # Total energy of all plants
     poker_stats: PokerStatsPayload
+    total_sexual_births: int = 0
+    total_asexual_births: int = 0
     fps: float = 0.0
     fast_forward: bool = False
 

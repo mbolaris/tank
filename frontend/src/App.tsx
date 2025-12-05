@@ -27,7 +27,7 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
                 setTanks(data.tanks || []);
             }
         } catch {
-            // Silent fail - tanks list not critical
+            // Silent fail
         } finally {
             setLoading(false);
         }
@@ -35,13 +35,11 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
 
     useEffect(() => {
         fetchTanks();
-        // Refresh tank list every 10 seconds
         const interval = setInterval(fetchTanks, 10000);
         return () => clearInterval(interval);
     }, [fetchTanks]);
 
-    // Find current tank index
-    const currentIndex = tanks.findIndex(t => 
+    const currentIndex = tanks.findIndex(t =>
         currentTankId ? t.tank.tank_id === currentTankId : true
     );
     const currentTank = currentIndex >= 0 ? tanks[currentIndex] : null;
@@ -63,10 +61,7 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
     // Keyboard navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Don't capture if user is typing in an input
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return;
-            }
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 goToPrevTank();
@@ -75,112 +70,282 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
                 goToNextTank();
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [goToPrevTank, goToNextTank]);
 
-    if (loading || tanks.length <= 1) {
-        // Don't show navigator if only 1 tank or still loading
-        return null;
-    }
+    if (loading || tanks.length <= 1) return null;
 
     return (
         <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backgroundColor: '#0f172a',
-            borderRadius: '8px',
-            padding: '4px 8px',
-            border: '1px solid #334155',
+            background: 'rgba(2, 6, 23, 0.4)',
+            borderRadius: 'var(--radius-full)',
+            padding: '4px',
+            border: '1px solid rgba(255,255,255,0.05)',
         }}>
             <button
                 onClick={goToPrevTank}
+                className="nav-btn"
                 aria-label="Previous tank"
-                title="Previous tank (←)"
                 style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     width: '28px',
                     height: '28px',
-                    borderRadius: '6px',
+                    borderRadius: '50%',
                     border: 'none',
-                    backgroundColor: 'transparent',
-                    color: '#94a3b8',
-                    fontSize: '14px',
+                    background: 'transparent',
+                    color: 'var(--color-text-muted)',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'all 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                    e.currentTarget.style.color = '#e2e8f0';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.color = 'var(--color-text-main)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#94a3b8';
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--color-text-muted)';
                 }}
             >
                 ←
             </button>
-            
+
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                minWidth: '120px',
+                minWidth: '100px',
                 padding: '0 8px',
             }}>
                 <span style={{
-                    color: '#e2e8f0',
-                    fontSize: '13px',
+                    color: 'var(--color-text-main)',
+                    fontSize: '12px',
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    maxWidth: '140px',
+                    maxWidth: '120px',
                 }}>
                     {currentTank?.tank.name || 'Default Tank'}
                 </span>
                 <span style={{
-                    color: '#64748b',
+                    color: 'var(--color-text-dim)',
                     fontSize: '10px',
                 }}>
-                    {currentIndex + 1} of {tanks.length}
+                    {currentIndex + 1} / {tanks.length}
                 </span>
             </div>
 
             <button
                 onClick={goToNextTank}
+                className="nav-btn"
                 aria-label="Next tank"
-                title="Next tank (→)"
                 style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     width: '28px',
                     height: '28px',
-                    borderRadius: '6px',
+                    borderRadius: '50%',
                     border: 'none',
-                    backgroundColor: 'transparent',
-                    color: '#94a3b8',
-                    fontSize: '14px',
+                    background: 'transparent',
+                    color: 'var(--color-text-muted)',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'all 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                    e.currentTarget.style.color = '#e2e8f0';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.color = 'var(--color-text-main)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#94a3b8';
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--color-text-muted)';
                 }}
             >
                 →
             </button>
         </div>
+    );
+}
+
+function ViewToggle({ isNetwork }: { isNetwork: boolean }) {
+    const navigate = useNavigate();
+
+    return (
+        <div
+            style={{
+                display: 'flex',
+                background: 'rgba(2, 6, 23, 0.4)',
+                borderRadius: 'var(--radius-full)',
+                padding: '4px',
+                border: '1px solid rgba(255,255,255,0.05)',
+            }}
+        >
+            <button
+                onClick={() => navigate('/')}
+                className={`view-toggle-btn ${!isNetwork ? 'active' : ''}`}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    border: 'none',
+                    background: !isNetwork ? 'var(--color-primary)' : 'transparent',
+                    color: !isNetwork ? '#fff' : 'var(--color-text-muted)',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: !isNetwork ? '0 0 15px var(--color-primary-glow)' : 'none',
+                }}
+            >
+                <span>🐟</span>
+                <span>Tank</span>
+            </button>
+            <button
+                onClick={() => navigate('/network')}
+                className={`view-toggle-btn ${isNetwork ? 'active' : ''}`}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    border: 'none',
+                    background: isNetwork ? 'var(--color-secondary)' : 'transparent',
+                    color: isNetwork ? '#fff' : 'var(--color-text-muted)',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isNetwork ? '0 0 15px var(--color-secondary-glow)' : 'none',
+                }}
+            >
+                <span>🌐</span>
+                <span>Network</span>
+            </button>
+        </div>
+    );
+}
+
+function NavBar() {
+    const location = useLocation();
+    const isNetwork = location.pathname === '/network';
+    const isTankView = location.pathname === '/' || location.pathname.startsWith('/tank/');
+
+    const tankIdMatch = location.pathname.match(/^\/tank\/(.+)$/);
+    const currentTankId = tankIdMatch ? tankIdMatch[1] : undefined;
+
+    return (
+        <nav style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 50,
+            background: 'rgba(2, 6, 23, 0.8)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            padding: '12px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <Link
+                    to="/"
+                    style={{
+                        color: 'var(--color-text-main)',
+                        textDecoration: 'none',
+                        fontWeight: 700,
+                        fontSize: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        letterSpacing: '-0.02em',
+                    }}
+                >
+                    <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '18px',
+                        boxShadow: '0 0 20px var(--color-primary-glow)',
+                    }}>
+                        🌊
+                    </div>
+                    <span>Tank World</span>
+                </Link>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <ViewToggle isNetwork={isNetwork} />
+                {isTankView && <TankNavigator currentTankId={currentTankId} />}
+            </div>
+
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minWidth: '150px',
+                justifyContent: 'flex-end',
+            }}>
+                {isNetwork ? (
+                    <div style={{
+                        color: 'var(--color-success)',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 500,
+                    }}>
+                        <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: 'currentColor',
+                            boxShadow: '0 0 10px currentColor',
+                            animation: 'pulse 2s infinite',
+                        }} />
+                        Network Active
+                    </div>
+                ) : (
+                    <div style={{
+                        color: 'var(--color-text-dim)',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                    }}>
+                        <span style={{ opacity: 0.7 }}>Switch Tanks:</span>
+                        <kbd style={{
+                            padding: '2px 6px',
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            fontSize: '10px',
+                            fontFamily: 'var(--font-mono)',
+                        }}>←</kbd>
+                        <kbd style={{
+                            padding: '2px 6px',
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            fontSize: '10px',
+                            fontFamily: 'var(--font-mono)',
+                        }}>→</kbd>
+                    </div>
+                )}
+            </div>
+        </nav>
     );
 }
 
@@ -208,170 +373,6 @@ function HomePage() {
                 <p>Built with React + FastAPI + WebSocket | Running at ~30 FPS</p>
             </footer>
         </div>
-    );
-}
-
-function ViewToggle({ isNetwork }: { isNetwork: boolean }) {
-    const navigate = useNavigate();
-
-    return (
-        <div 
-            style={{
-                display: 'flex',
-                backgroundColor: '#0f172a',
-                borderRadius: '10px',
-                padding: '4px',
-                border: '1px solid #334155',
-            }}
-            role="tablist"
-            aria-label="View mode"
-        >
-            <button
-                onClick={() => navigate('/')}
-                role="tab"
-                aria-selected={!isNetwork}
-                aria-label="Single tank view"
-                className={`view-toggle-btn ${!isNetwork ? 'active' : ''}`}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 16px',
-                    borderRadius: '7px',
-                    border: 'none',
-                    backgroundColor: !isNetwork ? '#3b82f6' : 'transparent',
-                    color: !isNetwork ? '#fff' : '#94a3b8',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                }}
-            >
-                <span style={{ fontSize: '16px' }}>🐟</span>
-                <span>Single Tank</span>
-            </button>
-            <button
-                onClick={() => navigate('/network')}
-                role="tab"
-                aria-selected={isNetwork}
-                aria-label="Network overview"
-                className={`view-toggle-btn ${isNetwork ? 'active' : ''}`}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 16px',
-                    borderRadius: '7px',
-                    border: 'none',
-                    backgroundColor: isNetwork ? '#3b82f6' : 'transparent',
-                    color: isNetwork ? '#fff' : '#94a3b8',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                }}
-            >
-                <span style={{ fontSize: '16px' }}>🌐</span>
-                <span>Network</span>
-            </button>
-        </div>
-    );
-}
-
-function NavBar() {
-    const location = useLocation();
-    const isNetwork = location.pathname === '/network';
-    const isTankView = location.pathname === '/' || location.pathname.startsWith('/tank/');
-    
-    // Extract tankId from URL path
-    const tankIdMatch = location.pathname.match(/^\/tank\/(.+)$/);
-    const currentTankId = tankIdMatch ? tankIdMatch[1] : undefined;
-
-    return (
-        <nav style={{
-            backgroundColor: '#0f172a',
-            borderBottom: '1px solid #1e293b',
-            padding: '12px 24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                <Link
-                    to="/"
-                    style={{
-                        color: '#3b82f6',
-                        textDecoration: 'none',
-                        fontWeight: 700,
-                        fontSize: '18px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                    }}
-                >
-                    <span style={{ fontSize: '22px' }}>🌊</span>
-                    Tank World
-                </Link>
-            </div>
-
-            {/* Central area: View toggle + Tank navigator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <ViewToggle isNetwork={isNetwork} />
-                {isTankView && <TankNavigator currentTankId={currentTankId} />}
-            </div>
-
-            {/* Right side - status/hints */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                minWidth: '150px',
-                justifyContent: 'flex-end',
-            }}>
-                {isNetwork ? (
-                    <div style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                    }}>
-                        <span style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: '#22c55e',
-                            animation: 'pulse 2s infinite',
-                        }} />
-                        Monitoring network
-                    </div>
-                ) : (
-                    <div style={{
-                        color: '#475569',
-                        fontSize: '11px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                    }}>
-                        <kbd style={{
-                            padding: '2px 6px',
-                            backgroundColor: '#1e293b',
-                            borderRadius: '4px',
-                            border: '1px solid #334155',
-                            fontSize: '10px',
-                        }}>←</kbd>
-                        <kbd style={{
-                            padding: '2px 6px',
-                            backgroundColor: '#1e293b',
-                            borderRadius: '4px',
-                            border: '1px solid #334155',
-                            fontSize: '10px',
-                        }}>→</kbd>
-                        <span>switch tanks</span>
-                    </div>
-                )}
-            </div>
-        </nav>
     );
 }
 

@@ -12,7 +12,8 @@ import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { TransferDialog } from './TransferDialog';
-import type { PokerGameState, PokerEventData } from '../types/simulation';
+import { EcosystemStats } from './EcosystemStats';
+import type { PokerGameState } from '../types/simulation';
 
 interface TankViewProps {
     tankId?: string;
@@ -44,9 +45,7 @@ export function TankView({ tankId }: TankViewProps) {
         setTimeout(() => setPokerError(null), 5000);
     };
 
-    const maxGeneration = state?.stats
-        ? state.stats.max_generation ?? state.stats.generation ?? 0
-        : 0;
+
 
     // Process AI turns one at a time with delay for visual feedback
     const processAiTurnsWithDelay = async () => {
@@ -184,8 +183,6 @@ export function TankView({ tankId }: TankViewProps) {
         setSelectedEntityType(null);
     };
 
-    const pokerStats = state?.stats?.poker_stats;
-
     return (
         <>
             {/* Single row of compact controls */}
@@ -214,78 +211,6 @@ export function TankView({ tankId }: TankViewProps) {
             {/* Tank simulation */}
             <div className="top-section">
                 <div className="canvas-wrapper">
-                    <div className="canvas-meta-compact">
-                        <span className={`status-badge ${isConnected ? 'online' : 'offline'}`}>
-                            {isConnected ? 'Connected' : 'Waiting'}
-                        </span>
-                        <span className="meta-item">
-                            <span className="meta-label">Sim</span>
-                            <span className="meta-value-wide">{state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}</span>
-                            <span>frames</span>
-                            {state?.stats?.fps !== undefined && (
-                                <span style={{ marginLeft: '8px', color: '#94a3b8', fontSize: '12px' }}>
-                                    ({state.stats.fps.toFixed(1)} FPS)
-                                </span>
-                            )}
-                        </span>
-                        <span className="meta-item">
-                            <span className="meta-label">Pop</span>
-                            <span className="meta-value">{state?.stats?.fish_count ?? 0}</span>
-                            <span>fish</span>
-                            <span className="meta-sub">Gen {maxGeneration}</span>
-                        </span>
-                        <span className="meta-item" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <span className="meta-label">Energy</span>
-                            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <span style={{ fontSize: 10 }}>🐟</span>
-                                    <span style={{ color: '#3b82f6' }}>{state?.stats?.fish_energy ? Math.round(state.stats.fish_energy).toLocaleString() : '0'}</span>
-                                </span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <span style={{ fontSize: 10 }}>🌱</span>
-                                    <span style={{ color: '#4ade80' }}>{state?.stats?.plant_energy ? Math.round(state.stats.plant_energy).toLocaleString() : '0'}</span>
-                                </span>
-                            </span>
-                            {state?.stats?.poker_stats && (state.stats.poker_stats.total_plant_games ?? 0) > 0 && (() => {
-                                const energyTransfer = state.stats.poker_stats.total_plant_energy_transferred || 0;
-                                const isPositive = energyTransfer > 0;
-                                const color = isPositive ? '#4ade80' : (energyTransfer < 0 ? '#f87171' : '#94a3b8');
-                                const prefix = isPositive ? '+' : '';
-                                return (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
-                                        <span style={{ fontSize: 12 }}>🌱⚡→🐟</span>
-                                        <span style={{ color, fontWeight: 600 }}>{prefix}{energyTransfer.toFixed(0)}</span>
-                                    </span>
-                                );
-                            })()}
-                        </span>
-                        {pokerStats && (
-                            (() => {
-                                const fishGames = state?.stats?.poker_stats?.total_fish_games ?? (state?.poker_events || []).filter((e: PokerEventData) => !e.is_plant).length;
-                                const plantGames = state?.stats?.poker_stats?.total_plant_games ?? (state?.poker_events || []).filter((e: PokerEventData) => e.is_plant).length;
-
-                                return (
-                                    <span className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span className="meta-label">Poker</span>
-                                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                                <span style={{ fontSize: 10 }}>🐟</span>
-                                                <span style={{ color: '#3b82f6' }}>{fishGames}</span>
-                                            </span>
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                                <span style={{ fontSize: 10 }}>🌱</span>
-                                                <span style={{ color: '#4ade80' }}>{plantGames}</span>
-                                            </span>
-                                        </span>
-                                    </span>
-                                );
-                            })()
-                        )}
-                        <span className="meta-item">
-                            <span className="meta-label">Time</span>
-                            <span>{state?.stats?.time ?? '—'}</span>
-                        </span>
-                    </div>
                     <Canvas
                         state={state}
                         width={1088}
@@ -298,201 +223,258 @@ export function TankView({ tankId }: TankViewProps) {
                 </div>
             </div>
 
-            {/* Poker Game - Below Tank */}
-            {showPokerGame && (
-                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                    <PokerGame
-                        onClose={handleClosePoker}
-                        onAction={handlePokerAction}
-                        onNewRound={handleNewRound}
-                        onGetAutopilotAction={handleGetAutopilotAction}
-                        gameState={pokerGameState}
-                        loading={pokerLoading}
-                    />
+            {/* Poker Game - Just below Tank */}
+            {
+                showPokerGame && (
+                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                        <PokerGame
+                            onClose={handleClosePoker}
+                            onAction={handlePokerAction}
+                            onNewRound={handleNewRound}
+                            onGetAutopilotAction={handleGetAutopilotAction}
+                            gameState={pokerGameState}
+                            loading={pokerLoading}
+                        />
+                    </div>
+                )
+            }
+
+            {/* Simulation Stats Panel */}
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                <div className="glass-panel" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '32px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={`status-dot ${isConnected ? 'online' : 'offline'}`}
+                            style={{
+                                width: 8, height: 8, borderRadius: '50%',
+                                background: isConnected ? 'var(--color-success)' : 'var(--color-warning)',
+                                boxShadow: isConnected ? '0 0 8px var(--color-success)' : 'none'
+                            }}
+                        />
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em' }}>
+                            {isConnected ? 'LIVE' : 'OFFLINE'}
+                        </span>
+                    </div>
+
+                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>SIMULATION FRAME</span>
+                        <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                            {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}
+                        </span>
+                    </div>
+
+                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+
+                    {state?.stats?.fps !== undefined && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>FPS</span>
+                            <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                                {state.stats.fps.toFixed(1)}
+                            </span>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
+
+            {/* Ecosystem Stats */}
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                <EcosystemStats stats={state?.stats ?? null} />
+            </div>
 
             {/* Evolution Progress */}
-            {state?.auto_evaluation && (
-                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                    <AutoEvaluateDisplay stats={state.auto_evaluation} loading={false} />
-                </div>
-            )}
+            {
+                state?.auto_evaluation && (
+                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                        <AutoEvaluateDisplay stats={state.auto_evaluation} loading={false} />
+                    </div>
+                )
+            }
 
             {/* Poker Dashboard - Leaderboard & Activity */}
-            {state?.poker_leaderboard && state?.poker_events && (
-                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '12px'
-                    }}>
-                        <h3 style={{ color: '#3b82f6', fontSize: '18px', margin: 0 }}>
-                            Poker Dashboard
-                        </h3>
-                        {showLeaderboard && (
+            {
+                state?.poker_leaderboard && state?.poker_events && (
+                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '12px'
+                        }}>
+                            <h3 style={{ color: '#3b82f6', fontSize: '18px', margin: 0 }}>
+                                Poker Dashboard
+                            </h3>
+                            {showLeaderboard && (
+                                <button
+                                    onClick={() => setShowLeaderboard(false)}
+                                    style={{
+                                        padding: '6px 12px',
+                                        backgroundColor: '#1e293b',
+                                        color: '#94a3b8',
+                                        border: '1px solid #475569',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    Collapse
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Leaderboard & Activity Grid */}
+                        {showLeaderboard && state?.poker_leaderboard && state?.poker_events && (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '16px'
+                            }}>
+                                <div style={{
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    border: '1px solid #334155'
+                                }}>
+                                    <PokerLeaderboard leaderboard={state.poker_leaderboard} />
+                                </div>
+                                <div style={{
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    border: '1px solid #334155'
+                                }}>
+                                    <PokerEvents events={state.poker_events} currentFrame={state.frame} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Expand button when collapsed */}
+                        {!showLeaderboard && state?.poker_leaderboard && (
                             <button
-                                onClick={() => setShowLeaderboard(false)}
+                                onClick={() => setShowLeaderboard(true)}
                                 style={{
-                                    padding: '6px 12px',
+                                    marginTop: '12px',
+                                    padding: '8px 16px',
                                     backgroundColor: '#1e293b',
-                                    color: '#94a3b8',
+                                    color: '#3b82f6',
                                     border: '1px solid #475569',
-                                    borderRadius: '6px',
+                                    borderRadius: '8px',
                                     cursor: 'pointer',
-                                    fontSize: '12px'
+                                    fontWeight: 600,
+                                    fontSize: '13px'
                                 }}
                             >
-                                Collapse
+                                Show Leaderboard & Activity
                             </button>
                         )}
                     </div>
-
-                    {/* Leaderboard & Activity Grid */}
-                    {showLeaderboard && state?.poker_leaderboard && state?.poker_events && (
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '16px'
-                        }}>
-                            <div style={{
-                                backgroundColor: '#0f172a',
-                                borderRadius: '12px',
-                                padding: '16px',
-                                border: '1px solid #334155'
-                            }}>
-                                <PokerLeaderboard leaderboard={state.poker_leaderboard} />
-                            </div>
-                            <div style={{
-                                backgroundColor: '#0f172a',
-                                borderRadius: '12px',
-                                padding: '16px',
-                                border: '1px solid #334155'
-                            }}>
-                                <PokerEvents events={state.poker_events} currentFrame={state.frame} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Expand button when collapsed */}
-                    {!showLeaderboard && state?.poker_leaderboard && (
-                        <button
-                            onClick={() => setShowLeaderboard(true)}
-                            style={{
-                                marginTop: '12px',
-                                padding: '8px 16px',
-                                backgroundColor: '#1e293b',
-                                color: '#3b82f6',
-                                border: '1px solid #475569',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                fontSize: '13px'
-                            }}
-                        >
-                            Show Leaderboard & Activity
-                        </button>
-                    )}
-                </div>
-            )}
+                )
+            }
 
             {/* Phylogenetic Tree - Full Screen Overlay */}
-            {showTree && (
-                <div className="tree-overlay">
-                    <div className="tree-content">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ color: '#00ff00', fontSize: '24px', margin: 0 }}>Phylogenetic Tree</h2>
-                            <button
-                                onClick={() => setShowTree(false)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: '#94a3b8',
-                                    fontSize: '24px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                ✕
-                            </button>
+            {
+                showTree && (
+                    <div className="tree-overlay">
+                        <div className="tree-content">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h2 style={{ color: '#00ff00', fontSize: '24px', margin: 0 }}>Phylogenetic Tree</h2>
+                                <button
+                                    onClick={() => setShowTree(false)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#94a3b8',
+                                        fontSize: '24px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <PhylogeneticTree tankId={tankId} />
                         </div>
-                        <PhylogeneticTree tankId={tankId} />
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Transfer Dialog */}
-            {showTransferDialog && selectedEntityId !== null && selectedEntityType !== null && state?.tank_id && (
-                <TransferDialog
-                    entityId={selectedEntityId}
-                    entityType={selectedEntityType}
-                    sourceTankId={state.tank_id}
-                    sourceTankName={state.tank_id}
-                    onClose={handleCloseTransferDialog}
-                    onTransferComplete={handleTransferComplete}
-                />
-            )}
+            {
+                showTransferDialog && selectedEntityId !== null && selectedEntityType !== null && state?.tank_id && (
+                    <TransferDialog
+                        entityId={selectedEntityId}
+                        entityType={selectedEntityType}
+                        sourceTankId={state.tank_id}
+                        sourceTankName={state.tank_id}
+                        onClose={handleCloseTransferDialog}
+                        onTransferComplete={handleTransferComplete}
+                    />
+                )
+            }
 
             {/* Transfer Notification */}
-            {transferMessage && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        bottom: '20px',
-                        right: '20px',
-                        padding: '16px 20px',
-                        borderRadius: '8px',
-                        backgroundColor: transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
-                        color: transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
-                        border: `1px solid ${transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                        zIndex: 1001,
-                        maxWidth: '400px',
-                        fontWeight: 500,
-                    }}
-                >
-                    {transferMessage.text}
-                </div>
-            )}
-
-            {/* Poker Error Notification */}
-            {pokerError && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        bottom: transferMessage ? '90px' : '20px',
-                        right: '20px',
-                        padding: '16px 20px',
-                        borderRadius: '8px',
-                        backgroundColor: '#7f1d1d',
-                        color: '#fecaca',
-                        border: '1px solid #ef4444',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                        zIndex: 1001,
-                        maxWidth: '400px',
-                        fontWeight: 500,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                    }}
-                >
-                    <span>⚠️</span>
-                    <span>{pokerError}</span>
-                    <button
-                        onClick={() => setPokerError(null)}
+            {
+                transferMessage && (
+                    <div
                         style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#fecaca',
-                            cursor: 'pointer',
-                            padding: '0 4px',
-                            fontSize: '16px',
+                            position: 'fixed',
+                            bottom: '20px',
+                            right: '20px',
+                            padding: '16px 20px',
+                            borderRadius: '8px',
+                            backgroundColor: transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
+                            color: transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
+                            border: `1px solid ${transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                            zIndex: 1001,
+                            maxWidth: '400px',
+                            fontWeight: 500,
                         }}
                     >
-                        ✕
-                    </button>
-                </div>
-            )}
+                        {transferMessage.text}
+                    </div>
+                )
+            }
+
+            {/* Poker Error Notification */}
+            {
+                pokerError && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            bottom: transferMessage ? '90px' : '20px',
+                            right: '20px',
+                            padding: '16px 20px',
+                            borderRadius: '8px',
+                            backgroundColor: '#7f1d1d',
+                            color: '#fecaca',
+                            border: '1px solid #ef4444',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                            zIndex: 1001,
+                            maxWidth: '400px',
+                            fontWeight: 500,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                        }}
+                    >
+                        <span>⚠️</span>
+                        <span>{pokerError}</span>
+                        <button
+                            onClick={() => setPokerError(null)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#fecaca',
+                                cursor: 'pointer',
+                                padding: '0 4px',
+                                fontSize: '16px',
+                            }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )
+            }
         </>
     );
 }

@@ -4,69 +4,133 @@
  */
 
 import type { StatsData } from '../types/simulation';
-import styles from './EcosystemStats.module.css';
 
 interface EcosystemStatsProps {
     stats: StatsData | null;
 }
 
 export function EcosystemStats({ stats }: EcosystemStatsProps) {
-    if (!stats) {
-        return null;
-    }
+    if (!stats) return null;
 
     const deathCauseEntries = Object.entries(stats.death_causes);
+    const pokerTransfer = stats.poker_stats?.total_plant_energy_transferred ?? 0;
 
     return (
-        <div className={styles.container}>
-            <div className={styles.section}>
-                <div className={styles.sectionTitle}>Ecosystem</div>
-                <div className={styles.statsGrid}>
-                    <div className={styles.statItem}>
-                        <span className={styles.label}>Food:</span>
-                        <span className={styles.value}>{stats.food_count}</span>
-                    </div>
-                    <div className={styles.statItem}>
-                        <span className={styles.label}>Live Food:</span>
-                        <span className={styles.value}>
-                            {stats.live_food_count} ({Math.round(stats.live_food_energy)}E)
-                        </span>
-                    </div>
-
-                </div>
-            </div>
-
-            <div className={styles.section}>
-                <div className={styles.sectionTitle}>Population</div>
-                <div className={styles.statsGrid}>
-                    <div className={styles.statItem}>
-                        <span className={styles.label}>Fish Alive:</span>
-                        <span className={styles.value}>{stats.fish_count}</span>
-                    </div>
-                    <div className={styles.statItem}>
-                        <span className={styles.label}>Total Births:</span>
-                        <span className={styles.value}>{stats.births}</span>
-                    </div>
-                    <div className={styles.statItem}>
-                        <span className={styles.label}>Total Deaths:</span>
-                        <span className={styles.value}>{stats.deaths}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+            {/* Ecosystem Card */}
+            <div className="glass-panel" style={{ padding: '12px' }}>
+                <h3 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '12px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                }}>
+                    <span>🌿</span> Ecosystem
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <StatItem label="FISH" value={stats.fish_count} subValue={`${Math.round(stats.fish_energy).toLocaleString()}⚡`} color="var(--color-primary)" />
+                    <StatItem label="PLANTS" value={stats.plant_count} subValue={`${Math.round(stats.plant_energy).toLocaleString()}⚡`} color="var(--color-success)" />
+                    <StatItem label="FOOD" value={stats.food_count} subValue={`${Math.round(stats.food_energy ?? 0)}⚡`} />
+                    <StatItem label="LIVE FOOD" value={stats.live_food_count} subValue={`${Math.round(stats.live_food_energy ?? 0)}⚡`} color="#fbbf24" />
+                    <div style={{ gridColumn: 'span 2' }}>
+                        <StatItem
+                            label="🌿 → 🐟 TRANSFER"
+                            value={`${pokerTransfer > 0 ? '+' : ''}${Math.round(pokerTransfer).toLocaleString()}⚡`}
+                            subValue={`🐟 Hands: ${stats.poker_stats?.total_fish_games ?? 0} • 🌿 Hands: ${stats.poker_stats?.total_plant_games ?? 0}`}
+                            color={pokerTransfer >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}
+                        />
                     </div>
                 </div>
             </div>
 
+            {/* Population Card */}
+            <div className="glass-panel" style={{ padding: '12px' }}>
+                <h3 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '12px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                }}>
+                    <span>👥</span> Population
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <RowItem label="Generation" value={stats.max_generation ?? stats.generation ?? 0} />
+                    <RowItem
+                        label="Total Births"
+                        value={stats.births}
+                        valueColor="var(--color-success)"
+                        subValue={`S: ${stats.total_sexual_births ?? 0} / A: ${stats.total_asexual_births ?? 0}`}
+                    />
+                    <RowItem label="Total Deaths" value={stats.deaths} valueColor="var(--color-danger)" />
+                </div>
+            </div>
+
+            {/* Death Causes Card */}
             {deathCauseEntries.length > 0 && (
-                <div className={styles.section}>
-                    <div className={styles.sectionTitle}>Death Causes</div>
-                    <div className={styles.statsGrid}>
+                <div className="glass-panel" style={{ padding: '12px' }}>
+                    <h3 style={{
+                        margin: '0 0 10px 0',
+                        fontSize: '12px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: 'var(--color-text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}>
+                        <span>💀</span> Mortality
+                    </h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {deathCauseEntries.map(([cause, count]) => (
-                            <div key={cause} className={styles.statItem}>
-                                <span className={styles.label}>{cause}:</span>
-                                <span className={styles.value}>{count}</span>
+                            <div key={cause} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.2)',
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-full)',
+                                fontSize: '11px'
+                            }}>
+                                <span style={{ color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{cause.replace('_', ' ')}</span>
+                                <span style={{ color: '#fca5a5', fontWeight: 600 }}>{count}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function StatItem({ label, value, subValue, color = 'var(--color-text-main)' }: { label: string, value: string | number, subValue?: string, color?: string }) {
+    return (
+        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '6px', width: '100%' }}>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginBottom: '2px', textTransform: 'uppercase' }}>{label}</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: color, display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                {value}
+                {subValue && <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 400 }}>({subValue})</span>}
+            </div>
+        </div>
+    );
+}
+
+function RowItem({ label, value, subValue, valueColor = 'var(--color-text-main)' }: { label: string, value: string | number, subValue?: string, valueColor?: string }) {
+    return (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>{label}</span>
+            <div style={{ textAlign: 'right' }}>
+                <span style={{ color: valueColor, fontWeight: 600, fontSize: '14px' }}>{value}</span>
+                {subValue && <div style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>{subValue}</div>}
+            </div>
         </div>
     );
 }

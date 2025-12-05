@@ -43,6 +43,7 @@ class SimulationStatsExporter:
         export_data = {
             "simulation_metadata": self._build_simulation_metadata(ecosystem),
             "population_summary": self._build_population_summary(ecosystem),
+            "reproduction_summary": ecosystem.get_reproduction_summary(),
             "death_causes": dict(ecosystem.death_causes),
             "algorithm_registry": algorithm_metadata,
             "algorithm_performance": self._build_algorithm_performance(

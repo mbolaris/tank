@@ -231,6 +231,8 @@ class ReproductionStats:
     total_failed_attempts: int = 0
     current_pregnant_fish: int = 0
     total_offspring: int = 0
+    total_sexual_reproductions: int = 0
+    total_asexual_reproductions: int = 0
 
     def get_success_rate(self) -> float:
         """Calculate mating success rate."""
