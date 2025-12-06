@@ -16,27 +16,29 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const previousHouseCut = useRef<number>(0);
     const previousPokerVolume = useRef<number>(0);
 
-    if (!stats) return null;
-
-    const deathCauseEntries = Object.entries(stats.death_causes);
-    const pokerTransfer = stats.poker_stats?.total_plant_energy_transferred ?? 0;
-    const energySources = stats.energy_sources ?? {};
-    const energyFromNectar = Math.round(stats.energy_from_nectar ?? energySources.nectar ?? 0);
-    const energyFromLiveFood = Math.round(stats.energy_from_live_food ?? energySources.live_food ?? 0);
-    const energyFromFallingFood = Math.round(stats.energy_from_falling_food ?? energySources.falling_food ?? 0);
-    const energyFromPoker = Math.round(stats.energy_from_poker ?? energySources.poker_fish ?? 0);
-    const energyFromPokerPlant = Math.round(stats.energy_from_poker_plant ?? energySources.poker_plant ?? 0);
-    const energyFromAutoEval = Math.round(stats.energy_from_auto_eval ?? energySources.auto_eval ?? 0);
-    const energyBurnRecent = stats.energy_burn_recent ?? {};
+    // Always call hooks first, then handle early return
+    // Use default values if stats is null
+    const safeStats = stats ?? {};
+    const deathCauseEntries = Object.entries(safeStats.death_causes ?? {});
+    const pokerTransfer = safeStats.poker_stats?.total_plant_energy_transferred ?? 0;
+    const energySources = safeStats.energy_sources ?? {};
+    const energyFromNectar = Math.round(safeStats.energy_from_nectar ?? energySources.nectar ?? 0);
+    const energyFromLiveFood = Math.round(safeStats.energy_from_live_food ?? energySources.live_food ?? 0);
+    const energyFromFallingFood = Math.round(safeStats.energy_from_falling_food ?? energySources.falling_food ?? 0);
+    const energyFromPoker = Math.round(safeStats.energy_from_poker ?? energySources.poker_fish ?? 0);
+    const energyFromPokerPlant = Math.round(safeStats.energy_from_poker_plant ?? energySources.poker_plant ?? 0);
+    const energyFromAutoEval = Math.round(safeStats.energy_from_auto_eval ?? energySources.auto_eval ?? 0);
+    const energyBurnRecent = safeStats.energy_burn_recent ?? {};
     const metabolismBurn = energyBurnRecent.metabolism ?? energyBurnRecent.existence ?? 0;
     const movementBurn = energyBurnRecent.movement ?? 0;
     const turningBurn = energyBurnRecent.turning ?? 0;
-    const totalTrackedBurn = stats.energy_burn_total ?? metabolismBurn + movementBurn + turningBurn;
+    const totalTrackedBurn = safeStats.energy_burn_total ?? metabolismBurn + movementBurn + turningBurn;
 
-    const pokerStats = stats.poker_stats ?? {};
+    const pokerStats = safeStats.poker_stats ?? {};
     const pokerVolumeTotal = (pokerStats.total_energy_won ?? 0) + (pokerStats.total_energy_lost ?? 0);
     const pokerVolumeRecent = Math.max(0, pokerVolumeTotal - previousPokerVolume.current);
     const pokerHouseCutRecent = Math.max(0, (pokerStats.total_house_cuts ?? 0) - previousHouseCut.current);
+    const pokerSources = energyFromPoker + energyFromPokerPlant + energyFromAutoEval;
     const pokerLoopVolume = pokerVolumeRecent || Math.abs(pokerSources);
     const fishDeathEnergyLoss = Math.max(0, energySources.death ?? 0);
 
@@ -47,21 +49,23 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // Calculate totals for energy flow
     const foodSources = energyFromNectar + energyFromLiveFood + energyFromFallingFood;
-    const pokerSources = energyFromPoker + energyFromPokerPlant + energyFromAutoEval;
     const netEnergyIn = foodSources + pokerSources;
 
     // Fish health distribution
-    const fishHealthCritical = stats.fish_health_critical ?? 0;
-    const fishHealthLow = stats.fish_health_low ?? 0;
-    const fishHealthHealthy = stats.fish_health_healthy ?? 0;
-    const fishHealthFull = stats.fish_health_full ?? 0;
-    const fishCount = stats.fish_count || 1; // Prevent division by zero
+    const fishHealthCritical = safeStats.fish_health_critical ?? 0;
+    const fishHealthLow = safeStats.fish_health_low ?? 0;
+    const fishHealthHealthy = safeStats.fish_health_healthy ?? 0;
+    const fishHealthFull = safeStats.fish_health_full ?? 0;
+    const fishCount = safeStats.fish_count || 1; // Prevent division by zero
 
     // Calculate percentages for health bar
     const criticalPct = (fishHealthCritical / fishCount) * 100;
     const lowPct = (fishHealthLow / fishCount) * 100;
     const healthyPct = (fishHealthHealthy / fishCount) * 100;
     const fullPct = (fishHealthFull / fishCount) * 100;
+
+    // Early return after hooks and calculations
+    if (!stats) return null;
 
     // Energy source percentages
     return (

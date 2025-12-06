@@ -13,17 +13,17 @@ BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
 ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy (was 1.2) - older fish are larger
 
 # Energy Consumption Constants
-EXISTENCE_ENERGY_COST = 0.035  # Cost just for being alive per frame (reduced from 0.05)
-MOVEMENT_ENERGY_COST = 0.07  # Movement-based energy consumption multiplier (reduced from 0.1)
-HIGH_SPEED_ENERGY_COST = 0.18  # Progressive speed cost multiplier (reduced from 0.25) - scales quadratically with speed
+EXISTENCE_ENERGY_COST = 0.08  # Cost just for being alive per frame (increased from 0.035)
+MOVEMENT_ENERGY_COST = 0.15  # Movement-based energy consumption multiplier (increased from 0.07)
+HIGH_SPEED_ENERGY_COST = 0.35  # Progressive speed cost multiplier (increased from 0.18) - scales quadratically with speed
 HIGH_SPEED_THRESHOLD = 0.6  # Speed ratio above which burst penalty kicks in
-SHARP_TURN_ENERGY_COST = 0.07  # Additional cost for sharp turns (was 0.05)
+SHARP_TURN_ENERGY_COST = 0.12  # Additional cost for sharp turns (increased from 0.07)
 SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
 
 # Direction Change Energy Constants
-DIRECTION_CHANGE_ENERGY_BASE = 0.08  # Base energy cost for direction changes (was 0.05)
-DIRECTION_CHANGE_SIZE_MULTIPLIER = 1.8  # Larger fish use more energy to turn (was 1.5)
-MOVEMENT_SIZE_MULTIPLIER = 1.5  # Additional size-based movement cost multiplier (was 1.2)
+DIRECTION_CHANGE_ENERGY_BASE = 0.15  # Base energy cost for direction changes (increased from 0.08)
+DIRECTION_CHANGE_SIZE_MULTIPLIER = 2.2  # Larger fish use more energy to turn (increased from 1.8)
+MOVEMENT_SIZE_MULTIPLIER = 2.0  # Additional size-based movement cost multiplier (increased from 1.5)
 
 # Energy Thresholds (centralized for consistency across the codebase)
 STARVATION_THRESHOLD = 15.0  # Below this, fish dies from starvation
