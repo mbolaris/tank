@@ -30,7 +30,7 @@ def _to_dict(dataclass_obj: Any) -> Dict[str, Any]:
     return {field.name: getattr(dataclass_obj, field.name) for field in dataclass_obj.__dataclass_fields__.values()}
 
 
-@dataclass(slots=True)
+@dataclass
 class EntitySnapshot:
     """Minimal snapshot of an entity for client rendering."""
 
@@ -152,7 +152,7 @@ class EntitySnapshot:
         }
 
 
-@dataclass(slots=True)
+@dataclass
 class PokerStatsPayload:
     total_games: int
     total_fish_games: int
@@ -191,7 +191,7 @@ class PokerStatsPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class StatsPayload:
     frame: int
     population: int
@@ -216,7 +216,10 @@ class StatsPayload:
     energy_from_live_food: float = 0.0
     energy_from_falling_food: float = 0.0
     energy_from_poker: float = 0.0
+    energy_from_poker_plant: float = 0.0
     energy_from_auto_eval: float = 0.0
+    energy_burn_recent: Dict[str, float] = field(default_factory=dict)
+    energy_burn_total: float = 0.0
     # Fish energy distribution
     avg_fish_energy: float = 0.0
     min_fish_energy: float = 0.0
@@ -270,7 +273,10 @@ class StatsPayload:
             "energy_from_live_food": self.energy_from_live_food,
             "energy_from_falling_food": self.energy_from_falling_food,
             "energy_from_poker": self.energy_from_poker,
+            "energy_from_poker_plant": self.energy_from_poker_plant,
             "energy_from_auto_eval": self.energy_from_auto_eval,
+            "energy_burn_recent": self.energy_burn_recent,
+            "energy_burn_total": self.energy_burn_total,
             "avg_fish_energy": self.avg_fish_energy,
             "min_fish_energy": self.min_fish_energy,
             "max_fish_energy": self.max_fish_energy,
@@ -288,7 +294,7 @@ class StatsPayload:
         return data
 
 
-@dataclass(slots=True)
+@dataclass
 class PokerEventPayload:
     frame: int
     winner_id: int
@@ -304,7 +310,7 @@ class PokerEventPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class PokerLeaderboardEntryPayload:
     rank: int
     fish_id: int
@@ -333,7 +339,7 @@ class PokerLeaderboardEntryPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class AutoEvaluateStatsPayload:
     hands_played: int
     hands_remaining: int
@@ -347,7 +353,7 @@ class AutoEvaluateStatsPayload:
         return _to_dict(self)
 
 
-@dataclass(slots=True)
+@dataclass
 class FullStatePayload:
     """Full snapshot with complete entity data."""
 
@@ -384,7 +390,7 @@ class FullStatePayload:
         return json.dumps(data, separators=(",", ":"))
 
 
-@dataclass(slots=True)
+@dataclass
 class DeltaStatePayload:
     """Delta update that only carries incremental changes."""
 

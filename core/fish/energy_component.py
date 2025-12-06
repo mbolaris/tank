@@ -5,7 +5,7 @@ functionality for fish, including metabolism, consumption, and energy state chec
 Separating energy logic into its own component improves code organization and testability.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from core.constants import (
     BABY_METABOLISM_MULTIPLIER,
@@ -68,7 +68,7 @@ class EnergyComponent:
         life_stage: "LifeStage",
         time_modifier: float = 1.0,
         size: float = 1.0,
-    ) -> None:
+    ) -> Dict[str, float]:
         """Consume energy based on metabolism and activity.
 
         Energy consumption includes:
@@ -90,10 +90,11 @@ class EnergyComponent:
         # Existence cost - scales with body size squared (larger fish need much more energy to exist)
         # Using size^1.3 makes existence more expensive for large fish while not punishing small ones too much
         existence_size_factor = size ** 1.3
-        total_cost = EXISTENCE_ENERGY_COST * time_modifier * existence_size_factor
+        existence_cost = EXISTENCE_ENERGY_COST * time_modifier * existence_size_factor
 
         # Base metabolism (affected by genes and life stage)
         metabolism = self.base_metabolism * time_modifier
+        movement_cost = 0.0
 
         # Additional cost for movement - scales with body size
         # Size scaling is non-linear: larger fish use disproportionately more energy
@@ -122,14 +123,25 @@ class EnergyComponent:
             metabolism += movement_cost
 
         # Apply life stage modifiers to metabolism (not existence cost)
+        stage_multiplier = 1.0
         if life_stage == LifeStage.BABY:
-            metabolism *= BABY_METABOLISM_MULTIPLIER  # Babies need less energy
+            stage_multiplier = BABY_METABOLISM_MULTIPLIER  # Babies need less energy
         elif life_stage == LifeStage.ELDER:
-            metabolism *= ELDER_METABOLISM_MULTIPLIER  # Elders need more energy
+            stage_multiplier = ELDER_METABOLISM_MULTIPLIER  # Elders need more energy
+
+        movement_cost *= stage_multiplier
+        metabolism *= stage_multiplier
 
         # Total energy consumption
-        total_cost += metabolism
+        total_cost = existence_cost + metabolism
         self.energy = max(0.0, self.energy - total_cost)
+
+        return {
+            "total": total_cost,
+            "existence": existence_cost,
+            "metabolism": metabolism - movement_cost,
+            "movement": movement_cost,
+        }
 
     def gain_energy(self, amount: float) -> None:
         """Gain energy from consuming food.

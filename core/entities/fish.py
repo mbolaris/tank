@@ -379,9 +379,14 @@ class Fish(Agent):
         Args:
             time_modifier: Modifier for time-based effects (e.g., day/night)
         """
-        self._energy_component.consume_energy(
+        energy_breakdown = self._energy_component.consume_energy(
             self.vel, self.speed, self.life_stage, time_modifier, self.size
         )
+
+        if self.ecosystem is not None:
+            self.ecosystem.record_energy_burn("existence", energy_breakdown["existence"])
+            self.ecosystem.record_energy_burn("metabolism", energy_breakdown["metabolism"])
+            self.ecosystem.record_energy_burn("movement", energy_breakdown["movement"])
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy).
@@ -844,6 +849,9 @@ class Fish(Agent):
                 energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
 
                 self.energy = max(0, self.energy - energy_cost)
+
+                if self.ecosystem is not None:
+                    self.ecosystem.record_energy_burn("turning", energy_cost)
 
         self.last_direction = new_direction
 
