@@ -13,6 +13,7 @@ import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
+import { HabitatInsights } from './HabitatInsights';
 import type { PokerGameState } from '../types/simulation';
 
 interface TankViewProps {
@@ -280,6 +281,7 @@ export function TankView({ tankId }: TankViewProps) {
             {/* Ecosystem Stats */}
             <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
                 <EcosystemStats stats={state?.stats ?? null} />
+                <HabitatInsights state={state} />
             </div>
 
             {/* Evolution Progress */}
