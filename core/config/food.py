@@ -23,7 +23,7 @@ FOOD_TYPES = {
         "files": ["food_algae1.png", "food_algae2.png"],
         "energy": 100.0,  # Low energy - basic food source
         "rarity": 0.35,  # 35% spawn rate
-        "sink_multiplier": 0.8,  # Sinks slower (lighter)
+        "sink_multiplier": 0.5,  # Sinks slower (lighter)
         "stationary": False,
     },
     "protein": {
@@ -69,7 +69,7 @@ FOOD_TYPES = {
     "live": {
         "name": "Live Treat",
         "files": ["food_energy1.png", "food_energy2.png"],
-        "energy": 500.0,  # High energy density - small but nutritious zooplankton
+        "energy": 200.0,  # Nutritious zooplankton
         "rarity": 0.12,  # Appears occasionally
         "sink_multiplier": 0.0,  # Self-propelled, so no sinking
         "stationary": False,
