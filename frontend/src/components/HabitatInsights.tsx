@@ -3,6 +3,7 @@
  * Explains where fish are clustering and how they are fueling survival & reproduction.
  */
 
+import { useEffect, useRef } from 'react';
 import type { EntityData, SimulationUpdate } from '../types/simulation';
 
 const WORLD_WIDTH = 1088;
@@ -16,6 +17,10 @@ function averageEnergy(entities: EntityData[]) {
     if (entities.length === 0) return 0;
     const total = entities.reduce((sum, entity) => sum + Math.max(entity.energy ?? 0, 0), 0);
     return total / entities.length;
+}
+
+function totalEnergy(entities: EntityData[]) {
+    return entities.reduce((sum, entity) => sum + Math.max(entity.energy ?? 0, 0), 0);
 }
 
 function formatPercent(value: number) {
@@ -48,6 +53,14 @@ export function HabitatInsights({ state }: HabitatInsightsProps) {
 
     const hotspotEnergy = averageEnergy(fishInHotZone);
     const elsewhereEnergy = averageEnergy(fishOutsideHotZone);
+    const hotspotTotalEnergy = totalEnergy(fishInHotZone);
+
+    const prevSnapshot = useRef<{
+        frame: number;
+        totalEnergy: number;
+        hotspotEnergy: number;
+        hotspotTotalEnergy: number;
+    } | null>(null);
 
     const totalEnergyInLastWindow =
         (stats.energy_from_nectar ?? 0) +
@@ -61,6 +74,32 @@ export function HabitatInsights({ state }: HabitatInsightsProps) {
     const birthsVsDeathsDelta = stats.births - stats.deaths;
 
     const growthSignal = birthsVsDeathsDelta > 0 ? 'population growing' : birthsVsDeathsDelta === 0 ? 'holding steady' : 'declining';
+
+    const totalEnergyDelta =
+        prevSnapshot.current && stats.total_energy !== undefined
+            ? stats.total_energy - prevSnapshot.current.totalEnergy
+            : null;
+
+    const hotspotEnergyDelta =
+        prevSnapshot.current && !Number.isNaN(hotspotEnergy)
+            ? hotspotEnergy - prevSnapshot.current.hotspotEnergy
+            : null;
+
+    const hotspotTotalEnergyDelta =
+        prevSnapshot.current && !Number.isNaN(hotspotTotalEnergy)
+            ? hotspotTotalEnergy - prevSnapshot.current.hotspotTotalEnergy
+            : null;
+
+    const impliedBurn = totalEnergyDelta !== null ? totalEnergyInLastWindow - totalEnergyDelta : null;
+
+    useEffect(() => {
+        prevSnapshot.current = {
+            frame: stats.frame,
+            totalEnergy: stats.total_energy ?? 0,
+            hotspotEnergy,
+            hotspotTotalEnergy,
+        };
+    }, [stats.frame, stats.total_energy, hotspotEnergy, hotspotTotalEnergy]);
 
     return (
         <div className="glass-panel" style={{ padding: '12px 16px', marginTop: '12px' }}>
@@ -109,14 +148,28 @@ export function HabitatInsights({ state }: HabitatInsightsProps) {
                         detail={formatPercent(fish.length ? (fishInHotZone.length / fish.length) * 100 : 0)}
                     />
                     <HotspotChip
-                        label="Energy in hotspot"
+                        label="Avg energy in hotspot"
                         value={formatEnergy(hotspotEnergy)}
-                        detail={`vs ${formatEnergy(elsewhereEnergy || 0)} elsewhere`}
+                        detail={`per fish • ${formatEnergy(elsewhereEnergy || 0)} elsewhere`}
+                    />
+                    <HotspotChip
+                        label="Total energy in hotspot"
+                        value={formatEnergy(hotspotTotalEnergy)}
+                        detail={
+                            hotspotTotalEnergyDelta !== null
+                                ? `${hotspotTotalEnergyDelta >= 0 ? '+' : ''}${Math.round(hotspotTotalEnergyDelta).toLocaleString()}⚡ change`
+                                : 'collecting baseline'
+                        }
                     />
                     <HotspotChip
                         label="Nearby resources"
                         value={`${hotspotPlantCount} plants`}
                         detail={`${hotspotNectarCount} nectar • ${hotspotFoodCount} food`}
+                    />
+                    <HotspotChip
+                        label="Avg energy change"
+                        value={hotspotEnergyDelta !== null ? formatEnergy(hotspotEnergyDelta) : '—'}
+                        detail={hotspotEnergyDelta !== null ? 'since last sample' : 'collecting baseline'}
                     />
                 </div>
 
@@ -133,7 +186,14 @@ export function HabitatInsights({ state }: HabitatInsightsProps) {
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                         <span style={{ color: 'var(--color-text-dim)', fontSize: '11px' }}>Energy intake / fish (last 10s)</span>
-                        <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>{formatEnergy(energyPerFish)}</span>
+                        <span
+                            style={{
+                                color: energyPerFish >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+                                fontWeight: 700,
+                            }}
+                        >
+                            {formatEnergy(energyPerFish)}
+                        </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                         <span style={{ color: 'var(--color-text-dim)', fontSize: '11px' }}>Avg fish reserves</span>
@@ -145,10 +205,24 @@ export function HabitatInsights({ state }: HabitatInsightsProps) {
                             {stats.births.toLocaleString()} / {stats.deaths.toLocaleString()} ({growthSignal})
                         </span>
                     </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px' }}>Net tank energy change</span>
+                        <span style={{ color: (totalEnergyDelta ?? 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)', fontWeight: 700 }}>
+                            {totalEnergyDelta !== null ? `${totalEnergyDelta >= 0 ? '+' : ''}${Math.round(totalEnergyDelta).toLocaleString()}⚡` : '—'}
+                        </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px' }}>Energy burned/transferred</span>
+                        <span style={{ color: (impliedBurn ?? 0) >= 0 ? 'var(--color-warning)' : 'var(--color-success)', fontWeight: 700 }}>
+                            {impliedBurn !== null
+                                ? `${impliedBurn >= 0 ? '' : '-'}${Math.abs(Math.round(impliedBurn)).toLocaleString()}⚡`
+                                : '—'}
+                        </span>
+                    </div>
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', margin: '6px 0 0 0' }}>
-                        High nectar/live-food density in the upper-right keeps fish topped up, which supports mating energy
-                        thresholds. If the hotspot dries up (fewer plants/nectar), expect the cluster to spread or
-                        reproduction to slow.
+                        {hotspotPlantCount + hotspotNectarCount + hotspotFoodCount > 0
+                            ? 'High nearby nectar/live-food density keeps the hotspot topped up, which supports mating energy thresholds. The "Total energy in hotspot" row shows the sum rising when resources are present, while "Net tank energy" and "Energy burned" confirm the gains come from intake.'
+                            : 'The hotspot looks steady because remaining high-energy fish skew the average while lower-energy fish die or leave. With zero nearby resources, the total hotspot energy should drift down (see "Total energy" row) and the group will eventually thin unless new food spawns.'}
                     </p>
                 </div>
             </div>
