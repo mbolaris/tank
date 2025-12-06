@@ -206,7 +206,10 @@ class PlantPokerInteraction:
         if fish_won:
             # Fish wins - takes energy from plant
             energy_transferred = winnings / 2
-            self.fish.energy += energy_transferred
+            # Allow up to 2x max_energy to let winners profit,
+            # but prevent extreme accumulation (was unlimited before, allowing 3-4x)
+            max_allowed = self.fish.max_energy * 2.0
+            self.fish.energy = min(max_allowed, self.fish.energy + energy_transferred)
             if self.fish.ecosystem is not None:
                 self.fish.ecosystem.record_plant_poker_energy_gain(energy_transferred)
             self.plant.lose_energy(total_pot / 2)
