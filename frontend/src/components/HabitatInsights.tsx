@@ -91,6 +91,18 @@ export function HabitatInsights({ state }: HabitatInsightsProps) {
             : null;
 
     const impliedBurn = totalEnergyDelta !== null ? totalEnergyInLastWindow - totalEnergyDelta : null;
+    const energyBurnRecent = stats.energy_burn_recent ?? {};
+    const movementBurn = energyBurnRecent.movement ?? 0;
+    const existenceBurn = energyBurnRecent.existence ?? 0;
+    const metabolismBurn = energyBurnRecent.metabolism ?? 0;
+    const turningBurn = energyBurnRecent.turning ?? 0;
+    const trackedBurnTotal =
+        stats.energy_burn_total ??
+        Object.entries(energyBurnRecent).reduce(
+            (sum, [key, value]) => (key === 'total' ? sum : sum + (value ?? 0)),
+            0,
+        );
+    const unaccountedBurn = impliedBurn !== null ? impliedBurn - trackedBurnTotal : null;
 
     useEffect(() => {
         prevSnapshot.current = {
@@ -219,10 +231,28 @@ export function HabitatInsights({ state }: HabitatInsightsProps) {
                                 : '—'}
                         </span>
                     </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px' }}>Tracked burn (last 10s)</span>
+                        <span style={{ color: 'var(--color-text-main)', fontWeight: 700 }}>
+                            {formatEnergy(trackedBurnTotal)}
+                        </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px' }}>Breakdown</span>
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '11px', textAlign: 'right', maxWidth: '240px' }}>
+                            {`${formatEnergy(existenceBurn)} exist • ${formatEnergy(metabolismBurn + movementBurn)} swim/metab • ${formatEnergy(turningBurn)} turning`}
+                        </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px' }}>Untracked drain gap</span>
+                        <span style={{ color: 'var(--color-warning)', fontWeight: 700 }}>
+                            {unaccountedBurn !== null ? `${unaccountedBurn >= 0 ? '' : '-'}${Math.abs(Math.round(unaccountedBurn)).toLocaleString()}⚡` : '—'}
+                        </span>
+                    </div>
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', margin: '6px 0 0 0' }}>
                         {hotspotPlantCount + hotspotNectarCount + hotspotFoodCount > 0
                             ? 'High nearby nectar/live-food density keeps the hotspot topped up, which supports mating energy thresholds. The "Total energy in hotspot" row shows the sum rising when resources are present, while "Net tank energy" and "Energy burned" confirm the gains come from intake.'
-                            : 'The hotspot looks steady because remaining high-energy fish skew the average while lower-energy fish die or leave. With zero nearby resources, the total hotspot energy should drift down (see "Total energy" row) and the group will eventually thin unless new food spawns.'}
+                            : 'The hotspot looks steady because remaining high-energy fish skew the average while lower-energy fish die or leave. With zero nearby resources, the total hotspot energy should drift down (see "Total energy" row) and the burn breakdown shows metabolism + movement are actively draining reserves.'}
                     </p>
                 </div>
             </div>

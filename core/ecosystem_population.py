@@ -252,6 +252,7 @@ def get_summary_stats(
 
     energy_summary = ecosystem.get_energy_source_summary()
     recent_energy = ecosystem.get_recent_energy_breakdown(window_frames=300)
+    recent_energy_burn = ecosystem.get_recent_energy_burn(window_frames=300)
 
     total_energy = 0.0
     if entities is not None:
@@ -287,6 +288,8 @@ def get_summary_stats(
         "energy_from_poker": recent_energy.get("poker_fish", 0.0),
         "energy_from_poker_plant": recent_energy.get("poker_plant", 0.0),
         "energy_from_auto_eval": recent_energy.get("auto_eval", 0.0),
+        "energy_burn_recent": recent_energy_burn,
+        "energy_burn_total": sum(recent_energy_burn.values()),
         "reproduction_stats": ecosystem.get_reproduction_summary(),
         "diversity_stats": ecosystem.get_diversity_summary(),
     }

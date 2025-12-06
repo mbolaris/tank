@@ -105,6 +105,10 @@ class EcosystemManager:
         self.recent_energy_gains: deque[Tuple[int, str, float]] = deque(maxlen=10000)
         self.current_frame: int = 0
 
+        # Track energy spent (metabolism, movement, etc.) with same rolling window
+        self.energy_burn: Dict[str, float] = defaultdict(float)
+        self.recent_energy_burns: deque[Tuple[int, str, float]] = deque(maxlen=10000)
+
     @property
     def reproduction_stats(self):
         return self.reproduction_manager.reproduction_stats
@@ -157,6 +161,7 @@ class EcosystemManager:
             frame: Current frame number
         """
         self.frame_count = frame
+        self.current_frame = frame
 
         # NEW: Check for algorithm extinctions
         self.enhanced_stats.check_for_extinctions(frame, self)
@@ -472,6 +477,13 @@ class EcosystemManager:
         self.energy_sources[source] += amount
         self.recent_energy_gains.append((self.current_frame, source, amount))
 
+    def record_energy_burn(self, source: str, amount: float) -> None:
+        """Accumulate energy spent so we can prove metabolism/movement costs are applied."""
+        if amount == 0:
+            return
+        self.energy_burn[source] += amount
+        self.recent_energy_burns.append((self.current_frame, source, amount))
+
     def get_energy_source_summary(self) -> Dict[str, float]:
         """Return a snapshot of accumulated energy gains."""
         return dict(self.energy_sources)
@@ -492,7 +504,19 @@ class EcosystemManager:
         for frame, source, amount in self.recent_energy_gains:
             if frame >= cutoff_frame:
                 recent_totals[source] += amount
-        
+
+        return dict(recent_totals)
+
+    def get_recent_energy_burn(self, window_frames: int = 300) -> Dict[str, float]:
+        """Get energy consumption breakdown over recent frames."""
+
+        cutoff_frame = self.current_frame - window_frames
+        recent_totals: Dict[str, float] = defaultdict(float)
+
+        for frame, source, amount in self.recent_energy_burns:
+            if frame >= cutoff_frame:
+                recent_totals[source] += amount
+
         return dict(recent_totals)
 
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:

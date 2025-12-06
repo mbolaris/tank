@@ -216,7 +216,10 @@ class StatsPayload:
     energy_from_live_food: float = 0.0
     energy_from_falling_food: float = 0.0
     energy_from_poker: float = 0.0
+    energy_from_poker_plant: float = 0.0
     energy_from_auto_eval: float = 0.0
+    energy_burn_recent: Dict[str, float] = field(default_factory=dict)
+    energy_burn_total: float = 0.0
     # Fish energy distribution
     avg_fish_energy: float = 0.0
     min_fish_energy: float = 0.0
@@ -270,7 +273,10 @@ class StatsPayload:
             "energy_from_live_food": self.energy_from_live_food,
             "energy_from_falling_food": self.energy_from_falling_food,
             "energy_from_poker": self.energy_from_poker,
+            "energy_from_poker_plant": self.energy_from_poker_plant,
             "energy_from_auto_eval": self.energy_from_auto_eval,
+            "energy_burn_recent": self.energy_burn_recent,
+            "energy_burn_total": self.energy_burn_total,
             "avg_fish_energy": self.avg_fish_energy,
             "min_fish_energy": self.min_fish_energy,
             "max_fish_energy": self.max_fish_energy,

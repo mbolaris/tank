@@ -206,6 +206,8 @@ export interface StatsData {
     energy_from_poker: number;
     energy_from_poker_plant?: number;
     energy_from_auto_eval: number;
+    energy_burn_recent?: Record<string, number>;
+    energy_burn_total?: number;
     // Fish energy distribution
     avg_fish_energy: number;
     min_fish_energy: number;
