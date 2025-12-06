@@ -3,6 +3,9 @@
  * Displays comprehensive energy flow and fish health statistics below the tank simulation
  */
 
+import { useEffect, useRef } from 'react';
+
+import EnergySankey from './EnergySankey';
 import type { StatsData } from '../types/simulation';
 
 interface EcosystemStatsProps {
@@ -10,6 +13,9 @@ interface EcosystemStatsProps {
 }
 
 export function EcosystemStats({ stats }: EcosystemStatsProps) {
+    const previousHouseCut = useRef<number>(0);
+    const previousPokerVolume = useRef<number>(0);
+
     if (!stats) return null;
 
     const deathCauseEntries = Object.entries(stats.death_causes);
@@ -21,6 +27,23 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const energyFromPoker = Math.round(stats.energy_from_poker ?? energySources.poker_fish ?? 0);
     const energyFromPokerPlant = Math.round(stats.energy_from_poker_plant ?? energySources.poker_plant ?? 0);
     const energyFromAutoEval = Math.round(stats.energy_from_auto_eval ?? energySources.auto_eval ?? 0);
+    const energyBurnRecent = stats.energy_burn_recent ?? {};
+    const metabolismBurn = energyBurnRecent.metabolism ?? energyBurnRecent.existence ?? 0;
+    const movementBurn = energyBurnRecent.movement ?? 0;
+    const turningBurn = energyBurnRecent.turning ?? 0;
+    const totalTrackedBurn = stats.energy_burn_total ?? metabolismBurn + movementBurn + turningBurn;
+
+    const pokerStats = stats.poker_stats ?? {};
+    const pokerVolumeTotal = (pokerStats.total_energy_won ?? 0) + (pokerStats.total_energy_lost ?? 0);
+    const pokerVolumeRecent = Math.max(0, pokerVolumeTotal - previousPokerVolume.current);
+    const pokerHouseCutRecent = Math.max(0, (pokerStats.total_house_cuts ?? 0) - previousHouseCut.current);
+    const pokerLoopVolume = pokerVolumeRecent || Math.abs(pokerSources);
+    const fishDeathEnergyLoss = Math.max(0, energySources.death ?? 0);
+
+    useEffect(() => {
+        previousPokerVolume.current = pokerVolumeTotal;
+        previousHouseCut.current = pokerStats.total_house_cuts ?? 0;
+    }, [pokerStats.total_house_cuts, pokerVolumeTotal]);
 
     // Calculate totals for energy flow
     const foodSources = energyFromNectar + energyFromLiveFood + energyFromFallingFood;
@@ -41,11 +64,6 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const fullPct = (fishHealthFull / fishCount) * 100;
 
     // Energy source percentages
-    const totalFood = foodSources || 1;
-    const nectarPct = (energyFromNectar / totalFood) * 100;
-    const liveFoodPct = (energyFromLiveFood / totalFood) * 100;
-    const fallingFoodPct = (energyFromFallingFood / totalFood) * 100;
-
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
             {/* Fish Energy Status Card */}
@@ -122,85 +140,18 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
             {/* Energy Flow Card (Last 10s) */}
             <div className="glass-panel" style={{ padding: '12px' }}>
-                <h3 style={{
-                    margin: '0 0 10px 0',
-                    fontSize: '12px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>⚡</span> Energy Flow (10s)
-                    </span>
-                    <span style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: netEnergyIn >= 0 ? 'var(--color-success)' : 'var(--color-danger)'
-                    }}>
-                        {netEnergyIn >= 0 ? '+' : ''}{netEnergyIn.toLocaleString()}⚡
-                    </span>
-                </h3>
-
-                {/* Food Sources with Visual Bar */}
-                <div style={{ marginBottom: '8px' }}>
-                    <div style={{
-                        fontSize: '10px',
-                        color: 'var(--color-text-dim)',
-                        marginBottom: '4px',
-                        display: 'flex',
-                        justifyContent: 'space-between'
-                    }}>
-                        <span>Food Sources</span>
-                        <span style={{ color: 'var(--color-success)' }}>+{foodSources.toLocaleString()}⚡</span>
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        height: '8px',
-                        borderRadius: '4px',
-                        overflow: 'hidden',
-                        background: 'rgba(0,0,0,0.3)',
-                        marginBottom: '4px'
-                    }}>
-                        {nectarPct > 0 && (
-                            <div style={{ width: `${nectarPct}%`, background: '#ec4899', transition: 'width 0.3s' }} />
-                        )}
-                        {liveFoodPct > 0 && (
-                            <div style={{ width: `${liveFoodPct}%`, background: '#fbbf24', transition: 'width 0.3s' }} />
-                        )}
-                        {fallingFoodPct > 0 && (
-                            <div style={{ width: `${fallingFoodPct}%`, background: '#22c55e', transition: 'width 0.3s' }} />
-                        )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', fontSize: '9px' }}>
-                        <EnergySource icon="🌸" label="Nectar" value={energyFromNectar} color="#ec4899" />
-                        <EnergySource icon="🦐" label="Live" value={energyFromLiveFood} color="#fbbf24" />
-                        <EnergySource icon="🍽️" label="Pellets" value={energyFromFallingFood} color="#22c55e" />
-                    </div>
-                </div>
-
-                {/* Poker Sources */}
-                <div>
-                    <div style={{
-                        fontSize: '10px',
-                        color: 'var(--color-text-dim)',
-                        marginBottom: '4px',
-                        display: 'flex',
-                        justifyContent: 'space-between'
-                    }}>
-                        <span>Poker</span>
-                        <span style={{ color: pokerSources >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                            {pokerSources >= 0 ? '+' : ''}{pokerSources.toLocaleString()}⚡
-                        </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', fontSize: '9px' }}>
-                        <EnergySource icon="🐟🃏" label="vs Fish" value={energyFromPoker} color="var(--color-primary)" signed />
-                        <EnergySource icon="🌿🃏" label="vs Plant" value={energyFromPokerPlant} color="#8b5cf6" signed />
-                        <EnergySource icon="🏆" label="Auto" value={energyFromAutoEval} color="#8b5cf6" signed />
-                    </div>
-                </div>
+                <EnergySankey
+                    data={{
+                        foodAdded: Math.max(0, energyFromFallingFood + energyFromLiveFood),
+                        plantNectar: Math.max(0, energyFromNectar),
+                        fishMetabolism: Math.max(0, totalTrackedBurn),
+                        fishDeaths: fishDeathEnergyLoss,
+                        pokerTotalPot: Math.max(0, pokerLoopVolume),
+                        pokerHouseCut: pokerHouseCutRecent,
+                    }}
+                    title="Energy Flux (10s)"
+                    subtitle={`${netEnergyIn >= 0 ? '+' : ''}${netEnergyIn.toLocaleString()}⚡ net`}
+                />
             </div>
 
             {/* Ecosystem Overview Card */}
@@ -315,24 +266,6 @@ function MiniStat({ label, value }: { label: string, value: string }) {
         }}>
             <div style={{ fontSize: '9px', color: 'var(--color-text-dim)', marginBottom: '2px' }}>{label}</div>
             <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-main)' }}>{value}</div>
-        </div>
-    );
-}
-
-function EnergySource({ icon, label, value, color, signed = false }: {
-    icon: string,
-    label: string,
-    value: number,
-    color: string,
-    signed?: boolean
-}) {
-    const displayValue = signed && value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString();
-    const displayColor = signed ? (value >= 0 ? 'var(--color-success)' : 'var(--color-danger)') : color;
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span>{icon}</span>
-            <span style={{ color: 'var(--color-text-dim)' }}>{label}</span>
-            <span style={{ color: displayColor, fontWeight: 600 }}>{displayValue}</span>
         </div>
     );
 }
