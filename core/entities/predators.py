@@ -1,7 +1,7 @@
 """Predator entity logic for crabs."""
 
-from typing import TYPE_CHECKING, Optional
 import random
+from typing import TYPE_CHECKING, Optional
 
 from core.constants import (
     CRAB_ATTACK_COOLDOWN,
@@ -12,10 +12,10 @@ from core.constants import (
 from core.entities.base import Agent
 from core.entities.fish import Fish
 from core.entities.resources import Food
+from core.genetics import Genome
 
 if TYPE_CHECKING:
     from core.environment import Environment
-    from core.genetics import Genome
 
 
 class Crab(Agent):
@@ -31,9 +31,6 @@ class Crab(Agent):
         screen_height: int = 600,
     ) -> None:
         """Initialize a crab."""
-        # Import here to avoid circular dependency
-        from core.genetics import Genome
-
         # Crabs are slower and less aggressive now
         self.genome: Genome = genome if genome is not None else Genome.random()
         base_speed = 1.5  # Much slower than before (was 2)
