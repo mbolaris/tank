@@ -43,6 +43,28 @@ Currently: Phase 1 (Foundation) with Layer 2 evolution proven but not yet fully 
 
 ---
 
+## AI Oceanographer & Documentary Layer (Planned)
+
+Today, Tank World already combines an Alife engine with an AI code-evolution loop. A future layer is an AI “oceanographer” that
+ sits on top of all of this and talks to the user.
+
+The idea is to have an AI narrator – think Jacques Cousteau or a slightly stranger Steve Zissou cousin – whose job is to:
+
+- Explain what experiment is currently running in your tank
+- Point out interesting behaviors and evolutionary events as they happen
+- Connect visible behavior (“these blue predators discovered ambush tactics”) to underlying algorithm changes and fitness signal
+  s
+- Frame each tank run as a “mission” toward some goal, even if it’s a proxy task like optimizing an algorithm on a benchmark
+
+Over time, the tank becomes AI-generated documentary content about artificial ecosystems. Users aren’t just donating compute; th
+ey’re watching an ongoing nature series where the “creatures” are candidate algorithms and policies.
+
+We are deliberately conservative in claims here: most tanks will be working on proxy problems (e.g., algorithm tuning, synthetic
+ tasks), not directly curing diseases. The long-term goal is to make it easy, engaging, and honest to run Alife experiments tha
+t can gradually be mapped to real-world problem domains.
+
+---
+
 ## Current Features
 
 - **Algorithmic Evolution** - 58 unique parametrizable behavior strategies that evolve
