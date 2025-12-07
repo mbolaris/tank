@@ -81,7 +81,6 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
         (energyBurnRecent.death_unknown ?? 0)
     );
 
-    const pokerLoss = Math.max(0, energyBurnRecent.poker_loss ?? 0);
 
     useEffect(() => {
     }, [pokerStats.total_house_cuts, pokerVolumeTotal]);

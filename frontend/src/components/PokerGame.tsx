@@ -158,7 +158,6 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                 communityCards={gameState.community_cards}
                 players={gameState.players}
                 lastMove={gameState.last_move}
-                message={gameState.message}
                 currentPlayer={gameState.current_player}
                 isYourTurn={gameState.is_your_turn}
                 phase={gameState.current_round?.replace('_', '-') || 'Starting'}
@@ -225,7 +224,6 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                                 minRaise={gameState.min_raise}
                                 maxRaise={humanPlayer?.energy || 0}
                                 loading={loading}
-                                currentPlayer={gameState.current_player}
                                 onFold={handleFold}
                                 onCheck={handleCheck}
                                 onCall={handleCall}

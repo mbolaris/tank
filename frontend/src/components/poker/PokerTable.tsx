@@ -27,7 +27,7 @@ export function PokerTable({ pot, communityCards, resultBanner, players, lastMov
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevCardsRef = useRef<string[]>([]);
-    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+    const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     useEffect(() => {
         // Clear any pending timeouts when component unmounts or cards change

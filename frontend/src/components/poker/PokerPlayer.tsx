@@ -158,7 +158,7 @@ export function PokerPlayer({
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevShowActualCardsRef = useRef(false);
-    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+    const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     // Check if we should show actual cards (showdown) or card backs
     const showActualCards = cards.length > 0 && cards[0] !== '??';

@@ -900,13 +900,7 @@ export function renderFractalPlant(
 ): void {
     const fractalType = genome.fractal_type ?? 'lsystem';
     // Cosmic Fern uses standard L-system rendering, so we let it fall through
-    if (fractalType === 'cosmic_fern') {
-        // Fall through to default L-system renderer
-    } else if (fractalType === 'mandelbrot') {
-        // Legacy support or if we want to keep the code for reference
-        renderMandelbrotPlant(ctx, plantId, genome, x, y, sizeMultiplier, elapsedTime, nectarReady);
-        return;
-    }
+    // Note: 'mandelbrot' type was removed but renderMandelbrotPlant exists for legacy support if needed
     // claude, antigravity, and gpt fall through to default L-system renderer
     if (fractalType === 'gpt_codex') {
         renderGptCodexPlant(
@@ -1024,13 +1018,13 @@ export function renderFractalPlant(
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.stroke();
-        
+
         // Add a simple leaf at the top
         ctx.beginPath();
         ctx.ellipse(0, -stemHeight - 5, 8, 12, 0, 0, Math.PI * 2);
         ctx.fillStyle = leafColor;
         ctx.fill();
-        
+
         ctx.restore();
         return;
     }
@@ -1128,7 +1122,8 @@ export function renderFractalPlant(
     ctx.restore();
 }
 
-function renderMandelbrotPlant(
+// Legacy mandelbrot plant renderer - kept for potential future use
+export function _renderMandelbrotPlant(
     ctx: CanvasRenderingContext2D,
     plantId: number,
     genome: PlantGenomeData,
