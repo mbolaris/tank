@@ -582,19 +582,18 @@ class PokerInteraction:
             parent_id=winner_fish.fish_id,  # Track lineage for phylogenetic tree
         )
 
-        # Record reproduction in ecosystem for both parents
+        # Record sexual reproduction in ecosystem (once per baby, not per parent)
+        # The baby's algorithm is derived from winner-driven selective inheritance
         if winner_fish.ecosystem is not None:
             from core.algorithms import get_algorithm_index
 
-            if winner_fish.genome.behavior_algorithm is not None:
-                winner_algo_id = get_algorithm_index(winner_fish.genome.behavior_algorithm)
-                if winner_algo_id >= 0:
-                    winner_fish.ecosystem.record_reproduction(winner_algo_id, is_asexual=False)
-
-            if loser_fish.genome.behavior_algorithm is not None:
-                loser_algo_id = get_algorithm_index(loser_fish.genome.behavior_algorithm)
-                if loser_algo_id >= 0:
-                    loser_fish.ecosystem.record_reproduction(loser_algo_id, is_asexual=False)
+            # Use baby's algorithm if available (tracked via offspring_genome),
+            # otherwise use winner's algorithm as the reproduction source
+            baby_algo = offspring_genome.behavior_algorithm
+            if baby_algo is not None:
+                baby_algo_id = get_algorithm_index(baby_algo)
+                if baby_algo_id >= 0:
+                    winner_fish.ecosystem.record_reproduction(baby_algo_id, is_asexual=False)
 
         # Register birth stats (balances the cost paid above)
         baby.register_birth()
