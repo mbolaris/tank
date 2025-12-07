@@ -8,6 +8,7 @@ import logging
 import os
 import random
 import time
+from statistics import median
 from typing import Any, Dict, List, Optional
 
 from core import entities, environment, movement_strategy
@@ -554,6 +555,9 @@ class SimulationEngine(BaseSimulator):
             # Remove expired LiveFood to prevent unbounded accumulation
             elif entity_type is LiveFood or isinstance(entity, LiveFood):
                 if entity.is_expired():
+                    # Track expired LiveFood energy as outflow (energy leaving the system)
+                    if ecosystem is not None:
+                        ecosystem.record_energy_burn("live_food_decay", entity.energy)
                     entities_to_remove.append(entity)
 
         # Batch entity removals (more efficient than removing during iteration)
@@ -682,6 +686,9 @@ class SimulationEngine(BaseSimulator):
                     screen_width=SCREEN_WIDTH,
                     screen_height=SCREEN_HEIGHT,
                 )
+                # Track LiveFood spawn as external inflow (energy entering the system)
+                if self.ecosystem is not None:
+                    self.ecosystem.record_energy_gain("live_food_spawn", food.energy)
             else:
                 # Use food pool for regular food (performance optimization)
                 x = self.rng.randint(0, SCREEN_WIDTH)
@@ -851,6 +858,12 @@ class SimulationEngine(BaseSimulator):
             stats["min_fish_energy"] = min(fish_energies)
             stats["max_fish_energy"] = max(fish_energies)
 
+            # Max Energy Capacity Stats (Genetic)
+            max_energies = [fish.max_energy for fish in fish_list]
+            stats["min_max_energy_capacity"] = min(max_energies)
+            stats["max_max_energy_capacity"] = max(max_energies)
+            stats["median_max_energy_capacity"] = median(max_energies)
+
             # Count fish in different energy health states
             # Using energy ratios: critical (<15%), low (<30%), healthy (30-80%), full (>80%)
             critical_count = 0
@@ -875,6 +888,9 @@ class SimulationEngine(BaseSimulator):
             stats["avg_fish_energy"] = 0.0
             stats["min_fish_energy"] = 0.0
             stats["max_fish_energy"] = 0.0
+            stats["min_max_energy_capacity"] = 0.0
+            stats["max_max_energy_capacity"] = 0.0
+            stats["median_max_energy_capacity"] = 0.0
             stats["fish_health_critical"] = 0
             stats["fish_health_low"] = 0
             stats["fish_health_healthy"] = 0

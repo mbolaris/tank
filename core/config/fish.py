@@ -32,7 +32,7 @@ LOW_ENERGY_THRESHOLD = 30.0  # Fish should prioritize finding food
 SAFE_ENERGY_THRESHOLD = 60.0  # Comfortable energy level for exploration and breeding
 
 # Fish Life Stage Age Thresholds (in frames at 30fps)
-LIFE_STAGE_BABY_MAX = 300  # 10 seconds
+LIFE_STAGE_BABY_MAX = 600  # 20 seconds (babies grow slower)
 LIFE_STAGE_JUVENILE_MAX = 900  # 30 seconds
 LIFE_STAGE_YOUNG_ADULT_MAX = 1800  # 60 seconds (1 minute)
 LIFE_STAGE_ADULT_MAX = 3600  # 120 seconds (2 minutes)
@@ -77,7 +77,7 @@ FISH_LAST_EVENT_INITIAL_AGE = -1000  # Initial age value for tracking last event
 PREDATOR_ENCOUNTER_WINDOW = 150  # Frames (5 seconds) - recent conflict window for death attribution
 
 # Fish Visual Constants
-FISH_BABY_SIZE = 0.5  # Size multiplier for baby fish
+FISH_BABY_SIZE = 0.35  # Size multiplier for baby fish (smaller babies)
 FISH_ADULT_SIZE = 1.0  # Size multiplier for adult fish
 FISH_BASE_WIDTH = 50  # Base width for fish sprite
 FISH_BASE_HEIGHT = 50  # Base height for fish sprite

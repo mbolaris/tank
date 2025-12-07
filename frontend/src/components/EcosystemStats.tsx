@@ -49,6 +49,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const burnTurning = energyBurnRecent.turning ?? 0;
     const burnReproduction = energyBurnRecent.reproduction_cost ?? 0;
     const burnMigration = energyBurnRecent.migration ?? 0;
+
     const sourceBirth = Math.round(energySourcesRecent.birth ?? safeStats.energy_from_birth ?? energySources.birth ?? 0);
     const sourceSoupSpawn = Math.round(energySourcesRecent.soup_spawn ?? safeStats.energy_from_soup_spawn ?? energySources.soup_spawn ?? 0);
     const sourceMigrationIn = Math.round(safeStats.energy_from_migration_in ?? energySources.migration_in ?? 0);
@@ -128,12 +129,26 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        fontSize: '10px',
-                        color: 'var(--color-text-dim)',
-                        marginBottom: '4px'
+                        alignItems: 'center',
+                        marginBottom: '6px'
                     }}>
-                        <span>{stats.fish_count} Fish</span>
-                        <span>Health Distribution</span>
+                        <span style={{
+                            fontSize: '18px',
+                            fontWeight: '700',
+                            color: 'var(--color-text-main)',
+                            letterSpacing: '-0.02em'
+                        }}>
+                            {stats.fish_count}
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                color: 'var(--color-text-muted)',
+                                marginLeft: '4px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em'
+                            }}>Fish</span>
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>Health Distribution</span>
                     </div>
                     <div style={{
                         display: 'flex',
@@ -178,6 +193,18 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         value={`${Math.round(stats.min_fish_energy ?? 0)}-${Math.round(stats.max_fish_energy ?? 0)}`}
                     />
                     <div style={{
+                        gridColumn: 'span 2',
+                        background: 'rgba(0,0,0,0.2)',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '9px', color: 'var(--color-text-dim)', marginBottom: '2px' }}>Max Energy Capacity (Genetics)</div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-main)' }}>
+                            Range: {Math.round(stats.min_max_energy_capacity ?? 0)}-{Math.round(stats.max_max_energy_capacity ?? 0)} <span style={{ color: 'var(--color-text-dim)', fontWeight: 400 }}>|</span> Median: {Math.round(stats.median_max_energy_capacity ?? 0)}
+                        </div>
+                    </div>
+                    <div style={{
                         background: 'rgba(0,0,0,0.2)',
                         padding: '6px 8px',
                         borderRadius: '4px',
@@ -203,6 +230,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         reproductionCost: Math.max(0, burnReproduction),
                         fishDeaths: fishDeathEnergyLoss,
                         migrationOut: Math.max(0, burnMigration),
+
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
                         pokerHouseCut: pokerHouseCutRecent + burnPokerHouseCut,
                         plantPokerNet: energyFromPokerPlant - burnPokerPlantLoss,

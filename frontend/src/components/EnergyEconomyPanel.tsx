@@ -99,7 +99,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                         Inflows (+{formatVal(totalIn)})
                     </div>
 
-                    <FlowBar label="Live Food" value={data.liveFood} color="#22c55e" icon="🦐" total={totalIn} />
+                    <FlowBar label="Live Food Eaten" value={data.liveFood} color="#22c55e" icon="🦐" total={totalIn} />
                     <FlowBar label="Plant Nectar" value={data.plantNectar} color="#10b981" icon="🌿" total={totalIn} />
                     <FlowBar label="Baby Energy" value={data.birthEnergy} color="#4ade80" icon="👶" total={totalIn} />
                     <FlowBar label="Soup Spawns" value={data.soupSpawn} color="#a3e635" icon="🥣" total={totalIn} />

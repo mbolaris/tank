@@ -528,18 +528,22 @@ class PokerInteraction:
             mutation_strength=POST_POKER_MUTATION_STRENGTH,
         )
 
-        # Energy transfer for baby (winner only contributes)
-        winner_energy_contribution = POST_POKER_PARENT_ENERGY_CONTRIBUTION
 
-        winner_energy_transfer = winner_fish.energy * winner_energy_contribution
-        total_baby_energy = winner_energy_transfer
+        # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
+        # This determines exactly how much energy the winner should transfer
+        from core.constants import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE
+        baby_max_energy = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.size_modifier
+        
+        # Winner transfers exactly what baby needs to start at 100% energy
+        # But can't transfer more than winner has!
+        energy_to_transfer = min(winner_fish.energy, baby_max_energy)
 
         # Winner pays the energy cost
-        winner_fish.modify_energy(-winner_energy_transfer)
+        winner_fish.modify_energy(-energy_to_transfer)
         
         # Track reproduction cost in ecosystem stats
         if winner_fish.ecosystem is not None:
-            winner_fish.ecosystem.record_energy_burn("reproduction_cost", winner_energy_transfer)
+            winner_fish.ecosystem.record_energy_burn("reproduction_cost", energy_to_transfer)
 
         # Set reproduction cooldown for both parents
         winner_fish.reproduction_cooldown = REPRODUCTION_COOLDOWN
@@ -563,7 +567,7 @@ class PokerInteraction:
         baby_x = max(0, min(winner_fish.screen_width - BABY_SPAWN_MARGIN, baby_x))
         baby_y = max(0, min(winner_fish.screen_height - BABY_SPAWN_MARGIN, baby_y))
 
-        # Create baby fish with combined energy from both parents
+        # Create baby fish with energy from winner parent
         from core.entities import Fish
 
         baby = Fish(
@@ -578,7 +582,7 @@ class PokerInteraction:
             ecosystem=winner_fish.ecosystem,
             screen_width=winner_fish.screen_width,
             screen_height=winner_fish.screen_height,
-            initial_energy=total_baby_energy,
+            initial_energy=energy_to_transfer,
             parent_id=winner_fish.fish_id,  # Track lineage for phylogenetic tree
         )
 
@@ -703,7 +707,7 @@ class PokerInteraction:
         for i, fish in enumerate(self.fish_list):
             player_total_bet = game_state.players[i].total_bet
             old_energy = fish.energy
-            fish.energy = max(0, fish.energy - player_total_bet)
+            fish.modify_energy(-player_total_bet)
             actual_loss = old_energy - fish.energy
             
             # Record this as a transfer outflow (balances the winner's inflow)
@@ -721,10 +725,71 @@ class PokerInteraction:
             # Calculate winner's actual gain (pot minus their bet minus house cut)
             winner_actual_gain = total_pot - house_cut
             
-            # Winner receives pot minus house cut
-            # Apply energy gain directly
-            winner_fish.energy += winner_actual_gain
+            # --- OVERFLOW REPRODUCTION LOGIC ---
+            # Check if this win would push the fish over its max energy capacity.
+            # If so, we attempt to "spend" the excess energy immediately on reproduction.
+            # This turns wasted energy into new life.
             
+            current_energy = winner_fish.energy
+            potential_energy = current_energy + winner_actual_gain
+            
+            reproduction_baby = None
+            
+            # If we have overflow, try to reproduce using the "theoretical" high energy
+            if potential_energy > winner_fish.max_energy:
+                # Find a mate (use the "best" loser, i.e., second place, for genetic quality)
+                # If no losers (rare), we can't reproduce sexually.
+                mate_fish = None
+                if len(self.fish_list) > 1:
+                    # Sort losers by hand strength? Or just pick first loser (simple).
+                    # self.fish_list is in order of entry, not finish.
+                    # winner_idx is known. Pick any other fish.
+                    for i, other in enumerate(self.fish_list):
+                        if i != winner_idx:
+                            mate_fish = other
+                            break
+                
+                if mate_fish:
+                    # TEMPORARY OVERFLOW: Force energy to theoretical max to satisfy reproduction checks
+                    # We access the private component to set energy directly for this moment.
+                    # This allows try_post_poker_reproduction to see sufficient energy.
+                    winner_fish._energy_component.energy = potential_energy
+                    
+                    # Attempt reproduction
+                    # Note: We pass the mate, but currently reproduction logic is 
+                    # "Winner decides". Mate is needed for genome combination.
+                    reproduction_baby = self.try_post_poker_reproduction(
+                        winner_fish, mate_fish, winner_actual_gain
+                    )
+                    
+                    if reproduction_baby:
+                        # Reproduction successful!
+                        # The winner has already paid the energy cost (subtracted from potential_energy)
+                        # inside try_post_poker_reproduction ==> modify_energy(-cost)
+                        
+                        # Now we just need to clamp whatever remains.
+                        # Current energy is (potential_energy - cost).
+                        # We must ensure it respects the max cap.
+                        if winner_fish.energy > winner_fish.max_energy:
+                            winner_fish._energy_component.energy = winner_fish.max_energy
+                            
+                        # Log the event
+                        if winner_fish.ecosystem:
+                            # We can log "excess energy used for birth" if we want a specific metric
+                            pass
+                    else:
+                        # Reproduction failed (cooldowns, incompatible species, etc.)
+                        # Revert energy to pre-calc state so we can apply winnings normally (raising to cap)
+                        winner_fish._energy_component.energy = current_energy
+                        # Apply winnings normally (clamped)
+                        winner_fish.modify_energy(winner_actual_gain)
+                else:
+                    # No mate available, just apply winnings normally
+                    winner_fish.modify_energy(winner_actual_gain)
+            else:
+                # No overflow, standard energy gain
+                winner_fish.modify_energy(winner_actual_gain)
+
             # Record poker winnings in ecosystem
             if winner_fish.ecosystem is not None:
                 winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain - winner_total_bet)  # Net gain

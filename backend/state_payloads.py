@@ -225,6 +225,10 @@ class StatsPayload:
     avg_fish_energy: float = 0.0
     min_fish_energy: float = 0.0
     max_fish_energy: float = 0.0
+    # Max Energy Capacity Stats (Genetic)
+    min_max_energy_capacity: float = 0.0
+    max_max_energy_capacity: float = 0.0
+    median_max_energy_capacity: float = 0.0
     # Fish health status counts (by energy ratio)
     fish_health_critical: int = 0  # <15% energy
     fish_health_low: int = 0       # 15-30% energy
@@ -282,6 +286,9 @@ class StatsPayload:
             "avg_fish_energy": self.avg_fish_energy,
             "min_fish_energy": self.min_fish_energy,
             "max_fish_energy": self.max_fish_energy,
+            "min_max_energy_capacity": self.min_max_energy_capacity,
+            "max_max_energy_capacity": self.max_max_energy_capacity,
+            "median_max_energy_capacity": self.median_max_energy_capacity,
             "fish_health_critical": self.fish_health_critical,
             "fish_health_low": self.fish_health_low,
             "fish_health_healthy": self.fish_health_healthy,

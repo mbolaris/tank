@@ -216,6 +216,10 @@ export interface StatsData {
     avg_fish_energy: number;
     min_fish_energy: number;
     max_fish_energy: number;
+    // Max Energy Capacity Stats (Genetic)
+    min_max_energy_capacity: number;
+    max_max_energy_capacity: number;
+    median_max_energy_capacity: number;
     // Fish health status counts (by energy ratio)
     fish_health_critical: number;  // <15% energy
     fish_health_low: number;       // 15-30% energy

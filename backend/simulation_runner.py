@@ -698,7 +698,11 @@ class SimulationRunner:
             energy_burn_total=stats.get("energy_burn_total", 0.0),
             avg_fish_energy=stats.get("avg_fish_energy", 0.0),
             min_fish_energy=stats.get("min_fish_energy", 0.0),
+
             max_fish_energy=stats.get("max_fish_energy", 0.0),
+            min_max_energy_capacity=stats.get("min_max_energy_capacity", 0.0),
+            max_max_energy_capacity=stats.get("max_max_energy_capacity", 0.0),
+            median_max_energy_capacity=stats.get("median_max_energy_capacity", 0.0),
             fish_health_critical=stats.get("fish_health_critical", 0),
             fish_health_low=stats.get("fish_health_low", 0),
             fish_health_healthy=stats.get("fish_health_healthy", 0),

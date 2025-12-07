@@ -122,11 +122,14 @@ class Fish(Agent):
         max_energy = ENERGY_MAX_DEFAULT * initial_size
         base_metabolism = ENERGY_MODERATE_MULTIPLIER * self.genome.metabolism_rate
         # Use custom initial energy if provided (for reproduction), otherwise use default ratio
+        # Store the original unclamped value for accurate energy tracking
+        self._initial_energy_transferred: Optional[float] = initial_energy
         if initial_energy is not None:
             self._energy_component = EnergyComponent(
                 max_energy, base_metabolism, initial_energy_ratio=0.0
             )
-            self._energy_component.energy = initial_energy
+            # Clamp initial energy to max capacity (prevent baby overflow from large parents)
+            self._energy_component.energy = min(max_energy, initial_energy)
         else:
             self._energy_component = EnergyComponent(
                 max_energy, base_metabolism, INITIAL_ENERGY_RATIO
@@ -243,7 +246,10 @@ class Fish(Agent):
         # - "birth": from reproduction (should be balanced by parent's reproduction_cost)
         # - "soup_spawn": spontaneous/system-injected fish (true net inflow)
         if self.parent_id is not None:
-            self.ecosystem.record_energy_gain("birth", self.energy)
+            # Use the original transferred energy (before clamping), not the clamped value
+            # This ensures birth energy matches reproduction_cost exactly
+            energy_to_record = self._initial_energy_transferred if self._initial_energy_transferred is not None else self.energy
+            self.ecosystem.record_energy_gain("birth", energy_to_record)
         else:
             self.ecosystem.record_energy_gain("soup_spawn", self.energy)
 
@@ -668,12 +674,21 @@ class Fish(Agent):
         is_asexual = self._reproduction_component._asexual_pregnancy
 
         # Generate offspring genome using reproduction component
-        offspring_genome, energy_transfer_fraction = self._reproduction_component.give_birth(
+        offspring_genome, _unused_fraction = self._reproduction_component.give_birth(
             self.genome, population_stress
         )
 
-        # Calculate energy to transfer to baby (parent loses this energy)
-        energy_to_transfer = self.energy * energy_transfer_fraction
+        # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
+        # This determines exactly how much energy the parent should transfer
+        from core.constants import FISH_BABY_SIZE
+        baby_max_energy = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.size_modifier
+        
+        # Parent transfers exactly what baby needs to start at 100% energy
+        # But can't transfer more than parent has!
+        energy_to_transfer = min(self.energy, baby_max_energy)
+        
+        # If parent can't afford to give baby 100%, the baby will start with less
+        # (This is fine - survival of the fittest)
         self.energy -= energy_to_transfer  # Parent pays the energy cost
         
         # Record reproduction energy cost (burn for parent)
@@ -691,7 +706,7 @@ class Fish(Agent):
         baby_y = max(0, min(self.screen_height - 50, baby_y))
 
         # Create baby fish with transferred energy
-        # Baby gets ONLY the energy transferred from parent (no free energy!)
+        # Baby gets exactly the energy transferred from parent
         baby = Fish(
             environment=self.environment,
             movement_strategy=self.movement_strategy.__class__(),  # Same strategy type
@@ -704,8 +719,8 @@ class Fish(Agent):
             ecosystem=self.ecosystem,
             screen_width=self.screen_width,
             screen_height=self.screen_height,
-            initial_energy=energy_to_transfer,  # Baby gets only transferred energy
-            parent_id=self.fish_id,  # Track lineage for phylogenet ic tree
+            initial_energy=energy_to_transfer,  # Baby gets transferred energy
+            parent_id=self.fish_id,  # Track lineage for phylogenetic tree
         )
 
         # Record reproduction stats
