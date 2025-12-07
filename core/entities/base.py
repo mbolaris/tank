@@ -106,6 +106,9 @@ class Agent:
         # Whether this entity should block fractal plant root spots beneath it
         self.blocks_root_spots: bool = False
 
+        # Entity traits (overridden by subclasses)
+        self.is_predator: bool = False
+
         # Test compatibility attributes
         self.rect: Rect = Rect(x, y, self.width, self.height)
         self.image: Optional[object] = None  # Placeholder for test compatibility
@@ -134,14 +137,10 @@ class Agent:
     def handle_screen_edges(self) -> None:
         """Handle the agent hitting the edge of the screen.
 
-        For Fish entities, check for migration opportunities at left/right boundaries.
-        Other entities just bounce.
+        Entities with migration support can attempt to leave the tank on horizontal
+        boundaries. Other entities just bounce.
         """
-        # Import here to avoid circular dependency
-        from core.entities import Fish
-
-        # Check for boundary migration (only for Fish)
-        if isinstance(self, Fish):
+        if self.can_attempt_migration():
             # Left boundary
             if self.pos.x < 0:
                 if self._attempt_migration("left"):
@@ -155,7 +154,7 @@ class Agent:
                 self.pos.x = self.screen_width - self.width
                 self.vel.x = -abs(self.vel.x)  # Bounce left
         else:
-            # Non-fish entities just bounce
+            # Non-migrating entities just bounce
             if self.pos.x < 0:
                 self.pos.x = 0
                 self.vel.x = abs(self.vel.x)
@@ -170,6 +169,19 @@ class Agent:
         elif self.pos.y + self.height > self.screen_height:
             self.pos.y = self.screen_height - self.height
             self.vel.y = -abs(self.vel.y)  # Bounce up
+
+    def can_attempt_migration(self) -> bool:
+        """Return True if the entity should try migration when hitting boundaries."""
+
+        return False
+
+    def _attempt_migration(self, direction: str) -> bool:  # pragma: no cover - default no-op
+        """Attempt migration in the given direction.
+
+        Subclasses override this to integrate with migration handlers.
+        """
+
+        return False
 
     def update(self, elapsed_time: int) -> None:
         """Update the agent state (pure logic, no rendering)."""
@@ -195,9 +207,8 @@ class Agent:
                 # Safety check: only normalize if vector has length
                 if dist_length > 0:
                     velocity_change = dist_vector.normalize()
-                    from core.entities.predators import Crab
 
-                    if isinstance(other, Crab):
+                    if other.is_predator:
                         velocity_change.y = abs(velocity_change.y)
                     self.avoidance_velocity -= velocity_change * AVOIDANCE_SPEED_CHANGE
 

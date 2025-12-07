@@ -504,6 +504,11 @@ class Fish(Agent):
         if len(self.food_memory) > self.MAX_FOOD_MEMORIES:
             self.food_memory.pop(0)
 
+    def can_attempt_migration(self) -> bool:
+        """Fish can migrate when hitting horizontal tank boundaries."""
+
+        return True
+
     def _attempt_migration(self, direction: str) -> bool:
         """Attempt to migrate to a connected tank when hitting a boundary.
 
