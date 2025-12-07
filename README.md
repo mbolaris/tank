@@ -1,49 +1,64 @@
-# 🐠 TankWorld
+# Tank World
 
-TankWorld is an artificial-life project where agents evolve algorithms. You can watch a simulation (like a fish tank) while the underlying system uses evolution to improve real algorithmic tasks.
+**A framework for AI-driven automated Artificial Life research.**
 
-## 🎯 What It Does
+Tank World combines engaging visualization with serious computational research. Watch a fish tank simulation while underneath, AI agents evolve the algorithms themselves—not just the populations, but the rules that govern evolution.
 
-* **Runs agents whose "brains" are algorithm modules** - 58 parametrizable behavior strategies
-* **Evolves those modules and parameters over generations** - Natural selection optimizes algorithms
-* **Visualizes the results in an entertaining simulation** - Watch fish, plants, and predators interact
-* **Lets you plug in any task** - Poker is the current example, but the system is extensible
+> **See [docs/VISION.md](docs/VISION.md) for the full project vision and [ROADMAP.md](ROADMAP.md) for development phases.**
 
-## 🔄 Two-Layer Evolution
+---
 
-### **Layer 1 – Inside the Tank**
-Agents evolve combinations of algorithms and parameters. The system evaluates performance and keeps the best.
-- Fish inherit behavior algorithms from parents with parameter mutations
-- Better algorithms = more reproduction and survival
-- Population naturally discovers optimal strategies over generations
+## The Core Idea: Two-Layer Evolution
 
-### **Layer 2 – Outside the Tank**
-A coding agent looks at results and adjusts the actual codebase for the next cycle—removing dead code, merging similar modules, and adding new variants.
+### Layer 1: Population Evolution (Inside the Tank)
 
-This creates a loop: **Evolve → Analyze → Rewrite Code → Evolve Again**
+Traditional evolutionary computation. Fish compete for survival using behavior algorithms:
+- 58 parametrizable behavior strategies across 6 categories
+- Natural selection optimizes algorithm parameters over generations
+- Better strategies = more reproduction and survival
 
-See the **AI Code Evolution Workflow** section below for how this works in practice.
+### Layer 2: Algorithmic Evolution (Outside the Tank)
 
-## 🚀 Long-Term Vision
+After simulation runs complete, an AI agent (like Claude) analyzes performance data and improves the algorithms themselves:
+- Identify underperforming behaviors and why they fail
+- Generate improved algorithm code
+- Create new behavior strategies
+- Remove ineffective approaches
 
-Eventually TankWorld becomes a **distributed computing platform** where people contribute compute because the simulation itself is fun to watch. Under the surface, their compute helps solve real problems.
+**The loop**: Evolve Population → Collect Data → AI Improves Code → Evolve Again
 
-## 🌟 Current Features
+This is what makes Tank World different: the rules of evolution themselves evolve.
 
-- 🧬 **ALGORITHMIC EVOLUTION** - 58 unique parametrizable behavior strategies that evolve!
-- 🤖 **AI CODE EVOLUTION** - Automated coding agent improves algorithms between generations
-- 🦀 **Predator-Prey Dynamics** - Crabs hunt fish in the ecosystem
-- 🌿 **Fractal Plants** - L-system plants with genetic evolution and nectar production
-- 🔬 **Genetic Evolution** - Traits and algorithms evolve across generations
-- 🌐 **Modern Web UI** - React-based interface with real-time visualization
-- 📊 **Live Statistics & LLM Export** - Track evolution and export data for AI analysis
-- 🌍 **Rich Ecosystem** - Day/night cycles, living plants, population dynamics
-- 🎴 **Poker Minigame** - Fish can play poker against each other for energy!
-- ⚡ **Headless Mode** - Run 10-300x faster for data collection and testing
+---
 
-## 📋 **Detailed Feature Breakdown**
+## Long-Term Goals
 
-### 🧬 **ALGORITHMIC EVOLUTION SYSTEM** 🚀
+1. **Closed-loop evolution**: Fully automated improvement cycles running 24/7
+2. **Research platform**: Legitimate Alife research with publishable results
+3. **Distributed compute**: Users contribute compute by watching entertaining simulations
+4. **Evolving visualization**: AI proposes not just new behaviors but new ways to visualize them
+5. **Self-improving framework**: The system discovers what questions to ask next
+
+Currently: Phase 1 (Foundation) with Layer 2 evolution proven but not yet fully automated.
+
+---
+
+## Current Features
+
+- **Algorithmic Evolution** - 58 unique parametrizable behavior strategies that evolve
+- **AI Code Evolution** - Automated coding agent improves algorithms between generations
+- **Predator-Prey Dynamics** - Crabs hunt fish in the ecosystem
+- **Fractal Plants** - L-system plants with genetic evolution and nectar production
+- **Genetic Evolution** - Traits and algorithms evolve across generations
+- **Modern Web UI** - React-based interface with real-time visualization
+- **Live Statistics & LLM Export** - Track evolution and export data for AI analysis
+- **Rich Ecosystem** - Day/night cycles, living plants, population dynamics
+- **Poker Minigame** - Fish can play poker against each other for energy
+- **Headless Mode** - Run 10-300x faster for data collection and testing
+
+## Detailed Feature Breakdown
+
+### Algorithmic Evolution System
 
 The simulation features **58 parametrizable behavior algorithms** that fish can inherit and evolve! This creates unprecedented diversity and sophistication in fish behavior.
 
@@ -74,7 +89,7 @@ The simulation features **58 parametrizable behavior algorithms** that fish can 
 - `PokerBluffer` - Varies behavior unpredictably to confuse opponents
 - ...and 48 more!
 
-### 🎴 **Fish Poker Minigame**
+### Fish Poker Minigame
 Fish can play poker against each other and against plants for energy rewards!
 
 - **Automatic**: Fish play when they collide and have >10 energy
@@ -89,7 +104,7 @@ Fish can play poker against each other and against plants for energy rewards!
 - **Live Events**: See poker games happen in real-time in the UI with animated energy transfer arrows
 - **Statistics**: Track total games, wins/losses, best hands, and plant-fish energy flow
 
-### 🌿 **Fractal Plants with L-System Genetics**
+### Fractal Plants with L-System Genetics
 Plants in the ecosystem are procedurally generated using **L-system fractals** with genetic inheritance:
 
 - **Genetic Diversity**: Each plant has a unique genome controlling branch angles, growth patterns, and colors
@@ -99,7 +114,7 @@ Plants in the ecosystem are procedurally generated using **L-system fractals** w
 - **Root Spots**: Plants grow from fixed anchor points at the tank bottom
 - **Visual Evolution**: Plant shapes and colors evolve across generations
 
-### 🧬 **Pure Algorithmic Evolution**
+### Pure Algorithmic Evolution
 The ecosystem focuses on **algorithmic evolution** with all fish competing using parametrizable behavior algorithms:
 
 - **58 Different Algorithms** across 6 categories (food seeking, predator avoidance, schooling, energy management, territory, poker interactions)
@@ -108,7 +123,7 @@ The ecosystem focuses on **algorithmic evolution** with all fish competing using
 - **High Interpretability**: Unlike black-box neural networks, algorithm behaviors are clear and analyzable
 - **Competition**: All fish compete for the same resources, creating evolutionary pressure for optimal strategies
 
-### 🌐 **Modern Web UI**
+### Modern Web UI
 Built with **React + FastAPI + WebSocket**:
 
 - **Real-time Visualization**: HTML5 Canvas rendering at 30 FPS
@@ -120,7 +135,7 @@ Built with **React + FastAPI + WebSocket**:
 - **View Toggle**: Switch between Single Tank and Network views via a central pill-style toggle
 - **Tank Navigator**: Cycle through tanks with ← → arrow buttons or keyboard shortcuts
 
-## 🚀 Running the Simulation
+## Running the Simulation
 
 ### Prerequisites
 
@@ -211,7 +226,7 @@ python main.py --headless --max-frames 10000 --export-stats results.json
 - Identical simulation behavior to web UI
 - **LLM-friendly stats export**: Export comprehensive JSON data including algorithm performance, evolution trends, and population dynamics for AI-assisted analysis
 
-## 🧹 Code Quality & Testing
+## Code Quality & Testing
 
 Keep changes safe by running the test and lint workflow locally:
 
@@ -229,7 +244,7 @@ The `scripts/verify_plants_no_metabolic_cost.py` helper can also be used to spot
 python scripts/verify_plants_no_metabolic_cost.py  # Prints energy every 10 frames for a sample plant
 ```
 
-### 🤖 AI Code Evolution Workflow (NEW!)
+### AI Code Evolution Workflow
 
 **Automatically improve fish behaviors using AI!** The simulation now includes an **AI Code Evolution Agent** that analyzes simulation data and generates algorithm improvements.
 
@@ -264,7 +279,7 @@ git push -u origin <branch-name>
 
 See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for complete guide and `docs/PROOF_OF_AI_IMPROVEMENT.md` for real-world example.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 tank/
@@ -312,13 +327,13 @@ tank/
 └── README.md                # This file
 ```
 
-## 🎮 Web UI Controls
+## Web UI Controls
 
 - **Add Food** button - Drop food into the tank
 - **Pause/Resume** button - Pause or resume the simulation
 - **Reset** button - Reset the simulation to initial state
 
-## 🔧 Configuration
+## Configuration
 
 Key parameters in `core/constants.py`:
 
@@ -355,7 +370,7 @@ BASE_FOOD_PRODUCTION_RATE = 150  # 5 seconds
 MAX_FOOD_CAPACITY = 8  # per plant
 ```
 
-## 🧪 Ecosystem Dynamics Observed
+## Ecosystem Dynamics Observed
 
 ### Sustainable Population
 - **Population**: Stable at 7-15 fish with balanced predation
@@ -387,7 +402,7 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Predator-prey cycles**: Crab population affects fish numbers
 - **Starvation**: Rare with proper plant density
 
-## 🧬 Genetics & Evolution
+## Genetics & Evolution
 
 ### Heritable Traits
 - **Physical traits**: Speed, size, vision range, metabolism, max energy
@@ -408,7 +423,7 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Generational evolution**: Population average fitness improves over time
 - **Algorithm diversity**: Multiple successful strategies can coexist
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -427,7 +442,7 @@ ruff check
 black .
 ```
 
-## 🎓 Educational Value
+## Educational Value
 
 This simulation demonstrates:
 - **Genetics & Heredity**: Mendelian inheritance with mutations
@@ -443,7 +458,7 @@ This simulation demonstrates:
 - **Interpretable AI**: Clear, debuggable algorithm behaviors vs black-box approaches
 - **Data Science**: LLM-friendly stat exports for AI-assisted analysis
 
-## 🔬 Recent Improvements & Future Enhancements
+## Recent Improvements & Future Enhancements
 
 Recently Completed: ✅
 - [✅] **Fractal Plants with L-System Genetics** - Procedurally generated plants with genetic evolution!
@@ -479,7 +494,7 @@ Potential Future Additions:
 - [ ] Multi-threaded population simulation
 - [ ] Cloud-based long-term evolution experiments
 
-## 🏗️ Architecture
+## Architecture
 
 The simulation uses a clean architecture with separation of concerns:
 
@@ -509,11 +524,11 @@ The simulation uses a clean architecture with separation of concerns:
   - Responsive design
   - WebSocket connection for live updates
 
-## 📜 License
+## License
 
 This project is open source. Feel free to modify and extend!
 
-## 🙏 Credits
+## Credits
 
 Built with:
 - **Python 3.8+**: Core simulation language
@@ -525,10 +540,11 @@ Built with:
 - **Uvicorn**: High-performance ASGI server
 - **Love for ALife**: Inspired by Conway's Life, Tierra, and evolutionary algorithms
 
-## 📚 Additional Resources
+## Additional Resources
 
 For more information:
-- **Roadmap**: See `ROADMAP.md` - Project vision and development roadmap
+- **Vision**: See `docs/VISION.md` - Long-term goals and the two-layer evolution paradigm
+- **Roadmap**: See `ROADMAP.md` - Development phases and milestones
 - **AI Code Evolution**: See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` - Complete guide to automated algorithm improvement
 - **AI Improvement Proof**: See `docs/PROOF_OF_AI_IMPROVEMENT.md` - Real-world example (0% → 100% reproduction)
 - **Architecture details**: See `docs/ARCHITECTURE.md`
@@ -541,4 +557,4 @@ For more information:
 
 ---
 
-**Enjoy watching algorithmic life evolve! 🌊🐠✨🧬**
+*The fish tank is just the beginning. What evolves next is up to us—and the AI.*
