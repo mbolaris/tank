@@ -50,6 +50,7 @@ class SimulationStatsExporter:
                 ecosystem, algorithm_metadata
             ),
             "poker_statistics": self._build_poker_statistics(ecosystem),
+            "skill_game_statistics": self._build_skill_game_statistics(ecosystem),
             "generation_trends": self._build_generation_trends(ecosystem),
             "recommendations": {
                 "top_performers": self._identify_top_performers(ecosystem),
@@ -250,3 +251,145 @@ class SimulationStatsExporter:
                     }
                 )
         return extinct
+
+    def _build_skill_game_statistics(
+        self, ecosystem: "EcosystemManager"
+    ) -> Dict[str, Any]:
+        """Build skill game statistics for observation.
+
+        These metrics help us observe how well evolution is progressing
+        on the active skill game. They do NOT drive selection - that
+        happens through energy flow.
+
+        Args:
+            ecosystem: The ecosystem manager
+
+        Returns:
+            Skill game statistics dictionary
+        """
+        # Check if skill game system exists
+        if not hasattr(self.engine, "skill_game_system"):
+            return {"status": "skill_game_system_not_initialized"}
+
+        skill_system = self.engine.skill_game_system
+        if skill_system is None:
+            return {"status": "skill_game_system_disabled"}
+
+        # Get aggregate stats
+        aggregate = skill_system.get_aggregate_stats()
+
+        # Collect per-fish skill game stats
+        fish_stats = []
+        for fish in self.engine.get_fish_list():
+            if hasattr(fish, "_skill_game_component"):
+                component = fish._skill_game_component
+                fish_data = {
+                    "fish_id": fish.fish_id,
+                    "generation": fish.generation,
+                    "algorithm": fish.genome.algorithm.__class__.__name__,
+                    "skill_games": component.get_all_stats_dict(),
+                }
+                fish_stats.append(fish_data)
+
+        # Calculate population-level skill metrics
+        population_metrics = self._calculate_population_skill_metrics(fish_stats)
+
+        return {
+            "active_game": aggregate.get("active_game", "Unknown"),
+            "total_games_played": aggregate.get("total_games_played", 0),
+            "total_energy_transferred": aggregate.get("total_energy_transferred", 0.0),
+            "config": aggregate.get("config", {}),
+            "population_metrics": population_metrics,
+            "top_skill_performers": self._identify_top_skill_performers(fish_stats),
+            "recent_events": skill_system.get_recent_events(20),
+        }
+
+    def _calculate_population_skill_metrics(
+        self, fish_stats: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Calculate population-level skill game metrics.
+
+        Args:
+            fish_stats: List of per-fish stats
+
+        Returns:
+            Aggregate metrics
+        """
+        if not fish_stats:
+            return {}
+
+        # Aggregate across all fish and game types
+        total_optimality_sum = 0.0
+        total_games = 0
+        total_wins = 0
+        games_by_type: Dict[str, int] = {}
+        optimality_by_type: Dict[str, List[float]] = {}
+
+        for fish_data in fish_stats:
+            for game_type, stats in fish_data.get("skill_games", {}).items():
+                games = stats.get("total_games", 0)
+                if games == 0:
+                    continue
+
+                total_games += games
+                total_wins += stats.get("wins", 0)
+                total_optimality_sum += stats.get("optimality_rate", 0) * games
+
+                if game_type not in games_by_type:
+                    games_by_type[game_type] = 0
+                    optimality_by_type[game_type] = []
+                games_by_type[game_type] += games
+                optimality_by_type[game_type].append(stats.get("optimality_rate", 0))
+
+        return {
+            "total_fish_with_stats": len(fish_stats),
+            "total_games_across_fish": total_games,
+            "population_win_rate": total_wins / total_games if total_games > 0 else 0.0,
+            "population_avg_optimality": (
+                total_optimality_sum / total_games if total_games > 0 else 0.0
+            ),
+            "games_by_type": games_by_type,
+            "avg_optimality_by_type": {
+                game_type: sum(rates) / len(rates) if rates else 0.0
+                for game_type, rates in optimality_by_type.items()
+            },
+        }
+
+    def _identify_top_skill_performers(
+        self, fish_stats: List[Dict[str, Any]], top_n: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Identify fish with highest skill game optimality.
+
+        Args:
+            fish_stats: List of per-fish stats
+            top_n: Number of top performers to return
+
+        Returns:
+            List of top performer summaries
+        """
+        # Score fish by average optimality across games
+        scored_fish = []
+        for fish_data in fish_stats:
+            total_optimality = 0.0
+            game_count = 0
+            for game_type, stats in fish_data.get("skill_games", {}).items():
+                if stats.get("total_games", 0) >= 5:  # Minimum sample
+                    total_optimality += stats.get("optimality_rate", 0)
+                    game_count += 1
+
+            if game_count > 0:
+                avg_optimality = total_optimality / game_count
+                scored_fish.append({
+                    "fish_id": fish_data.get("fish_id"),
+                    "generation": fish_data.get("generation"),
+                    "algorithm": fish_data.get("algorithm"),
+                    "avg_optimality": avg_optimality,
+                    "games_played": sum(
+                        s.get("total_games", 0)
+                        for s in fish_data.get("skill_games", {}).values()
+                    ),
+                })
+
+        # Sort by optimality
+        scored_fish.sort(key=lambda x: x["avg_optimality"], reverse=True)
+        return scored_fish[:top_n]
