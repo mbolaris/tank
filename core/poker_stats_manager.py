@@ -79,17 +79,6 @@ class PokerStatsManager:
         total_folds = sum(s.folds for s in self.poker_stats.values())
         total_showdowns = sum(s.showdown_count for s in self.poker_stats.values())
         total_won_at_showdown = sum(s.won_at_showdown for s in self.poker_stats.values())
-
-        total_games += sum(s.total_games for s in self.poker_stats.values())
-        total_wins += sum(s.total_wins for s in self.poker_stats.values())
-        total_losses += sum(s.total_losses for s in self.poker_stats.values())
-        total_ties += sum(s.total_ties for s in self.poker_stats.values())
-        total_energy_won += sum(s.total_energy_won for s in self.poker_stats.values())
-        total_energy_lost += sum(s.total_energy_lost for s in self.poker_stats.values())
-        total_house_cuts += sum(s.total_house_cuts for s in self.poker_stats.values())
-        total_folds += sum(s.folds for s in self.poker_stats.values())
-        total_showdowns += sum(s.showdown_count for s in self.poker_stats.values())
-        total_won_at_showdown += sum(s.won_at_showdown for s in self.poker_stats.values())
         total_won_by_fold = sum(s.won_by_fold for s in self.poker_stats.values())
 
         best_hand_rank = max((s.best_hand_rank for s in self.poker_stats.values()), default=0)
