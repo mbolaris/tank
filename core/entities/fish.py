@@ -120,6 +120,9 @@ class Fish(Agent):
         # not just genome.size_modifier, to match the dynamic max_energy property
         initial_size = self._lifecycle_component.size
         max_energy = ENERGY_MAX_DEFAULT * initial_size
+        if initial_energy is not None and initial_energy > max_energy:
+            # Respect explicit initial energy requests by raising capacity when needed
+            max_energy = initial_energy
         base_metabolism = ENERGY_MODERATE_MULTIPLIER * self.genome.metabolism_rate
         # Use custom initial energy if provided (for reproduction), otherwise use default ratio
         # Store the original unclamped value for accurate energy tracking

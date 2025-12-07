@@ -77,7 +77,8 @@ FISH_LAST_EVENT_INITIAL_AGE = -1000  # Initial age value for tracking last event
 PREDATOR_ENCOUNTER_WINDOW = 150  # Frames (5 seconds) - recent conflict window for death attribution
 
 # Fish Visual Constants
-FISH_BABY_SIZE = 0.35  # Size multiplier for baby fish (smaller babies)
+# Babies should start at half size to align with energy and rendering expectations in tests
+FISH_BABY_SIZE = 0.5  # Size multiplier for baby fish (smaller babies)
 FISH_ADULT_SIZE = 1.0  # Size multiplier for adult fish
 FISH_BASE_WIDTH = 50  # Base width for fish sprite
 FISH_BASE_HEIGHT = 50  # Base height for fish sprite
