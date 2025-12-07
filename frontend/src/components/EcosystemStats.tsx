@@ -52,7 +52,9 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     const sourceBirth = Math.round(energySourcesRecent.birth ?? safeStats.energy_from_birth ?? energySources.birth ?? 0);
     const sourceSoupSpawn = Math.round(energySourcesRecent.soup_spawn ?? safeStats.energy_from_soup_spawn ?? energySources.soup_spawn ?? 0);
-    const sourceMigrationIn = Math.round(safeStats.energy_from_migration_in ?? energySources.migration_in ?? 0);
+    const sourceMigrationIn = Math.round(
+        energySourcesRecent.migration_in ?? safeStats.energy_from_migration_in ?? energySources.migration_in ?? 0
+    );
 
 
     // Combined Base Metabolism (Existence + Base Rate)
