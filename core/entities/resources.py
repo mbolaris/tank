@@ -4,6 +4,12 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 from core.constants import (
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_1,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
+    FOOD_SINK_ACCELERATION,
     FOOD_TYPES,
     PLANT_FOOD_PRODUCTION_ENERGY,
     PLANT_FOOD_PRODUCTION_INTERVAL,
@@ -70,14 +76,6 @@ class Plant(Agent):
         Returns:
             True if food should be produced
         """
-        from core.constants import (
-            AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
-            AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
-            AUTO_FOOD_HIGH_POP_THRESHOLD_1,
-            AUTO_FOOD_HIGH_POP_THRESHOLD_2,
-            AUTO_FOOD_LOW_ENERGY_THRESHOLD,
-        )
-
         # Update timer
         self.food_production_timer -= time_modifier
 
@@ -312,7 +310,6 @@ class Food(Agent):
         """Make the food sink at a rate based on its type."""
         if self.is_stationary:
             return
-        from core.constants import FOOD_SINK_ACCELERATION
 
         sink_rate = FOOD_SINK_ACCELERATION * self.food_properties["sink_multiplier"]
         self.vel.y += sink_rate
