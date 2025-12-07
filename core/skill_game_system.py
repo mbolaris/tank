@@ -374,9 +374,9 @@ class SkillGameSystem:
                     if not self.can_play(fish2, current_frame):
                         continue
 
-                    # Check distance
-                    dx = fish1.x - fish2.x
-                    dy = fish1.y - fish2.y
+                    # Check distance (fish position is in pos.x, pos.y)
+                    dx = fish1.pos.x - fish2.pos.x
+                    dy = fish1.pos.y - fish2.pos.y
                     dist = (dx * dx + dy * dy) ** 0.5
 
                     if dist <= encounter_distance:
