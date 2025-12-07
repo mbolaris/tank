@@ -536,6 +536,10 @@ class PokerInteraction:
 
         # Winner pays the energy cost
         winner_fish.modify_energy(-winner_energy_transfer)
+        
+        # Track reproduction cost in ecosystem stats
+        if winner_fish.ecosystem is not None:
+            winner_fish.ecosystem.record_energy_burn("reproduction_cost", winner_energy_transfer)
 
         # Set reproduction cooldown for both parents
         winner_fish.reproduction_cooldown = REPRODUCTION_COOLDOWN
@@ -592,6 +596,9 @@ class PokerInteraction:
                 if loser_algo_id >= 0:
                     loser_fish.ecosystem.record_reproduction(loser_algo_id, is_asexual=False)
 
+        # Register birth stats (balances the cost paid above)
+        baby.register_birth()
+        
         return baby
 
     def play_poker_multiplayer(self, bet_amount: float) -> bool:
@@ -696,7 +703,13 @@ class PokerInteraction:
         # Deduct bets from each player
         for i, fish in enumerate(self.fish_list):
             player_total_bet = game_state.players[i].total_bet
+            old_energy = fish.energy
             fish.energy = max(0, fish.energy - player_total_bet)
+            actual_loss = old_energy - fish.energy
+            
+            # Record this as a transfer outflow (balances the winner's inflow)
+            if actual_loss > 0 and fish.ecosystem is not None:
+                fish.ecosystem.record_energy_burn("poker_loss", actual_loss)
 
         if winner_id != -1:
             winner_fish = self.fish_list[winner_idx]
@@ -706,12 +719,19 @@ class PokerInteraction:
             net_gain = total_pot - winner_total_bet
             house_cut = self.calculate_house_cut(winner_fish.size, net_gain)
 
+            # Calculate winner's actual gain (pot minus their bet minus house cut)
+            winner_actual_gain = total_pot - house_cut
+            
             # Winner receives pot minus house cut
-            # Use direct energy assignment to bypass max_energy cap (poker winnings can exceed capacity)
-            winner_fish.energy += total_pot - house_cut
-            winner_actual_gain = net_gain - house_cut
-            if winner_actual_gain > 0 and winner_fish.ecosystem is not None:
-                winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain)
+            # Apply energy gain directly
+            winner_fish.energy += winner_actual_gain
+            
+            # Record poker winnings in ecosystem
+            if winner_fish.ecosystem is not None:
+                winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain - winner_total_bet)  # Net gain
+                # Record house cut as a sink
+                if house_cut > 0:
+                    winner_fish.ecosystem.record_energy_burn("poker_house_cut", house_cut)
             
             # Collect loser IDs and record their losses
             loser_ids = []

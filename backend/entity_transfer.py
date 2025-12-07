@@ -283,10 +283,8 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             screen_height=target_world.config.screen_height,
             initial_energy=data["energy"],
             parent_id=data.get("parent_id"),
+            skip_birth_recording=True,  # Prevent phantom "soup_spawn" stats
         )
-
-        # Restore additional state via internal components (age/max_age are read-only properties)
-        # Note: max_energy is now computed from fish size, not stored separately
         fish._lifecycle_component.age = data["age"]
         fish._lifecycle_component.max_age = data["max_age"]
         fish._lifecycle_component.update_life_stage()  # Update life stage based on restored age

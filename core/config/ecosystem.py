@@ -13,6 +13,7 @@ MAX_ECOSYSTEM_EVENTS = 1000  # Maximum events to track in ecosystem history
 MAX_POPULATION = 100  # Maximum population capacity for ecosystem
 CRITICAL_POPULATION_THRESHOLD = 10  # Minimum population before emergency spawning
 EMERGENCY_SPAWN_COOLDOWN = 180  # Frames between emergency spawns (6 seconds at 30fps)
+ENERGY_STATS_WINDOW_FRAMES = 1800  # Frames for energy stats rolling window (60s at 30fps)
 
 # Population Stress Constants
 POPULATION_STRESS_MAX_MULTIPLIER = 0.8  # Maximum population stress from low population

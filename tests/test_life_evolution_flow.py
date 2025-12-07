@@ -39,6 +39,14 @@ class MiniEcosystem:
     def record_death(self, *_args, **_kwargs):  # pragma: no cover - not used in this test
         return None
 
+    def record_energy_burn(self, source: str, amount: float) -> None:
+        """Stub for energy burn tracking."""
+        pass
+
+    def record_energy_gain(self, source: str, amount: float) -> None:
+        """Stub for energy gain tracking."""
+        pass
+
 
 class MiniEnvironment:
     """Simple environment stub exposing only what Fish requires."""
@@ -107,6 +115,7 @@ def _advance_pregnancies(fish_list):
         for fish in list(fish_list):
             baby = fish.update_reproduction()
             if baby is not None:
+                baby.register_birth()  # Register birth stats explicitly
                 newborns.append(baby)
                 fish_list.append(baby)
     return newborns

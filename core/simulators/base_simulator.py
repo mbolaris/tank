@@ -172,6 +172,7 @@ class BaseSimulator(ABC):
                 death_cause,
                 fish.genome,
                 algorithm_id=algorithm_id,
+                remaining_energy=fish.energy,  # Track energy lost when fish dies
             )
         self.remove_entity(fish)
 
@@ -220,6 +221,9 @@ class BaseSimulator(ABC):
 
         # Crab can only kill if hunt cooldown is ready
         if crab.can_hunt():
+            # Note: Energy burn will be recorded in record_fish_death as "death_predation"
+            # No need to record separately here to avoid double-counting
+            
             crab.eat_fish(fish)
             self.record_fish_death(fish, "predation")
             return True

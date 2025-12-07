@@ -180,7 +180,11 @@ class StatsData(BaseModel):
     food_count: int
     plant_count: int
     total_energy: float
+    energy_from_poker_plant: float = 0.0
+    energy_burn_recent: Dict[str, float] = {}
     poker_stats: PokerStatsData
+    min_fish_energy: float = 0.0
+    max_fish_energy: float = 0.0
 
 
 class SimulationUpdate(BaseModel):

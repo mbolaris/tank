@@ -63,6 +63,7 @@ def create_initial_population(
             screen_width=screen_width,
             screen_height=screen_height,
         )
+        fish.register_birth()
         population.append(fish)
 
     # PNG plants disabled - only fractal plants are used now

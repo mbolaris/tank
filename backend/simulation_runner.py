@@ -687,6 +687,7 @@ class SimulationRunner:
             fish_energy=stats.get("fish_energy", 0.0),
             plant_energy=stats.get("plant_energy", 0.0),
             energy_sources=stats.get("energy_sources", {}),
+            energy_sources_recent=stats.get("energy_sources_recent", {}),
             energy_from_nectar=stats.get("energy_from_nectar", 0.0),
             energy_from_live_food=stats.get("energy_from_live_food", 0.0),
             energy_from_falling_food=stats.get("energy_from_falling_food", 0.0),

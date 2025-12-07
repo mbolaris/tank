@@ -508,6 +508,7 @@ class SimulationEngine(BaseSimulator):
                 newborn = entity.update(self.frame_count, time_modifier)
                 if newborn is not None and ecosystem is not None:
                     if ecosystem.can_reproduce(fish_count):
+                        newborn.register_birth()
                         new_entities.append(newborn)
                         fish_count += 1  # Track new births within frame
 
@@ -754,6 +755,7 @@ class SimulationEngine(BaseSimulator):
             screen_width=SCREEN_WIDTH,
             screen_height=SCREEN_HEIGHT,
         )
+        new_fish.register_birth()
 
         self.add_entity(new_fish)
 
@@ -799,6 +801,14 @@ class SimulationEngine(BaseSimulator):
             return {}
 
         stats = self.ecosystem.get_summary_stats(self.get_all_entities())
+        
+        # Add energy breakdown stats
+        stats.update({
+            "energy_sources": self.ecosystem.get_energy_source_summary(),
+            "energy_sources_recent": self.ecosystem.get_recent_energy_breakdown(window_frames=300),
+            "energy_burn_recent": self.ecosystem.get_recent_energy_burn(window_frames=300),
+        })
+
         stats["frame_count"] = self.frame_count
         stats["time_string"] = self.time_system.get_time_string()
         stats["elapsed_real_time"] = time.time() - self.start_time

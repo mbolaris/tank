@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from core.constants import ENERGY_STATS_WINDOW_FRAMES
 from core.ecosystem_stats import EcosystemEvent, GenerationStats, GeneticDiversityStats
 
 if TYPE_CHECKING:
@@ -115,6 +116,9 @@ def record_death(
         ecosystem.enhanced_stats.record_trait_fitness_sample(genome)
 
     ecosystem.enhanced_stats.record_death_energy_loss(remaining_energy)
+    
+    # Record energy burn for economy stats
+    ecosystem.record_energy_burn(f"death_{cause}", remaining_energy)
 
     details = f"Age: {age}, Generation: {generation}"
     if algorithm_id is not None:
@@ -251,8 +255,8 @@ def get_summary_stats(
     poker_summary = ecosystem.get_poker_stats_summary()
 
     energy_summary = ecosystem.get_energy_source_summary()
-    recent_energy = ecosystem.get_recent_energy_breakdown(window_frames=300)
-    recent_energy_burn = ecosystem.get_recent_energy_burn(window_frames=300)
+    recent_energy = ecosystem.get_recent_energy_breakdown(window_frames=ENERGY_STATS_WINDOW_FRAMES)
+    recent_energy_burn = ecosystem.get_recent_energy_burn(window_frames=ENERGY_STATS_WINDOW_FRAMES)
 
     total_energy = 0.0
     if entities is not None:
@@ -288,6 +292,9 @@ def get_summary_stats(
         "energy_from_poker": recent_energy.get("poker_fish", 0.0),
         "energy_from_poker_plant": recent_energy.get("poker_plant", 0.0),
         "energy_from_auto_eval": recent_energy.get("auto_eval", 0.0),
+        "energy_from_birth": recent_energy.get("birth", 0.0),
+        "energy_from_soup_spawn": recent_energy.get("soup_spawn", 0.0),
+        "energy_from_migration_in": recent_energy.get("migration_in", 0.0),
         "energy_burn_recent": recent_energy_burn,
         "energy_burn_total": sum(recent_energy_burn.values()),
         "reproduction_stats": ecosystem.get_reproduction_summary(),

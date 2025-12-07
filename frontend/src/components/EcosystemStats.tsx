@@ -5,7 +5,7 @@
 
 import { useEffect, useRef } from 'react';
 
-import EnergySankey from './EnergySankey';
+import EnergyEconomyPanel from './EnergyEconomyPanel';
 import type { StatsData } from '../types/simulation';
 
 interface EcosystemStatsProps {
@@ -18,9 +18,8 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // Always call hooks first, then handle early return
     // Use default values if stats is null
-    const safeStats = stats ?? {};
+    const safeStats = stats ?? ({} as Partial<StatsData>);
     const deathCauseEntries = Object.entries(safeStats.death_causes ?? {});
-    const pokerTransfer = safeStats.poker_stats?.total_plant_energy_transferred ?? 0;
     const energySources = safeStats.energy_sources ?? {};
     const energyFromNectar = Math.round(safeStats.energy_from_nectar ?? energySources.nectar ?? 0);
     const energyFromLiveFood = Math.round(safeStats.energy_from_live_food ?? energySources.live_food ?? 0);
@@ -28,28 +27,68 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const energyFromPoker = Math.round(safeStats.energy_from_poker ?? energySources.poker_fish ?? 0);
     const energyFromPokerPlant = Math.round(safeStats.energy_from_poker_plant ?? energySources.poker_plant ?? 0);
     const energyFromAutoEval = Math.round(safeStats.energy_from_auto_eval ?? energySources.auto_eval ?? 0);
-    const energyBurnRecent = safeStats.energy_burn_recent ?? {};
-    const metabolismBurn = energyBurnRecent.metabolism ?? energyBurnRecent.existence ?? 0;
-    const movementBurn = energyBurnRecent.movement ?? 0;
-    const turningBurn = energyBurnRecent.turning ?? 0;
-    const totalTrackedBurn = safeStats.energy_burn_total ?? metabolismBurn + movementBurn + turningBurn;
 
-    const pokerStats = safeStats.poker_stats ?? {};
+    // Energy Sinks Breakdown
+    const energyBurnRecent = safeStats.energy_burn_recent ?? {};
+    const burnExistence = energyBurnRecent.existence ?? 0;
+    const burnMetabolism = energyBurnRecent.metabolism ?? 0;
+    const burnTraits = energyBurnRecent.trait_maintenance ?? 0;
+    const burnMovement = energyBurnRecent.movement ?? 0;
+    // Note: Predation energy is now tracked as death_predation, included in fishDeathEnergyLoss
+
+    // Poker Outflows
+    const burnPokerHouseCut = energyBurnRecent.poker_house_cut ?? 0;
+    const burnPokerPlantLoss = energyBurnRecent.poker_plant_loss ?? 0;
+
+    // Recent Energy Inflows (New logic to fix discrepancy)
+    // We prefer energy_sources_recent (windowed) over energy_sources (lifetime cumulative)
+    // to match energyBurnRecent (windowed).
+    const energySourcesRecent = safeStats.energy_sources_recent ?? {};
+
+    // New energy flows
+    const burnTurning = energyBurnRecent.turning ?? 0;
+    const burnReproduction = energyBurnRecent.reproduction_cost ?? 0;
+    const burnMigration = energyBurnRecent.migration ?? 0;
+    const sourceBirth = Math.round(energySourcesRecent.birth ?? safeStats.energy_from_birth ?? energySources.birth ?? 0);
+    const sourceSoupSpawn = Math.round(energySourcesRecent.soup_spawn ?? safeStats.energy_from_soup_spawn ?? energySources.soup_spawn ?? 0);
+    const sourceMigrationIn = Math.round(safeStats.energy_from_migration_in ?? energySources.migration_in ?? 0);
+
+
+    // Combined Base Metabolism (Existence + Base Rate)
+    const baseLifeSupport = burnExistence + burnMetabolism;
+
+    const pokerStats = safeStats.poker_stats ?? ({} as any);
     const pokerVolumeTotal = (pokerStats.total_energy_won ?? 0) + (pokerStats.total_energy_lost ?? 0);
     const pokerVolumeRecent = Math.max(0, pokerVolumeTotal - previousPokerVolume.current);
     const pokerHouseCutRecent = Math.max(0, (pokerStats.total_house_cuts ?? 0) - previousHouseCut.current);
-    const pokerSources = energyFromPoker + energyFromPokerPlant + energyFromAutoEval;
+    // Plant transfer is net (can be negative), handled by windowed sources/burns below
+    // const pokerPlantTransferRecent is replaced by net calculation in panel
+
+    // Fish Poker Source (exclude plant)
+    // energyFromPoker contains only fish winnings if my assumption is correct, but let's confirm.
+    // Actually safeStats.energy_from_poker is usually ALL poker sources if not separated.
+    // But earlier I saw 'energy_sources.poker_fish' vs 'poker_plant'.
+    const fishPokerOnly = energyFromPoker;
+    const pokerSources = fishPokerOnly + energyFromAutoEval; // Exclude plant here
+
+    // Calculate loop volume (pot size estimate)
     const pokerLoopVolume = pokerVolumeRecent || Math.abs(pokerSources);
-    const fishDeathEnergyLoss = Math.max(0, energySources.death ?? 0);
+    const fishDeathEnergyLoss = Math.max(0,
+        (energyBurnRecent.death_starvation ?? 0) +
+        (energyBurnRecent.death_old_age ?? 0) +
+        (energyBurnRecent.death_predation ?? 0) +
+        (energyBurnRecent.death_migration ?? 0) +
+        (energyBurnRecent.death_unknown ?? 0)
+    );
+
+    const pokerLoss = Math.max(0, energyBurnRecent.poker_loss ?? 0);
 
     useEffect(() => {
-        previousPokerVolume.current = pokerVolumeTotal;
-        previousHouseCut.current = pokerStats.total_house_cuts ?? 0;
     }, [pokerStats.total_house_cuts, pokerVolumeTotal]);
 
     // Calculate totals for energy flow
-    const foodSources = energyFromNectar + energyFromLiveFood + energyFromFallingFood;
-    const netEnergyIn = foodSources + pokerSources;
+    // Calculate totals for energy flow
+    // netEnergyIn unused
 
     // Fish health distribution
     const fishHealthCritical = safeStats.fish_health_critical ?? 0;
@@ -132,29 +171,49 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                 </div>
 
                 {/* Energy Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
-                    <MiniStat label="Total" value={`${Math.round(stats.fish_energy).toLocaleString()}⚡`} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <MiniStat label="Total Energy" value={`${Math.round(stats.fish_energy).toLocaleString()}⚡`} />
                     <MiniStat label="Avg/Fish" value={`${Math.round(stats.avg_fish_energy ?? 0)}⚡`} />
                     <MiniStat
-                        label="Range"
+                        label="Energy Range"
                         value={`${Math.round(stats.min_fish_energy ?? 0)}-${Math.round(stats.max_fish_energy ?? 0)}`}
                     />
+                    <div style={{
+                        background: 'rgba(0,0,0,0.2)',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        textAlign: 'center',
+                        display: 'none' // Hidden as moved to Economy Panel
+                    }}>
+                    </div>
                 </div>
             </div>
 
-            {/* Energy Flow Card (Last 10s) */}
-            <div className="glass-panel" style={{ padding: '12px' }}>
-                <EnergySankey
+            {/* Energy Economy Panel (New) */}
+            <div style={{ gridRow: 'span 2' }}>
+                <EnergyEconomyPanel
+                    className=""
                     data={{
-                        foodAdded: Math.max(0, energyFromFallingFood + energyFromLiveFood),
+                        fallingFood: Math.max(0, energyFromFallingFood),
+                        liveFood: Math.max(0, energyFromLiveFood),
                         plantNectar: Math.max(0, energyFromNectar),
-                        fishMetabolism: Math.max(0, totalTrackedBurn),
+                        pokerIn: Math.max(0, pokerSources),
+                        baseMetabolism: Math.max(0, baseLifeSupport),
+                        traitMaintenance: Math.max(0, burnTraits),
+                        movementCost: Math.max(0, burnMovement),
                         fishDeaths: fishDeathEnergyLoss,
+                        pokerOut: pokerHouseCutRecent + burnPokerHouseCut,
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
-                        pokerHouseCut: pokerHouseCutRecent,
+                        pokerHouseCut: pokerHouseCutRecent + burnPokerHouseCut,
+                        plantPokerNet: energyFromPokerPlant - burnPokerPlantLoss,
+                        turningCost: Math.max(0, burnTurning),
+                        reproductionCost: Math.max(0, burnReproduction),
+                        birthEnergy: Math.max(0, sourceBirth),
+                        soupSpawn: Math.max(0, sourceSoupSpawn),
+                        migrationIn: Math.max(0, sourceMigrationIn),
+                        migrationOut: Math.max(0, burnMigration),
+                        pokerLoss: pokerLoss
                     }}
-                    title="Energy Flux (10s)"
-                    subtitle={`${netEnergyIn >= 0 ? '+' : ''}${netEnergyIn.toLocaleString()}⚡ net`}
                 />
             </div>
 
@@ -176,12 +235,6 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                     <StatItem label="PLANTS" value={stats.plant_count} subValue={`${Math.round(stats.plant_energy).toLocaleString()}⚡`} color="var(--color-success)" />
                     <StatItem label="FOOD" value={stats.food_count} subValue={`${Math.round(stats.food_energy ?? 0)}⚡`} />
                     <StatItem label="LIVE FOOD" value={stats.live_food_count} subValue={`${Math.round(stats.live_food_energy ?? 0)}⚡`} color="#fbbf24" />
-                    <StatItem
-                        label="🌿→🐟 XFER"
-                        value={`${pokerTransfer > 0 ? '+' : ''}${Math.round(pokerTransfer).toLocaleString()}⚡`}
-                        subValue={`${stats.poker_stats?.total_plant_games ?? 0} games`}
-                        color={pokerTransfer >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}
-                    />
                 </div>
             </div>
 
@@ -205,7 +258,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         label="Total Births"
                         value={stats.births}
                         valueColor="var(--color-success)"
-                        subValue={`S: ${stats.total_sexual_births ?? 0} / A: ${stats.total_asexual_births ?? 0}`}
+                        subValue={`S: ${stats.total_sexual_births ?? 0} / A: ${stats.total_asexual_births ?? 0} / Soup: ${Math.max(0, stats.births - (stats.total_sexual_births ?? 0) - (stats.total_asexual_births ?? 0))}`}
                     />
                     <RowItem label="Total Deaths" value={stats.deaths} valueColor="var(--color-danger)" />
                 </div>

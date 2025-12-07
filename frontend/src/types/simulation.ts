@@ -200,12 +200,16 @@ export interface StatsData {
     fish_energy: number;  // Total energy of all fish
     plant_energy: number; // Total energy of all plants
     energy_sources: Record<string, number>;
+    energy_sources_recent?: Record<string, number>;
     energy_from_nectar: number;
     energy_from_live_food: number;
     energy_from_falling_food: number;
     energy_from_poker: number;
     energy_from_poker_plant?: number;
     energy_from_auto_eval: number;
+    energy_from_birth?: number;
+    energy_from_soup_spawn?: number;
+    energy_from_migration_in?: number;
     energy_burn_recent?: Record<string, number>;
     energy_burn_total?: number;
     // Fish energy distribution

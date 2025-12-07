@@ -444,6 +444,10 @@ class EcosystemManager:
             won_by_fold,
         )
 
+        # Record energy flow for stats window
+        net_amount = energy_transferred if fish_won else -energy_transferred
+        self.record_plant_poker_energy_gain(net_amount)
+
     def record_mixed_poker_energy_transfer(
         self,
         energy_to_fish: float,
@@ -457,6 +461,9 @@ class EcosystemManager:
             is_plant_game: Whether this game involved plants (for counting)
         """
         self.poker_manager.record_mixed_poker_energy_transfer(energy_to_fish, is_plant_game)
+        
+        # Record energy flow for stats window
+        self.record_plant_poker_energy_gain(energy_to_fish)
 
     def record_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-fish poker."""
@@ -464,7 +471,11 @@ class EcosystemManager:
 
     def record_plant_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-plant poker."""
-        self.record_energy_gain('poker_plant', amount)
+        if amount >= 0:
+            self.record_energy_gain('poker_plant', amount)
+        else:
+            # Negative amount means fish lost to plant
+            self.record_energy_burn('poker_plant_loss', -amount)
 
     def record_auto_eval_energy_gain(self, amount: float) -> None:
         """Track energy awarded through auto-evaluation benchmarks."""

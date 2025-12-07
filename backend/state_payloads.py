@@ -212,6 +212,7 @@ class StatsPayload:
     fish_energy: float  # Total energy of all fish
     plant_energy: float  # Total energy of all plants
     energy_sources: Dict[str, float] = field(default_factory=dict)
+    energy_sources_recent: Dict[str, float] = field(default_factory=dict)
     energy_from_nectar: float = 0.0
     energy_from_live_food: float = 0.0
     energy_from_falling_food: float = 0.0
@@ -269,6 +270,7 @@ class StatsPayload:
             "fish_energy": self.fish_energy,
             "plant_energy": self.plant_energy,
             "energy_sources": self.energy_sources,
+            "energy_sources_recent": self.energy_sources_recent,
             "energy_from_nectar": self.energy_from_nectar,
             "energy_from_live_food": self.energy_from_live_food,
             "energy_from_falling_food": self.energy_from_falling_food,

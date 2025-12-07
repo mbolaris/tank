@@ -70,6 +70,7 @@ class Fish(Agent):
         screen_height: int = 600,
         initial_energy: Optional[float] = None,
         parent_id: Optional[int] = None,
+        skip_birth_recording: bool = False,
     ) -> None:
         """Initialize a fish with genetics and life systems.
 
@@ -191,32 +192,8 @@ class Fish(Agent):
 
         super().__init__(environment, x, y, modified_speed, screen_width, screen_height)
 
-        # Record birth
-        if ecosystem is not None:
-            # Get algorithm ID if fish has a behavior algorithm
-            algorithm_id = None
-            if self.genome.behavior_algorithm is not None:
-                from core.algorithms import get_algorithm_index
-
-                algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
-
-            # Get color as hex string for phylogenetic tree
-            r, g, b = self.genome.get_color_tint()
-            color_hex = f"#{r:02x}{g:02x}{b:02x}"
-
-            # Record birth with parent lineage
-            parent_ids = [parent_id] if parent_id is not None else None
-            ecosystem.record_birth(
-                self.fish_id,
-                self.generation,
-                parent_ids=parent_ids,
-                algorithm_id=algorithm_id,
-                color=color_hex,
-            )
-
-            # Record initial reproduction stats if this is a spontaneous birth (e.g. from loaded state)
-            # but usually this is handled by the parent calling record_reproduction
-
+        # Store parent ID for delayed registration
+        self.parent_id = parent_id
 
         self.last_direction: Optional[Vector2] = (
             self.vel.normalize() if self.vel.length_squared() > 0 else None
@@ -229,6 +206,46 @@ class Fish(Agent):
 
         # Visual effects for births
         self.birth_effect_timer: int = 0  # Frames remaining for birth visual effect (hearts + particles)
+
+    def register_birth(self) -> None:
+        """Register birth stats with the ecosystem.
+        
+        Must be called explicitly when the fish is successfully added to the simulation.
+        This prevents phantom stats for fish that are created but immediately discarded.
+        """
+        if self.ecosystem is None:
+            return
+            
+        # Get algorithm ID if fish has a behavior algorithm
+        algorithm_id = None
+        if self.genome.behavior_algorithm is not None:
+            from core.algorithms import get_algorithm_index
+
+            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+
+        # Get color as hex string for phylogenetic tree
+        r, g, b = self.genome.get_color_tint()
+        color_hex = f"#{r:02x}{g:02x}{b:02x}"
+        
+        # Determine parent lineage
+        parent_ids = [self.parent_id] if self.parent_id is not None else None
+        
+        # Record birth in phylogenetic tree and stats
+        self.ecosystem.record_birth(
+            self.fish_id,
+            self.generation,
+            parent_ids=parent_ids,
+            algorithm_id=algorithm_id,
+            color=color_hex,
+        )
+        
+        # Record energy inflow
+        # - "birth": from reproduction (should be balanced by parent's reproduction_cost)
+        # - "soup_spawn": spontaneous/system-injected fish (true net inflow)
+        if self.parent_id is not None:
+            self.ecosystem.record_energy_gain("birth", self.energy)
+        else:
+            self.ecosystem.record_energy_gain("soup_spawn", self.energy)
 
     def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
         """Set a visual effect for poker status.
@@ -345,7 +362,7 @@ class Fish(Agent):
         """Update life stage based on age (delegates to LifecycleComponent)."""
         self._lifecycle_component.update_life_stage()
 
-    def gain_energy(self, amount: float) -> None:
+    def gain_energy(self, amount: float) -> float:
         """Gain energy from consuming food, capped at current max_energy.
         
         Uses the fish's dynamic max_energy (based on current size) rather than
@@ -353,8 +370,13 @@ class Fish(Agent):
         
         Args:
             amount: Amount of energy to gain.
+            
+        Returns:
+            float: Actual energy gained (capped by max_energy)
         """
+        old_energy = self._energy_component.energy
         self._energy_component.energy = min(self.max_energy, self._energy_component.energy + amount)
+        return self._energy_component.energy - old_energy
 
     def modify_energy(self, amount: float) -> None:
         """Adjust energy by a specified amount.
@@ -375,6 +397,7 @@ class Fish(Agent):
         """Consume energy based on metabolism and activity.
 
         Delegates to EnergyComponent for cleaner code organization.
+        Calculates and reports detailed breakdown of energy sinks to the ecosystem.
 
         Args:
             time_modifier: Modifier for time-based effects (e.g., day/night)
@@ -384,9 +407,31 @@ class Fish(Agent):
         )
 
         if self.ecosystem is not None:
+            # Report existence cost (size-based baseline)
             self.ecosystem.record_energy_burn("existence", energy_breakdown["existence"])
-            self.ecosystem.record_energy_burn("metabolism", energy_breakdown["metabolism"])
+            
+            # Report movement cost
             self.ecosystem.record_energy_burn("movement", energy_breakdown["movement"])
+
+            # Split metabolism into Base vs Traits
+            # The 'metabolism' value from component is (BaseRate * TimeMod * StageMod)
+            # Genome.metabolism_rate = 1.0 (Base) + Traits
+            # So we can split the cost proportionally
+            metabolism_total = energy_breakdown["metabolism"]
+            rate = self.genome.metabolism_rate
+            
+            # Avoid division by zero
+            if rate > 0:
+                # Calculate what fraction of the rate is due to traits (anything above 1.0)
+                trait_fraction = max(0.0, (rate - 1.0) / rate)
+                trait_cost = metabolism_total * trait_fraction
+                base_cost = metabolism_total - trait_cost
+            else:
+                trait_cost = 0.0
+                base_cost = metabolism_total
+
+            self.ecosystem.record_energy_burn("metabolism", base_cost)
+            self.ecosystem.record_energy_burn("trait_maintenance", trait_cost)
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy).
@@ -630,6 +675,10 @@ class Fish(Agent):
         # Calculate energy to transfer to baby (parent loses this energy)
         energy_to_transfer = self.energy * energy_transfer_fraction
         self.energy -= energy_to_transfer  # Parent pays the energy cost
+        
+        # Record reproduction energy cost (burn for parent)
+        if self.ecosystem:
+            self.ecosystem.record_energy_burn("reproduction_cost", energy_to_transfer)
 
         # Create offspring near parent
         offset_x = random.uniform(-30, 30)
@@ -780,9 +829,19 @@ class Fish(Agent):
         - Learning events only created every 5th food eaten
         - Cached algorithm_id lookup
         """
-        # Take a bite from the food
-        energy_gained = food.take_bite(self.bite_size)
-        self.gain_energy(energy_gained)
+        # Calculate how much room we have for more energy
+        available_capacity = self.max_energy - self.energy
+        
+        # Don't eat if we're already full (prevents wasting food)
+        if available_capacity <= 0.1:
+            return
+        
+        # Limit bite size to what we can actually use
+        effective_bite_size = min(self.bite_size, available_capacity)
+        
+        # Take a bite from the food (only what we can hold)
+        potential_energy = food.take_bite(effective_bite_size)
+        actual_energy = self.gain_energy(potential_energy)
 
         # IMPROVEMENT: Remember this food location for future reference
         self.remember_food_location(food.pos)
@@ -796,7 +855,7 @@ class Fish(Agent):
             food_event = LearningEvent(
                 learning_type=LearningType.FOOD_FINDING,
                 success=True,
-                reward=energy_gained / 10.0,  # Normalize reward
+                reward=actual_energy / 10.0,  # Normalize reward based on ACTUAL energy
                 context={},
             )
             self.learning_system.learn_from_event(food_event)
@@ -813,12 +872,13 @@ class Fish(Agent):
             algorithm_id = get_algorithm_index(behavior_algorithm)
             if algorithm_id >= 0:
                 # Determine food type and call appropriate tracking method
+                # Use actual_energy to prevent "phantom" stats
                 if isinstance(food, PlantNectar):
-                    ecosystem.record_nectar_eaten(algorithm_id, energy_gained)
+                    ecosystem.record_nectar_eaten(algorithm_id, actual_energy)
                 elif isinstance(food, LiveFood):
-                    ecosystem.record_live_food_eaten(algorithm_id, energy_gained)
+                    ecosystem.record_live_food_eaten(algorithm_id, actual_energy)
                 else:
-                    ecosystem.record_falling_food_eaten(algorithm_id, energy_gained)
+                    ecosystem.record_falling_food_eaten(algorithm_id, actual_energy)
 
     def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
         """Apply an energy penalty for direction changes, scaled by turn angle and fish size.

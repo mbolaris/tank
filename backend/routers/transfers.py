@@ -156,6 +156,10 @@ def setup_router(
 
         try:
             # Remove from source tank
+            # Record migration outflow for Fish entities
+            if entity_data.get("type") == "fish" and source_manager.world.ecosystem:
+                source_manager.world.ecosystem.record_energy_burn("migration", source_entity.energy)
+            
             source_manager.world.engine.remove_entity(source_entity)
             logger.info(f"Removed entity {entity_id} from tank {source_tank_id[:8]}")
 
@@ -184,6 +188,11 @@ def setup_router(
                 )
 
             dest_manager.world.engine.add_entity(new_entity)
+            
+            # Record migration inflow for Fish entities
+            if entity_data.get("type") == "fish" and dest_manager.world.ecosystem:
+                 dest_manager.world.ecosystem.record_energy_gain("migration_in", new_entity.energy)
+                 
             logger.info(f"Added entity {new_entity.id} to tank {destination_tank_id[:8]} (was {entity_id})")
 
             # Invalidate cached state so websocket clients see updated stats immediately
@@ -298,6 +307,10 @@ def setup_router(
                 )
 
             dest_manager.world.engine.add_entity(new_entity)
+
+            # Record migration inflow for Fish entities
+            if entity_data.get("type") == "fish" and dest_manager.world.ecosystem:
+                 dest_manager.world.ecosystem.record_energy_gain("migration_in", new_entity.energy)
 
             # Invalidate cached state so websocket clients see updated stats immediately
             try:
