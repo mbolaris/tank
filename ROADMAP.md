@@ -1,34 +1,143 @@
-# 🗺️ TankWorld Roadmap
+# Tank World Roadmap
 
-## **Short-Term**
+> **Vision**: A framework for AI-driven automated Artificial Life research, where entertaining visualizations drive real scientific discovery through two-layer evolution.
 
-* Clean up core simulation and rendering
-* Improve the algorithm genome structure
-* Solidify evolution logic (mutation, crossover, selection)
-* Add clear metrics for agent performance
-
-## **Mid-Term**
-
-* Add more task modules beyond poker
-* Expose all tunable parameters as part of the genome
-* Improve the frontend so evolution is easy to watch
-* Enhanced statistics and visualization for algorithm performance
-
-## **Coding-Agent Layer (Layer 2 Evolution)**
-
-* ✅ Let an automated coding agent analyze results (COMPLETED - see AI Code Evolution Workflow)
-* ✅ Have it rewrite or refactor algorithm modules (COMPLETED - proven with FreezeResponse improvement)
-* Feed those updated modules into the next evolution cycle (IN PROGRESS)
-* Automate the full loop: Evolve → Analyze → Rewrite → Deploy → Evolve Again
-
-## **Long-Term**
-
-* Expand to real scientific or industrial problem domains
-* Add distributed-compute support so users can run TankWorld workloads while watching the simulation
-* Build a platform where the entertainment value drives compute contribution
-* Scale to multiple interconnected tanks running different evolutionary experiments
-* Enable cross-tank algorithm migration and competition
+See [docs/VISION.md](docs/VISION.md) for the full project vision.
 
 ---
 
-**Current Status:** Layer 1 evolution is fully functional with 58 algorithms. Layer 2 (AI code evolution) has proven successful with automated algorithm improvements. Next step: close the loop with automated deployment and continuous evolution.
+## Phase 1: Foundation (Current)
+
+**Goal**: Establish the core simulation and AI evolution workflow.
+
+### Completed
+- [x] 58 parametrizable behavior algorithms across 6 categories
+- [x] Layer 1 evolution: population-level natural selection
+- [x] Fish tank visualization with fractal plants and predators
+- [x] Headless mode for fast data collection (10-300x speedup)
+- [x] AI code evolution agent (Layer 2 proof of concept)
+- [x] Algorithm registry with source file mapping
+- [x] LLM-friendly JSON stats export
+- [x] Deterministic seeding for reproducibility
+- [x] Poker minigame for energy redistribution
+
+### In Progress
+- [ ] Improve algorithm genome structure for better inheritance
+- [ ] Add clear metrics for algorithm performance comparison
+- [ ] Solidify mutation and selection logic
+
+---
+
+## Phase 2: Closed Loop
+
+**Goal**: Fully automate the evolution cycle so it runs continuously without human intervention.
+
+### Milestones
+- [ ] **Automated validation**: Run test simulations before accepting AI changes
+- [ ] **Regression detection**: Reject changes that reduce fitness metrics
+- [ ] **Batch improvements**: AI improves multiple algorithms per cycle
+- [ ] **Scheduled runs**: Nightly evolution cycles via CI/CD
+- [ ] **Self-healing**: AI fixes broken code it generates
+- [ ] **Metrics dashboard**: Track improvement velocity over time
+
+### Success Criteria
+- Evolution runs for 1 week without human intervention
+- Fitness metrics measurably improve each cycle
+- No regressions make it to main branch
+
+---
+
+## Phase 3: Research Platform
+
+**Goal**: Make Tank World a legitimate platform for Alife research.
+
+### Milestones
+- [ ] **Experiment framework**: Configure and run named experiments
+- [ ] **Complexity metrics**: Measure behavioral complexity, novelty, and diversity
+- [ ] **Open-endedness detection**: Identify when evolution is genuinely open-ended
+- [ ] **Cross-experiment analysis**: Compare results across parameter variations
+- [ ] **Data export for publication**: Generate research-ready datasets
+- [ ] **Reproducibility tools**: Exact replay of evolutionary history
+- [ ] **Multiple task domains**: Beyond poker to other algorithmic challenges
+
+### Success Criteria
+- First Alife research paper using Tank World data
+- Measurable open-ended evolution over extended runs
+- Community contributions to algorithm library
+
+---
+
+## Phase 4: Distributed Compute
+
+**Goal**: Users contribute compute by running entertaining simulations.
+
+### Milestones
+- [ ] **Multi-tank network**: Interconnected tanks sharing discoveries
+- [ ] **Algorithm migration**: Successful algorithms spread across tanks
+- [ ] **User engagement metrics**: Track what makes simulations entertaining
+- [ ] **Compute contribution tracking**: Fair credit for participation
+- [ ] **Browser-based client**: No installation required
+- [ ] **Mobile visualization**: Watch evolution on any device
+
+### Success Criteria
+- 100+ simultaneous tanks running worldwide
+- Algorithm improvements discovered across network
+- Users run simulations because they're fun, not obligation
+
+---
+
+## Phase 5: Evolving Visualization
+
+**Goal**: The AI evolves not just behaviors but the visualization itself.
+
+### Milestones
+- [ ] **Visualization abstraction**: Separate rendering from simulation logic
+- [ ] **AI-proposed entities**: New entity types generated by AI
+- [ ] **Engagement optimization**: Visualizations that maximize watch time
+- [ ] **Alternative metaphors**: Beyond fish tanks to other visual systems
+- [ ] **User preference learning**: Adapt visuals to what users enjoy
+
+### Success Criteria
+- AI successfully proposes new entity types
+- Visualization changes improve user engagement metrics
+- Multiple visualization "species" coexist
+
+---
+
+## Phase 6: Self-Improving Framework
+
+**Goal**: The framework evolves its own architecture.
+
+### Milestones
+- [ ] **Meta-evolution**: AI improves the evolution system itself
+- [ ] **Research question discovery**: AI proposes what to study next
+- [ ] **Framework refactoring**: AI restructures codebase for new capabilities
+- [ ] **Capability expansion**: System gains abilities humans didn't design
+
+### Success Criteria
+- AI proposes architectural changes that improve research output
+- System complexity grows through AI evolution
+- Emergent capabilities surprise developers
+
+---
+
+## Guiding Principles
+
+1. **Interpretability**: Explicit algorithms over black-box neural networks
+2. **Human oversight**: AI proposes, humans approve (at least in early phases)
+3. **Data-driven**: All changes grounded in simulation evidence
+4. **Entertainment value**: Visualization isn't optional—it drives participation
+
+---
+
+## Current Focus
+
+**Next immediate steps:**
+1. Close the automated loop (Phase 2)
+2. Improve algorithm diversity tracking
+3. Add more meaningful fitness metrics
+4. Document successful AI improvements
+
+---
+
+*Last updated: December 2025*
