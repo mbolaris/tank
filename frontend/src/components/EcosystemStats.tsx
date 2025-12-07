@@ -197,22 +197,19 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         fallingFood: Math.max(0, energyFromFallingFood),
                         liveFood: Math.max(0, energyFromLiveFood),
                         plantNectar: Math.max(0, energyFromNectar),
-                        pokerIn: Math.max(0, pokerSources),
                         baseMetabolism: Math.max(0, baseLifeSupport),
                         traitMaintenance: Math.max(0, burnTraits),
                         movementCost: Math.max(0, burnMovement),
+                        turningCost: Math.max(0, burnTurning),
+                        reproductionCost: Math.max(0, burnReproduction),
                         fishDeaths: fishDeathEnergyLoss,
-                        pokerOut: pokerHouseCutRecent + burnPokerHouseCut,
+                        migrationOut: Math.max(0, burnMigration),
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
                         pokerHouseCut: pokerHouseCutRecent + burnPokerHouseCut,
                         plantPokerNet: energyFromPokerPlant - burnPokerPlantLoss,
-                        turningCost: Math.max(0, burnTurning),
-                        reproductionCost: Math.max(0, burnReproduction),
                         birthEnergy: Math.max(0, sourceBirth),
                         soupSpawn: Math.max(0, sourceSoupSpawn),
                         migrationIn: Math.max(0, sourceMigrationIn),
-                        migrationOut: Math.max(0, burnMigration),
-                        pokerLoss: pokerLoss
                     }}
                 />
             </div>
