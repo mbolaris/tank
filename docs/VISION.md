@@ -6,6 +6,18 @@ Tank World is a **framework for AI-driven automated Artificial Life (Alife) rese
 
 The core innovation is **two-layer evolution**: populations evolve within simulations (Layer 1), while AI agents evolve the algorithms and parameters themselves between simulation runs (Layer 2). This creates a meta-evolutionary system where the rules of evolution themselves evolve.
 
+## The Ultimate Goal
+
+Tank World aims to be **self-sustaining research infrastructure**:
+
+1. **Run simulations** that generate meaningful performance data
+2. **AI agents analyze** the data and propose algorithm improvements
+3. **Validate changes** automatically through test simulations
+4. **Deploy improvements** and repeat—indefinitely, without human intervention
+5. **Scale across a network** of distributed nodes running entertaining visualizations
+
+The fish tank is the first visualization layer. Future versions will allow AI to propose entirely new ways to visualize the research—whatever keeps users engaged and contributing compute. The visualization is not decoration; it's the engine that drives distributed participation.
+
 ## The Two-Layer Evolution Paradigm
 
 ### Layer 1: Population Evolution (Inside the Tank)
@@ -67,6 +79,20 @@ The fish tank is just the first visualization. Future versions will allow the AI
 
 The goal is a system where the AI can propose: "This simulation would be more engaging if we added X" and generate both the simulation logic AND the visualization code.
 
+### Why Visualization Matters for Research
+
+Visualization isn't a nice-to-have—it's central to the research strategy:
+
+1. **Distributed compute requires motivation**: People will run simulations on their machines if they're entertaining to watch. No entertainment = no compute contributions.
+
+2. **Engagement metrics are measurable**: Watch time, return visits, and sharing behavior provide quantifiable signals for what works.
+
+3. **Visualization can evolve**: Just like behavior algorithms, visual representations can be proposed by AI, tested against engagement metrics, and selected for.
+
+4. **The simulation is the substrate, not the goal**: The interesting research happens in the algorithms. The fish tank is one way to make that research visible and engaging—but there could be many others.
+
+In the long term, Tank World may evolve visualizations that humans wouldn't design—optimized purely for engagement while representing the same underlying Alife research.
+
 ### AI Oceanographer Narration
 
 Visualization alone isn’t enough. Most people need a story.
@@ -89,35 +115,54 @@ This “AI oceanographer” doesn’t change the core two-layer evolution paradi
 
 ## Long-Term Goals
 
+Tank World development proceeds in phases, each building toward fully automated Alife research:
+
 ### Phase 1: Foundation (Current)
+**Goal**: Prove the two-layer evolution concept works.
 - 58 parametrizable behavior algorithms
-- Basic AI code evolution workflow
-- Fish tank visualization
-- Headless mode for fast data collection
+- Basic AI code evolution workflow (proven: 0% → 100% reproduction rate improvements)
+- Fish tank visualization with fractal plants and predators
+- Headless mode for fast data collection (10-300x speedup)
 
 ### Phase 2: Closed Loop
-- Fully automated evolution cycles
-- AI proposes, tests, and validates improvements
-- Minimal human intervention required
-- Continuous improvement 24/7
+**Goal**: Remove humans from the loop.
+- Fully automated evolution cycles running 24/7
+- AI proposes, tests, and validates improvements automatically
+- Regression detection rejects changes that reduce fitness
+- Self-healing: AI fixes broken code it generates
+- Continuous improvement without human intervention
 
 ### Phase 3: Research Platform
-- Multiple simultaneous evolutionary experiments
+**Goal**: Produce legitimate Alife research.
+- Named experiments with configurable parameters
+- Formal metrics: complexity, novelty, open-endedness
 - Cross-experiment algorithm migration
-- Formal metrics for Alife research (complexity, novelty, open-endedness)
-- Publication-ready data collection
+- Reproducibility tools for exact replay
+- Publication-ready data collection and analysis
 
 ### Phase 4: Distributed Compute
-- Users contribute compute by running visualized simulations
-- Entertainment value drives participation
-- Collective computation power for research
-- Interconnected tanks sharing discoveries
+**Goal**: Scale through entertainment.
+- Users contribute compute by watching entertaining simulations
+- Browser-based client—no installation required
+- Multi-tank network sharing discoveries
+- Algorithm migration across the network
+- Fair credit for compute contributions
 
-### Phase 5: Self-Improving Framework
-- AI evolves not just algorithms but the framework itself
-- New visualization systems emerge from AI proposals
-- The system discovers what questions to ask
-- Approaching artificial general intelligence for Alife research
+### Phase 5: Evolving Visualization
+**Goal**: AI evolves how research is presented.
+- Visualization abstraction separates rendering from simulation
+- AI proposes new entity types and visual systems
+- Engagement optimization: visualizations that maximize watch time
+- Alternative metaphors beyond fish tanks
+- User preference learning adapts visuals to individuals
+
+### Phase 6: Self-Improving Framework
+**Goal**: The framework expands its own capabilities.
+- Meta-evolution: AI improves the evolution system itself
+- Research question discovery: AI proposes what to study next
+- Framework refactoring: AI restructures codebase for new capabilities
+- Capability expansion: system gains abilities humans didn't design
+- Emergent research directions surprise developers
 
 ## Design Principles
 
