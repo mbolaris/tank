@@ -535,6 +535,91 @@ class EcosystemManager:
 
         return algorithm_reporter.get_algorithm_performance_report(self, min_sample_size)
 
+    def get_poker_strategy_distribution(self, fish_list: List["Fish"]) -> Dict[str, Any]:
+        """Get distribution of poker strategies in the population.
+
+        This method helps visualize poker evolution by showing which strategies
+        are currently dominant in the population.
+
+        Args:
+            fish_list: List of all fish in the simulation
+
+        Returns:
+            Dictionary with strategy counts, dominant strategy, and avg win rates
+        """
+        from collections import Counter
+
+        strategy_counts: Counter = Counter()
+        strategy_win_rates: Dict[str, List[float]] = defaultdict(list)
+        strategy_params: Dict[str, List[Dict[str, float]]] = defaultdict(list)
+
+        for fish in fish_list:
+            if not hasattr(fish, "genome") or fish.genome is None:
+                continue
+
+            strat = fish.genome.poker_strategy_algorithm
+            if strat is None:
+                continue
+
+            strategy_counts[strat.strategy_id] += 1
+            strategy_params[strat.strategy_id].append(strat.parameters.copy())
+
+            # Get win rate from fish poker stats if available
+            if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
+                ps = fish.poker_stats
+                if ps.total_games > 0:
+                    win_rate = ps.total_wins / ps.total_games
+                    strategy_win_rates[strat.strategy_id].append(win_rate)
+
+        # Calculate averages
+        result = {
+            "total_fish": len(fish_list),
+            "strategy_counts": dict(strategy_counts),
+            "dominant_strategy": strategy_counts.most_common(1)[0][0] if strategy_counts else None,
+            "diversity": len(strategy_counts),
+            "strategy_avg_win_rates": {},
+        }
+
+        for strat_id, rates in strategy_win_rates.items():
+            if rates:
+                result["strategy_avg_win_rates"][strat_id] = sum(rates) / len(rates)
+
+        return result
+
+    def log_poker_evolution_status(self, fish_list: List["Fish"]) -> None:
+        """Log current poker evolution status to console.
+
+        Call this periodically (e.g., every 30 seconds) to see evolution happening.
+
+        Args:
+            fish_list: List of all fish in the simulation
+        """
+        dist = self.get_poker_strategy_distribution(fish_list)
+
+        if not dist["strategy_counts"]:
+            logger.info("Poker Evolution: No fish with poker strategies")
+            return
+
+        # Format strategy distribution
+        sorted_strats = sorted(
+            dist["strategy_counts"].items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        strat_str = ", ".join(f"{s}:{c}" for s, c in sorted_strats[:5])
+        dominant = dist["dominant_strategy"]
+        diversity = dist["diversity"]
+
+        # Get win rate for dominant strategy
+        dom_win_rate = dist["strategy_avg_win_rates"].get(dominant, 0)
+
+        logger.info(
+            f"Poker Evolution [Gen {self.current_generation}]: "
+            f"Dominant={dominant} ({dom_win_rate:.1%} win rate), "
+            f"Diversity={diversity}, Distribution=[{strat_str}]"
+        )
+
     def get_lineage_data(self, alive_fish_ids: Optional[Set[int]] = None) -> List[Dict[str, Any]]:
         """Get complete lineage data for phylogenetic tree visualization.
 
