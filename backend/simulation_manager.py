@@ -110,6 +110,8 @@ class SimulationManager:
             self.tank_info.name,
             persistent,
         )
+        # Cache last successful stats to return on transient failures
+        self._last_status_cache: Optional[Dict[str, Any]] = None
 
     @property
     def tank_id(self) -> str:
@@ -416,21 +418,46 @@ class SimulationManager:
         """
         stats: Dict[str, Any] = {}
         try:
-            world_stats = self.world.get_stats()
-            stats = {
-                "fish_count": world_stats.get("fish_count", 0),
-                "generation": world_stats.get("current_generation", 0),
-                "max_generation": world_stats.get(
-                    "max_generation", world_stats.get("current_generation", 0)
-                ),
-                "total_extinctions": world_stats.get("total_extinctions", 0),
-                "total_energy": world_stats.get("total_energy", 0.0),
-                "fish_energy": world_stats.get("fish_energy", 0.0),
-                "plant_energy": world_stats.get("plant_energy", 0.0),
-                "poker_stats": world_stats.get("poker_stats", {}),
-            }
+            # Acquire the runner lock to read a consistent snapshot of world stats.
+            # This avoids transient exceptions or partial reads while the simulation
+            # thread is mutating state which could cause the API to return zeros.
+            runner_lock = getattr(self._runner, "lock", None)
+            lock_acquired = False
+            try:
+                if runner_lock:
+                    lock_acquired = runner_lock.acquire(timeout=0.1)
+
+                world_stats = self.world.get_stats()
+                stats = {
+                    "fish_count": world_stats.get("fish_count", 0),
+                    "generation": world_stats.get("current_generation", 0),
+                    "max_generation": world_stats.get(
+                        "max_generation", world_stats.get("current_generation", 0)
+                    ),
+                    "total_extinctions": world_stats.get("total_extinctions", 0),
+                    "total_energy": world_stats.get("total_energy", 0.0),
+                    "fish_energy": world_stats.get("fish_energy", 0.0),
+                    "plant_energy": world_stats.get("plant_energy", 0.0),
+                    "poker_stats": world_stats.get("poker_stats", {}),
+                }
+
+                # Cache a copy of last-good stats for fallback
+                try:
+                    self._last_status_cache = dict(stats)
+                except Exception:
+                    pass
+            finally:
+                if runner_lock and lock_acquired:
+                    try:
+                        runner_lock.release()
+                    except Exception:
+                        pass
         except Exception as exc:  # pragma: no cover - defensive guard
             logger.warning("Failed to collect stats for tank %s: %s", self.tank_id, exc)
+            if self._last_status_cache is not None:
+                stats = dict(self._last_status_cache)
+            else:
+                stats = {}
 
         return {
             "tank": self.tank_info.to_dict(),
