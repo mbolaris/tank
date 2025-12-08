@@ -632,14 +632,43 @@ class EcosystemManager:
         if alive_fish_ids is None:
             alive_fish_ids = set()
 
-        # Add is_alive flag to each lineage record
-        enriched_lineage = []
+        # Build set of valid IDs (include explicit 'root')
+        valid_ids = {rec.get("id") for rec in self.lineage_log}
+        valid_ids.add("root")
+
+        enriched_lineage: List[Dict[str, Any]] = []
+        orphan_count = 0
+
         for record in self.lineage_log:
-            fish_id = int(record["id"]) if record["id"] != "root" else -1
-            enriched_record = {
-                **record,
-                "is_alive": fish_id in alive_fish_ids
-            }
-            enriched_lineage.append(enriched_record)
+            # Normalize string ids and parent references
+            rec_id = record.get("id")
+            parent_id = record.get("parent_id", "root")
+
+            # If parent_id references a missing id, remap to root and record the orphan
+            if parent_id not in valid_ids:
+                orphan_count += 1
+                logger.warning(
+                    "Lineage: Orphaned record detected - id=%s parent_id=%s; remapping to root",
+                    rec_id,
+                    parent_id,
+                )
+                # Create a shallow copy and preserve original parent for audit
+                sanitized = dict(record)
+                sanitized["parent_id"] = "root"
+                sanitized["_original_parent_id"] = parent_id
+            else:
+                sanitized = dict(record)
+
+            # Determine alive status (root is not a living fish)
+            try:
+                fish_numeric_id = int(sanitized["id"]) if sanitized.get("id") != "root" else -1
+            except Exception:
+                fish_numeric_id = -1
+
+            sanitized["is_alive"] = fish_numeric_id in alive_fish_ids
+            enriched_lineage.append(sanitized)
+
+        if orphan_count > 0:
+            logger.info("Lineage: Fixed %d orphaned lineage record(s) by remapping parents to root", orphan_count)
 
         return enriched_lineage
