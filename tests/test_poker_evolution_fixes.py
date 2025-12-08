@@ -182,30 +182,46 @@ class TestMutationRates:
         )
 
     def test_parameters_drift_slowly(self):
-        """Test that parameters don't drift too quickly over generations."""
-        # Start with a strategy with known parameters
-        original = TightAggressiveStrategy()
-        original.parameters["weak_fold_threshold"] = 0.35
-        original.parameters["bluff_frequency"] = 0.10
+        """Test that parameters don't drift too quickly over generations.
 
-        # Simulate 10 generations of self-crossover (worst case for drift)
-        current = original
+        Since mutation is stochastic, we run multiple trials and check average drift.
+        This avoids flaky failures from random variance.
+        """
+        n_trials = 20
         n_generations = 10
+        total_drift = 0.0
+        valid_trials = 0
 
-        for _ in range(n_generations):
-            current = crossover_poker_strategies(
-                current, current,
-                mutation_rate=0.12,
-                mutation_strength=0.15,
-            )
+        for trial in range(n_trials):
+            # Start with a strategy with known parameters
+            original = TightAggressiveStrategy()
+            original.parameters["weak_fold_threshold"] = 0.35
+            original.parameters["bluff_frequency"] = 0.10
 
-        # After 10 generations, parameters should still be recognizable
-        if current.strategy_id == "tight_aggressive":
-            fold_drift = abs(current.parameters.get("weak_fold_threshold", 0.5) - 0.35)
-            # Allow up to 0.25 drift over 10 generations
-            assert fold_drift < 0.30, (
-                f"Parameter drifted by {fold_drift:.2f} over {n_generations} generations, "
-                f"expected < 0.30"
+            # Simulate generations of self-crossover (worst case for drift)
+            current = original
+
+            for _ in range(n_generations):
+                current = crossover_poker_strategies(
+                    current, current,
+                    mutation_rate=0.12,
+                    mutation_strength=0.15,
+                )
+
+            # Measure drift if strategy type was preserved
+            if current.strategy_id == "tight_aggressive":
+                fold_drift = abs(current.parameters.get("weak_fold_threshold", 0.5) - 0.35)
+                total_drift += fold_drift
+                valid_trials += 1
+
+        # Check average drift across trials
+        if valid_trials > 0:
+            avg_drift = total_drift / valid_trials
+            # Average drift should be moderate (around 0.1-0.2 is expected)
+            # Allow up to 0.25 average drift over 10 generations
+            assert avg_drift < 0.25, (
+                f"Average parameter drift was {avg_drift:.3f} over {n_generations} generations "
+                f"({valid_trials} trials), expected < 0.25"
             )
 
 
