@@ -3,8 +3,6 @@
  * Displays comprehensive energy flow and fish health statistics below the tank simulation
  */
 
-import { useEffect, useRef } from 'react';
-
 import EnergyEconomyPanel from './EnergyEconomyPanel';
 import type { StatsData } from '../types/simulation';
 
@@ -13,10 +11,6 @@ interface EcosystemStatsProps {
 }
 
 export function EcosystemStats({ stats }: EcosystemStatsProps) {
-    const previousHouseCut = useRef<number>(0);
-    const previousPokerVolume = useRef<number>(0);
-
-    // Always call hooks first, then handle early return
     // Use default values if stats is null
     const safeStats = stats ?? ({} as Partial<StatsData>);
     const deathCauseEntries = Object.entries(safeStats.death_causes ?? {});
@@ -24,9 +18,6 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const energyFromNectar = Math.round(safeStats.energy_from_nectar ?? energySources.nectar ?? 0);
     const energyFromLiveFood = Math.round(safeStats.energy_from_live_food ?? energySources.live_food ?? 0);
     const energyFromFallingFood = Math.round(safeStats.energy_from_falling_food ?? energySources.falling_food ?? 0);
-    const energyFromPoker = Math.round(safeStats.energy_from_poker ?? energySources.poker_fish ?? 0);
-    const energyFromPokerPlant = Math.round(safeStats.energy_from_poker_plant ?? energySources.poker_plant ?? 0);
-    const energyFromAutoEval = Math.round(safeStats.energy_from_auto_eval ?? energySources.auto_eval ?? 0);
 
     // Energy Sinks Breakdown
     const energyBurnRecent = safeStats.energy_burn_recent ?? {};
@@ -60,22 +51,17 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     // Combined Base Metabolism (Existence + Base Rate)
     const baseLifeSupport = burnExistence + burnMetabolism;
 
-    const pokerStats = safeStats.poker_stats ?? ({} as any);
-    const pokerVolumeTotal = (pokerStats.total_energy_won ?? 0) + (pokerStats.total_energy_lost ?? 0);
-    const pokerVolumeRecent = Math.max(0, pokerVolumeTotal - previousPokerVolume.current);
-    const pokerHouseCutRecent = Math.max(0, (pokerStats.total_house_cuts ?? 0) - previousHouseCut.current);
-    // Plant transfer is net (can be negative), handled by windowed sources/burns below
-    // const pokerPlantTransferRecent is replaced by net calculation in panel
+    // Poker stats - use windowed data for consistency with other energy flows
+    // Poker losses tracked in burns, poker wins tracked in sources
+    const pokerLossRecent = energyBurnRecent.poker_loss ?? 0;
+    const pokerWinRecent = energySourcesRecent.poker_fish ?? 0;
+    // Poker loop volume = total energy that flowed through poker (won + lost)
+    const pokerLoopVolume = pokerWinRecent + pokerLossRecent;
 
-    // Fish Poker Source (exclude plant)
-    // energyFromPoker contains only fish winnings if my assumption is correct, but let's confirm.
-    // Actually safeStats.energy_from_poker is usually ALL poker sources if not separated.
-    // But earlier I saw 'energy_sources.poker_fish' vs 'poker_plant'.
-    const fishPokerOnly = energyFromPoker;
-    const pokerSources = fishPokerOnly + energyFromAutoEval; // Exclude plant here
+    // Plant poker net (positive = fish won from plants, negative = fish lost to plants)
+    const plantPokerWin = energySourcesRecent.poker_plant ?? 0;
+    const plantPokerNetRecent = plantPokerWin - burnPokerPlantLoss;
 
-    // Calculate loop volume (pot size estimate)
-    const pokerLoopVolume = pokerVolumeRecent || Math.abs(pokerSources);
     const fishDeathEnergyLoss = Math.max(0,
         (energyBurnRecent.death_starvation ?? 0) +
         (energyBurnRecent.death_old_age ?? 0) +
@@ -83,14 +69,6 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
         (energyBurnRecent.death_migration ?? 0) +
         (energyBurnRecent.death_unknown ?? 0)
     );
-
-
-    useEffect(() => {
-    }, [pokerStats.total_house_cuts, pokerVolumeTotal]);
-
-    // Calculate totals for energy flow
-    // Calculate totals for energy flow
-    // netEnergyIn unused
 
     // Fish health distribution
     const fishHealthCritical = safeStats.fish_health_critical ?? 0;
@@ -233,8 +211,8 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         migrationOut: Math.max(0, burnMigration),
 
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
-                        pokerHouseCut: pokerHouseCutRecent + burnPokerHouseCut,
-                        plantPokerNet: energyFromPokerPlant - burnPokerPlantLoss,
+                        pokerHouseCut: Math.max(0, burnPokerHouseCut),
+                        plantPokerNet: plantPokerNetRecent,
                         soupSpawn: Math.max(0, sourceSoupSpawn),
                         migrationIn: Math.max(0, sourceMigrationIn),
                     }}

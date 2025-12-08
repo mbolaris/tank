@@ -2,10 +2,13 @@
 
 import logging
 import random
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
 from backend.transfer_history import log_transfer
+
+if TYPE_CHECKING:
+    from core.entities.fish import Fish
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +80,11 @@ class BackendMigrationHandler:
 
         # Perform the migration
         try:
+            # Track energy leaving the source tank (for fish only)
+            from core.entities.fish import Fish
+            if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
+                entity.ecosystem.record_energy_burn("migration", entity.energy)
+
             # Serialize the entity (pass direction for plants to select appropriate edge spot)
             entity_data = serialize_entity_for_transfer(entity, migration_direction=direction)
             if entity_data is None:
@@ -111,6 +119,10 @@ class BackendMigrationHandler:
                 new_entity.pos.x = 10
 
             dest_manager.world.engine.add_entity(new_entity)
+
+            # Track energy entering the destination tank (for fish only)
+            if isinstance(new_entity, Fish) and hasattr(new_entity, 'ecosystem') and new_entity.ecosystem is not None:
+                new_entity.ecosystem.record_energy_gain("migration_in", new_entity.energy)
 
             # Invalidate cached state on destination and source runners so
             # websocket clients immediately see updated stats (e.g., max generation).
