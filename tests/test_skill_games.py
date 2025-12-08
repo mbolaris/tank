@@ -249,6 +249,9 @@ class TestSkillGameComponent:
 
     def test_strategy_inheritance(self):
         """Strategies should inherit and mutate correctly."""
+        # Seed random for reproducible mutation
+        random.seed(42)
+
         parent = SkillGameComponent()
         from core.skills.games.rock_paper_scissors import RPSStrategy
 
@@ -266,14 +269,13 @@ class TestSkillGameComponent:
         child_params = child_strategy.get_parameters()
 
         # At least some parameters should be different due to mutation
-        # (unless we got very unlucky with random)
         param_diffs = [
             abs(parent_params[k] - child_params.get(k, 0))
             for k in parent_params
             if k != "learning_rate"  # Learning rate mutation may be 0
         ]
-        # Should have some differences
-        assert sum(param_diffs) > 0 or random.random() < 0.01  # Very rare for all same
+        # With seed 42 and mutation_rate=0.1, mutation always produces differences
+        assert sum(param_diffs) > 0
 
 
 class TestConfig:
