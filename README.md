@@ -2,9 +2,11 @@
 
 **A framework for AI-driven automated Artificial Life research.**
 
-Tank World combines engaging visualization with serious computational research. Watch a fish tank simulation while underneath, AI agents evolve the algorithms themselves—not just the populations, but the rules that govern evolution.
+Tank World is an open-source platform where AI agents conduct Alife research autonomously. The simulation runs, collects data, and then an AI agent analyzes results and improves the underlying algorithms—creating a continuous, closed-loop research cycle that runs without human intervention.
 
-> **See [docs/VISION.md](docs/VISION.md) for the full project vision and [ROADMAP.md](ROADMAP.md) for development phases.**
+The fish tank visualization is just the beginning. It makes the research **entertaining enough to watch**, which matters because entertaining simulations can drive distributed compute contributions. In future versions, the AI will evolve the visualizations themselves to maximize engagement.
+
+> **See [docs/VISION.md](docs/VISION.md) for the full project vision, [docs/PROJECT_PHILOSOPHY.md](docs/PROJECT_PHILOSOPHY.md) for core principles, and [ROADMAP.md](ROADMAP.md) for development phases.**
 
 ---
 
@@ -33,13 +35,17 @@ This is what makes Tank World different: the rules of evolution themselves evolv
 
 ## Long-Term Goals
 
-1. **Closed-loop evolution**: Fully automated improvement cycles running 24/7
-2. **Research platform**: Legitimate Alife research with publishable results
-3. **Distributed compute**: Users contribute compute by watching entertaining simulations
-4. **Evolving visualization**: AI proposes not just new behaviors but new ways to visualize them
-5. **Self-improving framework**: The system discovers what questions to ask next
+Tank World aims to be the **infrastructure for automated Alife research**:
 
-Currently: Phase 1 (Foundation) with Layer 2 evolution proven but not yet fully automated.
+1. **Closed-loop research**: Fully automated improvement cycles running 24/7 without human intervention
+2. **Legitimate research platform**: Alife research with measurable results and publishable findings
+3. **Distributed compute network**: Users contribute compute by running entertaining simulations on their devices
+4. **Evolving visualization**: AI evolves not just behaviors but the visual representation itself—optimizing for engagement
+5. **Self-improving framework**: The system discovers what questions to ask, proposes experiments, and expands its own capabilities
+
+The ultimate vision: a research framework that conducts Alife experiments autonomously, learns from results, improves its own algorithms, and scales across a distributed network—all while being genuinely entertaining to watch.
+
+**Current status**: Phase 1 (Foundation) complete. Layer 2 evolution proven but not yet fully automated.
 
 ---
 
@@ -579,4 +585,17 @@ For more information:
 
 ---
 
-*The fish tank is just the beginning. What evolves next is up to us—and the AI.*
+## Contributing to the Framework
+
+Tank World is open source and welcomes contributions:
+- **Run simulations** and share performance data
+- **Review AI-proposed changes** to algorithms
+- **Extend the algorithm library** with new behaviors
+- **Improve the visualization** system
+- **Propose research directions** and experiments
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+*The fish tank is just the beginning. The goal is a self-improving Alife research framework—and we're building it in the open.*
