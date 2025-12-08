@@ -96,7 +96,17 @@ class BehavioralTraits:
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
     ) -> "BehavioralTraits":
-        """Inherit behavioral traits from two parents."""
+        """Inherit behavioral traits from two parents.
+
+        Args:
+            parent1: First parent's behavioral traits (winner in winner-biased mode)
+            parent2: Second parent's behavioral traits (loser in winner-biased mode)
+            weight1: How much parent1 contributes (0.0-1.0). In winner-biased mode,
+                     this is typically 0.8 for the poker winner.
+            mutation_rate: Base mutation probability
+            mutation_strength: Mutation magnitude
+            rng: Random number generator
+        """
         # Inherit numeric traits using specs
         inherited = inherit_traits_from_specs(
             BEHAVIORAL_TRAIT_SPECS,
@@ -130,12 +140,14 @@ class BehavioralTraits:
         )
         inherited["poker_algorithm"] = GeneticTrait(poker_algo_val)
 
-        # Inherit poker strategy
+        # Inherit poker strategy with winner-biased weighting
+        # Pass weight1 as winner_weight so winner's strategy is favored
         poker_strat_val = _inherit_poker_strategy(
             parent1.poker_strategy_algorithm.value,
             parent2.poker_strategy_algorithm.value,
             mutation_rate=mutation_rate * 1.2,
             mutation_strength=mutation_strength * 1.2,
+            winner_weight=weight1,  # NEW: Pass winner bias to poker strategy
             rng=rng,
         )
         inherited["poker_strategy_algorithm"] = GeneticTrait(poker_strat_val)
@@ -185,8 +197,22 @@ def _inherit_poker_strategy(
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
+    winner_weight: float = 0.5,
 ) -> Optional["PokerStrategyAlgorithm"]:
-    """Inherit poker strategy from parents."""
+    """Inherit poker strategy from parents with winner-biased inheritance.
+
+    Args:
+        strat1: First parent's poker strategy (winner in winner-biased mode)
+        strat2: Second parent's poker strategy (loser in winner-biased mode)
+        mutation_rate: Probability of mutating each parameter
+        mutation_strength: Magnitude of mutations
+        rng: Random number generator
+        winner_weight: How much strat1 (winner) contributes (0.0-1.0, default 0.5)
+            When used with from_winner_choice(), this is typically 0.8.
+
+    Returns:
+        Inherited poker strategy algorithm
+    """
     if strat1 is not None or strat2 is not None:
         from core.poker.strategy.implementations import crossover_poker_strategies
 
@@ -195,6 +221,7 @@ def _inherit_poker_strategy(
             strat2,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
+            winner_weight=winner_weight,  # Pass winner bias to crossover
         )
     else:
         from core.poker.strategy.implementations import get_random_poker_strategy
