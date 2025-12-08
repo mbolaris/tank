@@ -739,6 +739,19 @@ class Fish(Agent):
             if algorithm_id >= 0:
                 self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
 
+        # Inherit skill game strategies from parent with mutation
+        # If parent has strategies, inherit them; otherwise baby will get default when playing
+        from core.fish.skill_game_component import SkillGameComponent
+        baby._skill_game_component = SkillGameComponent()
+        if hasattr(self, "_skill_game_component") and self._skill_game_component is not None:
+            # Parent has strategies - inherit with mutation
+            baby._skill_game_component.inherit_from_parent(
+                self._skill_game_component,
+                mutation_rate=0.1,
+            )
+        # If parent has no strategies, baby gets empty component and will
+        # receive default strategies when first playing (via _ensure_fish_has_strategy)
+
         # Set visual birth effect timer (60 frames = 2 seconds at 30fps)
         self.birth_effect_timer = 60
 
