@@ -2,22 +2,23 @@
 
 
 interface EnergyFlowData {
-    // Sources (In)
+    // Sources (In) - True external inflows only
     fallingFood: number;
     liveFood: number;
     plantNectar: number;
-    birthEnergy: number; // Energy babies are created with (from reproduction)
-    soupSpawn: number; // Energy from spontaneous/system fish spawns
+    soupSpawn: number; // Energy from spontaneous/system fish spawns (true inflow)
     migrationIn: number; // Energy entering tank via fish migration
 
-    // Sinks (Out)
+    // Sinks (Out) - True external outflows only
     baseMetabolism: number;
     traitMaintenance: number; // Eyes, fins, etc.
     movementCost: number;
     turningCost: number; // Energy spent on direction changes
-    reproductionCost: number; // Energy parents spend creating babies
     fishDeaths: number;
     migrationOut: number; // Energy leaving tank via fish migration
+
+    // Note: Reproduction is NOT tracked here because it's an internal transfer
+    // (parent energy -> baby energy) that doesn't change total fish population energy
 
     // Poker Economy (only external flows)
     pokerTotalPot: number;
@@ -37,8 +38,8 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
     const plantGain = Math.max(0, data.plantPokerNet);
     const plantLoss = Math.max(0, -data.plantPokerNet);
 
-    const totalIn = data.fallingFood + data.liveFood + data.plantNectar + plantGain + data.birthEnergy + data.soupSpawn + data.migrationIn;
-    const totalOut = data.baseMetabolism + data.traitMaintenance + data.movementCost + data.turningCost + data.reproductionCost + data.fishDeaths + data.migrationOut + data.pokerHouseCut + plantLoss;
+    const totalIn = data.fallingFood + data.liveFood + data.plantNectar + plantGain + data.soupSpawn + data.migrationIn;
+    const totalOut = data.baseMetabolism + data.traitMaintenance + data.movementCost + data.turningCost + data.fishDeaths + data.migrationOut + data.pokerHouseCut + plantLoss;
     const netChange = totalIn - totalOut;
 
     const formatVal = (val: number) => Math.round(val).toLocaleString();
@@ -101,7 +102,6 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
 
                     <FlowBar label="Live Food Eaten" value={data.liveFood} color="#22c55e" icon="🦐" total={totalIn} />
                     <FlowBar label="Plant Nectar" value={data.plantNectar} color="#10b981" icon="🌿" total={totalIn} />
-                    <FlowBar label="Baby Energy" value={data.birthEnergy} color="#4ade80" icon="👶" total={totalIn} />
                     <FlowBar label="Soup Spawns" value={data.soupSpawn} color="#a3e635" icon="🥣" total={totalIn} />
                     <FlowBar label="Plant Net (Won)" value={plantGain} color="#059669" icon="🎋" total={totalIn} />
                     <FlowBar label="Migration In" value={data.migrationIn} color="#86efac" icon="🛬" total={totalIn} />
@@ -123,7 +123,6 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                     <FlowBar label="Trait Upkeep" value={data.traitMaintenance} color="#f472b6" icon="🧬" total={totalOut} isOut />
                     <FlowBar label="Movement" value={data.movementCost} color="#fb7185" icon="💨" total={totalOut} isOut />
                     <FlowBar label="Turning" value={data.turningCost} color="#f97316" icon="🔄" total={totalOut} isOut />
-                    <FlowBar label="Reproduction" value={data.reproductionCost} color="#d946ef" icon="🥚" total={totalOut} isOut />
                     <FlowBar label="Deaths" value={data.fishDeaths} color="#ef4444" icon="💀" total={totalOut} isOut />
                     <FlowBar label="Poker House Cut" value={data.pokerHouseCut} color="#94a3b8" icon="🏛️" total={totalOut} isOut />
                     <FlowBar label="Plant Net (Lost)" value={plantLoss} color="#be185d" icon="🥀" total={totalOut} isOut />
