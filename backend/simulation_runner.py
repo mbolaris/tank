@@ -519,7 +519,7 @@ class SimulationRunner:
                 poker_events=[],
                 stats=None,
             )
-        
+
         try:
             send_full = (
                 force_full
@@ -604,7 +604,7 @@ class SimulationRunner:
     def _collect_entities(self) -> List[EntitySnapshot]:
         entities_data: List[EntitySnapshot] = []
         current_entity_ids = set()
-        
+
         for entity in self.world.entities_list:
             current_entity_ids.add(id(entity))
             entity_data = self._entity_to_data(entity)
@@ -782,14 +782,19 @@ class SimulationRunner:
         """Convert an entity to a lightweight snapshot for serialization."""
         try:
             # Import ID offsets
-            from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET, FOOD_ID_OFFSET, NECTAR_ID_OFFSET
+            from core.constants import (
+                FISH_ID_OFFSET,
+                FOOD_ID_OFFSET,
+                NECTAR_ID_OFFSET,
+                PLANT_ID_OFFSET,
+            )
 
             # Compute stable ID based on entity type
             # Fish and FractalPlant have internal stable IDs
             # Other entities use a tracking dictionary to maintain stable IDs
             stable_id: int
             python_id = id(entity)
-            
+
             if isinstance(entity, entities.Fish) and hasattr(entity, 'fish_id'):
                 stable_id = entity.fish_id + FISH_ID_OFFSET
             elif isinstance(entity, entities.FractalPlant) and hasattr(entity, 'plant_id'):

@@ -46,11 +46,11 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     behavior_params = None
     if fish.genome.behavior_algorithm:
         behavior_params = fish.genome.behavior_algorithm.to_dict()
-    
+
     poker_algo_params = None
     if fish.genome.poker_algorithm:
         poker_algo_params = fish.genome.poker_algorithm.to_dict()
-        
+
     poker_strat_params = None
     if fish.genome.poker_strategy_algorithm:
         poker_strat_params = fish.genome.poker_strategy_algorithm.to_dict()
@@ -131,7 +131,7 @@ def capture_plant_mutable_state(plant: Any, migration_direction: Optional[str] =
     plant_id = getattr(plant, 'id', getattr(plant, 'plant_id', None))
     # Get root spot ID if available
     root_spot_id = plant.root_spot.spot_id if hasattr(plant, 'root_spot') and plant.root_spot else None
-    
+
     return {
         "id": plant_id,
         "x": plant.pos.x,

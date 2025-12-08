@@ -125,13 +125,13 @@ class AutoSaveService:
                 try:
                     # 1. Capture state (fast, thread-safe, holds lock briefly)
                     snapshot = manager.capture_state_for_save()
-                    
+
                     if snapshot:
                         # 2. Write to disk (slow, run in thread pool to avoid blocking event loop)
                         snapshot_path = await loop.run_in_executor(
                             None, save_snapshot_data, tank_id, snapshot
                         )
-                        
+
                         if snapshot_path:
                             logger.info(
                                 f"Auto-saved tank {tank_id[:8]} to {snapshot_path}"
@@ -187,13 +187,13 @@ class AutoSaveService:
         try:
             # 1. Capture state
             snapshot = manager.capture_state_for_save()
-            
+
             if snapshot:
                 # 2. Write to disk in thread pool
                 snapshot_path = await loop.run_in_executor(
                     None, save_snapshot_data, tank_id, snapshot
                 )
-                
+
                 if snapshot_path:
                     logger.info(f"Manual save completed for tank {tank_id[:8]}")
                     await loop.run_in_executor(
@@ -206,7 +206,7 @@ class AutoSaveService:
             else:
                 logger.error(f"Manual save failed: could not capture state for tank {tank_id[:8]}")
                 return None
-                
+
         except Exception as e:
             logger.error(f"Error saving tank {tank_id[:8]}: {e}", exc_info=True)
             return None

@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.logging_config import configure_logging
-from backend.security import setup_security_middleware, websocket_limiter
+from backend.security import setup_security_middleware
 
 # Add parent directory to path so we can import from root tank/ directory
 sys.path.insert(0, str(Path(__file__).parent.parent))

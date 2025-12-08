@@ -98,12 +98,11 @@ def save_tank_state(tank_id: str, manager: Any) -> Optional[str]:
         if snapshot:
             return save_snapshot_data(tank_id, snapshot)
         return None
-    
+
     # Fallback to old logic if manager doesn't support capture_state_for_save
     # (This shouldn't happen with updated SimulationManager, but good for safety)
     try:
-        from backend.entity_transfer import serialize_entity_for_transfer
-        
+
         # ... (rest of the old logic would go here, but we can just fail or warn)
         logger.warning("save_tank_state called on manager without capture_state_for_save")
         return None
@@ -203,7 +202,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                         # Ensure internal ID counter is higher than this ID to avoid collisions
                         if entity.plant_id >= FractalPlant._next_id:
                             FractalPlant._next_id = entity.plant_id + 1
-                            
+
                     target_world.engine.add_entity(entity)
                     restored_count += 1
                     if isinstance(entity, FractalPlant):

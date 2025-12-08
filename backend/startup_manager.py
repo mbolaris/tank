@@ -7,12 +7,10 @@ lifespan function, making it hard to maintain and test.
 
 import asyncio
 import logging
-import os
 import platform
 import sys
 import time
-from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from backend.auto_save_service import AutoSaveService
 from backend.connection_manager import ConnectionManager
