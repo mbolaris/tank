@@ -185,7 +185,7 @@ class MigrationScheduler:
             # Track energy leaving the tank (for fish only)
             if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
-            
+
             # Remove from source
             source_manager.world.engine.remove_entity(entity)
 
@@ -211,7 +211,7 @@ class MigrationScheduler:
                 return
 
             dest_manager.world.engine.add_entity(new_entity)
-            
+
             # Track energy entering the destination tank (for fish only)
             if isinstance(new_entity, Fish) and hasattr(new_entity, 'ecosystem') and new_entity.ecosystem is not None:
                 new_entity.ecosystem.record_energy_gain("migration_in", new_entity.energy)
@@ -302,7 +302,7 @@ class MigrationScheduler:
             # Track energy leaving the tank (for fish only)
             if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
-            
+
             # Remove from source tank
             source_manager.world.engine.remove_entity(entity)
 

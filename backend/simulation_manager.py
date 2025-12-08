@@ -260,24 +260,27 @@ class SimulationManager:
             # Phase 1: Capture mutable state inside the lock (FAST)
             captured_data = {}
             captured_entities = []
-            
+
             # Try to acquire lock with timeout to prevent blocking indefinitely
             # This is critical because this runs in the main thread (via auto_save_service)
             lock_acquired = self._runner.lock.acquire(timeout=0.5)
             if not lock_acquired:
                 logger.warning(f"capture_state_for_save: Lock acquisition timed out for tank {self.tank_id}")
                 return None
-            
+
             try:
                 # Import here to avoid circular imports
-                from backend.entity_transfer import capture_fish_mutable_state, capture_plant_mutable_state
-                from core.entities import Fish, FractalPlant, Food, PlantNectar
+                from backend.entity_transfer import (
+                    capture_fish_mutable_state,
+                    capture_plant_mutable_state,
+                )
+                from core.entities import Fish, Food, FractalPlant, PlantNectar
                 from core.entities.base import Castle
                 from core.entities.predators import Crab
 
                 world = self.world
                 engine = world.engine
-                
+
                 # 1. Capture metadata
                 captured_data["version"] = "2.0"
                 captured_data["tank_id"] = self.tank_id
@@ -292,7 +295,7 @@ class SimulationManager:
                     "seed": self.tank_info.seed,
                 }
                 captured_data["paused"] = world.paused
-                
+
                 # 2. Capture ecosystem stats
                 captured_data["ecosystem"] = {
                     "total_births": engine.ecosystem.total_births,
@@ -304,7 +307,7 @@ class SimulationManager:
                         "total_plant_games": engine.ecosystem.total_plant_poker_games,
                     },
                 }
-                
+
                 # 3. Capture entities (mutable state only)
                 for entity in engine.entities_list:
                     if isinstance(entity, Fish):
@@ -317,13 +320,16 @@ class SimulationManager:
                         captured_entities.append(("other", entity, None))
             finally:
                 self._runner.lock.release()
-            
+
             # Phase 2: Finalize serialization outside the lock (SLOW)
-            from backend.entity_transfer import finalize_fish_serialization, finalize_plant_serialization
-            from core.entities import Fish, FractalPlant, Food, PlantNectar
+            from backend.entity_transfer import (
+                finalize_fish_serialization,
+                finalize_plant_serialization,
+            )
+            from core.entities import Fish, Food, FractalPlant, PlantNectar
             from core.entities.base import Castle
             from core.entities.predators import Crab
-            
+
             entities_data = []
             for idx, (entity_type, entity, mutable_state) in enumerate(captured_entities):
                 try:
@@ -384,7 +390,7 @@ class SimulationManager:
                 except Exception as e:
                     logger.warning(f"Failed to serialize entity {type(entity).__name__}: {e}")
                     continue
-                
+
                 # Yield GIL periodically to prevent starving other threads
                 if idx % 50 == 0 and idx > 0:
                     time.sleep(0.001)
