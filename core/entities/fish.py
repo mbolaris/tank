@@ -245,15 +245,11 @@ class Fish(Agent):
             color=color_hex,
         )
         
-        # Record energy inflow
-        # - "birth": from reproduction (should be balanced by parent's reproduction_cost)
-        # - "soup_spawn": spontaneous/system-injected fish (true net inflow)
-        if self.parent_id is not None:
-            # Use the original transferred energy (before clamping), not the clamped value
-            # This ensures birth energy matches reproduction_cost exactly
-            energy_to_record = self._initial_energy_transferred if self._initial_energy_transferred is not None else self.energy
-            self.ecosystem.record_energy_gain("birth", energy_to_record)
-        else:
+        # Record energy inflow for soup spawns only
+        # - Reproduction births are NOT recorded as inflows because the energy came from
+        #   the parent (it's an internal transfer within the fish population, not new energy)
+        # - "soup_spawn": spontaneous/system-injected fish (true net inflow of new energy)
+        if self.parent_id is None:
             self.ecosystem.record_energy_gain("soup_spawn", self.energy)
 
     def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
@@ -698,10 +694,10 @@ class Fish(Agent):
         # If parent can't afford to give baby 100%, the baby will start with less
         # (This is fine - survival of the fittest)
         self.energy -= energy_to_transfer  # Parent pays the energy cost
-        
-        # Record reproduction energy cost (burn for parent)
-        if self.ecosystem:
-            self.ecosystem.record_energy_burn("reproduction_cost", energy_to_transfer)
+
+        # Note: We don't record reproduction_cost as an outflow because the energy
+        # goes directly to the baby - it's an internal transfer within the fish
+        # population, not energy leaving the system.
 
         # Create offspring near parent
         offset_x = random.uniform(-30, 30)

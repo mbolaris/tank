@@ -47,10 +47,10 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // New energy flows
     const burnTurning = energyBurnRecent.turning ?? 0;
-    const burnReproduction = energyBurnRecent.reproduction_cost ?? 0;
     const burnMigration = energyBurnRecent.migration ?? 0;
 
-    const sourceBirth = Math.round(energySourcesRecent.birth ?? safeStats.energy_from_birth ?? energySources.birth ?? 0);
+    // Note: burnReproduction and sourceBirth are intentionally not tracked here
+    // because reproduction is an internal transfer (parent→baby), not an external flow
     const sourceSoupSpawn = Math.round(energySourcesRecent.soup_spawn ?? safeStats.energy_from_soup_spawn ?? energySources.soup_spawn ?? 0);
     const sourceMigrationIn = Math.round(
         energySourcesRecent.migration_in ?? safeStats.energy_from_migration_in ?? energySources.migration_in ?? 0
@@ -229,14 +229,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         traitMaintenance: Math.max(0, burnTraits),
                         movementCost: Math.max(0, burnMovement),
                         turningCost: Math.max(0, burnTurning),
-                        reproductionCost: Math.max(0, burnReproduction),
                         fishDeaths: fishDeathEnergyLoss,
                         migrationOut: Math.max(0, burnMigration),
 
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
                         pokerHouseCut: pokerHouseCutRecent + burnPokerHouseCut,
                         plantPokerNet: energyFromPokerPlant - burnPokerPlantLoss,
-                        birthEnergy: Math.max(0, sourceBirth),
                         soupSpawn: Math.max(0, sourceSoupSpawn),
                         migrationIn: Math.max(0, sourceMigrationIn),
                     }}

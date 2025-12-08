@@ -540,10 +540,10 @@ class PokerInteraction:
 
         # Winner pays the energy cost
         winner_fish.modify_energy(-energy_to_transfer)
-        
-        # Track reproduction cost in ecosystem stats
-        if winner_fish.ecosystem is not None:
-            winner_fish.ecosystem.record_energy_burn("reproduction_cost", energy_to_transfer)
+
+        # Note: We don't record reproduction_cost as an outflow because the energy
+        # goes directly to the baby - it's an internal transfer within the fish
+        # population, not energy leaving the system.
 
         # Set reproduction cooldown for both parents
         winner_fish.reproduction_cooldown = REPRODUCTION_COOLDOWN
