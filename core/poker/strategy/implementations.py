@@ -723,19 +723,63 @@ def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrat
     return rng.choice(ALL_POKER_STRATEGIES).random_instance()
 
 
+# Configuration flags for poker evolution tuning
+POKER_EVOLUTION_CONFIG = {
+    # Novelty injection rate: chance of completely random strategy
+    # Lower = more exploitation of evolved strategies, Higher = more exploration
+    "novelty_injection_rate": 0.02,  # REDUCED from 0.10 to preserve adaptations
+    # Rate when parents have different strategy types
+    "different_type_novelty_rate": 0.05,  # REDUCED from 0.15
+    # Default mutation parameters
+    "default_mutation_rate": 0.12,  # REDUCED from 0.20 for stability
+    "default_mutation_strength": 0.15,  # REDUCED from 0.25 for stability
+    # Enable winner-biased inheritance (parent1 = winner when True)
+    "winner_biased_inheritance": True,
+    # Default winner weight when winner_biased_inheritance is True
+    "default_winner_weight": 0.80,  # Winner contributes 80% of parameters
+}
+
+
 def crossover_poker_strategies(
     parent1: Optional[PokerStrategyAlgorithm],
     parent2: Optional[PokerStrategyAlgorithm],
-    mutation_rate: float = 0.20,  # INCREASED from 0.15 for faster poker evolution
-    mutation_strength: float = 0.25,  # INCREASED from 0.2 for more exploration
+    mutation_rate: float = None,
+    mutation_strength: float = None,
+    winner_weight: float = None,
 ) -> PokerStrategyAlgorithm:
-    """Crossover two poker strategies with improved mutation for faster evolution.
+    """Crossover two poker strategies with winner-biased inheritance.
 
-    IMPROVED: Higher mutation rates and 10% chance to get completely new strategy
-    to accelerate poker skill evolution.
+    This function creates offspring poker strategies by combining two parent
+    strategies. When winner_weight is provided (or winner_biased_inheritance
+    is enabled), parent1 is assumed to be the winner and contributes more
+    genetic material.
+
+    Args:
+        parent1: First parent strategy (winner in winner-biased mode)
+        parent2: Second parent strategy (loser in winner-biased mode)
+        mutation_rate: Probability of mutating each parameter (0.0-1.0)
+        mutation_strength: Standard deviation of Gaussian mutation
+        winner_weight: How much parent1 (winner) contributes (0.0-1.0, default 0.8)
+
+    Returns:
+        New offspring poker strategy
     """
-    # 10% chance to get a completely new random strategy (novelty injection)
-    if random.random() < 0.10:
+    cfg = POKER_EVOLUTION_CONFIG
+
+    # Use config defaults if not provided
+    if mutation_rate is None:
+        mutation_rate = cfg["default_mutation_rate"]
+    if mutation_strength is None:
+        mutation_strength = cfg["default_mutation_strength"]
+    if winner_weight is None:
+        winner_weight = cfg["default_winner_weight"] if cfg["winner_biased_inheritance"] else 0.5
+
+    # Clamp winner_weight to valid range
+    winner_weight = max(0.0, min(1.0, winner_weight))
+
+    # Novelty injection: small chance of completely random strategy
+    # This maintains diversity but at a lower rate to preserve adaptations
+    if random.random() < cfg["novelty_injection_rate"]:
         return get_random_poker_strategy()
 
     if parent1 is None and parent2 is None:
@@ -749,29 +793,31 @@ def crossover_poker_strategies(
     else:
         same_type = type(parent1) == type(parent2)
         if same_type:
+            # Same strategy type: blend parameters with winner-biased weighting
             offspring = parent1.__class__()
             for param_key in parent1.parameters:
                 if param_key in parent2.parameters:
-                    if random.random() < 0.5:
-                        offspring.parameters[param_key] = (
-                            parent1.parameters[param_key] + parent2.parameters[param_key]
-                        ) / 2.0
-                    else:
-                        offspring.parameters[param_key] = (
-                            parent1.parameters[param_key]
-                            if random.random() < 0.5
-                            else parent2.parameters[param_key]
-                        )
+                    # Use winner-biased weighted average
+                    # winner_weight determines parent1's contribution
+                    offspring.parameters[param_key] = (
+                        parent1.parameters[param_key] * winner_weight +
+                        parent2.parameters[param_key] * (1.0 - winner_weight)
+                    )
                 else:
                     offspring.parameters[param_key] = parent1.parameters[param_key]
         else:
-            # Different strategy types: 15% chance to try a completely new strategy type
-            if random.random() < 0.15:
+            # Different strategy types: prefer winner's type
+            if random.random() < cfg["different_type_novelty_rate"]:
+                # Reduced novelty injection for different types
                 offspring = get_random_poker_strategy()
+            elif random.random() < winner_weight:
+                # Winner-biased selection: prefer winner's (parent1) strategy type
+                offspring = parent1.__class__()
+                offspring.parameters = parent1.parameters.copy()
             else:
-                chosen = parent1 if random.random() < 0.5 else parent2
-                offspring = chosen.__class__()
-                offspring.parameters = chosen.parameters.copy()
+                # Loser's strategy type selected
+                offspring = parent2.__class__()
+                offspring.parameters = parent2.parameters.copy()
 
     offspring.mutate_parameters(mutation_rate, mutation_strength)
     return offspring
