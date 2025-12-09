@@ -376,31 +376,83 @@ class Fish(Agent):
 
     def gain_energy(self, amount: float) -> float:
         """Gain energy from consuming food, capped at current max_energy.
-        
+
         Uses the fish's dynamic max_energy (based on current size) rather than
-        the static value in EnergyComponent.
-        
+        the static value in EnergyComponent. Any overflow beyond capacity routes
+        through the same pathways as other energy surpluses (reproduction first,
+        then food drops) to keep energy conservation intact.
+
         Args:
             amount: Amount of energy to gain.
-            
+
         Returns:
             float: Actual energy gained (capped by max_energy)
         """
-        old_energy = self._energy_component.energy
-        self._energy_component.energy = min(self.max_energy, self._energy_component.energy + amount)
-        return self._energy_component.energy - old_energy
+        old_energy = self.energy
+        # Reuse modify_energy so overflow flows through reproduction/food handling
+        # instead of silently disappearing when eating.
+        self.modify_energy(amount)
+        return self.energy - old_energy
+
+    def _redirect_overflow_to_reproduction(self, overflow: float) -> bool:
+        """Try to convert overflow energy into asexual reproduction.
+
+        Returns True if reproduction was triggered, otherwise False so callers
+        can fall back to other overflow handling strategies.
+        """
+
+        if overflow <= 0:
+            return False
+
+        if self._reproduction_component.can_asexually_reproduce(
+            self.life_stage, self.energy, self.max_energy
+        ):
+            self._reproduction_component.start_asexual_pregnancy()
+            return True
+
+        return False
+
+    def _drop_excess_energy_as_food(self, overflow: float) -> None:
+        """Convert overflow energy into a food item in the environment."""
+
+        if overflow <= 0 or self.environment is None:
+            return
+
+        from core.entities.resources import Food
+
+        # Spawn an energy-rich food item at the fish's position so energy isn't lost.
+        food = Food(
+            self.environment,
+            self.pos.x,
+            self.pos.y,
+            food_type="energy",
+            allow_stationary_types=False,
+        )
+
+        # Set the food's energy payload to the overflow amount so other fish can claim it.
+        food.energy = overflow
+        food.max_energy = overflow
+
+        # Register the food in the environment for discovery and eating.
+        if hasattr(self.environment, "agents") and self.environment.agents is not None:
+            self.environment.agents.append(food)
+        self.environment.add_agent_to_grid(food)
 
     def modify_energy(self, amount: float) -> None:
         """Adjust energy by a specified amount.
 
         Positive amounts are capped at max_energy, negative amounts won't go
-        below zero. This provides a simple interface for external systems (like
-        poker) to modify energy without embedding their logic in the fish.
+        below zero. Excess positive energy is dropped into the world as food so
+        it remains in the ecosystem instead of disappearing.
         """
         new_energy = self._energy_component.energy + amount
         if amount > 0:
-            # Cap at dynamic max_energy
+            # Cap at dynamic max_energy and convert overflow into reproduction when possible
+            overflow = max(0.0, new_energy - self.max_energy)
             self._energy_component.energy = min(self.max_energy, new_energy)
+            if overflow > 0:
+                if not self._redirect_overflow_to_reproduction(overflow):
+                    self._drop_excess_energy_as_food(overflow)
         else:
             # Don't go below zero
             final_energy = max(0.0, new_energy)

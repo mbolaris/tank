@@ -1030,8 +1030,8 @@ class PokerInteraction:
             )
 
             # Both players pay their bets
-            winner_fish.energy = max(0, winner_fish.energy - winner_total_bet)
-            loser_fish.energy = max(0, loser_fish.energy - loser_total_bet)
+            winner_fish.modify_energy(-winner_total_bet)
+            loser_fish.modify_energy(-loser_total_bet)
 
             # Calculate actual pot from the bets (more reliable than game_state.pot)
             total_pot = winner_total_bet + loser_total_bet
@@ -1040,19 +1040,26 @@ class PokerInteraction:
             net_gain = total_pot - winner_total_bet  # Winner's profit (loser's bet)
             house_cut = self.calculate_house_cut(winner_fish.size, net_gain)
 
-            # Winner receives the pot minus house cut
-            # Use direct energy assignment to bypass max_energy cap (poker winnings can exceed capacity)
-            winner_fish.energy += total_pot - house_cut
+            # Winner receives the pot minus house cut (respecting max energy capacity)
+            winner_fish.modify_energy(total_pot - house_cut)
 
             # For reporting purposes, energy_transferred is the loser's loss (what they bet)
             # This is used for display and statistics tracking
             energy_transferred = loser_total_bet
             # Also calculate the winner's actual gain (less than loser's loss due to house cut)
             winner_actual_gain = net_gain - house_cut
-            if winner_actual_gain > 0 and winner_fish.ecosystem is not None:
+            if (
+                winner_actual_gain > 0
+                and winner_fish.ecosystem is not None
+                and hasattr(winner_fish.ecosystem, "record_poker_energy_gain")
+            ):
                 winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain)
             # Record loser's loss as negative amount
-            if loser_total_bet > 0 and loser_fish.ecosystem is not None:
+            if (
+                loser_total_bet > 0
+                and loser_fish.ecosystem is not None
+                and hasattr(loser_fish.ecosystem, "record_poker_energy_gain")
+            ):
                 loser_fish.ecosystem.record_poker_energy_gain(-loser_total_bet)
         else:
             # Tie - no energy transfer

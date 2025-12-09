@@ -144,3 +144,13 @@ class LifecycleComponent:
             Life stage name (e.g., "Baby", "Adult", "Elder").
         """
         return self.life_stage.value.capitalize()
+
+    # Backward compatibility: some tests and legacy code expect a `current_stage`
+    # attribute; alias it to `life_stage` to avoid AttributeError.
+    @property
+    def current_stage(self):  # type: ignore[override]
+        return self.life_stage
+
+    @current_stage.setter
+    def current_stage(self, value):  # type: ignore[override]
+        self.life_stage = value
