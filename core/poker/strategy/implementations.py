@@ -727,16 +727,17 @@ def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrat
 POKER_EVOLUTION_CONFIG = {
     # Novelty injection rate: chance of completely random strategy
     # Lower = more exploitation of evolved strategies, Higher = more exploration
-    "novelty_injection_rate": 0.02,  # REDUCED from 0.10 to preserve adaptations
+    # Set very low to preserve evolved adaptations across generations
+    "novelty_injection_rate": 0.005,  # REDUCED from 0.02 to minimize genetic drift
     # Rate when parents have different strategy types
-    "different_type_novelty_rate": 0.05,  # REDUCED from 0.15
-    # Default mutation parameters
-    "default_mutation_rate": 0.12,  # REDUCED from 0.20 for stability
-    "default_mutation_strength": 0.15,  # REDUCED from 0.25 for stability
+    "different_type_novelty_rate": 0.01,  # REDUCED from 0.05 to preserve winning types
+    # Default mutation parameters - reduced for more stable evolution
+    "default_mutation_rate": 0.08,  # REDUCED from 0.12 for stability
+    "default_mutation_strength": 0.10,  # REDUCED from 0.15 for stability
     # Enable winner-biased inheritance (parent1 = winner when True)
     "winner_biased_inheritance": True,
     # Default winner weight when winner_biased_inheritance is True
-    "default_winner_weight": 0.80,  # Winner contributes 80% of parameters
+    "default_winner_weight": 0.85,  # INCREASED from 0.80 - winner contributes 85%
 }
 
 

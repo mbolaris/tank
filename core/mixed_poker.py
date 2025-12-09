@@ -23,10 +23,12 @@ from core.constants import (
     POKER_HOUSE_CUT_MIN_PERCENTAGE,
     POKER_HOUSE_CUT_SIZE_MULTIPLIER,
     POKER_MAX_ACTIONS_PER_ROUND,
+    POKER_MAX_HAND_RANK,
     POKER_MAX_PLAYERS,
 )
 from core.poker.core import Deck, PokerHand, evaluate_hand
 from core.poker.betting.actions import BettingAction
+from core.poker.evaluation.strength import evaluate_starting_hand_strength
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -83,6 +85,7 @@ class MultiplayerPlayerContext:
     total_bet: float = 0.0  # Total bet across all rounds
     folded: bool = False
     is_all_in: bool = False
+    strategy: Optional[Any] = None  # PokerStrategyAlgorithm if available
 
 
 class MultiplayerGameState:
@@ -287,6 +290,23 @@ class MixedPokerInteraction:
         """Get the size of a player."""
         return getattr(player, "size", 1.0)
 
+    def _get_player_strategy(self, player: Player) -> Optional[Any]:
+        """Get the poker strategy algorithm of a player.
+
+        Returns the player's evolved poker strategy if available.
+        For fish, this is genome.poker_strategy_algorithm.
+        For plants, this creates a PlantPokerStrategyAdapter.
+        """
+        from core.entities import Fish
+        from core.entities.fractal_plant import FractalPlant
+
+        if isinstance(player, Fish):
+            return player.genome.poker_strategy_algorithm
+        elif isinstance(player, FractalPlant):
+            from core.plant_poker_strategy import PlantPokerStrategyAdapter
+            return PlantPokerStrategyAdapter.from_plant(player)
+        return None
+
     def _get_player_aggression(self, player: Player) -> float:
         """Get the poker aggression of a player."""
         from core.entities import Fish
@@ -440,36 +460,39 @@ class MixedPokerInteraction:
         # Can't act if folded or all-in
         if ctx.folded or ctx.is_all_in:
             return BettingAction.CHECK, 0.0
-        
+
         # Evaluate current hand strength
-        if game_state.community_cards:
-            hand = evaluate_hand(
-                game_state.player_hole_cards[player_idx],
-                game_state.community_cards
-            )
-            # Normalize hand rank (0-1 scale)
-            hand_strength = hand.rank_value / 7462  # Max hand rank
+        hole_cards = game_state.player_hole_cards[player_idx]
+        is_preflop = len(game_state.community_cards) == 0
+        position_on_button = (player_idx == game_state.button_position)
+
+        if is_preflop and hole_cards and len(hole_cards) == 2:
+            # Pre-flop: use proper starting hand evaluation
+            hand_strength = evaluate_starting_hand_strength(hole_cards, position_on_button)
+        elif game_state.community_cards:
+            hand = evaluate_hand(hole_cards, game_state.community_cards)
+            # Normalize hand rank (0-1 scale) using correct constant
+            hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
         else:
-            # Pre-flop: estimate from hole cards
-            hole_cards = game_state.player_hole_cards[player_idx]
-            if hole_cards:
-                # Simple pre-flop strength estimation
-                card1, card2 = hole_cards[0], hole_cards[1]
-                pair_bonus = 0.3 if card1.rank == card2.rank else 0.0
-                high_card = max(card1.rank, card2.rank) / 14  # Ace = 14
-                suited_bonus = 0.1 if card1.suit == card2.suit else 0.0
-                hand_strength = (high_card * 0.5 + pair_bonus + suited_bonus)
-            else:
-                hand_strength = 0.5
-        
-        # Get aggression from player
-        aggression = ctx.aggression
-        
+            hand_strength = 0.5
+
         # Calculate amount needed to call
         max_bet = game_state.get_max_current_bet()
         call_amount = max_bet - ctx.current_bet
-        
-        # Decision making based on hand strength and aggression
+
+        # Use evolved poker strategy if available (from fish or plant genome)
+        if ctx.strategy is not None:
+            return ctx.strategy.decide_action(
+                hand_strength=hand_strength,
+                current_bet=ctx.current_bet,
+                opponent_bet=max_bet,
+                pot=game_state.pot,
+                player_energy=ctx.remaining_energy,
+                position_on_button=position_on_button,
+            )
+
+        # Fallback: Simple aggression-based decision
+        aggression = ctx.aggression
         play_strength = hand_strength + (aggression - 0.5) * 0.2 + random.uniform(-0.1, 0.1)
         
         if call_amount <= 0:
@@ -664,6 +687,7 @@ class MixedPokerInteraction:
                 player_idx=i,
                 remaining_energy=self._get_player_energy(player),
                 aggression=self._get_player_aggression(player),
+                strategy=self._get_player_strategy(player),
             )
             contexts.append(ctx)
         
