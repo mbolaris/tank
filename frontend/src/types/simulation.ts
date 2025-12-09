@@ -212,6 +212,15 @@ export interface StatsData {
     energy_from_migration_in?: number;
     energy_burn_recent?: Record<string, number>;
     energy_burn_total?: number;
+    // Energy delta (true change in fish population energy over window)
+    energy_delta?: {
+        energy_delta: number;  // Change in total fish energy
+        energy_now: number;    // Current total fish energy
+        energy_then: number;   // Total fish energy at window start
+        fish_count_now: number;
+        fish_count_then: number;
+        avg_energy_delta: number;  // Change in average energy per fish
+    };
     // Fish energy distribution
     avg_fish_energy: number;
     min_fish_energy: number;

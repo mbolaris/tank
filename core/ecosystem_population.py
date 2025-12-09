@@ -257,6 +257,7 @@ def get_summary_stats(
     energy_summary = ecosystem.get_energy_source_summary()
     recent_energy = ecosystem.get_recent_energy_breakdown(window_frames=ENERGY_STATS_WINDOW_FRAMES)
     recent_energy_burn = ecosystem.get_recent_energy_burn(window_frames=ENERGY_STATS_WINDOW_FRAMES)
+    energy_delta = ecosystem.get_energy_delta(window_frames=ENERGY_STATS_WINDOW_FRAMES)
 
     total_energy = 0.0
     if entities is not None:
@@ -297,6 +298,8 @@ def get_summary_stats(
         "energy_from_migration_in": recent_energy.get("migration_in", 0.0),
         "energy_burn_recent": recent_energy_burn,
         "energy_burn_total": sum(recent_energy_burn.values()),
+        "energy_sources_recent": recent_energy,
+        "energy_delta": energy_delta,
         "reproduction_stats": ecosystem.get_reproduction_summary(),
         "diversity_stats": ecosystem.get_diversity_summary(),
     }

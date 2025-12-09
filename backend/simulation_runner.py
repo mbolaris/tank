@@ -696,6 +696,7 @@ class SimulationRunner:
             energy_from_auto_eval=stats.get("energy_from_auto_eval", 0.0),
             energy_burn_recent=stats.get("energy_burn_recent", {}),
             energy_burn_total=stats.get("energy_burn_total", 0.0),
+            energy_delta=stats.get("energy_delta", {}),
             avg_fish_energy=stats.get("avg_fish_energy", 0.0),
             min_fish_energy=stats.get("min_fish_energy", 0.0),
 

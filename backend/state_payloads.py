@@ -221,6 +221,8 @@ class StatsPayload:
     energy_from_auto_eval: float = 0.0
     energy_burn_recent: Dict[str, float] = field(default_factory=dict)
     energy_burn_total: float = 0.0
+    # Energy delta (true change in fish population energy over window)
+    energy_delta: Dict[str, Any] = field(default_factory=dict)
     # Fish energy distribution
     avg_fish_energy: float = 0.0
     min_fish_energy: float = 0.0
@@ -283,6 +285,7 @@ class StatsPayload:
             "energy_from_auto_eval": self.energy_from_auto_eval,
             "energy_burn_recent": self.energy_burn_recent,
             "energy_burn_total": self.energy_burn_total,
+            "energy_delta": self.energy_delta,
             "avg_fish_energy": self.avg_fish_energy,
             "min_fish_energy": self.min_fish_energy,
             "max_fish_energy": self.max_fish_energy,
