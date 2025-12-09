@@ -42,9 +42,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // Note: burnReproduction and sourceBirth are intentionally not tracked here
     // because reproduction is an internal transfer (parent→baby), not an external flow
-    const sourceSoupSpawn = Math.round(energySourcesRecent.soup_spawn ?? safeStats.energy_from_soup_spawn ?? energySources.soup_spawn ?? 0);
+    // FIX: Don't fall back to cumulative energySources - only use windowed values
+    // energySources contains lifetime totals, which would cause value to spike when
+    // there's no recent activity in the windowed period
+    const sourceSoupSpawn = Math.round(energySourcesRecent.soup_spawn ?? safeStats.energy_from_soup_spawn ?? 0);
     const sourceMigrationIn = Math.round(
-        energySourcesRecent.migration_in ?? safeStats.energy_from_migration_in ?? energySources.migration_in ?? 0
+        energySourcesRecent.migration_in ?? safeStats.energy_from_migration_in ?? 0
     );
 
 
