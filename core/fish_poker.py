@@ -93,8 +93,10 @@ def should_offer_post_poker_reproduction(
     which accelerates poker strategy evolution.
     """
 
-    # Require 50% of max energy (lowered from 90% for faster evolution)
-    min_energy_for_reproduction = fish.max_energy * 0.50
+    # Energy threshold for reproduction (percentage of max energy)
+    # Lowered from 0.50 to 0.40 to increase reproduction events and selection pressure
+    from core.constants import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+    min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
     if fish.energy < min_energy_for_reproduction:
         return False
 

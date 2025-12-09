@@ -187,10 +187,10 @@ class PokerEvolutionTracker:
             if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
                 ps = fish.poker_stats
                 total_games += ps.total_games
-                total_wins += ps.total_wins
+                total_wins += ps.wins  # Fixed: was total_wins
                 total_energy_won += ps.total_energy_won
-                total_showdown_wins += ps.showdowns_won
-                total_showdowns += ps.showdowns_played
+                total_showdown_wins += ps.hands_won_at_showdown  # Fixed: was showdowns_won
+                total_showdowns += ps.showdown_count  # Fixed: was showdowns_played
 
             # Get poker strategy
             if hasattr(fish, "genome") and fish.genome is not None:

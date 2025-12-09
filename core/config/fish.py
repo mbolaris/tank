@@ -56,7 +56,9 @@ REPRODUCTION_ENERGY_COST = 60.0  # Energy cost to give birth
 MATING_DISTANCE = 60.0  # Maximum distance for mating (pixels)
 
 # Post-Poker Reproduction Constants
-POST_POKER_REPRODUCTION_ENERGY_THRESHOLD = 40.0  # Minimum energy to offer reproduction after poker
+# Energy threshold for post-poker reproduction (percentage of max energy)
+# Lowered from 0.50 to 0.40 to increase reproduction events and selection pressure
+POST_POKER_REPRODUCTION_ENERGY_THRESHOLD = 0.40
 POST_POKER_REPRODUCTION_WINNER_PROB = 0.4  # Probability winner offers reproduction (40%)
 POST_POKER_REPRODUCTION_LOSER_PROB = 0.2  # Probability loser offers reproduction (20%)
 POST_POKER_CROSSOVER_WINNER_WEIGHT = 0.7  # Winner contributes 70% of DNA, loser 30%

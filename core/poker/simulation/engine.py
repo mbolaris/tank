@@ -14,6 +14,7 @@ from core.poker.betting.decision import AGGRESSION_MEDIUM, decide_action
 from core.poker.core.game_state import PokerGameState
 from core.poker.core.hand import PokerHand
 from core.poker.evaluation.hand_evaluator import evaluate_hand
+from core.poker.evaluation.strength import evaluate_starting_hand_strength
 
 if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
@@ -190,7 +191,14 @@ def _decide_player_action(
 
     player_strategy = context.strategy
     if player_strategy is not None:
-        hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
+        # Use starting hand evaluation for pre-flop to match standard algorithm's info
+        is_preflop = len(game_state.community_cards) == 0
+        if is_preflop and hole_cards and len(hole_cards) == 2:
+            # Pre-flop: use starting hand strength like the standard algorithm
+            hand_strength = evaluate_starting_hand_strength(hole_cards, player_on_button)
+        else:
+            # Post-flop: use evaluated hand rank
+            hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
         return player_strategy.decide_action(
             hand_strength=hand_strength,
             current_bet=current_bet,

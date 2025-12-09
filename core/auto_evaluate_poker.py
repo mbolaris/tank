@@ -24,6 +24,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from core.constants import POKER_MAX_HAND_RANK
 from core.poker.core import (
     BettingAction,
     BettingRound,
@@ -33,6 +34,7 @@ from core.poker.core import (
     decide_action,
     evaluate_hand,
 )
+from core.poker.evaluation.strength import evaluate_starting_hand_strength
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
@@ -397,7 +399,15 @@ class AutoEvaluatePokerGame:
         else:  # Fish player
             # Use fish's poker strategy
             hand = evaluate_hand(player.hole_cards, self.community_cards)
-            hand_strength = hand.rank_value / 10.0  # Normalize to 0-1
+            is_preflop = len(self.community_cards) == 0
+            position_on_button = player_index == self.button_position
+
+            # Use starting hand evaluation for pre-flop to match standard algorithm's info
+            if is_preflop and len(player.hole_cards) == 2:
+                hand_strength = evaluate_starting_hand_strength(player.hole_cards, position_on_button)
+            else:
+                hand_strength = hand.rank_value / POKER_MAX_HAND_RANK  # Normalize to 0-1
+
             max_opponent_bet = max(p.current_bet for p in self.players if not p.folded)
 
             action, amount = player.poker_strategy.decide_action(
@@ -406,7 +416,7 @@ class AutoEvaluatePokerGame:
                 opponent_bet=max_opponent_bet,
                 pot=self.pot,
                 player_energy=player.energy,
-                position_on_button=(player_index == self.button_position),
+                position_on_button=position_on_button,
             )
 
         # Execute action
