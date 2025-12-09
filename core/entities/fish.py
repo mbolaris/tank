@@ -106,6 +106,10 @@ class Fish(Agent):
         # Migration flag - set to True when fish migrates to another tank
         self._migrated: bool = False
 
+        # OPTIMIZATION: Cache dead state to avoid repeated is_dead() checks
+        # This is checked ~11x per fish per frame in various places
+        self._is_dead_cached: bool = False
+
         # Life cycle - managed by LifecycleComponent for better code organization
         from core.fish.lifecycle_component import LifecycleComponent
 
@@ -280,6 +284,9 @@ class Fish(Agent):
     def energy(self, value: float) -> None:
         """Set energy level (setter for backward compatibility)."""
         self._energy_component.energy = value
+        # OPTIMIZATION: Update dead cache if energy drops to/below zero
+        if value <= 0:
+            self._is_dead_cached = True
 
     @property
     def max_energy(self) -> float:
@@ -396,7 +403,11 @@ class Fish(Agent):
             self._energy_component.energy = min(self.max_energy, new_energy)
         else:
             # Don't go below zero
-            self._energy_component.energy = max(0.0, new_energy)
+            final_energy = max(0.0, new_energy)
+            self._energy_component.energy = final_energy
+            # OPTIMIZATION: Update dead cache if energy drops to zero
+            if final_energy <= 0:
+                self._is_dead_cached = True
 
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
@@ -410,6 +421,10 @@ class Fish(Agent):
         energy_breakdown = self._energy_component.consume_energy(
             self.vel, self.speed, self.life_stage, time_modifier, self.size
         )
+
+        # OPTIMIZATION: Update dead cache if energy drops to zero
+        if self._energy_component.energy <= 0:
+            self._is_dead_cached = True
 
         if self.ecosystem is not None:
             # Report existence cost (size-based baseline)
@@ -572,8 +587,19 @@ class Fish(Agent):
         ]
 
     def is_dead(self) -> bool:
-        """Check if fish should die or has migrated."""
-        return self._migrated or self.energy <= 0 or self.age >= self.max_age
+        """Check if fish should die or has migrated.
+
+        OPTIMIZATION: Uses cached dead state when possible to avoid repeated checks.
+        Cache is updated when energy changes or age increments.
+        """
+        # OPTIMIZATION: Return cached value if already dead
+        if self._is_dead_cached:
+            return True
+        # Check conditions and update cache if now dead
+        dead = self._migrated or self.energy <= 0 or self.age >= self.max_age
+        if dead:
+            self._is_dead_cached = True
+        return dead
 
     def get_death_cause(self) -> str:
         """Get the cause of death.

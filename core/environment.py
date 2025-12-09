@@ -176,16 +176,14 @@ class SpatialGrid:
 
         This is much faster than checking all agents, as it only checks
         agents in nearby grid cells.
-        
+
         PERFORMANCE: Avoids intermediate list creation by directly filtering
         during iteration. Uses local variables for faster attribute access.
         """
-        if not hasattr(agent, "pos"):
-            return []
-
-        # Local variable access is faster
-        agent_pos_x = agent.pos.x
-        agent_pos_y = agent.pos.y
+        # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
+        pos = agent.pos
+        agent_pos_x = pos.x
+        agent_pos_y = pos.y
         radius_sq = radius * radius
 
         # Calculate cell range directly
@@ -198,6 +196,7 @@ class SpatialGrid:
         max_row = min(rows - 1, int((agent_pos_y + radius) / cell_size))
 
         result = []
+        result_append = result.append  # OPTIMIZATION: Local reference to append
         grid = self.grid
 
         # Iterate ranges directly - OPTIMIZATION: Filter inline
@@ -208,28 +207,28 @@ class SpatialGrid:
                     for type_list in cell_agents.values():
                         for other in type_list:
                             if other is not agent:
-                                dx = other.pos.x - agent_pos_x
-                                dy = other.pos.y - agent_pos_y
+                                other_pos = other.pos
+                                dx = other_pos.x - agent_pos_x
+                                dy = other_pos.y - agent_pos_y
                                 if dx * dx + dy * dy <= radius_sq:
-                                    result.append(other)
+                                    result_append(other)
 
         return result
 
     def query_fish(self, agent: Agent, radius: float) -> List[Agent]:
         """Optimized query for nearby fish.
-        
+
         PERFORMANCE: Avoids intermediate list creation by directly filtering
         during iteration. Uses local variables for faster attribute access.
-        
+
         NOTE: Filters out dead/migrated fish to prevent "ghost attraction"
         where live fish are attracted to positions of fish that have died
         but haven't been removed from the grid yet.
         """
-        if not hasattr(agent, "pos"):
-            return []
-
-        agent_x = agent.pos.x
-        agent_y = agent.pos.y
+        # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
         radius_sq = radius * radius
 
         cell_size = self.cell_size
@@ -241,6 +240,7 @@ class SpatialGrid:
         max_row = min(rows - 1, int((agent_y + radius) / cell_size))
 
         result = []
+        result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
 
         for col in range(min_col, max_col + 1):
@@ -251,26 +251,27 @@ class SpatialGrid:
                     for other in cell_fish:
                         if other is not agent:
                             # Filter out dead or migrated fish to prevent ghost attraction
-                            if hasattr(other, 'is_dead') and other.is_dead():
+                            # OPTIMIZATION: Use getattr with default instead of hasattr+call
+                            if getattr(other, '_is_dead_cached', False):
                                 continue
-                            dx = other.pos.x - agent_x
-                            dy = other.pos.y - agent_y
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
                             if dx * dx + dy * dy <= radius_sq:
-                                result.append(other)
+                                result_append(other)
 
         return result
 
     def query_food(self, agent: Agent, radius: float) -> List[Agent]:
         """Optimized query for nearby food.
-        
+
         PERFORMANCE: Avoids intermediate list creation by directly filtering
         during iteration. Uses local variables for faster attribute access.
         """
-        if not hasattr(agent, "pos"):
-            return []
-
-        agent_x = agent.pos.x
-        agent_y = agent.pos.y
+        # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
         radius_sq = radius * radius
 
         cell_size = self.cell_size
@@ -282,6 +283,7 @@ class SpatialGrid:
         max_row = min(rows - 1, int((agent_y + radius) / cell_size))
 
         result = []
+        result_append = result.append  # OPTIMIZATION: Local reference
         food_grid = self.food_grid
 
         for col in range(min_col, max_col + 1):
@@ -291,10 +293,11 @@ class SpatialGrid:
                     # OPTIMIZATION: Filter directly during iteration
                     for other in cell_food:
                         if other is not agent:
-                            dx = other.pos.x - agent_x
-                            dy = other.pos.y - agent_y
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
                             if dx * dx + dy * dy <= radius_sq:
-                                result.append(other)
+                                result_append(other)
 
         return result
 
@@ -302,15 +305,14 @@ class SpatialGrid:
         """
         Optimized query for collision candidates (Fish, Food, Crabs).
         Performs a single grid traversal to collect all relevant entities.
-        
+
         PERFORMANCE: Avoids intermediate list creation by directly filtering
         during iteration. Uses local variables for faster attribute access.
         """
-        if not hasattr(agent, "pos"):
-            return []
-
-        agent_x = agent.pos.x
-        agent_y = agent.pos.y
+        # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
         radius_sq = radius * radius
 
         cell_size = self.cell_size
@@ -322,6 +324,7 @@ class SpatialGrid:
         max_row = min(rows - 1, int((agent_y + radius) / cell_size))
 
         result = []
+        result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
         food_grid = self.food_grid
         grid = self.grid
@@ -335,48 +338,50 @@ class SpatialGrid:
                 if cell_fish:
                     for other in cell_fish:
                         if other is not agent:
-                            dx = other.pos.x - agent_x
-                            dy = other.pos.y - agent_y
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
                             if dx * dx + dy * dy <= radius_sq:
-                                result.append(other)
+                                result_append(other)
 
                 # Check Food - OPTIMIZATION: Filter inline
                 cell_food = food_grid.get(cell)
                 if cell_food:
                     for other in cell_food:
                         if other is not agent:
-                            dx = other.pos.x - agent_x
-                            dy = other.pos.y - agent_y
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
                             if dx * dx + dy * dy <= radius_sq:
-                                result.append(other)
+                                result_append(other)
 
                 # Check Crabs - OPTIMIZATION: Filter inline
                 cell_agents = grid.get(cell)
                 if cell_agents and crab_type in cell_agents:
                     for other in cell_agents[crab_type]:
                         if other is not agent:
-                            dx = other.pos.x - agent_x
-                            dy = other.pos.y - agent_y
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
                             if dx * dx + dy * dy <= radius_sq:
-                                result.append(other)
+                                result_append(other)
 
         return result
 
     def query_poker_entities(self, agent: Agent, radius: float) -> List[Agent]:
         """
         Optimized query for poker-eligible entities (Fish and FractalPlant).
-        
+
         PERFORMANCE: Single pass through spatial grid for both fish and plants.
         Uses dedicated fish_grid and type-specific plant lookup.
         Filters inline during iteration to avoid intermediate list.
         """
         from core.entities.fractal_plant import FractalPlant
-        
-        if not hasattr(agent, "pos"):
-            return []
 
-        agent_x = agent.pos.x
-        agent_y = agent.pos.y
+        # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
         radius_sq = radius * radius
 
         cell_size = self.cell_size
@@ -386,6 +391,7 @@ class SpatialGrid:
         max_row = min(self.rows - 1, int((agent_y + radius) / cell_size))
 
         result = []
+        result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
         grid = self.grid
 
@@ -398,10 +404,11 @@ class SpatialGrid:
                 if cell_fish:
                     for other in cell_fish:
                         if other is not agent:
-                            dx = other.pos.x - agent_x
-                            dy = other.pos.y - agent_y
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
                             if dx * dx + dy * dy <= radius_sq:
-                                result.append(other)
+                                result_append(other)
 
                 # Get plants from type-specific bucket - inline filter
                 cell_agents = grid.get(cell)
@@ -410,10 +417,11 @@ class SpatialGrid:
                     if cell_plants:
                         for other in cell_plants:
                             if other is not agent:
-                                dx = other.pos.x - agent_x
-                                dy = other.pos.y - agent_y
+                                other_pos = other.pos
+                                dx = other_pos.x - agent_x
+                                dy = other_pos.y - agent_y
                                 if dx * dx + dy * dy <= radius_sq:
-                                    result.append(other)
+                                    result_append(other)
 
         return result
 
@@ -573,7 +581,7 @@ class Environment:
 
         Uses spatial grid partitioning for O(k) performance instead of O(n),
         where k is the number of agents in nearby cells.
-        
+
         NOTE: Filters out dead/migrated fish to prevent targeting invalid entities.
 
         Args:
@@ -589,14 +597,14 @@ class Environment:
         # 2. Iterate grid cells directly to avoid creating intermediate candidate list
         # 3. Use type buckets to only iterate relevant agents
 
-        if not hasattr(agent, "pos"):
-            return []
+        # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
 
         # Local variables for speed
         grid = self.spatial_grid
         cell_size = grid.cell_size
-        agent_x = agent.pos.x
-        agent_y = agent.pos.y
 
         # Calculate cell range
         min_col = max(0, int((agent_x - radius) / cell_size))
@@ -606,6 +614,7 @@ class Environment:
 
         radius_sq = radius * radius
         result = []
+        result_append = result.append  # OPTIMIZATION: Local reference
         grid_dict = grid.grid
         subclass_cache = Environment._subclass_cache
 
@@ -626,21 +635,23 @@ class Environment:
                     if is_match is None:
                         is_match = issubclass(type_key, agent_class)
                         subclass_cache[cache_key] = is_match
-                    
+
                     if is_match:
                         for other in agents:
                             if other is agent:
                                 continue
-                            
+
                             # Filter out dead/migrated entities to prevent ghost targeting
-                            if hasattr(other, 'is_dead') and other.is_dead():
+                            # OPTIMIZATION: Use getattr with default instead of hasattr+call
+                            if getattr(other, '_is_dead_cached', False):
                                 continue
 
                             # Distance check
-                            dx = other.pos.x - agent_x
-                            dy = other.pos.y - agent_y
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
                             if dx*dx + dy*dy <= radius_sq:
-                                result.append(other)
+                                result_append(other)
 
         return result
 

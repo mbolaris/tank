@@ -208,18 +208,26 @@ class Genome:
         self.behavioral.mate_preferences.value = v
 
     # =========================================================================
-    # Derived Properties (computed from base traits)
+    # Derived Properties (computed from base traits with caching)
     # =========================================================================
+
+    # OPTIMIZATION: Cache for computed properties to avoid repeated calculations
+    _speed_modifier_cache: Optional[float] = field(default=None, repr=False, compare=False)
+    _metabolism_rate_cache: Optional[float] = field(default=None, repr=False, compare=False)
 
     @property
     def speed_modifier(self) -> float:
-        """Calculate speed modifier based on physical traits."""
+        """Calculate speed modifier based on physical traits (cached)."""
+        if self._speed_modifier_cache is not None:
+            return self._speed_modifier_cache
         template_speed_bonus = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}.get(
             self.template_id, 1.0
         )
         propulsion = self.fin_size * 0.4 + self.tail_size * 0.6
         hydrodynamics = 1.0 - abs(self.body_aspect - 0.8) * 0.5
-        return template_speed_bonus * propulsion * hydrodynamics
+        result = template_speed_bonus * propulsion * hydrodynamics
+        object.__setattr__(self, '_speed_modifier_cache', result)
+        return result
 
     @property
     def vision_range(self) -> float:
@@ -228,12 +236,21 @@ class Genome:
 
     @property
     def metabolism_rate(self) -> float:
-        """Calculate metabolism rate based on physical traits."""
+        """Calculate metabolism rate based on physical traits (cached)."""
+        if self._metabolism_rate_cache is not None:
+            return self._metabolism_rate_cache
         cost = 1.0
         cost += (self.size_modifier - 1.0) * 0.5
         cost += (self.speed_modifier - 1.0) * 0.8
         cost += (self.eye_size - 1.0) * 0.3
-        return max(0.5, cost)
+        result = max(0.5, cost)
+        object.__setattr__(self, '_metabolism_rate_cache', result)
+        return result
+
+    def invalidate_caches(self) -> None:
+        """Invalidate cached computed properties when traits change."""
+        object.__setattr__(self, '_speed_modifier_cache', None)
+        object.__setattr__(self, '_metabolism_rate_cache', None)
 
     # =========================================================================
     # Factory Methods
