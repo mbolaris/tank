@@ -40,8 +40,10 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const burnTurning = energyBurnRecent.turning ?? 0;
     const burnMigration = energyBurnRecent.migration ?? 0;
 
-    // Note: burnReproduction and sourceBirth are intentionally not tracked here
-    // because reproduction is an internal transfer (parent→baby), not an external flow
+    // Reproduction costs and birth energy (now visible to help users understand energy flow)
+    const burnReproduction = energyBurnRecent.reproduction_cost ?? 0;
+    const sourceBirth = energySourcesRecent.birth ?? 0;
+
     // FIX: Don't fall back to cumulative energySources - only use windowed values
     // energySources contains lifetime totals, which would cause value to spike when
     // there's no recent activity in the windowed period
@@ -49,6 +51,9 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const sourceMigrationIn = Math.round(
         energySourcesRecent.migration_in ?? safeStats.energy_from_migration_in ?? 0
     );
+
+    // Energy delta (true change in fish population energy over window)
+    const energyDelta = safeStats.energy_delta;
 
 
     // Combined Base Metabolism (Existence + Base Rate)
@@ -218,6 +223,13 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         plantPokerNet: plantPokerNetRecent,
                         soupSpawn: Math.max(0, sourceSoupSpawn),
                         migrationIn: Math.max(0, sourceMigrationIn),
+
+                        // Reproduction (internal transfer, but visible for understanding)
+                        reproductionCost: Math.max(0, burnReproduction),
+                        birthEnergy: Math.max(0, sourceBirth),
+
+                        // True energy delta
+                        energyDelta: energyDelta?.energy_delta ?? 0,
                     }}
                 />
             </div>

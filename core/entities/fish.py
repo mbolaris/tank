@@ -721,9 +721,11 @@ class Fish(Agent):
         # (This is fine - survival of the fittest)
         self.energy -= energy_to_transfer  # Parent pays the energy cost
 
-        # Note: We don't record reproduction_cost as an outflow because the energy
-        # goes directly to the baby - it's an internal transfer within the fish
-        # population, not energy leaving the system.
+        # Record reproduction energy for visibility in stats
+        # While it's an internal transfer (parent→baby), showing it helps users
+        # understand population dynamics and where energy goes during births.
+        if self.ecosystem is not None:
+            self.ecosystem.record_reproduction_energy(energy_to_transfer, energy_to_transfer)
 
         # Create offspring near parent
         offset_x = random.uniform(-30, 30)

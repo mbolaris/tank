@@ -589,6 +589,11 @@ class SimulationEngine(BaseSimulator):
             ecosystem.update_population_stats(fish_list)
             ecosystem.update(self.frame_count)
 
+            # Record energy snapshot for delta calculations
+            # Sum total fish energy for historical tracking
+            total_fish_energy = sum(f.energy for f in fish_list)
+            ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
+
             # Auto-spawn fish based on population level (more likely at low populations)
             fish_count = len(fish_list)
             if fish_count < MAX_POPULATION:

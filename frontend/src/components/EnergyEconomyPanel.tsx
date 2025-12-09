@@ -17,13 +17,17 @@ interface EnergyFlowData {
     fishDeaths: number;
     migrationOut: number; // Energy leaving tank via fish migration
 
-    // Note: Reproduction is NOT tracked here because it's an internal transfer
-    // (parent energy -> baby energy) that doesn't change total fish population energy
+    // Reproduction (internal transfer - visible for understanding)
+    reproductionCost: number; // Energy spent by parents
+    birthEnergy: number; // Energy given to babies
 
     // Poker Economy (only external flows)
     pokerTotalPot: number;
     pokerHouseCut: number; // Energy lost to house cut
     plantPokerNet: number; // Net fish↔plant transfer (positive = fish won)
+
+    // True energy delta (actual change in fish population energy)
+    energyDelta: number;
 }
 
 interface EnergyEconomyPanelProps {
@@ -40,7 +44,10 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
 
     const totalIn = data.fallingFood + data.liveFood + data.plantNectar + plantGain + data.soupSpawn + data.migrationIn;
     const totalOut = data.baseMetabolism + data.traitMaintenance + data.movementCost + data.turningCost + data.fishDeaths + data.migrationOut + data.pokerHouseCut + plantLoss;
-    const netChange = totalIn - totalOut;
+    const netExternalFlow = totalIn - totalOut;
+
+    // True energy delta - what actually happened to fish population energy
+    const trueDelta = data.energyDelta;
 
     const formatVal = (val: number) => Math.round(val).toLocaleString();
 
@@ -75,20 +82,26 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
 
     return (
         <div className={`glass-panel ${className}`} style={{ padding: '16px', position: 'relative', overflow: 'hidden' }}>
-            {/* Header */}
+            {/* Header with two metrics */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ margin: 0, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>🔋</span> Energy Economy
                 </h3>
-                <div style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: netChange >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
-                    background: netChange >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    padding: '2px 8px',
-                    borderRadius: '4px'
-                }}>
-                    {netChange > 0 ? '+' : ''}{formatVal(netChange)}⚡ Net
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {/* True Delta - the actual change in fish energy */}
+                    <div
+                        style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: trueDelta >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+                            background: trueDelta >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                        }}
+                        title="Actual change in total fish energy over the last 60 seconds"
+                    >
+                        {trueDelta > 0 ? '+' : ''}{formatVal(trueDelta)}⚡ Net
+                    </div>
                 </div>
             </div>
 
@@ -103,7 +116,6 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                     <FlowBar label="Live Food Eaten" value={data.liveFood} color="#22c55e" icon="🦐" total={totalIn} />
                     <FlowBar label="Plant Nectar" value={data.plantNectar} color="#10b981" icon="🌿" total={totalIn} />
                     <FlowBar label="Soup Spawns" value={data.soupSpawn} color="#a3e635" icon="🥣" total={totalIn} />
-                    <FlowBar label="Plant Net (Won)" value={plantGain} color="#059669" icon="🎋" total={totalIn} />
                     <FlowBar label="Migration In" value={data.migrationIn} color="#86efac" icon="🛬" total={totalIn} />
 
                     {/* Empty State */}
@@ -123,12 +135,24 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                     <FlowBar label="Trait Upkeep" value={data.traitMaintenance} color="#f472b6" icon="🧬" total={totalOut} isOut />
                     <FlowBar label="Movement" value={data.movementCost} color="#fb7185" icon="💨" total={totalOut} isOut />
                     <FlowBar label="Turning" value={data.turningCost} color="#f97316" icon="🔄" total={totalOut} isOut />
-                    <FlowBar label="Deaths" value={data.fishDeaths} color="#ef4444" icon="💀" total={totalOut} isOut />
                     <FlowBar label="Poker House Cut" value={data.pokerHouseCut} color="#94a3b8" icon="🏛️" total={totalOut} isOut />
                     <FlowBar label="Plant Net (Lost)" value={plantLoss} color="#be185d" icon="🥀" total={totalOut} isOut />
                     <FlowBar label="Migration" value={data.migrationOut} color="#8b5cf6" icon="✈️" total={totalOut} isOut />
                 </div>
             </div>
+
+            {/* Reproduction Section - Internal transfers */}
+            {(data.reproductionCost > 0 || data.birthEnergy > 0) && (
+                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                        Reproduction (Internal Transfer)
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-dim)' }}>
+                        <span>👶 Parent→Baby Transfer</span>
+                        <span style={{ color: '#a78bfa' }}>{formatVal(data.birthEnergy)}⚡</span>
+                    </div>
+                </div>
+            )}
 
             {/* Poker Economy Highlight */}
             {(data.pokerTotalPot > 0) && (

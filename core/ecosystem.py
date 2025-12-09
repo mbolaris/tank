@@ -109,6 +109,13 @@ class EcosystemManager:
         self.energy_burn: Dict[str, float] = defaultdict(float)
         self.recent_energy_burns: deque[Tuple[int, str, float]] = deque(maxlen=10000)
 
+        # Historical energy snapshots for calculating true ΔEnergy
+        # Each entry: (frame_number, total_fish_energy, fish_count)
+        # Store snapshots every 30 frames (1 second at 30fps)
+        self.energy_history: deque[Tuple[int, float, int]] = deque(maxlen=2000)
+        self._last_snapshot_frame: int = 0
+        self._snapshot_interval: int = 30  # Frames between snapshots
+
     @property
     def reproduction_stats(self):
         return self.reproduction_manager.reproduction_stats
@@ -529,6 +536,99 @@ class EcosystemManager:
                 recent_totals[source] += amount
 
         return dict(recent_totals)
+
+    def record_energy_snapshot(self, total_fish_energy: float, fish_count: int) -> None:
+        """Record a snapshot of total fish energy for delta calculations.
+
+        Call this method periodically (e.g., every frame or every few frames)
+        with the current total energy of all fish in the tank.
+
+        Args:
+            total_fish_energy: Sum of energy across all living fish
+            fish_count: Number of fish currently alive
+        """
+        # Only record if enough frames have passed since last snapshot
+        if self.current_frame - self._last_snapshot_frame >= self._snapshot_interval:
+            self.energy_history.append((self.current_frame, total_fish_energy, fish_count))
+            self._last_snapshot_frame = self.current_frame
+
+    def get_energy_delta(self, window_frames: int = 1800) -> Dict[str, Any]:
+        """Calculate the true change in fish population energy over a time window.
+
+        This returns the actual delta in total fish energy, which may differ
+        from the "net external flow" due to:
+        - Fish dying with remaining energy (energy lost)
+        - Fish reproducing (internal transfer)
+        - Energy capping (overflow wasted)
+
+        Args:
+            window_frames: Number of frames to look back (default 1800 = 60s at 30fps)
+
+        Returns:
+            Dict with:
+            - energy_delta: Change in total fish energy (current - past)
+            - energy_now: Current total fish energy
+            - energy_then: Total fish energy at window start
+            - fish_count_now: Current fish count
+            - fish_count_then: Fish count at window start
+            - avg_energy_delta: Change in average energy per fish
+        """
+        if not self.energy_history:
+            return {
+                "energy_delta": 0.0,
+                "energy_now": 0.0,
+                "energy_then": 0.0,
+                "fish_count_now": 0,
+                "fish_count_then": 0,
+                "avg_energy_delta": 0.0,
+            }
+
+        # Get current (most recent) snapshot
+        current_frame, current_energy, current_count = self.energy_history[-1]
+
+        # Find snapshot closest to window_frames ago
+        target_frame = current_frame - window_frames
+        past_energy = current_energy  # Default to current if no history
+        past_count = current_count
+
+        for frame, energy, count in self.energy_history:
+            if frame <= target_frame:
+                past_energy = energy
+                past_count = count
+            else:
+                break
+
+        energy_delta = current_energy - past_energy
+
+        # Calculate average energy change
+        avg_now = current_energy / current_count if current_count > 0 else 0
+        avg_then = past_energy / past_count if past_count > 0 else 0
+        avg_delta = avg_now - avg_then
+
+        return {
+            "energy_delta": energy_delta,
+            "energy_now": current_energy,
+            "energy_then": past_energy,
+            "fish_count_now": current_count,
+            "fish_count_then": past_count,
+            "avg_energy_delta": avg_delta,
+        }
+
+    def record_reproduction_energy(self, parent_cost: float, baby_initial_energy: float) -> None:
+        """Track energy transfer during reproduction.
+
+        This records reproduction as a visible energy flow so users can see
+        where energy goes during births. While it's an internal transfer
+        (parent→baby), showing it helps users understand population dynamics.
+
+        Args:
+            parent_cost: Energy the parent spent on reproduction
+            baby_initial_energy: Energy the baby started with
+        """
+        # Record as both a burn (from parent) and a gain (to baby)
+        # This keeps the net flow zero (internal transfer) but makes it visible
+        self.record_energy_burn("reproduction_cost", parent_cost)
+        self.record_energy_gain("birth", baby_initial_energy)
 
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         from core import algorithm_reporter
