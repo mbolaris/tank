@@ -16,17 +16,20 @@ Features:
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from core.entities import LifeStage
 from core.poker.betting import AGGRESSION_HIGH, AGGRESSION_LOW, BettingAction
 from core.poker.core import PokerHand
 from core.poker.simulation import simulate_multi_round_game, simulate_multiplayer_game
-from core.poker.strategy.base import PokerStrategyEngine
+from core.poker_participant_manager import (
+    PokerParticipant,
+    get_participant as _get_participant,
+    get_ready_players,
+)
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.fish.poker_stats_component import FishPokerStats
 
 
 @dataclass
@@ -69,60 +72,6 @@ class PokerResult:
     @property
     def player2_folded(self) -> bool:
         return self.players_folded[1] if len(self.players_folded) > 1 else False
-
-
-@dataclass
-class PokerParticipant:
-    """Tracks poker-specific state for a fish without storing it on the fish."""
-
-    fish: "Fish"
-    strategy: PokerStrategyEngine
-    stats: "FishPokerStats"
-    cooldown: int = 0
-    last_button_position: int = 0
-    last_cooldown_age: int = 0
-
-    def sync_with_age(self) -> None:
-        """Reduce cooldown based on the fish's current age."""
-
-        age = getattr(self.fish, "age", 0)
-        if age > self.last_cooldown_age:
-            self.cooldown = max(0, self.cooldown - (age - self.last_cooldown_age))
-            self.last_cooldown_age = age
-
-    def start_cooldown(self, frames: int) -> None:
-        self.sync_with_age()
-        self.cooldown = max(self.cooldown, frames)
-        self.last_cooldown_age = getattr(self.fish, "age", self.last_cooldown_age)
-
-
-_POKER_PARTICIPANTS: Dict[int, PokerParticipant] = {}
-
-
-def _get_participant(fish: "Fish") -> PokerParticipant:
-    """Return cached poker state for a fish, creating it if needed."""
-
-    from core.fish.poker_stats_component import FishPokerStats
-
-    # Ensure fish has poker_stats
-    if not hasattr(fish, "poker_stats") or fish.poker_stats is None:
-        fish.poker_stats = FishPokerStats()
-
-    participant = _POKER_PARTICIPANTS.get(fish.fish_id)
-    if participant is None or participant.fish is not fish:
-        participant = PokerParticipant(
-            fish=fish,
-            strategy=PokerStrategyEngine(fish),
-            stats=fish.poker_stats,  # Use the fish's actual stats object
-            last_cooldown_age=getattr(fish, "age", 0),
-        )
-        _POKER_PARTICIPANTS[fish.fish_id] = participant
-
-    # Always update the stats reference in case the fish object was recreated/reloaded
-    participant.stats = fish.poker_stats
-    participant.fish = fish
-    participant.sync_with_age()
-    return participant
 
 
 def should_offer_post_poker_reproduction(
@@ -357,26 +306,11 @@ class PokerInteraction:
 
     @classmethod
     def get_ready_players(cls, fish_list: List["Fish"]) -> List["Fish"]:
-        """Return fish that are eligible to play poker right now."""
+        """Return fish that are eligible to play poker right now.
 
-        ready_players = []
-
-        for fish in fish_list:
-            participant = _get_participant(fish)
-            participant.sync_with_age()
-
-            if fish.energy < cls.MIN_ENERGY_TO_PLAY:
-                continue
-
-            if participant.cooldown > 0:
-                continue
-
-            if hasattr(fish, "is_pregnant") and fish.is_pregnant:
-                continue
-
-            ready_players.append(fish)
-
-        return ready_players
+        Delegates to the centralized participant manager for consistency.
+        """
+        return get_ready_players(fish_list, min_energy=cls.MIN_ENERGY_TO_PLAY)
 
     def can_play_poker(self) -> bool:
         """
