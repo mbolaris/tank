@@ -47,6 +47,10 @@ class MiniEcosystem:
         """Stub for energy gain tracking."""
         pass
 
+    def record_reproduction_energy(self, parent_cost: float, baby_energy: float) -> None:
+        """Stub for reproduction energy tracking."""
+        pass
+
 
 class MiniEnvironment:
     """Simple environment stub exposing only what Fish requires."""
