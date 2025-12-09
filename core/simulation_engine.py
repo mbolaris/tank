@@ -814,11 +814,12 @@ class SimulationEngine(BaseSimulator):
 
         stats = self.ecosystem.get_summary_stats(self.get_all_entities())
         
-        # Add energy breakdown stats
+        # Add cumulative energy sources (lifetime totals)
+        # Note: energy_sources_recent and energy_burn_recent are already set by
+        # get_summary_stats() with ENERGY_STATS_WINDOW_FRAMES (1800 frames = 60s),
+        # matching the window used for energy_delta. Don't override them here.
         stats.update({
             "energy_sources": self.ecosystem.get_energy_source_summary(),
-            "energy_sources_recent": self.ecosystem.get_recent_energy_breakdown(window_frames=300),
-            "energy_burn_recent": self.ecosystem.get_recent_energy_burn(window_frames=300),
         })
 
         stats["frame_count"] = self.frame_count
