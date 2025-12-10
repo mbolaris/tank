@@ -67,6 +67,76 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                     </div>
                 </div>
             )}
+
+            <div className={styles.section}>
+                <div className={styles.sectionTitle}>Gene Distribution</div>
+                <div className={styles.geneGrid}>
+                    <GeneHistogram label="Adult Size" values={collectTrait(stats, 'size')} min={0.5} max={2} />
+                    <GeneHistogram label="Eye Size" values={collectTrait(stats, 'eye_size')} min={0.5} max={2} />
+                    <GeneHistogram label="Tail Size" values={collectTrait(stats, 'tail_size')} min={0} max={2} />
+                    <GeneHistogram label="Fin Size" values={collectTrait(stats, 'fin_size')} min={0} max={2} />
+                    <GeneHistogram label="Body Aspect" values={collectTrait(stats, 'body_aspect')} min={0.5} max={2} />
+                    <GeneHistogram label="Template ID" values={collectTrait(stats, 'template_id')} min={0} max={10} discrete />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Helper: collect trait values from stats entities
+function collectTrait(stats: StatsData, trait: string) {
+    const vals: number[] = [];
+    // The frontend receives Entities in SimulationUpdate; StatsData alone may not include genome details.
+    // We conservatively attempt to read a global `window.__lastEntities` if set by the app, else return empty.
+    // Consumers: Tank view may set window.__lastEntities when rendering updates.
+    // This keeps the histogram resilient when entity list is not available here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyWin: any = (window as any).__lastEntities;
+    if (Array.isArray(anyWin)) {
+        for (const e of anyWin) {
+            const g = e.genome_data || e.genome || e;
+            if (!g) continue;
+            const v = g[trait];
+            if (typeof v === 'number') vals.push(v);
+        }
+    }
+    return vals;
+}
+
+interface GeneHistogramProps {
+    label: string;
+    values: number[];
+    min: number;
+    max: number;
+    discrete?: boolean;
+}
+
+function GeneHistogram({ label, values, min, max, discrete }: GeneHistogramProps) {
+    const bins = discrete ? Math.max(4, Math.ceil(max - min + 1)) : 6;
+    const counts = new Array(bins).fill(0);
+    for (const v of values) {
+        if (v == null || isNaN(v)) continue;
+        let idx = 0;
+        if (discrete) {
+            idx = Math.min(bins - 1, Math.max(0, Math.round(v - min)));
+        } else {
+            const t = (v - min) / (max - min);
+            idx = Math.min(bins - 1, Math.max(0, Math.floor(t * bins)));
+        }
+        counts[idx]++;
+    }
+    const maxCount = Math.max(1, ...counts);
+
+    return (
+        <div className={styles.histogramCard}>
+            <div className={styles.histogramLabel}>{label}</div>
+            <div className={styles.histogram}>
+                {counts.map((c, i) => (
+                    <div key={i} className={styles.histBarWrap}>
+                        <div className={styles.histBar} style={{ height: `${(c / maxCount) * 80}%` }} />
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
