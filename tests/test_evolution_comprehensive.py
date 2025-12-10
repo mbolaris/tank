@@ -152,7 +152,7 @@ class TestEdgeCasesAndBoundaries:
         # derived from template_id, fin_size, tail_size, body_aspect, and eye_size
         genome = Genome(
             physical=PhysicalTraits(
-                size_modifier=GeneticTrait(0.7),  # Min (valid range is 0.7-1.3)
+                size_modifier=GeneticTrait(0.5),  # Min (valid range is 0.5-2.0)
                 color_hue=GeneticTrait(0.5),
                 template_id=GeneticTrait(1),      # Streamlined (1.2x speed)
                 fin_size=GeneticTrait(1.4),       # Max fins
@@ -181,7 +181,7 @@ class TestEdgeCasesAndBoundaries:
         )
 
         # Should be valid
-        assert genome.size_modifier == 0.7
+        assert genome.size_modifier == 0.5
         assert genome.aggression == 1.0
         assert genome.social_tendency == 0.0
         # speed_modifier is computed from visual traits
@@ -582,12 +582,12 @@ class TestStatisticalProperties:
         parent1 = Genome.random(use_algorithm=False)
         parent1.fin_size = 1.4
         parent1.tail_size = 1.4
-        parent1.size_modifier = 1.3
+        parent1.size_modifier = 1.5
 
         parent2 = Genome.random(use_algorithm=False)
         parent2.fin_size = 0.6
         parent2.tail_size = 0.6
-        parent2.size_modifier = 0.7
+        parent2.size_modifier = 0.5
 
         offspring = [
             Genome.from_parents(parent1, parent2, population_stress=0.0)

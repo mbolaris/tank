@@ -33,7 +33,7 @@ class LifecycleComponent:
         max_age: Maximum lifespan in frames.
         life_stage: Current life stage (BABY, JUVENILE, ADULT, ELDER).
         size: Current visual size multiplier (combines age and genetic factors).
-        genetic_size_modifier: Genetic body size trait (0.7-1.3).
+        genetic_size_modifier: Genetic body size trait (0.5-2.0).
     """
 
     __slots__ = ("age", "max_age", "genetic_size_modifier", "life_stage", "size")
@@ -43,7 +43,7 @@ class LifecycleComponent:
 
         Args:
             max_age: Maximum lifespan in frames (affected by genetics).
-            genetic_size_modifier: Genetic body size multiplier (0.7-1.3).
+            genetic_size_modifier: Genetic body size multiplier (0.5-2.0).
         """
         self.age: int = 0
         self.max_age: int = max_age

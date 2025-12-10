@@ -52,7 +52,7 @@ class TestGeneticsRefactor:
         phys = PhysicalTraits.random(rng)
 
         assert isinstance(phys.size_modifier, GeneticTrait)
-        assert 0.7 <= phys.size_modifier.value <= 1.3
+        assert 0.5 <= phys.size_modifier.value <= 2.0
 
         assert isinstance(phys.template_id, GeneticTrait)
         assert isinstance(phys.template_id.value, int)

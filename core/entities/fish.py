@@ -193,12 +193,12 @@ class Fish(Agent):
 
         # Apply genetic modifiers to speed
         modified_speed = speed * self.genome.speed_modifier
-        
+
         # Safety cap: Ensure speed doesn't explode due to legacy bugs
-        # Max reasonable speed is base * max_modifier (1.5) * safety_margin (1.2)
-        max_allowed_speed = FISH_BASE_SPEED * 1.5 * 1.2
+        # Max reasonable speed is base * expected_max_modifier (2.0) * safety_margin (1.2)
+        max_allowed_speed = FISH_BASE_SPEED * 2.0 * 1.2
         if modified_speed > max_allowed_speed:
-             modified_speed = max_allowed_speed
+            modified_speed = max_allowed_speed
 
         super().__init__(environment, x, y, modified_speed, screen_width, screen_height)
 
@@ -293,7 +293,7 @@ class Fish(Agent):
         """Maximum energy capacity based on current size (age + genetics).
         
         A fish's max energy grows as they physically grow from baby to adult.
-        Baby fish (size ~0.35-0.5) have less capacity than adults (size ~0.7-1.3).
+        Baby fish (size ~0.35-0.5) have less capacity than adults (adult size scales with genetic size_modifier which ranges 0.5-2.0).
         """
         from core.constants import ENERGY_MAX_DEFAULT
         return ENERGY_MAX_DEFAULT * self.size
