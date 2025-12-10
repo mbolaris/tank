@@ -106,6 +106,10 @@ export class Renderer {
     private entityFacingLeft: Map<number, boolean> = new Map();
     // Track when poker effects started for each entity (for one-time animation)
     private pokerEffectStartTime: Map<number, number> = new Map();
+    // Reusable offscreen canvas for tinting operations to avoid allocating
+    // a new canvas per entity draw which can cause memory pressure.
+    private _tintCanvas: HTMLCanvasElement | null = null;
+    private _tintCtx: CanvasRenderingContext2D | null = null;
 
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
@@ -1186,12 +1190,28 @@ export class Renderer {
     ) {
         const { ctx } = this;
 
-        // Create temporary canvas for color tinting
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = image.width;
-        tempCanvas.height = image.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
+        // Reuse a single offscreen canvas/context for tinting to avoid
+        // allocating a new canvas on every draw call which can lead to
+        // memory growth in some browsers.
+        if (!this._tintCanvas) {
+            this._tintCanvas = document.createElement('canvas');
+        }
+        if (!this._tintCtx) {
+            this._tintCtx = this._tintCanvas.getContext('2d');
+        }
+        if (!this._tintCtx || !this._tintCanvas) return;
+
+        const tempCtx = this._tintCtx;
+        const tempCanvas = this._tintCanvas;
+
+        // Resize offscreen canvas only when necessary to avoid frequent reallocs
+        if (tempCanvas.width !== image.width || tempCanvas.height !== image.height) {
+            tempCanvas.width = image.width;
+            tempCanvas.height = image.height;
+        }
+
+        // Clear previous content
+        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
 
         // Draw original image
         if (flipHorizontal) {
@@ -1205,7 +1225,6 @@ export class Renderer {
         }
 
         // Apply color tint using multiply blend mode
-        // Convert HSL color to RGB for genetic color trait
         const tintColor = this.hslToRgb(colorHue / 360, 0.7, 0.6);
         tempCtx.globalCompositeOperation = 'multiply';
         tempCtx.fillStyle = `rgb(${tintColor[0]}, ${tintColor[1]}, ${tintColor[2]})`;

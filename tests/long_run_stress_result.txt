@@ -1,0 +1,20 @@
+stress=0.0 adaptive_rate=0.100 adaptive_strength=0.100 N=10000
+ meta_rate_changed: 106
+ meta_strength_changed: 107
+ hgt_meta_changed: 203
+ eye mean: 1.1382692860465415 stdev: 0.02934296593790772
+stress=0.2 adaptive_rate=0.130 adaptive_strength=0.126 N=10000
+ meta_rate_changed: 116
+ meta_strength_changed: 103
+ hgt_meta_changed: 188
+ eye mean: 1.1378346427325243 stdev: 0.04102929020494661
+stress=0.5 adaptive_rate=0.175 adaptive_strength=0.150 N=10000
+ meta_rate_changed: 114
+ meta_strength_changed: 98
+ hgt_meta_changed: 191
+ eye mean: 1.1370679957602023 stdev: 0.0551149944737158
+stress=1.0 adaptive_rate=0.250 adaptive_strength=0.150 N=10000
+ meta_rate_changed: 107
+ meta_strength_changed: 95
+ hgt_meta_changed: 191
+ eye mean: 1.1354877119302051 stdev: 0.06662104568709729
