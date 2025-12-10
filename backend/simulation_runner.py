@@ -457,13 +457,12 @@ class SimulationRunner:
                 if fish_id is not None:
                     fish = next((e for e in self.world.entities_list
                                if isinstance(e, Fish) and e.fish_id == fish_id), None)
-                    if fish:
-                        reward = min(net_energy, fish.max_energy - fish.energy)
-                        if reward > 0:
-                            fish.energy += reward
-                            if fish.ecosystem is not None:
-                                fish.ecosystem.record_auto_eval_energy_gain(reward)
-                            logger.info(f"Auto-eval reward: Fish #{fish_id} gained {reward:.1f} energy")
+                    if fish and net_energy > 0:
+                        # Use modify_energy to properly cap at max and route overflow to reproduction/food
+                        actual_gain = fish.modify_energy(net_energy)
+                        if actual_gain > 0 and fish.ecosystem is not None:
+                            fish.ecosystem.record_auto_eval_energy_gain(actual_gain)
+                        logger.info(f"Auto-eval reward: Fish #{fish_id} gained {actual_gain:.1f} energy")
 
                 elif plant_id is not None:
                     plant = next((e for e in self.world.entities_list

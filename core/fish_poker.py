@@ -1044,8 +1044,8 @@ class PokerInteraction:
             house_cut = self.calculate_house_cut(winner_fish.size, net_gain)
 
             # Winner receives the pot minus house cut
-            # Use direct energy assignment to bypass max_energy cap (poker winnings can exceed capacity)
-            winner_fish.energy += total_pot - house_cut
+            # Use modify_energy to properly cap at max and route overflow to reproduction/food
+            winner_fish.modify_energy(total_pot - house_cut)
 
             # For reporting purposes, energy_transferred is the loser's loss (what they bet)
             # This is used for display and statistics tracking
