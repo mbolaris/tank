@@ -12,7 +12,7 @@ This module provides advanced population analytics including:
 import math
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -83,6 +83,36 @@ class EnergyEfficiencyMetrics:
     avg_energy_waste: float  # Energy lost to death without reproduction
 
 
+@dataclass
+class LiveFoodStats:
+    """Performance metrics for catching evasive live food."""
+
+    captures: int = 0
+    total_energy: float = 0.0
+    speed_sum: float = 0.0
+    vision_sum: float = 0.0
+
+    def add_capture(self, genome: "Genome", energy_gained: float) -> None:
+        """Aggregate a single successful live food catch."""
+
+        self.captures += 1
+        self.total_energy += energy_gained
+        self.speed_sum += genome.speed_modifier
+        self.vision_sum += genome.vision_range
+
+    @property
+    def averaged_traits(self) -> Dict[str, float]:
+        """Return the average traits from successful catches."""
+
+        if self.captures == 0:
+            return {"speed_modifier": 0.0, "vision_range": 0.0}
+
+        return {
+            "speed_modifier": self.speed_sum / self.captures,
+            "vision_range": self.vision_sum / self.captures,
+        }
+
+
 class EnhancedStatisticsTracker:
     """Advanced statistics tracking for evolutionary analysis.
 
@@ -122,6 +152,11 @@ class EnhancedStatisticsTracker:
             "aggression": deque(maxlen=100),
             "social_tendency": deque(maxlen=100),
         }
+
+        # Specialized tracking for live food performance (harder to catch than static food)
+        self.live_food_performance: Dict[int, LiveFoodStats] = defaultdict(LiveFoodStats)
+        self.live_food_algorithm_snapshots: Dict[int, Dict[str, Any]] = {}
+        self.live_food_trait_samples: Dict[str, List[Tuple[float, float]]] = defaultdict(list)
 
         # Energy efficiency tracking
         self.energy_efficiency = EnergyEfficiencyMetrics(
@@ -412,6 +447,83 @@ class EnhancedStatisticsTracker:
         """
         self.energy_efficiency.total_energy_from_food += amount
 
+    def record_live_food_capture(
+        self,
+        algorithm_id: int,
+        energy_gained: float,
+        genome: "Genome",
+        generation: Optional[int] = None,
+    ) -> None:
+        """Record that an algorithm successfully caught live food.
+
+        Live food is evasive, so catching it is a stronger signal that the
+        algorithm's foraging traits (speed, vision) are working. Recording these
+        samples lets trait correlation analysis surface which genetics help
+        chase-down behavior.
+        """
+
+        stats = self.live_food_performance[algorithm_id]
+        stats.add_capture(genome, energy_gained)
+
+        # Keep a human-readable snapshot of what the food-chasing algorithm looks like
+        behavior_algorithm = getattr(genome, "behavior_algorithm", None)
+        if behavior_algorithm is not None:
+            algo_dict = behavior_algorithm.to_dict()
+            self.live_food_algorithm_snapshots[algorithm_id] = {
+                "name": behavior_algorithm.__class__.__name__,
+                "parameters": algo_dict.get("parameters", {}),
+                "algorithm_id": algo_dict.get("algorithm_id", behavior_algorithm.algorithm_id),
+                "generation": generation,
+            }
+
+        # Feed trait correlation data so reports highlight which traits excel
+        self.live_food_trait_samples["speed"].append((genome.speed_modifier, energy_gained))
+        self.live_food_trait_samples["vision"].append((genome.vision_range, energy_gained))
+
+    def calculate_live_food_correlations(self) -> List[TraitCorrelation]:
+        """Calculate correlations between traits and live food capture success."""
+
+        correlations: List[TraitCorrelation] = []
+
+        for trait_name, samples in self.live_food_trait_samples.items():
+            if len(samples) < 10:
+                continue
+
+            n = len(samples)
+            trait_values = [value for value, _ in samples]
+            success_values = [score for _, score in samples]
+
+            mean_trait = sum(trait_values) / n
+            mean_success = sum(success_values) / n
+
+            numerator = sum(
+                (t - mean_trait) * (s - mean_success) for t, s in zip(trait_values, success_values)
+            )
+
+            trait_variance = sum((t - mean_trait) ** 2 for t in trait_values)
+            success_variance = sum((s - mean_success) ** 2 for s in success_values)
+
+            denominator = math.sqrt(trait_variance * success_variance)
+            correlation = 0.0 if denominator == 0 else numerator / denominator
+
+            if abs(correlation) > 0.01:
+                t_stat = correlation * math.sqrt((n - 2) / (1 - correlation**2))
+                p_value = max(0.001, 1.0 / (1.0 + abs(t_stat)))
+            else:
+                p_value = 1.0
+
+            correlations.append(
+                TraitCorrelation(
+                    trait_name=trait_name,
+                    correlation=correlation,
+                    sample_size=n,
+                    p_value=p_value,
+                )
+            )
+
+        correlations.sort(key=lambda c: abs(c.correlation), reverse=True)
+        return correlations
+
     def record_offspring_birth(self, energy_cost: float) -> None:
         """Record a reproduction event.
 
@@ -484,6 +596,37 @@ class EnhancedStatisticsTracker:
             "total_deaths": sum(s.death_rate for s in recent_data),
         }
 
+    def get_food_chaser_overview(self) -> Dict[str, Any]:
+        """Explain which algorithms are winning the live-food chase."""
+
+        if not self.live_food_performance:
+            return {
+                "message": "No live food captures recorded yet; run the sim longer to see food-chaser evolution.",
+                "leader": None,
+            }
+
+        leader_id, leader_stats = max(
+            self.live_food_performance.items(), key=lambda item: item[1].captures
+        )
+
+        algorithm_snapshot = self.live_food_algorithm_snapshots.get(leader_id, {})
+        favored_traits = leader_stats.averaged_traits
+
+        return {
+            "message": "Live food selection currently favors faster, farther-seeing fish using the leading behavior algorithm shown below.",
+            "leader": {
+                "algorithm_id": leader_id,
+                "algorithm_name": algorithm_snapshot.get("name", "Unknown"),
+                "captures": leader_stats.captures,
+                "avg_energy_per_capture": (leader_stats.total_energy / leader_stats.captures)
+                if leader_stats.captures
+                else 0.0,
+                "favored_traits": favored_traits,
+                "behavior_parameters": algorithm_snapshot.get("parameters", {}),
+                "example_generation": algorithm_snapshot.get("generation"),
+            },
+        }
+
     def get_full_report(self) -> Dict[str, Any]:
         """Generate a comprehensive statistics report.
 
@@ -528,4 +671,16 @@ class EnhancedStatisticsTracker:
                 "food_to_offspring_ratio": self.energy_efficiency.food_to_offspring_ratio,
                 "avg_energy_waste": self.energy_efficiency.avg_energy_waste,
             },
+            "live_food_performance": {
+                algo_id: {
+                    "captures": stats.captures,
+                    "total_energy": stats.total_energy,
+                    "avg_energy_per_capture": (stats.total_energy / stats.captures)
+                    if stats.captures
+                    else 0.0,
+                    "avg_traits": stats.averaged_traits,
+                }
+                for algo_id, stats in self.live_food_performance.items()
+            },
+            "food_chaser_overview": self.get_food_chaser_overview(),
         }

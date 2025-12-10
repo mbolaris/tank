@@ -357,18 +357,30 @@ class EcosystemManager:
         self.enhanced_stats.record_energy_from_food(energy_gained)
         self.record_energy_gain('nectar', energy_gained)
 
-    def record_live_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
+    def record_live_food_eaten(
+        self,
+        algorithm_id: int,
+        energy_gained: float = 10.0,
+        genome: Optional["Genome"] = None,
+        generation: Optional[int] = None,
+    ) -> None:
         """Record live food consumption by a fish with the given algorithm.
 
         Args:
             algorithm_id: Algorithm ID (0-47) of the fish that ate
             energy_gained: Energy gained from live food
+            genome: Optional genome so we can attribute trait correlations
         """
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
 
         # NEW: Track energy from live food for efficiency metrics
         self.enhanced_stats.record_energy_from_food(energy_gained)
+        if genome is not None:
+            self.enhanced_stats.record_live_food_capture(
+                algorithm_id, energy_gained, genome, generation
+            )
+
         self.record_energy_gain('live_food', energy_gained)
 
     def record_falling_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
