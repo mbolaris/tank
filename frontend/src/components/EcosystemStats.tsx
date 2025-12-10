@@ -18,6 +18,18 @@ export function EcosystemStats({ stats, entities }: EcosystemStatsProps) {
 
     const deathCauseEntries = Object.entries(stats.death_causes);
 
+    // Debug: log collected traits when running locally
+    if (process.env.NODE_ENV === 'development') {
+        try {
+            // eslint-disable-next-line no-console
+            console.debug('Gene traits sample', {
+                size: collectTrait('size', entities).slice(0, 10),
+                eye_size: collectTrait('eye_size', entities).slice(0, 10),
+                fin_size: collectTrait('fin_size', entities).slice(0, 10),
+            });
+        } catch {}
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.section}>
