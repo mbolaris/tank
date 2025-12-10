@@ -352,12 +352,14 @@ class LiveFood(Food):
             screen_height=screen_height,
             speed=speed,
         )
-        # BALANCE: Reduced max_speed from 2.4 to 1.8 to make it catchable by average fish
-        # Fish with base speed 2.2 can now catch it (2.2 > 1.8)
-        self.max_speed = speed * 1.2  # 1.5 * 1.2 = 1.8
+        # BALANCE: Reduced max_speed to 1.4 so average fish (speed ~1.87) can reliably catch it
+        # Fish speed_modifier averages ~0.85, giving 2.2 * 0.85 = 1.87 base speed
+        # LiveFood at 1.4 gives ~33% speed advantage to average fish
+        self.max_speed = speed * 0.93  # 1.5 * 0.93 = 1.4
         self.wander_timer = random.randint(20, 45)
-        # BALANCE: Reduced avoid_radius from 180 to 120 so fish can get closer
-        self.avoid_radius = 120
+        # BALANCE: Reduced avoid_radius from 180 to 80 so fish can get much closer
+        # before triggering flee response - makes hunting more effective
+        self.avoid_radius = 80
         self.wander_strength = 0.25
         
         # Lifespan tracking to prevent unbounded accumulation
@@ -387,15 +389,20 @@ class LiveFood(Food):
             return
 
         flee_vector = Vector2(0, 0)
-        for fish in nearby_fish:
+        # BALANCE: Only consider the closest 2 fish to prevent chaotic flee vectors
+        # when many fish chase simultaneously - makes behavior more predictable
+        sorted_fish = sorted(nearby_fish, key=lambda f: (self.pos - f.pos).length_squared())
+        for fish in sorted_fish[:2]:
             offset = self.pos - fish.pos
             distance_sq = max(offset.length_squared(), 1)
             # Avoidance using inverse square law
             flee_vector += offset / distance_sq
 
         if flee_vector.length_squared() > 0:
-            # BALANCE: Reduced avoidance force from 1.2 to 0.9 to make catching easier
-            self.vel += flee_vector.normalize() * 0.9
+            # BALANCE: Reduced avoidance force from 0.9 to 0.5 to make catching easier
+            # Combined with max_speed reduction and smaller avoid_radius, fish can now
+            # reliably catch live food with coordinated pursuit
+            self.vel += flee_vector.normalize() * 0.5
 
     def _limit_speed(self) -> None:
         speed = self.vel.length()
