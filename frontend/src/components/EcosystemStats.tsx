@@ -1,4 +1,4 @@
-import { SizeSummaryGraph } from './ui';
+import { SizeSummaryGraph, CollapsibleSection } from './ui';
 /**
  * Ecosystem statistics component
  * Displays comprehensive energy flow and fish health statistics below the tank simulation
@@ -286,21 +286,46 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                     <RowItem label="Total Deaths" value={stats.deaths} valueColor="var(--color-danger)" />
                     <div style={{ height: 6 }} />
                     <div style={{ padding: '6px 0' }}>
-                            <div className="size-summary-wrap">
-                                <SizeSummaryGraph
-                                    bins={safeStats.adult_size_bins || []}
-                                    binEdges={safeStats.adult_size_bin_edges || []}
-                                    min={safeStats.adult_size_min}
-                                    median={safeStats.adult_size_median}
-                                    max={safeStats.adult_size_max}
-                                    allowedMin={safeStats.allowed_adult_size_min}
-                                    allowedMax={safeStats.allowed_adult_size_max}
-                                    width={360}
-                                    height={96}
-                                    xLabel="Adult Size (multiplier)"
+                        {/* Gene Distribution Section: Adult Size + Eye Size */}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                            <div style={{ width: '100%' }}>
+                                <CollapsibleSection title="Gene Distribution" defaultExpanded={true}>
+                                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                                        <div className="size-summary-wrap" style={{ flex: '1 1 340px' }}>
+                                            <SizeSummaryGraph
+                                            bins={safeStats.adult_size_bins || []}
+                                            binEdges={safeStats.adult_size_bin_edges || []}
+                                            min={safeStats.adult_size_min}
+                                            median={safeStats.adult_size_median}
+                                            max={safeStats.adult_size_max}
+                                            allowedMin={safeStats.allowed_adult_size_min}
+                                            allowedMax={safeStats.allowed_adult_size_max}
+                                            width={340}
+                                            height={96}
+                                            xLabel="Adult Size"
                                     yLabel="Count"
                                 />
+                                        </div>
+
+                                        <div className="size-summary-wrap" style={{ flex: '1 1 340px' }}>
+                                            <SizeSummaryGraph
+                                                bins={safeStats.eye_size_bins || []}
+                                                binEdges={safeStats.eye_size_bin_edges || []}
+                                                min={safeStats.eye_size_min}
+                                                median={safeStats.eye_size_median}
+                                                max={safeStats.eye_size_max}
+                                                allowedMin={safeStats.allowed_eye_size_min ?? safeStats.eye_size_min ?? 0.5}
+                                                allowedMax={safeStats.allowed_eye_size_max ?? safeStats.eye_size_max ?? 2.0}
+                                                width={340}
+                                                height={96}
+                                                xLabel="Eye Size"
+                                                yLabel="Count"
+                                            />
+                                        </div>
+                                    </div>
+                                </CollapsibleSection>
                             </div>
+                        </div>
                     </div>
                 </div>
             </div>

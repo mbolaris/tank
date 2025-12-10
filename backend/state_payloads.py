@@ -246,6 +246,14 @@ class StatsPayload:
     # Histogram bins and edges for adult size distribution
     adult_size_bins: List[int] = field(default_factory=list)
     adult_size_bin_edges: List[float] = field(default_factory=list)
+    # Eye size statistics
+    eye_size_min: float = 0.0
+    eye_size_max: float = 0.0
+    eye_size_median: float = 0.0
+    eye_size_bins: List[int] = field(default_factory=list)
+    eye_size_bin_edges: List[float] = field(default_factory=list)
+    allowed_eye_size_min: float = 0.0
+    allowed_eye_size_max: float = 0.0
     poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
         total_games=0,
         total_fish_games=0,
@@ -315,6 +323,14 @@ class StatsPayload:
             "allowed_adult_size_max": self.allowed_adult_size_max,
             "adult_size_bins": self.adult_size_bins,
             "adult_size_bin_edges": self.adult_size_bin_edges,
+            # Eye size fields
+            "eye_size_min": self.eye_size_min,
+            "eye_size_max": self.eye_size_max,
+            "eye_size_median": self.eye_size_median,
+            "eye_size_bins": self.eye_size_bins,
+            "eye_size_bin_edges": self.eye_size_bin_edges,
+            "allowed_eye_size_min": self.allowed_eye_size_min,
+            "allowed_eye_size_max": self.allowed_eye_size_max,
             "total_sexual_births": self.total_sexual_births,
             "total_asexual_births": self.total_asexual_births,
             "fps": self.fps,

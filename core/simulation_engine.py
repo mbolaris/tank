@@ -947,6 +947,59 @@ class SimulationEngine(BaseSimulator):
         stats["allowed_adult_size_min"] = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN
         stats["allowed_adult_size_max"] = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX
 
+        # Eye size stats (vision/eye size is derived from genome.eye_size)
+        try:
+            eye_sizes = [getattr(f.genome, 'eye_size', 1.0) for f in fish_list] if fish_list else []
+            if eye_sizes:
+                stats["eye_size_min"] = min(eye_sizes)
+                stats["eye_size_max"] = max(eye_sizes)
+                try:
+                    stats["eye_size_median"] = median(eye_sizes)
+                except Exception:
+                    stats["eye_size_median"] = 0.0
+                # Histogram for eye size using same bin count and range as adult size modifiers if possible
+                bins = 12
+                if eye_sizes:
+                    es_min = min(eye_sizes)
+                    es_max = max(eye_sizes)
+                    span = max(1e-6, es_max - es_min)
+                    edges = [es_min + (span * i) / bins for i in range(bins + 1)]
+                    counts = [0] * bins
+                    for s in eye_sizes:
+                        idx = int((s - es_min) / span * bins)
+                        if idx < 0:
+                            idx = 0
+                        elif idx >= bins:
+                            idx = bins - 1
+                        counts[idx] += 1
+                    stats["eye_size_bins"] = counts
+                    stats["eye_size_bin_edges"] = edges
+                else:
+                    stats["eye_size_bins"] = []
+                    stats["eye_size_bin_edges"] = []
+            else:
+                stats["eye_size_min"] = 0.0
+                stats["eye_size_max"] = 0.0
+                stats["eye_size_median"] = 0.0
+                stats["eye_size_bins"] = []
+                stats["eye_size_bin_edges"] = []
+        except Exception:
+            stats["eye_size_min"] = 0.0
+            stats["eye_size_max"] = 0.0
+            stats["eye_size_median"] = 0.0
+            stats["eye_size_bins"] = []
+            stats["eye_size_bin_edges"] = []
+
+        # Expose allowed eye size constants so frontend can show allowed range
+        try:
+            from core.config.fish import EYE_SIZE_MIN, EYE_SIZE_MAX
+            stats["allowed_eye_size_min"] = EYE_SIZE_MIN
+            stats["allowed_eye_size_max"] = EYE_SIZE_MAX
+        except Exception:
+            # Fallback to observed extremes
+            stats["allowed_eye_size_min"] = stats.get("eye_size_min", 0.5)
+            stats["allowed_eye_size_max"] = stats.get("eye_size_max", 2.0)
+
         return stats
 
     def export_stats_json(self, filename: str) -> None:
