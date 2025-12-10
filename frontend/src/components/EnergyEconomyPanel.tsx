@@ -135,6 +135,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                     <FlowBar label="Trait Upkeep" value={data.traitMaintenance} color="#f472b6" icon="🧬" total={totalOut} isOut />
                     <FlowBar label="Movement" value={data.movementCost} color="#fb7185" icon="💨" total={totalOut} isOut />
                     <FlowBar label="Turning" value={data.turningCost} color="#f97316" icon="🔄" total={totalOut} isOut />
+                    <FlowBar label="Fish Deaths" value={data.fishDeaths} color="#ef4444" icon="💀" total={totalOut} isOut />
                     <FlowBar label="Poker House Cut" value={data.pokerHouseCut} color="#94a3b8" icon="🏛️" total={totalOut} isOut />
                     <FlowBar label="Plant Net (Lost)" value={plantLoss} color="#be185d" icon="🥀" total={totalOut} isOut />
                     <FlowBar label="Migration" value={data.migrationOut} color="#8b5cf6" icon="✈️" total={totalOut} isOut />
