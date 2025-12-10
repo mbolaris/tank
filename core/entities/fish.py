@@ -375,39 +375,129 @@ class Fish(Agent):
         self._lifecycle_component.update_life_stage()
 
     def gain_energy(self, amount: float) -> float:
-        """Gain energy from consuming food, capped at current max_energy.
-        
+        """Gain energy from consuming food, routing overflow productively.
+
         Uses the fish's dynamic max_energy (based on current size) rather than
-        the static value in EnergyComponent.
-        
+        the static value in EnergyComponent. Any overflow is used for asexual
+        reproduction if eligible, otherwise dropped as food.
+
         Args:
             amount: Amount of energy to gain.
-            
+
         Returns:
-            float: Actual energy gained (capped by max_energy)
+            float: Actual energy gained by the fish (capped by max_energy)
         """
         old_energy = self._energy_component.energy
-        self._energy_component.energy = min(self.max_energy, self._energy_component.energy + amount)
+        new_energy = old_energy + amount
+
+        if new_energy > self.max_energy:
+            # We have overflow - route it productively
+            overflow = new_energy - self.max_energy
+            self._energy_component.energy = self.max_energy
+            self._handle_overflow_energy(overflow)
+        else:
+            self._energy_component.energy = new_energy
+
         return self._energy_component.energy - old_energy
 
-    def modify_energy(self, amount: float) -> None:
-        """Adjust energy by a specified amount.
+    def modify_energy(self, amount: float) -> float:
+        """Adjust energy by a specified amount, routing overflow productively.
 
-        Positive amounts are capped at max_energy, negative amounts won't go
-        below zero. This provides a simple interface for external systems (like
-        poker) to modify energy without embedding their logic in the fish.
+        Positive amounts are capped at max_energy. Any overflow is first used
+        to attempt asexual reproduction, then dropped as food if reproduction
+        isn't possible. Negative amounts won't go below zero.
+
+        This provides a simple interface for external systems (like poker) to
+        modify energy without embedding their logic in the fish.
+
+        Returns:
+            float: The actual energy change applied to the fish
         """
-        new_energy = self._energy_component.energy + amount
+        old_energy = self._energy_component.energy
+        new_energy = old_energy + amount
+
         if amount > 0:
-            # Cap at dynamic max_energy
-            self._energy_component.energy = min(self.max_energy, new_energy)
+            if new_energy > self.max_energy:
+                # We have overflow - try to use it productively
+                overflow = new_energy - self.max_energy
+                self._energy_component.energy = self.max_energy
+                self._handle_overflow_energy(overflow)
+            else:
+                self._energy_component.energy = new_energy
         else:
-            # Don't go below zero
+            # Negative amount - don't go below zero
             final_energy = max(0.0, new_energy)
             self._energy_component.energy = final_energy
             # OPTIMIZATION: Update dead cache if energy drops to zero
             if final_energy <= 0:
                 self._is_dead_cached = True
+
+        return self._energy_component.energy - old_energy
+
+    def _handle_overflow_energy(self, overflow: float) -> None:
+        """Route overflow energy into reproduction or food drops.
+
+        When a fish gains more energy than it can hold, this method attempts
+        to use that overflow productively:
+        1. First, try to trigger asexual reproduction if eligible
+        2. If reproduction isn't possible, drop the overflow as food
+
+        Args:
+            overflow: Amount of energy exceeding max capacity
+        """
+        if overflow <= 0:
+            return
+
+        # Try asexual reproduction first (requires being adult, not pregnant, etc.)
+        if self._reproduction_component.can_asexually_reproduce(
+            self.life_stage, self.energy, self.max_energy
+        ):
+            self._reproduction_component.start_asexual_pregnancy()
+            # Track reproduction initiation for stats
+            if self.ecosystem is not None:
+                self.ecosystem.reproduction_manager.record_reproduction_attempt(success=True)
+            return
+
+        # Can't reproduce - drop overflow as food to maintain energy conservation
+        self._drop_overflow_as_food(overflow)
+
+    def _drop_overflow_as_food(self, overflow: float) -> None:
+        """Convert overflow energy into a food drop near the fish.
+
+        Args:
+            overflow: Amount of energy to convert to food
+        """
+        # Only drop food if we have meaningful overflow
+        if overflow < 1.0:
+            return
+
+        try:
+            from core.entities.resources import Food
+
+            # Create food near the fish
+            food = Food(
+                environment=self.environment,
+                x=self.pos.x + random.uniform(-20, 20),
+                y=self.pos.y + random.uniform(-20, 20),
+                food_type="energy",  # Use energy type for overflow
+                screen_width=self.screen_width,
+                screen_height=self.screen_height,
+            )
+            # Set food energy to match overflow
+            food.energy = min(overflow, food.max_energy)
+            food.max_energy = food.energy
+
+            # Add to environment if possible
+            if hasattr(self.environment, "add_entity"):
+                self.environment.add_entity(food)
+
+            # Track as ecosystem outflow (fish overflow → food)
+            if self.ecosystem is not None:
+                self.ecosystem.record_energy_burn("overflow_food", food.energy)
+        except Exception:
+            # If food creation fails, the energy is simply lost
+            # This is acceptable - it's overflow energy anyway
+            pass
 
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.

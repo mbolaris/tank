@@ -5,6 +5,11 @@ functionality for fish, including aging, life stage transitions, and size change
 Separating lifecycle logic into its own component improves code organization and testability.
 """
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.entities.base import LifeStage
+
 from core.constants import (
     FISH_ADULT_SIZE,
     FISH_BABY_SIZE,
@@ -78,6 +83,16 @@ class LifecycleComponent:
 
         # Apply genetic size modifier to get final size
         self.size = base_size * self.genetic_size_modifier
+
+    @property
+    def current_stage(self) -> "LifeStage":
+        """Alias for life_stage for backward compatibility."""
+        return self.life_stage
+
+    @current_stage.setter
+    def current_stage(self, value: "LifeStage") -> None:
+        """Set life_stage via current_stage alias."""
+        self.life_stage = value
 
     def is_baby(self) -> bool:
         """Check if fish is in baby stage.
