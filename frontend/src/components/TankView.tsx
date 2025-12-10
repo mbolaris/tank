@@ -212,10 +212,7 @@ export function TankView({ tankId }: TankViewProps) {
                 />
             </div>
 
-            {/* Ecosystem & Population stats (includes Gene Distribution) */}
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                <EcosystemStats stats={state?.stats ?? null} entities={state?.entities ?? null} />
-            </div>
+            {/* NOTE: EcosystemStats moved into the top meta area below for layout parity with mockup */}
 
             {/* Tank simulation */}
             <div className="top-section">
@@ -291,6 +288,10 @@ export function TankView({ tankId }: TankViewProps) {
                             <span className="meta-label">Time</span>
                             <span>{state?.stats?.time ?? '—'}</span>
                         </span>
+                        <div style={{ width: 36 }} />
+                        <div style={{ minWidth: 420, display: 'flex', justifyContent: 'flex-end' }}>
+                            <EcosystemStats stats={state?.stats ?? null} entities={state?.entities ?? null} />
+                        </div>
                     </div>
                     <Canvas
                         state={state}

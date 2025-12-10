@@ -50,9 +50,15 @@ export function useWebSocket(tankId?: string) {
                     const data = JSON.parse(jsonString);
 
                     if (data.type === 'update') {
-                        setState(data as SimulationUpdate);
+                        const upd = data as SimulationUpdate;
+                        setState(upd);
+                        try { (window as any).__lastEntities = upd.entities; } catch {}
                     } else if (data.type === 'delta') {
-                        setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
+                        setState((current) => {
+                            const res = current ? applyDelta(current, data as DeltaUpdate) : current;
+                            try { (window as any).__lastEntities = res?.entities ?? (window as any).__lastEntities; } catch {}
+                            return res;
+                        });
                     } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
                         // This is a command response (e.g., poker game state)
                         // Call any pending callbacks
