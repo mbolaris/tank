@@ -71,7 +71,7 @@ export function EcosystemStats({ stats, entities }: EcosystemStatsProps) {
                 </div>
             )}
 
-            <div className={`${styles.section} ${styles.geneSection}`}>
+            <div className={styles.section}>
                 <div className={styles.sectionTitle}>Gene Distribution</div>
                 <div className={styles.geneGrid}>
                     <GeneHistogram label="Adult Size" values={collectTrait('size', entities)} min={0.5} max={2} />
