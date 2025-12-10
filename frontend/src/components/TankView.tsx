@@ -13,6 +13,7 @@ import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { TransferDialog } from './TransferDialog';
 import type { PokerGameState, PokerEventData } from '../types/simulation';
+import { EcosystemStats } from './EcosystemStats';
 
 interface TankViewProps {
     tankId?: string;
@@ -209,6 +210,11 @@ export function TankView({ tankId }: TankViewProps) {
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
+            </div>
+
+            {/* Ecosystem & Population stats (includes Gene Distribution) */}
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                <EcosystemStats stats={state?.stats ?? null} entities={state?.entities ?? null} />
             </div>
 
             {/* Tank simulation */}

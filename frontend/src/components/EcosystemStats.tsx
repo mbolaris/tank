@@ -3,14 +3,15 @@
  * Displays non-poker stats below the tank simulation
  */
 
-import type { StatsData } from '../types/simulation';
+import type { StatsData, EntityData } from '../types/simulation';
 import styles from './EcosystemStats.module.css';
 
 interface EcosystemStatsProps {
     stats: StatsData | null;
+    entities?: EntityData[] | null;
 }
 
-export function EcosystemStats({ stats }: EcosystemStatsProps) {
+export function EcosystemStats({ stats, entities }: EcosystemStatsProps) {
     if (!stats) {
         return null;
     }
@@ -71,12 +72,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
             <div className={styles.section}>
                 <div className={styles.sectionTitle}>Gene Distribution</div>
                 <div className={styles.geneGrid}>
-                    <GeneHistogram label="Adult Size" values={collectTrait('size')} min={0.5} max={2} />
-                    <GeneHistogram label="Eye Size" values={collectTrait('eye_size')} min={0.5} max={2} />
-                    <GeneHistogram label="Tail Size" values={collectTrait('tail_size')} min={0} max={2} />
-                    <GeneHistogram label="Fin Size" values={collectTrait('fin_size')} min={0} max={2} />
-                    <GeneHistogram label="Body Aspect" values={collectTrait('body_aspect')} min={0.5} max={2} />
-                    <GeneHistogram label="Template ID" values={collectTrait('template_id')} min={0} max={10} discrete />
+                    <GeneHistogram label="Adult Size" values={collectTrait('size', entities)} min={0.5} max={2} />
+                    <GeneHistogram label="Eye Size" values={collectTrait('eye_size', entities)} min={0.5} max={2} />
+                    <GeneHistogram label="Tail Size" values={collectTrait('tail_size', entities)} min={0} max={2} />
+                    <GeneHistogram label="Fin Size" values={collectTrait('fin_size', entities)} min={0} max={2} />
+                    <GeneHistogram label="Body Aspect" values={collectTrait('body_aspect', entities)} min={0.5} max={2} />
+                    <GeneHistogram label="Template ID" values={collectTrait('template_id', entities)} min={0} max={10} discrete />
                 </div>
             </div>
         </div>
@@ -84,21 +85,16 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 }
 
 // Helper: collect trait values from stats entities
-function collectTrait(trait: string) {
+function collectTrait(trait: string, entities?: EntityData[] | null) {
     const vals: number[] = [];
-    // The frontend receives Entities in SimulationUpdate; StatsData alone may not include genome details.
-    // We conservatively attempt to read a global `window.__lastEntities` if set by the app, else return empty.
-    // Consumers: Tank view may set window.__lastEntities when rendering updates.
-    // This keeps the histogram resilient when entity list is not available here.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anyWin: any = (window as any).__lastEntities;
-    if (Array.isArray(anyWin)) {
-        for (const e of anyWin) {
-            const g = e.genome_data || e.genome || e;
-            if (!g) continue;
-            const v = g[trait];
-            if (typeof v === 'number') vals.push(v);
-        }
+    // Prefer passed entities when available
+    const list = Array.isArray(entities) ? entities : (window as any).__lastEntities;
+    if (!Array.isArray(list)) return vals;
+    for (const e of list) {
+        const g: any = e.genome_data || e.genome || e;
+        if (!g) continue;
+        const v = g[trait];
+        if (typeof v === 'number') vals.push(v);
     }
     return vals;
 }
