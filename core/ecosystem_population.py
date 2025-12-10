@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from core.constants import ENERGY_STATS_WINDOW_FRAMES
 from core.ecosystem_stats import EcosystemEvent, GenerationStats, GeneticDiversityStats
+from statistics import median
+from core.constants import FISH_ADULT_SIZE
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -260,14 +262,32 @@ def get_summary_stats(
     energy_delta = ecosystem.get_energy_delta(window_frames=ENERGY_STATS_WINDOW_FRAMES)
 
     total_energy = 0.0
+    fish_list = []
     if entities is not None:
         from core.entities import Fish
 
-        total_energy = sum(e.energy for e in entities if isinstance(e, Fish))
+        fish_list = [e for e in entities if isinstance(e, Fish)]
+        total_energy = sum(e.energy for e in fish_list)
 
     alive_generations = [
         g for g, stats in ecosystem.generation_stats.items() if stats.population > 0
     ]
+
+    # Calculate adult size stats if we have fish
+    adult_size_min = 0.0
+    adult_size_max = 0.0
+    adult_size_median = 0.0
+    adult_size_range = "0.0-0.0"
+    if fish_list:
+        # Adult size = FISH_ADULT_SIZE * genome.size_modifier
+        adult_sizes = [FISH_ADULT_SIZE * (f.genome.size_modifier if hasattr(f, 'genome') else 1.0) for f in fish_list]
+        adult_size_min = min(adult_sizes)
+        adult_size_max = max(adult_sizes)
+        try:
+            adult_size_median = median(adult_sizes)
+        except Exception:
+            adult_size_median = 0.0
+        adult_size_range = f"{adult_size_min:.2f}-{adult_size_max:.2f}"
 
     return {
         "total_population": total_pop,
@@ -300,6 +320,14 @@ def get_summary_stats(
         "energy_burn_total": sum(recent_energy_burn.values()),
         "energy_sources_recent": recent_energy,
         "energy_delta": energy_delta,
+        # Adult size statistics: current population adult size distribution and allowed bounds
+        "adult_size_min": adult_size_min,
+        "adult_size_max": adult_size_max,
+        "adult_size_median": adult_size_median,
+        "adult_size_range": adult_size_range,
+        from core.constants import FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
+        "allowed_adult_size_min": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN,
+        "allowed_adult_size_max": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX,
         "reproduction_stats": ecosystem.get_reproduction_summary(),
         "diversity_stats": ecosystem.get_diversity_summary(),
     }

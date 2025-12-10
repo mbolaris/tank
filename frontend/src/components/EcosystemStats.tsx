@@ -1,9 +1,11 @@
+import { SizeSummaryGraph } from './ui';
 /**
  * Ecosystem statistics component
  * Displays comprehensive energy flow and fish health statistics below the tank simulation
  */
 
 import EnergyEconomyPanel from './EnergyEconomyPanel';
+// import SizeHistogram from './ui/SizeHistogram'; // Removed unused import
 import type { StatsData } from '../types/simulation';
 
 interface EcosystemStatsProps {
@@ -282,6 +284,24 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         subValue={`S: ${stats.total_sexual_births ?? 0} / A: ${stats.total_asexual_births ?? 0} / Soup: ${Math.max(0, stats.births - (stats.total_sexual_births ?? 0) - (stats.total_asexual_births ?? 0))}`}
                     />
                     <RowItem label="Total Deaths" value={stats.deaths} valueColor="var(--color-danger)" />
+                    <div style={{ height: 6 }} />
+                    <div style={{ padding: '6px 0' }}>
+                            <div className="size-summary-wrap">
+                                <SizeSummaryGraph
+                                    bins={safeStats.adult_size_bins || []}
+                                    binEdges={safeStats.adult_size_bin_edges || []}
+                                    min={safeStats.adult_size_min}
+                                    median={safeStats.adult_size_median}
+                                    max={safeStats.adult_size_max}
+                                    allowedMin={safeStats.allowed_adult_size_min}
+                                    allowedMax={safeStats.allowed_adult_size_max}
+                                    width={360}
+                                    height={96}
+                                    xLabel="Adult Size (multiplier)"
+                                    yLabel="Count"
+                                />
+                            </div>
+                    </div>
                 </div>
             </div>
 

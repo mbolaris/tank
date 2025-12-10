@@ -8,13 +8,13 @@ import random as pyrandom
 from dataclasses import dataclass
 from typing import List
 
-from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
+from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT, FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
 from core.genetics.trait import GeneticTrait, TraitSpec, inherit_traits_from_specs
 
 
 # Declarative specifications for all physical traits
 PHYSICAL_TRAIT_SPECS: List[TraitSpec] = [
-    TraitSpec("size_modifier", 0.7, 1.3),
+    TraitSpec("size_modifier", FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX),
     TraitSpec("color_hue", 0.0, 1.0),
     TraitSpec("template_id", 0, FISH_TEMPLATE_COUNT - 1, discrete=True),
     TraitSpec("fin_size", 0.6, 1.4),

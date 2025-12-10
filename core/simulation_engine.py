@@ -40,7 +40,9 @@ from core.constants import (
     SEPARATOR_WIDTH,
     SPAWN_MARGIN_PIXELS,
     TOTAL_ALGORITHM_COUNT,
+    FISH_ADULT_SIZE,
 )
+from statistics import median
 from core.ecosystem import EcosystemManager
 from core.entities.fractal_plant import FractalPlant, PlantNectar
 from core.entity_factory import create_initial_population
@@ -901,6 +903,49 @@ class SimulationEngine(BaseSimulator):
             stats["fish_health_low"] = 0
             stats["fish_health_healthy"] = 0
             stats["fish_health_full"] = 0
+
+        # Adult size stats (mirror values computed in ecosystem_population to ensure frontend receives them)
+        if fish_list:
+            adult_sizes = [FISH_ADULT_SIZE * (f.genome.size_modifier if hasattr(f, 'genome') else 1.0) for f in fish_list]
+            stats["adult_size_min"] = min(adult_sizes)
+            stats["adult_size_max"] = max(adult_sizes)
+            try:
+                stats["adult_size_median"] = median(adult_sizes)
+            except Exception:
+                stats["adult_size_median"] = 0.0
+            stats["adult_size_range"] = f"{stats['adult_size_min']:.2f}-{stats['adult_size_max']:.2f}"
+            # Histogram bins for size distribution (use genetic allowed bounds as edges)
+            try:
+                bins = 16
+                from core.constants import FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
+                allowed_min = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN
+                allowed_max = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX
+                # create bin edges from allowed_min..allowed_max
+                span = max(1e-6, (allowed_max - allowed_min))
+                edges = [allowed_min + (span * i) / bins for i in range(bins + 1)]
+                counts = [0] * bins
+                for s in adult_sizes:
+                    # index in 0..bins-1
+                    idx = int((s - allowed_min) / span * bins)
+                    if idx < 0:
+                        idx = 0
+                    elif idx >= bins:
+                        idx = bins - 1
+                    counts[idx] += 1
+                stats["adult_size_bins"] = counts
+                stats["adult_size_bin_edges"] = edges
+            except Exception:
+                stats["adult_size_bins"] = []
+                stats["adult_size_bin_edges"] = []
+        else:
+            stats["adult_size_min"] = 0.0
+            stats["adult_size_max"] = 0.0
+            stats["adult_size_median"] = 0.0
+            stats["adult_size_range"] = "0.00-0.00"
+
+        from core.constants import FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
+        stats["allowed_adult_size_min"] = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN
+        stats["allowed_adult_size_max"] = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX
 
         return stats
 

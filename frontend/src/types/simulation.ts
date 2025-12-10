@@ -229,6 +229,16 @@ export interface StatsData {
     min_max_energy_capacity: number;
     max_max_energy_capacity: number;
     median_max_energy_capacity: number;
+    // Adult size statistics (multipliers)
+    adult_size_min?: number;
+    adult_size_max?: number;
+    adult_size_median?: number;
+    adult_size_range?: string;
+    allowed_adult_size_min?: number;
+    allowed_adult_size_max?: number;
+    // Histogram bins for adult size distribution (counts and edges)
+    adult_size_bins?: number[];
+    adult_size_bin_edges?: number[];
     // Fish health status counts (by energy ratio)
     fish_health_critical: number;  // <15% energy
     fish_health_low: number;       // 15-30% energy
