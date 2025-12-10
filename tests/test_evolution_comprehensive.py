@@ -123,8 +123,8 @@ class TestEdgeCasesAndBoundaries:
         base_mutation_rate = 0.08  # Base mutation rate
 
         # Effective rate = config.algorithm_switch_rate * (1 + mutation_rate)
-        # With config.algorithm_switch_rate = 0.08 and mutation_rate = 0.08:
-        effective_switch_rate = 0.08 * (1 + base_mutation_rate)  # ~0.0864
+        # With config.algorithm_switch_rate = 0.04 and mutation_rate = 0.08:
+        effective_switch_rate = 0.04 * (1 + base_mutation_rate)  # ~0.0432
 
         for _ in range(trials):
             if should_switch_algorithm(base_mutation_rate):
