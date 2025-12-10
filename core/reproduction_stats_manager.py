@@ -47,6 +47,18 @@ class ReproductionStatsManager:
         if not success:
             self.reproduction_stats.total_failed_attempts += 1
 
+    def record_reproduction_attempt(self, success: bool) -> None:
+        """Record a reproduction attempt (e.g., asexual reproduction from overflow).
+
+        This is separate from mating attempts - it tracks when fish attempt
+        reproduction via overflow energy routing.
+        """
+        # For now, just count it as a mating attempt since we want to track
+        # overall reproduction attempts
+        self.reproduction_stats.total_mating_attempts += 1
+        if not success:
+            self.reproduction_stats.total_failed_attempts += 1
+
     def update_pregnant_count(self, count: int) -> None:
         """Update the count of currently pregnant fish."""
         self.reproduction_stats.current_pregnant_fish = count

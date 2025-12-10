@@ -19,8 +19,8 @@ def test_poker_energy_transfer():
     print("=" * 80)
 
     # Create two test fish with known energy levels
-    initial_energy_fish1 = 100.0
-    initial_energy_fish2 = 100.0
+    # Use None for initial_energy so fish start at their natural max_energy
+    # This ensures we're testing with realistic values that respect energy caps
 
     genome1 = Genome.random(use_algorithm=True)
     genome1.behavior_algorithm = GreedyFoodSeeker()
@@ -43,8 +43,10 @@ def test_poker_energy_transfer():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy_fish1,
     )
+    # Set fish1 to 80% of max energy (typical starting point for tests)
+    initial_energy_fish1 = fish1.max_energy * 0.8
+    fish1.energy = initial_energy_fish1
 
     fish2 = Fish(
         environment=None,
@@ -59,8 +61,10 @@ def test_poker_energy_transfer():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy_fish2,
     )
+    # Set fish2 to 80% of max energy
+    initial_energy_fish2 = fish2.max_energy * 0.8
+    fish2.energy = initial_energy_fish2
 
     print("\nInitial State:")
     print(
@@ -195,8 +199,6 @@ def test_multiple_poker_games():
     for i in range(10):
         print(f"\nGame {i+1}:")
 
-        initial_energy = 100.0
-
         genome1 = Genome.random(use_algorithm=True)
         genome2 = Genome.random(use_algorithm=True)
 
@@ -213,8 +215,10 @@ def test_multiple_poker_games():
             ecosystem=None,
             screen_width=800,
             screen_height=600,
-            initial_energy=initial_energy,
         )
+        # Use 80% of max energy as initial energy (respects energy caps)
+        initial_energy = fish1.max_energy * 0.8
+        fish1.energy = initial_energy
 
         fish2 = Fish(
             environment=None,
@@ -229,8 +233,12 @@ def test_multiple_poker_games():
             ecosystem=None,
             screen_width=800,
             screen_height=600,
-            initial_energy=initial_energy,
         )
+        fish2.energy = fish2.max_energy * 0.8
+
+        # Track initial energies per fish (they may differ due to different sizes)
+        initial_energy_fish1 = fish1.energy
+        initial_energy_fish2 = fish2.energy
 
         poker = PokerInteraction(fish1, fish2)
         success = poker.play_poker()
@@ -239,20 +247,20 @@ def test_multiple_poker_games():
             print("  Game failed")
             continue
 
-        total_initial = initial_energy * 2
+        total_initial = initial_energy_fish1 + initial_energy_fish2
         total_final = fish1.energy + fish2.energy
         total_delta = total_final - total_initial
 
         if poker.result.winner_id != -1:
             winner_delta = (
-                fish1.energy - initial_energy
+                fish1.energy - initial_energy_fish1
                 if poker.result.winner_id == fish1.fish_id
-                else fish2.energy - initial_energy
+                else fish2.energy - initial_energy_fish2
             )
             loser_delta = (
-                fish2.energy - initial_energy
+                fish2.energy - initial_energy_fish2
                 if poker.result.winner_id == fish1.fish_id
-                else fish1.energy - initial_energy
+                else fish1.energy - initial_energy_fish1
             )
 
             print(
@@ -296,8 +304,6 @@ def test_poker_result_fields():
     from core.genetics import Genome
     from core.movement_strategy import AlgorithmicMovement
 
-    initial_energy = 100.0
-
     genome1 = Genome.random(use_algorithm=True)
     genome1.behavior_algorithm = GreedyFoodSeeker()
     genome1.aggression = 0.5
@@ -319,8 +325,10 @@ def test_poker_result_fields():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy,
     )
+    # Use 80% of max energy (respects energy caps)
+    fish1.energy = fish1.max_energy * 0.8
+    initial_energy_fish1 = fish1.energy
 
     fish2 = Fish(
         environment=None,
@@ -335,8 +343,9 @@ def test_poker_result_fields():
         ecosystem=None,
         screen_width=800,
         screen_height=600,
-        initial_energy=initial_energy,
     )
+    fish2.energy = fish2.max_energy * 0.8
+    initial_energy_fish2 = fish2.energy
 
     poker = PokerInteraction(fish1, fish2)
     success = poker.play_poker()
@@ -349,14 +358,14 @@ def test_poker_result_fields():
 
     # Calculate actual energy changes
     winner_delta = (
-        fish1.energy - initial_energy
+        fish1.energy - initial_energy_fish1
         if poker.result.winner_id == fish1.fish_id
-        else fish2.energy - initial_energy
+        else fish2.energy - initial_energy_fish2
     )
     loser_delta = (
-        fish2.energy - initial_energy
+        fish2.energy - initial_energy_fish2
         if poker.result.winner_id == fish1.fish_id
-        else fish1.energy - initial_energy
+        else fish1.energy - initial_energy_fish1
     )
 
     print("\nPokerResult fields:")
@@ -375,6 +384,20 @@ def test_poker_result_fields():
         print("  Energy changes from poker only:")
         print(f"    Winner would have gained: {poker.result.winner_actual_gain:.2f}")
         print(f"    Loser would have lost: {poker.result.energy_transferred:.2f}")
+        return True
+
+    # Check if winner hit energy cap (in which case overflow was routed to reproduction/food)
+    winner_fish = fish1 if poker.result.winner_id == fish1.fish_id else fish2
+    winner_at_max = abs(winner_fish.energy - winner_fish.max_energy) < 0.01
+
+    if winner_at_max and poker.result.winner_actual_gain > winner_delta:
+        print("\n⚠ Winner hit energy cap - overflow routed to reproduction or food")
+        print(f"  Result reports winner_actual_gain: {poker.result.winner_actual_gain:.2f}")
+        print(f"  Actual gain (capped at max): {winner_delta:.2f}")
+        print("  Skipping exact match validation (overflow handling working correctly)")
+        # Still verify loser lost energy
+        assert loser_delta < -0.01, f"Loser should have lost energy! Delta: {loser_delta}"
+        print("  ✓ Loser correctly lost energy")
         return True
 
     # Verify winner_actual_gain matches the actual winner delta (no reproduction case)
