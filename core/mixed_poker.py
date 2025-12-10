@@ -328,7 +328,8 @@ class MixedPokerInteraction:
         from core.entities.fractal_plant import FractalPlant
 
         if isinstance(player, Fish):
-            player.energy = max(0, player.energy + amount)
+            # Use modify_energy to properly cap at max and route overflow to reproduction/food
+            player.modify_energy(amount)
         elif isinstance(player, FractalPlant):
             if amount > 0:
                 player.gain_energy(amount)

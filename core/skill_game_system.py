@@ -317,19 +317,19 @@ class SkillGameSystem:
             if energy_change > 0:
                 # Fish1 wins, takes energy from fish2
                 actual_transfer = min(energy_change, fish2.energy * 0.5)  # Cap at 50% of loser's energy
-                fish1.energy += actual_transfer
-                fish2.energy -= actual_transfer
+                fish1.modify_energy(actual_transfer)  # Route overflow to reproduction/food
+                fish2.modify_energy(-actual_transfer)
                 return actual_transfer
             elif energy_change < 0:
                 # Fish1 loses, gives energy to fish2
                 actual_transfer = min(-energy_change, fish1.energy * 0.5)
-                fish1.energy -= actual_transfer
-                fish2.energy += actual_transfer
+                fish1.modify_energy(-actual_transfer)
+                fish2.modify_energy(actual_transfer)  # Route overflow to reproduction/food
                 return -actual_transfer
         else:
             # Single-player: energy from environment
             # Winners gain, losers lose (energy conservation not required)
-            fish1.energy += energy_change
+            fish1.modify_energy(energy_change)  # Route overflow to reproduction/food
 
         return energy_change
 
