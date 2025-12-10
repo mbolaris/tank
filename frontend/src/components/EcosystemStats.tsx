@@ -18,6 +18,8 @@ export function EcosystemStats({ stats, entities }: EcosystemStatsProps) {
 
     const deathCauseEntries = Object.entries(stats.death_causes);
 
+    const safeNumber = (n: number | undefined | null) => (n === undefined || n === null || Number.isNaN(n) ? '—' : n);
+
     return (
         <div className={styles.container}>
             <div className={styles.section}>
@@ -25,12 +27,12 @@ export function EcosystemStats({ stats, entities }: EcosystemStatsProps) {
                 <div className={styles.statsGrid}>
                     <div className={styles.statItem}>
                         <span className={styles.label}>Food:</span>
-                        <span className={styles.value}>{stats.food_count}</span>
+                        <span className={styles.value}>{safeNumber(stats.food_count)}</span>
                     </div>
                     <div className={styles.statItem}>
                         <span className={styles.label}>Live Food:</span>
                         <span className={styles.value}>
-                            {stats.live_food_count} ({Math.round(stats.live_food_energy)}E)
+                            {safeNumber(stats.live_food_count)} ({safeNumber(Math.round(stats.live_food_energy))}E)
                         </span>
                     </div>
 
@@ -42,15 +44,15 @@ export function EcosystemStats({ stats, entities }: EcosystemStatsProps) {
                 <div className={styles.statsGrid}>
                     <div className={styles.statItem}>
                         <span className={styles.label}>Fish Alive:</span>
-                        <span className={styles.value}>{stats.fish_count}</span>
+                        <span className={styles.value}>{safeNumber(stats.fish_count)}</span>
                     </div>
                     <div className={styles.statItem}>
                         <span className={styles.label}>Total Births:</span>
-                        <span className={styles.value}>{stats.births}</span>
+                        <span className={styles.value}>{safeNumber(stats.births)}</span>
                     </div>
                     <div className={styles.statItem}>
                         <span className={styles.label}>Total Deaths:</span>
-                        <span className={styles.value}>{stats.deaths}</span>
+                        <span className={styles.value}>{safeNumber(stats.deaths)}</span>
                     </div>
                 </div>
             </div>
@@ -69,7 +71,7 @@ export function EcosystemStats({ stats, entities }: EcosystemStatsProps) {
                 </div>
             )}
 
-            <div className={styles.section}>
+            <div className={`${styles.section} ${styles.geneSection}`}>
                 <div className={styles.sectionTitle}>Gene Distribution</div>
                 <div className={styles.geneGrid}>
                     <GeneHistogram label="Adult Size" values={collectTrait('size', entities)} min={0.5} max={2} />

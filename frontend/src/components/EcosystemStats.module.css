@@ -1,7 +1,8 @@
 .container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 360px;
   gap: 24px;
-  padding: 16px 20px;
+  padding: 12px 18px;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(71, 85, 105, 0.3);
   border-radius: 8px;
@@ -10,7 +11,6 @@
 }
 
 .section {
-  flex: 1;
   min-width: 0;
 }
 
@@ -90,6 +90,13 @@
   background: rgba(99, 102, 241, 0.85);
   border-radius: 4px 4px 0 0;
   transition: height 200ms ease;
+}
+
+.geneSection {
+  grid-column: 4 / 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 @media (max-width: 900px) {
