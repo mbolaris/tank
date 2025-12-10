@@ -1026,7 +1026,9 @@ class Fish(Agent):
                 if isinstance(food, PlantNectar):
                     ecosystem.record_nectar_eaten(algorithm_id, actual_energy)
                 elif isinstance(food, LiveFood):
-                    ecosystem.record_live_food_eaten(algorithm_id, actual_energy)
+                    ecosystem.record_live_food_eaten(
+                        algorithm_id, actual_energy, self.genome, self.generation
+                    )
                 else:
                     ecosystem.record_falling_food_eaten(algorithm_id, actual_energy)
 
