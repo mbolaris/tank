@@ -71,12 +71,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
             <div className={styles.section}>
                 <div className={styles.sectionTitle}>Gene Distribution</div>
                 <div className={styles.geneGrid}>
-                    <GeneHistogram label="Adult Size" values={collectTrait(stats, 'size')} min={0.5} max={2} />
-                    <GeneHistogram label="Eye Size" values={collectTrait(stats, 'eye_size')} min={0.5} max={2} />
-                    <GeneHistogram label="Tail Size" values={collectTrait(stats, 'tail_size')} min={0} max={2} />
-                    <GeneHistogram label="Fin Size" values={collectTrait(stats, 'fin_size')} min={0} max={2} />
-                    <GeneHistogram label="Body Aspect" values={collectTrait(stats, 'body_aspect')} min={0.5} max={2} />
-                    <GeneHistogram label="Template ID" values={collectTrait(stats, 'template_id')} min={0} max={10} discrete />
+                    <GeneHistogram label="Adult Size" values={collectTrait('size')} min={0.5} max={2} />
+                    <GeneHistogram label="Eye Size" values={collectTrait('eye_size')} min={0.5} max={2} />
+                    <GeneHistogram label="Tail Size" values={collectTrait('tail_size')} min={0} max={2} />
+                    <GeneHistogram label="Fin Size" values={collectTrait('fin_size')} min={0} max={2} />
+                    <GeneHistogram label="Body Aspect" values={collectTrait('body_aspect')} min={0.5} max={2} />
+                    <GeneHistogram label="Template ID" values={collectTrait('template_id')} min={0} max={10} discrete />
                 </div>
             </div>
         </div>
@@ -84,7 +84,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 }
 
 // Helper: collect trait values from stats entities
-function collectTrait(stats: StatsData, trait: string) {
+function collectTrait(trait: string) {
     const vals: number[] = [];
     // The frontend receives Entities in SimulationUpdate; StatsData alone may not include genome details.
     // We conservatively attempt to read a global `window.__lastEntities` if set by the app, else return empty.
