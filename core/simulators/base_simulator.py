@@ -32,7 +32,11 @@ from core.constants import (
     SCREEN_WIDTH,
 )
 from core.fish_poker import PokerInteraction
-from core.mixed_poker import MixedPokerInteraction, check_poker_proximity
+from core.mixed_poker import (
+    MixedPokerInteraction,
+    check_poker_proximity,
+    should_trigger_plant_poker_asexual_reproduction,
+)
 from core.plant_poker import PlantPokerInteraction, check_fish_plant_poker_proximity
 
 # Type checking imports
@@ -736,11 +740,30 @@ class BaseSimulator(ABC):
             else:
                 # Plant won - energy flowed from fish to plants
                 energy_to_fish = -abs(result.energy_transferred)
-            
+
             self.ecosystem.record_mixed_poker_energy_transfer(
                 energy_to_fish=energy_to_fish,
                 is_plant_game=True,
             )
+
+        # Trigger asexual reproduction if fish won against only plants
+        # (fish_count == 1 means only the winner was a fish, all opponents were plants)
+        if (
+            result.winner_type == "fish"
+            and result.fish_count == 1
+            and result.plant_count > 0
+            and not result.is_tie
+        ):
+            # Find the winning fish from the poker interaction
+            winner_fish = None
+            for player in poker.fish_players:
+                if poker._get_player_id(player) == result.winner_id:
+                    winner_fish = player
+                    break
+
+            if winner_fish is not None and should_trigger_plant_poker_asexual_reproduction(winner_fish):
+                # Start asexual pregnancy - baby will be born after pregnancy duration
+                winner_fish._reproduction_component.start_asexual_pregnancy()
 
     def find_fish_groups_in_contact(self) -> List[List["Fish"]]:
         """Find groups of fish that are in poker proximity (close but not touching).
