@@ -727,8 +727,11 @@ class PokerInteraction:
                 winner_fish.modify_energy(winner_actual_gain)
 
             # Record poker winnings in ecosystem
+            # Use actual net gain (after capping) instead of theoretical gain
+            # to avoid overcounting when fish overflow their max energy
+            actual_net_gain = winner_fish.energy - current_energy
             if winner_fish.ecosystem is not None:
-                winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain - winner_total_bet)  # Net gain
+                winner_fish.ecosystem.record_poker_energy_gain(actual_net_gain)
                 # Record house cut as a sink
                 if house_cut > 0:
                     winner_fish.ecosystem.record_energy_burn("poker_house_cut", house_cut)
