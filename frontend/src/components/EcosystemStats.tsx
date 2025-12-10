@@ -126,13 +126,19 @@ function GeneHistogram({ label, values, min, max, discrete }: GeneHistogramProps
     return (
         <div className={styles.histogramCard}>
             <div className={styles.histogramLabel}>{label}</div>
-            <div className={styles.histogram}>
-                {counts.map((c, i) => (
-                    <div key={i} className={styles.histBarWrap}>
-                        <div className={styles.histBar} style={{ height: `${(c / maxCount) * 80}%` }} />
-                    </div>
-                ))}
-            </div>
+            {values.length === 0 ? (
+                <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 12 }}>
+                    No data
+                </div>
+            ) : (
+                <div className={styles.histogram}>
+                    {counts.map((c, i) => (
+                        <div key={i} className={styles.histBarWrap}>
+                            <div className={styles.histBar} style={{ height: `${(c / maxCount) * 80}%` }} />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

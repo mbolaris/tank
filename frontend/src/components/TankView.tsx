@@ -28,10 +28,10 @@ export function TankView({ tankId }: TankViewProps) {
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [showEffects, setShowEffects] = useState(true); // Toggle for energy bars and poker effects
 
-    // Entity transfer state
-    const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
-    const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
-    const [showTransferDialog, setShowTransferDialog] = useState(false);
+            {/* Ecosystem & Population stats (includes Gene Distribution) - placed above the canvas for correct layout */}
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
+                <EcosystemStats stats={state?.stats ?? null} entities={state?.entities ?? null} />
+            </div>
     const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     // Error handling state
