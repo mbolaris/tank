@@ -78,6 +78,9 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
         (energyBurnRecent.death_unknown ?? 0)
     );
 
+    // Overflow energy that was converted to food drops
+    const burnOverflowFood = energyBurnRecent.overflow_food ?? 0;
+
     // Fish health distribution
     const fishHealthCritical = safeStats.fish_health_critical ?? 0;
     const fishHealthLow = safeStats.fish_health_low ?? 0;
@@ -217,6 +220,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         turningCost: Math.max(0, burnTurning),
                         fishDeaths: fishDeathEnergyLoss,
                         migrationOut: Math.max(0, burnMigration),
+                        overflowFood: Math.max(0, burnOverflowFood),
 
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
                         pokerHouseCut: Math.max(0, burnPokerHouseCut),

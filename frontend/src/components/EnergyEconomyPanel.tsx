@@ -16,6 +16,7 @@ interface EnergyFlowData {
     turningCost: number; // Energy spent on direction changes
     fishDeaths: number;
     migrationOut: number; // Energy leaving tank via fish migration
+    overflowFood: number; // Energy converted to food when fish overflow
 
     // Reproduction (internal transfer - visible for understanding)
     reproductionCost: number; // Energy spent by parents
@@ -43,7 +44,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
     const plantLoss = Math.max(0, -data.plantPokerNet);
 
     const totalIn = data.fallingFood + data.liveFood + data.plantNectar + plantGain + data.soupSpawn + data.migrationIn;
-    const totalOut = data.baseMetabolism + data.traitMaintenance + data.movementCost + data.turningCost + data.fishDeaths + data.migrationOut + data.pokerHouseCut + plantLoss;
+    const totalOut = data.baseMetabolism + data.traitMaintenance + data.movementCost + data.turningCost + data.fishDeaths + data.migrationOut + data.pokerHouseCut + data.overflowFood + plantLoss;
     const netExternalFlow = totalIn - totalOut;
 
     // True energy delta - what actually happened to fish population energy
@@ -136,6 +137,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                     <FlowBar label="Movement" value={data.movementCost} color="#fb7185" icon="💨" total={totalOut} isOut />
                     <FlowBar label="Turning" value={data.turningCost} color="#f97316" icon="🔄" total={totalOut} isOut />
                     <FlowBar label="Fish Deaths" value={data.fishDeaths} color="#ef4444" icon="💀" total={totalOut} isOut />
+                    <FlowBar label="Overflow → Food" value={data.overflowFood} color="#84cc16" icon="🍃" total={totalOut} isOut />
                     <FlowBar label="Poker House Cut" value={data.pokerHouseCut} color="#94a3b8" icon="🏛️" total={totalOut} isOut />
                     <FlowBar label="Plant Net (Lost)" value={plantLoss} color="#be185d" icon="🥀" total={totalOut} isOut />
                     <FlowBar label="Migration" value={data.migrationOut} color="#8b5cf6" icon="✈️" total={totalOut} isOut />
