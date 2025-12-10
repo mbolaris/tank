@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from core.constants import ENERGY_STATS_WINDOW_FRAMES
 from core.ecosystem_stats import EcosystemEvent, GenerationStats, GeneticDiversityStats
 from statistics import median
-from core.constants import FISH_ADULT_SIZE
+from core.constants import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -325,7 +325,6 @@ def get_summary_stats(
         "adult_size_max": adult_size_max,
         "adult_size_median": adult_size_median,
         "adult_size_range": adult_size_range,
-        from core.constants import FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
         "allowed_adult_size_min": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN,
         "allowed_adult_size_max": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX,
         "reproduction_stats": ecosystem.get_reproduction_summary(),
