@@ -39,15 +39,17 @@ class GeneticTrait(Generic[T]):
 
     def mutate_meta(self, rng: pyrandom.Random = pyrandom) -> None:
         """Mutate the metadata itself (evolution of evolution)."""
-        if rng.random() < 0.05:
-            self.mutation_rate = max(0.1, min(5.0, self.mutation_rate + rng.gauss(0, 0.1)))
-        if rng.random() < 0.05:
+        # Dampen meta-mutation to avoid runaway evolvability changes.
+        # Lower chance and smaller gaussian steps; tighten clamps.
+        if rng.random() < 0.01:
+            self.mutation_rate = max(0.5, min(2.0, self.mutation_rate + rng.gauss(0, 0.02)))
+        if rng.random() < 0.01:
             self.mutation_strength = max(
-                0.1, min(5.0, self.mutation_strength + rng.gauss(0, 0.1))
+                0.5, min(2.0, self.mutation_strength + rng.gauss(0, 0.02))
             )
-        if rng.random() < 0.05:
+        if rng.random() < 0.02:
             self.hgt_probability = max(
-                0.0, min(1.0, self.hgt_probability + rng.gauss(0, 0.05))
+                0.0, min(1.0, self.hgt_probability + rng.gauss(0, 0.02))
             )
 
 
