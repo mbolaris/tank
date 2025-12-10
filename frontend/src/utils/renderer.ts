@@ -6,7 +6,12 @@
 import type { EntityData } from '../types/simulation';
 import { ImageLoader } from './ImageLoader';
 import { getFishPath, getEyePosition, type FishParams } from './fishTemplates';
-import { renderFractalPlant as renderFractalPlantUtil, renderPlantNectar as renderPlantNectarUtil, type PlantGenomeData } from './fractalPlant';
+import {
+    pruneFractalPlantCache,
+    renderFractalPlant as renderFractalPlantUtil,
+    renderPlantNectar as renderPlantNectarUtil,
+    type PlantGenomeData,
+} from './fractalPlant';
 
 // Animation constants
 const IMAGE_CHANGE_RATE = 500; // milliseconds
@@ -145,6 +150,13 @@ export class Renderer {
                 this.pokerEffectStartTime.delete(cachedId);
             }
         }
+    }
+
+    /**
+     * Trim plant render caches for plants that are no longer in the scene.
+     */
+    prunePlantCaches(activePlantIds: Iterable<number>) {
+        pruneFractalPlantCache(activePlantIds);
     }
 
     private getTimeOfDayPalette(timeOfDay?: string): TimeOfDayPalette {

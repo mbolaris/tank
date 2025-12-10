@@ -83,6 +83,33 @@ const sonnetCache = new Map<number, PlantRenderCache>();
 const gptCodexCache = new Map<number, PlantRenderCache>();
 
 /**
+ * Remove cached plant geometry/texture entries for plants that no longer exist.
+ * Without pruning, the caches can grow unbounded when the simulation spawns
+ * and deletes many plants, eventually exhausting browser memory.
+ */
+export function pruneFractalPlantCache(activePlantIds: Iterable<number>): void {
+    const activeIds = new Set(activePlantIds);
+
+    const caches = [
+        plantCache,
+        mandelbrotCache,
+        claudeCache,
+        antigravityCache,
+        gptCache,
+        sonnetCache,
+        gptCodexCache,
+    ];
+
+    for (const cache of caches) {
+        for (const id of cache.keys()) {
+            if (!activeIds.has(id)) {
+                cache.delete(id);
+            }
+        }
+    }
+}
+
+/**
  * Create a stable signature for a genome so cache invalidation happens when traits change.
  */
 function getGenomeSignature(genome: PlantGenomeData): string {

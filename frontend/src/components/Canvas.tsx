@@ -126,6 +126,12 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
         // Prevent orientation cache from growing without bound when entities churn
         renderer.pruneEntityFacingCache(state.entities.map((entity) => entity.id));
+        // Keep fractal plant caches bounded as plants spawn and despawn
+        renderer.prunePlantCaches(
+            state.entities
+                .filter((entity) => entity.type === 'fractal_plant')
+                .map((entity) => entity.id)
+        );
 
         // Save context state
         ctx.save();
