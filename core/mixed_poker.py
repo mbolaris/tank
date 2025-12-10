@@ -1003,3 +1003,45 @@ def check_poker_proximity(
     max_dist_sq = max_distance * max_distance
 
     return min_dist_sq < distance_sq <= max_dist_sq
+
+
+def should_trigger_plant_poker_asexual_reproduction(fish: "Fish") -> bool:
+    """Check if a fish should trigger asexual reproduction after winning against plants.
+
+    When a fish wins a poker hand against only plant opponents (no other fish),
+    they get the opportunity to reproduce asexually. This rewards fish that
+    successfully "eat" plants through poker.
+
+    Conditions:
+    - Fish must have ≥40% of max energy (POST_POKER_REPRODUCTION_ENERGY_THRESHOLD)
+    - Fish must not be pregnant
+    - Fish must be off reproduction cooldown
+    - Fish must be adult life stage
+
+    Args:
+        fish: The fish that won the poker game
+
+    Returns:
+        True if asexual reproduction should be triggered
+    """
+    from core.config.fish import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+    from core.entities.base import LifeStage
+
+    # Check energy threshold
+    min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+    if fish.energy < min_energy_for_reproduction:
+        return False
+
+    # Check not pregnant
+    if fish.is_pregnant:
+        return False
+
+    # Check off cooldown
+    if fish.reproduction_cooldown > 0:
+        return False
+
+    # Check adult life stage (only adults can reproduce)
+    if fish.life_stage != LifeStage.ADULT:
+        return False
+
+    return True
