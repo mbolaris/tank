@@ -29,7 +29,7 @@ class ReproductionComponent:
     """
 
     # Reproduction constants
-    REPRODUCTION_ENERGY_PERCENTAGE = 1.0  # Require full energy before any reproduction path
+    REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Require ~90% energy before any reproduction path
     REPRODUCTION_COOLDOWN = 180  # 6 seconds (reduced for better breeding and faster generations)
     PREGNANCY_DURATION = 240  # 8 seconds (reduced for faster generations)
     MATING_DISTANCE = 60.0  # Maximum distance for mating
