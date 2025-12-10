@@ -43,6 +43,7 @@ class ReproductionComponent:
         "reproduction_cooldown",
         "mate_genome",
         "_asexual_pregnancy",
+        "stored_overflow_energy",
     )
 
     def __init__(self) -> None:
@@ -52,6 +53,9 @@ class ReproductionComponent:
         self.reproduction_cooldown: int = 0
         self.mate_genome: Optional[Genome] = None
         self._asexual_pregnancy: bool = False
+        # Overflow energy redirected into reproduction (from capped gains)
+        # is stored here until birth so it can be passed to the offspring.
+        self.stored_overflow_energy: float = 0.0
 
     def can_reproduce(self, life_stage: "LifeStage", energy: float, max_energy: float) -> bool:
         """Check if fish can reproduce.
@@ -150,14 +154,36 @@ class ReproductionComponent:
         # Standard mating is disabled; sexual reproduction now occurs only via poker.
         return False
 
-    def start_asexual_pregnancy(self) -> None:
-        """Begin asexual reproduction cycle."""
+    def start_asexual_pregnancy(self, overflow_energy: float = 0.0) -> None:
+        """Begin asexual reproduction cycle.
+
+        Args:
+            overflow_energy: Extra energy redirected into reproduction because
+                the parent was already at capacity. This reserve will be
+                transferred to the offspring at birth, preserving energy.
+        """
 
         self.is_pregnant = True
         self.pregnancy_timer = self.PREGNANCY_DURATION
         self.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
         self.mate_genome = None
         self._asexual_pregnancy = True
+        # Store overflow energy (if any) so it can fuel the baby later.
+        self.stored_overflow_energy = max(0.0, overflow_energy)
+
+    def consume_stored_overflow_energy(self, amount: float) -> float:
+        """Use stored overflow energy, returning how much was consumed."""
+
+        usable_amount = min(max(amount, 0.0), self.stored_overflow_energy)
+        self.stored_overflow_energy -= usable_amount
+        return usable_amount
+
+    def clear_stored_overflow_energy(self) -> float:
+        """Drain and return any leftover overflow energy reserve."""
+
+        leftover = self.stored_overflow_energy
+        self.stored_overflow_energy = 0.0
+        return leftover
 
     def update_state(self) -> bool:
         """Update reproduction state (cooldown and pregnancy timer).
@@ -218,6 +244,7 @@ class ReproductionComponent:
         """Reset pregnancy state (e.g., due to starvation or death)."""
         self.is_pregnant = False
         self.pregnancy_timer = 0
+        self.stored_overflow_energy = 0.0
         self.mate_genome = None
 
     def get_reproduction_state(self) -> str:

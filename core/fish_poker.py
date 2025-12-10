@@ -533,7 +533,13 @@ class PokerInteraction:
             if baby_algo is not None:
                 baby_algo_id = get_algorithm_index(baby_algo)
                 if baby_algo_id >= 0:
-                    winner_fish.ecosystem.record_reproduction(baby_algo_id, is_asexual=False)
+                    try:
+                        winner_fish.ecosystem.record_reproduction(
+                            baby_algo_id, is_asexual=False
+                        )
+                    except TypeError:
+                        # Older ecosystem hooks may not accept the keyword flag
+                        winner_fish.ecosystem.record_reproduction(baby_algo_id)
 
         # Register birth stats (balances the cost paid above)
         baby.register_birth()

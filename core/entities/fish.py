@@ -407,7 +407,9 @@ class Fish(Agent):
         if self._reproduction_component.can_asexually_reproduce(
             self.life_stage, self.energy, self.max_energy
         ):
-            self._reproduction_component.start_asexual_pregnancy()
+            self._reproduction_component.start_asexual_pregnancy(
+                overflow_energy=overflow
+            )
             return True
 
         return False
@@ -442,8 +444,9 @@ class Fish(Agent):
         """Adjust energy by a specified amount.
 
         Positive amounts are capped at max_energy, negative amounts won't go
-        below zero. Excess positive energy is dropped into the world as food so
-        it remains in the ecosystem instead of disappearing.
+        below zero. Excess positive energy first fuels reproduction when
+        possible, otherwise it is dropped into the world as food so it remains
+        in the ecosystem instead of disappearing.
         """
         new_energy = self._energy_component.energy + amount
         if amount > 0:
@@ -766,12 +769,28 @@ class Fish(Agent):
         baby_max_energy = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.size_modifier
         
         # Parent transfers exactly what baby needs to start at 100% energy
-        # But can't transfer more than parent has!
-        energy_to_transfer = min(self.energy, baby_max_energy)
-        
+        # using a mix of stored overflow (from capped gains) and current energy.
+        available_energy_for_baby = (
+            self.energy + self._reproduction_component.stored_overflow_energy
+        )
+        energy_to_transfer = min(available_energy_for_baby, baby_max_energy)
+
+        # Use overflow energy first, then draw from parent reserves
+        overflow_used = self._reproduction_component.consume_stored_overflow_energy(
+            energy_to_transfer
+        )
+        energy_from_parent = energy_to_transfer - overflow_used
+
         # If parent can't afford to give baby 100%, the baby will start with less
         # (This is fine - survival of the fittest)
-        self.energy -= energy_to_transfer  # Parent pays the energy cost
+        if energy_from_parent > 0:
+            self.energy -= energy_from_parent  # Parent pays the energy cost
+
+        # Spill any leftover stored overflow back into the ecosystem as food so
+        # energy never disappears between pregnancies.
+        leftover_overflow = self._reproduction_component.clear_stored_overflow_energy()
+        if leftover_overflow > 0:
+            self._drop_excess_energy_as_food(leftover_overflow)
 
         # Note: We don't record reproduction_cost as an outflow because the energy
         # goes directly to the baby - it's an internal transfer within the fish
@@ -811,7 +830,13 @@ class Fish(Agent):
 
             algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
             if algorithm_id >= 0:
-                self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
+                try:
+                    self.ecosystem.record_reproduction(
+                        algorithm_id, is_asexual=is_asexual
+                    )
+                except TypeError:
+                    # Backwards compatibility for ecosystems without the flag
+                    self.ecosystem.record_reproduction(algorithm_id)
 
         # Inherit skill game strategies from parent with mutation
         # If parent has strategies, inherit them; otherwise baby will get default when playing
