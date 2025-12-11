@@ -330,8 +330,8 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 min={safeStats.fin_size_min}
                                 median={safeStats.fin_size_median}
                                 max={safeStats.fin_size_max}
-                                allowedMin={safeStats.allowed_fin_size_min ?? 0.6}
-                                allowedMax={safeStats.allowed_fin_size_max ?? 1.4}
+                                allowedMin={safeStats.allowed_fin_size_min ?? 0.5}
+                                allowedMax={safeStats.allowed_fin_size_max ?? 2.0}
                                 width={260}
                                 height={96}
                                 xLabel="Fin Size"
