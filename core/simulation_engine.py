@@ -1010,10 +1010,10 @@ class SimulationEngine(BaseSimulator):
                     stats["fin_size_median"] = median(fin_sizes)
                 except Exception:
                     stats["fin_size_median"] = 0.0
-                # Histogram for fin size using genetic allowed bounds (0.6 to 1.4)
+                # Histogram for fin size using genetic allowed bounds (0.5 to 2.0)
                 bins = 12
-                allowed_fin_min = 0.6
-                allowed_fin_max = 1.4
+                allowed_fin_min = 0.5
+                allowed_fin_max = 2.0
                 span = max(1e-6, allowed_fin_max - allowed_fin_min)
                 edges = [allowed_fin_min + (span * i) / bins for i in range(bins + 1)]
                 counts = [0] * bins
@@ -1040,8 +1040,8 @@ class SimulationEngine(BaseSimulator):
             stats["fin_size_bin_edges"] = []
 
         # Expose allowed fin size constants
-        stats["allowed_fin_size_min"] = 0.6
-        stats["allowed_fin_size_max"] = 1.4
+        stats["allowed_fin_size_min"] = 0.5
+        stats["allowed_fin_size_max"] = 2.0
 
         return stats
 
