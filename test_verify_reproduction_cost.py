@@ -25,6 +25,17 @@ class MockEcosystem:
         self.frame_count = 0
         self.recent_death_rate = 0.0
         self._next_fish_id = 1
+        # Minimal reproduction manager stub expected by fish behavior
+        class _StubReproductionManager:
+            def record_reproduction(self, algorithm_id: int, is_asexual: bool = False):
+                return None
+
+            def update_pregnant_count(self, count: int):
+                return None
+            def record_reproduction_attempt(self, success: bool) -> None:
+                return None
+
+        self.reproduction_manager = _StubReproductionManager()
 
     def get_next_fish_id(self):
         fish_id = self._next_fish_id
@@ -35,10 +46,17 @@ class MockEcosystem:
         pass
 
     def record_reproduction(self, algo_id):
-        pass
+        # Accept optional keyword to match EcosystemManager.record_reproduction
+        return None
 
     def record_poker_outcome(self, **kwargs):
         pass
+
+    def record_poker_energy_gain(self, amount: float) -> None:
+        # Minimal mock behavior: just accept the call and ignore
+        # This mirrors EcosystemManager.record_poker_energy_gain which delegates
+        # to record_energy_gain; tests only need the method to exist.
+        return None
 
 
 # Monkey-patch should_offer_post_poker_reproduction to log when it's called
