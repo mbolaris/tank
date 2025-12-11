@@ -5,6 +5,7 @@
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
 import { Renderer } from '../utils/renderer';
+import { getFractalPlantCacheSizes } from '../utils/fractalPlant';
 import { ImageLoader } from '../utils/ImageLoader';
 
 interface CanvasProps {
@@ -110,7 +111,16 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         loadImages();
 
         return () => {
+            // Dispose renderer resources on unmount to avoid leaking canvas/context
             isMounted = false;
+            if (rendererRef.current) {
+                try {
+                    rendererRef.current.dispose();
+                } catch (e) {
+                    // swallow
+                }
+                rendererRef.current = null;
+            }
         };
     }, [setErrorOnce]);
 
@@ -173,6 +183,18 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             ctx.restore();
         }
     }, [state, width, height, imagesLoaded, selectedEntityId, showEffects, error, setErrorOnce]);
+
+    // Development-only diagnostic: periodically report renderer & cache sizes
+    useEffect(() => {
+        if (process.env.NODE_ENV !== 'development') return;
+        const interval = setInterval(() => {
+            try {
+                // eslint-disable-next-line no-console
+                console.debug('Renderer instances:', Renderer.instanceCount, 'Fractal caches:', getFractalPlantCacheSizes());
+            } catch (e) {}
+        }, 60000); // log every minute
+        return () => clearInterval(interval);
+    }, []);
 
     if (error) {
         return (

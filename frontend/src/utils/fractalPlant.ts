@@ -110,6 +110,21 @@ export function pruneFractalPlantCache(activePlantIds: Iterable<number>): void {
 }
 
 /**
+ * Diagnostic helper: return sizes of each internal cache (useful for leak investigation)
+ */
+export function getFractalPlantCacheSizes(): Record<string, number> {
+    return {
+        plantCache: plantCache.size,
+        mandelbrotCache: mandelbrotCache.size,
+        claudeCache: claudeCache.size,
+        antigravityCache: antigravityCache.size,
+        gptCache: gptCache.size,
+        sonnetCache: sonnetCache.size,
+        gptCodexCache: gptCodexCache.size,
+    };
+}
+
+/**
  * Create a stable signature for a genome so cache invalidation happens when traits change.
  */
 function getGenomeSignature(genome: PlantGenomeData): string {

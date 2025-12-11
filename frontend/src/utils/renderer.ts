@@ -111,8 +111,45 @@ export class Renderer {
     private _tintCanvas: HTMLCanvasElement | null = null;
     private _tintCtx: CanvasRenderingContext2D | null = null;
 
+    // Track live instances to help detect leaked Renderer objects
+    private static _instances = 0;
+
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
+        Renderer._instances += 1;
+    }
+
+    /** Number of live Renderer instances (for diagnostics) */
+    static get instanceCount() {
+        return Renderer._instances;
+    }
+
+    /** Dispose any large references so GC can reclaim memory when canvas unmounts */
+    dispose() {
+        // Drop references to offscreen canvas/context
+        if (this._tintCtx) {
+            // Clear canvas contents to free ImageBitmap backing if any
+            try {
+                this._tintCtx.canvas.width = 0;
+                this._tintCtx = null;
+            } catch (e) {
+                this._tintCtx = null;
+            }
+        }
+        if (this._tintCanvas) {
+            try {
+                this._tintCanvas.width = 0;
+            } catch (e) {
+                // ignore
+            }
+            this._tintCanvas = null;
+        }
+
+        // Clear maps that may grow over time
+        this.entityFacingLeft.clear();
+        this.pokerEffectStartTime.clear();
+
+        Renderer._instances = Math.max(0, Renderer._instances - 1);
     }
 
     private initParticles() {
