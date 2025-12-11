@@ -254,6 +254,14 @@ class StatsPayload:
     eye_size_bin_edges: List[float] = field(default_factory=list)
     allowed_eye_size_min: float = 0.0
     allowed_eye_size_max: float = 0.0
+    # Fin size statistics
+    fin_size_min: float = 0.0
+    fin_size_max: float = 0.0
+    fin_size_median: float = 0.0
+    fin_size_bins: List[int] = field(default_factory=list)
+    fin_size_bin_edges: List[float] = field(default_factory=list)
+    allowed_fin_size_min: float = 0.0
+    allowed_fin_size_max: float = 0.0
     poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
         total_games=0,
         total_fish_games=0,
@@ -331,6 +339,14 @@ class StatsPayload:
             "eye_size_bin_edges": self.eye_size_bin_edges,
             "allowed_eye_size_min": self.allowed_eye_size_min,
             "allowed_eye_size_max": self.allowed_eye_size_max,
+            # Fin size fields
+            "fin_size_min": self.fin_size_min,
+            "fin_size_max": self.fin_size_max,
+            "fin_size_median": self.fin_size_median,
+            "fin_size_bins": self.fin_size_bins,
+            "fin_size_bin_edges": self.fin_size_bin_edges,
+            "allowed_fin_size_min": self.allowed_fin_size_min,
+            "allowed_fin_size_max": self.allowed_fin_size_max,
             "total_sexual_births": self.total_sexual_births,
             "total_asexual_births": self.total_asexual_births,
             "fps": self.fps,
