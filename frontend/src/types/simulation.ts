@@ -239,6 +239,22 @@ export interface StatsData {
     // Histogram bins for adult size distribution (counts and edges)
     adult_size_bins?: number[];
     adult_size_bin_edges?: number[];
+    // Eye size statistics
+    eye_size_min?: number;
+    eye_size_max?: number;
+    eye_size_median?: number;
+    eye_size_bins?: number[];
+    eye_size_bin_edges?: number[];
+    allowed_eye_size_min?: number;
+    allowed_eye_size_max?: number;
+    // Fin size statistics
+    fin_size_min?: number;
+    fin_size_max?: number;
+    fin_size_median?: number;
+    fin_size_bins?: number[];
+    fin_size_bin_edges?: number[];
+    allowed_fin_size_min?: number;
+    allowed_fin_size_max?: number;
     // Fish health status counts (by energy ratio)
     fish_health_critical: number;  // <15% energy
     fish_health_low: number;       // 15-30% energy

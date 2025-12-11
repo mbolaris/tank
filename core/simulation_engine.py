@@ -1000,6 +1000,49 @@ class SimulationEngine(BaseSimulator):
             stats["allowed_eye_size_min"] = stats.get("eye_size_min", 0.5)
             stats["allowed_eye_size_max"] = stats.get("eye_size_max", 2.0)
 
+        # Fin size stats (fin size affects propulsion/speed)
+        try:
+            fin_sizes = [getattr(f.genome, 'fin_size', 1.0) for f in fish_list] if fish_list else []
+            if fin_sizes:
+                stats["fin_size_min"] = min(fin_sizes)
+                stats["fin_size_max"] = max(fin_sizes)
+                try:
+                    stats["fin_size_median"] = median(fin_sizes)
+                except Exception:
+                    stats["fin_size_median"] = 0.0
+                # Histogram for fin size using genetic allowed bounds (0.6 to 1.4)
+                bins = 12
+                allowed_fin_min = 0.6
+                allowed_fin_max = 1.4
+                span = max(1e-6, allowed_fin_max - allowed_fin_min)
+                edges = [allowed_fin_min + (span * i) / bins for i in range(bins + 1)]
+                counts = [0] * bins
+                for s in fin_sizes:
+                    idx = int((s - allowed_fin_min) / span * bins)
+                    if idx < 0:
+                        idx = 0
+                    elif idx >= bins:
+                        idx = bins - 1
+                    counts[idx] += 1
+                stats["fin_size_bins"] = counts
+                stats["fin_size_bin_edges"] = edges
+            else:
+                stats["fin_size_min"] = 0.0
+                stats["fin_size_max"] = 0.0
+                stats["fin_size_median"] = 0.0
+                stats["fin_size_bins"] = []
+                stats["fin_size_bin_edges"] = []
+        except Exception:
+            stats["fin_size_min"] = 0.0
+            stats["fin_size_max"] = 0.0
+            stats["fin_size_median"] = 0.0
+            stats["fin_size_bins"] = []
+            stats["fin_size_bin_edges"] = []
+
+        # Expose allowed fin size constants
+        stats["allowed_fin_size_min"] = 0.6
+        stats["allowed_fin_size_max"] = 1.4
+
         return stats
 
     def export_stats_json(self, filename: str) -> None:
