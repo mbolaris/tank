@@ -4,10 +4,12 @@ This module provides a base class for both graphical and headless simulators,
 eliminating code duplication and ensuring consistent simulation behavior.
 """
 
+import logging
 import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Union
 
+from core import entities
 from core.algorithms import get_algorithm_index
 from core.constants import (
     AUTO_FOOD_ENABLED,
@@ -38,6 +40,8 @@ from core.mixed_poker import (
     should_trigger_plant_poker_asexual_reproduction,
 )
 from core.plant_poker import PlantPokerInteraction, check_fish_plant_poker_proximity
+
+logger = logging.getLogger(__name__)
 
 # Type checking imports
 if TYPE_CHECKING:
@@ -575,9 +579,8 @@ class BaseSimulator(ABC):
 
                 processed.update(ready_players)
 
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(f"Mixed poker game error: {e}", exc_info=True)
+            except Exception:
+                logger.exception("Mixed poker game error")
 
     def _filter_mutually_proximate_players(
         self, players: List[PokerPlayer], max_distance: float
@@ -1158,8 +1161,6 @@ class BaseSimulator(ABC):
         """
         if not AUTO_FOOD_ENABLED:
             return
-
-        from core import entities
 
         # Calculate total energy and population
         all_entities = self.get_all_entities()

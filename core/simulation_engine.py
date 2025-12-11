@@ -42,7 +42,6 @@ from core.constants import (
     TOTAL_ALGORITHM_COUNT,
     FISH_ADULT_SIZE,
 )
-from statistics import median
 from core.ecosystem import EcosystemManager
 from core.entities.fractal_plant import FractalPlant, PlantNectar
 from core.entity_factory import create_initial_population
