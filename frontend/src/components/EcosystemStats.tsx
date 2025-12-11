@@ -287,62 +287,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                 </div>
             </div>
 
-            {/* Gene Distribution Panel (separate collapsible section) */}
-            <div className="glass-panel" style={{ padding: '12px', gridColumn: 'span 2' }}>
-                <CollapsibleSection title="Gene Distribution" defaultExpanded={true}>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                        <div className="size-summary-wrap" style={{ flex: '1 1 200px', minWidth: 200, maxWidth: 280 }}>
-                            <SizeSummaryGraph
-                                bins={safeStats.adult_size_bins || []}
-                                binEdges={safeStats.adult_size_bin_edges || []}
-                                min={safeStats.adult_size_min}
-                                median={safeStats.adult_size_median}
-                                max={safeStats.adult_size_max}
-                                allowedMin={safeStats.allowed_adult_size_min}
-                                allowedMax={safeStats.allowed_adult_size_max}
-                                width={260}
-                                height={96}
-                                xLabel="Adult Size"
-                                yLabel="Count"
-                            />
-                        </div>
-
-                        <div className="size-summary-wrap" style={{ flex: '1 1 200px', minWidth: 200, maxWidth: 280 }}>
-                            <SizeSummaryGraph
-                                bins={safeStats.eye_size_bins || []}
-                                binEdges={safeStats.eye_size_bin_edges || []}
-                                min={safeStats.eye_size_min}
-                                median={safeStats.eye_size_median}
-                                max={safeStats.eye_size_max}
-                                allowedMin={safeStats.allowed_eye_size_min ?? 0.5}
-                                allowedMax={safeStats.allowed_eye_size_max ?? 2.0}
-                                width={260}
-                                height={96}
-                                xLabel="Eye Size"
-                                yLabel="Count"
-                            />
-                        </div>
-
-                        <div className="size-summary-wrap" style={{ flex: '1 1 200px', minWidth: 200, maxWidth: 280 }}>
-                            <SizeSummaryGraph
-                                bins={safeStats.fin_size_bins || []}
-                                binEdges={safeStats.fin_size_bin_edges || []}
-                                min={safeStats.fin_size_min}
-                                median={safeStats.fin_size_median}
-                                max={safeStats.fin_size_max}
-                                allowedMin={safeStats.allowed_fin_size_min ?? 0.5}
-                                allowedMax={safeStats.allowed_fin_size_max ?? 2.0}
-                                width={260}
-                                height={96}
-                                xLabel="Fin Size"
-                                yLabel="Count"
-                            />
-                        </div>
-                    </div>
-                </CollapsibleSection>
-            </div>
-
-            {/* Death Causes Card */}
+            {/* Death Causes Card - next to Population */}
             {deathCauseEntries.length > 0 && (
                 <div className="glass-panel" style={{ padding: '12px' }}>
                     <h3 style={{
@@ -357,25 +302,106 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                     }}>
                         <span>💀</span> Mortality
                     </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         {deathCauseEntries.map(([cause, count]) => (
                             <div key={cause} style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                padding: '2px 8px',
+                                gap: '6px',
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                padding: '4px 10px',
                                 borderRadius: 'var(--radius-full)',
                                 fontSize: '11px'
                             }}>
                                 <span style={{ color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{cause.replace('_', ' ')}</span>
-                                <span style={{ color: '#fca5a5', fontWeight: 600 }}>{count}</span>
+                                <span style={{ color: '#fca5a5', fontWeight: 700 }}>{count.toLocaleString()}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
+
+            {/* Gene Distribution Panel - full width */}
+            <div className="glass-panel" style={{ padding: '16px', gridColumn: '1 / -1' }}>
+                <CollapsibleSection title="Gene Distribution" defaultExpanded={true}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '16px',
+                        marginTop: '8px'
+                    }}>
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                bins={safeStats.adult_size_bins || []}
+                                binEdges={safeStats.adult_size_bin_edges || []}
+                                min={safeStats.adult_size_min}
+                                median={safeStats.adult_size_median}
+                                max={safeStats.adult_size_max}
+                                allowedMin={safeStats.allowed_adult_size_min}
+                                allowedMax={safeStats.allowed_adult_size_max}
+                                width={280}
+                                height={100}
+                                xLabel="Adult Size"
+                                yLabel="Count"
+                            />
+                        </div>
+
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                bins={safeStats.eye_size_bins || []}
+                                binEdges={safeStats.eye_size_bin_edges || []}
+                                min={safeStats.eye_size_min}
+                                median={safeStats.eye_size_median}
+                                max={safeStats.eye_size_max}
+                                allowedMin={safeStats.allowed_eye_size_min ?? 0.5}
+                                allowedMax={safeStats.allowed_eye_size_max ?? 2.0}
+                                width={280}
+                                height={100}
+                                xLabel="Eye Size"
+                                yLabel="Count"
+                            />
+                        </div>
+
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                bins={safeStats.fin_size_bins || []}
+                                binEdges={safeStats.fin_size_bin_edges || []}
+                                min={safeStats.fin_size_min}
+                                median={safeStats.fin_size_median}
+                                max={safeStats.fin_size_max}
+                                allowedMin={safeStats.allowed_fin_size_min ?? 0.5}
+                                allowedMax={safeStats.allowed_fin_size_max ?? 2.0}
+                                width={280}
+                                height={100}
+                                xLabel="Fin Size"
+                                yLabel="Count"
+                            />
+                        </div>
+                    </div>
+                </CollapsibleSection>
+            </div>
         </div>
     );
 }
