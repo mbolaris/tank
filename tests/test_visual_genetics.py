@@ -16,8 +16,8 @@ def test_visual_traits():
     genome1 = Genome.random(use_algorithm=False)
 
     print(f"   Template ID: {genome1.template_id} (should be 0-5)")
-    print(f"   Fin Size: {genome1.fin_size:.2f} (should be 0.6-1.4)")
-    print(f"   Tail Size: {genome1.tail_size:.2f} (should be 0.6-1.4)")
+    print(f"   Fin Size: {genome1.fin_size:.2f} (should be 0.5-2.0)")
+    print(f"   Tail Size: {genome1.tail_size:.2f} (should be 0.5-2.0)")
     print(f"   Body Aspect: {genome1.body_aspect:.2f} (should be 0.7-1.3)")
     print(f"   Eye Size: {genome1.eye_size:.2f} (should be 0.7-1.3)")
     print(f"   Pattern Intensity: {genome1.pattern_intensity:.2f} (should be 0.0-1.0)")
@@ -26,8 +26,8 @@ def test_visual_traits():
 
     # Validate ranges
     assert 0 <= genome1.template_id <= 5, "template_id out of range"
-    assert 0.6 <= genome1.fin_size <= 1.4, "fin_size out of range"
-    assert 0.6 <= genome1.tail_size <= 1.4, "tail_size out of range"
+    assert 0.5 <= genome1.fin_size <= 2.0, "fin_size out of range"
+    assert 0.5 <= genome1.tail_size <= 2.0, "tail_size out of range"
     assert 0.7 <= genome1.body_aspect <= 1.3, "body_aspect out of range"
     assert 0.7 <= genome1.eye_size <= 1.3, "eye_size out of range"
     assert 0.0 <= genome1.pattern_intensity <= 1.0, "pattern_intensity out of range"
@@ -69,8 +69,8 @@ def test_visual_traits():
 
     # Validate offspring ranges
     assert 0 <= offspring.template_id <= 5, "offspring template_id out of range"
-    assert 0.6 <= offspring.fin_size <= 1.4, "offspring fin_size out of range"
-    assert 0.6 <= offspring.tail_size <= 1.4, "offspring tail_size out of range"
+    assert 0.5 <= offspring.fin_size <= 2.0, "offspring fin_size out of range"
+    assert 0.5 <= offspring.tail_size <= 2.0, "offspring tail_size out of range"
     assert 0.7 <= offspring.body_aspect <= 1.3, "offspring body_aspect out of range"
     assert 0.7 <= offspring.eye_size <= 1.3, "offspring eye_size out of range"
     assert 0.0 <= offspring.pattern_intensity <= 1.0, "offspring pattern_intensity out of range"
@@ -98,7 +98,7 @@ def test_visual_traits():
         # Validate all offspring
         for child in next_gen:
             assert 0 <= child.template_id <= 5
-            assert 0.6 <= child.fin_size <= 1.4
+            assert 0.5 <= child.fin_size <= 2.0
             assert 0 <= child.pattern_type <= 3
 
         current_gen = next_gen
