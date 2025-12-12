@@ -63,6 +63,13 @@ export class ImageLoader {
      * Clear the image cache
      */
     static clearCache(): void {
+        // Try to release underlying image bitmap data by clearing src
+        for (const img of this.cache.values()) {
+            try {
+                // @ts-ignore
+                img.src = '';
+            } catch (e) {}
+        }
         this.cache.clear();
         this.loadingPromises.clear();
     }
@@ -95,5 +102,12 @@ export class ImageLoader {
         ];
 
         await this.loadImages(imageFiles);
+    }
+
+    /**
+     * Diagnostic: return sizes of internal caches
+     */
+    static getCacheSizes(): { cacheSize: number; loadingSize: number } {
+        return { cacheSize: this.cache.size, loadingSize: this.loadingPromises.size };
     }
 }

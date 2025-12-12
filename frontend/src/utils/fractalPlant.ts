@@ -103,6 +103,26 @@ export function pruneFractalPlantCache(activePlantIds: Iterable<number>): void {
     for (const cache of caches) {
         for (const id of cache.keys()) {
             if (!activeIds.has(id)) {
+                // Best-effort release of native-backed resources
+                const entry = cache.get(id) as any;
+                if (entry) {
+                    if (entry.texture && entry.texture instanceof HTMLCanvasElement) {
+                        try {
+                            // Resetting width releases pixel backing store in most browsers
+                            entry.texture.width = 0;
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                    // Plant geometry can be large; clear arrays before dropping references
+                    try {
+                        if (Array.isArray(entry.segments)) entry.segments.length = 0;
+                        if (Array.isArray(entry.sortedSegments)) entry.sortedSegments.length = 0;
+                        if (Array.isArray(entry.leaves)) entry.leaves.length = 0;
+                    } catch (e) {
+                        // ignore
+                    }
+                }
                 cache.delete(id);
             }
         }

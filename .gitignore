@@ -65,6 +65,7 @@ final_test.txt
 logs/
 data/
 CODEBASE_ANALYSIS.md
+meta_mutation_result.txt
 
 # Frontend build artifacts
 frontend/node_modules/
