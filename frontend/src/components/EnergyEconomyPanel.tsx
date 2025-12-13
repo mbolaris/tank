@@ -54,8 +54,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
 
     // Helper for flow bars
     const FlowBar = ({ label, value, color, icon, total, isOut = false }: { label: string, value: number, color: string, icon: string, total: number, isOut?: boolean }) => {
-        if (value <= 0) return null;
-        const width = Math.min(100, (value / (total || 1)) * 100);
+        const width = value > 0 ? Math.min(100, (value / (total || 1)) * 100) : 0;
 
         return (
             <div style={{ marginBottom: '8px', position: 'relative' }}>
@@ -86,7 +85,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
             {/* Header with two metrics */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ margin: 0, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>🔋</span> Energy Economy
+                    <span>🔋</span> Fish Energy Economy
                 </h3>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {/* True Delta - the actual change in fish energy */}
@@ -114,11 +113,12 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                         Inflows (+{formatVal(totalIn)})
                     </div>
 
-                    <FlowBar label="Live Food Eaten" value={data.liveFood} color="#22c55e" icon="🦐" total={totalIn} />
-                    <FlowBar label="Food Eaten" value={data.fallingFood} color="#f59e0b" icon="🍽️" total={totalIn} />
-                    <FlowBar label="Plant Nectar" value={data.plantNectar} color="#10b981" icon="🌿" total={totalIn} />
+                    <FlowBar label="Live Food" value={data.liveFood} color="#22c55e" icon="🦐" total={totalIn} />
+                    <FlowBar label="Falling Food" value={data.fallingFood} color="#f59e0b" icon="🍽️" total={totalIn} />
+                    <FlowBar label="Nectar" value={data.plantNectar} color="#ec4899" icon="🌸" total={totalIn} />
+                    {plantGain > 0 && <FlowBar label="Plant Poker" value={plantGain} color="#10b981" icon="🌿" total={totalIn} />}
                     <FlowBar label="Soup Spawns" value={data.soupSpawn} color="#a3e635" icon="🥣" total={totalIn} />
-                    <FlowBar label="Migration In" value={data.migrationIn} color="#86efac" icon="🛬" total={totalIn} />
+                    <FlowBar label="Immigration" value={data.migrationIn} color="#86efac" icon="🛬" total={totalIn} />
 
                     {/* Empty State */}
                     {totalIn === 0 && <div style={{ fontSize: '11px', color: 'var(--color-text-dim)', textAlign: 'center', padding: '10px' }}>No energy input</div>}
@@ -133,15 +133,15 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                         Outflows (-{formatVal(totalOut)})
                     </div>
 
-                    <FlowBar label="Base Life Support" value={data.baseMetabolism} color="#60a5fa" icon="❤️" total={totalOut} isOut />
+                    <FlowBar label="Metabolism" value={data.baseMetabolism} color="#60a5fa" icon="❤️" total={totalOut} isOut />
                     <FlowBar label="Trait Upkeep" value={data.traitMaintenance} color="#f472b6" icon="🧬" total={totalOut} isOut />
                     <FlowBar label="Movement" value={data.movementCost} color="#fb7185" icon="💨" total={totalOut} isOut />
                     <FlowBar label="Turning" value={data.turningCost} color="#f97316" icon="🔄" total={totalOut} isOut />
                     <FlowBar label="Fish Deaths" value={data.fishDeaths} color="#ef4444" icon="💀" total={totalOut} isOut />
-                    <FlowBar label="Overflow → Food" value={data.overflowFood} color="#84cc16" icon="🍃" total={totalOut} isOut />
+                    <FlowBar label="Overflow → Food" value={data.overflowFood} color="#84cc16" icon="♻️" total={totalOut} isOut />
                     <FlowBar label="Poker House Cut" value={data.pokerHouseCut} color="#94a3b8" icon="🏛️" total={totalOut} isOut />
-                    <FlowBar label="Plant Net (Lost)" value={plantLoss} color="#be185d" icon="🥀" total={totalOut} isOut />
-                    <FlowBar label="Migration" value={data.migrationOut} color="#8b5cf6" icon="✈️" total={totalOut} isOut />
+                    {plantLoss > 0 && <FlowBar label="Plant Poker" value={plantLoss} color="#be185d" icon="🥀" total={totalOut} isOut />}
+                    <FlowBar label="Emigration" value={data.migrationOut} color="#8b5cf6" icon="✈️" total={totalOut} isOut />
                 </div>
             </div>
 
