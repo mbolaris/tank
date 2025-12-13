@@ -40,7 +40,11 @@ LIFE_STAGE_MATURE_MAX = 5400  # 180 seconds (3 minutes)
 # After MATURE_MAX = Elder
 
 # Fish Energy System Constants
-ENERGY_MAX_DEFAULT = 100.0  # Maximum energy for a fish
+# Fish max energy scales as: ENERGY_MAX_DEFAULT * fish.size (size grows with age and genetic size_modifier).
+ENERGY_MAX_DEFAULT = 150.0  # Maximum energy for a baseline adult fish (was 100.0)
+# When fish would overflow above max_energy, bank that excess for future reproduction instead of dropping it as food.
+# The bank is capped to avoid unbounded accumulation on fish that can't reproduce immediately.
+OVERFLOW_ENERGY_BANK_MULTIPLIER = 3.0
 ENERGY_IDLE_CONSUMPTION = 1.0  # Energy consumed per frame when idle
 ENERGY_LOW_MULTIPLIER = 0.01  # Low energy consumption multiplier
 ENERGY_MODERATE_MULTIPLIER = 0.035  # Moderate energy consumption multiplier (was 0.025)

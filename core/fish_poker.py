@@ -74,6 +74,16 @@ class PokerResult:
         return self.players_folded[1] if len(self.players_folded) > 1 else False
 
 
+@dataclass
+class _PokerEnergySettlement:
+    total_pot: float
+    house_cut: float
+    bets_paid: List[float]
+    net_deltas: List[float]  # Final energy - initial energy per fish
+    payout_deltas: List[float]  # Energy received from pot payout (after bets)
+    energy_transferred: float  # Sum of non-winner losses (0 for ties)
+
+
 def should_offer_post_poker_reproduction(
     fish: "Fish", opponent: "Fish", is_winner: bool, energy_gained: float = 0.0
 ) -> bool:
@@ -279,6 +289,83 @@ class PokerInteraction:
         self.num_players = len(self.fish_list)
         self.player_hands: List[Optional[PokerHand]] = [None] * self.num_players
         self.result: Optional[PokerResult] = None
+
+    def _settle_poker_energy(
+        self,
+        *,
+        requested_bets: List[float],
+        winner_idx: Optional[int],
+        tied_indices: Optional[List[int]] = None,
+    ) -> _PokerEnergySettlement:
+        """Apply bet deductions and pot payout using actual energy paid.
+
+        This is the shared "poker engine" for energy settlement across 2-player
+        and multiplayer games. It ensures:
+        - The pot is based on the energy players actually paid (post-clamp)
+        - Payouts are applied via `modify_energy` so caps/overflow are handled consistently
+        - Energy economy stats are consistent across player counts
+        """
+        if len(requested_bets) != self.num_players:
+            raise ValueError("requested_bets must match num_players")
+
+        initial_energies = [f.energy for f in self.fish_list]
+        bets_paid = [0.0 for _ in range(self.num_players)]
+        total_pot = 0.0
+
+        for i, fish in enumerate(self.fish_list):
+            old_energy = fish.energy
+            fish.modify_energy(-requested_bets[i])
+            paid = old_energy - fish.energy
+            bets_paid[i] = paid
+            total_pot += paid
+
+            if paid > 0 and fish.ecosystem is not None:
+                fish.ecosystem.record_energy_burn("poker_loss", paid)
+
+        payout_deltas = [0.0 for _ in range(self.num_players)]
+        house_cut = 0.0
+
+        if tied_indices:
+            split_amount = total_pot / len(tied_indices) if tied_indices else 0.0
+            for idx in tied_indices:
+                fish = self.fish_list[idx]
+                before = fish.energy
+                fish.modify_energy(split_amount)
+                payout_deltas[idx] = fish.energy - before
+        elif winner_idx is not None:
+            winner_fish = self.fish_list[winner_idx]
+            winner_paid = bets_paid[winner_idx]
+            profit = total_pot - winner_paid
+            house_cut = self.calculate_house_cut(winner_fish.size, profit)
+
+            payout = total_pot - house_cut
+            before = winner_fish.energy
+            winner_fish.modify_energy(payout)
+            payout_deltas[winner_idx] = winner_fish.energy - before
+
+        # Record aggregate poker payout + house cut (single ecosystem per tank)
+        ecosystem = next((f.ecosystem for f in self.fish_list if f.ecosystem is not None), None)
+        if ecosystem is not None:
+            payout_total = sum(payout_deltas)
+            if payout_total != 0:
+                ecosystem.record_poker_energy_gain(payout_total)
+            if house_cut > 0:
+                ecosystem.record_energy_burn("poker_house_cut", house_cut)
+
+        net_deltas = [f.energy - initial_energies[i] for i, f in enumerate(self.fish_list)]
+
+        energy_transferred = 0.0
+        if winner_idx is not None:
+            energy_transferred = sum(bets_paid[i] for i in range(self.num_players) if i != winner_idx)
+
+        return _PokerEnergySettlement(
+            total_pot=total_pot,
+            house_cut=house_cut,
+            bets_paid=bets_paid,
+            net_deltas=net_deltas,
+            payout_deltas=payout_deltas,
+            energy_transferred=energy_transferred,
+        )
 
     # Legacy properties for backwards compatibility
     @property
@@ -632,125 +719,27 @@ class PokerInteraction:
                 winner_fish = self.fish_list[winner_idx]
                 winner_id = winner_fish.fish_id
         
-        # Apply energy changes based on game results
-        total_pot = game_state.pot
-        house_cut = 0.0
-        winner_actual_gain = 0.0
-        loser_ids = []
         players_folded = [game_state.players[i].folded for i in range(self.num_players)]
-        
-        # Deduct bets from each player
-        for i, fish in enumerate(self.fish_list):
-            player_total_bet = game_state.players[i].total_bet
-            old_energy = fish.energy
-            fish.modify_energy(-player_total_bet)
-            actual_loss = old_energy - fish.energy
-            
-            # Record this as a transfer outflow (balances the winner's inflow)
-            if actual_loss > 0 and fish.ecosystem is not None:
-                fish.ecosystem.record_energy_burn("poker_loss", actual_loss)
 
+        settlement = self._settle_poker_energy(
+            requested_bets=[game_state.players[i].total_bet for i in range(self.num_players)],
+            winner_idx=winner_idx if winner_id != -1 else None,
+            tied_indices=tied_players if winner_id == -1 else None,
+        )
+
+        total_pot = settlement.total_pot
+        house_cut = settlement.house_cut
+        actual_bets_paid = settlement.bets_paid
+        winner_actual_gain = (
+            max(0.0, settlement.net_deltas[winner_idx]) if winner_id != -1 else 0.0
+        )
+
+        loser_ids = []
         if winner_id != -1:
-            winner_fish = self.fish_list[winner_idx]
-            winner_total_bet = game_state.players[winner_idx].total_bet
-
-            # Calculate house cut based on winner's size
-            net_gain = total_pot - winner_total_bet
-            house_cut = self.calculate_house_cut(winner_fish.size, net_gain)
-
-            # Calculate winner's actual gain (pot minus their bet minus house cut)
-            winner_actual_gain = total_pot - house_cut
-            
-            # --- OVERFLOW REPRODUCTION LOGIC ---
-            # Check if this win would push the fish over its max energy capacity.
-            # If so, we attempt to "spend" the excess energy immediately on reproduction.
-            # This turns wasted energy into new life.
-            
-            current_energy = winner_fish.energy
-            potential_energy = current_energy + winner_actual_gain
-            
-            reproduction_baby = None
-            
-            # If we have overflow, try to reproduce using the "theoretical" high energy
-            if potential_energy > winner_fish.max_energy:
-                # Find a mate (use the "best" loser, i.e., second place, for genetic quality)
-                # If no losers (rare), we can't reproduce sexually.
-                mate_fish = None
-                if len(self.fish_list) > 1:
-                    # Sort losers by hand strength? Or just pick first loser (simple).
-                    # self.fish_list is in order of entry, not finish.
-                    # winner_idx is known. Pick any other fish.
-                    for i, other in enumerate(self.fish_list):
-                        if i != winner_idx:
-                            mate_fish = other
-                            break
-                
-                if mate_fish:
-                    # TEMPORARY OVERFLOW: Force energy to theoretical max to satisfy reproduction checks
-                    # We access the private component to set energy directly for this moment.
-                    # This allows try_post_poker_reproduction to see sufficient energy.
-                    winner_fish._energy_component.energy = potential_energy
-                    
-                    # Attempt reproduction
-                    # Note: We pass the mate, but currently reproduction logic is 
-                    # "Winner decides". Mate is needed for genome combination.
-                    reproduction_baby = self.try_post_poker_reproduction(
-                        winner_fish, mate_fish, winner_actual_gain
-                    )
-                    
-                    if reproduction_baby:
-                        # Reproduction successful!
-                        # The winner has already paid the energy cost (subtracted from potential_energy)
-                        # inside try_post_poker_reproduction ==> modify_energy(-cost)
-                        
-                        # Now we just need to clamp whatever remains.
-                        # Current energy is (potential_energy - cost).
-                        # We must ensure it respects the max cap.
-                        if winner_fish.energy > winner_fish.max_energy:
-                            winner_fish._energy_component.energy = winner_fish.max_energy
-                            
-                        # Log the event
-                        if winner_fish.ecosystem:
-                            # We can log "excess energy used for birth" if we want a specific metric
-                            pass
-                    else:
-                        # Reproduction failed (cooldowns, incompatible species, etc.)
-                        # Revert energy to pre-calc state so we can apply winnings normally (raising to cap)
-                        winner_fish._energy_component.energy = current_energy
-                        # Apply winnings normally (clamped)
-                        winner_fish.modify_energy(winner_actual_gain)
-                else:
-                    # No mate available, just apply winnings normally
-                    winner_fish.modify_energy(winner_actual_gain)
-            else:
-                # No overflow, standard energy gain
-                winner_fish.modify_energy(winner_actual_gain)
-
-            # Record poker winnings in ecosystem
-            # Use actual net gain (after capping) instead of theoretical gain
-            # to avoid overcounting when fish overflow their max energy
-            actual_net_gain = winner_fish.energy - current_energy
-            if winner_fish.ecosystem is not None:
-                winner_fish.ecosystem.record_poker_energy_gain(actual_net_gain)
-                # Record house cut as a sink
-                if house_cut > 0:
-                    winner_fish.ecosystem.record_energy_burn("poker_house_cut", house_cut)
-            
-            # Collect loser IDs and record their losses
-            loser_ids = []
-            for i in range(self.num_players):
-                if i != winner_idx:
-                    loser_ids.append(self.fish_list[i].fish_id)
-                    # Record loser's loss as negative amount
-                    loser_loss = game_state.players[i].total_bet
-                    if loser_loss > 0 and self.fish_list[i].ecosystem is not None:
-                        self.fish_list[i].ecosystem.record_poker_energy_gain(-loser_loss)
+            loser_ids = [self.fish_list[i].fish_id for i in range(self.num_players) if i != winner_idx]
         else:
-            # Tie - split pot among tied players (no house cut on ties)
-            split_amount = total_pot / len(tied_players)
-            for player_idx in tied_players:
-                self.fish_list[player_idx].modify_energy(split_amount)
-            # For ties, no net gain/loss to record (they split evenly)
+            # Tie winners are `tied_players`; others (if any) are losers
+            loser_ids = [self.fish_list[i].fish_id for i in range(self.num_players) if i not in tied_players]
         
         # Set cooldowns for all players
         for participant in self.participants:
@@ -806,8 +795,8 @@ class PokerInteraction:
                     opponent_id=winner_fish.fish_id if not is_winner else self.fish_list[0].fish_id,
                 )
                 
-                # Behavioral learning
-                energy_change = winner_actual_gain if is_winner else -game_state.players[i].total_bet
+                # Behavioral learning (use actual net delta)
+                energy_change = settlement.net_deltas[i]
                 poker_event = LearningEvent(
                     learning_type=LearningType.POKER_STRATEGY,
                     success=is_winner,
@@ -850,7 +839,7 @@ class PokerInteraction:
         self.result = PokerResult(
             player_hands=self.player_hands,
             player_ids=[f.fish_id for f in self.fish_list],
-            energy_transferred=sum(game_state.players[i].total_bet for i in range(self.num_players) if i != winner_idx) if winner_id != -1 else 0.0,
+            energy_transferred=settlement.energy_transferred if winner_id != -1 else 0.0,
             winner_actual_gain=winner_actual_gain,
             winner_id=winner_id,
             loser_ids=loser_ids,
@@ -864,12 +853,12 @@ class PokerInteraction:
             reproduction_occurred=reproduction_occurred,
             offspring=offspring,
         )
-        
+         
         # Record stats for each player
         for i, fish in enumerate(self.fish_list):
             participant = self.participants[i]
             on_button = (i == button_position)
-            player_bet = game_state.players[i].total_bet
+            player_bet = actual_bets_paid[i]
             
             if fish.fish_id == winner_id:
                 participant.stats.record_win(
@@ -880,10 +869,19 @@ class PokerInteraction:
                     on_button=on_button,
                 )
             elif winner_id == -1:
-                participant.stats.record_tie(
-                    hand_rank=self.player_hands[i].rank_value if self.player_hands[i] else 0,
-                    on_button=on_button,
-                )
+                if i in tied_players:
+                    participant.stats.record_tie(
+                        hand_rank=self.player_hands[i].rank_value if self.player_hands[i] else 0,
+                        on_button=on_button,
+                    )
+                else:
+                    participant.stats.record_loss(
+                        energy_lost=player_bet,
+                        hand_rank=self.player_hands[i].rank_value if self.player_hands[i] else 0,
+                        folded=game_state.players[i].folded,
+                        reached_showdown=reached_showdown,
+                        on_button=on_button,
+                    )
             else:
                 participant.stats.record_loss(
                     energy_lost=player_bet,
@@ -1013,54 +1011,24 @@ class PokerInteraction:
                 winner_id = -1
                 loser_id = -1
 
-        # Calculate energy transfer based on pot
-        house_cut = 0.0
-        if winner_id != -1:
-            # Determine winner and loser fish
-            winner_fish = self.fish1 if winner_id == self.fish1.fish_id else self.fish2
-            loser_fish = self.fish2 if winner_id == self.fish1.fish_id else self.fish1
-
-            # Get total bets for each player
-            winner_total_bet = (
-                game_state.player1_total_bet
-                if winner_id == self.fish1.fish_id
-                else game_state.player2_total_bet
-            )
-            loser_total_bet = (
-                game_state.player1_total_bet
-                if loser_id == self.fish1.fish_id
-                else game_state.player2_total_bet
-            )
-
-            # Both players pay their bets
-            winner_fish.energy = max(0, winner_fish.energy - winner_total_bet)
-            loser_fish.energy = max(0, loser_fish.energy - loser_total_bet)
-
-            # Calculate actual pot from the bets (more reliable than game_state.pot)
-            total_pot = winner_total_bet + loser_total_bet
-
-            # House cut using helper method
-            net_gain = total_pot - winner_total_bet  # Winner's profit (loser's bet)
-            house_cut = self.calculate_house_cut(winner_fish.size, net_gain)
-
-            # Winner receives the pot minus house cut
-            # Use modify_energy to properly cap at max and route overflow to reproduction/food
-            winner_fish.modify_energy(total_pot - house_cut)
-
-            # For reporting purposes, energy_transferred is the loser's loss (what they bet)
-            # This is used for display and statistics tracking
-            energy_transferred = loser_total_bet
-            # Also calculate the winner's actual gain (less than loser's loss due to house cut)
-            winner_actual_gain = net_gain - house_cut
-            if winner_actual_gain > 0 and winner_fish.ecosystem is not None:
-                winner_fish.ecosystem.record_poker_energy_gain(winner_actual_gain)
-            # Record loser's loss as negative amount
-            if loser_total_bet > 0 and loser_fish.ecosystem is not None:
-                loser_fish.ecosystem.record_poker_energy_gain(-loser_total_bet)
+        # Settle energy using shared engine (same logic as multiplayer)
+        winner_idx = None
+        tied_indices: Optional[List[int]] = None
+        if winner_id == -1:
+            tied_indices = [0, 1]
         else:
-            # Tie - no energy transfer
-            energy_transferred = 0.0
-            winner_actual_gain = 0.0
+            winner_idx = 0 if winner_id == self.fish1.fish_id else 1
+
+        settlement = self._settle_poker_energy(
+            requested_bets=[game_state.player1_total_bet, game_state.player2_total_bet],
+            winner_idx=winner_idx,
+            tied_indices=tied_indices,
+        )
+        house_cut = settlement.house_cut
+        energy_transferred = settlement.energy_transferred if winner_idx is not None else 0.0
+        winner_actual_gain = (
+            max(0.0, settlement.net_deltas[winner_idx]) if winner_idx is not None else 0.0
+        )
 
         # Set visual effects using helper method
         if winner_id != -1:
@@ -1215,12 +1183,7 @@ class PokerInteraction:
         reached_showdown = not won_by_fold
 
         # Create result (using new format with backwards compatibility)
-        # Use calculated total_pot if winner exists, otherwise use game_state.pot
-        final_pot_value = (
-            winner_total_bet + loser_total_bet
-            if winner_id != -1
-            else game_state.pot
-        )
+        final_pot_value = settlement.total_pot
         self.result = PokerResult(
             player_hands=[self.hand1, self.hand2],
             player_ids=[self.fish1.fish_id, self.fish2.fish_id],

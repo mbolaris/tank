@@ -18,6 +18,7 @@ interface EnergyFlowData {
     fishDeaths: number;
     migrationOut: number; // Energy leaving tank via fish migration
     overflowFood: number; // Energy converted to food when fish overflow
+    overflowReproduction: number; // Energy "burned" to trigger overflow reproduction
 
     // Reproduction (internal transfer - visible for understanding)
     reproductionCost: number; // Energy spent by parents
@@ -157,6 +158,12 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                         <span>👶 Parent→Baby Transfer</span>
                         <span style={{ color: '#a78bfa' }}>{formatVal(data.birthEnergy)}⚡</span>
                     </div>
+                    {data.overflowReproduction > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-dim)', marginTop: '6px' }}>
+                            <span>🧬 Overflow Used for Reproduction</span>
+                            <span style={{ color: '#a78bfa' }}>{formatVal(data.overflowReproduction)}⚡</span>
+                        </div>
+                    )}
                 </div>
             )}
 

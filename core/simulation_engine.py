@@ -476,10 +476,6 @@ class SimulationEngine(BaseSimulator):
             return
 
         self.frame_count += 1
-        
-        # Update ecosystem frame counter for energy tracking
-        if self.ecosystem is not None:
-            self.ecosystem.current_frame = self.frame_count
 
         self.time_system.update()
         time_modifier = self.time_system.get_activity_modifier()

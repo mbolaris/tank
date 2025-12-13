@@ -448,22 +448,29 @@ class Fish(Agent):
         if overflow <= 0:
             return
 
-        # Try asexual reproduction first (requires being adult, not pregnant, etc.)
+        # Prefer routing overflow into reproduction rather than spawning food.
+        # Bank the overflow (capped) so it can fund future births even if the fish
+        # is currently too young, pregnant, or on cooldown.
+        from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
+
+        max_bank = self.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
+        banked = self._reproduction_component.bank_overflow_energy(overflow, max_bank=max_bank)
+        remainder = overflow - banked
+
+        if banked > 0 and self.ecosystem is not None:
+            self.ecosystem.record_energy_burn("overflow_reproduction", banked)
+
+        # Try asexual reproduction (requires being adult, not pregnant, etc.).
         if self._reproduction_component.can_asexually_reproduce(
             self.life_stage, self.energy, self.max_energy
         ):
             self._reproduction_component.start_asexual_pregnancy()
-            # Track reproduction initiation for stats
             if self.ecosystem is not None:
                 self.ecosystem.reproduction_manager.record_reproduction_attempt(success=True)
-                # Track the overflow energy that triggered reproduction
-                # This energy is "consumed" to start the pregnancy (doesn't go to baby directly,
-                # but prevents infinite energy accumulation and balances the economy)
-                self.ecosystem.record_energy_burn("overflow_reproduction", overflow)
-            return
 
-        # Can't reproduce - drop overflow as food to maintain energy conservation
-        self._drop_overflow_as_food(overflow)
+        # If the bank is full, spill the remainder as food to maintain energy conservation.
+        if remainder > 0:
+            self._drop_overflow_as_food(remainder)
 
     def _drop_overflow_as_food(self, overflow: float) -> None:
         """Convert overflow energy into a food drop near the fish.
@@ -769,6 +776,18 @@ class Fish(Agent):
         Returns:
             Newborn fish if birth occurred, None otherwise
         """
+        # If we've banked overflow energy and are eligible, start asexual pregnancy automatically.
+        from core.entities.base import LifeStage
+
+        if (
+            not self._reproduction_component.is_pregnant
+            and self._reproduction_component.reproduction_cooldown <= 0
+            and self.life_stage == LifeStage.ADULT
+            and self.energy >= self.max_energy
+            and self._reproduction_component.overflow_energy_bank > 0
+        ):
+            self._reproduction_component.start_asexual_pregnancy()
+
         # Update reproduction state (cooldown and pregnancy timer)
         should_give_birth = self._reproduction_component.update_state()
 
@@ -807,19 +826,19 @@ class Fish(Agent):
         from core.constants import FISH_BABY_SIZE
         baby_max_energy = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.size_modifier
         
-        # Parent transfers exactly what baby needs to start at 100% energy
-        # But can't transfer more than parent has!
-        energy_to_transfer = min(self.energy, baby_max_energy)
-        
-        # If parent can't afford to give baby 100%, the baby will start with less
-        # (This is fine - survival of the fittest)
-        self.energy -= energy_to_transfer  # Parent pays the energy cost
+        bank_used = self._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
+        remaining_needed = baby_max_energy - bank_used
+        parent_transfer = min(self.energy, remaining_needed)
+
+        # If parent can't afford to fill the remaining need, the baby starts with less.
+        self.energy -= parent_transfer
+        baby_initial_energy = bank_used + parent_transfer
 
         # Record reproduction energy for visibility in stats
         # While it's an internal transfer (parent→baby), showing it helps users
         # understand population dynamics and where energy goes during births.
         if self.ecosystem is not None:
-            self.ecosystem.record_reproduction_energy(energy_to_transfer, energy_to_transfer)
+            self.ecosystem.record_reproduction_energy(parent_transfer, baby_initial_energy)
 
         # Create offspring near parent
         offset_x = random.uniform(-30, 30)
@@ -845,7 +864,7 @@ class Fish(Agent):
             ecosystem=self.ecosystem,
             screen_width=self.screen_width,
             screen_height=self.screen_height,
-            initial_energy=energy_to_transfer,  # Baby gets transferred energy
+            initial_energy=baby_initial_energy,  # Baby gets bank + transferred energy
             parent_id=self.fish_id,  # Track lineage for phylogenetic tree
         )
 
@@ -1070,5 +1089,3 @@ class Fish(Agent):
                     self.ecosystem.record_energy_burn("turning", energy_cost)
 
         self.last_direction = new_direction
-
-

@@ -43,6 +43,7 @@ class ReproductionComponent:
         "reproduction_cooldown",
         "mate_genome",
         "_asexual_pregnancy",
+        "overflow_energy_bank",
     )
 
     def __init__(self) -> None:
@@ -52,6 +53,32 @@ class ReproductionComponent:
         self.reproduction_cooldown: int = 0
         self.mate_genome: Optional[Genome] = None
         self._asexual_pregnancy: bool = False
+        self.overflow_energy_bank: float = 0.0
+
+    def bank_overflow_energy(self, amount: float, max_bank: Optional[float] = None) -> float:
+        """Bank overflow energy for future reproduction.
+
+        Returns the amount actually banked (may be less than requested if max_bank is provided).
+        """
+        if amount <= 0:
+            return 0.0
+
+        if max_bank is not None:
+            available = max(0.0, max_bank - self.overflow_energy_bank)
+            banked = min(amount, available)
+        else:
+            banked = amount
+
+        self.overflow_energy_bank += banked
+        return banked
+
+    def consume_overflow_energy_bank(self, max_amount: float) -> float:
+        if max_amount <= 0 or self.overflow_energy_bank <= 0:
+            return 0.0
+
+        used = min(self.overflow_energy_bank, max_amount)
+        self.overflow_energy_bank -= used
+        return used
 
     def can_reproduce(self, life_stage: "LifeStage", energy: float, max_energy: float) -> bool:
         """Check if fish can reproduce.

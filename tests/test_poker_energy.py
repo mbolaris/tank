@@ -2,8 +2,10 @@
 """Test poker energy transfer to ensure loser loses energy and winner gains less."""
 
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/user/tank")
+repo_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(repo_root))
 
 from core.algorithms import GreedyFoodSeeker
 from core.entities import Fish
@@ -185,7 +187,7 @@ def test_poker_energy_transfer():
     print(f"  • Winner gained: {winner_delta:.2f} energy")
     print(f"  • House took: {abs(total_delta):.2f} energy")
     print(f"  • Winner gained {(winner_delta / abs(loser_delta) * 100):.1f}% of loser's loss")
-    return True
+    return
 
 
 def test_multiple_poker_games():
@@ -289,7 +291,7 @@ def test_multiple_poker_games():
 
     assert successful == total, f"Only {successful}/{total} games had proper energy transfer"
     print("✓ ALL GAMES PASSED!")
-    return True
+    return
 
 
 def test_poker_result_fields():
@@ -384,7 +386,7 @@ def test_poker_result_fields():
         print("  Energy changes from poker only:")
         print(f"    Winner would have gained: {poker.result.winner_actual_gain:.2f}")
         print(f"    Loser would have lost: {poker.result.energy_transferred:.2f}")
-        return True
+        return
 
     # Check if winner hit energy cap (in which case overflow was routed to reproduction/food)
     winner_fish = fish1 if poker.result.winner_id == fish1.fish_id else fish2
@@ -398,7 +400,7 @@ def test_poker_result_fields():
         # Still verify loser lost energy
         assert loser_delta < -0.01, f"Loser should have lost energy! Delta: {loser_delta}"
         print("  ✓ Loser correctly lost energy")
-        return True
+        return
 
     # Verify winner_actual_gain matches the actual winner delta (no reproduction case)
     assert (
@@ -419,7 +421,7 @@ def test_poker_result_fields():
     print("  • winner_actual_gain correctly represents what winner gained")
     print("  • energy_transferred correctly represents what loser lost")
     print("  • winner_actual_gain < energy_transferred (house cut working)")
-    return True
+    return
 
 
 if __name__ == "__main__":

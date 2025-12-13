@@ -81,8 +81,6 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const burnOverflowFood = energyBurnRecent.overflow_food ?? 0;
     // Overflow energy that triggered asexual reproduction (this energy is "consumed")
     const burnOverflowReproduction = energyBurnRecent.overflow_reproduction ?? 0;
-    // Combined overflow for display (both pathways)
-    const totalOverflow = burnOverflowFood + burnOverflowReproduction;
 
     // Fish health distribution
     const fishHealthCritical = safeStats.fish_health_critical ?? 0;
@@ -223,7 +221,8 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         turningCost: Math.max(0, burnTurning),
                         fishDeaths: fishDeathEnergyLoss,
                         migrationOut: Math.max(0, burnMigration),
-                        overflowFood: Math.max(0, totalOverflow),
+                        overflowFood: Math.max(0, burnOverflowFood),
+                        overflowReproduction: Math.max(0, burnOverflowReproduction),
 
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
                         pokerHouseCut: Math.max(0, burnPokerHouseCut),
