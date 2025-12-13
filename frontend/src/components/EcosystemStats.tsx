@@ -16,10 +16,13 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     // Use default values if stats is null
     const safeStats = stats ?? ({} as Partial<StatsData>);
     const deathCauseEntries = Object.entries(safeStats.death_causes ?? {});
-    const energySources = safeStats.energy_sources ?? {};
-    const energyFromNectar = Math.round(safeStats.energy_from_nectar ?? energySources.nectar ?? 0);
-    const energyFromLiveFood = Math.round(safeStats.energy_from_live_food ?? energySources.live_food ?? 0);
-    const energyFromFallingFood = Math.round(safeStats.energy_from_falling_food ?? energySources.falling_food ?? 0);
+    // Recent Energy Inflows - use windowed data for Fish Energy Economy panel
+    // This tracks energy CONSUMED BY FISH in the recent time window, not energy spawned into tank
+    const energySourcesRecent = safeStats.energy_sources_recent ?? {};
+    const energyFromNectar = Math.round(energySourcesRecent.nectar ?? 0);
+    const energyFromLiveFood = Math.round(energySourcesRecent.live_food ?? 0);
+    const energyFromFallingFood = Math.round(energySourcesRecent.falling_food ?? 0);
+    const energyFromAutoEval = Math.round(energySourcesRecent.auto_eval ?? 0);
 
     // Energy Sinks Breakdown
     const energyBurnRecent = safeStats.energy_burn_recent ?? {};
@@ -29,14 +32,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const burnMovement = energyBurnRecent.movement ?? 0;
     // Note: Predation energy is now tracked as death_predation, included in fishDeathEnergyLoss
 
+    // Combine base metabolism and existence cost for total life support cost
+    const baseLifeSupport = burnMetabolism + burnExistence;
+
     // Poker Outflows
     const burnPokerHouseCut = energyBurnRecent.poker_house_cut ?? 0;
     const burnPokerPlantLoss = energyBurnRecent.poker_plant_loss ?? 0;
-
-    // Recent Energy Inflows (New logic to fix discrepancy)
-    // We prefer energy_sources_recent (windowed) over energy_sources (lifetime cumulative)
-    // to match energyBurnRecent (windowed).
-    const energySourcesRecent = safeStats.energy_sources_recent ?? {};
 
     // New energy flows
     const burnTurning = energyBurnRecent.turning ?? 0;
@@ -56,10 +57,6 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // Energy delta (true change in fish population energy over window)
     const energyDelta = safeStats.energy_delta;
-
-
-    // Combined Base Metabolism (Existence + Base Rate)
-    const baseLifeSupport = burnExistence + burnMetabolism;
 
     // Poker stats - use windowed data for consistency with other energy flows
     // Poker losses tracked in burns, poker wins tracked in sources
@@ -82,6 +79,10 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // Overflow energy that was converted to food drops
     const burnOverflowFood = energyBurnRecent.overflow_food ?? 0;
+    // Overflow energy that triggered asexual reproduction (this energy is "consumed")
+    const burnOverflowReproduction = energyBurnRecent.overflow_reproduction ?? 0;
+    // Combined overflow for display (both pathways)
+    const totalOverflow = burnOverflowFood + burnOverflowReproduction;
 
     // Fish health distribution
     const fishHealthCritical = safeStats.fish_health_critical ?? 0;
@@ -222,13 +223,14 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                         turningCost: Math.max(0, burnTurning),
                         fishDeaths: fishDeathEnergyLoss,
                         migrationOut: Math.max(0, burnMigration),
-                        overflowFood: Math.max(0, burnOverflowFood),
+                        overflowFood: Math.max(0, totalOverflow),
 
                         pokerTotalPot: Math.max(0, pokerLoopVolume),
                         pokerHouseCut: Math.max(0, burnPokerHouseCut),
                         plantPokerNet: plantPokerNetRecent,
                         soupSpawn: Math.max(0, sourceSoupSpawn),
                         migrationIn: Math.max(0, sourceMigrationIn),
+                        autoEval: Math.max(0, energyFromAutoEval),
 
                         // Reproduction (internal transfer, but visible for understanding)
                         reproductionCost: Math.max(0, burnReproduction),

@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict, deque
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
-from core.constants import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
+from core.constants import ENERGY_STATS_WINDOW_FRAMES, MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import (
     AlgorithmStats,
     EcosystemEvent,
@@ -100,14 +100,17 @@ class EcosystemManager:
         # Track where fish energy increments are coming from (cumulative)
         self.energy_sources: Dict[str, float] = defaultdict(float)
         
-        # Track recent energy gains for source breakdown (rolling window of 300 frames)
-        # Each entry: (frame_number, source, amount)
-        self.recent_energy_gains: deque[Tuple[int, str, float]] = deque(maxlen=10000)
+        # Track recent energy gains for source breakdown (rolling window)
+        # Each entry: (frame_number, dict_of_gains_in_frame)
+        # Storing per-frame aggregates prevents buffer overflow from high event volume
+        self.recent_energy_gains: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=2000)
+        self._current_frame_gains: Dict[str, float] = defaultdict(float)
         self.current_frame: int = 0
 
         # Track energy spent (metabolism, movement, etc.) with same rolling window
         self.energy_burn: Dict[str, float] = defaultdict(float)
-        self.recent_energy_burns: deque[Tuple[int, str, float]] = deque(maxlen=10000)
+        self.recent_energy_burns: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=2000)
+        self._current_frame_burns: Dict[str, float] = defaultdict(float)
 
         # Historical energy snapshots for calculating true ΔEnergy
         # Each entry: (frame_number, total_fish_energy, fish_count)
@@ -167,6 +170,16 @@ class EcosystemManager:
         Args:
             frame: Current frame number
         """
+        # Snapshot energy stats from the PREVIOUS frame before moving to new frame
+        if self.current_frame < frame:
+            if self._current_frame_gains:
+                self.recent_energy_gains.append((self.current_frame, dict(self._current_frame_gains)))
+                self._current_frame_gains.clear()
+            
+            if self._current_frame_burns:
+                self.recent_energy_burns.append((self.current_frame, dict(self._current_frame_burns)))
+                self._current_frame_burns.clear()
+
         self.frame_count = frame
         self.current_frame = frame
 
@@ -505,24 +518,24 @@ class EcosystemManager:
         if amount == 0:
             return
         self.energy_sources[source] += amount
-        self.recent_energy_gains.append((self.current_frame, source, amount))
+        self._current_frame_gains[source] += amount
 
     def record_energy_burn(self, source: str, amount: float) -> None:
         """Accumulate energy spent so we can prove metabolism/movement costs are applied."""
         if amount == 0:
             return
         self.energy_burn[source] += amount
-        self.recent_energy_burns.append((self.current_frame, source, amount))
+        self._current_frame_burns[source] += amount
 
     def get_energy_source_summary(self) -> Dict[str, float]:
         """Return a snapshot of accumulated energy gains."""
         return dict(self.energy_sources)
     
-    def get_recent_energy_breakdown(self, window_frames: int = 300) -> Dict[str, float]:
+    def get_recent_energy_breakdown(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, float]:
         """Get energy source breakdown over recent frames.
         
         Args:
-            window_frames: Number of recent frames to include (default 300 = ~10 seconds at 30fps)
+            window_frames: Number of recent frames to include (default 1800 = 60 seconds at 30fps)
             
         Returns:
             Dictionary mapping source names to net energy gained in the window
@@ -530,22 +543,32 @@ class EcosystemManager:
         cutoff_frame = self.current_frame - window_frames
         recent_totals: Dict[str, float] = defaultdict(float)
         
-        # Sum up energy from recent frames
-        for frame, source, amount in self.recent_energy_gains:
+        # Sum up energy from recent history (stored as per-frame dicts)
+        for frame, gains in self.recent_energy_gains:
             if frame >= cutoff_frame:
-                recent_totals[source] += amount
+                for source, amount in gains.items():
+                    recent_totals[source] += amount
+
+        # Include partial current frame
+        for source, amount in self._current_frame_gains.items():
+            recent_totals[source] += amount
 
         return dict(recent_totals)
 
-    def get_recent_energy_burn(self, window_frames: int = 300) -> Dict[str, float]:
+    def get_recent_energy_burn(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, float]:
         """Get energy consumption breakdown over recent frames."""
 
         cutoff_frame = self.current_frame - window_frames
         recent_totals: Dict[str, float] = defaultdict(float)
 
-        for frame, source, amount in self.recent_energy_burns:
+        for frame, burns in self.recent_energy_burns:
             if frame >= cutoff_frame:
-                recent_totals[source] += amount
+                for source, amount in burns.items():
+                    recent_totals[source] += amount
+
+        # Include partial current frame
+        for source, amount in self._current_frame_burns.items():
+            recent_totals[source] += amount
 
         return dict(recent_totals)
 
@@ -564,7 +587,7 @@ class EcosystemManager:
             self.energy_history.append((self.current_frame, total_fish_energy, fish_count))
             self._last_snapshot_frame = self.current_frame
 
-    def get_energy_delta(self, window_frames: int = 1800) -> Dict[str, Any]:
+    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, Any]:
         """Calculate the true change in fish population energy over a time window.
 
         This returns the actual delta in total fish energy, which may differ

@@ -456,6 +456,10 @@ class Fish(Agent):
             # Track reproduction initiation for stats
             if self.ecosystem is not None:
                 self.ecosystem.reproduction_manager.record_reproduction_attempt(success=True)
+                # Track the overflow energy that triggered reproduction
+                # This energy is "consumed" to start the pregnancy (doesn't go to baby directly,
+                # but prevents infinite energy accumulation and balances the economy)
+                self.ecosystem.record_energy_burn("overflow_reproduction", overflow)
             return
 
         # Can't reproduce - drop overflow as food to maintain energy conservation

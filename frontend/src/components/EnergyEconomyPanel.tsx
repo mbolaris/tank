@@ -8,6 +8,7 @@ interface EnergyFlowData {
     plantNectar: number;
     soupSpawn: number; // Energy from spontaneous/system fish spawns (true inflow)
     migrationIn: number; // Energy entering tank via fish migration
+    autoEval: number; // Energy rewarded from auto-evaluation benchmarks
 
     // Sinks (Out) - True external outflows only
     baseMetabolism: number;
@@ -43,7 +44,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
     const plantGain = Math.max(0, data.plantPokerNet);
     const plantLoss = Math.max(0, -data.plantPokerNet);
 
-    const totalIn = data.fallingFood + data.liveFood + data.plantNectar + plantGain + data.soupSpawn + data.migrationIn;
+    const totalIn = data.fallingFood + data.liveFood + data.plantNectar + plantGain + data.soupSpawn + data.migrationIn + data.autoEval;
     const totalOut = data.baseMetabolism + data.traitMaintenance + data.movementCost + data.turningCost + data.fishDeaths + data.migrationOut + data.pokerHouseCut + data.overflowFood + plantLoss;
     const netExternalFlow = totalIn - totalOut;
 
@@ -117,6 +118,7 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                     <FlowBar label="Falling Food" value={data.fallingFood} color="#f59e0b" icon="🍽️" total={totalIn} />
                     <FlowBar label="Nectar" value={data.plantNectar} color="#ec4899" icon="🌸" total={totalIn} />
                     {plantGain > 0 && <FlowBar label="Plant Poker" value={plantGain} color="#10b981" icon="🌿" total={totalIn} />}
+                    {data.autoEval > 0 && <FlowBar label="Auto-Eval Reward" value={data.autoEval} color="#6366f1" icon="🏆" total={totalIn} />}
                     <FlowBar label="Soup Spawns" value={data.soupSpawn} color="#a3e635" icon="🥣" total={totalIn} />
                     <FlowBar label="Immigration" value={data.migrationIn} color="#86efac" icon="🛬" total={totalIn} />
 
