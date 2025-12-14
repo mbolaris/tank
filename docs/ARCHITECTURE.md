@@ -20,9 +20,12 @@ Tank is an advanced artificial life (ALife) ecosystem simulation featuring param
 ```
 tank/
 ├── core/                          # Pure Python simulation (no UI dependencies)
-│   ├── entities.py               # Fish, Plant, Food entities
+│   ├── entities/                 # Entity classes (Fish, Plant, Food, etc.)
+│   ├── systems/                  # Simulation systems (BaseSystem pattern)
+│   │   ├── base.py              # BaseSystem abstract class and Protocol
+│   │   └── ...                  # Future system implementations
 │   ├── ecosystem.py              # Population tracking & statistics
-│   ├── genetics.py               # Genome, mutation, crossover
+│   ├── genetics/                 # Genome, mutation, crossover
 │   ├── behavior_algorithms.py   # Algorithm registry
 │   ├── algorithms/               # 12+ behavior implementations
 │   │   ├── base.py
@@ -32,9 +35,14 @@ tank/
 │   │   ├── energy_management.py
 │   │   └── territory.py
 │   ├── environment.py            # Spatial queries
-│   ├── time_system.py            # Day/night cycles
-│   ├── collision_system.py       # Collision detection
+│   ├── time_system.py            # Day/night cycles (extends BaseSystem)
+│   ├── collision_system.py       # Collision detection (extends BaseSystem)
+│   ├── reproduction_system.py    # Reproduction logic (extends BaseSystem)
+│   ├── poker_system.py           # Poker events (extends BaseSystem)
+│   ├── events.py                 # Event bus for decoupled communication
 │   ├── simulators/               # Base simulator classes
+│   │   └── base_simulator.py    # BaseSimulator abstract class
+│   ├── simulation_engine.py      # Main engine with System Registry
 │   └── constants.py              # Configuration
 │
 ├── backend/                       # FastAPI WebSocket server
@@ -265,6 +273,46 @@ python main.py --headless --max-frames 10000
 
 ## Design Patterns
 
+### System Registry Pattern (NEW)
+The simulation uses a **System Registry** for consistent management of all simulation subsystems:
+
+```
+SimulationEngine
+    │
+    ├─ _systems: List[BaseSystem]  (registered in execution order)
+    │   ├─ TimeSystem          - Day/night cycle management
+    │   ├─ CollisionSystem     - Collision detection and handling
+    │   ├─ ReproductionSystem  - Asexual reproduction logic
+    │   └─ PokerSystem         - Poker game events and history
+    │
+    ├─ get_systems()           - List all registered systems
+    ├─ get_system(name)        - Get system by name
+    ├─ get_systems_debug_info() - Debug info from all systems
+    └─ set_system_enabled()    - Enable/disable systems at runtime
+```
+
+**Benefits:**
+- **Uniform Interface**: All systems extend `BaseSystem` with consistent `update(frame)`, `get_debug_info()`, and `enabled` property
+- **Easy Extension**: Add new systems by creating a class extending `BaseSystem` and registering it
+- **Runtime Control**: Enable/disable systems without code changes
+- **Debugging**: Unified debug info collection across all systems
+
+### BaseSystem Abstract Class
+All simulation systems inherit from `BaseSystem` (`core/systems/base.py`):
+
+```python
+class BaseSystem(ABC):
+    """Abstract base class for all simulation systems."""
+
+    @property
+    def name(self) -> str: ...        # Human-readable name
+    @property
+    def enabled(self) -> bool: ...    # Runtime enable/disable
+    def update(self, frame: int): ... # Per-frame logic
+    def get_debug_info(self) -> Dict: # Debug statistics
+    def _do_update(self, frame: int): # Subclass implementation
+```
+
 ### Template Method Pattern
 `BaseSimulator` defines the simulation algorithm skeleton:
 - `handle_collisions()`: Collision detection and response
@@ -280,9 +328,9 @@ Different movement strategies for entities:
 
 ### Component-Based Architecture
 Fish behavior is modular:
-- Energy system
-- Reproduction system
-- Memory system
+- Energy system (EnergyComponent)
+- Reproduction system (ReproductionComponent)
+- Lifecycle system (LifecycleComponent)
 - Movement system
 
 ## Separation of Concerns
