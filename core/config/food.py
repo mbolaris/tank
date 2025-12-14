@@ -12,8 +12,8 @@ AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 1500  # Quadruple spawn rate below this t
 AUTO_FOOD_LOW_ENERGY_THRESHOLD = 3500  # Triple spawn rate below this total energy
 AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500  # Reduce spawn rate above this total energy
 AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500  # Further reduce spawn rate above this total energy
-AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 15  # Reduce spawn rate above this fish count
-AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 20  # Further reduce spawn rate above this fish count
+AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80  # Reduce spawn rate above this fish count
+AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 90  # Further reduce spawn rate above this fish count
 LIVE_FOOD_SPAWN_CHANCE = 0.4  # 40% of auto-spawned food will be live/active
 
 # Food type definitions with nutrient properties

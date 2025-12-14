@@ -113,7 +113,13 @@ class Fish(Agent):
         # Life cycle - managed by LifecycleComponent for better code organization
         from core.fish.lifecycle_component import LifecycleComponent
 
-        max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.size_modifier)  # Larger fish live longer
+        # Calculate max_age using both size_modifier (legacy) and new lifespan_modifier
+        # This decouples size from age, allowing small but long-lived fish
+        lifespan_mult = 1.0
+        if hasattr(self.genome.physical, "lifespan_modifier"):
+            lifespan_mult = self.genome.physical.lifespan_modifier.value
+            
+        max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.size_modifier * lifespan_mult)
         self._lifecycle_component = LifecycleComponent(max_age, self.genome.size_modifier)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization

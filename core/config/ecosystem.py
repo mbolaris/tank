@@ -4,7 +4,7 @@
 NUM_SCHOOLING_FISH = 10  # Start with 10 fish
 
 # Target stable population for ecosystem balance
-TARGET_POPULATION = 15
+TARGET_POPULATION = 80
 
 # Ecosystem Constants
 TOTAL_ALGORITHM_COUNT = 50  # Total number of behavior algorithms available

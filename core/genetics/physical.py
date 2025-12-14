@@ -23,6 +23,7 @@ PHYSICAL_TRAIT_SPECS: List[TraitSpec] = [
     TraitSpec("eye_size", 0.7, 1.3),
     TraitSpec("pattern_intensity", 0.0, 1.0),
     TraitSpec("pattern_type", 0, FISH_PATTERN_COUNT - 1, discrete=True),
+    TraitSpec("lifespan_modifier", 0.6, 1.4),
 ]
 
 
@@ -42,6 +43,7 @@ class PhysicalTraits:
     eye_size: GeneticTrait[float]
     pattern_intensity: GeneticTrait[float]
     pattern_type: GeneticTrait[int]
+    lifespan_modifier: GeneticTrait[float]
 
     @classmethod
     def random(cls, rng: pyrandom.Random) -> "PhysicalTraits":
