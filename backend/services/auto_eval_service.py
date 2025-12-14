@@ -220,6 +220,12 @@ class AutoEvalService:
                 "performance_history": list(self.history),
             }
 
+            # Limit history size to prevent unbounded growth
+            MAX_HISTORY_ITEMS = 50
+            if len(self.history) > MAX_HISTORY_ITEMS:
+                self.history = self.history[-MAX_HISTORY_ITEMS:]
+
+
     def get_stats(self) -> Optional[Dict[str, Any]]:
         """Return current stats."""
         with self.lock:
