@@ -152,21 +152,23 @@ class FractalPlant(Agent):
 
     def update(
         self,
-        elapsed_time: int,
+        frame_count: int,
         time_modifier: float = 1.0,
         time_of_day: Optional[float] = None,
-    ) -> Optional["PlantNectar"]:
+    ) -> "EntityUpdateResult":
         """Update the plant state.
 
         Args:
-            elapsed_time: Time elapsed since start
+            frame_count: Time elapsed since start
             time_modifier: Time-based modifier (day/night effects)
             time_of_day: Normalized time of day (0.0-1.0)
 
         Returns:
-            PlantNectar if produced, None otherwise
+            EntityUpdateResult containing nectar if produced
         """
-        super().update(elapsed_time)
+        from core.entities.base import EntityUpdateResult
+        
+        super().update(frame_count, time_modifier, time_of_day)
 
         self.age += 1
 
@@ -197,7 +199,11 @@ class FractalPlant(Agent):
         # Check if can produce nectar
         nectar = self._try_produce_nectar(time_of_day)
 
-        return nectar
+        result = EntityUpdateResult()
+        if nectar:
+            result.spawned_entities.append(nectar)
+
+        return result
 
     def _collect_energy(self, time_modifier: float = 1.0) -> None:
         """Collect passive energy.
@@ -588,10 +594,13 @@ class PlantNectar(Food):
             self.pos.x = self.source_plant.pos.x + self.source_plant.width / 2 - self.width / 2
             self.pos.y = base_y - self.source_plant.height * self.relative_y_offset_pct - self.height / 2
 
-    def update(self, elapsed_time: int) -> None:
+    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update nectar state."""
-        super().update(elapsed_time)
+        from core.entities.base import EntityUpdateResult
+        
+        super().update(frame_count, time_modifier, time_of_day)
         self.update_position()
+        return EntityUpdateResult()
 
     def get_energy_value(self) -> float:
         """Get energy provided when consumed.

@@ -2,7 +2,19 @@
 
 import random
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple, Any
+from dataclasses import dataclass, field
+
+@dataclass
+class EntityUpdateResult:
+    """Result of an entity update cycle.
+    
+    Attributes:
+        spawned_entities: List of new entities spawned by this entity
+        events: List of events emitted by this entity (e.g. death, interaction)
+    """
+    spawned_entities: List["Agent"] = field(default_factory=list)
+    events: List[Any] = field(default_factory=list)
 
 from core.constants import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE, DEFAULT_AGENT_SIZE
 from core.math_utils import Vector2
@@ -183,9 +195,17 @@ class Agent:
 
         return False
 
-    def update(self, elapsed_time: int) -> None:
-        """Update the agent state (pure logic, no rendering)."""
+    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+        """Update the agent state (pure logic, no rendering).
+        
+        Returns:
+            EntityUpdateResult containing any spawned entities or events.
+        """
         self.update_position()
+        return EntityUpdateResult()
+
+
+
 
     def add_random_velocity_change(self, probabilities: List[float], divisor: float) -> None:
         """Add a random direction change to the agent."""
@@ -270,6 +290,10 @@ class Agent:
         if group not in self._groups:
             self._groups.append(group)
 
+    def is_dead(self) -> bool:
+        """Check if the agent is dead."""
+        return False
+
     def kill(self) -> None:
         """Remove this agent from all groups."""
         for group in self._groups[:]:  # Copy list to avoid modification during iteration
@@ -278,8 +302,14 @@ class Agent:
         self._groups.clear()
 
 
+
+
 class Castle(Agent):
     """A castle entity (decorative, pure logic)."""
+
+    def is_dead(self) -> bool:
+        return False
+
 
     def __init__(
         self,

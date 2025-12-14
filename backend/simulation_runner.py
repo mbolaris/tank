@@ -93,12 +93,12 @@ class SimulationRunner:
         self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
 
         # Ongoing auto-evaluation against static baseline
-        self.auto_eval_history: List[Dict[str, Any]] = []
-        self.auto_eval_stats: Optional[Dict[str, Any]] = None
-        self.auto_eval_running: bool = False
-        self.auto_eval_interval_seconds = 15.0
-        self.last_auto_eval_time = 0.0
-        self.auto_eval_lock = threading.Lock()
+        from backend.services.auto_eval_service import AutoEvalService
+        self.auto_eval_service = AutoEvalService(self.world)
+        self.auto_eval_running = False
+        self.auto_eval_interval_seconds = 15.0  # Kept for compatibility if needed
+        self.last_auto_eval_time = 0.0          # Kept for compatibility if needed
+        self.auto_eval_lock = self.auto_eval_service.lock  # Alias lock if needed, or just rely on service
 
         # Migration support
         self.tank_id = tank_id
@@ -198,54 +198,18 @@ class SimulationRunner:
         Returns:
             Dictionary with fish player data
         """
-        algo_name = "Unknown"
-        if fish.genome.behavior_algorithm:
-            algo_name = fish.genome.behavior_algorithm.algorithm_id
-        genome_data = self._get_fish_genome_data(fish)
-        player_data = {
-            "fish_id": fish.fish_id,
-            "name": f"{algo_name[:15]} (Gen {fish.generation})",
-            "generation": fish.generation,
-            "energy": fish.energy,
-            "algorithm": algo_name,
-            "genome_data": genome_data,
-        }
-
-        if include_aggression:
-            player_data["aggression"] = getattr(fish.genome, "aggression", 0.5)
-
-        return player_data
+        from core.serializers import FishSerializer
+        return FishSerializer.to_player_data(fish, include_aggression)
 
     def _create_plant_player_data(self, plant: FractalPlant) -> Dict[str, Any]:
         """Create benchmark player metadata for a plant."""
-
-        return {
-            "plant_id": plant.plant_id,
-            "name": f"Plant #{plant.plant_id}",
-            "generation": getattr(plant, "generation", None),
-            "energy": plant.energy,
-            "species": "plant",
-            "poker_strategy": PlantPokerStrategyAdapter.from_genome(plant.genome),
-        }
+        from core.serializers import PlantSerializer
+        return PlantSerializer.to_player_data(plant)
 
     def _get_fish_genome_data(self, fish: Fish) -> Optional[Dict[str, Any]]:
         """Extract visual genome data for a fish to mirror tank rendering."""
-
-        if not hasattr(fish, "genome"):
-            return None
-
-        return {
-            "speed": fish.genome.speed_modifier,
-            "size": getattr(fish, "size", getattr(fish.genome, "size_modifier", 1.0)),
-            "color_hue": fish.genome.color_hue,
-            "template_id": fish.genome.template_id,
-            "fin_size": fish.genome.fin_size,
-            "tail_size": fish.genome.tail_size,
-            "body_aspect": fish.genome.body_aspect,
-            "eye_size": fish.genome.eye_size,
-            "pattern_intensity": fish.genome.pattern_intensity,
-            "pattern_type": fish.genome.pattern_type,
-        }
+        from core.serializers import FishSerializer
+        return FishSerializer.to_genome_data(fish)
 
     def start(self, start_paused: bool = False):
         """Start the simulation in a background thread.
@@ -329,137 +293,17 @@ class SimulationRunner:
 
     def _start_auto_evaluation_if_needed(self) -> None:
         """Periodically benchmark top fish against the static evaluator."""
+        if hasattr(self, "auto_eval_service"):
+             self.auto_eval_service.update()
+             if self.auto_eval_service.running != self.auto_eval_running:
+                 # Sync running state if needed, or just rely on invalidating cache when done
+                 if not self.auto_eval_service.running and self.auto_eval_running:
+                     self._invalidate_state_cache()
+                 self.auto_eval_running = self.auto_eval_service.running
 
-        now = time.time()
-        if self.auto_eval_running or (now - self.last_auto_eval_time) < self.auto_eval_interval_seconds:
-            return
+    # Original _run_auto_evaluation and _reward_auto_eval_winners are removed
+    # as they are now handled by the AutoEvalService.
 
-        with self.lock:
-            fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
-            leaderboard = self.world.ecosystem.get_poker_leaderboard(
-                fish_list=fish_list, limit=3, sort_by="net_energy"
-            )
-            plant_list = [e for e in self.world.entities_list if isinstance(e, FractalPlant)]
-
-        if not leaderboard:
-            leaderboard = []
-
-        fish_players = []
-        for i, entry in enumerate(leaderboard):
-            fish = next(
-                (f for f in fish_list if f.fish_id == entry["fish_id"]),
-                fish_list[i] if i < len(fish_list) else None,
-            )
-            if fish is None:
-                continue
-
-            # Ensure fish has a poker strategy
-            if fish.genome.poker_strategy_algorithm is None:
-                from core.poker.strategy.implementations import get_random_poker_strategy
-                fish.genome.poker_strategy_algorithm = get_random_poker_strategy()
-                logger.info(f"Assigned random poker strategy to fish #{fish.fish_id} for auto-eval")
-
-            fish_name = f"{entry['algorithm'][:15]} (Gen {entry['generation']}) #{entry['fish_id']}"
-            fish_players.append(
-                {
-                    "name": fish_name,
-                    "fish_id": fish.fish_id,
-                    "generation": fish.generation,
-                    "poker_strategy": fish.genome.poker_strategy_algorithm,
-                }
-            )
-
-        if not fish_players:
-            # Still allow benchmarking if we have strong plants even when fish leaderboard is empty
-            pass
-
-        plant_players: List[Dict[str, Any]] = []
-        if plant_list:
-            ranked_plants = sorted(
-                plant_list,
-                key=lambda p: (
-                    getattr(p, "poker_wins", 0),
-                    getattr(p.genome, "fitness_score", 0.0),
-                    p.energy,
-                ),
-                reverse=True,
-            )
-            for plant in ranked_plants[:3]:
-                plant_players.append(self._create_plant_player_data(plant))
-
-        benchmark_players = fish_players + plant_players
-        if not benchmark_players:
-            return
-
-        self.auto_eval_running = True
-        threading.Thread(
-            target=self._run_auto_evaluation,
-            args=(benchmark_players,),
-            name="auto_eval_thread",
-            daemon=True,
-        ).start()
-
-    def _run_auto_evaluation(self, benchmark_players: List[Dict[str, Any]]) -> None:
-        """Execute a background auto-evaluation series.
-
-        Uses position-rotated duplicate deals for reduced variance evaluation.
-        Each deal is replayed N times (N = number of players) with rotated
-        seat positions so every player experiences every position with the same cards.
-        """
-
-        try:
-            game_id = str(uuid.uuid4())
-            standard_energy = 500.0
-            # Increased from 2000 to 5000 hands for reduced variance
-            # With position rotation, this means ~5000 unique deals played N times each
-            max_hands = 5000
-
-            auto_eval = AutoEvaluatePokerGame(
-                game_id=game_id,
-                player_pool=benchmark_players,
-                standard_energy=standard_energy,
-                max_hands=max_hands,
-                small_blind=5.0,
-                big_blind=10.0,
-                position_rotation=True,  # Enable position rotation for fair evaluation
-            )
-
-            final_stats = auto_eval.run_evaluation()
-
-            # Reward winners by transferring their net winnings to their actual energy
-            self._reward_auto_eval_winners(benchmark_players, final_stats)
-
-            with self.auto_eval_lock:
-                starting_hand = self.auto_eval_history[-1]["hand"] if self.auto_eval_history else 0
-
-                # Only record the final result of the game, not every hand
-                if final_stats.performance_history:
-                    last_snapshot = final_stats.performance_history[-1]
-                    adjusted_snapshot = {**last_snapshot, "hand": last_snapshot["hand"] + starting_hand}
-                    self.auto_eval_history.append(adjusted_snapshot)
-
-                players_with_win_rate = []
-                for player in final_stats.players:
-                    hands_played = final_stats.hands_played or 1
-                    win_rate = round((player.get("hands_won", 0) / hands_played) * 100, 1)
-                    players_with_win_rate.append({**player, "win_rate": win_rate})
-
-                self.auto_eval_stats = {
-                    "hands_played": final_stats.hands_played,
-                    "hands_remaining": final_stats.hands_remaining,
-                    "game_over": final_stats.game_over,
-                    "winner": final_stats.winner,
-                    "reason": final_stats.reason,
-                    "players": players_with_win_rate,
-                    "performance_history": list(self.auto_eval_history),
-                }
-
-            self._invalidate_state_cache()
-        except Exception as e:
-            logger.error(f"Auto-evaluation thread failed: {e}", exc_info=True)
-        finally:
-            self.last_auto_eval_time = time.time()
-            self.auto_eval_running = False
 
     def _reward_auto_eval_winners(self, benchmark_players: List[Dict[str, Any]], final_stats) -> None:
         """Reward Fish/Plants that won energy in auto-evaluation by adding it to their actual energy.
@@ -787,34 +631,27 @@ class SimulationRunner:
 
     def get_full_evaluation_history(self) -> List[Dict[str, Any]]:
         """Return the full auto-evaluation history."""
-        with self.auto_eval_lock:
-            return list(self.auto_eval_history)
+        if hasattr(self, "auto_eval_service"):
+             return self.auto_eval_service.get_history()
+        return []
 
     def _collect_auto_eval(self) -> Optional[AutoEvaluateStatsPayload]:
-        with self.auto_eval_lock:
-            if not self.auto_eval_stats:
-                return None
+        if not hasattr(self, "auto_eval_service"):
+            return None
 
-            try:
-                stats_copy = self.auto_eval_stats.copy()
-                if "performance_history" in stats_copy:
-                    history = stats_copy["performance_history"]
-                    if len(history) > 50:
-                        stats_copy["performance_history"] = history[-50:]
-                allowed_keys = {
-                    "hands_played",
-                    "hands_remaining",
-                    "players",
-                    "game_over",
-                    "winner",
-                    "reason",
-                    "performance_history",
-                }
-                filtered = {k: v for k, v in stats_copy.items() if k in allowed_keys}
-                return AutoEvaluateStatsPayload(**filtered)
-            except Exception:
-                logger.error("Failed to serialize auto evaluation stats", exc_info=True)
-                return None
+        stats = self.auto_eval_service.get_stats()
+        if not stats:
+            return None
+
+        return AutoEvaluateStatsPayload(
+            hands_played=stats["hands_played"],
+            hands_remaining=stats["hands_remaining"],
+            game_over=stats["game_over"],
+            winner=stats["winner"],
+            reason=stats["reason"],
+            players=stats["players"],
+            performance_history=stats["performance_history"],
+        )
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
         """Convert an entity to a lightweight snapshot for serialization.

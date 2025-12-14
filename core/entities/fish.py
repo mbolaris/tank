@@ -914,22 +914,20 @@ class Fish(Agent):
             self.pos.y = self.screen_height - self.height
             self.vel.y = -abs(self.vel.y)  # Bounce up
 
-    def update(self, elapsed_time: int, time_modifier: float = 1.0) -> Optional["Fish"]:
+    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update the fish state.
 
         Args:
-            elapsed_time: Time elapsed since start
+            frame_count: Time elapsed since start
             time_modifier: Time-based modifier (e.g., for day/night)
+            time_of_day: Normalized time of day (0.0-1.0)
 
         Returns:
-            Newborn fish if reproduction occurred, None otherwise
-
-        Performance optimizations:
-        - Inline simple operations
-        - Batch infrequent operations (memory cleanup, learning decay)
-        - Cache frequently accessed properties
+            EntityUpdateResult containing newborn fish if reproduction occurred
         """
-        super().update(elapsed_time)
+        from core.entities.base import EntityUpdateResult
+        
+        super().update(frame_count, time_modifier, time_of_day)
 
         # Age - managed by LifecycleComponent
         self._lifecycle_component.increment_age()
@@ -947,8 +945,16 @@ class Fish(Agent):
         if age % (FRAME_RATE * 2) == 0:
             self.clean_old_memories()
 
-        # Energy
+        # Energy consumption
         self.consume_energy(time_modifier)
+
+        # Handle death
+        if self.is_dead():
+            # Create update result with death event if desired, or just empty
+            # For now, SimulationEngine handles death by checking is_dead() separately
+            # but we could move that here.
+            # Keeping strictly to refactoring return type for now.
+            return EntityUpdateResult()
 
         previous_direction = self.last_direction
 
@@ -982,7 +988,10 @@ class Fish(Agent):
         if self.poker_cooldown > 0:
             self.poker_cooldown -= 1
 
-        return newborn
+        result = EntityUpdateResult()
+        if newborn:
+            result.spawned_entities.append(newborn)
+        return result
 
     def eat(self, food: "Food") -> None:
         """Eat food and gain energy.

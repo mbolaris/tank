@@ -176,25 +176,29 @@ class Plant(Agent):
         self.current_food_count = max(0, self.current_food_count - 1)
 
     def update(
-        self, elapsed_time: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
-    ) -> Optional["Food"]:
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the plant.
 
         Args:
-            elapsed_time: Time elapsed since start
+            frame_count: Time elapsed since start
             time_modifier: Time-based modifier (higher during day)
             time_of_day: Normalized time of day (0.0-1.0) for nectar biasing
 
         Returns:
-            New food item if produced, None otherwise
+            EntityUpdateResult containing new food item if produced
         """
-        super().update(elapsed_time)
+        from core.entities.base import EntityUpdateResult
+
+        super().update(frame_count, time_modifier, time_of_day)
 
         # Check food production
+        result = EntityUpdateResult()
         if self.should_produce_food(time_modifier):
-            return self.produce_food(time_of_day)
+            food = self.produce_food(time_of_day)
+            result.spawned_entities.append(food)
 
-        return None
+        return result
 class Food(Agent):
     """A food entity with variable nutrients (pure logic, no rendering).
 
@@ -206,6 +210,11 @@ class Food(Agent):
 
     # Food type definitions (imported from constants.py)
     FOOD_TYPES = FOOD_TYPES
+
+    def is_dead(self) -> bool:
+        """Check if food is dead (it's not)."""
+        return False
+
 
     def __init__(
         self,
@@ -294,17 +303,22 @@ class Food(Agent):
         """Check if food is fully consumed."""
         return self.energy <= 0.1  # Small threshold for float comparison
 
-    def update(self, elapsed_time: int) -> None:
+    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update the food state."""
+        from core.entities.base import EntityUpdateResult
+
         if self.is_stationary:
             # Stationary food stays attached to plant
             if self.source_plant is not None:
                 anchor_x = self.source_plant.pos.x + self.source_plant.width / 2 - self.width / 2
                 anchor_y = self.source_plant.pos.y - self.height
                 self.pos.update(anchor_x, anchor_y)
+            return EntityUpdateResult()
         else:
-            super().update(elapsed_time)
+            # Call super with all arguments
+            super().update(frame_count, time_modifier, time_of_day)
             self.sink()
+            return EntityUpdateResult()
 
     def sink(self) -> None:
         """Make the food sink at a rate based on its type."""
@@ -370,12 +384,15 @@ class LiveFood(Food):
         """Check if this LiveFood has exceeded its lifespan."""
         return self.age >= self.max_lifespan
 
-    def update(self, elapsed_time: int) -> None:
+    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+        from core.entities.base import EntityUpdateResult
+        
         self.age += 1
         self._apply_wander()
         self._avoid_nearby_fish()
         self._limit_speed()
         self.update_position()
+        return EntityUpdateResult()
 
     def _apply_wander(self) -> None:
         self.wander_timer -= 1

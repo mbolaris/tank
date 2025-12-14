@@ -66,12 +66,18 @@ class Crab(Agent):
         energy_gained = food.get_energy_value()
         self.energy = min(self.max_energy, self.energy + energy_gained)
 
-    def update(self, elapsed_time: int) -> None:
+    def is_dead(self) -> bool:
+        """Check if crab is dead (currently crabs don't die)."""
+        return False
+
+    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update the crab state.
         
         Simple patrol behavior: crab walks back and forth across the tank bottom.
         Eating is handled by the collision system when the crab bumps into food/fish.
         """
+        from core.entities.base import EntityUpdateResult
+
         # Update cooldown
         if self.hunt_cooldown > 0:
             self.hunt_cooldown -= 1
@@ -89,4 +95,6 @@ class Crab(Agent):
         self.vel.y = 0
 
         # Call parent update which handles position updates and boundary bouncing
-        super().update(elapsed_time)
+        super().update(frame_count, time_modifier, time_of_day)
+        
+        return EntityUpdateResult()

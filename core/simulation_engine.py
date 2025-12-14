@@ -507,64 +507,59 @@ class SimulationEngine(BaseSimulator):
 
         # Performance: Iterate a copy but use type ID comparison when possible
         for entity in list(self.entities_list):
-            entity_type = type(entity)
-
-            if entity_type is Fish or isinstance(entity, Fish):
-                newborn = entity.update(self.frame_count, time_modifier)
-                if newborn is not None and ecosystem is not None:
-                    if ecosystem.can_reproduce(fish_count):
-                        newborn.register_birth()
-                        new_entities.append(newborn)
-                        fish_count += 1  # Track new births within frame
-
-                if entity.is_dead():
-                    self.record_fish_death(entity)
-
-            elif entity_type is Plant or isinstance(entity, Plant):
-                food = entity.update(self.frame_count, time_modifier, time_of_day)
-                if food is not None:
-                    new_entities.append(food)
-
-            elif FRACTAL_PLANTS_ENABLED and hasattr(entity, 'plant_id'):
-                # FractalPlant handling
-                if isinstance(entity, FractalPlant):
-                    nectar = entity.update(self.frame_count, time_modifier, time_of_day)
-                    if nectar is not None:
-                        new_entities.append(nectar)
-
-                    # Remove dead plants
-                    if entity.is_dead():
-                        entity.die()  # Release root spot
-                        entities_to_remove.append(entity)
-                        logger.debug(f"FractalPlant #{entity.plant_id} died at age {entity.age}")
-
-                elif isinstance(entity, PlantNectar):
-                    entity.update(self.frame_count)
-
-                    # Check if nectar was consumed (handled in collision detection)
-                    if entity.is_consumed():
-                        entities_to_remove.append(entity)
-
-            else:
-                entity.update(self.frame_count)
-
-            self.keep_entity_on_screen(entity)
-
-            # Remove regular food that sinks to bottom, but NOT live food (which swims freely)
-            # Performance: Use type() check first (fast) before isinstance() (slower)
-            if entity_type is Food or (isinstance(entity, Food) and not isinstance(entity, LiveFood)):
-                if entity.pos.y >= SCREEN_HEIGHT - entity.height:
-                    entities_to_remove.append(entity)
             
-            # Remove expired LiveFood to prevent unbounded accumulation
-            elif entity_type is LiveFood or isinstance(entity, LiveFood):
-                if entity.is_expired():
-                    entities_to_remove.append(entity)
+            # Standardized update call
+            result = entity.update(self.frame_count, time_modifier, time_of_day)
+            
+            # Handle spawned entities (reproduction, food drops, nectar)
+            if result.spawned_entities:
+                for spawned in result.spawned_entities:
+                    is_added = False
+                    
+                    # Special handling for Fish reproduction (population cap)
+                    if isinstance(spawned, Fish):
+                         if ecosystem is not None and ecosystem.can_reproduce(fish_count):
+                             spawned.register_birth()
+                             new_entities.append(spawned)
+                             fish_count += 1
+                             is_added = True
+                    else:
+                        # Plants, Food, Nectar - just add them
+                        new_entities.append(spawned)
+                        is_added = True
 
+            # Handle events (if any)
+            # Currently we don't have events implementation fully wired in SimulationEngine
+            # but this is where we would process result.events
+
+            # Handle death
+            if entity.is_dead():
+                if isinstance(entity, Fish):
+                    self.record_fish_death(entity)
+                elif isinstance(entity, FractalPlant):
+                    entity.die()  # Release root spot
+                    entities_to_remove.append(entity)
+                    logger.debug(f"FractalPlant #{entity.plant_id} died at age {entity.age}")
+                elif isinstance(entity, PlantNectar):
+                     # Nectar consumed or invalid
+                     entities_to_remove.append(entity)
+                
+            # Handle removal conditions for Food
+            elif isinstance(entity, Food):
+                 if isinstance(entity, LiveFood):
+                     if entity.is_expired():
+                         entities_to_remove.append(entity)
+                 else:
+                     # Standard food sinks
+                     if entity.pos.y >= SCREEN_HEIGHT - entity.height:
+                         entities_to_remove.append(entity)
+            
+            self.keep_entity_on_screen(entity)
+                            
         # Batch entity removals (more efficient than removing during iteration)
         for entity in entities_to_remove:
             self.remove_entity(entity)
-
+            
         for new_entity in new_entities:
             self.add_entity(new_entity)
 
@@ -581,7 +576,7 @@ class SimulationEngine(BaseSimulator):
         # Uses spatial grid for efficiency
         self.handle_collisions()
 
-        # Mate finding
+        # Mate finding (Legacy/Poker based reproduction handling)
         self.handle_reproduction()
 
         if ecosystem is not None:
