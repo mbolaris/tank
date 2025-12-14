@@ -273,17 +273,18 @@ python main.py --headless --max-frames 10000
 
 ## Design Patterns
 
-### System Registry Pattern (NEW)
+### System Registry Pattern
 The simulation uses a **System Registry** for consistent management of all simulation subsystems:
 
 ```
 SimulationEngine
     │
     ├─ _systems: List[BaseSystem]  (registered in execution order)
-    │   ├─ TimeSystem          - Day/night cycle management
-    │   ├─ CollisionSystem     - Collision detection and handling
-    │   ├─ ReproductionSystem  - Asexual reproduction logic
-    │   └─ PokerSystem         - Poker game events and history
+    │   ├─ EntityLifecycleSystem - Birth/death tracking, emergency spawns
+    │   ├─ TimeSystem            - Day/night cycle management
+    │   ├─ CollisionSystem       - Collision detection and handling
+    │   ├─ ReproductionSystem    - Asexual reproduction logic
+    │   └─ PokerSystem           - Poker game events and history
     │
     ├─ get_systems()           - List all registered systems
     ├─ get_system(name)        - Get system by name
