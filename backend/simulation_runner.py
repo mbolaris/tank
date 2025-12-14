@@ -470,8 +470,10 @@ class SimulationRunner:
                     if plant:
                         reward = min(net_energy, plant.max_energy - plant.energy)
                         if reward > 0:
-                            plant.energy += reward
-                            logger.info(f"Auto-eval reward: Plant #{plant_id} gained {reward:.1f} energy")
+                            actual_gain = plant.gain_energy(reward, source="auto_eval")
+                            logger.info(
+                                f"Auto-eval reward: Plant #{plant_id} gained {actual_gain:.1f} energy"
+                            )
 
     def get_state(self, force_full: bool = False, allow_delta: bool = True):
         """Get current simulation state for WebSocket broadcast.
@@ -695,6 +697,14 @@ class SimulationRunner:
             energy_from_auto_eval=stats.get("energy_from_auto_eval", 0.0),
             energy_burn_recent=stats.get("energy_burn_recent", {}),
             energy_burn_total=stats.get("energy_burn_total", 0.0),
+            energy_gains_recent_total=stats.get("energy_gains_recent_total", 0.0),
+            energy_net_recent=stats.get("energy_net_recent", 0.0),
+            energy_accounting_discrepancy=stats.get("energy_accounting_discrepancy", 0.0),
+            plant_energy_sources=stats.get("plant_energy_sources", {}),
+            plant_energy_sources_recent=stats.get("plant_energy_sources_recent", {}),
+            plant_energy_from_photosynthesis=stats.get("plant_energy_from_photosynthesis", 0.0),
+            plant_energy_burn_recent=stats.get("plant_energy_burn_recent", {}),
+            plant_energy_burn_total=stats.get("plant_energy_burn_total", 0.0),
             energy_delta=stats.get("energy_delta", {}),
             avg_fish_energy=stats.get("avg_fish_energy", 0.0),
             min_fish_energy=stats.get("min_fish_energy", 0.0),

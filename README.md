@@ -417,6 +417,7 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Energy redistribution**: Poker transfers energy between fish and plants
 - **Fitness signaling**: Better poker players accumulate more energy
 - **Risk/reward**: Fish must balance poker with survival needs
+- **Energy accounting details**: See `docs/ENERGY_ACCOUNTING.md` for reconciliation + house cut attribution rules
 
 ### Plant Ecosystem
 - **Fractal growth**: Plants grow from root spots using L-system genetics

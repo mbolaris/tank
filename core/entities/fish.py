@@ -602,7 +602,8 @@ class Fish(Agent):
         Returns:
             float: Energy ratio between 0.0 and 1.0
         """
-        return self._energy_component.get_energy_ratio()
+        max_energy = self.max_energy
+        return self.energy / max_energy if max_energy > 0 else 0.0
 
     def remember_food_location(self, position: Vector2) -> None:
         """Remember a food location for future reference.

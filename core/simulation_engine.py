@@ -329,6 +329,7 @@ class SimulationEngine(BaseSimulator):
                 genome=genome,
                 root_spot=spot,
                 initial_energy=FRACTAL_PLANT_MATURE_ENERGY,
+                ecosystem=self.ecosystem,
                 screen_width=SCREEN_WIDTH,
                 screen_height=SCREEN_HEIGHT,
             )
@@ -374,6 +375,7 @@ class SimulationEngine(BaseSimulator):
             genome=offspring_genome,
             root_spot=spot,
             initial_energy=30.0,  # Start with enough energy to mature in reasonable time
+            ecosystem=self.ecosystem,
             screen_width=SCREEN_WIDTH,
             screen_height=SCREEN_HEIGHT,
         )
@@ -481,6 +483,12 @@ class SimulationEngine(BaseSimulator):
         time_modifier = self.time_system.get_activity_modifier()
         time_of_day = self.time_system.get_time_of_day()
 
+        # Advance ecosystem frame early so any energy/events recorded during this frame
+        # are attributed to the correct frame number.
+        ecosystem = self.ecosystem
+        if ecosystem is not None:
+            ecosystem.update(self.frame_count)
+
         # Performance: Update cached detection modifier once per frame
         if self.environment is not None:
             self.environment.update_detection_modifier()
@@ -494,8 +502,7 @@ class SimulationEngine(BaseSimulator):
         Food = entities.Food
         LiveFood = entities.LiveFood
 
-        # Performance: Cache ecosystem and fish_count lookup once
-        ecosystem = self.ecosystem
+        # Performance: Cache fish_count lookup once
         fish_count = len(self.get_fish_list()) if ecosystem is not None else 0
 
         # Performance: Iterate a copy but use type ID comparison when possible
@@ -552,9 +559,6 @@ class SimulationEngine(BaseSimulator):
             # Remove expired LiveFood to prevent unbounded accumulation
             elif entity_type is LiveFood or isinstance(entity, LiveFood):
                 if entity.is_expired():
-                    # Track expired LiveFood energy as outflow (energy leaving the system)
-                    if ecosystem is not None:
-                        ecosystem.record_energy_burn("live_food_decay", entity.energy)
                     entities_to_remove.append(entity)
 
         # Batch entity removals (more efficient than removing during iteration)
@@ -581,36 +585,32 @@ class SimulationEngine(BaseSimulator):
         self.handle_reproduction()
 
         if ecosystem is not None:
-            # Use cached fish list for better performance
+            # Auto-spawn fish based on population level (more likely at low populations).
+            # Do this BEFORE taking the energy snapshot so the snapshot matches true end-of-frame state.
             fish_list = self.get_fish_list()
-            ecosystem.update_population_stats(fish_list)
-            ecosystem.update(self.frame_count)
-
-            # Record energy snapshot for delta calculations
-            # Sum total fish energy for historical tracking
-            total_fish_energy = sum(f.energy for f in fish_list)
-            ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
-
-            # Auto-spawn fish based on population level (more likely at low populations)
             fish_count = len(fish_list)
             if fish_count < MAX_POPULATION:
                 frames_since_last_spawn = self.frame_count - self.last_emergency_spawn_frame
                 if frames_since_last_spawn >= EMERGENCY_SPAWN_COOLDOWN:
-                    # Calculate spawn probability: very high at low populations, low at high populations
-                    # At 0 fish: 100% chance, at CRITICAL_POPULATION_THRESHOLD: ~50%, at MAX_POPULATION: 0%
                     if fish_count < CRITICAL_POPULATION_THRESHOLD:
-                        # Emergency mode: always spawn
                         spawn_probability = 1.0
                     else:
-                        # Gradual decrease: use inverse square for steeper drop-off
-                        # population_ratio goes from 0 (at critical) to 1 (at max)
-                        population_ratio = (fish_count - CRITICAL_POPULATION_THRESHOLD) / (MAX_POPULATION - CRITICAL_POPULATION_THRESHOLD)
-                        # Inverse curve: high probability at low populations, drops quickly
-                        spawn_probability = (1.0 - population_ratio) ** 2 * 0.3  # Max 30% at critical threshold
+                        population_ratio = (fish_count - CRITICAL_POPULATION_THRESHOLD) / (
+                            MAX_POPULATION - CRITICAL_POPULATION_THRESHOLD
+                        )
+                        spawn_probability = (1.0 - population_ratio) ** 2 * 0.3
 
                     if self.rng.random() < spawn_probability:
                         self.spawn_emergency_fish()
                         self.last_emergency_spawn_frame = self.frame_count
+                        fish_list = self.get_fish_list()
+
+            # Update population stats based on end-of-frame state (including emergency spawns)
+            ecosystem.update_population_stats(fish_list)
+
+            # Record energy snapshot for delta calculations (end-of-frame fish energy)
+            total_fish_energy = sum(f.energy for f in fish_list)
+            ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
 
         # Periodic poker benchmark evaluation
         if self.benchmark_evaluator is not None:
@@ -688,9 +688,6 @@ class SimulationEngine(BaseSimulator):
                     screen_width=SCREEN_WIDTH,
                     screen_height=SCREEN_HEIGHT,
                 )
-                # Track LiveFood spawn as external inflow (energy entering the system)
-                if self.ecosystem is not None:
-                    self.ecosystem.record_energy_gain("live_food_spawn", food.energy)
             else:
                 # Use food pool for regular food (performance optimization)
                 x = self.rng.randint(0, SCREEN_WIDTH)

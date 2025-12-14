@@ -14,6 +14,7 @@ from core.plant_genetics import PlantGenome
 
 if TYPE_CHECKING:
     from core.environment import Environment
+    from core.ecosystem import EcosystemManager
     from core.root_spots import RootSpot
 
 
@@ -66,6 +67,7 @@ class FractalPlant(Agent):
         genome: PlantGenome,
         root_spot: "RootSpot",
         initial_energy: float = FRACTAL_PLANT_INITIAL_ENERGY,
+        ecosystem: Optional["EcosystemManager"] = None,
         screen_width: int = 800,
         screen_height: int = 600,
     ) -> None:
@@ -98,6 +100,7 @@ class FractalPlant(Agent):
         self.root_spot = root_spot
         self.energy = initial_energy
         self.max_energy = FRACTAL_PLANT_MAX_ENERGY * genome.growth_efficiency
+        self.ecosystem = ecosystem
 
         # Cooldowns
         self.poker_cooldown = 0
@@ -240,7 +243,11 @@ class FractalPlant(Agent):
         if getattr(self.genome, "fractal_type", "lsystem") == "cosmic_fern":
             energy_gain *= 1.1
 
+        before = self.energy
         self.energy = min(self.max_energy, self.energy + energy_gain)
+        actual_gain = self.energy - before
+        if actual_gain > 0 and self.ecosystem is not None:
+            self.ecosystem.record_plant_energy_gain("photosynthesis", actual_gain)
 
     def _try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:
         """Try to produce nectar if conditions are met.
@@ -307,7 +314,7 @@ class FractalPlant(Agent):
             return False
         return True
 
-    def lose_energy(self, amount: float) -> float:
+    def lose_energy(self, amount: float, *, source: str = "poker") -> float:
         """Lose energy (from poker loss or being eaten).
 
         Args:
@@ -319,9 +326,11 @@ class FractalPlant(Agent):
         actual_loss = min(self.energy, amount)
         self.energy -= actual_loss
         self._update_size()
+        if actual_loss > 0 and self.ecosystem is not None:
+            self.ecosystem.record_plant_energy_burn(source, actual_loss)
         return actual_loss
 
-    def gain_energy(self, amount: float) -> float:
+    def gain_energy(self, amount: float, *, source: str = "poker") -> float:
         """Gain energy (from poker win).
 
         Args:
@@ -333,6 +342,8 @@ class FractalPlant(Agent):
         actual_gain = min(self.max_energy - self.energy, amount)
         self.energy += actual_gain
         self._update_size()
+        if actual_gain > 0 and self.ecosystem is not None:
+            self.ecosystem.record_plant_energy_gain(source, actual_gain)
         return actual_gain
 
     def is_dead(self) -> bool:

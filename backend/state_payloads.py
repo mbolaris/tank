@@ -221,6 +221,16 @@ class StatsPayload:
     energy_from_auto_eval: float = 0.0
     energy_burn_recent: Dict[str, float] = field(default_factory=dict)
     energy_burn_total: float = 0.0
+    # Fish energy accounting reconciliation (recent window)
+    energy_gains_recent_total: float = 0.0
+    energy_net_recent: float = 0.0
+    energy_accounting_discrepancy: float = 0.0
+    # Plant energy economy (separate pool from fish)
+    plant_energy_sources: Dict[str, float] = field(default_factory=dict)
+    plant_energy_sources_recent: Dict[str, float] = field(default_factory=dict)
+    plant_energy_from_photosynthesis: float = 0.0
+    plant_energy_burn_recent: Dict[str, float] = field(default_factory=dict)
+    plant_energy_burn_total: float = 0.0
     # Energy delta (true change in fish population energy over window)
     energy_delta: Dict[str, Any] = field(default_factory=dict)
     # Fish energy distribution
@@ -311,6 +321,14 @@ class StatsPayload:
             "energy_from_auto_eval": self.energy_from_auto_eval,
             "energy_burn_recent": self.energy_burn_recent,
             "energy_burn_total": self.energy_burn_total,
+            "energy_gains_recent_total": self.energy_gains_recent_total,
+            "energy_net_recent": self.energy_net_recent,
+            "energy_accounting_discrepancy": self.energy_accounting_discrepancy,
+            "plant_energy_sources": self.plant_energy_sources,
+            "plant_energy_sources_recent": self.plant_energy_sources_recent,
+            "plant_energy_from_photosynthesis": self.plant_energy_from_photosynthesis,
+            "plant_energy_burn_recent": self.plant_energy_burn_recent,
+            "plant_energy_burn_total": self.plant_energy_burn_total,
             "energy_delta": self.energy_delta,
             "avg_fish_energy": self.avg_fish_energy,
             "min_fish_energy": self.min_fish_energy,

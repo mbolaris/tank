@@ -18,13 +18,13 @@ import logging
 import random
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional
 
 from core.skills.base import SkillGame, SkillGameResult, SkillGameType
 from core.skills.config import (
+    SkillGameConfig,
     get_active_skill_game,
     get_skill_game_config,
-    SkillGameConfig,
 )
 
 if TYPE_CHECKING:
@@ -311,6 +311,7 @@ class SkillGameSystem:
             Net energy transferred (positive = fish1 gained)
         """
         energy_change = result1.score_change * self.config.stake_multiplier
+        ecosystem = fish1.ecosystem or (fish2.ecosystem if fish2 is not None else None)
 
         if fish2 is not None:
             # Two-player: transfer energy between fish
@@ -319,19 +320,26 @@ class SkillGameSystem:
                 actual_transfer = min(energy_change, fish2.energy * 0.5)  # Cap at 50% of loser's energy
                 fish1.modify_energy(actual_transfer)  # Route overflow to reproduction/food
                 fish2.modify_energy(-actual_transfer)
+                if ecosystem is not None and actual_transfer != 0:
+                    ecosystem.record_energy_transfer("skill_game", abs(actual_transfer))
                 return actual_transfer
             elif energy_change < 0:
                 # Fish1 loses, gives energy to fish2
                 actual_transfer = min(-energy_change, fish1.energy * 0.5)
                 fish1.modify_energy(-actual_transfer)
                 fish2.modify_energy(actual_transfer)  # Route overflow to reproduction/food
+                if ecosystem is not None and actual_transfer != 0:
+                    ecosystem.record_energy_transfer("skill_game", abs(actual_transfer))
                 return -actual_transfer
         else:
             # Single-player: energy from environment
             # Winners gain, losers lose (energy conservation not required)
-            fish1.modify_energy(energy_change)  # Route overflow to reproduction/food
+            actual_delta = fish1.modify_energy(energy_change)  # Route overflow to reproduction/food
+            if ecosystem is not None and actual_delta != 0:
+                ecosystem.record_energy_delta("skill_game_env", actual_delta)
+            return actual_delta
 
-        return energy_change
+        return 0.0
 
     def check_and_run_encounters(
         self,

@@ -99,7 +99,7 @@ class EcosystemManager:
 
         # Track where fish energy increments are coming from (cumulative)
         self.energy_sources: Dict[str, float] = defaultdict(float)
-        
+
         # Track recent energy gains for source breakdown (rolling window)
         # Each entry: (frame_number, dict_of_gains_in_frame)
         # Storing per-frame aggregates prevents buffer overflow from high event volume
@@ -112,12 +112,23 @@ class EcosystemManager:
         self.recent_energy_burns: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=2000)
         self._current_frame_burns: Dict[str, float] = defaultdict(float)
 
+        # Track plant energy gains/spends with the same rolling window machinery.
+        # Plants have their own energy pool separate from fish, so keep stats separate.
+        self.plant_energy_sources: Dict[str, float] = defaultdict(float)
+        self.recent_plant_energy_gains: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=2000)
+        self._current_frame_plant_gains: Dict[str, float] = defaultdict(float)
+
+        self.plant_energy_burn: Dict[str, float] = defaultdict(float)
+        self.recent_plant_energy_burns: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=2000)
+        self._current_frame_plant_burns: Dict[str, float] = defaultdict(float)
+
         # Historical energy snapshots for calculating true ΔEnergy
         # Each entry: (frame_number, total_fish_energy, fish_count)
-        # Store snapshots every 30 frames (1 second at 30fps)
+        # Store snapshots every frame so net-flow reconciliation matches
+        # the "true delta" window precisely.
         self.energy_history: deque[Tuple[int, float, int]] = deque(maxlen=2000)
         self._last_snapshot_frame: int = 0
-        self._snapshot_interval: int = 30  # Frames between snapshots
+        self._snapshot_interval: int = 1  # Frames between snapshots
 
     @property
     def reproduction_stats(self):
@@ -175,10 +186,22 @@ class EcosystemManager:
             if self._current_frame_gains:
                 self.recent_energy_gains.append((self.current_frame, dict(self._current_frame_gains)))
                 self._current_frame_gains.clear()
-            
+
             if self._current_frame_burns:
                 self.recent_energy_burns.append((self.current_frame, dict(self._current_frame_burns)))
                 self._current_frame_burns.clear()
+
+            if self._current_frame_plant_gains:
+                self.recent_plant_energy_gains.append(
+                    (self.current_frame, dict(self._current_frame_plant_gains))
+                )
+                self._current_frame_plant_gains.clear()
+
+            if self._current_frame_plant_burns:
+                self.recent_plant_energy_burns.append(
+                    (self.current_frame, dict(self._current_frame_plant_burns))
+                )
+                self._current_frame_plant_burns.clear()
 
         self.frame_count = frame
         self.current_frame = frame
@@ -486,16 +509,59 @@ class EcosystemManager:
         is_plant_game: bool = True,
     ) -> None:
         """Record energy transfer from a mixed poker game (fish + plants).
-        
+
         Args:
             energy_to_fish: Net energy transferred to fish (positive = fish gained from plants,
                            negative = plants gained from fish)
             is_plant_game: Whether this game involved plants (for counting)
         """
         self.poker_manager.record_mixed_poker_energy_transfer(energy_to_fish, is_plant_game)
-        
+
         # Record energy flow for stats window
         self.record_plant_poker_energy_gain(energy_to_fish)
+
+    def record_mixed_poker_outcome(
+        self,
+        *,
+        fish_delta: float,
+        plant_delta: float,
+        house_cut: float,
+        winner_type: str,
+    ) -> None:
+        """Record mixed poker outcome with correct per-economy house cut attribution.
+
+        Mixed poker changes both fish and plant energies (internal transfer), and may
+        also remove energy from the winner via house cut (true external outflow).
+
+        Policy:
+        - If winner is a fish: show house cut in fish economy only.
+        - If winner is a plant: show house cut in plant economy only.
+        - Keep net accounting consistent by "grossing up" the winner-side poker transfer
+          by the house cut when we surface it as a separate burn.
+        """
+        self.poker_manager.record_mixed_poker_energy_transfer(fish_delta, is_plant_game=True)
+
+        winner_is_fish = winner_type == "fish"
+        house_cut = float(house_cut or 0.0)
+
+        # Fish economy: show house cut only when fish wins.
+        if fish_delta > 0:
+            gross = fish_delta + (house_cut if winner_is_fish else 0.0)
+            self.record_energy_gain("poker_plant", gross)
+            if winner_is_fish and house_cut > 0:
+                self.record_energy_burn("poker_house_cut", house_cut)
+        elif fish_delta < 0:
+            # When plants win, the fish loss already includes the cut implicitly;
+            # do not surface it separately in the fish economy panel.
+            self.record_energy_burn("poker_plant_loss", -fish_delta)
+
+        # Plant economy: show house cut only when plant wins.
+        if (not winner_is_fish) and house_cut > 0:
+            # Plant deltas are already recorded on the plant itself under "poker"
+            # (net after house cut). Gross it up so we can show the cut without
+            # changing the net.
+            self.record_plant_energy_gain("poker", house_cut)
+            self.record_plant_energy_burn("poker_house_cut", house_cut)
 
     def record_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-fish poker."""
@@ -527,22 +593,77 @@ class EcosystemManager:
         self.energy_burn[source] += amount
         self._current_frame_burns[source] += amount
 
+    def record_energy_delta(
+        self, source: str, delta: float, *, negative_source: Optional[str] = None
+    ) -> None:
+        """Record a signed energy delta as either a gain or a burn."""
+        if delta > 0:
+            self.record_energy_gain(source, delta)
+        elif delta < 0:
+            self.record_energy_burn(negative_source or source, -delta)
+
+    def record_energy_transfer(self, source: str, amount: float) -> None:
+        """Record an internal transfer as both a gain and a burn (net zero)."""
+        if amount == 0:
+            return
+        self.record_energy_gain(source, amount)
+        self.record_energy_burn(source, amount)
+
+    def record_plant_energy_gain(self, source: str, amount: float) -> None:
+        """Accumulate plant energy gains by source for downstream stats."""
+        if amount == 0:
+            return
+        self.plant_energy_sources[source] += amount
+        self._current_frame_plant_gains[source] += amount
+
+    def record_plant_energy_burn(self, source: str, amount: float) -> None:
+        """Accumulate plant energy spent for downstream stats."""
+        if amount == 0:
+            return
+        self.plant_energy_burn[source] += amount
+        self._current_frame_plant_burns[source] += amount
+
+    def record_plant_energy_delta(
+        self, source: str, delta: float, *, negative_source: Optional[str] = None
+    ) -> None:
+        """Record a signed plant energy delta as either a gain or a burn."""
+        if delta > 0:
+            self.record_plant_energy_gain(source, delta)
+        elif delta < 0:
+            self.record_plant_energy_burn(negative_source or source, -delta)
+
+    def record_plant_energy_transfer(self, source: str, amount: float) -> None:
+        """Record a plant internal transfer as both a gain and a burn (net zero)."""
+        if amount == 0:
+            return
+        self.record_plant_energy_gain(source, amount)
+        self.record_plant_energy_burn(source, amount)
+
     def get_energy_source_summary(self) -> Dict[str, float]:
         """Return a snapshot of accumulated energy gains."""
         return dict(self.energy_sources)
-    
+
+    def get_plant_energy_source_summary(self) -> Dict[str, float]:
+        """Return a snapshot of accumulated plant energy gains."""
+        return dict(self.plant_energy_sources)
+
     def get_recent_energy_breakdown(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, float]:
         """Get energy source breakdown over recent frames.
-        
+
         Args:
             window_frames: Number of recent frames to include (default 1800 = 60 seconds at 30fps)
-            
+
         Returns:
             Dictionary mapping source names to net energy gained in the window
         """
-        cutoff_frame = self.current_frame - window_frames
+        if window_frames <= 0:
+            return {}
+
+        # Include exactly `window_frames` frames:
+        # (current_frame - window_frames + 1) .. current_frame
+        cutoff_frame = self.current_frame - window_frames + 1
         recent_totals: Dict[str, float] = defaultdict(float)
-        
+
         # Sum up energy from recent history (stored as per-frame dicts)
         for frame, gains in self.recent_energy_gains:
             if frame >= cutoff_frame:
@@ -555,10 +676,33 @@ class EcosystemManager:
 
         return dict(recent_totals)
 
+    def get_recent_plant_energy_breakdown(
+        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
+    ) -> Dict[str, float]:
+        """Get plant energy source breakdown over recent frames."""
+        if window_frames <= 0:
+            return {}
+
+        cutoff_frame = self.current_frame - window_frames + 1
+        recent_totals: Dict[str, float] = defaultdict(float)
+
+        for frame, gains in self.recent_plant_energy_gains:
+            if frame >= cutoff_frame:
+                for source, amount in gains.items():
+                    recent_totals[source] += amount
+
+        # Include partial current frame
+        for source, amount in self._current_frame_plant_gains.items():
+            recent_totals[source] += amount
+
+        return dict(recent_totals)
+
     def get_recent_energy_burn(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, float]:
         """Get energy consumption breakdown over recent frames."""
+        if window_frames <= 0:
+            return {}
 
-        cutoff_frame = self.current_frame - window_frames
+        cutoff_frame = self.current_frame - window_frames + 1
         recent_totals: Dict[str, float] = defaultdict(float)
 
         for frame, burns in self.recent_energy_burns:
@@ -568,6 +712,27 @@ class EcosystemManager:
 
         # Include partial current frame
         for source, amount in self._current_frame_burns.items():
+            recent_totals[source] += amount
+
+        return dict(recent_totals)
+
+    def get_recent_plant_energy_burn(
+        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
+    ) -> Dict[str, float]:
+        """Get plant energy consumption breakdown over recent frames."""
+        if window_frames <= 0:
+            return {}
+
+        cutoff_frame = self.current_frame - window_frames + 1
+        recent_totals: Dict[str, float] = defaultdict(float)
+
+        for frame, burns in self.recent_plant_energy_burns:
+            if frame >= cutoff_frame:
+                for source, amount in burns.items():
+                    recent_totals[source] += amount
+
+        # Include partial current frame
+        for source, amount in self._current_frame_plant_burns.items():
             recent_totals[source] += amount
 
         return dict(recent_totals)
@@ -582,8 +747,10 @@ class EcosystemManager:
             total_fish_energy: Sum of energy across all living fish
             fish_count: Number of fish currently alive
         """
-        # Only record if enough frames have passed since last snapshot
-        if self.current_frame - self._last_snapshot_frame >= self._snapshot_interval:
+        # Always record the first snapshot, then throttle based on snapshot interval.
+        if not self.energy_history or (
+            self.current_frame - self._last_snapshot_frame >= self._snapshot_interval
+        ):
             self.energy_history.append((self.current_frame, total_fish_energy, fish_count))
             self._last_snapshot_frame = self.current_frame
 

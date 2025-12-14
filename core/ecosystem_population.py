@@ -261,6 +261,19 @@ def get_summary_stats(
     recent_energy_burn = ecosystem.get_recent_energy_burn(window_frames=ENERGY_STATS_WINDOW_FRAMES)
     energy_delta = ecosystem.get_energy_delta(window_frames=ENERGY_STATS_WINDOW_FRAMES)
 
+    recent_energy_total = sum(recent_energy.values())
+    recent_energy_burn_total = sum(recent_energy_burn.values())
+    recent_energy_net = recent_energy_total - recent_energy_burn_total
+    energy_accounting_discrepancy = recent_energy_net - energy_delta.get("energy_delta", 0.0)
+
+    plant_energy_summary = ecosystem.get_plant_energy_source_summary()
+    recent_plant_energy = ecosystem.get_recent_plant_energy_breakdown(
+        window_frames=ENERGY_STATS_WINDOW_FRAMES
+    )
+    recent_plant_energy_burn = ecosystem.get_recent_plant_energy_burn(
+        window_frames=ENERGY_STATS_WINDOW_FRAMES
+    )
+
     total_energy = 0.0
     fish_list = []
     if entities is not None:
@@ -317,9 +330,17 @@ def get_summary_stats(
         "energy_from_soup_spawn": recent_energy.get("soup_spawn", 0.0),
         "energy_from_migration_in": recent_energy.get("migration_in", 0.0),
         "energy_burn_recent": recent_energy_burn,
-        "energy_burn_total": sum(recent_energy_burn.values()),
+        "energy_burn_total": recent_energy_burn_total,
         "energy_sources_recent": recent_energy,
+        "energy_gains_recent_total": recent_energy_total,
+        "energy_net_recent": recent_energy_net,
+        "energy_accounting_discrepancy": energy_accounting_discrepancy,
         "energy_delta": energy_delta,
+        "plant_energy_sources": plant_energy_summary,
+        "plant_energy_sources_recent": recent_plant_energy,
+        "plant_energy_from_photosynthesis": recent_plant_energy.get("photosynthesis", 0.0),
+        "plant_energy_burn_recent": recent_plant_energy_burn,
+        "plant_energy_burn_total": sum(recent_plant_energy_burn.values()),
         # Adult size statistics: current population adult size distribution and allowed bounds
         "adult_size_min": adult_size_min,
         "adult_size_max": adult_size_max,

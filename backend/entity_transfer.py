@@ -381,6 +381,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             genome=genome,
             root_spot=root_spot,
             initial_energy=data["energy"],
+            ecosystem=getattr(target_world.engine, "ecosystem", None),
             screen_width=getattr(target_world.engine, 'screen_width', 800),
             screen_height=getattr(target_world.engine, 'screen_height', 600),
         )

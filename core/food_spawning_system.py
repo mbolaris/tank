@@ -184,9 +184,6 @@ class AutoFoodSpawner:
                 screen_width=SCREEN_WIDTH,
                 screen_height=SCREEN_HEIGHT,
             )
-            # Track LiveFood spawn as external inflow
-            if ecosystem is not None:
-                ecosystem.record_energy_gain("live_food_spawn", food.energy)
         else:
             # Spawn regular food from top
             x = self.rng.randint(0, SCREEN_WIDTH)

@@ -29,14 +29,12 @@ from core.constants import (
     MATING_QUERY_RADIUS,
     POKER_ACTIVITY_ENABLED,
     POKER_MAX_PLAYERS,
-    POKER_PROXIMITY_QUERY_RADIUS,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
 from core.fish_poker import PokerInteraction
 from core.mixed_poker import (
     MixedPokerInteraction,
-    check_poker_proximity,
     should_trigger_plant_poker_asexual_reproduction,
 )
 from core.plant_poker import PlantPokerInteraction, check_fish_plant_poker_proximity
@@ -117,7 +115,7 @@ class BaseSimulator(ABC):
         pass
 
     def check_poker_proximity(
-        self, entity1: "Agent", entity2: "Agent", 
+        self, entity1: "Agent", entity2: "Agent",
         min_distance: float = FISH_POKER_MIN_DISTANCE,
         max_distance: float = FISH_POKER_MAX_DISTANCE
     ) -> bool:
@@ -191,15 +189,15 @@ class BaseSimulator(ABC):
 
     def handle_collisions(self) -> None:
         """Handle collisions between entities.
-        
+
         OPTIMIZATION: Throttle expensive poker games based on population size.
         - Under 100 entities: every frame
-        - 100-200 entities: every 2 frames  
+        - 100-200 entities: every 2 frames
         - 200+ entities: every 3 frames
         """
         self.handle_fish_collisions()
         self.handle_food_collisions()
-        
+
         # OPTIMIZATION: Throttle poker games at high populations
         entity_count = len(self.get_all_entities())
         throttle_interval = 1  # Default: every frame
@@ -207,7 +205,7 @@ class BaseSimulator(ABC):
             throttle_interval = 3
         elif entity_count >= 100:
             throttle_interval = 2
-            
+
         self._poker_throttle_counter += 1
         if self._poker_throttle_counter >= throttle_interval:
             self._poker_throttle_counter = 0
@@ -231,7 +229,7 @@ class BaseSimulator(ABC):
         if crab.can_hunt():
             # Note: Energy burn will be recorded in record_fish_death as "death_predation"
             # No need to record separately here to avoid double-counting
-            
+
             crab.eat_fish(fish)
             self.record_fish_death(fish, "predation")
             return True
@@ -367,8 +365,8 @@ class BaseSimulator(ABC):
 
                 # Check if fish is in poker proximity zone (close but not touching)
                 if check_fish_plant_poker_proximity(
-                    fish, plant, 
-                    min_distance=FRACTAL_PLANT_POKER_MIN_DISTANCE, 
+                    fish, plant,
+                    min_distance=FRACTAL_PLANT_POKER_MIN_DISTANCE,
                     max_distance=FRACTAL_PLANT_POKER_MAX_DISTANCE
                 ):
                     # Try to play poker
@@ -383,10 +381,10 @@ class BaseSimulator(ABC):
 
     def handle_mixed_poker_games(self) -> None:
         """Handle poker games between any mix of fish and plants.
-        
+
         Finds groups of fish and plants that are in poker proximity
         and initiates mixed poker games with up to POKER_MAX_PLAYERS players.
-        
+
         PERFORMANCE OPTIMIZATIONS:
         - Single combined spatial query instead of separate fish+plant queries
         - Inline proximity check to avoid method call overhead
@@ -402,16 +400,16 @@ class BaseSimulator(ABC):
             return
 
         all_entities = self.get_all_entities()
-        
+
         # Early exit if not enough entities
         if len(all_entities) < 2:
             return
 
         all_entities_set = set(all_entities)
-        
+
         # Performance: Use type() for exact match (faster than isinstance)
         fish_list = [e for e in all_entities if type(e) is Fish]
-        
+
         # For plants, we need isinstance since we also check is_dead
         plant_list = [e for e in all_entities if isinstance(e, FractalPlant) and not e.is_dead()]
 
@@ -423,14 +421,13 @@ class BaseSimulator(ABC):
 
         # Combine into one list for proximity checking
         all_poker_entities: List[PokerPlayer] = fish_list + plant_list  # type: ignore
-        n_entities = len(all_poker_entities)
 
         # Pre-compute squared proximity values
         proximity_max = max(FISH_POKER_MAX_DISTANCE, FRACTAL_PLANT_POKER_MAX_DISTANCE)
         proximity_min = min(FISH_POKER_MIN_DISTANCE, FRACTAL_PLANT_POKER_MIN_DISTANCE)
         proximity_max_sq = proximity_max * proximity_max
         proximity_min_sq = proximity_min * proximity_min
-        
+
         # Cache entity center positions for fast access
         # Store as (center_x, center_y) tuples
         entity_centers = {}
@@ -452,7 +449,7 @@ class BaseSimulator(ABC):
             # Get nearby entities - OPTIMIZATION: Single combined query
             search_radius = proximity_max + max(entity.width, entity.height) * 0.5
             nearby: List[PokerPlayer] = []
-            
+
             if environment is not None:
                 # OPTIMIZATION: Use nearby_poker_entities if available, else combined query
                 if hasattr(environment, "nearby_poker_entities"):
@@ -586,21 +583,21 @@ class BaseSimulator(ABC):
         self, players: List[PokerPlayer], max_distance: float
     ) -> List[PokerPlayer]:
         """Filter players to only those where ALL are within max_distance of each other.
-        
+
         This prevents chain-connected players (A near B, B near C, but A far from C)
         from ending up in the same poker game.
-        
+
         PERFORMANCE OPTIMIZATIONS:
         - Use squared distances throughout (avoid sqrt)
         - Use 2D list instead of dict (no hash/get overhead)
         - Pre-cache player positions
         - Early exit when best possible group is found
         - Inline distance calculations
-        
+
         Args:
             players: List of potential players
             max_distance: Maximum distance between any two players
-            
+
         Returns:
             Largest subset where all players are mutually within max_distance
         """
@@ -608,18 +605,18 @@ class BaseSimulator(ABC):
         if n <= 2:
             # For 2 players, they were already verified as proximate
             return players
-        
+
         # Pre-compute squared max distance (avoid sqrt entirely)
         max_dist_sq = max_distance * max_distance
-        
+
         # Pre-cache player positions for faster access
         positions = [(p.pos.x + p.width / 2, p.pos.y + p.height / 2) for p in players]
-        
+
         # OPTIMIZATION: Use 2D list instead of dict for O(1) access without hash overhead
         # Build adjacency matrix as boolean: True = within distance
         # Only upper triangle needed (i < j)
         adjacent = [[False] * n for _ in range(n)]
-        
+
         for i in range(n):
             x1, y1 = positions[i]
             for j in range(i + 1, n):
@@ -629,24 +626,24 @@ class BaseSimulator(ABC):
                 if dx * dx + dy * dy <= max_dist_sq:
                     adjacent[i][j] = True
                     adjacent[j][i] = True  # Symmetric
-        
+
         # Simple greedy approach: start with each player, build largest valid group
         best_group: List[int] = []
         best_size = 0
-        
+
         for start_idx in range(n):
             # Early exit: can't beat current best if remaining players aren't enough
             if n - start_idx <= best_size:
                 break
-                
+
             group = [start_idx]
             adj_row = adjacent[start_idx]  # Cache row for start player
-            
+
             for candidate_idx in range(start_idx + 1, n):
                 # Quick check: must be adjacent to start player
                 if not adj_row[candidate_idx]:
                     continue
-                    
+
                 # Check if candidate is within distance of ALL current group members
                 can_add = True
                 for member_idx in group:
@@ -655,14 +652,14 @@ class BaseSimulator(ABC):
                         break
                 if can_add:
                     group.append(candidate_idx)
-            
+
             if len(group) > best_size:
                 best_group = group
                 best_size = len(group)
                 # Early exit if we found a group with all remaining players
                 if best_size == n - start_idx:
                     break
-        
+
         return [players[i] for i in best_group]
 
     def _get_ready_poker_players(self, players: List[PokerPlayer]) -> List[PokerPlayer]:
@@ -714,16 +711,16 @@ class BaseSimulator(ABC):
         if hasattr(self, "add_plant_poker_event") and result.plant_count > 0:
             # Use plant poker event format for games with plants
             winner_is_fish = result.winner_type == "fish"
-            
+
             # Safely get hand descriptions (hands can be None if player folded)
             winner_hand_desc = "Unknown"
             if result.winner_hand is not None:
                 winner_hand_desc = result.winner_hand.description
-            
+
             loser_hand_desc = "Folded"
             if result.loser_hands and result.loser_hands[0] is not None:
                 loser_hand_desc = result.loser_hands[0].description
-            
+
             self.add_plant_poker_event(
                 fish_id=result.winner_id if winner_is_fish else (result.loser_ids[0] if result.loser_ids else 0),
                 plant_id=result.winner_id if not winner_is_fish else 0,
@@ -733,20 +730,28 @@ class BaseSimulator(ABC):
                 energy_transferred=abs(result.energy_transferred),
             )
 
-        # Record plant-fish energy transfer stats
+        # Record mixed fish+plant poker energy economy with correct attribution.
         if self.ecosystem is not None and result.plant_count > 0:
-            # Calculate net energy flow to fish in this mixed game
-            # Positive = fish gained from plants, negative = plants gained from fish
-            if result.winner_type == "fish":
-                # Fish won - energy flowed from plants to fish
-                energy_to_fish = abs(result.energy_transferred)
-            else:
-                # Plant won - energy flowed from fish to plants
-                energy_to_fish = -abs(result.energy_transferred)
+            from core.entities import Fish
+            from core.entities.fractal_plant import FractalPlant
 
-            self.ecosystem.record_mixed_poker_energy_transfer(
-                energy_to_fish=energy_to_fish,
-                is_plant_game=True,
+            initial = getattr(poker, "_initial_player_energies", None)
+            fish_delta = 0.0
+            plant_delta = 0.0
+
+            if initial is not None and len(initial) == len(poker.players):
+                for idx, player in enumerate(poker.players):
+                    delta = getattr(player, "energy", 0.0) - float(initial[idx])
+                    if isinstance(player, Fish):
+                        fish_delta += delta
+                    elif isinstance(player, FractalPlant):
+                        plant_delta += delta
+
+            self.ecosystem.record_mixed_poker_outcome(
+                fish_delta=fish_delta,
+                plant_delta=plant_delta,
+                house_cut=float(getattr(result, "house_cut", 0.0) or 0.0),
+                winner_type=str(getattr(result, "winner_type", "")),
             )
 
         # Trigger asexual reproduction if fish won against only plants
@@ -879,7 +884,7 @@ class BaseSimulator(ABC):
         # Performance: Cache environment and check_collision references
         environment = self.environment
         check_collision = self.check_collision
-        
+
         # Pre-compute squared distance constants for inline proximity check
         poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE
         poker_max_sq = FISH_POKER_MAX_DISTANCE * FISH_POKER_MAX_DISTANCE
@@ -930,7 +935,7 @@ class BaseSimulator(ABC):
                     dx = fish_cx - o_cx
                     dy = fish_cy - o_cy
                     dist_sq = dx * dx + dy * dy
-                    
+
                     # Must be within max distance but farther than min distance
                     if poker_min_sq < dist_sq <= poker_max_sq:
                         fish_poker_contacts[fish].add(other)

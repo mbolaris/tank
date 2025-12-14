@@ -14,20 +14,17 @@ Features:
 import logging
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from core.constants import (
     POKER_AGGRESSION_HIGH,
     POKER_AGGRESSION_LOW,
-    POKER_BET_MIN_SIZE,
-    POKER_HOUSE_CUT_MIN_PERCENTAGE,
-    POKER_HOUSE_CUT_SIZE_MULTIPLIER,
     POKER_MAX_ACTIONS_PER_ROUND,
     POKER_MAX_HAND_RANK,
     POKER_MAX_PLAYERS,
 )
-from core.poker.core import Deck, PokerHand, evaluate_hand
 from core.poker.betting.actions import BettingAction
+from core.poker.core import Deck, PokerHand, evaluate_hand
 from core.poker.evaluation.strength import evaluate_starting_hand_strength
 
 if TYPE_CHECKING:
@@ -102,11 +99,11 @@ class MultiplayerGameState:
         self.small_blind = small_blind
         self.big_blind = big_blind
         self.button_position = button_position  # 0-indexed
-        
+
         self.current_round = MultiplayerBettingRound.PRE_FLOP
         self.pot = 0.0
         self.deck = Deck()
-        
+
         # Per-player state
         self.player_hole_cards: List[List[Any]] = [[] for _ in range(num_players)]
         self.player_hands: List[Optional[PokerHand]] = [None] * num_players
@@ -114,10 +111,10 @@ class MultiplayerGameState:
         self.player_total_bets: List[float] = [0.0] * num_players
         self.player_folded: List[bool] = [False] * num_players
         self.player_all_in: List[bool] = [False] * num_players
-        
+
         self.community_cards: List[Any] = []
         self.betting_history: List[Tuple[int, BettingAction, float]] = []
-        
+
         # Raise tracking
         self.min_raise = big_blind
         self.last_raise_amount = big_blind
@@ -149,14 +146,14 @@ class MultiplayerGameState:
         """Move to the next betting round."""
         if self.current_round < MultiplayerBettingRound.SHOWDOWN:
             self.current_round = MultiplayerBettingRound(self.current_round + 1)
-            
+
             if self.current_round == MultiplayerBettingRound.FLOP:
                 self.deal_flop()
             elif self.current_round == MultiplayerBettingRound.TURN:
                 self.deal_turn()
             elif self.current_round == MultiplayerBettingRound.RIVER:
                 self.deal_river()
-            
+
             # Reset current round bets
             self.player_current_bets = [0.0] * self.num_players
             self.min_raise = self.big_blind
@@ -193,10 +190,10 @@ class MultiplayerGameState:
             i for i in range(self.num_players)
             if not self.player_folded[i] and not self.player_all_in[i]
         ]
-        
+
         if not active_players:
             return True
-            
+
         max_bet = self.get_max_current_bet()
         return all(
             self.player_current_bets[i] == max_bet
@@ -215,7 +212,7 @@ class MultiplayerGameState:
 
 class MixedPokerInteraction:
     """Handles poker games between any mix of fish and plants.
-    
+
     Supports 2-6 players total, with any combination of fish and plants.
     Uses Full Texas Hold'em with betting rounds for all game sizes.
     """
@@ -240,7 +237,7 @@ class MixedPokerInteraction:
 
         if len(players) < 2:
             raise ValueError("Poker requires at least 2 players")
-        
+
         if len(players) > POKER_MAX_PLAYERS:
             raise ValueError(f"Poker limited to {POKER_MAX_PLAYERS} players max")
 
@@ -255,15 +252,21 @@ class MixedPokerInteraction:
         self.fish_count = len(self.fish_players)
         self.plant_count = len(self.plant_players)
 
+        # Snapshot player energies at the start of the interaction so callers can
+        # attribute the net deltas correctly (fish-vs-plant transfer vs house cut).
+        self._initial_player_energies: List[float] = [
+            self._get_player_energy(p) for p in self.players
+        ]
+
         # Require at least 1 fish in the game (no plant-only poker)
         if self.fish_count < 1:
             raise ValueError("Poker games require at least 1 fish (no plant-only games)")
 
     def _get_player_id(self, player: Player) -> int:
         """Get the stable ID of a player (matching frontend entity IDs)."""
+        from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
         from core.entities import Fish
         from core.entities.fractal_plant import FractalPlant
-        from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
 
         if isinstance(player, Fish):
             return player.fish_id + FISH_ID_OFFSET
@@ -342,15 +345,15 @@ class MixedPokerInteraction:
             player.poker_cooldown = self.POKER_COOLDOWN
 
     def _set_poker_effect(
-        self, 
-        player: Player, 
+        self,
+        player: Player,
         won: bool,
         amount: float = 0.0,
         target_id: Optional[int] = None,
         target_type: Optional[str] = None
     ) -> None:
         """Set visual poker effect on a player.
-        
+
         Args:
             player: The player to set the effect on
             won: True if player won, False if lost
@@ -360,9 +363,9 @@ class MixedPokerInteraction:
         """
         from core.entities import Fish
         from core.entities.fractal_plant import FractalPlant
-        
+
         status = "won" if won else "lost"
-        
+
         if isinstance(player, Fish):
             # Fish uses set_poker_effect method
             if hasattr(player, "set_poker_effect"):
@@ -444,20 +447,19 @@ class MixedPokerInteraction:
         contexts: List[MultiplayerPlayerContext],
     ) -> Tuple[BettingAction, float]:
         """Decide action for a player based on hand strength and aggression.
-        
+
         Args:
             player_idx: Index of the player making the decision
             game_state: Current game state
             contexts: List of player contexts
-            
+
         Returns:
             Tuple of (action, bet_amount)
         """
         import random
-        
+
         ctx = contexts[player_idx]
-        player = ctx.player
-        
+
         # Can't act if folded or all-in
         if ctx.folded or ctx.is_all_in:
             return BettingAction.CHECK, 0.0
@@ -495,7 +497,7 @@ class MixedPokerInteraction:
         # Fallback: Simple aggression-based decision
         aggression = ctx.aggression
         play_strength = hand_strength + (aggression - 0.5) * 0.2 + random.uniform(-0.1, 0.1)
-        
+
         if call_amount <= 0:
             # No bet to call - can check or raise
             if play_strength > 0.6 and ctx.remaining_energy > game_state.big_blind * 2:
@@ -508,7 +510,7 @@ class MixedPokerInteraction:
         else:
             # Must call, raise, or fold
             pot_odds = call_amount / (game_state.pot + call_amount) if game_state.pot > 0 else 0.5
-            
+
             if play_strength > pot_odds + 0.2:
                 # Strong hand - might raise
                 if play_strength > 0.7 and ctx.remaining_energy > call_amount + game_state.big_blind:
@@ -534,20 +536,19 @@ class MixedPokerInteraction:
         start_position: int,
     ) -> bool:
         """Play a single betting round.
-        
+
         Args:
             game_state: Current game state
             contexts: Player contexts
             start_position: Position to start betting from
-            
+
         Returns:
             True if round completed normally, False if only one player remains
         """
         actions_this_round = 0
         current_pos = start_position
-        last_raiser: Optional[int] = None
         players_acted = set()
-        
+
         while actions_this_round < POKER_MAX_ACTIONS_PER_ROUND * self.num_players:
             # Safety check: if all active players are all-in, we're done
             # This prevents infinite loop where we keep skipping all-in players
@@ -562,24 +563,24 @@ class MixedPokerInteraction:
             if contexts[current_pos].folded or contexts[current_pos].is_all_in:
                 current_pos = (current_pos + 1) % self.num_players
                 continue
-            
+
             # Check if only one player remains
             if game_state.get_active_player_count() <= 1:
                 return False
-            
+
             # Get player action
             action, amount = self._decide_player_action(current_pos, game_state, contexts)
-            
+
             # Apply action
             if action == BettingAction.FOLD:
                 contexts[current_pos].folded = True
                 game_state.player_folded[current_pos] = True
                 game_state.betting_history.append((current_pos, action, 0.0))
-            
+
             elif action == BettingAction.CHECK:
                 game_state.betting_history.append((current_pos, action, 0.0))
                 players_acted.add(current_pos)
-            
+
             elif action == BettingAction.CALL:
                 call_amount = min(amount, contexts[current_pos].remaining_energy)
                 game_state.player_bet(current_pos, call_amount)
@@ -587,27 +588,26 @@ class MixedPokerInteraction:
                 contexts[current_pos].current_bet += call_amount
                 game_state.betting_history.append((current_pos, action, call_amount))
                 players_acted.add(current_pos)
-                
+
                 if contexts[current_pos].remaining_energy <= 0:
                     contexts[current_pos].is_all_in = True
                     game_state.player_all_in[current_pos] = True
-            
+
             elif action == BettingAction.RAISE:
                 # First call, then raise
                 max_bet = game_state.get_max_current_bet()
                 call_amount = max_bet - contexts[current_pos].current_bet
-                
+
                 total_amount = min(amount, contexts[current_pos].remaining_energy)
                 raise_portion = total_amount - call_amount
-                
+
                 if raise_portion > 0:
                     game_state.player_bet(current_pos, total_amount)
                     contexts[current_pos].remaining_energy -= total_amount
                     contexts[current_pos].current_bet += total_amount
                     game_state.betting_history.append((current_pos, action, raise_portion))
-                    last_raiser = current_pos
                     players_acted = {current_pos}  # Reset - others need to act again
-                    
+
                     if contexts[current_pos].remaining_energy <= 0:
                         contexts[current_pos].is_all_in = True
                         game_state.player_all_in[current_pos] = True
@@ -618,18 +618,18 @@ class MixedPokerInteraction:
                     contexts[current_pos].current_bet += call_amount
                     game_state.betting_history.append((current_pos, BettingAction.CALL, call_amount))
                     players_acted.add(current_pos)
-            
+
             actions_this_round += 1
-            
+
             # Check if betting round is complete
             active_players = [
                 i for i in range(self.num_players)
                 if not contexts[i].folded and not contexts[i].is_all_in
             ]
-            
+
             if not active_players:
                 return game_state.get_active_player_count() > 1
-            
+
             # All active players have acted and bets are equal
             max_bet = game_state.get_max_current_bet()
             all_matched = all(
@@ -637,12 +637,12 @@ class MixedPokerInteraction:
                 for i in active_players
             )
             all_acted = all(i in players_acted for i in active_players)
-            
+
             if all_matched and all_acted:
                 return game_state.get_active_player_count() > 1
-            
+
             current_pos = (current_pos + 1) % self.num_players
-        
+
         return game_state.get_active_player_count() > 1
 
     def play_poker(self, bet_amount: Optional[float] = None) -> bool:
@@ -672,14 +672,14 @@ class MixedPokerInteraction:
         small_blind = bet_amount / 2
         big_blind = bet_amount
         button_position = 0  # First player has the button
-        
+
         game_state = MultiplayerGameState(
             num_players=self.num_players,
             small_blind=small_blind,
             big_blind=big_blind,
             button_position=button_position,
         )
-        
+
         # Create player contexts
         contexts: List[MultiplayerPlayerContext] = []
         for i, player in enumerate(self.players):
@@ -691,36 +691,36 @@ class MixedPokerInteraction:
                 strategy=self._get_player_strategy(player),
             )
             contexts.append(ctx)
-        
+
         # Post blinds
         sb_pos = (button_position + 1) % self.num_players
         bb_pos = (button_position + 2) % self.num_players
-        
+
         # Small blind
         sb_amount = min(small_blind, contexts[sb_pos].remaining_energy)
         game_state.player_bet(sb_pos, sb_amount)
         contexts[sb_pos].remaining_energy -= sb_amount
         contexts[sb_pos].current_bet = sb_amount
         self._modify_player_energy(self.players[sb_pos], -sb_amount)
-        
+
         # Big blind
         bb_amount = min(big_blind, contexts[bb_pos].remaining_energy)
         game_state.player_bet(bb_pos, bb_amount)
         contexts[bb_pos].remaining_energy -= bb_amount
         contexts[bb_pos].current_bet = bb_amount
         self._modify_player_energy(self.players[bb_pos], -bb_amount)
-        
+
         # Deal hole cards
         game_state.deal_hole_cards()
-        
+
         # Play betting rounds
         # Pre-flop: action starts after big blind
         start_pos = (bb_pos + 1) % self.num_players
-        
+
         for round_num in range(4):  # Pre-flop, Flop, Turn, River
             if game_state.get_winner_by_fold() is not None:
                 break
-            
+
             if round_num > 0:
                 game_state.advance_round()
                 # Reset current bets for new round
@@ -728,20 +728,20 @@ class MixedPokerInteraction:
                     ctx.current_bet = 0.0
                 # Post-flop: action starts after button
                 start_pos = (button_position + 1) % self.num_players
-            
+
             # Play the betting round
             if not self._play_betting_round(game_state, contexts, start_pos):
                 break  # Only one player remains
-        
+
         # Evaluate hands and determine winner
         game_state.current_round = MultiplayerBettingRound.SHOWDOWN
         game_state.evaluate_hands()
         self.player_hands = game_state.player_hands
-        
+
         # Find winner
         winner_by_fold = game_state.get_winner_by_fold()
         won_by_fold = winner_by_fold is not None
-        
+
         if won_by_fold:
             best_hand_idx = winner_by_fold
             tied_players = [winner_by_fold]
@@ -749,12 +749,12 @@ class MixedPokerInteraction:
             # Find best hand among non-folded players
             active_players = [i for i, ctx in enumerate(contexts) if not ctx.folded]
             best_hand_idx = active_players[0]
-            
+
             for i in active_players[1:]:
                 if self.player_hands[i] and self.player_hands[best_hand_idx]:
                     if self.player_hands[i].beats(self.player_hands[best_hand_idx]):
                         best_hand_idx = i
-            
+
             # Check for ties
             tied_players = [best_hand_idx]
             for i in active_players:
@@ -762,63 +762,62 @@ class MixedPokerInteraction:
                     if self.player_hands[i] and self.player_hands[best_hand_idx]:
                         if self.player_hands[i].ties(self.player_hands[best_hand_idx]):
                             tied_players.append(i)
-        
+
         # Calculate pot and distribute winnings
         total_pot = game_state.pot
         house_cut = 0.0
         energy_transferred = 0.0
         total_rounds = int(game_state.current_round)
-        
+
         if len(tied_players) == 1:
             # Single winner
             winner = self.players[best_hand_idx]
             winner_id = self._get_player_id(winner)
             winner_type = self._get_player_type(winner)
-            
-            # Calculate house cut
+
+            # Calculate house cut (keep consistent with fish-vs-fish rules: 8-25% of net_gain)
             winner_size = self._get_player_size(winner)
             winner_bet = game_state.player_total_bets[best_hand_idx]
             net_gain = total_pot - winner_bet
-            
-            house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
-                0, (winner_size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
-            )
-            house_cut = net_gain * house_cut_percentage
-            
+
+            from core.fish_poker import PokerInteraction
+
+            house_cut = PokerInteraction.calculate_house_cut(winner_size, net_gain)
+
             # Winner gets pot minus house cut
             winnings = total_pot - house_cut
             self._modify_player_energy(winner, winnings)
             energy_transferred = net_gain - house_cut
-            
+
             # Get first loser for target info
             first_loser_idx = next((i for i in range(self.num_players) if i != best_hand_idx), None)
             first_loser = self.players[first_loser_idx] if first_loser_idx is not None else None
             first_loser_id = self._get_player_id(first_loser) if first_loser else None
             first_loser_type = self._get_player_type(first_loser) if first_loser else None
-            
+
             self._set_poker_effect(
-                winner, 
-                won=True, 
+                winner,
+                won=True,
                 amount=energy_transferred,
                 target_id=first_loser_id,
                 target_type=first_loser_type
             )
-            
+
             # Collect loser info
             loser_ids = []
             loser_types = []
             loser_hands = []
-            
+
             # Calculate how much the winner received from each loser
             # Each loser's contribution is proportional to their bet
             total_loser_bets = total_pot - winner_bet
-            
+
             for i, player in enumerate(self.players):
                 if i != best_hand_idx:
                     loser_ids.append(self._get_player_id(player))
                     loser_types.append(self._get_player_type(player))
                     loser_hands.append(self.player_hands[i])
-                    
+
                     # Calculate this loser's contribution to the winner's gain
                     # (proportional to their bet, minus house cut)
                     loser_bet = game_state.player_total_bets[i]
@@ -826,15 +825,15 @@ class MixedPokerInteraction:
                         loser_contribution = loser_bet * (energy_transferred / total_loser_bets)
                     else:
                         loser_contribution = 0.0
-                    
+
                     self._set_poker_effect(
-                        player, 
+                        player,
                         won=False,
                         amount=loser_contribution,
                         target_id=winner_id,
                         target_type=winner_type
                     )
-            
+
             self.result = MixedPokerResult(
                 winner_id=winner_id,
                 winner_type=winner_type,
@@ -859,33 +858,33 @@ class MixedPokerInteraction:
             # Tie - split pot among tied players
             tied_ids = [self._get_player_id(self.players[i]) for i in tied_players]
             split_amount = total_pot / len(tied_players)
-            
+
             for i in tied_players:
                 self._modify_player_energy(self.players[i], split_amount)
                 # For ties, point to another tied player
                 other_tied = next((j for j in tied_players if j != i), i)
                 self._set_poker_effect(
-                    self.players[i], 
+                    self.players[i],
                     won=True,
                     amount=0.0,  # No net gain in tie
                     target_id=self._get_player_id(self.players[other_tied]),
                     target_type=self._get_player_type(self.players[other_tied])
                 )
-            
+
             # Non-tied players are losers
             loser_ids = []
             loser_types = []
             loser_hands = []
             first_winner_id = tied_ids[0] if tied_ids else None
             first_winner_type = self._get_player_type(self.players[tied_players[0]]) if tied_players else None
-            
+
             # Calculate total lost by non-tied players (goes to tied players)
             total_loser_bets = sum(
-                game_state.player_total_bets[i] 
-                for i in range(self.num_players) 
+                game_state.player_total_bets[i]
+                for i in range(self.num_players)
                 if i not in tied_players
             )
-            
+
             for i, player in enumerate(self.players):
                 if i not in tied_players:
                     loser_ids.append(self._get_player_id(player))
@@ -894,13 +893,13 @@ class MixedPokerInteraction:
                     # Show each loser's individual bet (what they lost / contributed to pot)
                     loser_bet = game_state.player_total_bets[i]
                     self._set_poker_effect(
-                        player, 
+                        player,
                         won=False,
                         amount=loser_bet,
                         target_id=first_winner_id,
                         target_type=first_winner_type
                     )
-            
+
             self.result = MixedPokerResult(
                 winner_id=tied_ids[0],
                 winner_type=self._get_player_type(self.players[tied_players[0]]),
@@ -921,21 +920,21 @@ class MixedPokerInteraction:
                 players_folded=[ctx.folded for ctx in contexts],
                 betting_history=game_state.betting_history,
             )
-        
+
         # Set cooldown on all players
         for player in self.players:
             self._set_player_cooldown(player)
-        
+
         # Update poker stats
         self._update_poker_stats(best_hand_idx, tied_players, bet_amount)
-        
+
         # Log the game
         logger.debug(
             f"Mixed poker game: {self.fish_count} fish + {self.plant_count} plants, "
             f"winner={self.result.winner_type}#{self.result.winner_id}, "
             f"pot={total_pot:.1f}, rounds={total_rounds}, fold={won_by_fold}"
         )
-        
+
         return True
 
     def _update_poker_stats(

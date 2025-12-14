@@ -212,6 +212,15 @@ export interface StatsData {
     energy_from_migration_in?: number;
     energy_burn_recent?: Record<string, number>;
     energy_burn_total?: number;
+    energy_gains_recent_total?: number;
+    energy_net_recent?: number;
+    energy_accounting_discrepancy?: number;
+    // Plant energy economy (separate pool from fish)
+    plant_energy_sources?: Record<string, number>;
+    plant_energy_sources_recent?: Record<string, number>;
+    plant_energy_from_photosynthesis?: number;
+    plant_energy_burn_recent?: Record<string, number>;
+    plant_energy_burn_total?: number;
     // Energy delta (true change in fish population energy over window)
     energy_delta?: {
         energy_delta: number;  // Change in total fish energy
