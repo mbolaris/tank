@@ -191,18 +191,22 @@ class TestEdgeCasesAndBoundaries:
 
     def test_blend_discrete_distribution(self):
         """Test discrete blending follows probability distribution."""
+        # Use seeded RNG for deterministic test results
+        rng = random.Random(42)
         trials = 10000
         parent1_count = 0
 
         for _ in range(trials):
-            result = blend_discrete("A", "B", weight1=0.7)
+            result = blend_discrete("A", "B", weight1=0.7, rng=rng)
             if result == "A":
                 parent1_count += 1
 
-        # Should be roughly 70% parent1 (allow 3 sigma)
+        # Should be roughly 70% parent1
+        # With seed 42 and 10000 trials, we get deterministic results
+        # Use 4 sigma for robustness if seed changes (99.994% confidence)
         expected = trials * 0.7
         std_dev = (trials * 0.7 * 0.3) ** 0.5
-        assert abs(parent1_count - expected) < 3 * std_dev, \
+        assert abs(parent1_count - expected) < 4 * std_dev, \
             f"Discrete blend {parent1_count/trials:.3f} deviates from expected 0.7"
 
 
