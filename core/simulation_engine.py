@@ -47,6 +47,13 @@ from core.constants import (
 from core.ecosystem import EcosystemManager
 from core.entities.fractal_plant import FractalPlant, PlantNectar
 from core.entity_factory import create_initial_population
+from core.events import (
+    EnergyChangedEvent,
+    EntityBornEvent,
+    EntityDiedEvent,
+    EventBus,
+    PokerGameEvent,
+)
 from core.fish_poker import PokerInteraction
 from core.genetics import Genome
 from core.object_pool import FoodPool
@@ -56,8 +63,10 @@ from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
 from core.poker_system import PokerSystem
 from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
+from core.services.stats_calculator import StatsCalculator
 from core.simulation_stats_exporter import SimulationStatsExporter
 from core.simulators.base_simulator import BaseSimulator
+from core.systems.entity_lifecycle import EntityLifecycleSystem
 from core.time_system import TimeSystem
 
 logger = logging.getLogger(__name__)
@@ -166,11 +175,15 @@ class SimulationEngine(BaseSimulator):
             -EMERGENCY_SPAWN_COOLDOWN
         )  # Allow immediate first spawn
 
+        # Event bus for decoupled communication between components
+        self.event_bus = EventBus()
+
         # Systems - all extend BaseSystem for consistent interface
         self.collision_system = CollisionSystem(self)
         self.reproduction_system = ReproductionSystem(self)
         self.poker_system = PokerSystem(self, max_events=MAX_POKER_EVENTS)
         self.poker_events = self.poker_system.poker_events
+        self.lifecycle_system = EntityLifecycleSystem(self)
 
         # System Registry - maintains execution order and provides uniform management
         # Systems are registered in setup() once all dependencies are ready
@@ -205,6 +218,9 @@ class SimulationEngine(BaseSimulator):
                 BenchmarkEvalConfig()
             )
 
+        # Services
+        self.stats_calculator = StatsCalculator(self)
+
         # Telemetry
         self.stats_exporter = SimulationStatsExporter(self)
 
@@ -220,13 +236,18 @@ class SimulationEngine(BaseSimulator):
             self.root_spot_manager = RootSpotManager(SCREEN_WIDTH, SCREEN_HEIGHT)
 
         # Register systems in execution order
-        # Order matters: time affects behavior, collisions before reproduction
+        # Order matters: lifecycle first for per-frame reset, time affects behavior,
+        # collisions before reproduction
         self._systems = [
+            self.lifecycle_system,
             self.time_system,
             self.collision_system,
             self.reproduction_system,
             self.poker_system,
         ]
+
+        # Wire up event bus subscriptions
+        self._setup_event_subscriptions()
 
         self.create_initial_entities()
 
@@ -287,6 +308,88 @@ class SimulationEngine(BaseSimulator):
             system.enabled = enabled
             return True
         return False
+
+    # =========================================================================
+    # Event Bus Methods
+    # =========================================================================
+
+    def _setup_event_subscriptions(self) -> None:
+        """Set up event bus subscriptions for the engine.
+
+        This wires up the event-driven architecture by subscribing
+        to events emitted by entities and systems.
+        """
+        # Energy tracking - forward to ecosystem
+        self.event_bus.subscribe(EnergyChangedEvent, self._on_energy_changed)
+
+        # Death events - could be used for logging/stats
+        self.event_bus.subscribe(EntityDiedEvent, self._on_entity_died)
+
+        # Birth events - could be used for logging/stats
+        self.event_bus.subscribe(EntityBornEvent, self._on_entity_born)
+
+        # Poker events - forward to poker stats
+        self.event_bus.subscribe(PokerGameEvent, self._on_poker_game)
+
+    def _on_energy_changed(self, event: EnergyChangedEvent) -> None:
+        """Handle energy change events.
+
+        Args:
+            event: The energy change event
+        """
+        if self.ecosystem is not None and event.amount < 0:
+            # Record energy burns to ecosystem
+            self.ecosystem.record_energy_burn(event.source, abs(event.amount))
+
+    def _on_entity_died(self, event: EntityDiedEvent) -> None:
+        """Handle entity death events.
+
+        Args:
+            event: The entity death event
+        """
+        # Currently handled via direct calls, but this enables future
+        # decoupling where entities emit events instead of calling
+        # ecosystem methods directly
+        pass
+
+    def _on_entity_born(self, event: EntityBornEvent) -> None:
+        """Handle entity birth events.
+
+        Args:
+            event: The entity birth event
+        """
+        # Currently handled via direct calls, but this enables future
+        # decoupling where entities emit events instead of calling
+        # ecosystem methods directly
+        pass
+
+    def _on_poker_game(self, event: PokerGameEvent) -> None:
+        """Handle poker game completion events.
+
+        Args:
+            event: The poker game event
+        """
+        # Could be used to forward to poker stats manager
+        # Currently poker system handles this directly
+        pass
+
+    def emit_event(self, event) -> None:
+        """Emit an event to the engine's event bus.
+
+        This is the public API for systems and entities to emit events.
+
+        Args:
+            event: The event to emit
+        """
+        self.event_bus.emit(event)
+
+    def get_event_bus_stats(self) -> Dict[str, Any]:
+        """Get statistics about the event bus.
+
+        Returns:
+            Dictionary with event bus statistics
+        """
+        return self.event_bus.get_stats()
 
     # =========================================================================
     # Entity Management
@@ -551,6 +654,9 @@ class SimulationEngine(BaseSimulator):
 
         self.frame_count += 1
 
+        # Update lifecycle system first to reset per-frame counters
+        self.lifecycle_system.update(self.frame_count)
+
         self.time_system.update()
         time_modifier = self.time_system.get_activity_modifier()
         time_of_day = self.time_system.get_time_of_day()
@@ -586,19 +692,16 @@ class SimulationEngine(BaseSimulator):
             # Handle spawned entities (reproduction, food drops, nectar)
             if result.spawned_entities:
                 for spawned in result.spawned_entities:
-                    is_added = False
-                    
                     # Special handling for Fish reproduction (population cap)
                     if isinstance(spawned, Fish):
-                         if ecosystem is not None and ecosystem.can_reproduce(fish_count):
-                             spawned.register_birth()
-                             new_entities.append(spawned)
-                             fish_count += 1
-                             is_added = True
+                        if ecosystem is not None and ecosystem.can_reproduce(fish_count):
+                            spawned.register_birth()
+                            new_entities.append(spawned)
+                            fish_count += 1
+                            self.lifecycle_system.record_birth()
                     else:
                         # Plants, Food, Nectar - just add them
                         new_entities.append(spawned)
-                        is_added = True
 
             # Handle events (if any)
             # Currently we don't have events implementation fully wired in SimulationEngine
@@ -829,9 +932,9 @@ class SimulationEngine(BaseSimulator):
             screen_height=SCREEN_HEIGHT,
         )
         new_fish.register_birth()
+        self.lifecycle_system.record_emergency_spawn()
 
         self.add_entity(new_fish)
-
 
     def _add_poker_event_to_history(
         self,
@@ -867,242 +970,12 @@ class SimulationEngine(BaseSimulator):
     def get_stats(self) -> Dict[str, Any]:
         """Get current simulation statistics.
 
+        Delegates to StatsCalculator service for cleaner separation of concerns.
+
         Returns:
             Dictionary with simulation stats
         """
-        if self.ecosystem is None:
-            return {}
-
-        stats = self.ecosystem.get_summary_stats(self.get_all_entities())
-        
-        # Add cumulative energy sources (lifetime totals)
-        # Note: energy_sources_recent and energy_burn_recent are already set by
-        # get_summary_stats() with ENERGY_STATS_WINDOW_FRAMES (1800 frames = 60s),
-        # matching the window used for energy_delta. Don't override them here.
-        stats.update({
-            "energy_sources": self.ecosystem.get_energy_source_summary(),
-        })
-
-        stats["frame_count"] = self.frame_count
-        stats["time_string"] = self.time_system.get_time_string()
-        stats["elapsed_real_time"] = time.time() - self.start_time
-        stats["simulation_speed"] = (
-            self.frame_count / (FRAME_RATE * (time.time() - self.start_time))
-            if time.time() > self.start_time
-            else 0
-        )
-
-        # Add entity counts (use cached lists)
-        fish_list = self.get_fish_list()
-        stats["fish_count"] = len(fish_list)
-        
-        # Get all food and separate types
-        all_food_list = self.get_food_list()
-        live_food_list = [e for e in all_food_list if isinstance(e, entities.LiveFood)]
-        regular_food_list = [e for e in all_food_list if not isinstance(e, entities.LiveFood)]
-        
-        # Regular Food Stats (Pellets/Nectar)
-        stats["food_count"] = len(regular_food_list)
-        stats["food_energy"] = sum(food.energy for food in regular_food_list)
-        
-        # Live Food Stats
-        stats["live_food_count"] = len(live_food_list)
-        stats["live_food_energy"] = sum(food.energy for food in live_food_list)
-        
-        # Add separate fish and plant energy
-        stats["fish_energy"] = sum(fish.energy for fish in fish_list)
-        plant_list = [e for e in self.entities_list if isinstance(e, FractalPlant)]
-        stats["plant_energy"] = sum(plant.energy for plant in plant_list)
-
-        # Update plant count to include fractal plants
-        regular_plants = len([e for e in self.entities_list if isinstance(e, entities.Plant)])
-        stats["plant_count"] = regular_plants + len(plant_list)
-
-        # Fish energy distribution stats
-        if fish_list:
-            fish_energies = [fish.energy for fish in fish_list]
-            stats["avg_fish_energy"] = stats["fish_energy"] / len(fish_list)
-            stats["min_fish_energy"] = min(fish_energies)
-            stats["max_fish_energy"] = max(fish_energies)
-
-            # Max Energy Capacity Stats (Genetic)
-            max_energies = [fish.max_energy for fish in fish_list]
-            stats["min_max_energy_capacity"] = min(max_energies)
-            stats["max_max_energy_capacity"] = max(max_energies)
-            stats["median_max_energy_capacity"] = median(max_energies)
-
-            # Count fish in different energy health states
-            # Using energy ratios: critical (<15%), low (<30%), healthy (30-80%), full (>80%)
-            critical_count = 0
-            low_count = 0
-            healthy_count = 0
-            full_count = 0
-            for fish in fish_list:
-                ratio = fish.energy / fish.max_energy if fish.max_energy > 0 else 0
-                if ratio < 0.15:
-                    critical_count += 1
-                elif ratio < 0.30:
-                    low_count += 1
-                elif ratio < 0.80:
-                    healthy_count += 1
-                else:
-                    full_count += 1
-            stats["fish_health_critical"] = critical_count
-            stats["fish_health_low"] = low_count
-            stats["fish_health_healthy"] = healthy_count
-            stats["fish_health_full"] = full_count
-        else:
-            stats["avg_fish_energy"] = 0.0
-            stats["min_fish_energy"] = 0.0
-            stats["max_fish_energy"] = 0.0
-            stats["min_max_energy_capacity"] = 0.0
-            stats["max_max_energy_capacity"] = 0.0
-            stats["median_max_energy_capacity"] = 0.0
-            stats["fish_health_critical"] = 0
-            stats["fish_health_low"] = 0
-            stats["fish_health_healthy"] = 0
-            stats["fish_health_full"] = 0
-
-        # Adult size stats (mirror values computed in ecosystem_population to ensure frontend receives them)
-        if fish_list:
-            adult_sizes = [FISH_ADULT_SIZE * (f.genome.size_modifier if hasattr(f, 'genome') else 1.0) for f in fish_list]
-            stats["adult_size_min"] = min(adult_sizes)
-            stats["adult_size_max"] = max(adult_sizes)
-            try:
-                stats["adult_size_median"] = median(adult_sizes)
-            except Exception:
-                stats["adult_size_median"] = 0.0
-            stats["adult_size_range"] = f"{stats['adult_size_min']:.2f}-{stats['adult_size_max']:.2f}"
-            # Histogram bins for size distribution (use genetic allowed bounds as edges)
-            try:
-                bins = 16
-                from core.constants import FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
-                allowed_min = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN
-                allowed_max = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX
-                # create bin edges from allowed_min..allowed_max
-                span = max(1e-6, (allowed_max - allowed_min))
-                edges = [allowed_min + (span * i) / bins for i in range(bins + 1)]
-                counts = [0] * bins
-                for s in adult_sizes:
-                    # index in 0..bins-1
-                    idx = int((s - allowed_min) / span * bins)
-                    if idx < 0:
-                        idx = 0
-                    elif idx >= bins:
-                        idx = bins - 1
-                    counts[idx] += 1
-                stats["adult_size_bins"] = counts
-                stats["adult_size_bin_edges"] = edges
-            except Exception:
-                stats["adult_size_bins"] = []
-                stats["adult_size_bin_edges"] = []
-        else:
-            stats["adult_size_min"] = 0.0
-            stats["adult_size_max"] = 0.0
-            stats["adult_size_median"] = 0.0
-            stats["adult_size_range"] = "0.00-0.00"
-
-        from core.constants import FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
-        stats["allowed_adult_size_min"] = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN
-        stats["allowed_adult_size_max"] = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX
-
-        # Eye size stats (vision/eye size is derived from genome.eye_size)
-        try:
-            eye_sizes = [getattr(f.genome, 'eye_size', 1.0) for f in fish_list] if fish_list else []
-            if eye_sizes:
-                stats["eye_size_min"] = min(eye_sizes)
-                stats["eye_size_max"] = max(eye_sizes)
-                try:
-                    stats["eye_size_median"] = median(eye_sizes)
-                except Exception:
-                    stats["eye_size_median"] = 0.0
-                # Histogram for eye size using same bin count and range as adult size modifiers if possible
-                bins = 12
-                if eye_sizes:
-                    es_min = min(eye_sizes)
-                    es_max = max(eye_sizes)
-                    span = max(1e-6, es_max - es_min)
-                    edges = [es_min + (span * i) / bins for i in range(bins + 1)]
-                    counts = [0] * bins
-                    for s in eye_sizes:
-                        idx = int((s - es_min) / span * bins)
-                        if idx < 0:
-                            idx = 0
-                        elif idx >= bins:
-                            idx = bins - 1
-                        counts[idx] += 1
-                    stats["eye_size_bins"] = counts
-                    stats["eye_size_bin_edges"] = edges
-                else:
-                    stats["eye_size_bins"] = []
-                    stats["eye_size_bin_edges"] = []
-            else:
-                stats["eye_size_min"] = 0.0
-                stats["eye_size_max"] = 0.0
-                stats["eye_size_median"] = 0.0
-                stats["eye_size_bins"] = []
-                stats["eye_size_bin_edges"] = []
-        except Exception:
-            stats["eye_size_min"] = 0.0
-            stats["eye_size_max"] = 0.0
-            stats["eye_size_median"] = 0.0
-            stats["eye_size_bins"] = []
-            stats["eye_size_bin_edges"] = []
-
-        # Expose allowed eye size constants so frontend can show allowed range
-        try:
-            from core.config.fish import EYE_SIZE_MIN, EYE_SIZE_MAX
-            stats["allowed_eye_size_min"] = EYE_SIZE_MIN
-            stats["allowed_eye_size_max"] = EYE_SIZE_MAX
-        except Exception:
-            # Fallback to observed extremes
-            stats["allowed_eye_size_min"] = stats.get("eye_size_min", 0.5)
-            stats["allowed_eye_size_max"] = stats.get("eye_size_max", 2.0)
-
-        # Fin size stats (fin size affects propulsion/speed)
-        try:
-            fin_sizes = [getattr(f.genome, 'fin_size', 1.0) for f in fish_list] if fish_list else []
-            if fin_sizes:
-                stats["fin_size_min"] = min(fin_sizes)
-                stats["fin_size_max"] = max(fin_sizes)
-                try:
-                    stats["fin_size_median"] = median(fin_sizes)
-                except Exception:
-                    stats["fin_size_median"] = 0.0
-                # Histogram for fin size using genetic allowed bounds (0.5 to 2.0)
-                bins = 12
-                allowed_fin_min = 0.5
-                allowed_fin_max = 2.0
-                span = max(1e-6, allowed_fin_max - allowed_fin_min)
-                edges = [allowed_fin_min + (span * i) / bins for i in range(bins + 1)]
-                counts = [0] * bins
-                for s in fin_sizes:
-                    idx = int((s - allowed_fin_min) / span * bins)
-                    if idx < 0:
-                        idx = 0
-                    elif idx >= bins:
-                        idx = bins - 1
-                    counts[idx] += 1
-                stats["fin_size_bins"] = counts
-                stats["fin_size_bin_edges"] = edges
-            else:
-                stats["fin_size_min"] = 0.0
-                stats["fin_size_max"] = 0.0
-                stats["fin_size_median"] = 0.0
-                stats["fin_size_bins"] = []
-                stats["fin_size_bin_edges"] = []
-        except Exception:
-            stats["fin_size_min"] = 0.0
-            stats["fin_size_max"] = 0.0
-            stats["fin_size_median"] = 0.0
-            stats["fin_size_bins"] = []
-            stats["fin_size_bin_edges"] = []
-
-        # Expose allowed fin size constants
-        stats["allowed_fin_size_min"] = 0.5
-        stats["allowed_fin_size_max"] = 2.0
-
-        return stats
+        return self.stats_calculator.get_stats()
 
     def export_stats_json(self, filename: str) -> None:
         """Export comprehensive simulation statistics to JSON file for LLM analysis."""

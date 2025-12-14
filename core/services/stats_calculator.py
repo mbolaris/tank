@@ -1,0 +1,434 @@
+"""Statistics calculation service for the simulation.
+
+This module provides a centralized service for calculating simulation
+statistics. It extracts stat calculation logic from SimulationEngine
+to improve separation of concerns.
+
+Architecture Notes:
+- Receives engine reference for accessing simulation state
+- Provides modular stat calculation methods
+- Can be extended with caching for expensive calculations
+"""
+
+import time
+from statistics import median
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from core.entities import Fish, Food
+    from core.entities.fractal_plant import FractalPlant
+    from core.simulation_engine import SimulationEngine
+
+
+class StatsCalculator:
+    """Calculates simulation statistics on demand.
+
+    This service extracts stat calculation from SimulationEngine,
+    providing a cleaner separation of concerns and easier testing.
+
+    Attributes:
+        _engine: Reference to the simulation engine
+    """
+
+    def __init__(self, engine: "SimulationEngine") -> None:
+        """Initialize the stats calculator.
+
+        Args:
+            engine: The simulation engine to calculate stats for
+        """
+        self._engine = engine
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get comprehensive simulation statistics.
+
+        This is the main entry point that aggregates all stat categories.
+
+        Returns:
+            Dictionary with all simulation statistics
+        """
+        if self._engine.ecosystem is None:
+            return {}
+
+        # Start with ecosystem summary stats
+        stats = self._engine.ecosystem.get_summary_stats(
+            self._engine.get_all_entities()
+        )
+
+        # Add cumulative energy sources
+        stats["energy_sources"] = self._engine.ecosystem.get_energy_source_summary()
+
+        # Add simulation state
+        stats.update(self._get_simulation_state())
+
+        # Add entity counts and energy
+        stats.update(self._get_entity_stats())
+
+        # Add fish health distribution
+        stats.update(self._get_fish_health_stats())
+
+        # Add genetic distribution stats
+        stats.update(self._get_genetic_distribution_stats())
+
+        return stats
+
+    def _get_simulation_state(self) -> Dict[str, Any]:
+        """Get simulation state statistics.
+
+        Returns:
+            Dictionary with frame count, time, and speed stats
+        """
+        from core.constants import FRAME_RATE
+
+        elapsed = time.time() - self._engine.start_time
+        return {
+            "frame_count": self._engine.frame_count,
+            "time_string": self._engine.time_system.get_time_string(),
+            "elapsed_real_time": elapsed,
+            "simulation_speed": (
+                self._engine.frame_count / (FRAME_RATE * elapsed)
+                if elapsed > 0
+                else 0
+            ),
+        }
+
+    def _get_entity_stats(self) -> Dict[str, Any]:
+        """Get entity count and energy statistics.
+
+        Returns:
+            Dictionary with entity counts and energy totals
+        """
+        from core import entities
+        from core.entities.fractal_plant import FractalPlant
+
+        fish_list = self._engine.get_fish_list()
+        all_food_list = self._engine.get_food_list()
+
+        # Separate food types
+        live_food_list = [
+            e for e in all_food_list if isinstance(e, entities.LiveFood)
+        ]
+        regular_food_list = [
+            e for e in all_food_list if not isinstance(e, entities.LiveFood)
+        ]
+
+        # Plant lists
+        regular_plants = [
+            e for e in self._engine.entities_list if isinstance(e, entities.Plant)
+        ]
+        fractal_plants = [
+            e for e in self._engine.entities_list if isinstance(e, FractalPlant)
+        ]
+
+        return {
+            "fish_count": len(fish_list),
+            "fish_energy": sum(fish.energy for fish in fish_list),
+            "food_count": len(regular_food_list),
+            "food_energy": sum(food.energy for food in regular_food_list),
+            "live_food_count": len(live_food_list),
+            "live_food_energy": sum(food.energy for food in live_food_list),
+            "plant_count": len(regular_plants) + len(fractal_plants),
+            "plant_energy": sum(plant.energy for plant in fractal_plants),
+        }
+
+    def _get_fish_health_stats(self) -> Dict[str, Any]:
+        """Get fish health and energy distribution statistics.
+
+        Returns:
+            Dictionary with fish health stats (critical, low, healthy, full)
+        """
+        fish_list = self._engine.get_fish_list()
+
+        if not fish_list:
+            return {
+                "avg_fish_energy": 0.0,
+                "min_fish_energy": 0.0,
+                "max_fish_energy": 0.0,
+                "min_max_energy_capacity": 0.0,
+                "max_max_energy_capacity": 0.0,
+                "median_max_energy_capacity": 0.0,
+                "fish_health_critical": 0,
+                "fish_health_low": 0,
+                "fish_health_healthy": 0,
+                "fish_health_full": 0,
+            }
+
+        fish_energies = [fish.energy for fish in fish_list]
+        max_energies = [fish.max_energy for fish in fish_list]
+
+        # Count fish in different energy health states
+        critical_count = 0
+        low_count = 0
+        healthy_count = 0
+        full_count = 0
+
+        for fish in fish_list:
+            ratio = fish.energy / fish.max_energy if fish.max_energy > 0 else 0
+            if ratio < 0.15:
+                critical_count += 1
+            elif ratio < 0.30:
+                low_count += 1
+            elif ratio < 0.80:
+                healthy_count += 1
+            else:
+                full_count += 1
+
+        return {
+            "avg_fish_energy": sum(fish_energies) / len(fish_list),
+            "min_fish_energy": min(fish_energies),
+            "max_fish_energy": max(fish_energies),
+            "min_max_energy_capacity": min(max_energies),
+            "max_max_energy_capacity": max(max_energies),
+            "median_max_energy_capacity": median(max_energies),
+            "fish_health_critical": critical_count,
+            "fish_health_low": low_count,
+            "fish_health_healthy": healthy_count,
+            "fish_health_full": full_count,
+        }
+
+    def _get_genetic_distribution_stats(self) -> Dict[str, Any]:
+        """Get genetic trait distribution statistics with histograms.
+
+        Returns:
+            Dictionary with genetic stats (adult size, eye size, fin size)
+        """
+        stats: Dict[str, Any] = {}
+
+        # Adult size stats
+        stats.update(self._get_adult_size_stats())
+
+        # Eye size stats
+        stats.update(self._get_eye_size_stats())
+
+        # Fin size stats
+        stats.update(self._get_fin_size_stats())
+
+        return stats
+
+    def _get_adult_size_stats(self) -> Dict[str, Any]:
+        """Calculate adult size distribution statistics.
+
+        Returns:
+            Dictionary with adult size stats and histogram
+        """
+        from core.constants import (
+            FISH_ADULT_SIZE,
+            FISH_SIZE_MODIFIER_MIN,
+            FISH_SIZE_MODIFIER_MAX,
+        )
+
+        fish_list = self._engine.get_fish_list()
+
+        # Allowed size bounds
+        allowed_min = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN
+        allowed_max = FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX
+
+        stats = {
+            "allowed_adult_size_min": allowed_min,
+            "allowed_adult_size_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "adult_size_min": 0.0,
+                "adult_size_max": 0.0,
+                "adult_size_median": 0.0,
+                "adult_size_range": "0.00-0.00",
+                "adult_size_bins": [],
+                "adult_size_bin_edges": [],
+            })
+            return stats
+
+        adult_sizes = [
+            FISH_ADULT_SIZE * (f.genome.size_modifier if hasattr(f, "genome") else 1.0)
+            for f in fish_list
+        ]
+
+        stats["adult_size_min"] = min(adult_sizes)
+        stats["adult_size_max"] = max(adult_sizes)
+        stats["adult_size_range"] = (
+            f"{stats['adult_size_min']:.2f}-{stats['adult_size_max']:.2f}"
+        )
+
+        try:
+            stats["adult_size_median"] = median(adult_sizes)
+        except Exception:
+            stats["adult_size_median"] = 0.0
+
+        # Create histogram
+        bins, edges = self._create_histogram(
+            adult_sizes, allowed_min, allowed_max, num_bins=16
+        )
+        stats["adult_size_bins"] = bins
+        stats["adult_size_bin_edges"] = edges
+
+        return stats
+
+    def _get_eye_size_stats(self) -> Dict[str, Any]:
+        """Calculate eye size distribution statistics.
+
+        Returns:
+            Dictionary with eye size stats and histogram
+        """
+        fish_list = self._engine.get_fish_list()
+
+        # Try to get allowed bounds from config
+        try:
+            from core.config.fish import EYE_SIZE_MIN, EYE_SIZE_MAX
+            allowed_min = EYE_SIZE_MIN
+            allowed_max = EYE_SIZE_MAX
+        except Exception:
+            allowed_min = 0.5
+            allowed_max = 2.0
+
+        stats = {
+            "allowed_eye_size_min": allowed_min,
+            "allowed_eye_size_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "eye_size_min": 0.0,
+                "eye_size_max": 0.0,
+                "eye_size_median": 0.0,
+                "eye_size_bins": [],
+                "eye_size_bin_edges": [],
+            })
+            return stats
+
+        try:
+            eye_sizes = [getattr(f.genome, "eye_size", 1.0) for f in fish_list]
+
+            if eye_sizes:
+                stats["eye_size_min"] = min(eye_sizes)
+                stats["eye_size_max"] = max(eye_sizes)
+
+                try:
+                    stats["eye_size_median"] = median(eye_sizes)
+                except Exception:
+                    stats["eye_size_median"] = 0.0
+
+                # Create histogram using observed range
+                es_min = min(eye_sizes)
+                es_max = max(eye_sizes)
+                bins, edges = self._create_histogram(
+                    eye_sizes, es_min, es_max, num_bins=12
+                )
+                stats["eye_size_bins"] = bins
+                stats["eye_size_bin_edges"] = edges
+            else:
+                stats.update({
+                    "eye_size_min": 0.0,
+                    "eye_size_max": 0.0,
+                    "eye_size_median": 0.0,
+                    "eye_size_bins": [],
+                    "eye_size_bin_edges": [],
+                })
+        except Exception:
+            stats.update({
+                "eye_size_min": 0.0,
+                "eye_size_max": 0.0,
+                "eye_size_median": 0.0,
+                "eye_size_bins": [],
+                "eye_size_bin_edges": [],
+            })
+
+        return stats
+
+    def _get_fin_size_stats(self) -> Dict[str, Any]:
+        """Calculate fin size distribution statistics.
+
+        Returns:
+            Dictionary with fin size stats and histogram
+        """
+        fish_list = self._engine.get_fish_list()
+
+        # Fixed allowed bounds for fin size
+        allowed_min = 0.5
+        allowed_max = 2.0
+
+        stats = {
+            "allowed_fin_size_min": allowed_min,
+            "allowed_fin_size_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "fin_size_min": 0.0,
+                "fin_size_max": 0.0,
+                "fin_size_median": 0.0,
+                "fin_size_bins": [],
+                "fin_size_bin_edges": [],
+            })
+            return stats
+
+        try:
+            fin_sizes = [getattr(f.genome, "fin_size", 1.0) for f in fish_list]
+
+            if fin_sizes:
+                stats["fin_size_min"] = min(fin_sizes)
+                stats["fin_size_max"] = max(fin_sizes)
+
+                try:
+                    stats["fin_size_median"] = median(fin_sizes)
+                except Exception:
+                    stats["fin_size_median"] = 0.0
+
+                # Create histogram using allowed range
+                bins, edges = self._create_histogram(
+                    fin_sizes, allowed_min, allowed_max, num_bins=12
+                )
+                stats["fin_size_bins"] = bins
+                stats["fin_size_bin_edges"] = edges
+            else:
+                stats.update({
+                    "fin_size_min": 0.0,
+                    "fin_size_max": 0.0,
+                    "fin_size_median": 0.0,
+                    "fin_size_bins": [],
+                    "fin_size_bin_edges": [],
+                })
+        except Exception:
+            stats.update({
+                "fin_size_min": 0.0,
+                "fin_size_max": 0.0,
+                "fin_size_median": 0.0,
+                "fin_size_bins": [],
+                "fin_size_bin_edges": [],
+            })
+
+        return stats
+
+    def _create_histogram(
+        self,
+        values: List[float],
+        range_min: float,
+        range_max: float,
+        num_bins: int = 12,
+    ) -> tuple:
+        """Create a histogram from values.
+
+        Args:
+            values: List of values to bin
+            range_min: Minimum edge of histogram
+            range_max: Maximum edge of histogram
+            num_bins: Number of bins
+
+        Returns:
+            Tuple of (bin_counts, bin_edges)
+        """
+        if not values:
+            return [], []
+
+        span = max(1e-6, range_max - range_min)
+        edges = [range_min + (span * i) / num_bins for i in range(num_bins + 1)]
+        counts = [0] * num_bins
+
+        for v in values:
+            idx = int((v - range_min) / span * num_bins)
+            if idx < 0:
+                idx = 0
+            elif idx >= num_bins:
+                idx = num_bins - 1
+            counts[idx] += 1
+
+        return counts, edges
