@@ -1,14 +1,24 @@
 """Collision detection system.
 
 This module provides collision detection for entity objects in the simulation.
+
+Architecture Notes:
+- CollisionDetector classes implement the Strategy pattern for different
+  collision algorithms (AABB, circle-based, etc.)
+- CollisionSystem is a simulation system that handles collision logic
+- The system now extends BaseSystem for consistent interface
+
+TODO: Extract plant sprouting logic from handle_fish_food_collision into
+      a separate PlantPropagationSystem for better separation of concerns.
 """
 
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from core.config.plants import FRACTAL_PLANT_SPROUTING_CHANCE
 from core.constants import FRACTAL_PLANTS_ENABLED
 from core.entities.fractal_plant import PlantNectar
+from core.systems.base import BaseSystem
 
 if TYPE_CHECKING:
     from core.entities import Agent
@@ -96,23 +106,71 @@ class CircleCollisionDetector(CollisionDetector):
 default_collision_detector = RectCollisionDetector()
 
 
-class CollisionSystem:
-    """Collision utilities that delegate to the simulation engine."""
+class CollisionSystem(BaseSystem):
+    """System for detecting and handling collisions between entities.
+
+    This system:
+    - Checks for collisions between fish and food
+    - Handles collision effects (eating, etc.)
+    - Tracks collision statistics for debugging
+
+    Note: The actual collision iteration is done in SimulationEngine.handle_collisions()
+    which uses the spatial grid for efficiency. This system provides the collision
+    handling logic.
+    """
 
     def __init__(self, engine: "SimulationEngine") -> None:
-        self.engine = engine
+        """Initialize the collision system.
+
+        Args:
+            engine: The simulation engine
+        """
+        super().__init__(engine, "Collision")
+        self._collisions_checked: int = 0
+        self._collisions_detected: int = 0
+        self._fish_food_collisions: int = 0
+
+    def _do_update(self, frame: int) -> None:
+        """Collision system doesn't have per-frame logic.
+
+        Collision detection is triggered by SimulationEngine.handle_collisions()
+        which calls check_collision and handle_fish_food_collision as needed.
+        """
+        pass
 
     def check_collision(self, e1: "Agent", e2: "Agent") -> bool:
-        """Check if two entities collide using bounding box collision."""
-        return (
+        """Check if two entities collide using bounding box collision.
+
+        Args:
+            e1: First entity
+            e2: Second entity
+
+        Returns:
+            True if entities are colliding
+        """
+        self._collisions_checked += 1
+        collides = (
             e1.pos.x < e2.pos.x + e2.width
             and e1.pos.x + e1.width > e2.pos.x
             and e1.pos.y < e2.pos.y + e2.height
             and e1.pos.y + e1.height > e2.pos.y
         )
+        if collides:
+            self._collisions_detected += 1
+        return collides
 
     def handle_fish_food_collision(self, fish: "Agent", food: "Agent") -> None:
-        """Handle collision between a fish and food, including plant nectar."""
+        """Handle collision between a fish and food, including plant nectar.
+
+        Args:
+            fish: The fish entity
+            food: The food entity being eaten
+
+        Note: This method currently contains plant sprouting logic which should
+        eventually be moved to a separate PlantPropagationSystem.
+        """
+        self._fish_food_collisions += 1
+
         if isinstance(food, PlantNectar) and FRACTAL_PLANTS_ENABLED:
             fish.eat(food)
 
@@ -121,6 +179,7 @@ class CollisionSystem:
                 parent_x = food.source_plant.pos.x if food.source_plant else food.pos.x
                 parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
 
+                # TODO: Move this to PlantPropagationSystem
                 # Check sprouting chance
                 if random.random() < FRACTAL_PLANT_SPROUTING_CHANCE:
                     self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
@@ -132,3 +191,17 @@ class CollisionSystem:
             if food.is_fully_consumed():
                 food.get_eaten()
                 self.engine.remove_entity(food)
+
+    def get_debug_info(self) -> Dict[str, Any]:
+        """Return collision statistics for debugging."""
+        return {
+            **super().get_debug_info(),
+            "collisions_checked": self._collisions_checked,
+            "collisions_detected": self._collisions_detected,
+            "fish_food_collisions": self._fish_food_collisions,
+            "hit_rate": (
+                self._collisions_detected / self._collisions_checked
+                if self._collisions_checked > 0
+                else 0.0
+            ),
+        }
