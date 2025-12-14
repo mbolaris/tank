@@ -11,6 +11,8 @@ import time
 from statistics import median
 from typing import Any, Dict, List, Optional
 
+from core.systems.base import BaseSystem
+
 from core import entities, environment, movement_strategy
 from core.algorithms import get_algorithm_index
 from core.collision_system import CollisionSystem
@@ -164,11 +166,15 @@ class SimulationEngine(BaseSimulator):
             -EMERGENCY_SPAWN_COOLDOWN
         )  # Allow immediate first spawn
 
-        # Systems
+        # Systems - all extend BaseSystem for consistent interface
         self.collision_system = CollisionSystem(self)
         self.reproduction_system = ReproductionSystem(self)
         self.poker_system = PokerSystem(self, max_events=MAX_POKER_EVENTS)
         self.poker_events = self.poker_system.poker_events
+
+        # System Registry - maintains execution order and provides uniform management
+        # Systems are registered in setup() once all dependencies are ready
+        self._systems: List[BaseSystem] = []
 
         # Performance: Object pool for Food entities
         self.food_pool = FoodPool()
@@ -213,12 +219,78 @@ class SimulationEngine(BaseSimulator):
         if FRACTAL_PLANTS_ENABLED:
             self.root_spot_manager = RootSpotManager(SCREEN_WIDTH, SCREEN_HEIGHT)
 
+        # Register systems in execution order
+        # Order matters: time affects behavior, collisions before reproduction
+        self._systems = [
+            self.time_system,
+            self.collision_system,
+            self.reproduction_system,
+            self.poker_system,
+        ]
+
         self.create_initial_entities()
 
         # Create initial fractal plants
         if FRACTAL_PLANTS_ENABLED and self.root_spot_manager is not None:
             self._block_root_spots_with_obstacles()
             self.create_initial_fractal_plants()
+
+    # =========================================================================
+    # System Registry Methods
+    # =========================================================================
+
+    def get_systems(self) -> List[BaseSystem]:
+        """Get all registered systems.
+
+        Returns:
+            List of registered systems in execution order
+        """
+        return self._systems.copy()
+
+    def get_system(self, name: str) -> Optional[BaseSystem]:
+        """Get a system by name.
+
+        Args:
+            name: The name of the system to retrieve
+
+        Returns:
+            The system if found, None otherwise
+        """
+        for system in self._systems:
+            if system.name == name:
+                return system
+        return None
+
+    def get_systems_debug_info(self) -> Dict[str, Any]:
+        """Get debug information from all registered systems.
+
+        Returns:
+            Dictionary mapping system names to their debug info
+        """
+        return {
+            system.name: system.get_debug_info()
+            for system in self._systems
+        }
+
+    def set_system_enabled(self, name: str, enabled: bool) -> bool:
+        """Enable or disable a system by name.
+
+        Args:
+            name: The name of the system
+            enabled: Whether the system should be enabled
+
+        Returns:
+            True if system was found and updated, False otherwise
+        """
+        system = self.get_system(name)
+        if system is not None:
+            system.enabled = enabled
+            return True
+        return False
+
+    # =========================================================================
+    # Entity Management
+    # =========================================================================
 
     def create_initial_entities(self) -> None:
         """Create initial entities in the fish tank with multiple species."""

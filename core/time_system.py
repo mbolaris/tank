@@ -1,32 +1,87 @@
 """Day/night cycle system for the simulation.
 
 This module provides time-of-day tracking and related effects.
+The system extends BaseSystem for consistent interface and lifecycle management.
+
+Architecture Notes:
+- Extends BaseSystem for uniform system management
+- Can operate independently (engine reference optional for backward compatibility)
+- Provides time-based modifiers for fish behavior and visibility
 """
 
 import math
-from typing import Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+
+from core.systems.base import BaseSystem
+
+if TYPE_CHECKING:
+    from core.simulation_engine import SimulationEngine
 
 
-class TimeSystem:
+class TimeSystem(BaseSystem):
     """Manages the day/night cycle and time-related effects.
+
+    This system tracks the simulation's day/night cycle and provides
+    modifiers for fish behavior, visibility, and screen rendering.
 
     Attributes:
         time: Current time in the cycle (0.0 to cycle_length)
         cycle_length: Length of one full day/night cycle in frames
     """
 
-    def __init__(self, cycle_length: int = 1800):
+    def __init__(
+        self,
+        engine: Optional["SimulationEngine"] = None,
+        cycle_length: int = 1800,
+    ) -> None:
         """Initialize the time system.
 
         Args:
-            cycle_length: Number of frames for a full day/night cycle (default: 1800 = 1 min at 30fps)
+            engine: The simulation engine (optional for backward compatibility)
+            cycle_length: Number of frames for a full day/night cycle
+                         (default: 1800 = 1 min at 30fps)
         """
+        # Handle case where engine is not provided (backward compatibility)
+        # We'll use a sentinel object that satisfies BaseSystem's needs
+        if engine is None:
+            # Create minimal engine-like object for BaseSystem
+            class _DummyEngine:
+                pass
+            super().__init__(_DummyEngine(), "Time")  # type: ignore
+            self._engine = None  # type: ignore  # Override to None for safety
+        else:
+            super().__init__(engine, "Time")
+
         self.time: float = 0.0
         self.cycle_length: int = cycle_length
+        self._days_elapsed: int = 0
 
-    def update(self) -> None:
-        """Advance time by one frame."""
+    def _do_update(self, frame: int) -> None:
+        """Advance time by one frame.
+
+        Args:
+            frame: Current simulation frame number (unused, time tracked internally)
+        """
+        old_time = self.time
         self.time = (self.time + 1) % self.cycle_length
+
+        # Track day transitions
+        if self.time < old_time:
+            self._days_elapsed += 1
+
+    def update(self, frame: int = 0) -> None:
+        """Advance time by one frame.
+
+        Overrides BaseSystem.update() to support being called without frame arg
+        for backward compatibility.
+
+        Args:
+            frame: Current simulation frame number (optional)
+        """
+        if not self._enabled:
+            return
+        self._do_update(frame)
+        self._update_count += 1
 
     def get_time_of_day(self) -> float:
         """Get normalized time of day.
@@ -158,3 +213,22 @@ class TimeSystem:
             return "Day"
         else:
             return "Dusk"
+
+    def get_debug_info(self) -> Dict[str, Any]:
+        """Return time system statistics for debugging.
+
+        Returns:
+            Dictionary containing system state and statistics
+        """
+        return {
+            **super().get_debug_info(),
+            "time": self.time,
+            "cycle_length": self.cycle_length,
+            "time_of_day": self.get_time_of_day(),
+            "time_string": self.get_time_string(),
+            "is_day": self.is_day(),
+            "brightness": self.get_brightness(),
+            "activity_modifier": self.get_activity_modifier(),
+            "detection_modifier": self.get_detection_range_modifier(),
+            "days_elapsed": self._days_elapsed,
+        }
