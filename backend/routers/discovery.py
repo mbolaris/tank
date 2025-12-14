@@ -91,7 +91,7 @@ def setup_router(discovery_service: DiscoveryService) -> APIRouter:
 
         return JSONResponse(
             {
-                "servers": [s.dict() for s in servers],
+                "servers": [s.model_dump() for s in servers],
                 "count": len(servers),
             }
         )

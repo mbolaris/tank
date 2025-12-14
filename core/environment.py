@@ -9,6 +9,7 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
+from core.migration_protocol import MigrationHandler
 
 
 class SpatialGrid:
@@ -467,9 +468,10 @@ class Environment:
         self.time_system = time_system
 
         # Migration support (injected by backend)
-        self.connection_manager = None  # Set by backend if migrations enabled
-        self.tank_registry = None  # Set by backend if migrations enabled
-        self.tank_id = None  # Set by backend if migrations enabled
+        self.connection_manager: Any = None  # Set by backend if migrations enabled
+        self.tank_registry: Any = None  # Set by backend if migrations enabled
+        self.tank_id: Optional[str] = None  # Set by backend if migrations enabled
+        self.migration_handler: Optional[MigrationHandler] = None  # Set by backend if migrations enabled
 
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0

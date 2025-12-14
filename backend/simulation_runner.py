@@ -19,6 +19,7 @@ from backend.state_payloads import (
     PokerStatsPayload,
     StatsPayload,
 )
+from backend.entity_snapshot_builder import EntitySnapshotBuilder
 from core import entities, movement_strategy
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.constants import FILES, FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
@@ -104,14 +105,12 @@ class SimulationRunner:
         self.tank_name = tank_name
         self.connection_manager = None  # Set after initialization
         self.tank_registry = None  # Set after initialization
+        self._migration_handler = None  # Created when dependencies are available
+        self._migration_handler_deps = (None, None)  # (connection_manager, tank_registry)
         self.migration_lock = threading.Lock()
 
-        # Stable ID generation for entities without internal IDs (Food, PlantNectar, etc.)
-        # Maps Python id() -> stable_id to avoid ID reuse when memory is recycled
-        self._entity_stable_ids: Dict[int, int] = {}
-        self._next_food_id: int = 0
-        self._next_nectar_id: int = 0
-        self._next_other_id: int = 0
+        # Entity snapshot conversion (stable IDs, DTO mapping, z-order sort)
+        self._entity_snapshot_builder = EntitySnapshotBuilder()
 
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
@@ -124,6 +123,26 @@ class SimulationRunner:
                 env.connection_manager = self.connection_manager
                 env.tank_registry = self.tank_registry
                 env.tank_id = self.tank_id
+
+                # Create (or clear) a migration handler based on available dependencies.
+                # Core entities depend only on the MigrationHandler protocol, while the backend
+                # provides the concrete implementation.
+                if self.connection_manager is not None and self.tank_registry is not None:
+                    deps = (self.connection_manager, self.tank_registry)
+                    if self._migration_handler is None or self._migration_handler_deps != deps:
+                        from backend.migration_handler import BackendMigrationHandler
+
+                        self._migration_handler = BackendMigrationHandler(
+                            connection_manager=self.connection_manager,
+                            tank_registry=self.tank_registry,
+                        )
+                        self._migration_handler_deps = deps
+                    env.migration_handler = self._migration_handler
+                else:
+                    self._migration_handler = None
+                    self._migration_handler_deps = (None, None)
+                    env.migration_handler = None
+
                 logger.info(
                     f"Migration context updated for tank {self.tank_id[:8] if self.tank_id else 'None'}: "
                     f"conn_mgr={'SET' if self.connection_manager else 'NULL'}, "
@@ -153,6 +172,15 @@ class SimulationRunner:
         self.frames_since_websocket_update = 0
         self._last_full_frame = None
         self._last_entities.clear()
+
+    def invalidate_state_cache(self) -> None:
+        """Public wrapper to invalidate cached websocket state.
+
+        Other backend modules (migrations/transfers) should call this instead of
+        reaching into private cache implementation details.
+        """
+
+        self._invalidate_state_cache()
 
     @property
     def engine(self):
@@ -603,32 +631,7 @@ class SimulationRunner:
         )
 
     def _collect_entities(self) -> List[EntitySnapshot]:
-        entities_data: List[EntitySnapshot] = []
-        current_entity_ids = set()
-
-        for entity in self.world.entities_list:
-            current_entity_ids.add(id(entity))
-            entity_data = self._entity_to_data(entity)
-            if entity_data:
-                entities_data.append(entity_data)
-
-        # Prune stale entries from stable ID tracking
-        # Only keep entries for entities that still exist
-        stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
-        for stale_id in stale_ids:
-            del self._entity_stable_ids[stale_id]
-
-        z_order = {
-            "castle": 0,
-            "plant": 1,
-            "fractal_plant": 1,  # Same layer as regular plants
-            "plant_nectar": 2,   # Same layer as food
-            "food": 2,
-            "fish": 4,
-            "crab": 10,  # Render crab in front of everything
-        }
-        entities_data.sort(key=lambda e: z_order.get(e.type, 999))
-        return entities_data
+        return self._entity_snapshot_builder.collect(self.world.entities_list)
 
     def _collect_stats(self, frame: int) -> StatsPayload:
         stats = self.world.get_stats()
@@ -814,197 +817,12 @@ class SimulationRunner:
                 return None
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
-        """Convert an entity to a lightweight snapshot for serialization."""
-        try:
-            # Import ID offsets
-            from core.constants import (
-                FISH_ID_OFFSET,
-                FOOD_ID_OFFSET,
-                NECTAR_ID_OFFSET,
-                PLANT_ID_OFFSET,
-            )
+        """Convert an entity to a lightweight snapshot for serialization.
 
-            # Compute stable ID based on entity type
-            # Fish and FractalPlant have internal stable IDs
-            # Other entities use a tracking dictionary to maintain stable IDs
-            stable_id: int
-            python_id = id(entity)
+        Kept for compatibility/greppability; delegates to `EntitySnapshotBuilder`.
+        """
 
-            if isinstance(entity, entities.Fish) and hasattr(entity, 'fish_id'):
-                stable_id = entity.fish_id + FISH_ID_OFFSET
-            elif isinstance(entity, entities.FractalPlant) and hasattr(entity, 'plant_id'):
-                stable_id = entity.plant_id + PLANT_ID_OFFSET
-            elif isinstance(entity, entities.PlantNectar):
-                # Check if we already have a stable ID for this entity
-                if python_id in self._entity_stable_ids:
-                    stable_id = self._entity_stable_ids[python_id]
-                else:
-                    stable_id = self._next_nectar_id + NECTAR_ID_OFFSET
-                    self._entity_stable_ids[python_id] = stable_id
-                    self._next_nectar_id += 1
-            elif isinstance(entity, entities.Food):
-                # Check if we already have a stable ID for this entity
-                if python_id in self._entity_stable_ids:
-                    stable_id = self._entity_stable_ids[python_id]
-                else:
-                    stable_id = self._next_food_id + FOOD_ID_OFFSET
-                    self._entity_stable_ids[python_id] = stable_id
-                    self._next_food_id += 1
-            else:
-                # Other entities (Crab, Castle, Plant) - use tracking
-                if python_id in self._entity_stable_ids:
-                    stable_id = self._entity_stable_ids[python_id]
-                else:
-                    stable_id = self._next_other_id + 5_000_000  # Use 5M offset for other entities
-                    self._entity_stable_ids[python_id] = stable_id
-                    self._next_other_id += 1
-
-            base_data = {
-                "id": stable_id,
-                "x": entity.pos.x,
-                "y": entity.pos.y,
-                "width": entity.width,
-                "height": entity.height,
-                "vel_x": entity.vel.x if hasattr(entity, "vel") else 0,
-                "vel_y": entity.vel.y if hasattr(entity, "vel") else 0,
-            }
-
-            if isinstance(entity, entities.Fish):
-                genome_data = None
-                if hasattr(entity, "genome"):
-                    genome_data = {
-                        "speed": entity.genome.speed_modifier,
-                        "size": entity.size,  # Use actual size (includes baby stage growth)
-                        "color_hue": entity.genome.color_hue,
-                        # Visual traits for parametric fish templates
-                        "template_id": entity.genome.template_id,
-                        "fin_size": entity.genome.fin_size,
-                        "tail_size": entity.genome.tail_size,
-                        "body_aspect": entity.genome.body_aspect,
-                        "eye_size": entity.genome.eye_size,
-                        "pattern_intensity": entity.genome.pattern_intensity,
-                        "pattern_type": entity.genome.pattern_type,
-                    }
-
-                # Map sprite/genome data to a friendly species label for the frontend
-                species_label = None
-                sprite_name = getattr(entity, "species", "")
-                if "george" in sprite_name:
-                    species_label = "solo"
-                elif "school" in sprite_name:
-                    species_label = "schooling"
-
-                if species_label is None and hasattr(entity, "genome"):
-                    algo_id = getattr(entity.genome.behavior_algorithm, "algorithm_id", "").lower()
-                    if "neural" in algo_id:
-                        species_label = "neural"
-                    elif "school" in algo_id:
-                        species_label = "schooling"
-                    else:
-                        species_label = "algorithmic"
-
-                return EntitySnapshot(
-                    type="fish",
-                    energy=entity.energy,
-                    generation=entity.generation if hasattr(entity, "generation") else 0,
-                    age=entity.age if hasattr(entity, "age") else 0,
-                    species=species_label,
-                    genome_data=genome_data,
-                    poker_effect_state=entity.poker_effect_state if hasattr(entity, "poker_effect_state") else None,
-                    birth_effect_timer=entity.birth_effect_timer if hasattr(entity, "birth_effect_timer") else 0,
-                    max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100.0,
-                    **base_data,
-                )
-
-            elif isinstance(entity, entities.PlantNectar):
-                # PlantNectar check must come BEFORE Food check since PlantNectar extends Food
-                # Include source plant position for sway synchronization in frontend
-                # Use id(source_plant) to match the plant's entity id in the frontend
-                source_plant_id = None
-                source_plant_x = None
-                source_plant_y = None
-                floral_type = None
-                floral_petals = None
-                floral_layers = None
-                floral_spin = None
-                floral_hue = None
-                floral_saturation = None
-                if entity.source_plant:
-                    source_plant_id = id(entity.source_plant)  # Must match plant's entity id
-                    source_plant_x = entity.source_plant.pos.x + entity.source_plant.width / 2
-                    source_plant_y = entity.source_plant.pos.y + entity.source_plant.height
-                    # Get floral genome from parent plant
-                    genome = entity.source_plant.genome
-                    floral_type = genome.floral_type
-                    floral_petals = genome.floral_petals
-                    floral_layers = genome.floral_layers
-                    floral_spin = genome.floral_spin
-                    floral_hue = genome.floral_hue
-                    floral_saturation = genome.floral_saturation
-                return EntitySnapshot(
-                    type="plant_nectar",
-                    energy=entity.energy if hasattr(entity, "energy") else 50,
-                    source_plant_id=source_plant_id,
-                    source_plant_x=source_plant_x,
-                    source_plant_y=source_plant_y,
-                    floral_type=floral_type,
-                    floral_petals=floral_petals,
-                    floral_layers=floral_layers,
-                    floral_spin=floral_spin,
-                    floral_hue=floral_hue,
-                    floral_saturation=floral_saturation,
-                    **base_data,
-                )
-
-            elif isinstance(entity, entities.Food):
-                return EntitySnapshot(
-                    type="food",
-                    food_type=entity.food_type if hasattr(entity, "food_type") else 0,
-                    **base_data,
-                )
-
-            elif isinstance(entity, entities.Plant):
-                return EntitySnapshot(
-                    type="plant",
-                    plant_type=entity.plant_type if hasattr(entity, "plant_type") else 1,
-                    **base_data,
-                )
-
-            elif isinstance(entity, entities.Crab):
-                return EntitySnapshot(
-                    type="crab",
-                    energy=entity.energy if hasattr(entity, "energy") else 100,
-                    can_hunt=entity.can_hunt() if hasattr(entity, "can_hunt") else True,
-                    **base_data,
-                )
-
-            elif isinstance(entity, entities.Castle):
-                return EntitySnapshot(type="castle", **base_data)
-
-            elif isinstance(entity, entities.FractalPlant):
-                # Serialize fractal plant with its genome for L-system rendering
-                genome_dict = entity.genome.to_dict() if hasattr(entity, "genome") else None
-                return EntitySnapshot(
-                    type="fractal_plant",
-                    energy=entity.energy if hasattr(entity, "energy") else 0,
-                    max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100,
-                    genome=genome_dict,
-                    size_multiplier=entity.get_size_multiplier() if hasattr(entity, "get_size_multiplier") else 1.0,
-                    iterations=entity.get_fractal_iterations() if hasattr(entity, "get_fractal_iterations") else 3,
-                    nectar_ready=entity.nectar_cooldown == 0 and (
-                        entity.energy / entity.max_energy >= entity.genome.nectar_threshold_ratio
-                    ) if hasattr(entity, "nectar_cooldown") else False,
-                    age=entity.age if hasattr(entity, "age") else 0,
-                    plant_type=2,
-                    poker_effect_state=entity.poker_effect_state if hasattr(entity, "poker_effect_state") else None,
-                    **base_data,
-                )
-
-            return None
-
-        except Exception as e:
-            logger.error("Error converting entity: %s", e, exc_info=True)
-            return None
+        return self._entity_snapshot_builder.to_snapshot(entity)
 
     def handle_command(self, command: str, data: Optional[Dict[str, Any]] = None):
         """Handle a command from the client.

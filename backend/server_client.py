@@ -369,7 +369,7 @@ class ServerClient:
         response = await self._request(
             "POST",
             url,
-            json=local_server_info.dict(),
+            json=local_server_info.model_dump(),
         )
 
         return response is not None
@@ -393,7 +393,7 @@ class ServerClient:
         response = await self._request(
             "POST",
             url,
-            json=local_server_info.dict(),
+            json=local_server_info.model_dump(),
         )
 
         return response is not None

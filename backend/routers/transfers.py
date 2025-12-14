@@ -198,11 +198,15 @@ def setup_router(
             # Invalidate cached state so websocket clients see updated stats immediately
             try:
                 dest_runner = getattr(dest_manager, "_runner", None)
-                if dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                if dest_runner and hasattr(dest_runner, "invalidate_state_cache"):
+                    dest_runner.invalidate_state_cache()
+                elif dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
                     dest_runner._invalidate_state_cache()
 
                 src_runner = getattr(source_manager, "_runner", None)
-                if src_runner and hasattr(src_runner, "_invalidate_state_cache"):
+                if src_runner and hasattr(src_runner, "invalidate_state_cache"):
+                    src_runner.invalidate_state_cache()
+                elif src_runner and hasattr(src_runner, "_invalidate_state_cache"):
                     src_runner._invalidate_state_cache()
             except Exception:
                 logger.debug("Failed to invalidate runner caches after transfer", exc_info=True)
@@ -315,7 +319,9 @@ def setup_router(
             # Invalidate cached state so websocket clients see updated stats immediately
             try:
                 dest_runner = getattr(dest_manager, "_runner", None)
-                if dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                if dest_runner and hasattr(dest_runner, "invalidate_state_cache"):
+                    dest_runner.invalidate_state_cache()
+                elif dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
                     dest_runner._invalidate_state_cache()
             except Exception:
                 logger.debug("Failed to invalidate runner cache after remote transfer", exc_info=True)

@@ -329,7 +329,9 @@ def test_discovery_registration_and_listing():
     client = build_discovery_client(service)
 
     server_info = make_server_info("discovery-test", True)
-    register_response = client.post("/api/discovery/register", json=server_info.dict())
+    register_response = client.post(
+        "/api/discovery/register", json=server_info.model_dump()
+    )
     assert register_response.status_code == 200
 
     list_response = client.get("/api/discovery/servers")

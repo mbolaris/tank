@@ -5,9 +5,87 @@ for transferring between tanks.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Protocol
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class TransferContext:
+    """Optional contextual information for transfers."""
+
+    migration_direction: Optional[str] = None  # For plants: "left" or "right"
+
+
+class EntityTransferCodec(Protocol):
+    """Codec interface for a transferable entity type."""
+
+    type_name: str
+
+    def can_serialize(self, entity: Any) -> bool:
+        """Return True if this codec can serialize *entity*."""
+
+    def serialize(self, entity: Any, ctx: TransferContext) -> Dict[str, Any]:
+        """Serialize *entity* into a JSON-compatible dict."""
+
+    def deserialize(self, data: Dict[str, Any], target_world: Any) -> Any:
+        """Deserialize *data* into an entity in *target_world*."""
+
+
+class FishTransferCodec:
+    type_name = "fish"
+
+    def can_serialize(self, entity: Any) -> bool:
+        from core.entities.fish import Fish
+
+        return isinstance(entity, Fish)
+
+    def serialize(self, entity: Any, ctx: TransferContext) -> Dict[str, Any]:
+        return _serialize_fish(entity)
+
+    def deserialize(self, data: Dict[str, Any], target_world: Any) -> Any:
+        return _deserialize_fish(data, target_world)
+
+
+class FractalPlantTransferCodec:
+    type_name = "fractal_plant"
+
+    def can_serialize(self, entity: Any) -> bool:
+        from core.entities.fractal_plant import FractalPlant
+
+        return isinstance(entity, FractalPlant)
+
+    def serialize(self, entity: Any, ctx: TransferContext) -> Dict[str, Any]:
+        return _serialize_plant(entity, ctx.migration_direction)
+
+    def deserialize(self, data: Dict[str, Any], target_world: Any) -> Any:
+        return _deserialize_plant(data, target_world)
+
+
+_CODECS: List[EntityTransferCodec] = [
+    FishTransferCodec(),
+    FractalPlantTransferCodec(),
+]
+_CODECS_BY_TYPE: Dict[str, EntityTransferCodec] = {codec.type_name: codec for codec in _CODECS}
+
+
+def register_transfer_codec(codec: EntityTransferCodec) -> None:
+    """Register a new transfer codec (extension point)."""
+
+    _CODECS.append(codec)
+    _CODECS_BY_TYPE[codec.type_name] = codec
+
+
+def _codec_for_entity(entity: Any) -> Optional[EntityTransferCodec]:
+    for codec in _CODECS:
+        try:
+            if codec.can_serialize(entity):
+                return codec
+        except Exception:
+            logger.debug("Transfer codec can_serialize failed", exc_info=True)
+            continue
+    return None
 
 
 def serialize_entity_for_transfer(entity: Any, migration_direction: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -20,17 +98,14 @@ def serialize_entity_for_transfer(entity: Any, migration_direction: Optional[str
     Returns:
         Dictionary containing all entity state, or None if entity cannot be transferred
     """
-    from core.entities.fish import Fish
-    from core.entities.fractal_plant import FractalPlant
-
-    if isinstance(entity, Fish):
-        return _serialize_fish(entity)
-    elif isinstance(entity, FractalPlant):
-        return _serialize_plant(entity, migration_direction)
-    else:
+    ctx = TransferContext(migration_direction=migration_direction)
+    codec = _codec_for_entity(entity)
+    if codec is None:
         # Food and other resources cannot be transferred
         logger.warning(f"Cannot transfer entity of type {type(entity).__name__}")
         return None
+
+    return codec.serialize(entity, ctx)
 
 
 def _serialize_fish(fish: Any) -> Dict[str, Any]:
@@ -207,14 +282,12 @@ def deserialize_entity(data: Dict[str, Any], target_world: Any) -> Optional[Any]
         The created entity, or None if deserialization failed
     """
     entity_type = data.get("type")
-
-    if entity_type == "fish":
-        return _deserialize_fish(data, target_world)
-    elif entity_type == "fractal_plant":
-        return _deserialize_plant(data, target_world)
-    else:
+    codec = _CODECS_BY_TYPE.get(entity_type or "")
+    if codec is None:
         logger.error(f"Unknown entity type: {entity_type}")
         return None
+
+    return codec.deserialize(data, target_world)
 
 
 def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:

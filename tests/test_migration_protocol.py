@@ -1,0 +1,59 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+from core.environment import Environment
+from core.movement_strategy import AlgorithmicMovement
+from core.entities.fish import Fish
+
+
+@dataclass
+class FakeMigrationHandler:
+    result: bool = True
+    last_call: Optional[Tuple[str, str, str]] = None
+
+    def attempt_entity_migration(self, entity, direction: str, source_tank_id: str) -> bool:
+        self.last_call = (type(entity).__name__, direction, source_tank_id)
+        return self.result
+
+
+def _make_fish(env: Environment) -> Fish:
+    return Fish(
+        environment=env,
+        movement_strategy=AlgorithmicMovement(),
+        species=["george1.png"],
+        x=100,
+        y=100,
+        speed=3,
+    )
+
+
+def test_fish_migration_returns_false_without_handler() -> None:
+    env = Environment(width=800, height=600)
+    env.tank_id = "tank-1"
+    fish = _make_fish(env)
+
+    assert fish._attempt_migration("left") is False
+    assert fish._migrated is False
+
+
+def test_fish_migration_returns_false_without_tank_id() -> None:
+    env = Environment(width=800, height=600)
+    env.migration_handler = FakeMigrationHandler(result=True)
+    fish = _make_fish(env)
+
+    assert fish._attempt_migration("left") is False
+    assert fish._migrated is False
+
+
+def test_fish_migration_marks_migrated_on_success() -> None:
+    env = Environment(width=800, height=600)
+    env.tank_id = "tank-123"
+    handler = FakeMigrationHandler(result=True)
+    env.migration_handler = handler
+    fish = _make_fish(env)
+
+    assert fish._attempt_migration("right") is True
+    assert fish._migrated is True
+    assert handler.last_call == ("Fish", "right", "tank-123")

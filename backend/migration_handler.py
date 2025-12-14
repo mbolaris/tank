@@ -128,11 +128,15 @@ class BackendMigrationHandler:
             # websocket clients immediately see updated stats (e.g., max generation).
             try:
                 dest_runner = getattr(dest_manager, "_runner", None)
-                if dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                if dest_runner and hasattr(dest_runner, "invalidate_state_cache"):
+                    dest_runner.invalidate_state_cache()
+                elif dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
                     dest_runner._invalidate_state_cache()
 
                 source_runner = getattr(source_manager, "_runner", None)
-                if source_runner and hasattr(source_runner, "_invalidate_state_cache"):
+                if source_runner and hasattr(source_runner, "invalidate_state_cache"):
+                    source_runner.invalidate_state_cache()
+                elif source_runner and hasattr(source_runner, "_invalidate_state_cache"):
                     source_runner._invalidate_state_cache()
             except Exception:
                 # Non-fatal: cache invalidation is best-effort

@@ -637,21 +637,15 @@ class Fish(Agent):
         Returns:
             True if migration successful, False if no migration handler or migration failed
         """
-        # Check if environment provides migration handler (dependency injection)
-        if not hasattr(self.environment, "migration_handler"):
-            logger.debug(f"Fish #{self.fish_id}: No migration_handler in environment")
-            return False
-
-        migration_handler = self.environment.migration_handler
+        migration_handler = getattr(self.environment, "migration_handler", None)
         if migration_handler is None:
+            logger.debug(f"Fish #{self.fish_id}: No migration_handler available")
             return False
 
-        # Check if we have a tank_id
-        if not hasattr(self.environment, "tank_id") or self.environment.tank_id is None:
-            logger.debug(f"Fish #{self.fish_id}: No tank_id in environment")
+        tank_id = getattr(self.environment, "tank_id", None)
+        if tank_id is None:
+            logger.debug(f"Fish #{self.fish_id}: No tank_id available")
             return False
-
-        tank_id = self.environment.tank_id
 
         # Delegate migration logic to the handler (backend implementation)
         try:

@@ -299,7 +299,7 @@ class DiscoveryService:
         """Save server registry to disk."""
         try:
             data = {
-                "servers": [s.dict() for s in self._servers.values()],
+                "servers": [s.model_dump() for s in self._servers.values()],
                 "last_heartbeats": self._last_heartbeat,
                 "updated_at": time.time(),
             }

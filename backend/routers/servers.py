@@ -42,7 +42,7 @@ def setup_router(
             ServerInfo for the local server
         """
         server_info = get_server_info_callback()
-        return JSONResponse(server_info.dict())
+        return JSONResponse(server_info.model_dump())
 
     @router.get("")
     async def list_servers():
