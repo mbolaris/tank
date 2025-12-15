@@ -264,6 +264,61 @@ export interface StatsData {
     fin_size_bin_edges?: number[];
     allowed_fin_size_min?: number;
     allowed_fin_size_max?: number;
+
+    // Tail Size
+    tail_size_min?: number;
+    tail_size_max?: number;
+    tail_size_median?: number;
+    tail_size_bins?: number[];
+    tail_size_bin_edges?: number[];
+    allowed_tail_size_min?: number;
+    allowed_tail_size_max?: number;
+
+    // Body Aspect
+    body_aspect_min?: number;
+    body_aspect_max?: number;
+    body_aspect_median?: number;
+    body_aspect_bins?: number[];
+    body_aspect_bin_edges?: number[];
+    allowed_body_aspect_min?: number;
+    allowed_body_aspect_max?: number;
+
+    // Template ID
+    template_id_min?: number;
+    template_id_max?: number;
+    template_id_median?: number;
+    template_id_bins?: number[];
+    template_id_bin_edges?: number[];
+    allowed_template_id_min?: number;
+    allowed_template_id_max?: number;
+
+    // Pattern Type
+    pattern_type_min?: number;
+    pattern_type_max?: number;
+    pattern_type_median?: number;
+    pattern_type_bins?: number[];
+    pattern_type_bin_edges?: number[];
+    allowed_pattern_type_min?: number;
+    allowed_pattern_type_max?: number;
+
+    // Pattern Intensity
+    pattern_intensity_min?: number;
+    pattern_intensity_max?: number;
+    pattern_intensity_median?: number;
+    pattern_intensity_bins?: number[];
+    pattern_intensity_bin_edges?: number[];
+    allowed_pattern_intensity_min?: number;
+    allowed_pattern_intensity_max?: number;
+
+    // Lifespan Modifier
+    lifespan_modifier_min?: number;
+    lifespan_modifier_max?: number;
+    lifespan_modifier_median?: number;
+    lifespan_modifier_bins?: number[];
+    lifespan_modifier_bin_edges?: number[];
+    allowed_lifespan_modifier_min?: number;
+    allowed_lifespan_modifier_max?: number;
+
     // Fish health status counts (by energy ratio)
     fish_health_critical: number;  // <15% energy
     fish_health_low: number;       // 15-30% energy

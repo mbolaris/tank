@@ -272,6 +272,54 @@ class StatsPayload:
     fin_size_bin_edges: List[float] = field(default_factory=list)
     allowed_fin_size_min: float = 0.0
     allowed_fin_size_max: float = 0.0
+    # Tail size statistics
+    tail_size_min: float = 0.0
+    tail_size_max: float = 0.0
+    tail_size_median: float = 0.0
+    allowed_tail_size_min: float = 0.0
+    allowed_tail_size_max: float = 0.0
+    tail_size_bins: List[int] = field(default_factory=list)
+    tail_size_bin_edges: List[float] = field(default_factory=list)
+    # Body aspect statistics
+    body_aspect_min: float = 0.0
+    body_aspect_max: float = 0.0
+    body_aspect_median: float = 0.0
+    allowed_body_aspect_min: float = 0.0
+    allowed_body_aspect_max: float = 0.0
+    body_aspect_bins: List[int] = field(default_factory=list)
+    body_aspect_bin_edges: List[float] = field(default_factory=list)
+    # Template ID statistics
+    template_id_min: float = 0.0
+    template_id_max: float = 0.0
+    template_id_median: float = 0.0
+    allowed_template_id_min: float = 0.0
+    allowed_template_id_max: float = 0.0
+    template_id_bins: List[int] = field(default_factory=list)
+    template_id_bin_edges: List[float] = field(default_factory=list)
+    # Pattern type statistics
+    pattern_type_min: float = 0.0
+    pattern_type_max: float = 0.0
+    pattern_type_median: float = 0.0
+    allowed_pattern_type_min: float = 0.0
+    allowed_pattern_type_max: float = 0.0
+    pattern_type_bins: List[int] = field(default_factory=list)
+    pattern_type_bin_edges: List[float] = field(default_factory=list)
+    # Pattern intensity statistics
+    pattern_intensity_min: float = 0.0
+    pattern_intensity_max: float = 0.0
+    pattern_intensity_median: float = 0.0
+    allowed_pattern_intensity_min: float = 0.0
+    allowed_pattern_intensity_max: float = 0.0
+    pattern_intensity_bins: List[int] = field(default_factory=list)
+    pattern_intensity_bin_edges: List[float] = field(default_factory=list)
+    # Lifespan modifier statistics
+    lifespan_modifier_min: float = 0.0
+    lifespan_modifier_max: float = 0.0
+    lifespan_modifier_median: float = 0.0
+    allowed_lifespan_modifier_min: float = 0.0
+    allowed_lifespan_modifier_max: float = 0.0
+    lifespan_modifier_bins: List[int] = field(default_factory=list)
+    lifespan_modifier_bin_edges: List[float] = field(default_factory=list)
     poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
         total_games=0,
         total_fish_games=0,
@@ -365,6 +413,54 @@ class StatsPayload:
             "fin_size_bin_edges": self.fin_size_bin_edges,
             "allowed_fin_size_min": self.allowed_fin_size_min,
             "allowed_fin_size_max": self.allowed_fin_size_max,
+            # Tail size fields
+            "tail_size_min": self.tail_size_min,
+            "tail_size_max": self.tail_size_max,
+            "tail_size_median": self.tail_size_median,
+            "allowed_tail_size_min": self.allowed_tail_size_min,
+            "allowed_tail_size_max": self.allowed_tail_size_max,
+            "tail_size_bins": self.tail_size_bins,
+            "tail_size_bin_edges": self.tail_size_bin_edges,
+            # Body aspect fields
+            "body_aspect_min": self.body_aspect_min,
+            "body_aspect_max": self.body_aspect_max,
+            "body_aspect_median": self.body_aspect_median,
+            "allowed_body_aspect_min": self.allowed_body_aspect_min,
+            "allowed_body_aspect_max": self.allowed_body_aspect_max,
+            "body_aspect_bins": self.body_aspect_bins,
+            "body_aspect_bin_edges": self.body_aspect_bin_edges,
+            # Template ID fields
+            "template_id_min": self.template_id_min,
+            "template_id_max": self.template_id_max,
+            "template_id_median": self.template_id_median,
+            "allowed_template_id_min": self.allowed_template_id_min,
+            "allowed_template_id_max": self.allowed_template_id_max,
+            "template_id_bins": self.template_id_bins,
+            "template_id_bin_edges": self.template_id_bin_edges,
+            # Pattern type fields
+            "pattern_type_min": self.pattern_type_min,
+            "pattern_type_max": self.pattern_type_max,
+            "pattern_type_median": self.pattern_type_median,
+            "allowed_pattern_type_min": self.allowed_pattern_type_min,
+            "allowed_pattern_type_max": self.allowed_pattern_type_max,
+            "pattern_type_bins": self.pattern_type_bins,
+            "pattern_type_bin_edges": self.pattern_type_bin_edges,
+            # Pattern intensity fields
+            "pattern_intensity_min": self.pattern_intensity_min,
+            "pattern_intensity_max": self.pattern_intensity_max,
+            "pattern_intensity_median": self.pattern_intensity_median,
+            "allowed_pattern_intensity_min": self.allowed_pattern_intensity_min,
+            "allowed_pattern_intensity_max": self.allowed_pattern_intensity_max,
+            "pattern_intensity_bins": self.pattern_intensity_bins,
+            "pattern_intensity_bin_edges": self.pattern_intensity_bin_edges,
+            # Lifespan modifier fields
+            "lifespan_modifier_min": self.lifespan_modifier_min,
+            "lifespan_modifier_max": self.lifespan_modifier_max,
+            "lifespan_modifier_median": self.lifespan_modifier_median,
+            "allowed_lifespan_modifier_min": self.allowed_lifespan_modifier_min,
+            "allowed_lifespan_modifier_max": self.allowed_lifespan_modifier_max,
+            "lifespan_modifier_bins": self.lifespan_modifier_bins,
+            "lifespan_modifier_bin_edges": self.lifespan_modifier_bin_edges,
             "total_sexual_births": self.total_sexual_births,
             "total_asexual_births": self.total_asexual_births,
             "fps": self.fps,

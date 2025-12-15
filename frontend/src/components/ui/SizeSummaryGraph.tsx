@@ -12,6 +12,7 @@ interface Props {
     height?: number;
     xLabel?: string;
     yLabel?: string;
+    integerValues?: boolean;
 }
 
 export default function SizeSummaryGraph({
@@ -26,6 +27,7 @@ export default function SizeSummaryGraph({
     height = 72,
     xLabel = 'Adult Size',
     yLabel = 'Count',
+    integerValues = false,
 }: Props) {
     if (!bins || bins.length === 0) return null;
 
@@ -74,8 +76,8 @@ export default function SizeSummaryGraph({
                 {/* allowed range ticks and labels on x-axis (labels slightly above the x-axis label) */}
                 <line x1={xFor(allowedMin)} x2={xFor(allowedMin)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
                 <line x1={xFor(allowedMax)} x2={xFor(allowedMax)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
-                <text x={xFor(allowedMin)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{allowedMin.toFixed(2)}</text>
-                <text x={xFor(allowedMax)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{allowedMax.toFixed(2)}</text>
+                <text x={xFor(allowedMin)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{integerValues ? allowedMin.toFixed(0) : allowedMin.toFixed(2)}</text>
+                <text x={xFor(allowedMax)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{integerValues ? allowedMax.toFixed(0) : allowedMax.toFixed(2)}</text>
 
                 {/* y-axis label (rotated) */}
                 <text

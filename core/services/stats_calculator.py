@@ -202,6 +202,14 @@ class StatsCalculator:
         # Fin size stats
         stats.update(self._get_fin_size_stats())
 
+        # New physical traits
+        stats.update(self._get_tail_size_stats())
+        stats.update(self._get_body_aspect_stats())
+        stats.update(self._get_template_id_stats())
+        stats.update(self._get_pattern_type_stats())
+        stats.update(self._get_pattern_intensity_stats())
+        stats.update(self._get_lifespan_modifier_stats())
+
         return stats
 
     def _get_adult_size_stats(self) -> Dict[str, Any]:
@@ -396,6 +404,320 @@ class StatsCalculator:
                 "fin_size_bin_edges": [],
             })
 
+        return stats
+
+    def _get_tail_size_stats(self) -> Dict[str, Any]:
+        """Calculate tail size distribution statistics."""
+        fish_list = self._engine.get_fish_list()
+        allowed_min = 0.5
+        allowed_max = 2.0
+
+        stats = {
+            "allowed_tail_size_min": allowed_min,
+            "allowed_tail_size_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "tail_size_min": 0.0,
+                "tail_size_max": 0.0,
+                "tail_size_median": 0.0,
+                "tail_size_bins": [],
+                "tail_size_bin_edges": [],
+            })
+            return stats
+
+        try:
+            values = [getattr(f.genome, "tail_size", 1.0) for f in fish_list]
+            if values:
+                stats["tail_size_min"] = min(values)
+                stats["tail_size_max"] = max(values)
+                try:
+                    stats["tail_size_median"] = median(values)
+                except Exception:
+                    stats["tail_size_median"] = 0.0
+                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+                stats["tail_size_bins"] = bins
+                stats["tail_size_bin_edges"] = edges
+            else:
+                stats.update({
+                    "tail_size_min": 0.0,
+                    "tail_size_max": 0.0,
+                    "tail_size_median": 0.0,
+                    "tail_size_bins": [],
+                    "tail_size_bin_edges": [],
+                })
+        except Exception:
+             stats.update({
+                "tail_size_min": 0.0,
+                "tail_size_max": 0.0,
+                "tail_size_median": 0.0,
+                "tail_size_bins": [],
+                "tail_size_bin_edges": [],
+            })
+        return stats
+
+    def _get_body_aspect_stats(self) -> Dict[str, Any]:
+        """Calculate body aspect distribution statistics."""
+        fish_list = self._engine.get_fish_list()
+        allowed_min = 0.7
+        allowed_max = 1.3
+
+        stats = {
+            "allowed_body_aspect_min": allowed_min,
+            "allowed_body_aspect_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "body_aspect_min": 0.0,
+                "body_aspect_max": 0.0,
+                "body_aspect_median": 0.0,
+                "body_aspect_bins": [],
+                "body_aspect_bin_edges": [],
+            })
+            return stats
+
+        try:
+            values = [getattr(f.genome, "body_aspect", 1.0) for f in fish_list]
+            if values:
+                stats["body_aspect_min"] = min(values)
+                stats["body_aspect_max"] = max(values)
+                try:
+                    stats["body_aspect_median"] = median(values)
+                except Exception:
+                    stats["body_aspect_median"] = 0.0
+                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+                stats["body_aspect_bins"] = bins
+                stats["body_aspect_bin_edges"] = edges
+            else:
+                stats.update({
+                    "body_aspect_min": 0.0,
+                    "body_aspect_max": 0.0,
+                    "body_aspect_median": 0.0,
+                    "body_aspect_bins": [],
+                    "body_aspect_bin_edges": [],
+                })
+        except Exception:
+             stats.update({
+                "body_aspect_min": 0.0,
+                "body_aspect_max": 0.0,
+                "body_aspect_median": 0.0,
+                "body_aspect_bins": [],
+                "body_aspect_bin_edges": [],
+            })
+        return stats
+
+    def _get_template_id_stats(self) -> Dict[str, Any]:
+        """Calculate template_id distribution statistics (discrete)."""
+        from core.constants import FISH_TEMPLATE_COUNT
+        fish_list = self._engine.get_fish_list()
+        allowed_min = 0.0
+        allowed_max = float(FISH_TEMPLATE_COUNT - 1)
+
+        stats = {
+            "allowed_template_id_min": allowed_min,
+            "allowed_template_id_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "template_id_min": 0.0,
+                "template_id_max": 0.0,
+                "template_id_median": 0.0,
+                "template_id_bins": [],
+                "template_id_bin_edges": [],
+            })
+            return stats
+
+        try:
+            values = [float(getattr(f.genome, "template_id", 0)) for f in fish_list]
+            if values:
+                stats["template_id_min"] = min(values)
+                stats["template_id_max"] = max(values)
+                try:
+                    stats["template_id_median"] = median(values)
+                except Exception:
+                    stats["template_id_median"] = 0.0
+                
+                # For discrete variables like template_id, clear bins are nice
+                # Using FISH_TEMPLATE_COUNT bins guarantees one bin per ID
+                bins, edges = self._create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_TEMPLATE_COUNT)
+                stats["template_id_bins"] = bins
+                stats["template_id_bin_edges"] = edges
+            else:
+                 stats.update({
+                    "template_id_min": 0.0,
+                    "template_id_max": 0.0,
+                    "template_id_median": 0.0,
+                    "template_id_bins": [],
+                    "template_id_bin_edges": [],
+                })
+        except Exception:
+             stats.update({
+                "template_id_min": 0.0,
+                "template_id_max": 0.0,
+                "template_id_median": 0.0,
+                "template_id_bins": [],
+                "template_id_bin_edges": [],
+            })
+        return stats
+
+    def _get_pattern_type_stats(self) -> Dict[str, Any]:
+        """Calculate pattern_type distribution statistics (discrete)."""
+        from core.constants import FISH_PATTERN_COUNT
+        fish_list = self._engine.get_fish_list()
+        allowed_min = 0.0
+        allowed_max = float(FISH_PATTERN_COUNT - 1)
+
+        stats = {
+            "allowed_pattern_type_min": allowed_min,
+            "allowed_pattern_type_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "pattern_type_min": 0.0,
+                "pattern_type_max": 0.0,
+                "pattern_type_median": 0.0,
+                "pattern_type_bins": [],
+                "pattern_type_bin_edges": [],
+            })
+            return stats
+
+        try:
+            values = [float(getattr(f.genome, "pattern_type", 0)) for f in fish_list]
+            if values:
+                stats["pattern_type_min"] = min(values)
+                stats["pattern_type_max"] = max(values)
+                try:
+                    stats["pattern_type_median"] = median(values)
+                except Exception:
+                    stats["pattern_type_median"] = 0.0
+                
+                # Discrete bins
+                bins, edges = self._create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_PATTERN_COUNT)
+                stats["pattern_type_bins"] = bins
+                stats["pattern_type_bin_edges"] = edges
+            else:
+                stats.update({
+                    "pattern_type_min": 0.0,
+                    "pattern_type_max": 0.0,
+                    "pattern_type_median": 0.0,
+                    "pattern_type_bins": [],
+                    "pattern_type_bin_edges": [],
+                })
+        except Exception:
+            stats.update({
+                "pattern_type_min": 0.0,
+                "pattern_type_max": 0.0,
+                "pattern_type_median": 0.0,
+                "pattern_type_bins": [],
+                "pattern_type_bin_edges": [],
+            })
+        return stats
+
+    def _get_pattern_intensity_stats(self) -> Dict[str, Any]:
+        """Calculate pattern intensity distribution statistics."""
+        fish_list = self._engine.get_fish_list()
+        allowed_min = 0.0
+        allowed_max = 1.0
+
+        stats = {
+            "allowed_pattern_intensity_min": allowed_min,
+            "allowed_pattern_intensity_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "pattern_intensity_min": 0.0,
+                "pattern_intensity_max": 0.0,
+                "pattern_intensity_median": 0.0,
+                "pattern_intensity_bins": [],
+                "pattern_intensity_bin_edges": [],
+            })
+            return stats
+
+        try:
+            values = [getattr(f.genome, "pattern_intensity", 0.0) for f in fish_list]
+            if values:
+                stats["pattern_intensity_min"] = min(values)
+                stats["pattern_intensity_max"] = max(values)
+                try:
+                    stats["pattern_intensity_median"] = median(values)
+                except Exception:
+                    stats["pattern_intensity_median"] = 0.0
+                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=10)
+                stats["pattern_intensity_bins"] = bins
+                stats["pattern_intensity_bin_edges"] = edges
+            else:
+                stats.update({
+                    "pattern_intensity_min": 0.0,
+                    "pattern_intensity_max": 0.0,
+                    "pattern_intensity_median": 0.0,
+                    "pattern_intensity_bins": [],
+                    "pattern_intensity_bin_edges": [],
+                })
+        except Exception:
+             stats.update({
+                "pattern_intensity_min": 0.0,
+                "pattern_intensity_max": 0.0,
+                "pattern_intensity_median": 0.0,
+                "pattern_intensity_bins": [],
+                "pattern_intensity_bin_edges": [],
+            })
+        return stats
+
+    def _get_lifespan_modifier_stats(self) -> Dict[str, Any]:
+        """Calculate lifespan modifier distribution statistics."""
+        fish_list = self._engine.get_fish_list()
+        # From physical.py
+        allowed_min = 0.6
+        allowed_max = 1.4
+
+        stats = {
+            "allowed_lifespan_modifier_min": allowed_min,
+            "allowed_lifespan_modifier_max": allowed_max,
+        }
+
+        if not fish_list:
+            stats.update({
+                "lifespan_modifier_min": 0.0,
+                "lifespan_modifier_max": 0.0,
+                "lifespan_modifier_median": 0.0,
+                "lifespan_modifier_bins": [],
+                "lifespan_modifier_bin_edges": [],
+            })
+            return stats
+
+        try:
+            values = [getattr(f.genome, "lifespan_modifier", 1.0) for f in fish_list]
+            if values:
+                stats["lifespan_modifier_min"] = min(values)
+                stats["lifespan_modifier_max"] = max(values)
+                try:
+                    stats["lifespan_modifier_median"] = median(values)
+                except Exception:
+                    stats["lifespan_modifier_median"] = 0.0
+                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+                stats["lifespan_modifier_bins"] = bins
+                stats["lifespan_modifier_bin_edges"] = edges
+            else:
+                stats.update({
+                    "lifespan_modifier_min": 0.0,
+                    "lifespan_modifier_max": 0.0,
+                    "lifespan_modifier_median": 0.0,
+                    "lifespan_modifier_bins": [],
+                    "lifespan_modifier_bin_edges": [],
+                })
+        except Exception:
+             stats.update({
+                "lifespan_modifier_min": 0.0,
+                "lifespan_modifier_max": 0.0,
+                "lifespan_modifier_median": 0.0,
+                "lifespan_modifier_bins": [],
+                "lifespan_modifier_bin_edges": [],
+            })
         return stats
 
     def _create_histogram(

@@ -12,6 +12,13 @@ interface EcosystemStatsProps {
     stats: StatsData | null;
 }
 
+function normalizeBins(bins: number[] | undefined): number[] {
+    if (!bins || bins.length === 0) return [];
+    const total = bins.reduce((a, b) => a + b, 0);
+    if (total === 0) return bins.map(() => 0);
+    return bins.map(b => (b / total) * 100);
+}
+
 export function EcosystemStats({ stats }: EcosystemStatsProps) {
     // Use default values if stats is null
     const safeStats = stats ?? ({} as Partial<StatsData>);
@@ -97,6 +104,8 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // Early return after hooks and calculations
     if (!stats) return null;
+
+    const chartWidth = 280;
 
     // Energy source percentages
     return (
@@ -341,17 +350,17 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                             alignItems: 'center'
                         }}>
                             <SizeSummaryGraph
-                                bins={safeStats.adult_size_bins || []}
+                                bins={normalizeBins(safeStats.adult_size_bins)}
                                 binEdges={safeStats.adult_size_bin_edges || []}
                                 min={safeStats.adult_size_min}
                                 median={safeStats.adult_size_median}
                                 max={safeStats.adult_size_max}
                                 allowedMin={safeStats.allowed_adult_size_min}
                                 allowedMax={safeStats.allowed_adult_size_max}
-                                width={280}
+                                width={chartWidth}
                                 height={100}
                                 xLabel="Adult Size"
-                                yLabel="Count"
+                                yLabel="Pop %"
                             />
                         </div>
 
@@ -364,17 +373,17 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                             alignItems: 'center'
                         }}>
                             <SizeSummaryGraph
-                                bins={safeStats.eye_size_bins || []}
+                                bins={normalizeBins(safeStats.eye_size_bins)}
                                 binEdges={safeStats.eye_size_bin_edges || []}
                                 min={safeStats.eye_size_min}
                                 median={safeStats.eye_size_median}
                                 max={safeStats.eye_size_max}
                                 allowedMin={safeStats.allowed_eye_size_min ?? 0.5}
                                 allowedMax={safeStats.allowed_eye_size_max ?? 2.0}
-                                width={280}
+                                width={chartWidth}
                                 height={100}
                                 xLabel="Eye Size"
-                                yLabel="Count"
+                                yLabel="Pop %"
                             />
                         </div>
 
@@ -387,17 +396,168 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                             alignItems: 'center'
                         }}>
                             <SizeSummaryGraph
-                                bins={safeStats.fin_size_bins || []}
+                                bins={normalizeBins(safeStats.fin_size_bins)}
                                 binEdges={safeStats.fin_size_bin_edges || []}
                                 min={safeStats.fin_size_min}
                                 median={safeStats.fin_size_median}
                                 max={safeStats.fin_size_max}
                                 allowedMin={safeStats.allowed_fin_size_min ?? 0.5}
                                 allowedMax={safeStats.allowed_fin_size_max ?? 2.0}
-                                width={280}
+                                width={chartWidth}
                                 height={100}
                                 xLabel="Fin Size"
-                                yLabel="Count"
+                                yLabel="Pop %"
+                            />
+                        </div>
+                    </div>
+                    {/* Row 2: Physical Structure */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '16px',
+                        marginTop: '16px'
+                    }}>
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                width={chartWidth}
+                                height={140}
+                                bins={normalizeBins(stats.tail_size_bins)}
+                                binEdges={stats.tail_size_bin_edges || []}
+                                min={stats.tail_size_min || 0}
+                                median={stats.tail_size_median || 0}
+                                max={stats.tail_size_max || 0}
+                                allowedMin={stats.allowed_tail_size_min || 0.5}
+                                allowedMax={stats.allowed_tail_size_max || 2.0}
+                                xLabel="Tail Size"
+                                yLabel="Pop %"
+                            />
+                        </div>
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                width={chartWidth}
+                                height={140}
+                                bins={normalizeBins(stats.body_aspect_bins)}
+                                binEdges={stats.body_aspect_bin_edges || []}
+                                min={stats.body_aspect_min || 0}
+                                median={stats.body_aspect_median || 0}
+                                max={stats.body_aspect_max || 0}
+                                allowedMin={stats.allowed_body_aspect_min || 0.7}
+                                allowedMax={stats.allowed_body_aspect_max || 1.3}
+                                xLabel="Body Aspect"
+                                yLabel="Pop %"
+                            />
+                        </div>
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                width={chartWidth}
+                                height={140}
+                                bins={normalizeBins(stats.template_id_bins)}
+                                binEdges={stats.template_id_bin_edges || []}
+                                min={stats.template_id_min || 0}
+                                median={stats.template_id_median || 0}
+                                max={stats.template_id_max || 0}
+                                allowedMin={stats.allowed_template_id_min || 0}
+                                allowedMax={stats.allowed_template_id_max || 5}
+                                xLabel="Template ID"
+                                yLabel="Pop %"
+                                integerValues={true}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Row 3: Pattern & Lifespan */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '16px',
+                        marginTop: '16px'
+                    }}>
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                width={chartWidth}
+                                height={140}
+                                bins={normalizeBins(stats.pattern_type_bins)}
+                                binEdges={stats.pattern_type_bin_edges || []}
+                                min={stats.pattern_type_min || 0}
+                                median={stats.pattern_type_median || 0}
+                                max={stats.pattern_type_max || 0}
+                                allowedMin={stats.allowed_pattern_type_min || 0}
+                                allowedMax={stats.allowed_pattern_type_max || 5}
+                                xLabel="Pattern Type"
+                                yLabel="Pop %"
+                                integerValues={true}
+                            />
+                        </div>
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                width={chartWidth}
+                                height={140}
+                                bins={normalizeBins(stats.pattern_intensity_bins)}
+                                binEdges={stats.pattern_intensity_bin_edges || []}
+                                min={stats.pattern_intensity_min || 0}
+                                median={stats.pattern_intensity_median || 0}
+                                max={stats.pattern_intensity_max || 0}
+                                allowedMin={stats.allowed_pattern_intensity_min || 0.0}
+                                allowedMax={stats.allowed_pattern_intensity_max || 1.0}
+                                xLabel="Pattern Int."
+                                yLabel="Pop %"
+                            />
+                        </div>
+                        <div className="gene-graph-card" style={{
+                            background: 'rgba(0,0,0,0.25)',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                            <SizeSummaryGraph
+                                width={chartWidth}
+                                height={140}
+                                bins={normalizeBins(stats.lifespan_modifier_bins)}
+                                binEdges={stats.lifespan_modifier_bin_edges || []}
+                                min={stats.lifespan_modifier_min || 0}
+                                median={stats.lifespan_modifier_median || 0}
+                                max={stats.lifespan_modifier_max || 0}
+                                allowedMin={stats.allowed_lifespan_modifier_min || 0.6}
+                                allowedMax={stats.allowed_lifespan_modifier_max || 1.4}
+                                xLabel="Lifespan Mod"
+                                yLabel="Pop %"
                             />
                         </div>
                     </div>
