@@ -68,8 +68,24 @@ from core.simulation_stats_exporter import SimulationStatsExporter
 from core.simulators.base_simulator import BaseSimulator
 from core.systems.entity_lifecycle import EntityLifecycleSystem
 from core.time_system import TimeSystem
+from core.update_phases import UpdatePhase, PhaseContext, PhaseRunner, PHASE_DESCRIPTIONS
 
 logger = logging.getLogger(__name__)
+
+
+# Map simulation phases to their descriptions for documentation
+SIMULATION_PHASES = {
+    UpdatePhase.FRAME_START: "Reset counters, check paused state",
+    UpdatePhase.TIME_UPDATE: "Advance day/night cycle, get time modifiers",
+    UpdatePhase.ENVIRONMENT: "Update ecosystem stats, detection modifiers",
+    UpdatePhase.ENTITY_ACT: "Update all entities (movement, energy, spawning)",
+    UpdatePhase.LIFECYCLE: "Process deaths, add/remove entities",
+    UpdatePhase.SPAWN: "Auto-spawn food, emergency fish spawning",
+    UpdatePhase.COLLISION: "Handle fish-food collisions",
+    UpdatePhase.INTERACTION: "Handle poker games between fish",
+    UpdatePhase.REPRODUCTION: "Handle mating and reproduction",
+    UpdatePhase.FRAME_END: "Update stats, rebuild caches",
+}
 
 
 class AgentsWrapper:
@@ -224,6 +240,10 @@ class SimulationEngine(BaseSimulator):
         # Telemetry
         self.stats_exporter = SimulationStatsExporter(self)
 
+        # Phase tracking for debugging and monitoring
+        self._current_phase: Optional[UpdatePhase] = None
+        self._phase_debug_enabled: bool = False
+
 
     def setup(self) -> None:
         """Setup the simulation."""
@@ -292,6 +312,31 @@ class SimulationEngine(BaseSimulator):
             system.name: system.get_debug_info()
             for system in self._systems
         }
+
+    def get_current_phase(self) -> Optional[UpdatePhase]:
+        """Get the current update phase (None if not in update loop).
+
+        Useful for debugging to understand what phase the simulation is in.
+
+        Returns:
+            Current UpdatePhase or None if not updating
+        """
+        return self._current_phase
+
+    def get_phase_description(self, phase: Optional[UpdatePhase] = None) -> str:
+        """Get a human-readable description of a phase.
+
+        Args:
+            phase: The phase to describe (defaults to current phase)
+
+        Returns:
+            Description string for the phase
+        """
+        if phase is None:
+            phase = self._current_phase
+        if phase is None:
+            return "Not in update loop"
+        return SIMULATION_PHASES.get(phase, PHASE_DESCRIPTIONS.get(phase, phase.name))
 
     def set_system_enabled(self, name: str, enabled: bool) -> bool:
         """Enable or disable a system by name.
@@ -644,6 +689,17 @@ class SimulationEngine(BaseSimulator):
     def update(self) -> None:
         """Update the state of the simulation.
 
+        The update loop executes in well-defined phases (see UpdatePhase enum):
+        1. FRAME_START: Reset counters, increment frame
+        2. TIME_UPDATE: Advance day/night cycle
+        3. ENVIRONMENT: Update ecosystem and detection modifiers
+        4. ENTITY_ACT: Update all entities
+        5. LIFECYCLE: Process deaths, add/remove entities
+        6. SPAWN: Auto-spawn food
+        7. COLLISION: Handle collisions
+        8. REPRODUCTION: Handle mating
+        9. FRAME_END: Update stats, rebuild caches
+
         Performance optimizations:
         - Type-specific entity lists avoid repeated isinstance() checks
         - Batch spatial grid updates at end of frame
@@ -652,15 +708,21 @@ class SimulationEngine(BaseSimulator):
         if self.paused:
             return
 
+        # ===== PHASE: FRAME_START =====
+        self._current_phase = UpdatePhase.FRAME_START
         self.frame_count += 1
 
         # Update lifecycle system first to reset per-frame counters
         self.lifecycle_system.update(self.frame_count)
 
+        # ===== PHASE: TIME_UPDATE =====
+        self._current_phase = UpdatePhase.TIME_UPDATE
         self.time_system.update()
         time_modifier = self.time_system.get_activity_modifier()
         time_of_day = self.time_system.get_time_of_day()
 
+        # ===== PHASE: ENVIRONMENT =====
+        self._current_phase = UpdatePhase.ENVIRONMENT
         # Advance ecosystem frame early so any energy/events recorded during this frame
         # are attributed to the correct frame number.
         ecosystem = self.ecosystem
@@ -671,6 +733,8 @@ class SimulationEngine(BaseSimulator):
         if self.environment is not None:
             self.environment.update_detection_modifier()
 
+        # ===== PHASE: ENTITY_ACT =====
+        self._current_phase = UpdatePhase.ENTITY_ACT
         new_entities: List[entities.Agent] = []
         entities_to_remove: List[entities.Agent] = []
 
@@ -730,14 +794,18 @@ class SimulationEngine(BaseSimulator):
                          entities_to_remove.append(entity)
             
             self.keep_entity_on_screen(entity)
-                            
+
+        # ===== PHASE: LIFECYCLE =====
+        self._current_phase = UpdatePhase.LIFECYCLE
         # Batch entity removals (more efficient than removing during iteration)
         for entity in entities_to_remove:
             self.remove_entity(entity)
-            
+
         for new_entity in new_entities:
             self.add_entity(new_entity)
 
+        # ===== PHASE: SPAWN =====
+        self._current_phase = UpdatePhase.SPAWN
         if self.environment is not None:
             self.spawn_auto_food(self.environment, time_of_day)
 
@@ -748,9 +816,13 @@ class SimulationEngine(BaseSimulator):
             for entity in self.entities_list:
                 update_position(entity)
 
+        # ===== PHASE: COLLISION =====
+        self._current_phase = UpdatePhase.COLLISION
         # Uses spatial grid for efficiency
         self.handle_collisions()
 
+        # ===== PHASE: REPRODUCTION =====
+        self._current_phase = UpdatePhase.REPRODUCTION
         # Mate finding (Legacy/Poker based reproduction handling)
         self.handle_reproduction()
 
@@ -787,6 +859,9 @@ class SimulationEngine(BaseSimulator):
             total_fish_energy = sum(f.energy for f in fish_list)
             ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
 
+        # ===== PHASE: FRAME_END =====
+        self._current_phase = UpdatePhase.FRAME_END
+
         # Periodic poker benchmark evaluation
         if self.benchmark_evaluator is not None:
             fish_list = self.get_fish_list()
@@ -795,6 +870,9 @@ class SimulationEngine(BaseSimulator):
         # Rebuild caches at end of frame if dirty
         if self._cache_dirty:
             self._rebuild_caches()
+
+        # Clear phase tracking at end of frame
+        self._current_phase = None
 
     def spawn_auto_food(self, environment: "environment.Environment", time_of_day: Optional[float] = None) -> None:
         """Spawn automatic food using object pooling for better performance.

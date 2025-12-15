@@ -26,6 +26,7 @@ from core.constants import (
     TARGET_POPULATION,
 )
 from core.entities.base import Agent, LifeStage
+from core.entity_ids import FishId
 from core.math_utils import Vector2
 
 logger = logging.getLogger(__name__)
@@ -191,6 +192,9 @@ class Fish(Agent):
         else:
             self.fish_id: int = fish_id if fish_id is not None else 0
 
+        # Type-safe ID wrapper (cached to avoid repeated object creation)
+        self._typed_id: Optional[FishId] = None
+
         # Visual attributes (for rendering, but stored in entity)
         # Size is now managed by lifecycle component, but keep reference for rendering
         self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
@@ -223,9 +227,23 @@ class Fish(Agent):
         # Visual effects for births
         self.birth_effect_timer: int = 0  # Frames remaining for birth visual effect (hearts + particles)
 
+    @property
+    def typed_id(self) -> FishId:
+        """Get the type-safe fish ID.
+
+        This wraps the raw fish_id in a FishId type for type safety.
+        The wrapper is cached to avoid repeated object creation.
+
+        Returns:
+            FishId wrapper around fish_id
+        """
+        if self._typed_id is None or self._typed_id.value != self.fish_id:
+            self._typed_id = FishId(self.fish_id)
+        return self._typed_id
+
     def register_birth(self) -> None:
         """Register birth stats with the ecosystem.
-        
+
         Must be called explicitly when the fish is successfully added to the simulation.
         This prevents phantom stats for fish that are created but immediately discarded.
         """
