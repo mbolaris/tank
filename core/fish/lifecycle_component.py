@@ -119,16 +119,41 @@ class LifecycleComponent:
             target_stage = LifeStage.ELDER
             base_size = FISH_ADULT_SIZE
 
-        # Attempt transition if stage changed (StateMachine validates it)
-        if target_stage != current_stage:
+        # Attempt transitions if stage needs to advance
+        # Handles multi-stage jumps (e.g. BABY -> ADULT) by visiting intermediate stages
+        # This is necessary because the StateMachine enforces strict step-by-step transitions
+        max_transitions = 3  # Safety break to prevent infinite loops
+        transitions_count = 0
+        
+        while self._state_machine.state != target_stage and transitions_count < max_transitions:
+            current_stage = self._state_machine.state
+            
+            # Determine immediate next stage based on standard lifecycle order
+            # BABY -> JUVENILE -> ADULT -> ELDER
+            next_step = None
+            if current_stage == LifeStage.BABY and target_stage in (LifeStage.JUVENILE, LifeStage.ADULT, LifeStage.ELDER):
+                next_step = LifeStage.JUVENILE
+            elif current_stage == LifeStage.JUVENILE and target_stage in (LifeStage.ADULT, LifeStage.ELDER):
+                next_step = LifeStage.ADULT
+            elif current_stage == LifeStage.ADULT and target_stage == LifeStage.ELDER:
+                next_step = LifeStage.ELDER
+                
+            if next_step is None:
+                # Target is same or backward, or invalid path
+                break
+                
             result = self._state_machine.try_transition(
-                target_stage,
+                next_step,
                 frame=frame,
                 reason=f"aged to {self.age} frames",
             )
+            
             if result.is_err():
                 # Log but don't crash - this catches bugs in age calculation
                 logger.warning(f"Lifecycle transition failed: {result.error}")
+                break
+                
+            transitions_count += 1
 
         # Apply genetic size modifier to get final size
         self.size = base_size * self.genetic_size_modifier
