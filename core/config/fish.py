@@ -94,7 +94,7 @@ EYE_SIZE_MAX = 2.0
 FISH_BASE_WIDTH = 50  # Base width for fish sprite
 FISH_BASE_HEIGHT = 50  # Base height for fish sprite
 FISH_TEMPLATE_COUNT = 6  # Number of parametric fish templates (0-5)
-FISH_PATTERN_COUNT = 4  # Number of pattern types (0-3)
+FISH_PATTERN_COUNT = 6  # Number of pattern types (0-5)
 
 # Baby Fish Spawning Constants
 BABY_POSITION_RANDOM_RANGE = 20  # Random offset range for baby position (pixels)

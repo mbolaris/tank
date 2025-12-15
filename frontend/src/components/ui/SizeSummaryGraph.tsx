@@ -13,6 +13,8 @@ interface Props {
     xLabel?: string;
     yLabel?: string;
     integerValues?: boolean;
+    /** Optional labels to display for discrete x-axis values (e.g., pattern names) */
+    labels?: string[];
 }
 
 export default function SizeSummaryGraph({
@@ -28,6 +30,7 @@ export default function SizeSummaryGraph({
     xLabel = 'Adult Size',
     yLabel = 'Count',
     integerValues = false,
+    labels,
 }: Props) {
     if (!bins || bins.length === 0) return null;
 
@@ -54,6 +57,10 @@ export default function SizeSummaryGraph({
 
     const svgHeight = topPad + plotH + bottomPad;
 
+    // Format x-axis tick labels
+    const formatMin = labels && labels.length > 0 ? labels[0] : (integerValues ? allowedMin.toFixed(0) : allowedMin.toFixed(2));
+    const formatMax = labels && labels.length > 1 ? labels[labels.length - 1] : (integerValues ? allowedMax.toFixed(0) : allowedMax.toFixed(2));
+
     return (
         <div style={{ width, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <svg width={width} height={svgHeight}>
@@ -76,8 +83,8 @@ export default function SizeSummaryGraph({
                 {/* allowed range ticks and labels on x-axis (labels slightly above the x-axis label) */}
                 <line x1={xFor(allowedMin)} x2={xFor(allowedMin)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
                 <line x1={xFor(allowedMax)} x2={xFor(allowedMax)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
-                <text x={xFor(allowedMin)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{integerValues ? allowedMin.toFixed(0) : allowedMin.toFixed(2)}</text>
-                <text x={xFor(allowedMax)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{integerValues ? allowedMax.toFixed(0) : allowedMax.toFixed(2)}</text>
+                <text x={xFor(allowedMin)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{formatMin}</text>
+                <text x={xFor(allowedMax)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{formatMax}</text>
 
                 {/* y-axis label (rotated) */}
                 <text

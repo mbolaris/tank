@@ -798,7 +798,7 @@ export class Renderer {
         ctx.stroke(path);
 
         // Draw pattern if applicable
-        if (fishParams.pattern_intensity > 0.1) {
+        if (fishParams.pattern_intensity > 0.05) {
             this.drawFishPattern(fishParams, scaledSize, patternColor);
         }
 
@@ -847,7 +847,7 @@ export class Renderer {
         const { ctx } = this;
         const width = baseSize * params.body_aspect;
         const height = baseSize;
-        const opacity = params.pattern_intensity * 0.4;
+        const opacity = params.pattern_intensity * 0.8; // Increased from 0.4 for better visibility
 
         ctx.save();
         ctx.globalAlpha = opacity;
@@ -882,7 +882,7 @@ export class Renderer {
 
             case 2: { // Solid (darker overlay)
                 const path = new Path2D(getFishPath(params, baseSize));
-                ctx.globalAlpha = opacity * 0.5;
+                ctx.globalAlpha = opacity * 0.6; // Increased from 0.5 for better visibility
                 ctx.fill(path);
                 break;
             }
@@ -896,6 +896,39 @@ export class Renderer {
                 ctx.fill(gradPath);
                 break;
             }
+
+            case 4: // Chevron (<<)
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                // Draw 3 columns of chevrons
+                [0.3, 0.5, 0.7].forEach(xRel => {
+                    const xBase = width * xRel;
+                    [0.25, 0.5, 0.75].forEach(yRel => {
+                        const yBase = height * yRel;
+                        const size = 4;
+                        ctx.moveTo(xBase, yBase - size);
+                        ctx.lineTo(xBase - size, yBase); // Point left
+                        ctx.lineTo(xBase, yBase + size);
+                    });
+                });
+                ctx.stroke();
+                break;
+
+            case 5: // Scales (overlapping arcs)
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                // Draw 3 rows of scale arcs
+                [0.3, 0.5, 0.7].forEach(xRel => {
+                    [0.25, 0.5, 0.75].forEach((yRel, row) => {
+                        const xBase = width * xRel + ((row % 2) * width * 0.1); // Offset alternate rows
+                        const yBase = height * yRel;
+                        const radius = 5;
+                        ctx.moveTo(xBase + radius, yBase);
+                        ctx.arc(xBase, yBase, radius, 0, Math.PI); // Bottom half of circle
+                    });
+                });
+                ctx.stroke();
+                break;
         }
 
         ctx.restore();

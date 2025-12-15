@@ -31,7 +31,7 @@ function renderPattern(
     gradientId: string
 ): React.ReactNode {
     const commonProps = {
-        opacity: params.pattern_intensity * 0.4,
+        opacity: params.pattern_intensity * 0.8,
         stroke: patternColor,
         fill: 'none',
         strokeWidth: 2,
@@ -48,7 +48,7 @@ function renderPattern(
             );
         case 1: // Spots
             return (
-                <g fill={patternColor} opacity={params.pattern_intensity * 0.4}>
+                <g fill={patternColor} opacity={params.pattern_intensity * 0.8}>
                     <circle cx={baseSize * 0.4} cy={baseSize * 0.35} r={3} />
                     <circle cx={baseSize * 0.6} cy={baseSize * 0.4} r={3} />
                     <circle cx={baseSize * 0.5} cy={baseSize * 0.6} r={3} />
@@ -60,7 +60,7 @@ function renderPattern(
                 <path
                     d={getFishPath(params, baseSize)}
                     fill={patternColor}
-                    opacity={params.pattern_intensity * 0.2}
+                    opacity={params.pattern_intensity * 0.5} // Base * 0.6ish equivalent
                 />
             );
         case 3: // Gradient
@@ -68,12 +68,48 @@ function renderPattern(
                 <>
                     <defs>
                         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor={patternColor} stopOpacity={params.pattern_intensity * 0.4} />
+                            <stop offset="0%" stopColor={patternColor} stopOpacity={params.pattern_intensity * 0.8} />
                             <stop offset="100%" stopColor="transparent" stopOpacity={0} />
                         </linearGradient>
                     </defs>
                     <path d={getFishPath(params, baseSize)} fill={`url(#${gradientId})`} />
                 </>
+            );
+        case 4: // Chevron
+            return (
+                <g stroke={patternColor} strokeWidth={2} fill="none" opacity={params.pattern_intensity * 0.8}>
+                    {/* Column 1 */}
+                    <path d={`M ${baseSize * 0.3} ${baseSize * 0.25 - 4} L ${baseSize * 0.3 - 4} ${baseSize * 0.25} L ${baseSize * 0.3} ${baseSize * 0.25 + 4}`} />
+                    <path d={`M ${baseSize * 0.3} ${baseSize * 0.5 - 4} L ${baseSize * 0.3 - 4} ${baseSize * 0.5} L ${baseSize * 0.3} ${baseSize * 0.5 + 4}`} />
+                    <path d={`M ${baseSize * 0.3} ${baseSize * 0.75 - 4} L ${baseSize * 0.3 - 4} ${baseSize * 0.75} L ${baseSize * 0.3} ${baseSize * 0.75 + 4}`} />
+
+                    {/* Column 2 */}
+                    <path d={`M ${baseSize * 0.5} ${baseSize * 0.25 - 4} L ${baseSize * 0.5 - 4} ${baseSize * 0.25} L ${baseSize * 0.5} ${baseSize * 0.25 + 4}`} />
+                    <path d={`M ${baseSize * 0.5} ${baseSize * 0.5 - 4} L ${baseSize * 0.5 - 4} ${baseSize * 0.5} L ${baseSize * 0.5} ${baseSize * 0.5 + 4}`} />
+                    <path d={`M ${baseSize * 0.5} ${baseSize * 0.75 - 4} L ${baseSize * 0.5 - 4} ${baseSize * 0.75} L ${baseSize * 0.5} ${baseSize * 0.75 + 4}`} />
+
+                    {/* Column 3 */}
+                    <path d={`M ${baseSize * 0.7} ${baseSize * 0.25 - 4} L ${baseSize * 0.7 - 4} ${baseSize * 0.25} L ${baseSize * 0.7} ${baseSize * 0.25 + 4}`} />
+                    <path d={`M ${baseSize * 0.7} ${baseSize * 0.5 - 4} L ${baseSize * 0.7 - 4} ${baseSize * 0.5} L ${baseSize * 0.7} ${baseSize * 0.5 + 4}`} />
+                    <path d={`M ${baseSize * 0.7} ${baseSize * 0.75 - 4} L ${baseSize * 0.7 - 4} ${baseSize * 0.75} L ${baseSize * 0.7} ${baseSize * 0.75 + 4}`} />
+                </g>
+            );
+        case 5: // Scales (overlapping arcs)
+            return (
+                <g stroke={patternColor} strokeWidth={1.5} fill="none" opacity={params.pattern_intensity * 0.8}>
+                    {/* Row 1 */}
+                    <path d={`M ${baseSize * 0.35} ${baseSize * 0.25} A 5 5 0 0 1 ${baseSize * 0.25} ${baseSize * 0.25}`} />
+                    <path d={`M ${baseSize * 0.55} ${baseSize * 0.25} A 5 5 0 0 1 ${baseSize * 0.45} ${baseSize * 0.25}`} />
+                    <path d={`M ${baseSize * 0.75} ${baseSize * 0.25} A 5 5 0 0 1 ${baseSize * 0.65} ${baseSize * 0.25}`} />
+                    {/* Row 2 (offset) */}
+                    <path d={`M ${baseSize * 0.4} ${baseSize * 0.5} A 5 5 0 0 1 ${baseSize * 0.3} ${baseSize * 0.5}`} />
+                    <path d={`M ${baseSize * 0.6} ${baseSize * 0.5} A 5 5 0 0 1 ${baseSize * 0.5} ${baseSize * 0.5}`} />
+                    <path d={`M ${baseSize * 0.8} ${baseSize * 0.5} A 5 5 0 0 1 ${baseSize * 0.7} ${baseSize * 0.5}`} />
+                    {/* Row 3 */}
+                    <path d={`M ${baseSize * 0.35} ${baseSize * 0.75} A 5 5 0 0 1 ${baseSize * 0.25} ${baseSize * 0.75}`} />
+                    <path d={`M ${baseSize * 0.55} ${baseSize * 0.75} A 5 5 0 0 1 ${baseSize * 0.45} ${baseSize * 0.75}`} />
+                    <path d={`M ${baseSize * 0.75} ${baseSize * 0.75} A 5 5 0 0 1 ${baseSize * 0.65} ${baseSize * 0.75}`} />
+                </g>
             );
         default:
             return null;

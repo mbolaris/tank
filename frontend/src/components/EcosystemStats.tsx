@@ -479,9 +479,10 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 max={stats.template_id_max || 0}
                                 allowedMin={stats.allowed_template_id_min || 0}
                                 allowedMax={stats.allowed_template_id_max || 5}
-                                xLabel="Template ID"
+                                xLabel="Template"
                                 yLabel="Pop %"
                                 integerValues={true}
+                                labels={['Round', 'Torpedo', 'Flat', 'Angular', 'Chubby', 'Eel']}
                             />
                         </div>
                     </div>
@@ -511,9 +512,10 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 max={stats.pattern_type_max || 0}
                                 allowedMin={stats.allowed_pattern_type_min || 0}
                                 allowedMax={stats.allowed_pattern_type_max || 5}
-                                xLabel="Pattern Type"
+                                xLabel="Pattern"
                                 yLabel="Pop %"
                                 integerValues={true}
+                                labels={['Stripe', 'Spots', 'Solid', 'Grad', 'Chevn', 'Scale']}
                             />
                         </div>
                         <div className="gene-graph-card" style={{
