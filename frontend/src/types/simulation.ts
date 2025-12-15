@@ -435,6 +435,10 @@ export interface AutoEvaluatePlayerStats {
     total_energy_lost: number;
     net_energy: number;
     win_rate: number;
+    bb_per_100?: number;  // Big blinds won per 100 hands - primary poker skill metric
+    showdowns_played?: number;
+    showdowns_won?: number;
+    showdown_win_rate?: number;
 }
 
 export interface PokerPerformanceSnapshot {
@@ -469,4 +473,56 @@ export interface CommandResponse {
     state?: PokerGameState;
     stats?: AutoEvaluateStats;
     action_taken?: boolean;
+}
+
+// Evolution Benchmark Types
+export interface BenchmarkSnapshot {
+    frame: number;
+    generation: number;
+    pop_bb_per_100: number;
+    pop_weighted_bb: number;
+    vs_trivial: number;
+    vs_weak: number;
+    vs_moderate: number;
+    vs_strong: number;
+    best_bb: number;
+    dominant_strategy: string;
+    per_baseline: Record<string, number>;
+}
+
+export interface BenchmarkImprovementMetrics {
+    status: 'tracked' | 'insufficient_data';
+    total_snapshots: number;
+    frames_tracked?: number;
+    generation_start?: number;
+    generation_end?: number;
+    bb_per_100_start?: number;
+    bb_per_100_end?: number;
+    bb_per_100_change?: number;
+    bb_per_100_slope?: number;
+    bb_per_100_recent_avg?: number;
+    weighted_bb_start?: number;
+    weighted_bb_end?: number;
+    weighted_bb_change?: number;
+    vs_trivial_change?: number;
+    vs_weak_change?: number;
+    vs_moderate_change?: number;
+    vs_strong_change?: number;
+    best_bb_start?: number;
+    best_bb_end?: number;
+    best_bb_change?: number;
+    dominant_strategy_start?: string;
+    dominant_strategy_end?: string;
+    is_improving?: boolean;
+    trend_direction?: 'improving' | 'declining' | 'stable';
+    can_beat_trivial?: boolean;
+    can_beat_weak?: boolean;
+    can_beat_moderate?: boolean;
+    can_beat_strong?: boolean;
+}
+
+export interface EvolutionBenchmarkData {
+    history: BenchmarkSnapshot[];
+    improvement: BenchmarkImprovementMetrics;
+    latest: BenchmarkSnapshot | null;
 }

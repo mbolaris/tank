@@ -89,11 +89,14 @@ class PokerStrategyAlgorithm:
             "loose_passive": LoosePassiveStrategy,
             "balanced": BalancedStrategy,
             "maniac": ManiacStrategy,
-            # NEW strategies
+            # Advanced strategies
             "adaptive": AdaptiveStrategy,
             "positional_exploiter": PositionalExploiter,
             "trap_setter": TrapSetterStrategy,
             "mathematical": MathematicalStrategy,
+            # Baseline strategies for benchmarking
+            "always_fold": AlwaysFoldStrategy,
+            "random": RandomStrategy,
         }
 
         strategy_cls = strategy_map.get(strategy_id)
@@ -701,7 +704,134 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
             return (BettingAction.CHECK, 0.0)
 
 
-# Registry of all strategy classes (EXPANDED with 4 new strategies)
+# =============================================================================
+# BASELINE STRATEGIES FOR BENCHMARKING
+# These are fixed, non-evolving strategies used to measure skill progression
+# =============================================================================
+
+
+@dataclass
+class AlwaysFoldStrategy(PokerStrategyAlgorithm):
+    """Baseline: Folds everything except absolute premium hands.
+
+    This is the weakest possible opponent - any competent strategy
+    should achieve high bb/100 against this. Used as a sanity check
+    that evolution is producing strategies that can at least beat
+    the most exploitable opponent.
+    """
+
+    strategy_id: str = "always_fold"
+    parameters: Dict[str, float] = field(
+        default_factory=lambda: {
+            "premium_threshold": 0.95,  # Only play AA, KK (~top 1% of hands)
+        }
+    )
+
+    def decide_action(
+        self,
+        hand_strength: float,
+        current_bet: float,
+        opponent_bet: float,
+        pot: float,
+        player_energy: float,
+        position_on_button: bool = False,
+    ) -> Tuple[BettingAction, float]:
+        premium_threshold = self.parameters.get("premium_threshold", 0.95)
+        call_amount = max(0, opponent_bet - current_bet)
+
+        # Only continue with absolute premium hands
+        if hand_strength >= premium_threshold:
+            if call_amount <= 0:
+                return (BettingAction.CHECK, 0.0)
+            if call_amount <= player_energy:
+                return (BettingAction.CALL, call_amount)
+            return (BettingAction.FOLD, 0.0)
+
+        # Fold everything else
+        if call_amount > 0:
+            return (BettingAction.FOLD, 0.0)
+        return (BettingAction.CHECK, 0.0)
+
+    @classmethod
+    def random_instance(cls) -> "AlwaysFoldStrategy":
+        """Create instance (parameters are fixed for baseline)."""
+        return cls()
+
+
+@dataclass
+class RandomStrategy(PokerStrategyAlgorithm):
+    """Baseline: Makes completely random decisions.
+
+    Pure noise baseline - any learning/evolution should beat this easily.
+    This provides a floor for measuring whether strategies have learned
+    anything at all about poker.
+    """
+
+    strategy_id: str = "random"
+    parameters: Dict[str, float] = field(
+        default_factory=lambda: {
+            "fold_prob": 0.33,
+            "call_prob": 0.33,
+            # Remaining probability = raise
+            "min_raise_fraction": 0.3,
+            "max_raise_fraction": 1.0,
+        }
+    )
+
+    def decide_action(
+        self,
+        hand_strength: float,
+        current_bet: float,
+        opponent_bet: float,
+        pot: float,
+        player_energy: float,
+        position_on_button: bool = False,
+    ) -> Tuple[BettingAction, float]:
+        fold_prob = self.parameters.get("fold_prob", 0.33)
+        call_prob = self.parameters.get("call_prob", 0.33)
+        min_raise_frac = self.parameters.get("min_raise_fraction", 0.3)
+        max_raise_frac = self.parameters.get("max_raise_fraction", 1.0)
+
+        roll = random.random()
+        call_amount = max(0, opponent_bet - current_bet)
+
+        if roll < fold_prob:
+            # Want to fold
+            if call_amount > 0:
+                return (BettingAction.FOLD, 0.0)
+            # Can't fold when no bet - check instead
+            return (BettingAction.CHECK, 0.0)
+
+        elif roll < fold_prob + call_prob:
+            # Want to call/check
+            if call_amount <= 0:
+                return (BettingAction.CHECK, 0.0)
+            if call_amount > player_energy:
+                return (BettingAction.FOLD, 0.0)
+            return (BettingAction.CALL, call_amount)
+
+        else:
+            # Want to raise
+            raise_fraction = random.uniform(min_raise_frac, max_raise_frac)
+            raise_amount = pot * raise_fraction
+            raise_amount = min(raise_amount, player_energy - call_amount)
+
+            if raise_amount < 10:  # Minimum meaningful raise
+                if call_amount <= 0:
+                    return (BettingAction.CHECK, 0.0)
+                if call_amount <= player_energy:
+                    return (BettingAction.CALL, call_amount)
+                return (BettingAction.FOLD, 0.0)
+
+            return (BettingAction.RAISE, raise_amount)
+
+    @classmethod
+    def random_instance(cls) -> "RandomStrategy":
+        """Create instance (parameters are fixed for baseline)."""
+        return cls()
+
+
+# Registry of all EVOLVING strategy classes
 ALL_POKER_STRATEGIES = [
     TightAggressiveStrategy,
     LooseAggressiveStrategy,
@@ -709,11 +839,19 @@ ALL_POKER_STRATEGIES = [
     LoosePassiveStrategy,
     BalancedStrategy,
     ManiacStrategy,
-    # NEW strategies for more diversity
+    # Advanced strategies for more diversity
     AdaptiveStrategy,
     PositionalExploiter,
     TrapSetterStrategy,
     MathematicalStrategy,
+]
+
+# Baseline strategies for benchmarking (not included in evolution pool)
+BASELINE_STRATEGIES = [
+    AlwaysFoldStrategy,
+    RandomStrategy,
+    TightPassiveStrategy,  # "Rock" - also useful as baseline
+    LoosePassiveStrategy,  # "Calling Station" - also useful as baseline
 ]
 
 
