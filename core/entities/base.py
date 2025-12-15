@@ -1,14 +1,13 @@
 """Base entity classes for the simulation."""
 
 import random
-from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
 
 @dataclass
 class EntityUpdateResult:
     """Result of an entity update cycle.
-    
+
     Attributes:
         spawned_entities: List of new entities spawned by this entity
         events: List of events emitted by this entity (e.g. death, interaction)
@@ -18,18 +17,11 @@ class EntityUpdateResult:
 
 from core.constants import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE, DEFAULT_AGENT_SIZE
 from core.math_utils import Vector2
+# Import LifeStage from state_machine for centralized definition with transition validation
+from core.state_machine import LifeStage
 
 if TYPE_CHECKING:
     from core.environment import Environment
-
-
-class LifeStage(Enum):
-    """Life stages of a fish."""
-
-    BABY = "baby"
-    JUVENILE = "juvenile"
-    ADULT = "adult"
-    ELDER = "elder"
 
 
 class Rect:

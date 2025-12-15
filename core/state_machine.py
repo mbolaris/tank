@@ -266,26 +266,23 @@ class LifeStage(Enum):
 
     This enum represents the distinct life stages a fish goes through.
     Each stage affects metabolism, reproduction ability, and behavior.
+
+    Note: Values are strings for backward compatibility with existing code.
     """
 
-    BABY = auto()  # Just born, cannot reproduce
-    JUVENILE = auto()  # Growing, cannot reproduce
-    YOUNG_ADULT = auto()  # Can reproduce, peak energy
-    ADULT = auto()  # Prime of life
-    MATURE = auto()  # Experienced, higher reproduction cost
-    ELDER = auto()  # Final stage before natural death
-    DEAD = auto()  # No longer alive
+    BABY = "baby"  # Just born, cannot reproduce
+    JUVENILE = "juvenile"  # Growing, cannot reproduce
+    ADULT = "adult"  # Prime of life, can reproduce
+    ELDER = "elder"  # Final stage before natural death
 
 
-# Valid life stage transitions (fish can only progress forward or die)
+# Valid life stage transitions (fish can only progress forward)
+# Note: Death is handled separately via is_dead() check, not as a state transition
 LIFE_STAGE_TRANSITIONS: Dict[LifeStage, List[LifeStage]] = {
-    LifeStage.BABY: [LifeStage.JUVENILE, LifeStage.DEAD],
-    LifeStage.JUVENILE: [LifeStage.YOUNG_ADULT, LifeStage.DEAD],
-    LifeStage.YOUNG_ADULT: [LifeStage.ADULT, LifeStage.DEAD],
-    LifeStage.ADULT: [LifeStage.MATURE, LifeStage.DEAD],
-    LifeStage.MATURE: [LifeStage.ELDER, LifeStage.DEAD],
-    LifeStage.ELDER: [LifeStage.DEAD],
-    LifeStage.DEAD: [],  # Terminal state
+    LifeStage.BABY: [LifeStage.JUVENILE],
+    LifeStage.JUVENILE: [LifeStage.ADULT],
+    LifeStage.ADULT: [LifeStage.ELDER],
+    LifeStage.ELDER: [],  # Terminal living state (death handled separately)
 }
 
 

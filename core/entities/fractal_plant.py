@@ -10,6 +10,7 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 from core.entities.base import Agent
+from core.entity_ids import PlantId
 from core.plant_genetics import PlantGenome
 
 if TYPE_CHECKING:
@@ -126,6 +127,9 @@ class FractalPlant(Agent):
         # Rendering stability
         self._cached_iterations = 1  # Cache iterations to prevent flickering
 
+        # Type-safe ID wrapper (cached to avoid repeated object creation)
+        self._typed_id: Optional[PlantId] = None
+
         # Update size based on initial energy
         self._update_size()
 
@@ -145,6 +149,20 @@ class FractalPlant(Agent):
         # Anchor bottom of plant to root spot
         self.pos.y = self.root_spot.y - self.height
         self.rect.y = self.pos.y
+
+    @property
+    def typed_id(self) -> PlantId:
+        """Get the type-safe plant ID.
+
+        This wraps the raw plant_id in a PlantId type for type safety.
+        The wrapper is cached to avoid repeated object creation.
+
+        Returns:
+            PlantId wrapper around plant_id
+        """
+        if self._typed_id is None or self._typed_id.value != self.plant_id:
+            self._typed_id = PlantId(self.plant_id)
+        return self._typed_id
 
     def update_position(self) -> None:
         """Plants are stationary - don't update position."""
