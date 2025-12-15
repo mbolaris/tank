@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
 
 from core.constants import TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import EcosystemEvent, FishOpponentPokerStats, PokerStats
@@ -32,7 +32,7 @@ class PokerStatsManager:
 
         self._init_poker_stats()
 
-    def cleanup_dead_fish(self, alive_fish_ids: set[int]) -> int:
+    def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
         """Remove poker stats for fish that are no longer alive.
         
         Args:
