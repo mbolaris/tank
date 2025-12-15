@@ -66,7 +66,7 @@ U = TypeVar("U")  # Transformed value type
 F = TypeVar("F")  # Transformed error type
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Ok(Generic[T]):
     """Represents a successful operation result.
 
@@ -133,7 +133,7 @@ class Ok(Generic[T]):
         return f"Ok({self.value!r})"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Err(Generic[E]):
     """Represents a failed operation result.
 

@@ -59,7 +59,7 @@ from typing import Any, Generic, TypeVar, Union
 # ============================================================================
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class EntityId:
     """Base class for all entity IDs.
 
@@ -142,7 +142,7 @@ class EntityId:
 # ============================================================================
 
 
-@dataclass(frozen=True, slots=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class FishId(EntityId):
     """Type-safe identifier for Fish entities.
 
@@ -155,7 +155,7 @@ class FishId(EntityId):
     _prefix: str = "Fish"
 
 
-@dataclass(frozen=True, slots=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class PlantId(EntityId):
     """Type-safe identifier for Plant entities.
 
@@ -168,7 +168,7 @@ class PlantId(EntityId):
     _prefix: str = "Plant"
 
 
-@dataclass(frozen=True, slots=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class FoodId(EntityId):
     """Type-safe identifier for Food entities.
 
@@ -181,7 +181,7 @@ class FoodId(EntityId):
     _prefix: str = "Food"
 
 
-@dataclass(frozen=True, slots=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class NectarId(EntityId):
     """Type-safe identifier for Nectar entities.
 
@@ -194,7 +194,7 @@ class NectarId(EntityId):
     _prefix: str = "Nectar"
 
 
-@dataclass(frozen=True, slots=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class CrabId(EntityId):
     """Type-safe identifier for Crab entities.
 
