@@ -25,15 +25,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from core.constants import POKER_MAX_HAND_RANK
-from core.poker.core import (
-    BettingAction,
-    BettingRound,
-    Card,
-    Deck,
-    PokerHand,
-    decide_action,
-    evaluate_hand,
-)
+# Import directly from source modules to avoid lazy import issues
+from core.poker.betting.actions import BettingAction, BettingRound
+from core.poker.betting.decision import decide_action
+from core.poker.core.cards import Card, Deck
+from core.poker.core.hand import PokerHand
+from core.poker.evaluation.hand_evaluator import evaluate_hand
 from core.poker.evaluation.strength import evaluate_starting_hand_strength
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 

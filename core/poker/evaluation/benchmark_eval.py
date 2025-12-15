@@ -44,7 +44,6 @@ import statistics
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 
@@ -184,6 +183,9 @@ def evaluate_vs_single_benchmark_duplicate(
     Returns:
         SingleBenchmarkResult with bb/100 and confidence interval
     """
+    # Import here to avoid circular import with core.auto_evaluate_poker
+    from core.auto_evaluate_poker import AutoEvaluatePokerGame
+
     benchmark_algo = create_standard_strategy(benchmark_id)
 
     bb_per_100_samples: List[float] = []
