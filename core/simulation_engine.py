@@ -778,6 +778,11 @@ class SimulationEngine(BaseSimulator):
             # Update population stats based on end-of-frame state (including emergency spawns)
             ecosystem.update_population_stats(fish_list)
 
+            # Cleanup dead fish stats periodically (every ~30s) to prevent memory leaks
+            if self.frame_count % 1000 == 0:
+                alive_ids = {f.fish_id for f in fish_list}
+                ecosystem.cleanup_dead_fish(alive_ids)
+
             # Record energy snapshot for delta calculations (end-of-frame fish energy)
             total_fish_energy = sum(f.energy for f in fish_list)
             ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))

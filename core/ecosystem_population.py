@@ -59,6 +59,11 @@ def record_birth(
         "birth_time": ecosystem.frame_count,
     }
     ecosystem.lineage_log.append(lineage_record)
+    
+    # Cap lineage log size to prevent unbounded growth
+    MAX_LINEAGE_LOG_SIZE = 5000
+    if len(ecosystem.lineage_log) > MAX_LINEAGE_LOG_SIZE:
+        ecosystem.lineage_log.pop(0)
 
     details = f"Parents: {parent_ids}" if parent_ids else "Initial spawn"
     if algorithm_id is not None:

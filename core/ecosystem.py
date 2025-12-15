@@ -230,6 +230,17 @@ class EcosystemManager:
         self.next_fish_id += 1
         return fish_id
 
+    def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
+        """Cleanup stats for dead fish.
+        
+        Args:
+            alive_fish_ids: Set of currently living fish IDs.
+            
+        Returns:
+            Number of records removed.
+        """
+        return self.poker_manager.cleanup_dead_fish(alive_fish_ids)
+
     def can_reproduce(self, current_population: int) -> bool:
         """Check if reproduction is allowed based on carrying capacity.
 

@@ -239,10 +239,15 @@ class SimulationRunner:
         """Main simulation loop."""
         logger.info("Simulation loop: Starting")
         frame_count = 0
+        
+        # Drift correction: Track when the next frame *should* start
+        next_frame_target = time.time()
+        
         try:
             while self.running:
                 try:
-                    loop_start = time.time()
+                    # Advance target time by one frame duration
+                    next_frame_target += self.frame_time
                     frame_count += 1
 
                     with self.lock:
@@ -275,16 +280,24 @@ class SimulationRunner:
                             f"Energy={stats.get('total_energy', 0.0):.1f}"
                         )
 
-                    # Maintain frame rate
+                    # Maintain frame rate with drift correction
                     if not self.fast_forward:
-                        elapsed = time.time() - loop_start
-                        sleep_time = max(0, self.frame_time - elapsed)
-                        time.sleep(sleep_time)
+                        now = time.time()
+                        sleep_time = next_frame_target - now
+                        
+                        if sleep_time > 0:
+                            time.sleep(sleep_time)
+                        elif sleep_time < -0.1:  # Lagging by > 100ms
+                            # We are falling too far behind, reset target to avoid "spiral of death"
+                            # where we try to execute 0-delay frames forever to catch up
+                            next_frame_target = now
 
                 except Exception as e:
                     logger.error(f"Simulation loop: Unexpected error at frame {frame_count}: {e}", exc_info=True)
-                    # Continue running even if there's an error
+                    # Use simple sleep on error to prevent tight loops
                     time.sleep(self.frame_time)
+                    # Reset timing target after error recovery
+                    next_frame_target = time.time()
 
         except Exception as e:
             logger.error(f"Simulation loop: Fatal error, loop exiting: {e}", exc_info=True)

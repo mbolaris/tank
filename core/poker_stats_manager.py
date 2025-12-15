@@ -32,6 +32,24 @@ class PokerStatsManager:
 
         self._init_poker_stats()
 
+    def cleanup_dead_fish(self, alive_fish_ids: set[int]) -> int:
+        """Remove poker stats for fish that are no longer alive.
+        
+        Args:
+            alive_fish_ids: Set of IDs of currently living fish.
+            
+        Returns:
+            Number of records removed.
+        """
+        initial_count = len(self.plant_poker_stats)
+        # Keep only fish that are alive
+        self.plant_poker_stats = {
+            fish_id: stats 
+            for fish_id, stats in self.plant_poker_stats.items() 
+            if fish_id in alive_fish_ids
+        }
+        return initial_count - len(self.plant_poker_stats)
+
     def _poker_totals_path(self) -> str:
         os.makedirs("logs", exist_ok=True)
         return os.path.join("logs", "poker_totals.json")
