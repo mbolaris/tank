@@ -161,6 +161,7 @@ class TestEdgeCasesAndBoundaries:
                 eye_size=GeneticTrait(1.3),       # Max eyes (affects vision_range)
                 pattern_intensity=GeneticTrait(0.5),
                 pattern_type=GeneticTrait(0),
+                lifespan_modifier=GeneticTrait(1.0),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(1.0),       # Max
@@ -354,6 +355,7 @@ class TestPokerEvolution:
                 eye_size=GeneticTrait(1.0),
                 pattern_intensity=GeneticTrait(0.5),
                 pattern_type=GeneticTrait(0),
+                lifespan_modifier=GeneticTrait(1.0),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(0.9),
@@ -384,6 +386,7 @@ class TestPokerEvolution:
                 eye_size=GeneticTrait(1.0),
                 pattern_intensity=GeneticTrait(0.5),
                 pattern_type=GeneticTrait(0),
+                lifespan_modifier=GeneticTrait(1.0),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(0.1),
@@ -624,6 +627,7 @@ class TestComplexIntegration:
                 eye_size=GeneticTrait(1.0),
                 pattern_intensity=GeneticTrait(0.5),
                 pattern_type=GeneticTrait(0),
+                lifespan_modifier=GeneticTrait(1.0),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(0.5),
@@ -655,6 +659,7 @@ class TestComplexIntegration:
                 eye_size=GeneticTrait(1.0),
                 pattern_intensity=GeneticTrait(0.5),
                 pattern_type=GeneticTrait(0),
+                lifespan_modifier=GeneticTrait(1.0),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(0.5),
@@ -686,6 +691,7 @@ class TestComplexIntegration:
                 eye_size=GeneticTrait(1.0),
                 pattern_intensity=GeneticTrait(0.5),
                 pattern_type=GeneticTrait(0),
+                lifespan_modifier=GeneticTrait(1.0),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(0.5),
@@ -728,6 +734,7 @@ class TestComplexIntegration:
             eye_size=GeneticTrait(1.0),
             pattern_intensity=GeneticTrait(0.5),
             pattern_type=GeneticTrait(0),
+            lifespan_modifier=GeneticTrait(1.0),
         )
 
         parent1_behavioral = BehavioralTraits(
@@ -764,6 +771,7 @@ class TestComplexIntegration:
                 eye_size=GeneticTrait(parent1_physical.eye_size.value),
                 pattern_intensity=GeneticTrait(parent1_physical.pattern_intensity.value),
                 pattern_type=GeneticTrait(parent1_physical.pattern_type.value),
+                lifespan_modifier=GeneticTrait(parent1_physical.lifespan_modifier.value),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(parent1_behavioral.aggression.value),
@@ -791,6 +799,7 @@ class TestComplexIntegration:
                 eye_size=GeneticTrait(parent1_physical.eye_size.value),
                 pattern_intensity=GeneticTrait(parent1_physical.pattern_intensity.value),
                 pattern_type=GeneticTrait(parent1_physical.pattern_type.value),
+                lifespan_modifier=GeneticTrait(parent1_physical.lifespan_modifier.value),
             ),
             behavioral=BehavioralTraits(
                 aggression=GeneticTrait(parent1_behavioral.aggression.value),
