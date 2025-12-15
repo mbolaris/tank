@@ -143,6 +143,12 @@ class LifecycleComponent:
         """Current life stage (from state machine)."""
         return self._state_machine.state
 
+    @life_stage.setter
+    def life_stage(self, value: LifeStage) -> None:
+        """Set life_stage (forces transition for backward compatibility)."""
+        if value != self._state_machine.state:
+            self._state_machine.force_state(value, reason="direct assignment")
+
     @property
     def current_stage(self) -> LifeStage:
         """Alias for life_stage for backward compatibility."""
