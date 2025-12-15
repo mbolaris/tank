@@ -4,6 +4,9 @@ This module provides a Result type that makes operation outcomes explicit.
 Instead of returning None or raising exceptions, operations return a Result
 that must be explicitly checked.
 
+Note: Uses `from __future__ import annotations` for Python 3.7+ compatibility
+with generic type aliases.
+
 Why Result Types?
 -----------------
 Before (implicit failure):
@@ -56,8 +59,10 @@ It's not meant to replace all error handling, just make critical
 operations more explicit and debuggable.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Callable, Generic, TypeVar, Union, overload
+from typing import Callable, Generic, List, TypeVar, Union, overload
 
 # Type variables for Result
 T = TypeVar("T")  # Success value type
