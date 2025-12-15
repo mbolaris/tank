@@ -57,9 +57,12 @@ export default function SizeSummaryGraph({
 
     const svgHeight = topPad + plotH + bottomPad;
 
-    // Format x-axis tick labels
-    const formatMin = labels && labels.length > 0 ? labels[0] : (integerValues ? allowedMin.toFixed(0) : allowedMin.toFixed(2));
-    const formatMax = labels && labels.length > 1 ? labels[labels.length - 1] : (integerValues ? allowedMax.toFixed(0) : allowedMax.toFixed(2));
+    // Determine if we should show individual bar labels (for discrete traits)
+    const showBarLabels = labels && labels.length === bins.length;
+
+    // Format x-axis tick labels for min/max display
+    const formatMin = labels && labels.length > 0 && !showBarLabels ? labels[0] : (integerValues ? allowedMin.toFixed(0) : allowedMin.toFixed(2));
+    const formatMax = labels && labels.length > 1 && !showBarLabels ? labels[labels.length - 1] : (integerValues ? allowedMax.toFixed(0) : allowedMax.toFixed(2));
 
     return (
         <div style={{ width, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -73,18 +76,44 @@ export default function SizeSummaryGraph({
                     return <rect key={i} x={x} y={y} width={Math.max(0, barWidth - 2)} height={h} fill={color} rx={2} ry={2} />;
                 })}
 
-                {/* allowed bounds (vertical guides) */}
-                <line x1={xFor(allowedMin)} x2={xFor(allowedMin)} y1={topPad} y2={topPad + plotH} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />
-                <line x1={xFor(allowedMax)} x2={xFor(allowedMax)} y1={topPad} y2={topPad + plotH} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />
+                {/* allowed bounds (vertical guides) - only show if not using bar labels */}
+                {!showBarLabels && (
+                    <>
+                        <line x1={xFor(allowedMin)} x2={xFor(allowedMin)} y1={topPad} y2={topPad + plotH} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />
+                        <line x1={xFor(allowedMax)} x2={xFor(allowedMax)} y1={topPad} y2={topPad + plotH} stroke="rgba(255,255,255,0.12)" strokeDasharray="3 3" />
+                    </>
+                )}
 
                 {/* x-axis label (positioned clearly below ticks) */}
                 <text x={leftPad + plotW / 2} y={topPad + plotH + 28} fontSize={11} fill="var(--color-text-dim)" textAnchor="middle">{xLabel}</text>
 
-                {/* allowed range ticks and labels on x-axis (labels slightly above the x-axis label) */}
-                <line x1={xFor(allowedMin)} x2={xFor(allowedMin)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
-                <line x1={xFor(allowedMax)} x2={xFor(allowedMax)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
-                <text x={xFor(allowedMin)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{formatMin}</text>
-                <text x={xFor(allowedMax)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{formatMax}</text>
+                {/* Individual bar labels (for discrete traits) OR min/max labels (for continuous traits) */}
+                {showBarLabels ? (
+                    // Show label under each bar
+                    bins.map((_, i) => {
+                        const barCenterX = leftPad + i * barWidth + barWidth / 2;
+                        return (
+                            <text
+                                key={i}
+                                x={barCenterX}
+                                y={topPad + plotH + 20}
+                                fontSize={9}
+                                fill="var(--color-text-dim)"
+                                textAnchor="middle"
+                            >
+                                {labels[i]}
+                            </text>
+                        );
+                    })
+                ) : (
+                    // Show min/max ticks and labels
+                    <>
+                        <line x1={xFor(allowedMin)} x2={xFor(allowedMin)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
+                        <line x1={xFor(allowedMax)} x2={xFor(allowedMax)} y1={topPad + plotH + 4} y2={topPad + plotH + 10} stroke="var(--color-text-dim)" />
+                        <text x={xFor(allowedMin)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{formatMin}</text>
+                        <text x={xFor(allowedMax)} y={topPad + plotH + 20} fontSize={10} fill="var(--color-text-dim)" textAnchor="middle">{formatMax}</text>
+                    </>
+                )}
 
                 {/* y-axis label (rotated) */}
                 <text
