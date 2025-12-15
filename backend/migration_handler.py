@@ -4,11 +4,11 @@ import logging
 import random
 from typing import TYPE_CHECKING, Any
 
-from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
+from backend.entity_transfer import try_deserialize_entity, try_serialize_entity_for_transfer
 from backend.transfer_history import log_transfer
 
 if TYPE_CHECKING:
-    from core.entities.fish import Fish
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -86,16 +86,21 @@ class BackendMigrationHandler:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
             # Serialize the entity (pass direction for plants to select appropriate edge spot)
-            entity_data = serialize_entity_for_transfer(entity, migration_direction=direction)
-            if entity_data is None:
-                logger.error("Failed to serialize entity for transfer")
+            outcome = try_serialize_entity_for_transfer(entity, migration_direction=direction)
+            if not outcome.ok:
+                logger.error(
+                    "Failed to serialize entity for transfer (code=%s): %s",
+                    outcome.error.code if outcome.error else "unknown",
+                    outcome.error.message if outcome.error else "unknown error",
+                )
                 return False
+            entity_data = outcome.value
 
             old_id = id(entity)
 
             # Deserialize in destination
-            new_entity = deserialize_entity(entity_data, dest_manager.world)
-            if new_entity is None:
+            new_entity_outcome = try_deserialize_entity(entity_data, dest_manager.world)
+            if not new_entity_outcome.ok:
                 log_transfer(
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
@@ -105,10 +110,11 @@ class BackendMigrationHandler:
                     destination_tank_id=connection.destination_tank_id,
                     destination_tank_name=dest_manager.tank_info.name,
                     success=False,
-                    error="Failed to deserialize in destination",
+                    error=f"Failed to deserialize in destination: {new_entity_outcome.error.code if new_entity_outcome.error else 'unknown'}",
                     generation=getattr(entity, "generation", None),
                 )
                 return False
+            new_entity = new_entity_outcome.value
 
             # Position entity at opposite edge of destination tank
             if direction == "left":

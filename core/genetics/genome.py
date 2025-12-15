@@ -4,21 +4,26 @@ This module provides the core Genome class that represents the complete
 genetic makeup of a fish, combining physical and behavioral traits.
 """
 
+import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, Tuple
 
-from core.evolution.mutation import calculate_adaptive_mutation_rate
 from core.evolution.inheritance import inherit_learned_behaviors
-from core.genetics.trait import GeneticTrait
-from core.genetics.physical import PhysicalTraits
+from core.evolution.mutation import calculate_adaptive_mutation_rate
 from core.genetics.behavioral import BehavioralTraits
 from core.genetics.compatibility import GenomeCompatibilityMixin
+from core.genetics.physical import PhysicalTraits
+from core.genetics.trait import (
+    apply_trait_meta_from_dict,
+    apply_trait_values_from_dict,
+    trait_meta_to_dict,
+    trait_values_to_dict,
+)
 
-if TYPE_CHECKING:
-    from core.algorithms import BehaviorAlgorithm
-    from core.poker.strategy.implementations import PokerStrategyAlgorithm
+logger = logging.getLogger(__name__)
+GENOME_SCHEMA_VERSION = 1
 
 
 class GeneticCrossoverMode(Enum):
@@ -93,6 +98,203 @@ class Genome(GenomeCompatibilityMixin):
         """Invalidate cached computed properties when traits change."""
         object.__setattr__(self, '_speed_modifier_cache', None)
         object.__setattr__(self, '_metabolism_rate_cache', None)
+
+    def to_dict(
+        self,
+        *,
+        behavior_algorithm: Optional[Dict[str, Any]] = None,
+        poker_algorithm: Optional[Dict[str, Any]] = None,
+        poker_strategy_algorithm: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Serialize this genome into JSON-compatible primitives.
+
+        This is intended as a stable boundary format for persistence and transfer.
+        """
+
+        behavior_algorithm_dict = behavior_algorithm
+        if behavior_algorithm_dict is None and self.behavior_algorithm is not None:
+            behavior_algorithm_dict = self.behavior_algorithm.to_dict()
+
+        poker_algorithm_dict = poker_algorithm
+        if poker_algorithm_dict is None and self.poker_algorithm is not None:
+            poker_algorithm_dict = self.poker_algorithm.to_dict()
+
+        poker_strategy_dict = poker_strategy_algorithm
+        if poker_strategy_dict is None and self.poker_strategy_algorithm is not None:
+            poker_strategy_dict = self.poker_strategy_algorithm.to_dict()
+
+        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+        from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+
+        values: Dict[str, Any] = {}
+        values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, self.physical))
+        values.update(trait_values_to_dict(BEHAVIORAL_TRAIT_SPECS, self.behavioral))
+
+        trait_meta: Dict[str, Dict[str, float]] = {}
+        trait_meta.update(trait_meta_to_dict(PHYSICAL_TRAIT_SPECS, self.physical))
+        trait_meta.update(trait_meta_to_dict(BEHAVIORAL_TRAIT_SPECS, self.behavioral))
+
+        def _maybe_add_meta(name: str, trait: Any) -> None:
+            meta: Dict[str, float] = {}
+            if trait.mutation_rate != 1.0:
+                meta["mutation_rate"] = float(trait.mutation_rate)
+            if trait.mutation_strength != 1.0:
+                meta["mutation_strength"] = float(trait.mutation_strength)
+            if trait.hgt_probability != 0.1:
+                meta["hgt_probability"] = float(trait.hgt_probability)
+            if meta:
+                trait_meta[name] = meta
+
+        _maybe_add_meta("behavior_algorithm", self.behavioral.behavior_algorithm)
+        _maybe_add_meta("poker_algorithm", self.behavioral.poker_algorithm)
+        _maybe_add_meta("poker_strategy_algorithm", self.behavioral.poker_strategy_algorithm)
+        _maybe_add_meta("mate_preferences", self.behavioral.mate_preferences)
+
+        return {
+            "schema_version": GENOME_SCHEMA_VERSION,
+            **values,
+            # Behavioral complex traits
+            "behavior_algorithm": behavior_algorithm_dict,
+            "poker_algorithm": poker_algorithm_dict,
+            "poker_strategy_algorithm": poker_strategy_dict,
+            "mate_preferences": dict(self.behavioral.mate_preferences.value),
+            # Non-genetic (but persistable) state
+            "learned_behaviors": dict(self.learned_behaviors),
+            "epigenetic_modifiers": dict(self.epigenetic_modifiers),
+            "trait_meta": trait_meta,
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: Dict[str, Any],
+        *,
+        rng: Optional[pyrandom.Random] = None,
+        use_algorithm: bool = True,
+    ) -> "Genome":
+        """Deserialize a genome from JSON-compatible primitives.
+
+        Unknown fields are ignored; missing fields keep randomized defaults.
+        """
+
+        rng = rng or pyrandom
+        genome = cls.random(use_algorithm=use_algorithm, rng=rng)
+
+        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+        from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+
+        apply_trait_values_from_dict(PHYSICAL_TRAIT_SPECS, genome.physical, data)
+        apply_trait_values_from_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral, data)
+
+        # Mate preferences (dictionary trait)
+        mate_preferences = data.get("mate_preferences")
+        if isinstance(mate_preferences, dict):
+            genome.mate_preferences = {
+                str(key): float(value) for key, value in mate_preferences.items()
+            }
+
+        # Evolvability metadata (mutation_rate/mutation_strength/hgt_probability)
+        trait_meta = data.get("trait_meta")
+        if isinstance(trait_meta, dict):
+            try:
+                apply_trait_meta_from_dict(PHYSICAL_TRAIT_SPECS, genome.physical, trait_meta)
+                apply_trait_meta_from_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral, trait_meta)
+            except Exception:
+                logger.debug("Failed applying trait_meta; continuing with defaults", exc_info=True)
+
+            # Apply metadata for non-spec traits on BehavioralTraits.
+            meta = trait_meta.get("behavior_algorithm")
+            if isinstance(meta, dict):
+                if "mutation_rate" in meta:
+                    genome.behavioral.behavior_algorithm.mutation_rate = max(0.0, float(meta["mutation_rate"]))
+                if "mutation_strength" in meta:
+                    genome.behavioral.behavior_algorithm.mutation_strength = max(
+                        0.0, float(meta["mutation_strength"])
+                    )
+                if "hgt_probability" in meta:
+                    genome.behavioral.behavior_algorithm.hgt_probability = max(
+                        0.0, min(1.0, float(meta["hgt_probability"]))
+                    )
+            meta = trait_meta.get("poker_algorithm")
+            if isinstance(meta, dict):
+                if "mutation_rate" in meta:
+                    genome.behavioral.poker_algorithm.mutation_rate = max(0.0, float(meta["mutation_rate"]))
+                if "mutation_strength" in meta:
+                    genome.behavioral.poker_algorithm.mutation_strength = max(
+                        0.0, float(meta["mutation_strength"])
+                    )
+                if "hgt_probability" in meta:
+                    genome.behavioral.poker_algorithm.hgt_probability = max(
+                        0.0, min(1.0, float(meta["hgt_probability"]))
+                    )
+            meta = trait_meta.get("poker_strategy_algorithm")
+            if isinstance(meta, dict):
+                if "mutation_rate" in meta:
+                    genome.behavioral.poker_strategy_algorithm.mutation_rate = max(
+                        0.0, float(meta["mutation_rate"])
+                    )
+                if "mutation_strength" in meta:
+                    genome.behavioral.poker_strategy_algorithm.mutation_strength = max(
+                        0.0, float(meta["mutation_strength"])
+                    )
+                if "hgt_probability" in meta:
+                    genome.behavioral.poker_strategy_algorithm.hgt_probability = max(
+                        0.0, min(1.0, float(meta["hgt_probability"]))
+                    )
+            meta = trait_meta.get("mate_preferences")
+            if isinstance(meta, dict):
+                if "mutation_rate" in meta:
+                    genome.behavioral.mate_preferences.mutation_rate = max(
+                        0.0, float(meta["mutation_rate"])
+                    )
+                if "mutation_strength" in meta:
+                    genome.behavioral.mate_preferences.mutation_strength = max(
+                        0.0, float(meta["mutation_strength"])
+                    )
+                if "hgt_probability" in meta:
+                    genome.behavioral.mate_preferences.hgt_probability = max(
+                        0.0, min(1.0, float(meta["hgt_probability"]))
+                    )
+
+        # Non-genetic (but persistable) state
+        learned = data.get("learned_behaviors")
+        if isinstance(learned, dict):
+            genome.learned_behaviors = {str(key): float(value) for key, value in learned.items()}
+        epigenetic = data.get("epigenetic_modifiers")
+        if isinstance(epigenetic, dict):
+            genome.epigenetic_modifiers = {
+                str(key): float(value) for key, value in epigenetic.items()
+            }
+
+        # Algorithms
+        try:
+            from core.algorithms import behavior_from_dict
+
+            behavior_data = data.get("behavior_algorithm")
+            if behavior_data:
+                genome.behavior_algorithm = behavior_from_dict(behavior_data)
+                if genome.behavior_algorithm is None:
+                    logger.warning("Failed to deserialize behavior_algorithm; keeping default")
+
+            poker_data = data.get("poker_algorithm")
+            if poker_data:
+                genome.poker_algorithm = behavior_from_dict(poker_data)
+                if genome.poker_algorithm is None:
+                    logger.warning("Failed to deserialize poker_algorithm; keeping default")
+        except Exception:
+            logger.debug("Failed deserializing behavior algorithms; keeping defaults", exc_info=True)
+
+        try:
+            strat_data = data.get("poker_strategy_algorithm")
+            if strat_data:
+                from core.poker.strategy.implementations import PokerStrategyAlgorithm
+
+                genome.poker_strategy_algorithm = PokerStrategyAlgorithm.from_dict(strat_data)
+        except Exception:
+            logger.debug("Failed deserializing poker_strategy_algorithm; keeping default", exc_info=True)
+
+        genome.invalidate_caches()
+        return genome
 
     # =========================================================================
     # Factory Methods

@@ -9,22 +9,27 @@ from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm
-    from core.poker.strategy.implementations import PokerStrategyAlgorithm
-    from core.genetics.physical import PhysicalTraits
     from core.genetics.behavioral import BehavioralTraits
+    from core.genetics.physical import PhysicalTraits
+    from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 
 class GenomeCompatibilityMixin:
     """Mixin providing backward compatibility properties for Genome.
-    
+
     This allows access to trait values directly on the genome instance
     (e.g., genome.size_modifier) rather than through the nested structure
     (genome.physical.size_modifier.value).
     """
-    
+
     # Type hints for the mixin to know about the main class attributes
     physical: "PhysicalTraits"
     behavioral: "BehavioralTraits"
+
+    def _invalidate_genome_caches(self) -> None:
+        invalidate = getattr(self, "invalidate_caches", None)
+        if invalidate:
+            invalidate()
 
     # --- Physical Traits ---
     @property
@@ -34,6 +39,7 @@ class GenomeCompatibilityMixin:
     @size_modifier.setter
     def size_modifier(self, v: float) -> None:
         self.physical.size_modifier.value = v
+        self._invalidate_genome_caches()
 
     @property
     def color_hue(self) -> float:
@@ -50,6 +56,7 @@ class GenomeCompatibilityMixin:
     @template_id.setter
     def template_id(self, v: int) -> None:
         self.physical.template_id.value = v
+        self._invalidate_genome_caches()
 
     @property
     def fin_size(self) -> float:
@@ -58,6 +65,7 @@ class GenomeCompatibilityMixin:
     @fin_size.setter
     def fin_size(self, v: float) -> None:
         self.physical.fin_size.value = v
+        self._invalidate_genome_caches()
 
     @property
     def tail_size(self) -> float:
@@ -66,6 +74,7 @@ class GenomeCompatibilityMixin:
     @tail_size.setter
     def tail_size(self, v: float) -> None:
         self.physical.tail_size.value = v
+        self._invalidate_genome_caches()
 
     @property
     def body_aspect(self) -> float:
@@ -74,6 +83,7 @@ class GenomeCompatibilityMixin:
     @body_aspect.setter
     def body_aspect(self, v: float) -> None:
         self.physical.body_aspect.value = v
+        self._invalidate_genome_caches()
 
     @property
     def eye_size(self) -> float:
@@ -82,6 +92,7 @@ class GenomeCompatibilityMixin:
     @eye_size.setter
     def eye_size(self, v: float) -> None:
         self.physical.eye_size.value = v
+        self._invalidate_genome_caches()
 
     @property
     def pattern_intensity(self) -> float:
@@ -98,6 +109,14 @@ class GenomeCompatibilityMixin:
     @pattern_type.setter
     def pattern_type(self, v: int) -> None:
         self.physical.pattern_type.value = v
+
+    @property
+    def lifespan_modifier(self) -> float:
+        return self.physical.lifespan_modifier.value
+
+    @lifespan_modifier.setter
+    def lifespan_modifier(self, v: float) -> None:
+        self.physical.lifespan_modifier.value = v
 
     # --- Behavioral Traits ---
     @property

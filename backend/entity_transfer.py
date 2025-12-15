@@ -5,10 +5,30 @@ for transferring between tanks.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol
 
 logger = logging.getLogger(__name__)
+
+SerializedEntity = Dict[str, Any]
+TRANSFER_SCHEMA_VERSION = 2
+
+
+@dataclass(frozen=True)
+class TransferError:
+    code: str
+    message: str
+    context: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TransferOutcome:
+    value: Optional[Any] = None
+    error: Optional[TransferError] = None
+
+    @property
+    def ok(self) -> bool:
+        return self.error is None and self.value is not None
 
 
 @dataclass(frozen=True)
@@ -26,10 +46,10 @@ class EntityTransferCodec(Protocol):
     def can_serialize(self, entity: Any) -> bool:
         """Return True if this codec can serialize *entity*."""
 
-    def serialize(self, entity: Any, ctx: TransferContext) -> Dict[str, Any]:
+    def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
         """Serialize *entity* into a JSON-compatible dict."""
 
-    def deserialize(self, data: Dict[str, Any], target_world: Any) -> Any:
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
         """Deserialize *data* into an entity in *target_world*."""
 
 
@@ -44,7 +64,7 @@ class FishTransferCodec:
     def serialize(self, entity: Any, ctx: TransferContext) -> Dict[str, Any]:
         return _serialize_fish(entity)
 
-    def deserialize(self, data: Dict[str, Any], target_world: Any) -> Any:
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
         return _deserialize_fish(data, target_world)
 
 
@@ -56,39 +76,204 @@ class FractalPlantTransferCodec:
 
         return isinstance(entity, FractalPlant)
 
-    def serialize(self, entity: Any, ctx: TransferContext) -> Dict[str, Any]:
+    def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
         return _serialize_plant(entity, ctx.migration_direction)
 
-    def deserialize(self, data: Dict[str, Any], target_world: Any) -> Any:
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
         return _deserialize_plant(data, target_world)
 
 
-_CODECS: List[EntityTransferCodec] = [
-    FishTransferCodec(),
-    FractalPlantTransferCodec(),
-]
-_CODECS_BY_TYPE: Dict[str, EntityTransferCodec] = {codec.type_name: codec for codec in _CODECS}
+def _normalize_migration_direction(direction: Optional[str]) -> Optional[str]:
+    if direction is None:
+        return None
+    if direction in {"left", "right"}:
+        return direction
+    logger.warning("Ignoring invalid migration_direction=%r (expected 'left' or 'right')", direction)
+    return None
+
+
+@dataclass
+class TransferRegistry:
+    """Registry of transfer codecs.
+
+    This indirection keeps transfer policy (routing by type) separate from
+    transfer mechanics (fish/plant serialization). The module exposes a
+    DEFAULT_REGISTRY plus function wrappers for backward-compatible imports.
+    """
+
+    codecs: List[EntityTransferCodec] = field(default_factory=list)
+    codecs_by_type: Dict[str, EntityTransferCodec] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.codecs_by_type and self.codecs:
+            self.codecs_by_type = {codec.type_name: codec for codec in self.codecs}
+
+    def register(self, codec: EntityTransferCodec) -> None:
+        existing = self.codecs_by_type.get(codec.type_name)
+        if existing is not None and existing is not codec:
+            try:
+                self.codecs.remove(existing)
+            except ValueError:
+                pass
+            logger.warning("Overriding existing transfer codec for type=%r", codec.type_name)
+
+        self.codecs.append(codec)
+        self.codecs_by_type[codec.type_name] = codec
+
+    def codec_for_entity(self, entity: Any) -> Optional[EntityTransferCodec]:
+        for codec in self.codecs:
+            try:
+                if codec.can_serialize(entity):
+                    return codec
+            except Exception:
+                logger.debug(
+                    "Transfer codec can_serialize failed (codec=%r entity=%r)",
+                    getattr(codec, "type_name", type(codec).__name__),
+                    type(entity).__name__,
+                    exc_info=True,
+                )
+        return None
+
+    def try_serialize_entity(
+        self, entity: Any, ctx: TransferContext
+    ) -> TransferOutcome:
+        codec = self.codec_for_entity(entity)
+        if codec is None:
+            return TransferOutcome(
+                error=TransferError(
+                    code="unsupported_entity",
+                    message=f"Cannot transfer entity of type {type(entity).__name__}",
+                    context={"entity_type": type(entity).__name__},
+                )
+            )
+
+        try:
+            payload = codec.serialize(entity, ctx)
+        except Exception as exc:
+            return TransferOutcome(
+                error=TransferError(
+                    code="serialize_failed",
+                    message=str(exc),
+                    context={"codec": codec.type_name, "entity_type": type(entity).__name__},
+                )
+            )
+
+        if not isinstance(payload, dict):
+            return TransferOutcome(
+                error=TransferError(
+                    code="invalid_payload",
+                    message="Transfer codec returned non-dict payload",
+                    context={"codec": codec.type_name, "payload_type": type(payload).__name__},
+                )
+            )
+        existing_type = payload.get("type")
+        if existing_type is not None and existing_type != codec.type_name:
+            return TransferOutcome(
+                error=TransferError(
+                    code="type_mismatch",
+                    message="Transfer codec returned mismatched type field",
+                    context={"codec": codec.type_name, "payload_type": existing_type},
+                )
+            )
+        payload["type"] = codec.type_name
+        payload.setdefault("schema_version", TRANSFER_SCHEMA_VERSION)
+        return TransferOutcome(value=payload)
+
+    def serialize_entity(self, entity: Any, ctx: TransferContext) -> Optional[SerializedEntity]:
+        outcome = self.try_serialize_entity(entity, ctx)
+        if not outcome.ok:
+            logger.warning(
+                "Serialize failed (code=%s entity_type=%s codec=%s): %s",
+                outcome.error.code if outcome.error else "unknown",
+                type(entity).__name__,
+                outcome.error.context.get("codec") if outcome.error else None,
+                outcome.error.message if outcome.error else "unknown error",
+            )
+            return None
+        return outcome.value
+
+    def try_deserialize_entity(self, data: SerializedEntity, target_world: Any) -> TransferOutcome:
+        if not isinstance(data, dict):
+            return TransferOutcome(
+                error=TransferError(
+                    code="invalid_payload",
+                    message="Cannot deserialize entity: expected dict",
+                    context={"payload_type": type(data).__name__},
+                )
+            )
+        entity_type = data.get("type")
+        if not entity_type:
+            return TransferOutcome(
+                error=TransferError(
+                    code="missing_type",
+                    message="Cannot deserialize entity: missing 'type' field",
+                )
+            )
+
+        codec = self.codecs_by_type.get(entity_type)
+        if codec is None:
+            return TransferOutcome(
+                error=TransferError(
+                    code="unknown_type",
+                    message=f"Unknown entity type: {entity_type}",
+                    context={"entity_type": entity_type},
+                )
+            )
+
+        try:
+            entity = codec.deserialize(data, target_world)
+        except Exception as exc:
+            return TransferOutcome(
+                error=TransferError(
+                    code="deserialize_failed",
+                    message=str(exc),
+                    context={"codec": codec.type_name, "entity_type": entity_type},
+                )
+            )
+        if entity is None:
+            return TransferOutcome(
+                error=TransferError(
+                    code="deserialize_returned_none",
+                    message="Deserializer returned None",
+                    context={"codec": codec.type_name, "entity_type": entity_type},
+                )
+            )
+        return TransferOutcome(value=entity)
+
+    def deserialize_entity(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
+        outcome = self.try_deserialize_entity(data, target_world)
+        if not outcome.ok:
+            logger.error(
+                "Deserialize failed (code=%s entity_type=%s codec=%s): %s",
+                outcome.error.code if outcome.error else "unknown",
+                outcome.error.context.get("entity_type") if outcome.error else None,
+                outcome.error.context.get("codec") if outcome.error else None,
+                outcome.error.message if outcome.error else "unknown error",
+            )
+            return None
+        return outcome.value
+
+
+DEFAULT_REGISTRY = TransferRegistry(codecs=[FishTransferCodec(), FractalPlantTransferCodec()])
+
+
+def _require_keys(data: SerializedEntity, keys: List[str], *, entity_type: str) -> bool:
+    missing = [key for key in keys if key not in data]
+    if not missing:
+        return True
+    logger.error("Cannot deserialize %s: missing keys=%s", entity_type, missing)
+    return False
 
 
 def register_transfer_codec(codec: EntityTransferCodec) -> None:
     """Register a new transfer codec (extension point)."""
 
-    _CODECS.append(codec)
-    _CODECS_BY_TYPE[codec.type_name] = codec
+    DEFAULT_REGISTRY.register(codec)
 
 
-def _codec_for_entity(entity: Any) -> Optional[EntityTransferCodec]:
-    for codec in _CODECS:
-        try:
-            if codec.can_serialize(entity):
-                return codec
-        except Exception:
-            logger.debug("Transfer codec can_serialize failed", exc_info=True)
-            continue
-    return None
-
-
-def serialize_entity_for_transfer(entity: Any, migration_direction: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def serialize_entity_for_transfer(
+    entity: Any, migration_direction: Optional[str] = None
+) -> Optional[SerializedEntity]:
     """Serialize an entity for transfer to another tank.
 
     Args:
@@ -98,17 +283,18 @@ def serialize_entity_for_transfer(entity: Any, migration_direction: Optional[str
     Returns:
         Dictionary containing all entity state, or None if entity cannot be transferred
     """
-    ctx = TransferContext(migration_direction=migration_direction)
-    codec = _codec_for_entity(entity)
-    if codec is None:
-        # Food and other resources cannot be transferred
-        logger.warning(f"Cannot transfer entity of type {type(entity).__name__}")
-        return None
-
-    return codec.serialize(entity, ctx)
+    ctx = TransferContext(migration_direction=_normalize_migration_direction(migration_direction))
+    return DEFAULT_REGISTRY.serialize_entity(entity, ctx)
 
 
-def _serialize_fish(fish: Any) -> Dict[str, Any]:
+def try_serialize_entity_for_transfer(
+    entity: Any, migration_direction: Optional[str] = None
+) -> TransferOutcome:
+    ctx = TransferContext(migration_direction=_normalize_migration_direction(migration_direction))
+    return DEFAULT_REGISTRY.try_serialize_entity(entity, ctx)
+
+
+def _serialize_fish(fish: Any) -> SerializedEntity:
     """Serialize a Fish entity."""
     mutable_state = capture_fish_mutable_state(fish)
     return finalize_fish_serialization(fish, mutable_state)
@@ -147,8 +333,13 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     }
 
 
-def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Dict[str, Any]:
+def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
     """Construct full fish serialization using captured mutable state."""
+    genome_data = fish.genome.to_dict(
+        behavior_algorithm=mutable_state["behavior_params"],
+        poker_algorithm=mutable_state["poker_algo_params"],
+        poker_strategy_algorithm=mutable_state["poker_strat_params"],
+    )
     return {
         "type": "fish",
         "id": fish.fish_id,
@@ -164,28 +355,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Dic
         "max_age": fish.max_age,
         "generation": fish.generation,
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
-        "genome_data": {
-            "size_modifier": fish.genome.size_modifier,
-            "color_hue": fish.genome.color_hue,
-            "aggression": fish.genome.aggression,
-            "social_tendency": fish.genome.social_tendency,
-            "template_id": fish.genome.template_id,
-            # New hunting traits
-            "pursuit_aggression": fish.genome.pursuit_aggression,
-            "prediction_skill": fish.genome.prediction_skill,
-            "hunting_stamina": fish.genome.hunting_stamina,
-            # Visual traits
-            "fin_size": fish.genome.fin_size,
-            "tail_size": fish.genome.tail_size,
-            "body_aspect": fish.genome.body_aspect,
-            "eye_size": fish.genome.eye_size,
-            "pattern_intensity": fish.genome.pattern_intensity,
-            "pattern_type": fish.genome.pattern_type,
-            # Use captured params
-            "behavior_algorithm": mutable_state["behavior_params"],
-            "poker_algorithm": mutable_state["poker_algo_params"],
-            "poker_strategy_algorithm": mutable_state["poker_strat_params"],
-        },
+        "genome_data": genome_data,
         "memory": {
             "food_memories": mutable_state["food_memories"],
             "predator_last_seen": mutable_state["predator_last_seen"],
@@ -194,7 +364,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Dic
     }
 
 
-def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> Dict[str, Any]:
+def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> SerializedEntity:
     """Serialize a FractalPlant entity."""
     mutable_state = capture_plant_mutable_state(plant, migration_direction)
     return finalize_plant_serialization(plant, mutable_state)
@@ -225,7 +395,7 @@ def capture_plant_mutable_state(plant: Any, migration_direction: Optional[str] =
     }
 
 
-def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> Dict[str, Any]:
+def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
     """Construct full plant serialization using captured mutable state."""
     return {
         "type": "fractal_plant",
@@ -271,6 +441,7 @@ def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> D
         "nectar_ready": mutable_state["nectar_ready"],
     }
 
+
 def deserialize_entity(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize entity data and create a new entity in the target world.
 
@@ -281,61 +452,33 @@ def deserialize_entity(data: Dict[str, Any], target_world: Any) -> Optional[Any]
     Returns:
         The created entity, or None if deserialization failed
     """
-    entity_type = data.get("type")
-    codec = _CODECS_BY_TYPE.get(entity_type or "")
-    if codec is None:
-        logger.error(f"Unknown entity type: {entity_type}")
-        return None
+    return DEFAULT_REGISTRY.deserialize_entity(data, target_world)
 
-    return codec.deserialize(data, target_world)
+
+def try_deserialize_entity(data: Dict[str, Any], target_world: Any) -> TransferOutcome:
+    return DEFAULT_REGISTRY.try_deserialize_entity(data, target_world)
 
 
 def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize and create a Fish entity."""
     try:
-        from core.algorithms import behavior_from_dict
         from core.entities.fish import Fish
         from core.genetics import Genome
         from core.movement_strategy import AlgorithmicMovement
 
-        # Recreate genome
+        if not _require_keys(
+            data,
+            ["genome_data", "species", "x", "y", "speed", "generation", "energy"],
+            entity_type="fish",
+        ):
+            return None
+
         genome_data = data["genome_data"]
-
-        # Create genome using random() then override with saved values
-        genome = Genome.random()
-        genome.size_modifier = genome_data.get("size_modifier", 1.0)
-        genome.color_hue = genome_data.get("color_hue", 0.5)
-        genome.aggression = genome_data.get("aggression", 0.5)
-        genome.social_tendency = genome_data.get("social_tendency", 0.5)
-        genome.template_id = genome_data.get("template_id", 0)
-        # Hunting traits (with defaults for old saves)
-        genome.pursuit_aggression = genome_data.get("pursuit_aggression", 0.5)
-        genome.prediction_skill = genome_data.get("prediction_skill", 0.5)
-        genome.hunting_stamina = genome_data.get("hunting_stamina", 0.5)
-        # Visual traits (with defaults for old saves)
-        genome.fin_size = genome_data.get("fin_size", 1.0)
-        genome.tail_size = genome_data.get("tail_size", 1.0)
-        genome.body_aspect = genome_data.get("body_aspect", 1.0)
-        genome.eye_size = genome_data.get("eye_size", 1.0)
-        genome.pattern_intensity = genome_data.get("pattern_intensity", 0.5)
-        genome.pattern_type = genome_data.get("pattern_type", 0)
-
-        # Restore behavior algorithm if available
-        if "behavior_algorithm" in genome_data and genome_data["behavior_algorithm"]:
-            genome.behavior_algorithm = behavior_from_dict(genome_data["behavior_algorithm"])
-            if genome.behavior_algorithm is None:
-                logger.warning("Failed to deserialize behavior_algorithm; Fish.__init__ will assign random")
-
-        # Restore poker algorithm if available
-        if "poker_algorithm" in genome_data and genome_data["poker_algorithm"]:
-            genome.poker_algorithm = behavior_from_dict(genome_data["poker_algorithm"])
-            if genome.poker_algorithm is None:
-                logger.warning("Failed to deserialize poker_algorithm; Fish.__init__ will assign random")
-
-        # Restore poker strategy if available
-        if "poker_strategy_algorithm" in genome_data and genome_data["poker_strategy_algorithm"]:
-            from core.poker.strategy.implementations import PokerStrategyAlgorithm
-            genome.poker_strategy_algorithm = PokerStrategyAlgorithm.from_dict(genome_data["poker_strategy_algorithm"])
+        if not isinstance(genome_data, dict):
+            logger.error("Cannot deserialize fish: genome_data must be an object")
+            return None
+        rng = getattr(target_world, "rng", None)
+        genome = Genome.from_dict(genome_data, rng=rng, use_algorithm=True)
 
         # Create movement strategy (AlgorithmicMovement uses genome from fish directly)
         movement = AlgorithmicMovement()
@@ -358,14 +501,15 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             parent_id=data.get("parent_id"),
             skip_birth_recording=True,  # Prevent phantom "soup_spawn" stats
         )
-        fish._lifecycle_component.age = data["age"]
-        fish._lifecycle_component.max_age = data["max_age"]
+        fish._lifecycle_component.age = data.get("age", 0)
+        if "max_age" in data:
+            fish._lifecycle_component.max_age = data["max_age"]
         fish._lifecycle_component.update_life_stage()  # Update life stage based on restored age
         # max_energy is computed from size, so we don't restore it directly
         # Old saves may have max_energy, but it's ignored
-        fish.vel.x = data["vel_x"]
-        fish.vel.y = data["vel_y"]
-        fish.reproduction_cooldown = data["reproduction_cooldown"]
+        fish.vel.x = data.get("vel_x", 0.0)
+        fish.vel.y = data.get("vel_y", 0.0)
+        fish.reproduction_cooldown = data.get("reproduction_cooldown", 0)
 
         # Restore memory (if applicable)
         if hasattr(fish, "memory") and "memory" in data:
@@ -384,6 +528,13 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
     try:
         from core.entities.fractal_plant import FractalPlant
         from core.plant_genetics import PlantGenome
+
+        if not _require_keys(
+            data,
+            ["genome_data", "x", "y", "energy", "age"],
+            entity_type="fractal_plant",
+        ):
+            return None
 
         # Get root spot manager
         root_spot_manager = getattr(target_world.engine, 'root_spot_manager', None)
@@ -422,6 +573,9 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
 
         # Recreate genome
         genome_data = data["genome_data"]
+        if not isinstance(genome_data, dict):
+            logger.error("Cannot deserialize plant: genome_data must be an object")
+            return None
         genome = PlantGenome(
             axiom=genome_data.get("axiom", "F"),
             angle=genome_data.get("angle", 25.0),
@@ -463,8 +617,11 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
         root_spot.claim(plant)
 
         # Restore additional state
-        plant.age = data["age"]
-        plant.max_energy = data["max_energy"]
+        plant.age = data.get("age", 0)
+        if "max_energy" in data:
+            plant.max_energy = data["max_energy"]
+            if hasattr(plant, "_update_size"):
+                plant._update_size()
         # Note: energy is already set via initial_energy parameter
         # Restore poker and nectar state
         if "poker_cooldown" in data:

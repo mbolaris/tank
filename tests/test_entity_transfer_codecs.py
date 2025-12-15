@@ -19,11 +19,18 @@ def _make_world(seed: int) -> TankWorld:
 def test_fish_transfer_round_trip() -> None:
     source = _make_world(seed=1)
     fish = next(e for e in source.entities_list if isinstance(e, Fish))
+    fish.genome.physical.size_modifier.mutation_rate = 1.7
+    fish.genome.behavioral.aggression.hgt_probability = 0.42
 
     data = serialize_entity_for_transfer(fish)
     assert data is not None
     assert data["type"] == "fish"
     assert "genome_data" in data
+    assert "mate_preferences" in data["genome_data"]
+    assert "lifespan_modifier" in data["genome_data"]
+    assert "asexual_reproduction_chance" in data["genome_data"]
+    assert data["genome_data"]["trait_meta"]["size_modifier"]["mutation_rate"] == pytest.approx(1.7)
+    assert data["genome_data"]["trait_meta"]["aggression"]["hgt_probability"] == pytest.approx(0.42)
 
     dest = _make_world(seed=2)
     restored = deserialize_entity(data, dest)
@@ -31,6 +38,10 @@ def test_fish_transfer_round_trip() -> None:
     assert restored.species == data["species"]
     assert restored.energy == pytest.approx(data["energy"])
     assert restored.generation == data["generation"]
+    assert restored.genome.mate_preferences == data["genome_data"]["mate_preferences"]
+    assert restored.genome.lifespan_modifier == pytest.approx(data["genome_data"]["lifespan_modifier"])
+    assert restored.genome.physical.size_modifier.mutation_rate == pytest.approx(1.7)
+    assert restored.genome.behavioral.aggression.hgt_probability == pytest.approx(0.42)
 
 
 def test_unknown_entity_type_returns_none() -> None:
@@ -70,4 +81,3 @@ def test_fractal_plant_transfer_round_trip() -> None:
     assert isinstance(restored, FractalPlant)
     assert restored.energy == pytest.approx(data["energy"])
     assert restored.genome.fractal_type == data["genome_data"].get("fractal_type")
-

@@ -7,7 +7,7 @@ Schema Versioning:
     - Version 1.0: Original schema with genome.max_energy
     - Version 2.0: Removed genome.max_energy (now computed from size)
                    Fish max_energy is dynamically computed from fish.size
-                   
+
 Backwards Compatibility:
     - All genome fields use .get() with sensible defaults
     - Old saves with max_energy are loaded successfully (max_energy ignored)
@@ -119,7 +119,7 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
 
     Returns:
         Snapshot data dictionary, or None if load failed
-        
+
     Note:
         This function handles schema migrations automatically:
         - v1.0 snapshots: genome.max_energy will be ignored on load
@@ -166,6 +166,15 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         from backend.entity_transfer import deserialize_entity
         from core.entities import Food, PlantNectar
 
+        def _infer_entity_type(entity_data: Dict[str, Any]) -> Optional[str]:
+            # Regression-safe inference for snapshots created during a brief window where
+            # entity dicts were missing their `type` field.
+            if "species" in entity_data and "genome_data" in entity_data:
+                return "fish"
+            if "root_spot_id" in entity_data and "genome_data" in entity_data:
+                return "fractal_plant"
+            return None
+
         # Clear existing entities
         target_world.engine.entities_list.clear()
         if target_world.engine.environment:
@@ -186,7 +195,9 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
 
         # Pass 1: Restore non-nectar entities
         for entity_data in snapshot["entities"]:
-            entity_type = entity_data.get("type")
+            entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
+            if entity_type and "type" not in entity_data:
+                entity_data["type"] = entity_type
 
             if entity_type == "plant_nectar":
                 nectar_data_list.append(entity_data)
