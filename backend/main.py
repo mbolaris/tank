@@ -720,6 +720,25 @@ async def get_evaluation_history():
     return simulation.get_full_evaluation_history()
 
 
+@app.get("/api/evolution-benchmark")
+async def get_evolution_benchmark():
+    """Get evolution benchmark tracking data.
+
+    Returns longitudinal tracking data for poker skill evolution including:
+    - history: List of benchmark snapshots over time
+    - improvement: Metrics showing skill progression
+    - latest: Most recent benchmark snapshot
+
+    This measures pure poker playing strength vs baseline opponents,
+    independent of ecosystem dynamics.
+    """
+    if not simulation:
+        return JSONResponse(
+            {"status": "not_available", "history": [], "improvement": {}, "latest": None}
+        )
+    return JSONResponse(simulation.get_evolution_benchmark_data())
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for the default tank (backwards compatible)."""
