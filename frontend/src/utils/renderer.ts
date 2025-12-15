@@ -757,8 +757,7 @@ export class Renderer {
         // Flip based on velocity direction with stability for low speeds
         const flipHorizontal = this.getStableFacingLeft(fish.id, vel_x);
 
-        // Draw soft shadow
-        this.drawShadow(x + scaledSize / 2, y + scaledSize, scaledSize * 0.8, scaledSize * 0.3);
+        // Shadow removed - now on plants instead
 
         // Draw glow effect based on energy
         const energy = fish.energy !== undefined ? fish.energy : 100;
@@ -853,6 +852,10 @@ export class Renderer {
         ctx.globalAlpha = opacity;
         ctx.strokeStyle = color;
         ctx.fillStyle = color;
+
+        // Clip to fish body shape to prevent pattern overflow
+        const fishPath = new Path2D(getFishPath(params, baseSize));
+        ctx.clip(fishPath);
 
         switch (params.pattern_type) {
             case 0: // Stripes
@@ -1099,6 +1102,9 @@ export class Renderer {
         // Position setup
         const centerX = x + scaledWidth / 2 + swayOffset;
         const centerY = restingY;
+
+        // Draw shadow for plant (using base position without sway)
+        this.drawShadow(x + scaledWidth / 2, restingY + 5, scaledWidth * 0.6, scaledHeight * 0.2);
 
         // Draw shadow for depth
         ctx.globalAlpha = 0.3;
@@ -1439,6 +1445,9 @@ export class Renderer {
         // Position plant at its root spot (base is at y + height)
         // The backend now ensures y = root_y - height, so y + height = root_y
         const baseY = y + height;
+
+        // Draw shadow for fractal plant
+        this.drawShadow(x + width / 2, baseY + 5, width * 0.8, height * 0.15);
 
         // Render using the fractal plant utility
         renderFractalPlantUtil(
