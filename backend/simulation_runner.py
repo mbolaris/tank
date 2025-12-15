@@ -100,6 +100,17 @@ class SimulationRunner:
         self.last_auto_eval_time = 0.0          # Kept for compatibility if needed
         self.auto_eval_lock = self.auto_eval_service.lock  # Alias lock if needed, or just rely on service
 
+        # Evolution benchmark tracker for longitudinal skill measurement
+        from core.poker.evaluation.evolution_benchmark_tracker import (
+            EvolutionBenchmarkTracker,
+        )
+        from pathlib import Path
+        self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
+            eval_interval_frames=15_000,  # ~8 minutes at 30fps
+            export_path=Path("data") / "poker_evolution_benchmark.json",
+            use_quick_benchmark=True,  # Use quick benchmark for performance
+        )
+
         # Migration support
         self.tank_id = tank_id
         self.tank_name = tank_name
@@ -313,6 +324,45 @@ class SimulationRunner:
                  if not self.auto_eval_service.running and self.auto_eval_running:
                      self._invalidate_state_cache()
                  self.auto_eval_running = self.auto_eval_service.running
+
+        # Run evolution benchmark tracker (runs in background thread when due)
+        self._run_evolution_benchmark_if_needed()
+
+    def _run_evolution_benchmark_if_needed(self) -> None:
+        """Run evolution benchmark if interval has passed.
+
+        The benchmark runs in a background thread to avoid blocking the main loop.
+        Results are used to track poker skill evolution over generations.
+        """
+        if not hasattr(self, "evolution_benchmark_tracker"):
+            return
+
+        tracker = self.evolution_benchmark_tracker
+        current_frame = self.world.frame_count
+
+        if tracker.should_run(current_frame):
+            # Run benchmark in background thread to avoid blocking
+            import threading
+
+            def run_benchmark():
+                try:
+                    fish_list = [
+                        e for e in self.world.entities_list
+                        if isinstance(e, Fish)
+                    ]
+                    tracker.run_and_record(
+                        fish_population=fish_list,
+                        current_frame=current_frame,
+                    )
+                except Exception as e:
+                    logger.error(f"Evolution benchmark failed: {e}", exc_info=True)
+
+            thread = threading.Thread(
+                target=run_benchmark,
+                name="evolution_benchmark_thread",
+                daemon=True,
+            )
+            thread.start()
 
     # Original _run_auto_evaluation and _reward_auto_eval_winners are removed
     # as they are now handled by the AutoEvalService.
@@ -695,6 +745,18 @@ class SimulationRunner:
         if hasattr(self, "auto_eval_service"):
              return self.auto_eval_service.get_history()
         return []
+
+    def get_evolution_benchmark_data(self) -> Dict[str, Any]:
+        """Return the evolution benchmark tracking data.
+
+        Returns:
+            Dictionary with benchmark history, improvement metrics, and latest snapshot.
+            Returns empty dict with status if tracker not available.
+        """
+        if not hasattr(self, "evolution_benchmark_tracker"):
+            return {"status": "not_available", "history": [], "improvement": {}, "latest": None}
+
+        return self.evolution_benchmark_tracker.get_api_data()
 
     def _collect_auto_eval(self) -> Optional[AutoEvaluateStatsPayload]:
         if not hasattr(self, "auto_eval_service"):

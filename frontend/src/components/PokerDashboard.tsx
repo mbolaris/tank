@@ -3,6 +3,7 @@ import type { SimulationUpdate } from '../types/simulation';
 import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
+import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import './PokerDashboard.css';
 
 interface PokerDashboardProps {
@@ -71,6 +72,14 @@ export const PokerDashboard: React.FC<PokerDashboardProps> = ({ state }) => {
                     <AutoEvaluateDisplay stats={auto_evaluation} loading={false} />
                 </div>
             )}
+
+            {/* Scientific Benchmark Section - bb/100 tracking over generations */}
+            <div className="section-container">
+                <div className="section-title">
+                    <span>🎯</span> Poker Skill Benchmark (bb/100)
+                </div>
+                <EvolutionBenchmarkDisplay />
+            </div>
 
             {/* Detailed Split View */}
             <div className="dashboard-content">
