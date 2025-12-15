@@ -125,27 +125,33 @@ def create_standard_strategy(strategy_id: str) -> PokerStrategyAlgorithm:
 
     Args:
         strategy_id: One of: balanced, tight_aggressive, loose_aggressive,
-                     tight_passive, loose_passive, maniac
+                     tight_passive, loose_passive, maniac, always_fold, random
 
     Returns:
         PokerStrategyAlgorithm instance
     """
     from core.poker.strategy.implementations import (
+        AlwaysFoldStrategy,
         BalancedStrategy,
         LooseAggressiveStrategy,
         LoosePassiveStrategy,
         ManiacStrategy,
+        RandomStrategy,
         TightAggressiveStrategy,
         TightPassiveStrategy,
     )
 
     strategy_map = {
+        # Standard benchmark opponents
         "balanced": BalancedStrategy,
         "tight_aggressive": TightAggressiveStrategy,
         "loose_aggressive": LooseAggressiveStrategy,
         "tight_passive": TightPassiveStrategy,
         "loose_passive": LoosePassiveStrategy,
         "maniac": ManiacStrategy,
+        # Weak baselines for skill floor measurement
+        "always_fold": AlwaysFoldStrategy,
+        "random": RandomStrategy,
     }
 
     strategy_cls = strategy_map.get(strategy_id)

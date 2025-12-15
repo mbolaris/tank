@@ -255,6 +255,10 @@ function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isW
     const netColor = player.net_energy >= 0 ? '#22c55e' : '#ef4444';
     const genLabel = player.fish_generation !== undefined ? `Gen ${player.fish_generation}` : '';
 
+    // bb/100 is the standard poker metric - big blinds won per 100 hands
+    const bbPer100 = player.bb_per_100 ?? 0;
+    const bbColor = bbPer100 > 5 ? '#22c55e' : bbPer100 > 0 ? '#84cc16' : bbPer100 > -5 ? '#eab308' : '#ef4444';
+
     return (
         <div style={{
             ...styles.playerRow,
@@ -266,18 +270,20 @@ function PlayerRow({ player, isWinning }: { player: AutoEvaluatePlayerStats; isW
                 {genLabel && <span style={styles.genLabel}>{genLabel}</span>}
             </div>
             <div style={styles.playerStat}>
+                <span style={styles.statLabel}>bb/100</span>
+                <span style={{ ...styles.statValue, color: bbColor, fontWeight: 700 }}>
+                    {bbPer100 >= 0 ? '+' : ''}{bbPer100.toFixed(1)}
+                </span>
+            </div>
+            <div style={styles.playerStat}>
                 <span style={styles.statLabel}>Win Rate</span>
                 <span style={styles.statValue}>{Math.round(player.win_rate ?? 0)}%</span>
             </div>
             <div style={styles.playerStat}>
                 <span style={styles.statLabel}>Profit</span>
-                <span style={{ ...styles.statValue, color: netColor, fontWeight: 700 }}>
+                <span style={{ ...styles.statValue, color: netColor }}>
                     {player.net_energy >= 0 ? '+' : ''}{Math.round(player.net_energy)}
                 </span>
-            </div>
-            <div style={styles.playerStat}>
-                <span style={styles.statLabel}>Stack</span>
-                <span style={styles.statValue}>{Math.round(player.energy)}</span>
             </div>
         </div>
     );
