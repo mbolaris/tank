@@ -30,6 +30,7 @@ from core.constants import (
     FRACTAL_PLANT_MIN_POKER_ENERGY,
     FRACTAL_PLANT_MIN_SIZE,
     FRACTAL_PLANT_NECTAR_COOLDOWN,
+    FRACTAL_PLANT_NECTAR_ENERGY,
 )
 
 logger = logging.getLogger(__name__)
@@ -291,9 +292,15 @@ class FractalPlant(Agent):
         if self.nectar_cooldown > 0:
             return None
 
+        # Nectar should be an energy transfer from the plant, not free energy.
+        # If a plant can't afford the full cost, skip production.
+        if self.energy < FRACTAL_PLANT_NECTAR_ENERGY:
+            return None
+
         # Produce nectar
         self.nectar_cooldown = FRACTAL_PLANT_NECTAR_COOLDOWN
         self.nectar_produced += 1
+        self.lose_energy(FRACTAL_PLANT_NECTAR_ENERGY, source="nectar")
 
         # Nectar spawns in the upper portion of the plant visual
         # The visual plant only fills about 50-70% of the bounding box height
@@ -559,7 +566,7 @@ class PlantNectar(Food):
         energy: Energy value when consumed
     """
 
-    NECTAR_ENERGY = 50.0
+    NECTAR_ENERGY = FRACTAL_PLANT_NECTAR_ENERGY
     NECTAR_SIZE = 15
 
     def __init__(
