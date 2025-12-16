@@ -545,15 +545,16 @@ class BaseSimulator(ABC):
             if len(ready_players) < 2:
                 continue
 
-            # IMPORTANT: Require at least 1 fish in the game
+            # Limit to max players FIRST, before checking fish count
+            # This prevents truncation from removing all fish after the check passed
+            if len(ready_players) > POKER_MAX_PLAYERS:
+                ready_players = ready_players[:POKER_MAX_PLAYERS]
+
+            # IMPORTANT: Require at least 1 fish in the game (after truncation)
             # Plant-only poker games are not allowed
             fish_in_group = [p for p in ready_players if isinstance(p, Fish) or hasattr(p, "fish_id")]
             if len(fish_in_group) < 1:
                 continue
-
-            # Limit to max players
-            if len(ready_players) > POKER_MAX_PLAYERS:
-                ready_players = ready_players[:POKER_MAX_PLAYERS]
 
             # Play mixed poker game
             try:
