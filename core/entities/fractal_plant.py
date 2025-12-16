@@ -455,7 +455,13 @@ class FractalPlant(Agent):
     def die(self) -> None:
         """Handle plant death - release root spot."""
         if self.root_spot is not None:
-            self.root_spot.release()
+            # Only release if we actually own the spot; protects against
+            # duplicate plants under concurrency/migration races.
+            release_if_occupant = getattr(self.root_spot, "release_if_occupant", None)
+            if callable(release_if_occupant):
+                release_if_occupant(self)
+            else:
+                self.root_spot.release()
 
     def notify_food_eaten(self) -> None:
         """Notify plant that one of its food items was eaten.

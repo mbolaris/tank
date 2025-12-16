@@ -26,6 +26,7 @@ from core.constants import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
     FILES,
+    FRACTAL_PLANT_CULL_INTERVAL,
     FRACTAL_PLANT_INITIAL_COUNT,
     FRACTAL_PLANT_MATURE_ENERGY,
     FRACTAL_PLANTS_ENABLED,
@@ -240,6 +241,7 @@ class SimulationEngine(BaseSimulator):
         # Phase tracking for debugging and monitoring
         self._current_phase: Optional[UpdatePhase] = None
         self._phase_debug_enabled: bool = False
+        self._last_fractal_plant_reconcile_frame: int = -1
 
 
     def setup(self) -> None:
@@ -524,6 +526,34 @@ class SimulationEngine(BaseSimulator):
         factory = variant_factories.get(variant, PlantGenome.create_random)
         return factory(rng=self.rng)
 
+    def _reconcile_fractal_plants_with_root_spots(self) -> None:
+        """Remove any FractalPlant not recorded as its RootSpot occupant.
+
+        Only one plant can own a RootSpot. Under concurrent migrations and
+        sprouting, historical code paths could create duplicate plants that
+        pointed at the same spot without successfully claiming it.
+        """
+        if self.root_spot_manager is None:
+            return
+
+        plants_to_remove: List[FractalPlant] = []
+        for entity in self.entities_list:
+            if not isinstance(entity, FractalPlant):
+                continue
+            spot = getattr(entity, "root_spot", None)
+            if spot is None:
+                plants_to_remove.append(entity)
+                continue
+            if getattr(spot, "occupant", None) is entity:
+                # Repair stale occupied flag if needed.
+                if not getattr(spot, "occupied", False):
+                    spot.occupied = True
+                continue
+            plants_to_remove.append(entity)
+
+        for plant in plants_to_remove:
+            self.remove_entity(plant)
+
     def create_initial_fractal_plants(self) -> None:
         """Create initial fractal plants at random root spots."""
         if self.root_spot_manager is None or self.environment is None:
@@ -552,7 +582,8 @@ class SimulationEngine(BaseSimulator):
             )
 
             # Claim the root spot
-            spot.claim(plant)
+            if not spot.claim(plant):
+                continue
 
             # Add to simulation
             self.add_entity(plant)
@@ -598,7 +629,8 @@ class SimulationEngine(BaseSimulator):
         )
 
         # Claim the root spot
-        spot.claim(plant)
+        if not spot.claim(plant):
+            return False
 
         # Add to simulation
         self.add_entity(plant)
@@ -705,6 +737,18 @@ class SimulationEngine(BaseSimulator):
 
         # Update lifecycle system first to reset per-frame counters
         self.lifecycle_system.update(self.frame_count)
+
+        # Enforce the invariant: at most one FractalPlant per RootSpot.
+        # This is a defensive guard against concurrent migrations/sprouting.
+        if (
+            FRACTAL_PLANTS_ENABLED
+            and self.root_spot_manager is not None
+            and FRACTAL_PLANT_CULL_INTERVAL > 0
+            and self.frame_count - self._last_fractal_plant_reconcile_frame
+            >= FRACTAL_PLANT_CULL_INTERVAL
+        ):
+            self._reconcile_fractal_plants_with_root_spots()
+            self._last_fractal_plant_reconcile_frame = self.frame_count
 
         # ===== PHASE: TIME_UPDATE =====
         self._current_phase = UpdatePhase.TIME_UPDATE

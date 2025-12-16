@@ -613,8 +613,10 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             screen_height=getattr(target_world.engine, 'screen_height', 600),
         )
 
-        # Claim the spot for this plant
-        root_spot.claim(plant)
+        # Claim the spot for this plant (may race with concurrent sprouting/migration).
+        if not root_spot.claim(plant):
+            logger.warning("Cannot deserialize plant: failed to claim root spot (spot_id=%s)", getattr(root_spot, "spot_id", None))
+            return None
 
         # Restore additional state
         plant.age = data.get("age", 0)

@@ -78,15 +78,46 @@ class BackendMigrationHandler:
             logger.warning(f"Source tank {source_tank_id} not found")
             return False
 
+        # Lock destination tank state while we deserialize/add to prevent races with its update loop.
+        # Avoid deadlocks by using a short timeout; if destination is busy, migration simply fails
+        # and the entity stays in the source tank.
+        dest_lock = getattr(getattr(dest_manager, "_runner", None), "lock", None)
+        dest_lock_acquired = False
+        if dest_lock is not None:
+            try:
+                dest_lock_acquired = dest_lock.acquire(timeout=0.02)
+            except TypeError:
+                dest_lock_acquired = dest_lock.acquire(False)
+            if not dest_lock_acquired:
+                return False
+
+        # Best-effort lock for source if we aren't already inside its update loop.
+        source_lock = getattr(getattr(source_manager, "_runner", None), "lock", None)
+        source_lock_acquired = False
+        if source_lock is not None:
+            try:
+                source_lock_acquired = source_lock.acquire(False)
+            except TypeError:
+                source_lock_acquired = False
+
         # Perform the migration
         removed_from_source = False
         added_to_destination = False
         new_entity = None
+        original_root_spot = None
         try:
             # Track energy leaving the source tank (for fish only)
             from core.entities.fish import Fish
+            from core.entities.fractal_plant import FractalPlant
             if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
+
+            if isinstance(entity, FractalPlant):
+                # If destination has no available root spots, fail fast to avoid churn.
+                dest_root_spot_manager = getattr(dest_manager.world.engine, "root_spot_manager", None)
+                if dest_root_spot_manager is None or dest_root_spot_manager.get_empty_count() <= 0:
+                    return False
+                original_root_spot = getattr(entity, "root_spot", None)
 
             # Serialize the entity (pass direction for plants to select appropriate edge spot)
             outcome = try_serialize_entity_for_transfer(entity, migration_direction=direction)
@@ -110,6 +141,11 @@ class BackendMigrationHandler:
             new_entity_outcome = try_deserialize_entity(entity_data, dest_manager.world)
             if not new_entity_outcome.ok:
                 # Failed - restore the original entity to the source tank.
+                if original_root_spot is not None:
+                    try:
+                        original_root_spot.claim(entity)
+                    except Exception:
+                        logger.debug("Failed to re-claim root spot after migration failure", exc_info=True)
                 source_manager.world.engine.add_entity(entity)
                 log_transfer(
                     entity_type=type(entity).__name__.lower(),
@@ -187,6 +223,15 @@ class BackendMigrationHandler:
             logger.error(f"Migration failed: {e}", exc_info=True)
             if removed_from_source and not added_to_destination:
                 try:
+                    if original_root_spot is not None:
+                        try:
+                            original_root_spot.claim(entity)
+                        except Exception:
+                            logger.debug(
+                                "Failed to re-claim root spot after migration error (tank=%s)",
+                                source_tank_id[:8],
+                                exc_info=True,
+                            )
                     source_manager.world.engine.add_entity(entity)
                 except Exception:
                     logger.debug(
@@ -211,3 +256,14 @@ class BackendMigrationHandler:
             except Exception:
                 logger.debug("Failed to log failed migration", exc_info=True)
             return False
+        finally:
+            if source_lock is not None and source_lock_acquired:
+                try:
+                    source_lock.release()
+                except Exception:
+                    pass
+            if dest_lock is not None and dest_lock_acquired:
+                try:
+                    dest_lock.release()
+                except Exception:
+                    pass

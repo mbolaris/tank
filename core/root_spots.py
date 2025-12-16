@@ -53,7 +53,7 @@ class RootSpot:
         Returns:
             True if successfully claimed, False if already occupied
         """
-        if self.occupied:
+        if self.blocked or self.occupied:
             return False
         self.occupied = True
         self.occupant = plant
@@ -63,6 +63,20 @@ class RootSpot:
         """Release this spot when a plant dies."""
         self.occupied = False
         self.occupant = None
+
+    def release_if_occupant(self, plant: "FractalPlant") -> bool:
+        """Release this spot if *plant* is the recorded occupant.
+
+        This protects spot state under concurrency or historical bugs where
+        multiple plants could reference the same spot.
+
+        Returns:
+            True if the spot was released, False otherwise.
+        """
+        if self.occupant is not plant:
+            return False
+        self.release()
+        return True
 
 
 class RootSpotManager:

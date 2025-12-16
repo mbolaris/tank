@@ -16,6 +16,10 @@ FRACTAL_PLANT_ROOT_SPOT_COUNT = 25  # Number of positions where plants can grow
 FRACTAL_PLANT_ROOT_Y_BASE = SCREEN_HEIGHT - 15  # Y position near tank bottom
 FRACTAL_PLANT_ROOT_Y_VARIANCE = 8  # Slight Y variation for natural look
 
+# Maintenance / safety
+# Periodically reconcile plants vs root spots to enforce "<= 1 plant per spot".
+FRACTAL_PLANT_CULL_INTERVAL = 120
+
 # Plant Energy System
 FRACTAL_PLANT_INITIAL_ENERGY = 20.0  # Starting energy for new sprouted plants
 FRACTAL_PLANT_MATURE_ENERGY = 120.0  # Starting energy for initial mature plants (100% of max)
