@@ -261,12 +261,21 @@ class MixedPokerInteraction:
 
         Args:
             players: List of Fish and/or FractalPlant objects (2-6 players)
+
+        Raises:
+            ValueError: If fewer than 2 players, more than max players,
+                       or no fish players are present.
         """
         if len(players) < 2:
             raise ValueError("Poker requires at least 2 players")
 
         if len(players) > POKER_MAX_PLAYERS:
             raise ValueError(f"Poker limited to {POKER_MAX_PLAYERS} players max")
+
+        # Check that at least one fish is present
+        fish_count = sum(1 for p in players if self._is_fish_player(p))
+        if fish_count == 0:
+            raise ValueError("MixedPokerInteraction: require at least 1 fish")
 
         self.players = players
         self.num_players = len(players)
