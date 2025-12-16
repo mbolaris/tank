@@ -31,6 +31,13 @@ from core.poker.evaluation.benchmark_suite import (
     BaselineDifficulty,
     ComprehensiveBenchmarkConfig,
 )
+from core.poker.evaluation.elo_rating import (
+    EloRating,
+    PopulationEloStats,
+    compute_elo_from_benchmarks,
+    compute_population_elo_stats,
+    rating_to_skill_tier,
+)
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -58,6 +65,15 @@ class FishBenchmarkResult:
     avg_bb_per_100_vs_strong: float = 0.0  # vs balanced, maniac
     overall_bb_per_100: float = 0.0
     weighted_bb_per_100: float = 0.0  # Weighted by baseline difficulty
+
+    # Elo rating (more stable than raw bb/100)
+    elo_rating: Optional[EloRating] = None
+    elo_skill_tier: str = "unknown"
+
+    # Confidence-based assessments
+    confidence_vs_weak: float = 0.0  # Probability of beating weak opponents
+    confidence_vs_moderate: float = 0.0  # Probability of beating moderate opponents
+    confidence_vs_strong: float = 0.0  # Probability of beating strong opponents
 
     # Fish-vs-fish results (if available)
     bb_per_100_vs_fish: Optional[float] = None
@@ -111,12 +127,55 @@ class FishBenchmarkResult:
         if weight_total > 0:
             self.weighted_bb_per_100 = weighted_sum / weight_total
 
+        # Compute Elo rating from benchmark results
+        benchmark_results = {bid: r.bb_per_100 for bid, r in self.vs_baselines.items()}
+        hands_per_benchmark = {bid: r.hands_played for bid, r in self.vs_baselines.items()}
+        self.elo_rating = compute_elo_from_benchmarks(benchmark_results, hands_per_benchmark)
+        self.elo_skill_tier = rating_to_skill_tier(self.elo_rating.rating)
+
+        # Compute confidence-based assessments using CI
+        self.confidence_vs_weak = self._compute_win_confidence(weak_ids)
+        self.confidence_vs_moderate = self._compute_win_confidence(moderate_ids)
+        self.confidence_vs_strong = self._compute_win_confidence(strong_ids)
+
+    def _compute_win_confidence(self, baseline_ids: List[str]) -> float:
+        """Compute probability of winning against a tier based on CI.
+
+        Uses the confidence interval to estimate probability that true skill
+        is positive (winning) against this tier.
+        """
+        results = [
+            self.vs_baselines[bid]
+            for bid in baseline_ids
+            if bid in self.vs_baselines
+        ]
+        if not results:
+            return 0.5  # No data = uncertain
+
+        # Average bb/100 and CI width
+        avg_bb = sum(r.bb_per_100 for r in results) / len(results)
+        avg_ci_width = sum(
+            (r.bb_per_100_ci_95[1] - r.bb_per_100_ci_95[0]) / 2 for r in results
+        ) / len(results)
+
+        if avg_ci_width <= 0:
+            return 1.0 if avg_bb > 0 else 0.0
+
+        # Approximate probability that true skill > 0
+        # Using normal approximation: P(X > 0) = Φ(avg / std)
+        import math
+        z = avg_bb / max(avg_ci_width / 1.96, 0.1)  # CI/1.96 ≈ std
+        # Sigmoid approximation of normal CDF
+        confidence = 1.0 / (1.0 + math.exp(-z * 0.7))
+        return round(confidence, 3)
+
     def skill_rating(self) -> str:
-        """Categorize skill level based on performance against baselines."""
-        # Must beat trivial opponents significantly
+        """Categorize skill level based on Elo rating (more stable than raw bb/100)."""
+        if self.elo_rating is not None:
+            return self.elo_skill_tier
+        # Fallback to bb/100-based rating
         if self.avg_bb_per_100_vs_trivial < 10:
             return "failing"
-        # Check performance against each tier
         if self.avg_bb_per_100_vs_strong > 5:
             return "expert"
         if self.avg_bb_per_100_vs_strong > 0:
@@ -150,6 +209,17 @@ class PopulationBenchmarkResult:
     # Per-baseline population averages
     pop_vs_baseline: Dict[str, float] = field(default_factory=dict)
 
+    # Elo rating statistics (more stable than raw bb/100)
+    pop_elo_stats: Optional[PopulationEloStats] = None
+    pop_mean_elo: float = 1200.0
+    pop_median_elo: float = 1200.0
+    elo_tier_distribution: Dict[str, int] = field(default_factory=dict)
+
+    # Confidence-based skill assessments (population average)
+    pop_confidence_vs_weak: float = 0.5
+    pop_confidence_vs_moderate: float = 0.5
+    pop_confidence_vs_strong: float = 0.5
+
     # Strategy-type breakdown
     strategy_avg_bb_per_100: Dict[str, float] = field(default_factory=dict)
     strategy_weighted_bb: Dict[str, float] = field(default_factory=dict)
@@ -159,6 +229,7 @@ class PopulationBenchmarkResult:
     best_fish_id: Optional[int] = None
     best_bb_per_100: float = 0.0
     best_weighted_bb: float = 0.0
+    best_elo: float = 1200.0
     best_strategy: str = ""
 
     # Individual results (for detailed analysis)
@@ -174,13 +245,20 @@ class PopulationBenchmarkResult:
             "fish_evaluated": self.fish_evaluated,
             "pop_bb_per_100": round(self.pop_avg_bb_per_100, 2),
             "pop_weighted_bb": round(self.pop_weighted_bb_per_100, 2),
+            "pop_mean_elo": round(self.pop_mean_elo, 1),
+            "pop_median_elo": round(self.pop_median_elo, 1),
             "vs_trivial": round(self.pop_bb_vs_trivial, 2),
             "vs_weak": round(self.pop_bb_vs_weak, 2),
             "vs_moderate": round(self.pop_bb_vs_moderate, 2),
             "vs_strong": round(self.pop_bb_vs_strong, 2),
+            "conf_vs_weak": round(self.pop_confidence_vs_weak, 2),
+            "conf_vs_moderate": round(self.pop_confidence_vs_moderate, 2),
+            "conf_vs_strong": round(self.pop_confidence_vs_strong, 2),
             "best_fish_id": self.best_fish_id,
             "best_bb": round(self.best_bb_per_100, 2),
+            "best_elo": round(self.best_elo, 1),
             "best_strategy": self.best_strategy,
+            "elo_tier_distribution": self.elo_tier_distribution,
             "dominant_strategy": max(self.strategy_count.items(), key=lambda x: x[1])[0]
             if self.strategy_count
             else "unknown",
@@ -279,7 +357,7 @@ def run_comprehensive_benchmark(
     if config is None:
         config = ComprehensiveBenchmarkConfig()
 
-    # Select fish to evaluate
+    # Select fish to evaluate using stratified sampling for better representation
     def get_poker_winnings(f: "Fish") -> float:
         if hasattr(f, "components") and hasattr(f.components, "poker_stats"):
             ps = f.components.poker_stats
@@ -288,16 +366,62 @@ def run_comprehensive_benchmark(
         return 0
 
     sorted_fish = sorted(fish_population, key=get_poker_winnings, reverse=True)
+    total_fish = len(sorted_fish)
 
-    # Top N by winnings
-    top_fish = sorted_fish[: config.top_n_fish]
+    # Stratified sampling: divide population into tiers and sample from each
+    # This ensures we get a representative view of the entire population
+    # instead of just top performers
+    selected_fish: List["Fish"] = []
 
-    # Add random sample from rest of population for diversity
-    remaining = sorted_fish[config.top_n_fish :]
-    if remaining and config.random_sample_fish > 0:
-        sample_size = min(config.random_sample_fish, len(remaining))
-        random_sample = rng_module.sample(remaining, sample_size)
-        top_fish.extend(random_sample)
+    if total_fish <= config.top_n_fish + config.random_sample_fish:
+        # Small population - evaluate all
+        selected_fish = sorted_fish
+    else:
+        total_to_select = config.top_n_fish + config.random_sample_fish
+
+        # Stratified selection:
+        # - 40% from top tier (by winnings)
+        # - 30% from middle tier
+        # - 20% from bottom tier
+        # - 10% random from any tier
+        top_count = max(1, int(total_to_select * 0.4))
+        mid_count = max(1, int(total_to_select * 0.3))
+        bottom_count = max(1, int(total_to_select * 0.2))
+        random_count = total_to_select - top_count - mid_count - bottom_count
+
+        # Divide population into thirds
+        tier_size = total_fish // 3
+        top_tier = sorted_fish[:tier_size]
+        mid_tier = sorted_fish[tier_size : 2 * tier_size]
+        bottom_tier = sorted_fish[2 * tier_size :]
+
+        # Sample from each tier
+        if len(top_tier) >= top_count:
+            selected_fish.extend(top_tier[:top_count])
+        else:
+            selected_fish.extend(top_tier)
+
+        if len(mid_tier) >= mid_count:
+            mid_sample = rng_module.sample(mid_tier, mid_count)
+            selected_fish.extend(mid_sample)
+        elif mid_tier:
+            selected_fish.extend(mid_tier)
+
+        if len(bottom_tier) >= bottom_count:
+            bottom_sample = rng_module.sample(bottom_tier, bottom_count)
+            selected_fish.extend(bottom_sample)
+        elif bottom_tier:
+            selected_fish.extend(bottom_tier)
+
+        # Add random samples from any fish not yet selected
+        remaining = [f for f in sorted_fish if f not in selected_fish]
+        if remaining and random_count > 0:
+            random_sample = rng_module.sample(
+                remaining, min(random_count, len(remaining))
+            )
+            selected_fish.extend(random_sample)
+
+    top_fish = selected_fish
 
     result = PopulationBenchmarkResult(
         frame=frame,
@@ -400,15 +524,38 @@ def run_comprehensive_benchmark(
         result.best_bb_per_100 = best.overall_bb_per_100
         result.best_weighted_bb = best.weighted_bb_per_100
         result.best_strategy = best.strategy_id
+        result.best_elo = best.elo_rating.rating if best.elo_rating else 1200.0
 
         # Total hands
         result.total_hands = sum(r.total_hands for r in fish_results)
+
+        # Compute population Elo stats (more stable than raw bb/100)
+        fish_elo_ratings = {
+            r.fish_id: r.elo_rating
+            for r in fish_results
+            if r.elo_rating is not None
+        }
+        if fish_elo_ratings:
+            result.pop_elo_stats = compute_population_elo_stats(fish_elo_ratings)
+            result.pop_mean_elo = result.pop_elo_stats.mean_rating
+            result.pop_median_elo = result.pop_elo_stats.median_rating
+            result.elo_tier_distribution = result.pop_elo_stats.tier_distribution
+
+        # Compute population-level confidence metrics
+        all_conf_weak = [r.confidence_vs_weak for r in fish_results]
+        all_conf_moderate = [r.confidence_vs_moderate for r in fish_results]
+        all_conf_strong = [r.confidence_vs_strong for r in fish_results]
+        result.pop_confidence_vs_weak = sum(all_conf_weak) / len(all_conf_weak)
+        result.pop_confidence_vs_moderate = sum(all_conf_moderate) / len(all_conf_moderate)
+        result.pop_confidence_vs_strong = sum(all_conf_strong) / len(all_conf_strong)
 
     logger.info(
         f"Benchmark complete @ frame {frame}: "
         f"evaluated {len(fish_results)} fish, "
         f"pop_bb/100={result.pop_avg_bb_per_100:.1f}, "
+        f"pop_elo={result.pop_mean_elo:.0f}, "
         f"vs_strong={result.pop_bb_vs_strong:.1f}, "
+        f"conf_strong={result.pop_confidence_vs_strong:.0%}, "
         f"best={result.best_bb_per_100:.1f} ({result.best_strategy})"
     )
 
