@@ -104,6 +104,12 @@ class SimulationManager:
         # Track connected WebSocket clients
         self._connected_clients: Set[WebSocket] = set()
 
+        # Track whether we're waiting for first client connection.
+        # Simulations start paused and auto-unpause when first client connects.
+        # After that, the simulation keeps running even if all clients disconnect.
+        # Users can still manually pause/resume via API.
+        self._awaiting_first_client: bool = True
+
         logger.info(
             "SimulationManager initialized: tank_id=%s, name=%s, persistent=%s",
             self.tank_info.tank_id,
@@ -183,13 +189,16 @@ class SimulationManager:
             websocket: The WebSocket connection to track
         """
         self._prune_closed_clients()
-        was_empty = len(self._connected_clients) == 0
         self._connected_clients.add(websocket)
 
-        # Unpause when the first client connects so rendering stays in sync and
-        # we don't waste CPU simulating tanks nobody is viewing.
-        if self._runner.world.paused and (was_empty or len(self._connected_clients) == 1):
+        # Auto-unpause only when first client connects after startup.
+        # This ensures fish don't age before anyone sees them.
+        # After first client, simulation keeps running regardless of client count.
+        if self._awaiting_first_client and self._runner.world.paused:
             self._runner.world.paused = False
+            self._awaiting_first_client = False
+            logger.info("First client connected to tank %s, simulation unpaused", self.tank_id)
+
         logger.info(
             "Client added to tank %s. Total clients: %d",
             self.tank_id,
@@ -205,10 +214,8 @@ class SimulationManager:
         self._connected_clients.discard(websocket)
         self._prune_closed_clients()
 
-        # Pause when the last client disconnects to keep CPU available for the
-        # active tank (and keep the server responsive to Ctrl+C).
-        if len(self._connected_clients) == 0:
-            self._runner.world.paused = True
+        # Simulation keeps running even when all clients disconnect.
+        # Users can manually pause via API if needed.
         logger.info(
             "Client removed from tank %s. Total clients: %d",
             self.tank_id,

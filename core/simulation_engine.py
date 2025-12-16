@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from core.systems.base import BaseSystem
 
 from core import entities, environment, movement_strategy
+from core.cache_manager import CacheManager
 from core.algorithms import get_algorithm_index
 from core.collision_system import CollisionSystem
 from core.constants import (
@@ -208,10 +209,9 @@ class SimulationEngine(BaseSimulator):
         # Performance: Object pool for Food entities
         self.food_pool = FoodPool()
 
-        # Performance: Cached entity type lists to avoid repeated filtering
-        self._cached_fish_list: Optional[List[entities.Fish]] = None
-        self._cached_food_list: Optional[List[entities.Food]] = None
-        self._cache_dirty: bool = True
+        # Performance: Centralized cache management for entity type lists
+        self._cache_manager = CacheManager(lambda: self.entities_list)
+
         # Fractal plant system
         self.root_spot_manager: Optional[RootSpotManager] = None
 
@@ -626,7 +626,7 @@ class SimulationEngine(BaseSimulator):
         if self.root_spot_manager:
             self.root_spot_manager.block_spots_for_entity(entity, padding=10.0)
         # Invalidate cached lists
-        self._cache_dirty = True
+        self._cache_manager.invalidate_entity_caches("entity added")
 
     def remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation."""
@@ -642,7 +642,7 @@ class SimulationEngine(BaseSimulator):
             if isinstance(entity, entities.Food):
                 self.food_pool.release(entity)
             # Invalidate cached lists
-            self._cache_dirty = True
+            self._cache_manager.invalidate_entity_caches("entity removed")
 
     def get_fish_list(self) -> List[entities.Fish]:
         """Get cached list of all fish in the simulation.
@@ -650,9 +650,7 @@ class SimulationEngine(BaseSimulator):
         Returns:
             List of Fish entities, cached to avoid repeated filtering
         """
-        if self._cache_dirty or self._cached_fish_list is None:
-            self._cached_fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
-        return self._cached_fish_list
+        return self._cache_manager.get_fish()
 
     def get_food_list(self) -> List[entities.Food]:
         """Get cached list of all food in the simulation.
@@ -660,15 +658,11 @@ class SimulationEngine(BaseSimulator):
         Returns:
             List of Food entities, cached to avoid repeated filtering
         """
-        if self._cache_dirty or self._cached_food_list is None:
-            self._cached_food_list = [e for e in self.entities_list if isinstance(e, entities.Food)]
-        return self._cached_food_list
+        return self._cache_manager.get_food()
 
     def _rebuild_caches(self) -> None:
-        """Rebuild all cached entity lists."""
-        self._cached_fish_list = [e for e in self.entities_list if isinstance(e, entities.Fish)]
-        self._cached_food_list = [e for e in self.entities_list if isinstance(e, entities.Food)]
-        self._cache_dirty = False
+        """Rebuild all cached entity lists if needed."""
+        self._cache_manager.rebuild_if_needed()
 
     def check_collision(self, e1: entities.Agent, e2: entities.Agent) -> bool:
         """Delegate collision detection to the collision system."""
@@ -868,7 +862,7 @@ class SimulationEngine(BaseSimulator):
             self.benchmark_evaluator.maybe_run(self.frame_count, fish_list)
 
         # Rebuild caches at end of frame if dirty
-        if self._cache_dirty:
+        if self._cache_manager.is_dirty:
             self._rebuild_caches()
 
         # Clear phase tracking at end of frame

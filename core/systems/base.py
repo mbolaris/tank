@@ -8,13 +8,80 @@ Design Principles:
 - Systems are initialized with their dependencies (Dependency Injection)
 - Systems can be enabled/disabled without code changes
 - Systems report their state for debugging
+- Systems return results describing what they did (for debugging/metrics)
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Protocol, runtime_checkable
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+
+
+@dataclass
+class SystemResult:
+    """Result of a system update cycle.
+
+    Systems return this to describe what they did during an update.
+    This makes debugging easier and enables metrics collection.
+
+    Attributes:
+        entities_affected: Number of entities that were modified
+        entities_spawned: Number of new entities created
+        entities_removed: Number of entities removed/killed
+        events_emitted: Number of events emitted to event bus
+        skipped: Whether the update was skipped (system disabled)
+        details: System-specific details (e.g., {"collisions": 5, "food_eaten": 3})
+
+    Example:
+        def _do_update(self, frame: int) -> SystemResult:
+            collisions = self.check_collisions()
+            return SystemResult(
+                entities_affected=len(collisions),
+                details={"collision_count": len(collisions)}
+            )
+    """
+
+    entities_affected: int = 0
+    entities_spawned: int = 0
+    entities_removed: int = 0
+    events_emitted: int = 0
+    skipped: bool = False
+    details: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def skipped_result() -> "SystemResult":
+        """Create a result for when system update was skipped."""
+        return SystemResult(skipped=True)
+
+    @staticmethod
+    def empty() -> "SystemResult":
+        """Create an empty result (nothing happened)."""
+        return SystemResult()
+
+    def __add__(self, other: "SystemResult") -> "SystemResult":
+        """Combine two results (useful for aggregating across frames)."""
+        if other.skipped:
+            return self
+        if self.skipped:
+            return other
+
+        combined_details = {**self.details}
+        for key, value in other.details.items():
+            if key in combined_details and isinstance(value, (int, float)):
+                combined_details[key] = combined_details[key] + value
+            else:
+                combined_details[key] = value
+
+        return SystemResult(
+            entities_affected=self.entities_affected + other.entities_affected,
+            entities_spawned=self.entities_spawned + other.entities_spawned,
+            entities_removed=self.entities_removed + other.entities_removed,
+            events_emitted=self.events_emitted + other.events_emitted,
+            skipped=False,
+            details=combined_details,
+        )
 
 
 @runtime_checkable
@@ -35,11 +102,14 @@ class System(Protocol):
         """Whether this system should run during updates."""
         ...
 
-    def update(self, frame: int) -> None:
+    def update(self, frame: int) -> SystemResult:
         """Perform the system's per-frame logic.
 
         Args:
             frame: Current simulation frame number
+
+        Returns:
+            SystemResult describing what the system did
         """
         ...
 
@@ -101,7 +171,7 @@ class BaseSystem(ABC):
         """Number of times update() has been called."""
         return self._update_count
 
-    def update(self, frame: int) -> None:
+    def update(self, frame: int) -> SystemResult:
         """Perform the system's per-frame logic.
 
         This method handles enabled checking and update counting.
@@ -109,21 +179,32 @@ class BaseSystem(ABC):
 
         Args:
             frame: Current simulation frame number
+
+        Returns:
+            SystemResult describing what the system did
         """
         if not self._enabled:
-            return
+            return SystemResult.skipped_result()
 
-        self._do_update(frame)
+        result = self._do_update(frame)
         self._update_count += 1
 
+        # Handle legacy systems that return None
+        if result is None:
+            return SystemResult.empty()
+        return result
+
     @abstractmethod
-    def _do_update(self, frame: int) -> None:
+    def _do_update(self, frame: int) -> Optional[SystemResult]:
         """Implement system-specific update logic.
 
         This is called by update() if the system is enabled.
 
         Args:
             frame: Current simulation frame number
+
+        Returns:
+            SystemResult describing what the system did, or None for legacy compatibility
         """
         pass
 

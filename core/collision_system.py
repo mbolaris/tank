@@ -13,12 +13,12 @@ TODO: Extract plant sprouting logic from handle_fish_food_collision into
 """
 
 import random
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core.config.plants import FRACTAL_PLANT_SPROUTING_CHANCE
 from core.constants import FRACTAL_PLANTS_ENABLED
 from core.entities.fractal_plant import PlantNectar
-from core.systems.base import BaseSystem
+from core.systems.base import BaseSystem, SystemResult
 
 if TYPE_CHECKING:
     from core.entities import Agent
@@ -126,17 +126,44 @@ class CollisionSystem(BaseSystem):
             engine: The simulation engine
         """
         super().__init__(engine, "Collision")
+        # Cumulative stats (all-time)
         self._collisions_checked: int = 0
         self._collisions_detected: int = 0
         self._fish_food_collisions: int = 0
 
-    def _do_update(self, frame: int) -> None:
-        """Collision system doesn't have per-frame logic.
+        # Per-frame stats (reset each frame)
+        self._frame_collisions_checked: int = 0
+        self._frame_collisions_detected: int = 0
+        self._frame_food_eaten: int = 0
+        self._frame_entities_removed: int = 0
+
+    def _do_update(self, frame: int) -> Optional[SystemResult]:
+        """Return statistics about collisions processed this frame.
 
         Collision detection is triggered by SimulationEngine.handle_collisions()
-        which calls check_collision and handle_fish_food_collision as needed.
+        which calls check_collision and handle_fish_food_collision. This method
+        captures the per-frame stats and resets them for the next frame.
+
+        Returns:
+            SystemResult with collision statistics
         """
-        pass
+        result = SystemResult(
+            entities_affected=self._frame_collisions_detected,
+            entities_removed=self._frame_entities_removed,
+            details={
+                "collisions_checked": self._frame_collisions_checked,
+                "collisions_detected": self._frame_collisions_detected,
+                "food_eaten": self._frame_food_eaten,
+            },
+        )
+
+        # Reset per-frame counters
+        self._frame_collisions_checked = 0
+        self._frame_collisions_detected = 0
+        self._frame_food_eaten = 0
+        self._frame_entities_removed = 0
+
+        return result
 
     def check_collision(self, e1: "Agent", e2: "Agent") -> bool:
         """Check if two entities collide using bounding box collision.
@@ -149,6 +176,7 @@ class CollisionSystem(BaseSystem):
             True if entities are colliding
         """
         self._collisions_checked += 1
+        self._frame_collisions_checked += 1
         collides = (
             e1.pos.x < e2.pos.x + e2.width
             and e1.pos.x + e1.width > e2.pos.x
@@ -157,6 +185,7 @@ class CollisionSystem(BaseSystem):
         )
         if collides:
             self._collisions_detected += 1
+            self._frame_collisions_detected += 1
         return collides
 
     def handle_fish_food_collision(self, fish: "Agent", food: "Agent") -> None:
@@ -170,6 +199,7 @@ class CollisionSystem(BaseSystem):
         eventually be moved to a separate PlantPropagationSystem.
         """
         self._fish_food_collisions += 1
+        self._frame_food_eaten += 1
 
         if isinstance(food, PlantNectar) and FRACTAL_PLANTS_ENABLED:
             fish.eat(food)
@@ -185,12 +215,14 @@ class CollisionSystem(BaseSystem):
                     self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
 
                 self.engine.remove_entity(food)
+                self._frame_entities_removed += 1
         else:
             fish.eat(food)
 
             if food.is_fully_consumed():
                 food.get_eaten()
                 self.engine.remove_entity(food)
+                self._frame_entities_removed += 1
 
     def get_debug_info(self) -> Dict[str, Any]:
         """Return collision statistics for debugging."""
