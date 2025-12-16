@@ -8,8 +8,9 @@ import random as pyrandom
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+from core.evolution.inheritance import inherit_algorithm
+from core.evolution.inheritance import inherit_trait as _inherit_trait
 from core.genetics.trait import GeneticTrait, TraitSpec, inherit_traits_from_specs
-from core.evolution.inheritance import inherit_algorithm, inherit_trait as _inherit_trait
 
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm

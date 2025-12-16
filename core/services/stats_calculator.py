@@ -12,11 +12,9 @@ Architecture Notes:
 
 import time
 from statistics import median
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
-    from core.entities import Fish, Food
-    from core.entities.fractal_plant import FractalPlant
     from core.simulation_engine import SimulationEngine
 
 
@@ -220,8 +218,8 @@ class StatsCalculator:
         """
         from core.constants import (
             FISH_ADULT_SIZE,
-            FISH_SIZE_MODIFIER_MIN,
             FISH_SIZE_MODIFIER_MAX,
+            FISH_SIZE_MODIFIER_MIN,
         )
 
         fish_list = self._engine.get_fish_list()
@@ -281,7 +279,7 @@ class StatsCalculator:
 
         # Try to get allowed bounds from config
         try:
-            from core.config.fish import EYE_SIZE_MIN, EYE_SIZE_MAX
+            from core.config.fish import EYE_SIZE_MAX, EYE_SIZE_MIN
             allowed_min = EYE_SIZE_MIN
             allowed_max = EYE_SIZE_MAX
         except Exception:
@@ -539,7 +537,7 @@ class StatsCalculator:
                     stats["template_id_median"] = median(values)
                 except Exception:
                     stats["template_id_median"] = 0.0
-                
+
                 # For discrete variables like template_id, clear bins are nice
                 # Using FISH_TEMPLATE_COUNT bins guarantees one bin per ID
                 bins, edges = self._create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_TEMPLATE_COUNT)
@@ -594,7 +592,7 @@ class StatsCalculator:
                     stats["pattern_type_median"] = median(values)
                 except Exception:
                     stats["pattern_type_median"] = 0.0
-                
+
                 # Discrete bins
                 bins, edges = self._create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_PATTERN_COUNT)
                 stats["pattern_type_bins"] = bins

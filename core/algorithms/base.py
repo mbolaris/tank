@@ -593,7 +593,7 @@ def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
     Fish have reduced ability to detect food at night due to lower visibility.
     Detection range is modified by time of day:
     - Night: 25% of base range
-    - Dawn/Dusk: 75% of base range  
+    - Dawn/Dusk: 75% of base range
     - Day: 100% of base range
 
     Args:
@@ -605,7 +605,7 @@ def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
     from core.constants import BASE_FOOD_DETECTION_RANGE
 
     env = fish.environment
-    
+
     # Performance: Use cached detection modifier from environment (updated once per frame)
     detection_modifier = env.get_detection_modifier()
     max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier

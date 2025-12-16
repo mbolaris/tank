@@ -15,14 +15,14 @@ Design Philosophy (ALife vs GA):
 """
 
 # Re-export main classes for backward compatibility
-from core.genetics.trait import GeneticTrait, TraitSpec
+from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, BehavioralTraits
 from core.genetics.genome import (
-    Genome,
     GeneticCrossoverMode,
+    Genome,
 )
-from core.genetics.physical import PhysicalTraits, PHYSICAL_TRAIT_SPECS
-from core.genetics.behavioral import BehavioralTraits, BEHAVIORAL_TRAIT_SPECS
+from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.plant import PlantGenome
+from core.genetics.trait import GeneticTrait, TraitSpec
 
 __all__ = [
     # Core classes

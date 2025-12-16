@@ -13,14 +13,12 @@ Architecture Notes:
 """
 
 import logging
-import random
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict
 
 from core.systems.base import BaseSystem
 
 if TYPE_CHECKING:
-    from core.entities import Agent, Fish, Food
-    from core.entities.fractal_plant import FractalPlant, PlantNectar
+    from core.entities import Agent, Food
     from core.simulation_engine import SimulationEngine
 
 logger = logging.getLogger(__name__)

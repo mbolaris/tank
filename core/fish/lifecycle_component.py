@@ -11,7 +11,7 @@ Architecture Notes:
 """
 
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List
 
 from core.constants import (
     FISH_ADULT_SIZE,
@@ -21,10 +21,10 @@ from core.constants import (
     LIFE_STAGE_JUVENILE_MAX,
 )
 from core.state_machine import (
+    LIFE_STAGE_TRANSITIONS,
     LifeStage,
     StateMachine,
     StateTransition,
-    LIFE_STAGE_TRANSITIONS,
 )
 
 if TYPE_CHECKING:
@@ -124,10 +124,10 @@ class LifecycleComponent:
         # This is necessary because the StateMachine enforces strict step-by-step transitions
         max_transitions = 3  # Safety break to prevent infinite loops
         transitions_count = 0
-        
+
         while self._state_machine.state != target_stage and transitions_count < max_transitions:
             current_stage = self._state_machine.state
-            
+
             # Determine immediate next stage based on standard lifecycle order
             # BABY -> JUVENILE -> ADULT -> ELDER
             next_step = None
@@ -137,22 +137,22 @@ class LifecycleComponent:
                 next_step = LifeStage.ADULT
             elif current_stage == LifeStage.ADULT and target_stage == LifeStage.ELDER:
                 next_step = LifeStage.ELDER
-                
+
             if next_step is None:
                 # Target is same or backward, or invalid path
                 break
-                
+
             result = self._state_machine.try_transition(
                 next_step,
                 frame=frame,
                 reason=f"aged to {self.age} frames",
             )
-            
+
             if result.is_err():
                 # Log but don't crash - this catches bugs in age calculation
                 logger.warning(f"Lifecycle transition failed: {result.error}")
                 break
-                
+
             transitions_count += 1
 
         # Apply genetic size modifier to get final size

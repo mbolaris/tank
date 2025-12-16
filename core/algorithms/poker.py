@@ -18,9 +18,9 @@ Performance optimizations:
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Tuple, Optional, List
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from core.algorithms.base import BehaviorAlgorithm, Vector2
+from core.algorithms.base import BehaviorAlgorithm
 from core.entities import Crab
 from core.entities import Fish as FishClass
 
@@ -30,14 +30,14 @@ if TYPE_CHECKING:
 
 def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["Fish"], float]:
     """Find nearest other fish using optimized spatial query.
-    
+
     Performance: Uses spatial grid query instead of iterating all fish.
     Returns squared distance to avoid sqrt overhead.
-    
+
     Args:
         fish: The fish searching for others
         radius: Search radius
-        
+
     Returns:
         Tuple of (nearest_fish, distance_squared) or (None, inf)
     """
@@ -46,16 +46,16 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
         nearby = env.nearby_fish(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
-    
+
     if not nearby:
         return None, float('inf')
-    
+
     fish_x, fish_y = fish.pos.x, fish.pos.y
     fish_id = fish.fish_id
-    
+
     min_dist_sq = float('inf')
     nearest = None
-    
+
     for other in nearby:
         if other.fish_id == fish_id:
             continue
@@ -65,28 +65,28 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
         if dist_sq < min_dist_sq:
             min_dist_sq = dist_sq
             nearest = other
-    
+
     return nearest, min_dist_sq
 
 
 def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> List["Fish"]:
     """Get nearby fish using optimized spatial query.
-    
+
     Args:
         fish: The fish searching for others
         radius: Search radius
-        
+
     Returns:
         List of nearby fish (excluding self)
     """
     env = fish.environment
     fish_id = fish.fish_id
-    
+
     if hasattr(env, "nearby_fish"):
         nearby = env.nearby_fish(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
-    
+
     return [f for f in nearby if f.fish_id != fish_id]
 
 
@@ -111,7 +111,7 @@ class PokerChallenger(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
         fish_x, fish_y = fish.pos.x, fish.pos.y
-        
+
         # First check for predators - survival comes first
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -195,7 +195,7 @@ class PokerDodger(BehaviorAlgorithm):
             dx = other.pos.x - fish_x
             dy = other.pos.y - fish_y
             dist_sq = dx * dx + dy * dy
-            
+
             if dist_sq > 0 and dist_sq < avoidance_radius_sq:
                 import math
                 distance = math.sqrt(dist_sq)
@@ -217,7 +217,7 @@ class PokerDodger(BehaviorAlgorithm):
             if avoid_len > 0:
                 avoidance_x /= avoid_len
                 avoidance_y /= avoid_len
-            
+
             speed = self.parameters["avoidance_speed"]
 
             # Still seek food while avoiding
@@ -272,7 +272,7 @@ class PokerGambler(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
         fish_x, fish_y = fish.pos.x, fish.pos.y
-        
+
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -337,7 +337,7 @@ class SelectivePoker(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
         fish_x, fish_y = fish.pos.x, fish.pos.y
-        
+
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -395,7 +395,7 @@ class PokerOpportunist(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
         fish_x, fish_y = fish.pos.x, fish.pos.y
-        
+
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -410,7 +410,7 @@ class PokerOpportunist(BehaviorAlgorithm):
 
         # Look for both food and fish opportunities
         nearest_food = self._find_nearest_food(fish)
-        
+
         # OPTIMIZATION: Use spatial query
         opportunity_radius = self.parameters["opportunity_radius"]
         nearest_fish, _ = _find_nearest_fish_spatial(fish, opportunity_radius)
@@ -487,7 +487,7 @@ class PokerStrategist(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
         fish_x, fish_y = fish.pos.x, fish.pos.y
-        
+
         # Check for predators first
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -531,7 +531,7 @@ class PokerStrategist(BehaviorAlgorithm):
             dx = target.pos.x - fish_x
             dy = target.pos.y - fish_y
             dist_sq = dx * dx + dy * dy
-            
+
             if dist_sq > 40000:  # 200^2 - Too far
                 continue
 
@@ -603,7 +603,7 @@ class PokerBluffer(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
         fish_x, fish_y = fish.pos.x, fish.pos.y
-        
+
         # Check for predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -725,7 +725,7 @@ class PokerConservative(BehaviorAlgorithm):
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
         fish_x, fish_y = fish.pos.x, fish.pos.y
-        
+
         # Always flee from predators
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -798,12 +798,12 @@ class PokerConservative(BehaviorAlgorithm):
                 if food_dist > 0:
                     food_x = food_dx / food_dist
                     food_y = food_dy / food_dist
-                    
+
                     avoid_len = math.sqrt(avoidance_x * avoidance_x + avoidance_y * avoidance_y)
                     if avoid_len > 0:
                         avoidance_x /= avoid_len
                         avoidance_y /= avoid_len
-                    
+
                     final_x = avoidance_x * 0.5 + food_x * 0.5
                     final_y = avoidance_y * 0.5 + food_y * 0.5
                     final_len = math.sqrt(final_x * final_x + final_y * final_y)

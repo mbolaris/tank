@@ -8,14 +8,11 @@ import logging
 import os
 import random
 import time
-from statistics import median
 from typing import Any, Dict, List, Optional
 
-from core.systems.base import BaseSystem
-
 from core import entities, environment, movement_strategy
-from core.cache_manager import CacheManager
 from core.algorithms import get_algorithm_index
+from core.cache_manager import CacheManager
 from core.collision_system import CollisionSystem
 from core.constants import (
     AUTO_FOOD_ENABLED,
@@ -43,7 +40,6 @@ from core.constants import (
     SEPARATOR_WIDTH,
     SPAWN_MARGIN_PIXELS,
     TOTAL_ALGORITHM_COUNT,
-    FISH_ADULT_SIZE,
 )
 from core.ecosystem import EcosystemManager
 from core.entities.fractal_plant import FractalPlant, PlantNectar
@@ -67,9 +63,10 @@ from core.root_spots import RootSpotManager
 from core.services.stats_calculator import StatsCalculator
 from core.simulation_stats_exporter import SimulationStatsExporter
 from core.simulators.base_simulator import BaseSimulator
+from core.systems.base import BaseSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
 from core.time_system import TimeSystem
-from core.update_phases import UpdatePhase, PhaseContext, PhaseRunner, PHASE_DESCRIPTIONS
+from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 
 logger = logging.getLogger(__name__)
 
@@ -734,7 +731,6 @@ class SimulationEngine(BaseSimulator):
 
         # Performance: Pre-fetch type references to avoid repeated module lookups
         Fish = entities.Fish
-        Plant = entities.Plant
         Food = entities.Food
         LiveFood = entities.LiveFood
 
@@ -743,10 +739,10 @@ class SimulationEngine(BaseSimulator):
 
         # Performance: Iterate a copy but use type ID comparison when possible
         for entity in list(self.entities_list):
-            
+
             # Standardized update call
             result = entity.update(self.frame_count, time_modifier, time_of_day)
-            
+
             # Handle spawned entities (reproduction, food drops, nectar)
             if result.spawned_entities:
                 for spawned in result.spawned_entities:
@@ -776,7 +772,7 @@ class SimulationEngine(BaseSimulator):
                 elif isinstance(entity, PlantNectar):
                      # Nectar consumed or invalid
                      entities_to_remove.append(entity)
-                
+
             # Handle removal conditions for Food
             elif isinstance(entity, Food):
                  if isinstance(entity, LiveFood):
@@ -786,7 +782,7 @@ class SimulationEngine(BaseSimulator):
                      # Standard food sinks
                      if entity.pos.y >= SCREEN_HEIGHT - entity.height:
                          entities_to_remove.append(entity)
-            
+
             self.keep_entity_on_screen(entity)
 
         # ===== PHASE: LIFECYCLE =====

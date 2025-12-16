@@ -23,18 +23,17 @@ The optimal strategy depends on the pattern - fish must learn to identify
 which pattern is active and predict accordingly.
 """
 
-import math
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional
 
 from core.skills.base import (
+    SkillEvaluationMetrics,
     SkillGame,
     SkillGameResult,
     SkillGameType,
     SkillStrategy,
-    SkillEvaluationMetrics,
 )
 
 

@@ -289,7 +289,6 @@ class AlgorithmValidator:
         Returns:
             Performance metrics dict
         """
-        from core.simulation_engine import SimulationEngine
         from core.tank_world import TankWorld
 
         # Create simulation with seed

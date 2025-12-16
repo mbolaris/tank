@@ -1,8 +1,9 @@
 """Base entity classes for the simulation."""
 
 import random
-from typing import TYPE_CHECKING, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+
 
 @dataclass
 class EntityUpdateResult:
@@ -17,8 +18,9 @@ class EntityUpdateResult:
 
 from core.constants import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE, DEFAULT_AGENT_SIZE
 from core.math_utils import Vector2
+
 # Import LifeStage from state_machine for centralized definition with transition validation
-from core.state_machine import LifeStage
+from core.state_machine import LifeStage  # noqa: F401 - re-exported
 
 if TYPE_CHECKING:
     from core.environment import Environment
@@ -189,7 +191,7 @@ class Agent:
 
     def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update the agent state (pure logic, no rendering).
-        
+
         Returns:
             EntityUpdateResult containing any spawned entities or events.
         """

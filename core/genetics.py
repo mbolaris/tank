@@ -14,14 +14,13 @@ Example:
 """
 
 # Re-export all public symbols from the new genetics package
-from core.genetics.trait import GeneticTrait, TraitSpec
-from core.genetics.genome import Genome, GeneticCrossoverMode
-from core.genetics.physical import PhysicalTraits
-from core.genetics.behavioral import BehavioralTraits
-
 # Re-export evolution helpers that were previously used from here
 from core.evolution.inheritance import inherit_learned_behaviors
 from core.evolution.mutation import calculate_adaptive_mutation_rate
+from core.genetics.behavioral import BehavioralTraits
+from core.genetics.genome import GeneticCrossoverMode, Genome
+from core.genetics.physical import PhysicalTraits
+from core.genetics.trait import GeneticTrait, TraitSpec
 
 __all__ = [
     "Genome",

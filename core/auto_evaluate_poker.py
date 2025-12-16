@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from core.constants import POKER_MAX_HAND_RANK
+
 # Import directly from source modules to avoid lazy import issues
 from core.poker.betting.actions import BettingAction, BettingRound
 from core.poker.betting.decision import decide_action
@@ -610,7 +611,7 @@ class AutoEvaluatePokerGame:
 
             # Play one hand
             self.play_hand()
-            
+
             # Yield GIL to prevent starving main thread
             time.sleep(0.001)
 

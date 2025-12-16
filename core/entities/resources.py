@@ -341,7 +341,7 @@ class LiveFood(Food):
     Live food moves around the tank instead of sinking, making it harder to
     catch. It makes small wandering motions and steers away from nearby fish
     to simulate evasive movement.
-    
+
     After a set lifespan, LiveFood expires and is removed to prevent accumulation.
     """
 
@@ -375,7 +375,7 @@ class LiveFood(Food):
         # before triggering flee response - makes hunting more effective
         self.avoid_radius = 80
         self.wander_strength = 0.25
-        
+
         # Lifespan tracking to prevent unbounded accumulation
         self.max_lifespan = max_lifespan
         self.age = 0
@@ -386,7 +386,7 @@ class LiveFood(Food):
 
     def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         from core.entities.base import EntityUpdateResult
-        
+
         self.age += 1
         self._apply_wander()
         self._avoid_nearby_fish()

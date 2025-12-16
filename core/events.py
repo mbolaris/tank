@@ -42,9 +42,9 @@ This implementation is NOT thread-safe. For multi-threaded simulations,
 wrap emit() and subscribe() with locks.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar
 import logging
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
 logger = logging.getLogger(__name__)
 

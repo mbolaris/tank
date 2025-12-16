@@ -232,10 +232,10 @@ class EcosystemManager:
 
     def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
         """Cleanup stats for dead fish.
-        
+
         Args:
             alive_fish_ids: Set of currently living fish IDs.
-            
+
         Returns:
             Number of records removed.
         """

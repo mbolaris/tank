@@ -11,7 +11,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Deque, Dict, Optional
 
-from core.skills.base import SkillStrategy, SkillGameType, SkillGameResult
+from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 
 
 @dataclass

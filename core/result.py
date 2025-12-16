@@ -62,7 +62,7 @@ operations more explicit and debuggable.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Generic, List, TypeVar, Union, overload
+from typing import Callable, Generic, TypeVar, Union
 
 # Type variables for Result
 T = TypeVar("T")  # Success value type

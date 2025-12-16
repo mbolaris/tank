@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import statistics
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -182,7 +182,6 @@ class EvolutionBenchmarkHistory:
         # Elo-based improvement (more stable than bb/100)
         elo_start = self.elo_trend[0] if self.elo_trend else 1200.0
         elo_end = self.elo_trend[-1] if self.elo_trend else 1200.0
-        elo_ema_start = self.elo_ema[0] if self.elo_ema else 1200.0
         elo_ema_end = self.elo_ema[-1] if self.elo_ema else 1200.0
 
         # Confidence-based improvement (probability of winning)
@@ -327,8 +326,8 @@ class EvolutionBenchmarkTracker:
 
         # Import here to avoid circular imports
         from core.poker.evaluation.comprehensive_benchmark import (
-            run_quick_benchmark,
             run_full_benchmark,
+            run_quick_benchmark,
         )
 
         # Run the appropriate benchmark

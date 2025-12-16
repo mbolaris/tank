@@ -14,8 +14,8 @@ from core.entity_ids import PlantId
 from core.plant_genetics import PlantGenome
 
 if TYPE_CHECKING:
-    from core.environment import Environment
     from core.ecosystem import EcosystemManager
+    from core.environment import Environment
     from core.root_spots import RootSpot
 
 
@@ -186,7 +186,7 @@ class FractalPlant(Agent):
             EntityUpdateResult containing nectar if produced
         """
         from core.entities.base import EntityUpdateResult
-        
+
         super().update(frame_count, time_modifier, time_of_day)
 
         self.age += 1
@@ -622,7 +622,7 @@ class PlantNectar(Food):
     def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update nectar state."""
         from core.entities.base import EntityUpdateResult
-        
+
         super().update(frame_count, time_modifier, time_of_day)
         self.update_position()
         return EntityUpdateResult()

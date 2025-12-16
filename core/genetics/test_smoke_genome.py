@@ -1,6 +1,7 @@
 """Smoke tests for Genome compatibility after refactor."""
 
 import random
+
 from core.genetics import Genome
 
 

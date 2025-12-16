@@ -26,11 +26,11 @@ Design goals:
 """
 
 from core.skills.base import (
+    SkillEvaluationMetrics,
     SkillGame,
+    SkillGameResult,
     SkillGameType,
     SkillStrategy,
-    SkillGameResult,
-    SkillEvaluationMetrics,
 )
 from core.skills.config import SkillGameConfig, get_active_skill_game
 

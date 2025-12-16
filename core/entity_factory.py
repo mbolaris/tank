@@ -8,7 +8,14 @@ import random
 from typing import List, Optional
 
 from core import entities, environment, movement_strategy
-from core.constants import FILES, FISH_BASE_SPEED, INIT_POS, NUM_SCHOOLING_FISH, SCREEN_HEIGHT, SCREEN_WIDTH
+from core.constants import (
+    FILES,
+    FISH_BASE_SPEED,
+    INIT_POS,
+    NUM_SCHOOLING_FISH,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 from core.ecosystem import EcosystemManager
 from core.genetics import Genome
 

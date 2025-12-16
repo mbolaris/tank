@@ -322,7 +322,7 @@ def check_fish_plant_poker_proximity(
     dx = fish_cx - plant_cx
     dy = fish_cy - plant_cy
     distance_sq = dx * dx + dy * dy
-    
+
     # Must be within max distance but farther than min distance (not touching)
     return min_distance * min_distance < distance_sq <= max_distance * max_distance
 
