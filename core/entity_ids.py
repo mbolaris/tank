@@ -51,8 +51,7 @@ Design Notes:
 """
 
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar, Union
-
+from typing import Any, Union
 
 # ============================================================================
 # Base ID Type

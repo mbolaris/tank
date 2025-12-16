@@ -28,7 +28,6 @@ from core.poker.evaluation.benchmark_eval import (
 )
 from core.poker.evaluation.benchmark_suite import (
     BASELINE_OPPONENTS,
-    BaselineDifficulty,
     ComprehensiveBenchmarkConfig,
 )
 from core.poker.evaluation.elo_rating import (
@@ -41,7 +40,6 @@ from core.poker.evaluation.elo_rating import (
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
 

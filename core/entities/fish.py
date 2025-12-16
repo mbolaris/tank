@@ -119,7 +119,7 @@ class Fish(Agent):
         lifespan_mult = 1.0
         if hasattr(self.genome.physical, "lifespan_modifier"):
             lifespan_mult = self.genome.physical.lifespan_modifier.value
-            
+
         max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.size_modifier * lifespan_mult)
         self._lifecycle_component = LifecycleComponent(max_age, self.genome.size_modifier)
 
@@ -249,7 +249,7 @@ class Fish(Agent):
         """
         if self.ecosystem is None:
             return
-            
+
         # Get algorithm ID if fish has a behavior algorithm
         algorithm_id = None
         if self.genome.behavior_algorithm is not None:
@@ -260,10 +260,10 @@ class Fish(Agent):
         # Get color as hex string for phylogenetic tree
         r, g, b = self.genome.get_color_tint()
         color_hex = f"#{r:02x}{g:02x}{b:02x}"
-        
+
         # Determine parent lineage
         parent_ids = [self.parent_id] if self.parent_id is not None else None
-        
+
         # Record birth in phylogenetic tree and stats
         self.ecosystem.record_birth(
             self.fish_id,
@@ -272,7 +272,7 @@ class Fish(Agent):
             algorithm_id=algorithm_id,
             color=color_hex,
         )
-        
+
         # Record energy inflow for soup spawns only
         # - Reproduction births are NOT recorded as inflows because the energy came from
         #   the parent (it's an internal transfer within the fish population, not new energy)
@@ -315,7 +315,7 @@ class Fish(Agent):
     @property
     def max_energy(self) -> float:
         """Maximum energy capacity based on current size (age + genetics).
-        
+
         A fish's max energy grows as they physically grow from baby to adult.
         Baby fish (size ~0.35-0.5) have less capacity than adults (adult size scales with genetic size_modifier which ranges 0.5-2.0).
         """
@@ -554,7 +554,7 @@ class Fish(Agent):
         if self.ecosystem is not None:
             # Report existence cost (size-based baseline)
             self.ecosystem.record_energy_burn("existence", energy_breakdown["existence"])
-            
+
             # Report movement cost
             self.ecosystem.record_energy_burn("movement", energy_breakdown["movement"])
 
@@ -564,7 +564,7 @@ class Fish(Agent):
             # So we can split the cost proportionally
             metabolism_total = energy_breakdown["metabolism"]
             rate = self.genome.metabolism_rate
-            
+
             # Avoid division by zero
             if rate > 0:
                 # Calculate what fraction of the rate is due to traits (anything above 1.0)
@@ -844,7 +844,7 @@ class Fish(Agent):
         # This determines exactly how much energy the parent should transfer
         from core.constants import FISH_BABY_SIZE
         baby_max_energy = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.size_modifier
-        
+
         bank_used = self._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
         remaining_needed = baby_max_energy - bank_used
         parent_transfer = min(self.energy, remaining_needed)
@@ -950,7 +950,7 @@ class Fish(Agent):
             EntityUpdateResult containing newborn fish if reproduction occurred
         """
         from core.entities.base import EntityUpdateResult
-        
+
         super().update(frame_count, time_modifier, time_of_day)
 
         # Age - managed by LifecycleComponent
@@ -986,10 +986,9 @@ class Fish(Agent):
         # Calculate acceleration for diagnostics
         prev_vel = Vector2(self.vel.x, self.vel.y)
         self.movement_strategy.move(self)
-        
+
         # Diagnostic: Record velocity and acceleration
         from core.diagnostics import VelocityTracker
-        current_speed = self.vel.length()
         acceleration = (self.vel - prev_vel).length()
         VelocityTracker().record_movement(self.fish_id, self.vel, acceleration)
 
@@ -1032,14 +1031,14 @@ class Fish(Agent):
         """
         # Calculate how much room we have for more energy
         available_capacity = self.max_energy - self.energy
-        
+
         # Don't eat if we're already full (prevents wasting food)
         if available_capacity <= 0.1:
             return
-        
+
         # Limit bite size to what we can actually use
         effective_bite_size = min(self.bite_size, available_capacity)
-        
+
         # Take a bite from the food (only what we can hold)
         potential_energy = food.take_bite(effective_bite_size)
         actual_energy = self.gain_energy(potential_energy)

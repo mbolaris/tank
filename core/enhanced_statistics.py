@@ -251,7 +251,7 @@ class EnhancedStatisticsTracker:
 
     def record_trait_fitness_sample(self, genome: "Genome") -> None:
         """Record a trait-fitness data point for correlation analysis.
-        
+
         Note: fitness_score has been removed. This method is now deprecated
         and does nothing. Kept for backward compatibility.
 

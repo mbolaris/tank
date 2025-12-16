@@ -35,7 +35,7 @@ class ReproductionStatsManager:
 
         self.reproduction_stats.total_reproductions += 1
         self.reproduction_stats.total_offspring += 1  # Assume 1 offspring per reproduction
-        
+
         if is_asexual:
             self.reproduction_stats.total_asexual_reproductions += 1
         else:

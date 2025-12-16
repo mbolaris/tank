@@ -72,7 +72,7 @@ class Crab(Agent):
 
     def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update the crab state.
-        
+
         Simple patrol behavior: crab walks back and forth across the tank bottom.
         Eating is handled by the collision system when the crab bumps into food/fish.
         """
@@ -90,11 +90,11 @@ class Crab(Agent):
         if abs(self.vel.x) < 0.1:
             direction = random.choice([-1, 1])
             self.vel.x = direction * self.speed
-        
+
         # Stay on bottom (no vertical movement)
         self.vel.y = 0
 
         # Call parent update which handles position updates and boundary bouncing
         super().update(frame_count, time_modifier, time_of_day)
-        
+
         return EntityUpdateResult()

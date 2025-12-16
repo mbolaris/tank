@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Tuple
 
 from core.collision_system import default_collision_detector
 from core.constants import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
-from core.entities import Fish as FishClass
 from core.entities import Food
 from core.math_utils import Vector2
 
@@ -119,7 +118,7 @@ class AlgorithmicMovement(MovementStrategy):
             # This reduces spatial query load by 80% while maintaining gameplay feel
             age = sprite.age if hasattr(sprite, 'age') else 0
             should_check_nearby = (age % self.POKER_CHECK_INTERVAL) == 0
-            
+
             # Cache the poker weight on the sprite to reuse between checks
             if should_check_nearby:
                 # Get the sprite entity (unwrap if it's a sprite wrapper)
@@ -128,7 +127,7 @@ class AlgorithmicMovement(MovementStrategy):
                 env = sprite.environment
                 poker_radius = self.POKER_WEIGHT_RADIUS
                 poker_radius_sq = self.POKER_WEIGHT_RADIUS_SQ
-                
+
                 # Cache sprite position
                 sprite_x = sprite.pos.x
                 sprite_y = sprite.pos.y
@@ -137,7 +136,7 @@ class AlgorithmicMovement(MovementStrategy):
                 # Find nearest fish using squared distance (avoid sqrt)
                 nearest_dist_sq = poker_radius_sq
                 has_nearby_fish = False
-                
+
                 if hasattr(env, "nearby_fish"):
                     nearby_fish = env.nearby_fish(sprite_entity, poker_radius)
                     for f in nearby_fish:
@@ -160,7 +159,7 @@ class AlgorithmicMovement(MovementStrategy):
                     sprite._cached_poker_weight = poker_weight
                 else:
                     sprite._cached_poker_weight = 0.0
-            
+
             # Use cached poker weight
             poker_weight = getattr(sprite, '_cached_poker_weight', 0.0)
             if poker_weight > 0:
@@ -190,7 +189,7 @@ class AlgorithmicMovement(MovementStrategy):
         vel_x = vel.x
         vel_y = vel.y
         vel_length_sq = vel_x * vel_x + vel_y * vel_y
-        
+
         # Anti-stuck mechanism: if velocity is very low, add small random nudge
         # This prevents fish from getting permanently stuck at (0,0)
         if vel_length_sq < 0.01:
@@ -199,7 +198,7 @@ class AlgorithmicMovement(MovementStrategy):
             vel.x = nudge_speed * math.cos(angle)
             vel.y = nudge_speed * math.sin(angle)
             vel_length_sq = vel.x * vel.x + vel.y * vel.y
-        
+
         if vel_length_sq > 0:
             # Only normalize if speed exceeds max allowed
             max_speed_sq = speed * speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ

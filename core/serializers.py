@@ -4,7 +4,7 @@ This module handles the transformation of complex entity objects into
 simple dictionaries suitable for JSON serialization and network transmission.
 """
 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 from core.entities.fish import Fish
 from core.entities.fractal_plant import FractalPlant
@@ -28,9 +28,9 @@ class FishSerializer:
         algo_name = "Unknown"
         if fish.genome.behavior_algorithm:
             algo_name = fish.genome.behavior_algorithm.algorithm_id
-        
+
         genome_data = FishSerializer.to_genome_data(fish)
-        
+
         player_data = {
             "fish_id": fish.fish_id,
             "name": f"{algo_name[:15]} (Gen {fish.generation})",
@@ -57,7 +57,7 @@ class FishSerializer:
 
         # Handle potential missing attributes with defaults or safe access
         size = getattr(fish, "size", getattr(fish.genome, "size_modifier", 1.0))
-        
+
         return {
             "speed": fish.genome.speed_modifier,
             "size": size,

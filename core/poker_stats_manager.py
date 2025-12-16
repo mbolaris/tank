@@ -34,18 +34,18 @@ class PokerStatsManager:
 
     def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
         """Remove poker stats for fish that are no longer alive.
-        
+
         Args:
             alive_fish_ids: Set of IDs of currently living fish.
-            
+
         Returns:
             Number of records removed.
         """
         initial_count = len(self.plant_poker_stats)
         # Keep only fish that are alive
         self.plant_poker_stats = {
-            fish_id: stats 
-            for fish_id, stats in self.plant_poker_stats.items() 
+            fish_id: stats
+            for fish_id, stats in self.plant_poker_stats.items()
             if fish_id in alive_fish_ids
         }
         return initial_count - len(self.plant_poker_stats)
@@ -368,7 +368,7 @@ class PokerStatsManager:
         is_plant_game: bool = True,
     ) -> None:
         """Record energy transfer from a mixed poker game (fish + plants).
-        
+
         Args:
             energy_to_fish: Net energy transferred to fish (positive = fish gained from plants,
                            negative = plants gained from fish)

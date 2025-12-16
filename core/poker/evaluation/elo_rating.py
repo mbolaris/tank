@@ -16,7 +16,6 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-
 # Fixed Elo ratings for baseline opponents based on difficulty tier
 # These are calibrated so that a "break-even" player is around 1500
 BASELINE_ELO_RATINGS: Dict[str, float] = {

@@ -184,8 +184,7 @@ def evaluate_vs_single_benchmark_duplicate(
         SingleBenchmarkResult with bb/100 and confidence interval
     """
     # Import here to avoid circular import with core.auto_evaluate_poker
-    from core.auto_evaluate_poker import AutoEvaluatePokerGame
-    from core.auto_evaluate_poker import is_shutdown_requested
+    from core.auto_evaluate_poker import AutoEvaluatePokerGame, is_shutdown_requested
 
     benchmark_algo = create_standard_strategy(benchmark_id)
 

@@ -678,7 +678,7 @@ class Environment:
     def nearby_poker_entities(self, agent: Agent, radius: int) -> List[Agent]:
         """
         Optimized method to get nearby fish and FractalPlant entities for poker.
-        
+
         PERFORMANCE: Single pass through spatial grid collecting both fish and plants.
         """
         return self.spatial_grid.query_poker_entities(agent, radius)

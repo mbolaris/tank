@@ -25,7 +25,7 @@ from core.entities import Fish as FishClass
 
 def _get_nearby_fish(fish: "FishClass", radius: float) -> List["FishClass"]:
     """Get nearby fish using the fastest available spatial query method.
-    
+
     OPTIMIZATION: Use dedicated nearby_fish method when available (faster).
     """
     env = fish.environment
@@ -34,7 +34,7 @@ def _get_nearby_fish(fish: "FishClass", radius: float) -> List["FishClass"]:
         nearby = env.nearby_fish(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
-    
+
     # Filter out dead or migrated fish
     # This prevents "ghost attraction" where fish school towards empty spots
     return [f for f in nearby if not f.is_dead()]

@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from statistics import median
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from core.constants import ENERGY_STATS_WINDOW_FRAMES
+from core.constants import (
+    ENERGY_STATS_WINDOW_FRAMES,
+    FISH_ADULT_SIZE,
+    FISH_SIZE_MODIFIER_MAX,
+    FISH_SIZE_MODIFIER_MIN,
+)
 from core.ecosystem_stats import EcosystemEvent, GenerationStats, GeneticDiversityStats
-from statistics import median
-from core.constants import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -59,7 +63,7 @@ def record_birth(
         "birth_time": ecosystem.frame_count,
     }
     ecosystem.lineage_log.append(lineage_record)
-    
+
     # Cap lineage log size to prevent unbounded growth
     MAX_LINEAGE_LOG_SIZE = 5000
     if len(ecosystem.lineage_log) > MAX_LINEAGE_LOG_SIZE:
@@ -123,7 +127,7 @@ def record_death(
         ecosystem.enhanced_stats.record_trait_fitness_sample(genome)
 
     ecosystem.enhanced_stats.record_death_energy_loss(remaining_energy)
-    
+
     # Record energy burn for economy stats
     ecosystem.record_energy_burn(f"death_{cause}", remaining_energy)
 
@@ -179,7 +183,7 @@ def update_population_stats(ecosystem: EcosystemManager, fish_list: List[Fish]) 
 
 def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: List[Fish]) -> None:
     """Update genetic diversity statistics.
-    
+
     PERFORMANCE OPTIMIZATIONS:
     - Removed redundant hasattr checks (fish always have genome, species)
     - Direct attribute access with getattr fallback
@@ -204,14 +208,14 @@ def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: List[
     # OPTIMIZATION: Fish always have genome and species - skip hasattr checks
     for fish in fish_list:
         genome = fish.genome
-        
+
         if get_algorithm_index is not None and genome.behavior_algorithm is not None:
             algo_idx = get_algorithm_index(genome.behavior_algorithm)
             if algo_idx >= 0:
                 algorithms.add(algo_idx)
 
         species.add(fish.species)
-        
+
         # Direct attribute access - these exist on FishGenome
         color_hues.append(genome.color_hue)
         speed_modifiers.append(genome.speed_modifier)
@@ -220,7 +224,7 @@ def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: List[
 
     # OPTIMIZATION: Only calculate variances if we have data
     n_fish = len(fish_list)
-    
+
     color_variance = 0.0
     if n_fish > 1:
         mean_color = sum(color_hues) / n_fish

@@ -6,15 +6,6 @@ recommending actions based on poker theory, and comprehensive benchmarking for
 measuring poker skill evolution.
 """
 
-from core.poker.evaluation.hand_evaluator import (
-    evaluate_hand,
-    evaluate_hand_cached,
-)
-from core.poker.evaluation.strength import (
-    calculate_pot_odds,
-    evaluate_starting_hand_strength,
-    get_action_recommendation,
-)
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,
     BenchmarkSuiteResult,
@@ -44,6 +35,15 @@ from core.poker.evaluation.evolution_benchmark_tracker import (
     EvolutionBenchmarkTracker,
     get_global_benchmark_tracker,
     reset_global_tracker,
+)
+from core.poker.evaluation.hand_evaluator import (
+    evaluate_hand,
+    evaluate_hand_cached,
+)
+from core.poker.evaluation.strength import (
+    calculate_pot_odds,
+    evaluate_starting_hand_strength,
+    get_action_recommendation,
 )
 
 __all__ = [

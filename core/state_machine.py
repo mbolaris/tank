@@ -60,9 +60,9 @@ Usage:
     door.transition(DoorState.LOCKED)  # Raises! Can't go OPEN -> LOCKED
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Callable, Dict, Generic, List, Optional, Set, TypeVar
+from typing import Dict, Generic, List, TypeVar
 
 from core.result import Err, Ok, Result
 

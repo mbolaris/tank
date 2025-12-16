@@ -7,7 +7,7 @@ in the simulation. These provide:
 - Decoupling between components
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
 
 if TYPE_CHECKING:
     from core.entities import Agent

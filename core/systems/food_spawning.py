@@ -7,11 +7,11 @@ Before: SimulationEngine.spawn_auto_food() - 80 lines mixed with other concerns
 After: FoodSpawningSystem - dedicated, testable, configurable
 """
 
+import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
-import random
 
-from core.systems.base import BaseSystem
+from core import entities
 from core.constants import (
     AUTO_FOOD_ENABLED,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
@@ -25,13 +25,11 @@ from core.constants import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from core import entities
+from core.systems.base import BaseSystem
 
 if TYPE_CHECKING:
     from core.environment import Environment
-    from core.object_pool import FoodPool
     from core.simulation_engine import SimulationEngine
-    from core.time_system import TimeSystem
 
 
 @dataclass
