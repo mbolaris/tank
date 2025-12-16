@@ -219,17 +219,20 @@ class ComprehensiveBenchmarkConfig:
         return {b.strategy_id: b.weight for b in BASELINE_OPPONENTS}
 
 
-# Quick benchmark config for frequent evaluation (lower sample size)
+# Quick benchmark config for frequent evaluation
+# Increased from 10 hands × 2 duplicate sets to 50 hands × 5 duplicate sets
+# This gives 500 hands per baseline instead of 40 (12.5× reduction in variance)
+# Still evaluates 4 key baselines covering all difficulty tiers
 QUICK_BENCHMARK_CONFIG = ComprehensiveBenchmarkConfig(
     fish_vs_baselines=SubTournamentConfig(
         category=BenchmarkCategory.FISH_VS_BASELINES,
-        hands_per_match=10,
-        num_duplicate_sets=2,
+        hands_per_match=50,
+        num_duplicate_sets=5,
         replicates=1,
         baseline_opponents=["always_fold", "loose_passive", "tight_aggressive", "balanced"],
     ),
-    top_n_fish=2,
-    random_sample_fish=1,
+    top_n_fish=3,
+    random_sample_fish=2,
 )
 
 # Full benchmark config for detailed analysis (higher sample size)

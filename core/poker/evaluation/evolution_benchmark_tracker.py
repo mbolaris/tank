@@ -43,6 +43,16 @@ class BenchmarkSnapshot:
     pop_bb_vs_moderate: float
     pop_bb_vs_strong: float
 
+    # Elo rating metrics (more stable than raw bb/100)
+    pop_mean_elo: float = 1200.0
+    pop_median_elo: float = 1200.0
+    elo_tier_distribution: Dict[str, int] = field(default_factory=dict)
+
+    # Confidence-based skill assessments
+    confidence_vs_weak: float = 0.5
+    confidence_vs_moderate: float = 0.5
+    confidence_vs_strong: float = 0.5
+
     # Strategy distribution
     strategy_distribution: Dict[str, int] = field(default_factory=dict)
     dominant_strategy: str = ""
@@ -50,6 +60,7 @@ class BenchmarkSnapshot:
     # Best performer
     best_fish_id: Optional[int] = None
     best_bb_per_100: float = 0.0
+    best_elo: float = 1200.0
     best_strategy: str = ""
 
     # Per-baseline breakdown
@@ -66,7 +77,7 @@ class EvolutionBenchmarkHistory:
 
     snapshots: List[BenchmarkSnapshot] = field(default_factory=list)
 
-    # Computed trends (updated on each snapshot)
+    # Raw trends (updated on each snapshot)
     bb_per_100_trend: List[float] = field(default_factory=list)
     weighted_bb_trend: List[float] = field(default_factory=list)
     vs_trivial_trend: List[float] = field(default_factory=list)
@@ -75,9 +86,36 @@ class EvolutionBenchmarkHistory:
     vs_strong_trend: List[float] = field(default_factory=list)
     best_performer_trend: List[float] = field(default_factory=list)
 
+    # Elo-based trends (more stable)
+    elo_trend: List[float] = field(default_factory=list)
+    elo_median_trend: List[float] = field(default_factory=list)
+    best_elo_trend: List[float] = field(default_factory=list)
+
+    # Confidence-based trends
+    confidence_weak_trend: List[float] = field(default_factory=list)
+    confidence_moderate_trend: List[float] = field(default_factory=list)
+    confidence_strong_trend: List[float] = field(default_factory=list)
+
+    # EMA smoothed trends (reduces noise for clearer improvement signals)
+    # Using alpha=0.3 for moderate smoothing (higher = more responsive, lower = smoother)
+    ema_alpha: float = 0.3
+    elo_ema: List[float] = field(default_factory=list)
+    bb_per_100_ema: List[float] = field(default_factory=list)
+    vs_strong_ema: List[float] = field(default_factory=list)
+    confidence_strong_ema: List[float] = field(default_factory=list)
+
+    def _compute_ema(self, new_value: float, ema_list: List[float]) -> float:
+        """Compute exponential moving average for a new value."""
+        if not ema_list:
+            return new_value
+        prev_ema = ema_list[-1]
+        return self.ema_alpha * new_value + (1 - self.ema_alpha) * prev_ema
+
     def add_snapshot(self, snapshot: BenchmarkSnapshot) -> None:
         """Add a new benchmark snapshot and update trends."""
         self.snapshots.append(snapshot)
+
+        # Raw trends
         self.bb_per_100_trend.append(snapshot.pop_bb_per_100)
         self.weighted_bb_trend.append(snapshot.pop_weighted_bb)
         self.vs_trivial_trend.append(snapshot.pop_bb_vs_trivial)
@@ -86,8 +124,33 @@ class EvolutionBenchmarkHistory:
         self.vs_strong_trend.append(snapshot.pop_bb_vs_strong)
         self.best_performer_trend.append(snapshot.best_bb_per_100)
 
+        # Elo trends (more stable than bb/100)
+        self.elo_trend.append(snapshot.pop_mean_elo)
+        self.elo_median_trend.append(snapshot.pop_median_elo)
+        self.best_elo_trend.append(snapshot.best_elo)
+
+        # Confidence trends
+        self.confidence_weak_trend.append(snapshot.confidence_vs_weak)
+        self.confidence_moderate_trend.append(snapshot.confidence_vs_moderate)
+        self.confidence_strong_trend.append(snapshot.confidence_vs_strong)
+
+        # EMA smoothed trends (reduces variance, shows clearer improvement)
+        self.elo_ema.append(self._compute_ema(snapshot.pop_mean_elo, self.elo_ema))
+        self.bb_per_100_ema.append(
+            self._compute_ema(snapshot.pop_bb_per_100, self.bb_per_100_ema)
+        )
+        self.vs_strong_ema.append(
+            self._compute_ema(snapshot.pop_bb_vs_strong, self.vs_strong_ema)
+        )
+        self.confidence_strong_ema.append(
+            self._compute_ema(snapshot.confidence_vs_strong, self.confidence_strong_ema)
+        )
+
     def get_improvement_metrics(self) -> Dict[str, Any]:
-        """Calculate improvement metrics over time."""
+        """Calculate improvement metrics over time.
+
+        Uses Elo ratings and EMA smoothing for more stable trend analysis.
+        """
         if len(self.snapshots) < 2:
             return {
                 "status": "insufficient_data",
@@ -116,22 +179,59 @@ class EvolutionBenchmarkHistory:
                 return sum(values) / len(values) if values else 0.0
             return sum(values[-window:]) / window
 
+        # Elo-based improvement (more stable than bb/100)
+        elo_start = self.elo_trend[0] if self.elo_trend else 1200.0
+        elo_end = self.elo_trend[-1] if self.elo_trend else 1200.0
+        elo_ema_start = self.elo_ema[0] if self.elo_ema else 1200.0
+        elo_ema_end = self.elo_ema[-1] if self.elo_ema else 1200.0
+
+        # Confidence-based improvement (probability of winning)
+        conf_strong_start = (
+            self.confidence_strong_trend[0] if self.confidence_strong_trend else 0.5
+        )
+        conf_strong_end = (
+            self.confidence_strong_trend[-1] if self.confidence_strong_trend else 0.5
+        )
+        conf_strong_ema_end = (
+            self.confidence_strong_ema[-1] if self.confidence_strong_ema else 0.5
+        )
+
+        # Use EMA for trend direction (more stable than raw values)
+        elo_slope = trend_slope(self.elo_ema) if self.elo_ema else 0.0
+
+        # Determine trend direction based on Elo EMA slope
+        # Elo change of ~10 points per snapshot is meaningful improvement
+        if elo_slope > 5:
+            trend_direction = "improving"
+        elif elo_slope < -5:
+            trend_direction = "declining"
+        else:
+            trend_direction = "stable"
+
         return {
             "status": "tracked",
             "total_snapshots": len(self.snapshots),
             "frames_tracked": last.frame - first.frame,
             "generation_start": first.generation_estimate,
             "generation_end": last.generation_estimate,
-            # Overall skill progression
+            # Elo-based skill progression (primary metric - more stable)
+            "elo_start": round(elo_start, 1),
+            "elo_end": round(elo_end, 1),
+            "elo_change": round(elo_end - elo_start, 1),
+            "elo_ema_current": round(elo_ema_end, 1),
+            "elo_slope": round(elo_slope, 2),
+            # Confidence-based assessment (probability of winning)
+            "confidence_vs_strong_start": round(conf_strong_start, 3),
+            "confidence_vs_strong_end": round(conf_strong_end, 3),
+            "confidence_vs_strong_ema": round(conf_strong_ema_end, 3),
+            "confidence_change": round(conf_strong_end - conf_strong_start, 3),
+            # Overall bb/100 skill progression (raw metrics for reference)
             "bb_per_100_start": round(first.pop_bb_per_100, 2),
             "bb_per_100_end": round(last.pop_bb_per_100, 2),
             "bb_per_100_change": round(last.pop_bb_per_100 - first.pop_bb_per_100, 2),
-            "bb_per_100_slope": round(trend_slope(self.bb_per_100_trend), 4),
-            "bb_per_100_recent_avg": round(moving_avg(self.bb_per_100_trend), 2),
-            # Weighted skill (accounts for opponent difficulty)
-            "weighted_bb_start": round(first.pop_weighted_bb, 2),
-            "weighted_bb_end": round(last.pop_weighted_bb, 2),
-            "weighted_bb_change": round(last.pop_weighted_bb - first.pop_weighted_bb, 2),
+            "bb_per_100_ema_current": round(
+                self.bb_per_100_ema[-1] if self.bb_per_100_ema else 0.0, 2
+            ),
             # Per-tier progression
             "vs_trivial_change": round(
                 last.pop_bb_vs_trivial - first.pop_bb_vs_trivial, 2
@@ -143,26 +243,29 @@ class EvolutionBenchmarkHistory:
             "vs_strong_change": round(
                 last.pop_bb_vs_strong - first.pop_bb_vs_strong, 2
             ),
+            "vs_strong_ema_current": round(
+                self.vs_strong_ema[-1] if self.vs_strong_ema else 0.0, 2
+            ),
             # Best performer progression
+            "best_elo_start": round(first.best_elo, 1),
+            "best_elo_end": round(last.best_elo, 1),
+            "best_elo_change": round(last.best_elo - first.best_elo, 1),
             "best_bb_start": round(first.best_bb_per_100, 2),
             "best_bb_end": round(last.best_bb_per_100, 2),
-            "best_bb_change": round(
-                last.best_bb_per_100 - first.best_bb_per_100, 2
-            ),
+            "best_bb_change": round(last.best_bb_per_100 - first.best_bb_per_100, 2),
             # Strategy evolution
             "dominant_strategy_start": first.dominant_strategy,
             "dominant_strategy_end": last.dominant_strategy,
-            # Qualitative assessments
-            "is_improving": last.pop_bb_per_100 > first.pop_bb_per_100,
-            "trend_direction": "improving"
-            if trend_slope(self.bb_per_100_trend) > 0.1
-            else "declining"
-            if trend_slope(self.bb_per_100_trend) < -0.1
-            else "stable",
-            "can_beat_trivial": last.pop_bb_vs_trivial > 10,  # > 10 bb/100
-            "can_beat_weak": last.pop_bb_vs_weak > 5,  # > 5 bb/100
-            "can_beat_moderate": last.pop_bb_vs_moderate > 0,  # Positive
-            "can_beat_strong": last.pop_bb_vs_strong > 0,  # Positive
+            # Qualitative assessments using Elo and confidence
+            "is_improving": elo_end > elo_start + 20,  # Significant Elo gain
+            "trend_direction": trend_direction,
+            # Skill tier assessments (based on confidence, not raw bb/100)
+            "can_beat_trivial": last.pop_bb_vs_trivial > 10,
+            "can_beat_weak": last.confidence_vs_weak > 0.7,  # >70% confident
+            "can_beat_moderate": last.confidence_vs_moderate > 0.6,  # >60% confident
+            "can_beat_strong": last.confidence_vs_strong > 0.55,  # >55% confident
+            # Skill tier distribution (latest)
+            "elo_tier_distribution": last.elo_tier_distribution,
         }
 
     def get_variance_metrics(self) -> Dict[str, float]:
@@ -251,6 +354,14 @@ class EvolutionBenchmarkTracker:
             pop_bb_vs_weak=result.pop_bb_vs_weak,
             pop_bb_vs_moderate=result.pop_bb_vs_moderate,
             pop_bb_vs_strong=result.pop_bb_vs_strong,
+            # Elo rating metrics (more stable than raw bb/100)
+            pop_mean_elo=result.pop_mean_elo,
+            pop_median_elo=result.pop_median_elo,
+            elo_tier_distribution=result.elo_tier_distribution.copy(),
+            # Confidence-based skill assessments
+            confidence_vs_weak=result.pop_confidence_vs_weak,
+            confidence_vs_moderate=result.pop_confidence_vs_moderate,
+            confidence_vs_strong=result.pop_confidence_vs_strong,
             strategy_distribution=result.strategy_count.copy(),
             dominant_strategy=max(
                 result.strategy_count.items(), key=lambda x: x[1]
@@ -259,6 +370,7 @@ class EvolutionBenchmarkTracker:
             else "",
             best_fish_id=result.best_fish_id,
             best_bb_per_100=result.best_bb_per_100,
+            best_elo=result.best_elo,
             best_strategy=result.best_strategy,
             per_baseline_bb_per_100=result.pop_vs_baseline.copy(),
             fish_evaluated=result.fish_evaluated,
@@ -274,10 +386,10 @@ class EvolutionBenchmarkTracker:
 
         logger.info(
             f"Evolution benchmark @ frame {current_frame}: "
-            f"pop_bb/100={snapshot.pop_bb_per_100:.1f}, "
-            f"vs_weak={snapshot.pop_bb_vs_weak:.1f}, "
+            f"pop_elo={snapshot.pop_mean_elo:.0f}, "
+            f"conf_strong={snapshot.confidence_vs_strong:.0%}, "
             f"vs_strong={snapshot.pop_bb_vs_strong:.1f}, "
-            f"best={snapshot.best_bb_per_100:.1f} ({snapshot.best_strategy})"
+            f"best_elo={snapshot.best_elo:.0f} ({snapshot.best_strategy})"
         )
 
         return snapshot
@@ -298,6 +410,15 @@ class EvolutionBenchmarkTracker:
                         "frame": s.frame,
                         "timestamp": s.timestamp,
                         "generation": s.generation_estimate,
+                        # Elo ratings (primary stable metric)
+                        "pop_mean_elo": round(s.pop_mean_elo, 1),
+                        "pop_median_elo": round(s.pop_median_elo, 1),
+                        "elo_tier_distribution": s.elo_tier_distribution,
+                        # Confidence metrics (probability of winning)
+                        "confidence_vs_weak": round(s.confidence_vs_weak, 3),
+                        "confidence_vs_moderate": round(s.confidence_vs_moderate, 3),
+                        "confidence_vs_strong": round(s.confidence_vs_strong, 3),
+                        # Raw bb/100 metrics (for reference)
                         "pop_bb_per_100": round(s.pop_bb_per_100, 2),
                         "pop_weighted_bb": round(s.pop_weighted_bb, 2),
                         "pop_bb_vs_trivial": round(s.pop_bb_vs_trivial, 2),
@@ -307,6 +428,7 @@ class EvolutionBenchmarkTracker:
                         "strategy_distribution": s.strategy_distribution,
                         "dominant_strategy": s.dominant_strategy,
                         "best_bb_per_100": round(s.best_bb_per_100, 2),
+                        "best_elo": round(s.best_elo, 1),
                         "best_strategy": s.best_strategy,
                         "per_baseline": {
                             k: round(v, 2)
@@ -318,6 +440,28 @@ class EvolutionBenchmarkTracker:
                     for s in self.history.snapshots
                 ],
                 "trends": {
+                    # Elo trends (more stable, preferred)
+                    "elo": [round(v, 1) for v in self.history.elo_trend],
+                    "elo_median": [round(v, 1) for v in self.history.elo_median_trend],
+                    "best_elo": [round(v, 1) for v in self.history.best_elo_trend],
+                    # EMA smoothed trends (reduced variance)
+                    "elo_ema": [round(v, 1) for v in self.history.elo_ema],
+                    "bb_per_100_ema": [round(v, 2) for v in self.history.bb_per_100_ema],
+                    "vs_strong_ema": [round(v, 2) for v in self.history.vs_strong_ema],
+                    "confidence_strong_ema": [
+                        round(v, 3) for v in self.history.confidence_strong_ema
+                    ],
+                    # Confidence trends
+                    "confidence_weak": [
+                        round(v, 3) for v in self.history.confidence_weak_trend
+                    ],
+                    "confidence_moderate": [
+                        round(v, 3) for v in self.history.confidence_moderate_trend
+                    ],
+                    "confidence_strong": [
+                        round(v, 3) for v in self.history.confidence_strong_trend
+                    ],
+                    # Raw bb/100 trends (for reference)
                     "bb_per_100": [round(v, 2) for v in self.history.bb_per_100_trend],
                     "weighted_bb": [round(v, 2) for v in self.history.weighted_bb_trend],
                     "vs_trivial": [round(v, 2) for v in self.history.vs_trivial_trend],
@@ -348,6 +492,15 @@ class EvolutionBenchmarkTracker:
                 {
                     "frame": s.frame,
                     "generation": s.generation_estimate,
+                    # Elo ratings (primary stable metric)
+                    "pop_mean_elo": round(s.pop_mean_elo, 1),
+                    "pop_median_elo": round(s.pop_median_elo, 1),
+                    "elo_tier_distribution": s.elo_tier_distribution,
+                    # Confidence metrics (probability of winning)
+                    "conf_weak": round(s.confidence_vs_weak, 3),
+                    "conf_moderate": round(s.confidence_vs_moderate, 3),
+                    "conf_strong": round(s.confidence_vs_strong, 3),
+                    # Raw bb/100 metrics (for reference)
                     "pop_bb_per_100": round(s.pop_bb_per_100, 2),
                     "pop_weighted_bb": round(s.pop_weighted_bb, 2),
                     "vs_trivial": round(s.pop_bb_vs_trivial, 2),
@@ -355,6 +508,7 @@ class EvolutionBenchmarkTracker:
                     "vs_moderate": round(s.pop_bb_vs_moderate, 2),
                     "vs_strong": round(s.pop_bb_vs_strong, 2),
                     "best_bb": round(s.best_bb_per_100, 2),
+                    "best_elo": round(s.best_elo, 1),
                     "dominant_strategy": s.dominant_strategy,
                     "per_baseline": {
                         k: round(v, 2) for k, v in s.per_baseline_bb_per_100.items()
@@ -362,10 +516,31 @@ class EvolutionBenchmarkTracker:
                 }
                 for s in self.history.snapshots
             ],
+            # EMA smoothed trends for stable visualization
+            "ema_trends": {
+                "elo": [round(v, 1) for v in self.history.elo_ema],
+                "bb_per_100": [round(v, 2) for v in self.history.bb_per_100_ema],
+                "vs_strong": [round(v, 2) for v in self.history.vs_strong_ema],
+                "conf_strong": [round(v, 3) for v in self.history.confidence_strong_ema],
+            },
             "improvement": self.history.get_improvement_metrics(),
             "latest": {
                 "frame": self.history.snapshots[-1].frame,
                 "generation": self.history.snapshots[-1].generation_estimate,
+                # Elo ratings (primary stable metric)
+                "pop_mean_elo": round(self.history.snapshots[-1].pop_mean_elo, 1),
+                "pop_median_elo": round(self.history.snapshots[-1].pop_median_elo, 1),
+                "elo_tier_distribution": self.history.snapshots[-1].elo_tier_distribution,
+                # EMA smoothed values (for stable current reading)
+                "elo_ema": round(self.history.elo_ema[-1], 1) if self.history.elo_ema else 1200.0,
+                # Confidence metrics
+                "conf_weak": round(self.history.snapshots[-1].confidence_vs_weak, 3),
+                "conf_moderate": round(self.history.snapshots[-1].confidence_vs_moderate, 3),
+                "conf_strong": round(self.history.snapshots[-1].confidence_vs_strong, 3),
+                "conf_strong_ema": round(
+                    self.history.confidence_strong_ema[-1], 3
+                ) if self.history.confidence_strong_ema else 0.5,
+                # Raw bb/100 metrics (for reference)
                 "pop_bb_per_100": round(self.history.snapshots[-1].pop_bb_per_100, 2),
                 "pop_weighted_bb": round(
                     self.history.snapshots[-1].pop_weighted_bb, 2
@@ -377,6 +552,7 @@ class EvolutionBenchmarkTracker:
                 ),
                 "vs_strong": round(self.history.snapshots[-1].pop_bb_vs_strong, 2),
                 "best_bb": round(self.history.snapshots[-1].best_bb_per_100, 2),
+                "best_elo": round(self.history.snapshots[-1].best_elo, 1),
                 "best_strategy": self.history.snapshots[-1].best_strategy,
                 "dominant_strategy": self.history.snapshots[-1].dominant_strategy,
                 "per_baseline": {
