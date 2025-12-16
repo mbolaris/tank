@@ -11,6 +11,7 @@ import { PokerGame } from './PokerGame';
 import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
+import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
 
@@ -292,6 +293,11 @@ export function TankView({ tankId }: TankViewProps) {
                     </div>
                 )
             }
+
+            {/* Poker Skill Benchmark (bb/100) */}
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                <EvolutionBenchmarkDisplay />
+            </div>
 
             {/* Poker Dashboard - Leaderboard & Activity */}
             {

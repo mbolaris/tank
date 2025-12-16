@@ -7,15 +7,25 @@ This module provides command-line options to run the simulation:
 
 import argparse
 import logging
+import os
 import sys
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=os.getenv("TANK_LOG_LEVEL", "INFO").upper(),
     format="%(levelname)s:%(name)s:%(message)s",
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _request_shutdown_best_effort() -> None:
+    try:
+        from core.auto_evaluate_poker import request_shutdown
+
+        request_shutdown()
+    except Exception:
+        pass
 
 
 def run_web_server():
@@ -143,4 +153,9 @@ Examples:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info("KeyboardInterrupt received, shutting down...")
+        _request_shutdown_best_effort()
+        sys.exit(0)

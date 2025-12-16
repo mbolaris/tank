@@ -104,6 +104,19 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                     >
                         {trueDelta > 0 ? '+' : ''}{formatVal(trueDelta)}⚡ Net
                     </div>
+                    <div
+                        style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: netExternalFlow >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+                            background: netExternalFlow >= 0 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                        }}
+                        title="Net external flow (inflows - outflows) over the last 60 seconds"
+                    >
+                        {netExternalFlow > 0 ? '+' : ''}{formatVal(netExternalFlow)}⚡ Ext
+                    </div>
                 </div>
             </div>
 

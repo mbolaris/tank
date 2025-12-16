@@ -226,15 +226,42 @@ class MixedPokerInteraction:
     # Cooldown between poker games (in frames)
     POKER_COOLDOWN = 60
 
+    @staticmethod
+    def _is_fish_player(player: Any) -> bool:
+        """Robust fish detection.
+
+        Uses `isinstance` when possible but falls back to duck-typing to avoid
+        issues when modules are reloaded (old instances won't match new classes).
+        """
+        try:
+            from core.entities.fish import Fish  # type: ignore
+
+            if isinstance(player, Fish):
+                return True
+        except Exception:
+            pass
+
+        return hasattr(player, "fish_id") and hasattr(player, "genome")
+
+    @staticmethod
+    def _is_fractal_plant_player(player: Any) -> bool:
+        """Robust fractal plant detection (see `_is_fish_player`)."""
+        try:
+            from core.entities.fractal_plant import FractalPlant  # type: ignore
+
+            if isinstance(player, FractalPlant):
+                return True
+        except Exception:
+            pass
+
+        return hasattr(player, "plant_id") and hasattr(player, "gain_energy") and hasattr(player, "lose_energy")
+
     def __init__(self, players: List[Player]):
         """Initialize a mixed poker interaction.
 
         Args:
             players: List of Fish and/or FractalPlant objects (2-6 players)
         """
-        from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
-
         if len(players) < 2:
             raise ValueError("Poker requires at least 2 players")
 
@@ -247,8 +274,8 @@ class MixedPokerInteraction:
         self.result: Optional[MixedPokerResult] = None
 
         # Categorize players
-        self.fish_players = [p for p in players if isinstance(p, Fish)]
-        self.plant_players = [p for p in players if isinstance(p, FractalPlant)]
+        self.fish_players = [p for p in players if self._is_fish_player(p)]
+        self.plant_players = [p for p in players if self._is_fractal_plant_player(p)]
         self.fish_count = len(self.fish_players)
         self.plant_count = len(self.plant_players)
 
@@ -258,30 +285,21 @@ class MixedPokerInteraction:
             self._get_player_energy(p) for p in self.players
         ]
 
-        # Require at least 1 fish in the game (no plant-only poker)
-        if self.fish_count < 1:
-            raise ValueError("Poker games require at least 1 fish (no plant-only games)")
-
     def _get_player_id(self, player: Player) -> int:
         """Get the stable ID of a player (matching frontend entity IDs)."""
         from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
-        from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
 
-        if isinstance(player, Fish):
+        if self._is_fish_player(player):
             return player.fish_id + FISH_ID_OFFSET
-        elif isinstance(player, FractalPlant):
+        elif self._is_fractal_plant_player(player):
             return player.plant_id + PLANT_ID_OFFSET
         return id(player)
 
     def _get_player_type(self, player: Player) -> str:
         """Get the type of a player (matching frontend entity type names)."""
-        from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
-
-        if isinstance(player, Fish):
+        if self._is_fish_player(player):
             return "fish"
-        elif isinstance(player, FractalPlant):
+        elif self._is_fractal_plant_player(player):
             return "fractal_plant"  # Must match frontend entity type
         return "unknown"
 
@@ -300,26 +318,20 @@ class MixedPokerInteraction:
         For fish, this is genome.poker_strategy_algorithm.
         For plants, this creates a PlantPokerStrategyAdapter.
         """
-        from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
-
-        if isinstance(player, Fish):
+        if self._is_fish_player(player):
             return player.genome.poker_strategy_algorithm
-        elif isinstance(player, FractalPlant):
+        elif self._is_fractal_plant_player(player):
             from core.plant_poker_strategy import PlantPokerStrategyAdapter
             return PlantPokerStrategyAdapter.from_plant(player)
         return None
 
     def _get_player_aggression(self, player: Player) -> float:
         """Get the poker aggression of a player."""
-        from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
-
-        if isinstance(player, Fish):
+        if self._is_fish_player(player):
             return POKER_AGGRESSION_LOW + (
                 player.genome.aggression * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW)
             )
-        elif isinstance(player, FractalPlant):
+        elif self._is_fractal_plant_player(player):
             return POKER_AGGRESSION_LOW + (
                 player.get_poker_aggression() * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW)
             )
@@ -327,13 +339,10 @@ class MixedPokerInteraction:
 
     def _modify_player_energy(self, player: Player, amount: float) -> None:
         """Modify the energy of a player."""
-        from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
-
-        if isinstance(player, Fish):
+        if self._is_fish_player(player) or hasattr(player, "modify_energy"):
             # Use modify_energy to properly cap at max and route overflow to reproduction/food
             player.modify_energy(amount)
-        elif isinstance(player, FractalPlant):
+        elif self._is_fractal_plant_player(player):
             if amount > 0:
                 player.gain_energy(amount)
             else:
@@ -396,11 +405,12 @@ class MixedPokerInteraction:
         Returns:
             True if poker game can proceed
         """
-        from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
-
         # Need at least 2 players
         if self.num_players < 2:
+            return False
+
+        # Require at least 1 fish (no plant-only poker)
+        if self.fish_count < 1:
             return False
 
         for player in self.players:
@@ -409,7 +419,7 @@ class MixedPokerInteraction:
                 return False
 
             # Check if plant is dead
-            if isinstance(player, FractalPlant) and player.is_dead():
+            if self._is_fractal_plant_player(player) and player.is_dead():
                 return False
 
             # Check cooldown
@@ -418,7 +428,7 @@ class MixedPokerInteraction:
                 return False
 
             # Check if fish is pregnant (don't interrupt)
-            if isinstance(player, Fish):
+            if self._is_fish_player(player):
                 if hasattr(player, "is_pregnant") and player.is_pregnant:
                     return False
 

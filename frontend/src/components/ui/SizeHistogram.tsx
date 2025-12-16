@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface SizeHistogramProps {
     bins?: number[];
     edges?: number[];
@@ -7,7 +5,7 @@ interface SizeHistogramProps {
     height?: number;
 }
 
-export default function SizeHistogram({ bins = [], edges = [], width = 240, height = 48 }: SizeHistogramProps) {
+export default function SizeHistogram({ bins = [], width = 240, height = 48 }: SizeHistogramProps) {
     if (!bins || bins.length === 0) return null;
 
     const maxCount = Math.max(...bins, 1);

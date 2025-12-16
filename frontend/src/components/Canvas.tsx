@@ -186,7 +186,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
     // Development-only diagnostic: periodically report renderer & cache sizes
     useEffect(() => {
-        if (process.env.NODE_ENV !== 'development') return;
+        if (!import.meta.env.DEV) return;
         const interval = setInterval(() => {
             try {
                 // eslint-disable-next-line no-console

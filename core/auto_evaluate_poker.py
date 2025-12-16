@@ -36,6 +36,21 @@ from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
 
+# Global shutdown flag for graceful termination of long-running loops
+# This allows background threads to exit when the main process receives Ctrl+C
+_shutdown_requested = False
+
+
+def request_shutdown() -> None:
+    """Request shutdown of all auto-evaluate poker games."""
+    global _shutdown_requested
+    _shutdown_requested = True
+
+
+def is_shutdown_requested() -> bool:
+    """Check if shutdown has been requested."""
+    return _shutdown_requested
+
 
 @dataclass
 class EvalPlayerState:
@@ -444,6 +459,11 @@ class AutoEvaluatePokerGame:
         num_players = len(self.players)
 
         while actions_taken < max_actions:
+            # Make shutdown responsive even in the middle of a hand.
+            if _shutdown_requested:
+                self.game_over = True
+                return
+
             current = self.players[self.current_player_index]
 
             # If current player folded, skip to next
@@ -467,6 +487,10 @@ class AutoEvaluatePokerGame:
             # Move to next player
             self.current_player_index = (self.current_player_index + 1) % num_players
             actions_taken += 1
+
+            # Yield to reduce GIL starvation of the main server thread/event loop.
+            if actions_taken % 10 == 0:
+                time.sleep(0)
 
     def _is_betting_complete(self) -> bool:
         """Check if betting is complete for the current round."""
@@ -568,6 +592,12 @@ class AutoEvaluatePokerGame:
         self._record_hand_performance()
 
         while self.hands_played < self.max_hands:
+            # Check for shutdown request (allows Ctrl+C to work)
+            if _shutdown_requested:
+                logger.debug(f"Poker game {self.game_id}: Shutdown requested, ending early")
+                self.game_over = True
+                break
+
             # Check how many players can still play (have energy >= big blind)
             active_players = [p for p in self.players if p.energy >= self.big_blind]
 
@@ -677,6 +707,19 @@ class AutoEvaluatePokerGame:
         Returns:
             AutoEvaluateStats with net_bb_for_candidate field populated
         """
+        # Fast exit during shutdown to keep the process responsive to Ctrl+C.
+        if is_shutdown_requested():
+            return AutoEvaluateStats(
+                hands_played=0,
+                hands_remaining=num_hands,
+                players=[],
+                game_over=True,
+                winner=None,
+                reason="Shutdown requested",
+                performance_history=[],
+                net_bb_for_candidate=0.0,
+            )
+
         # Build player pool with candidate in specified seat
         if candidate_seat == 0:
             player_pool = [
@@ -704,9 +747,11 @@ class AutoEvaluatePokerGame:
 
         # Verify expected number of hands were played
         if stats.hands_played != num_hands:
-            logger.warning(
+            # Early exit is expected when a player busts before `num_hands`.
+            # This can be noisy during large benchmark sweeps, so keep it at DEBUG.
+            logger.debug(
                 f"HU evaluation exited early: expected {num_hands} hands, "
-                f"played {stats.hands_played}"
+                f"played {stats.hands_played} (all but one player busted)"
             )
 
         # Use seat-based indexing (candidate is at candidate_seat)

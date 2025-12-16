@@ -5,6 +5,7 @@ and tracking their results, removing this complexity from the main simulation ru
 """
 
 import logging
+import os
 import threading
 import time
 import uuid
@@ -21,22 +22,55 @@ logger = logging.getLogger(__name__)
 class AutoEvalService:
     """Manages periodic auto-evaluation poker games."""
 
-    def __init__(self, world: Any):
+    def __init__(self, world: Any, world_lock: Optional[threading.Lock] = None):
         """Initialize the auto-evaluation service.
         
         Args:
             world: The TankWorld instance to interact with entities.
+            world_lock: Optional lock held during world updates; used to apply rewards safely.
         """
         self.world = world
+        self.world_lock = world_lock
         self.history: List[Dict[str, Any]] = []
         self.stats: Optional[Dict[str, Any]] = None
+        self.stats_version: int = 0
         self.running: bool = False
-        self.interval_seconds: float = 15.0
+        self.enabled: bool = os.getenv("TANK_AUTO_EVAL_ENABLED", "0").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        # Default interval is intentionally long: auto-eval is CPU-heavy.
+        self.interval_seconds: float = float(os.getenv("TANK_AUTO_EVAL_INTERVAL_SECONDS", "300"))
+        # Keep this low by default: auto-eval is expensive and can starve rendering.
+        self.max_hands: int = int(os.getenv("TANK_AUTO_EVAL_MAX_HANDS", "200"))
         self.last_run_time: float = 0.0
         self.lock = threading.Lock()
 
+        # Rewards are optional; they inject energy into the ecosystem and can destabilize sims.
+        self.reward_enabled: bool = os.getenv(
+            "TANK_AUTO_EVAL_REWARD_ENABLED", "0"
+        ).strip().lower() in ("1", "true", "yes", "on")
+        self.reward_min_hands: int = int(os.getenv("TANK_AUTO_EVAL_REWARD_MIN_HANDS", "100"))
+        self.reward_scale: float = float(os.getenv("TANK_AUTO_EVAL_REWARD_SCALE", "0.05"))
+        self.reward_max_energy: float = float(os.getenv("TANK_AUTO_EVAL_REWARD_MAX_ENERGY", "5"))
+
+        if self.enabled:
+            logger.info(
+                "Auto-eval enabled (interval=%.1fs, max_hands=%d, rewards=%s)",
+                self.interval_seconds,
+                self.max_hands,
+                "on" if self.reward_enabled else "off",
+            )
+
     def update(self) -> None:
         """Check if it's time to run an evaluation and start if needed."""
+        if not self.enabled:
+            return
+        if getattr(self.world, "paused", False):
+            return
+
         now = time.time()
         if self.running or (now - self.last_run_time) < self.interval_seconds:
             return
@@ -121,7 +155,7 @@ class AutoEvalService:
         try:
             game_id = str(uuid.uuid4())
             standard_energy = 500.0
-            max_hands = 5000
+            max_hands = self.max_hands
 
             auto_eval = AutoEvaluatePokerGame(
                 game_id=game_id,
@@ -136,8 +170,8 @@ class AutoEvalService:
             final_stats = auto_eval.run_evaluation()
 
             # Process results
-            self._reward_winners(benchmark_players, final_stats)
             self._update_stats(final_stats)
+            self._reward_winners(benchmark_players, final_stats)
 
         except Exception as e:
             logger.error(f"Auto-evaluation thread failed: {e}", exc_info=True)
@@ -147,52 +181,78 @@ class AutoEvalService:
 
     def _reward_winners(self, benchmark_players: List[Dict[str, Any]], final_stats: Any) -> None:
         """Give energy rewards to winners."""
-        # Acquiring world lock might be needed here if modify_energy isn't thread-safe
-        # But generally we are just modifying entity state. 
-        # Ideally we should synchronize with the simulation update loop.
-        # For now, we follow the pattern of the runner which had a lock, 
-        # BUT runner.lock is private. We might need a way to acquire it or just risk it 
-        # (simulation update is single threaded, this is a background thread).
-        # Actually, the runner acquires `self.lock` before updating world.
-        # We should accept a callback or lock to be safe. 
-        # Or, realizing that `modify_energy` is atomic enough in python (GIL), 
-        # but `ecosystem.record` might have race conditions.
-        
-        # Let's assume for this refactor we will just modify directly and add locking support if we see issues,
-        # OR better, pass a context manager for locking to the service.
-        pass # To be implemented with proper access
+        if not self.reward_enabled:
+            return
 
-        # Re-implement logic from runner:
-        for player_stats in final_stats.players:
-            if player_stats.get("is_standard", False):
-                continue
+        hands_played = int(getattr(final_stats, "hands_played", 0) or 0)
+        if hands_played < self.reward_min_hands:
+            logger.debug(
+                "Auto-eval rewards skipped (hands_played=%d < min=%d)",
+                hands_played,
+                self.reward_min_hands,
+            )
+            return
 
-            net_energy = player_stats.get("net_energy", 0.0)
-            if net_energy <= 0:
-                continue
+        def apply_rewards() -> None:
+            for player_stats in getattr(final_stats, "players", []) or []:
+                if player_stats.get("is_standard", False):
+                    continue
 
-            fish_id = player_stats.get("fish_id")
-            plant_id = player_stats.get("plant_id")
+                net_energy = float(player_stats.get("net_energy", 0.0) or 0.0)
+                if net_energy <= 0:
+                    continue
 
-            if fish_id is not None:
-                fish = next((e for e in self.world.entities_list
-                            if isinstance(e, Fish) and e.fish_id == fish_id), None)
-                if fish and net_energy > 0:
-                    actual_gain = fish.modify_energy(net_energy)
-                    if actual_gain > 0 and fish.ecosystem is not None:
-                        fish.ecosystem.record_auto_eval_energy_gain(actual_gain)
-                    logger.info(f"Auto-eval reward: Fish #{fish_id} gained {actual_gain:.1f} energy")
+                reward = min(self.reward_max_energy, net_energy * self.reward_scale)
+                if reward <= 0:
+                    continue
 
-            elif plant_id is not None:
-                plant = next((e for e in self.world.entities_list
-                            if isinstance(e, FractalPlant) and e.plant_id == plant_id), None)
-                if plant:
-                    reward = min(net_energy, plant.max_energy - plant.energy)
-                    if reward > 0:
-                        actual_gain = plant.gain_energy(reward, source="auto_eval")
-                        logger.info(
-                            f"Auto-eval reward: Plant #{plant_id} gained {actual_gain:.1f} energy"
+                fish_id = player_stats.get("fish_id")
+                plant_id = player_stats.get("plant_id")
+
+                if fish_id is not None:
+                    fish = next(
+                        (
+                            e
+                            for e in self.world.entities_list
+                            if isinstance(e, Fish) and e.fish_id == fish_id
+                        ),
+                        None,
+                    )
+                    if fish:
+                        actual_gain = fish.modify_energy(reward)
+                        if actual_gain > 0 and fish.ecosystem is not None:
+                            fish.ecosystem.record_auto_eval_energy_gain(actual_gain)
+                        logger.debug(
+                            "Auto-eval reward: Fish #%s gained %.2f energy",
+                            fish_id,
+                            actual_gain,
                         )
+
+                elif plant_id is not None:
+                    plant = next(
+                        (
+                            e
+                            for e in self.world.entities_list
+                            if isinstance(e, FractalPlant) and e.plant_id == plant_id
+                        ),
+                        None,
+                    )
+                    if plant:
+                        capped = min(reward, plant.max_energy - plant.energy)
+                        if capped > 0:
+                            actual_gain = plant.gain_energy(capped, source="auto_eval")
+                            logger.debug(
+                                "Auto-eval reward: Plant #%s gained %.2f energy",
+                                plant_id,
+                                actual_gain,
+                            )
+
+        if self.world_lock is None:
+            apply_rewards()
+            return
+
+        with self.world_lock:
+            apply_rewards()
 
     def _update_stats(self, final_stats: Any) -> None:
         """Update internal statistics."""
@@ -219,6 +279,7 @@ class AutoEvalService:
                 "players": players_with_win_rate,
                 "performance_history": list(self.history),
             }
+            self.stats_version += 1
 
             # Limit history size to prevent unbounded growth
             MAX_HISTORY_ITEMS = 50
@@ -237,3 +298,8 @@ class AutoEvalService:
         """Return full history."""
         with self.lock:
             return list(self.history)
+
+    def get_stats_version(self) -> int:
+        """Monotonic counter incremented whenever stats are updated."""
+        with self.lock:
+            return self.stats_version

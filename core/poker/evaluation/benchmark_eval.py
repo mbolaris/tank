@@ -185,6 +185,7 @@ def evaluate_vs_single_benchmark_duplicate(
     """
     # Import here to avoid circular import with core.auto_evaluate_poker
     from core.auto_evaluate_poker import AutoEvaluatePokerGame
+    from core.auto_evaluate_poker import is_shutdown_requested
 
     benchmark_algo = create_standard_strategy(benchmark_id)
 
@@ -193,6 +194,9 @@ def evaluate_vs_single_benchmark_duplicate(
     total_net_bb = 0.0  # big blinds won by candidate
 
     for dup_idx in range(cfg.num_duplicate_sets):
+        if is_shutdown_requested():
+            break
+
         seed = cfg.base_seed + dup_idx
 
         # Seat 0: candidate vs benchmark
@@ -206,6 +210,9 @@ def evaluate_vs_single_benchmark_duplicate(
             starting_stack=cfg.starting_stack,
             rng_seed=seed,
         )
+
+        if is_shutdown_requested():
+            break
 
         # Seat 1: benchmark vs candidate (candidate on the right / BB)
         stats_b = AutoEvaluatePokerGame.run_heads_up(

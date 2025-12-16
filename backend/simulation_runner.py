@@ -1,6 +1,7 @@
 """Background simulation runner thread."""
 
 import asyncio
+import os
 import logging
 import threading
 import time
@@ -94,22 +95,36 @@ class SimulationRunner:
 
         # Ongoing auto-evaluation against static baseline
         from backend.services.auto_eval_service import AutoEvalService
-        self.auto_eval_service = AutoEvalService(self.world)
+        self.auto_eval_service = AutoEvalService(self.world, world_lock=self.lock)
         self.auto_eval_running = False
+        self._last_auto_eval_stats_version = self.auto_eval_service.get_stats_version()
         self.auto_eval_interval_seconds = 15.0  # Kept for compatibility if needed
         self.last_auto_eval_time = 0.0          # Kept for compatibility if needed
         self.auto_eval_lock = self.auto_eval_service.lock  # Alias lock if needed, or just rely on service
 
         # Evolution benchmark tracker for longitudinal skill measurement
-        from core.poker.evaluation.evolution_benchmark_tracker import (
-            EvolutionBenchmarkTracker,
-        )
-        from pathlib import Path
-        self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
-            eval_interval_frames=15_000,  # ~8 minutes at 30fps
-            export_path=Path("data") / "poker_evolution_benchmark.json",
-            use_quick_benchmark=True,  # Use quick benchmark for performance
-        )
+        self.evolution_benchmark_tracker = None
+        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        ):
+            from core.poker.evaluation.evolution_benchmark_tracker import (
+                EvolutionBenchmarkTracker,
+            )
+            from pathlib import Path
+
+            self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
+                eval_interval_frames=int(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "1800")),
+                export_path=Path("data") / "poker_evolution_benchmark.json",
+                use_quick_benchmark=True,
+            )
+            self._evolution_benchmark_guard = threading.Lock()
+            self._evolution_benchmark_last_completed_time = 0.0
+        else:
+            self._evolution_benchmark_guard = None
+            self._evolution_benchmark_last_completed_time = 0.0
 
         # Migration support
         self.tank_id = tank_id
@@ -273,6 +288,10 @@ class SimulationRunner:
 
                     self._start_auto_evaluation_if_needed()
 
+                    # Yield to keep the main server thread/event loop responsive
+                    # (important for Ctrl+C handling under heavy simulation load).
+                    time.sleep(0)
+
                     # FPS Calculation
                     self.fps_frame_count += 1
                     current_time = time.time()
@@ -302,6 +321,9 @@ class SimulationRunner:
                             # We are falling too far behind, reset target to avoid "spiral of death"
                             # where we try to execute 0-delay frames forever to catch up
                             next_frame_target = now
+                    else:
+                        # Even in fast-forward mode, yield occasionally so signals/shutdown remain responsive.
+                        time.sleep(0)
 
                 except Exception as e:
                     logger.error(f"Simulation loop: Unexpected error at frame {frame_count}: {e}", exc_info=True)
@@ -318,12 +340,16 @@ class SimulationRunner:
     def _start_auto_evaluation_if_needed(self) -> None:
         """Periodically benchmark top fish against the static evaluator."""
         if hasattr(self, "auto_eval_service"):
-             self.auto_eval_service.update()
-             if self.auto_eval_service.running != self.auto_eval_running:
-                 # Sync running state if needed, or just rely on invalidating cache when done
-                 if not self.auto_eval_service.running and self.auto_eval_running:
-                     self._invalidate_state_cache()
-                 self.auto_eval_running = self.auto_eval_service.running
+            self.auto_eval_service.update()
+            current_version = self.auto_eval_service.get_stats_version()
+            if current_version != self._last_auto_eval_stats_version:
+                self._last_auto_eval_stats_version = current_version
+                self._invalidate_state_cache()
+            if self.auto_eval_service.running != self.auto_eval_running:
+                # Sync running state if needed, or just rely on invalidating cache when done
+                if not self.auto_eval_service.running and self.auto_eval_running:
+                    self._invalidate_state_cache()
+                self.auto_eval_running = self.auto_eval_service.running
 
         # Run evolution benchmark tracker (runs in background thread when due)
         self._run_evolution_benchmark_if_needed()
@@ -334,28 +360,51 @@ class SimulationRunner:
         The benchmark runs in a background thread to avoid blocking the main loop.
         Results are used to track poker skill evolution over generations.
         """
-        if not hasattr(self, "evolution_benchmark_tracker"):
+        tracker = getattr(self, "evolution_benchmark_tracker", None)
+        if tracker is None:
             return
-
-        tracker = self.evolution_benchmark_tracker
         current_frame = self.world.frame_count
 
-        if tracker.should_run(current_frame):
+        paused_only = os.getenv("TANK_EVOLUTION_BENCHMARK_PAUSED_ONLY", "0").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        if paused_only and not getattr(self.world, "paused", False):
+            return
+
+        interval_seconds = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "60"))
+        now = time.time()
+        last_completed = float(getattr(self, "_evolution_benchmark_last_completed_time", 0.0) or 0.0)
+        if now - last_completed < interval_seconds:
+            return
+
+        guard = getattr(self, "_evolution_benchmark_guard", None)
+        if guard is None:
+            return
+
+        if guard.acquire(blocking=False):
             # Run benchmark in background thread to avoid blocking
             import threading
 
             def run_benchmark():
                 try:
-                    fish_list = [
-                        e for e in self.world.entities_list
-                        if isinstance(e, Fish)
-                    ]
+                    with self.lock:
+                        fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
                     tracker.run_and_record(
                         fish_population=fish_list,
                         current_frame=current_frame,
+                        force=True,
                     )
                 except Exception as e:
                     logger.error(f"Evolution benchmark failed: {e}", exc_info=True)
+                finally:
+                    self._evolution_benchmark_last_completed_time = time.time()
+                    try:
+                        guard.release()
+                    except Exception:
+                        pass
 
             thread = threading.Thread(
                 target=run_benchmark,
@@ -438,8 +487,12 @@ class SimulationRunner:
 
         self.frames_since_websocket_update = 0
 
-        # Try to acquire lock with timeout to prevent blocking indefinitely
-        lock_acquired = self.lock.acquire(timeout=0.5)
+        # Try to acquire lock with timeout to prevent blocking indefinitely.
+        # If we don't have any cached state yet (fresh server start / first client),
+        # wait longer so the frontend can render an initial snapshot even if the
+        # simulation update is slow.
+        lock_timeout = 5.0 if self._cached_state is None else 0.5
+        lock_acquired = self.lock.acquire(timeout=lock_timeout)
         if not lock_acquired:
             # If we can't get the lock, return cached state to avoid blocking
             logger.debug("get_state: Lock acquisition timed out, returning cached state")
@@ -753,10 +806,11 @@ class SimulationRunner:
             Dictionary with benchmark history, improvement metrics, and latest snapshot.
             Returns empty dict with status if tracker not available.
         """
-        if not hasattr(self, "evolution_benchmark_tracker"):
+        tracker = getattr(self, "evolution_benchmark_tracker", None)
+        if tracker is None:
             return {"status": "not_available", "history": [], "improvement": {}, "latest": None}
 
-        return self.evolution_benchmark_tracker.get_api_data()
+        return tracker.get_api_data()
 
     def _collect_auto_eval(self) -> Optional[AutoEvaluateStatsPayload]:
         if not hasattr(self, "auto_eval_service"):

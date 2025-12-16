@@ -450,6 +450,7 @@ export interface PokerPerformanceSnapshot {
         species?: 'fish' | 'plant';
         energy: number;
         net_energy: number;
+        bb_per_100?: number;
         hands_won?: number;
         hands_lost?: number;
         win_rate?: number;
@@ -490,39 +491,45 @@ export interface BenchmarkSnapshot {
     per_baseline: Record<string, number>;
 }
 
-export interface BenchmarkImprovementMetrics {
-    status: 'tracked' | 'insufficient_data';
-    total_snapshots: number;
-    frames_tracked?: number;
-    generation_start?: number;
-    generation_end?: number;
-    bb_per_100_start?: number;
-    bb_per_100_end?: number;
-    bb_per_100_change?: number;
-    bb_per_100_slope?: number;
-    bb_per_100_recent_avg?: number;
-    weighted_bb_start?: number;
-    weighted_bb_end?: number;
-    weighted_bb_change?: number;
-    vs_trivial_change?: number;
-    vs_weak_change?: number;
-    vs_moderate_change?: number;
-    vs_strong_change?: number;
-    best_bb_start?: number;
-    best_bb_end?: number;
-    best_bb_change?: number;
-    dominant_strategy_start?: string;
-    dominant_strategy_end?: string;
-    is_improving?: boolean;
-    trend_direction?: 'improving' | 'declining' | 'stable';
-    can_beat_trivial?: boolean;
-    can_beat_weak?: boolean;
-    can_beat_moderate?: boolean;
-    can_beat_strong?: boolean;
-}
+export type BenchmarkImprovementMetrics =
+    | {
+          status: 'insufficient_data';
+          snapshots_collected: number;
+      }
+    | {
+          status: 'tracked';
+          total_snapshots: number;
+          frames_tracked?: number;
+          generation_start?: number;
+          generation_end?: number;
+          bb_per_100_start?: number;
+          bb_per_100_end?: number;
+          bb_per_100_change?: number;
+          bb_per_100_slope?: number;
+          bb_per_100_recent_avg?: number;
+          weighted_bb_start?: number;
+          weighted_bb_end?: number;
+          weighted_bb_change?: number;
+          vs_trivial_change?: number;
+          vs_weak_change?: number;
+          vs_moderate_change?: number;
+          vs_strong_change?: number;
+          best_bb_start?: number;
+          best_bb_end?: number;
+          best_bb_change?: number;
+          dominant_strategy_start?: string;
+          dominant_strategy_end?: string;
+          is_improving?: boolean;
+          trend_direction?: 'improving' | 'declining' | 'stable';
+          can_beat_trivial?: boolean;
+          can_beat_weak?: boolean;
+          can_beat_moderate?: boolean;
+          can_beat_strong?: boolean;
+      };
 
 export interface EvolutionBenchmarkData {
+    status?: 'not_available';
     history: BenchmarkSnapshot[];
-    improvement: BenchmarkImprovementMetrics;
+    improvement: BenchmarkImprovementMetrics | Record<string, never>;
     latest: BenchmarkSnapshot | null;
 }

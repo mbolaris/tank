@@ -12,10 +12,10 @@ import { useEffect, useState } from 'react';
 
 function PerformanceChart({
     history,
-    metric = 'energy',
+    metric = 'bbPer100',
 }: {
     history: PokerPerformanceSnapshot[];
-    metric?: 'energy' | 'winRate';
+    metric?: 'bbPer100' | 'energy' | 'winRate';
 }) {
     if (!history || history.length === 0) {
         return null;
@@ -35,7 +35,11 @@ function PerformanceChart({
         const plantPlayers = snapshot.players.filter((p) => p.species === 'plant');
         const standardPlayer = snapshot.players.find((p) => p.is_standard);
 
-        const getValue = (p: PokerPerformanceSnapshot['players'][number]) => metric === 'energy' ? p.net_energy : (p.win_rate ?? 0);
+        const getValue = (p: PokerPerformanceSnapshot['players'][number]) => {
+            if (metric === 'bbPer100') return p.bb_per_100 ?? 0;
+            if (metric === 'energy') return p.net_energy;
+            return p.win_rate ?? 0;
+        };
 
         const fishAvg = fishPlayers.length > 0
             ? fishPlayers.reduce((sum, p) => sum + getValue(p), 0) / fishPlayers.length
@@ -141,7 +145,9 @@ function PerformanceChart({
                         >
                             {metric === 'energy'
                                 ? `${tick >= 0 ? '+' : ''}${Math.round(tick)}`
-                                : `${Math.round(tick)}%`
+                                : metric === 'bbPer100'
+                                    ? `${tick >= 0 ? '+' : ''}${tick.toFixed(1)}`
+                                    : `${Math.round(tick)}%`
                             }
                         </text>
                         {/* Grid line */}
@@ -176,7 +182,7 @@ function PerformanceChart({
                     textAnchor="middle"
                     transform={`rotate(-90, 12, ${(height - padding.top - padding.bottom) / 2 + padding.top})`}
                 >
-                    {metric === 'energy' ? 'Profit' : 'Win %'}
+                    {metric === 'bbPer100' ? 'bb/100' : metric === 'energy' ? 'Profit' : 'Win %'}
                 </text>
 
                 {/* Fish average line */}
@@ -297,7 +303,7 @@ export function AutoEvaluateDisplay({
     loading: boolean;
 }) {
     const [fullHistory, setFullHistory] = useState<PokerPerformanceSnapshot[]>([]);
-    const [metric, setMetric] = useState<'energy' | 'winRate'>('energy');
+    const [metric, setMetric] = useState<'bbPer100' | 'energy' | 'winRate'>('bbPer100');
     const [historyError, setHistoryError] = useState<string | null>(null);
 
     // Fetch full history periodically or when stats update
@@ -368,12 +374,18 @@ export function AutoEvaluateDisplay({
 
     const plantPlayers = nonStandardPlayers.filter(p => p.species === 'plant');
 
-    const plantTotalNet = plantPlayers.reduce((sum, p) => sum + p.net_energy, 0);
-    const standardNet = standardPlayer?.net_energy ?? 0;
-    const plantWinning = plantPlayers.length > 0 && plantTotalNet > standardNet;
+    const standardBbPer100 = standardPlayer?.bb_per_100 ?? 0;
+    const plantAvgBbPer100 = plantPlayers.length > 0
+        ? plantPlayers.reduce((sum, p) => sum + (p.bb_per_100 ?? 0), 0) / plantPlayers.length
+        : 0;
+    const plantWinning = plantPlayers.length > 0 && plantAvgBbPer100 > standardBbPer100;
 
-    // Sort players by net energy for display
-    const sortedPlayers = [...stats.players].sort((a, b) => b.net_energy - a.net_energy);
+    // Sort players by bb/100 for display (primary poker metric), fall back to net energy.
+    const sortedPlayers = [...stats.players].sort((a, b) => {
+        const bbDiff = (b.bb_per_100 ?? Number.NEGATIVE_INFINITY) - (a.bb_per_100 ?? Number.NEGATIVE_INFINITY);
+        if (bbDiff !== 0) return bbDiff;
+        return b.net_energy - a.net_energy;
+    });
     const leader = sortedPlayers[0];
 
     // Use fullHistory if available and longer, otherwise fall back to stats.performance_history
@@ -385,8 +397,14 @@ export function AutoEvaluateDisplay({
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <h2 style={styles.title}>Evolution Benchmark</h2>
+                    <h2 style={styles.title}>Auto-Evaluate Benchmark</h2>
                     <div style={styles.toggleGroup}>
+                        <button
+                            onClick={() => setMetric('bbPer100')}
+                            style={metric === 'bbPer100' ? styles.activeToggle : styles.toggle}
+                        >
+                            bb/100
+                        </button>
                         <button
                             onClick={() => setMetric('energy')}
                             style={metric === 'energy' ? styles.activeToggle : styles.toggle}
@@ -416,7 +434,7 @@ export function AutoEvaluateDisplay({
                 <div style={styles.summaryItem}>
                     <span style={styles.summaryLabel}>Leader</span>
                     <span style={styles.summaryValue}>
-                        {getPlayerIcon(leader)} {leader.name} ({leader.net_energy >= 0 ? '+' : ''}{Math.round(leader.net_energy)} ⚡)
+                        {getPlayerIcon(leader)} {leader.name} ({(leader.bb_per_100 ?? 0) >= 0 ? '+' : ''}{(leader.bb_per_100 ?? 0).toFixed(1)} bb/100)
                     </span>
                 </div>
                 {plantPlayers.length > 0 && (
@@ -426,7 +444,7 @@ export function AutoEvaluateDisplay({
                             ...styles.summaryValue,
                             color: plantWinning ? '#84cc16' : '#ef4444',
                         }}>
-                            {plantWinning ? '+' : ''}{Math.round(plantTotalNet - standardNet)} ⚡
+                            {(plantAvgBbPer100 - standardBbPer100) >= 0 ? '+' : ''}{(plantAvgBbPer100 - standardBbPer100).toFixed(1)} bb/100
                         </span>
                     </div>
                 )}

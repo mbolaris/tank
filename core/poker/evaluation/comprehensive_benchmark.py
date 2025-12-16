@@ -212,7 +212,7 @@ def _evaluate_single_fish(
         return None
 
     fish_result = FishBenchmarkResult(
-        fish_id=fish.id,
+        fish_id=fish.fish_id,
         fish_generation=getattr(fish, "generation", 0),
         strategy_id=strat.strategy_id,
         strategy_params=strat.parameters.copy(),
@@ -221,6 +221,13 @@ def _evaluate_single_fish(
     # Evaluate against each baseline
     for baseline_id in config.fish_vs_baselines.baseline_opponents:
         try:
+            from core.auto_evaluate_poker import is_shutdown_requested
+
+            if is_shutdown_requested():
+                break
+        except Exception:
+            pass
+        try:
             baseline_result = evaluate_vs_single_benchmark_duplicate(
                 candidate_algo=strat,
                 benchmark_id=baseline_id,
@@ -228,7 +235,7 @@ def _evaluate_single_fish(
             )
             fish_result.vs_baselines[baseline_id] = baseline_result
         except Exception as e:
-            logger.warning(f"Failed to evaluate fish {fish.id} vs {baseline_id}: {e}")
+            logger.warning(f"Failed to evaluate fish {fish.fish_id} vs {baseline_id}: {e}")
 
     fish_result.compute_aggregates()
     return fish_result
@@ -255,6 +262,20 @@ def run_comprehensive_benchmark(
     Returns:
         PopulationBenchmarkResult with all metrics
     """
+    # Fast exit during shutdown (Ctrl+C) to avoid keeping non-daemon worker
+    # threads alive and delaying process termination.
+    try:
+        from core.auto_evaluate_poker import is_shutdown_requested
+
+        if is_shutdown_requested():
+            return PopulationBenchmarkResult(
+                frame=frame,
+                timestamp=datetime.now().isoformat(),
+                fish_evaluated=0,
+            )
+    except Exception:
+        pass
+
     if config is None:
         config = ComprehensiveBenchmarkConfig()
 
@@ -314,7 +335,7 @@ def run_comprehensive_benchmark(
                         fish_results.append(fish_result)
                 except Exception as e:
                     fish = futures[future]
-                    logger.error(f"Benchmark failed for fish {fish.id}: {e}")
+                    logger.error(f"Benchmark failed for fish {fish.fish_id}: {e}")
     else:
         for fish in top_fish:
             try:
@@ -322,7 +343,7 @@ def run_comprehensive_benchmark(
                 if fish_result:
                     fish_results.append(fish_result)
             except Exception as e:
-                logger.error(f"Benchmark failed for fish {fish.id}: {e}")
+                logger.error(f"Benchmark failed for fish {fish.fish_id}: {e}")
 
     # Compute population aggregates
     if fish_results:
@@ -408,8 +429,8 @@ def run_quick_benchmark(
         fish_population=fish_population,
         config=QUICK_BENCHMARK_CONFIG,
         frame=frame,
-        parallel=True,
-        max_workers=2,
+        parallel=False,
+        max_workers=1,
     )
 
 

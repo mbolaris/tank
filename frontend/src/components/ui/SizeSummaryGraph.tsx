@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface Props {
     bins?: number[];
     binEdges?: number[];
@@ -22,7 +20,6 @@ export default function SizeSummaryGraph({
     binEdges = [],
     min = 0,
     max = 0,
-    median = 0,
     allowedMin = 0,
     allowedMax = 0,
     width = 260,
@@ -129,15 +126,6 @@ export default function SizeSummaryGraph({
             </svg>
 
             <div style={{ height: 6 }} />
-        </div>
-    );
-}
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-    return (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <div style={{ width: 10, height: 10, background: color, borderRadius: 2 }} />
-            <div style={{ color: 'var(--color-text-dim)', fontSize: 11 }}>{label}</div>
         </div>
     );
 }

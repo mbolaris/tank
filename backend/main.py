@@ -34,13 +34,21 @@ logger = configure_logging(extra_loggers=("backend",))
 
 # Windows-specific asyncio configuration
 if platform.system() == "Windows":
-    logger.info("Windows detected - configuring asyncio event loop policy")
-    try:
-        # Use ProactorEventLoop on Windows for better compatibility
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-        logger.info("Set WindowsProactorEventLoopPolicy for asyncio")
-    except Exception as e:
-        logger.warning(f"Could not set Windows event loop policy: {e}")
+    loop_policy = os.getenv("TANK_WINDOWS_EVENT_LOOP", "selector").strip().lower()
+    if loop_policy and loop_policy != "default":
+        logger.info("Windows detected - configuring asyncio event loop policy: %s", loop_policy)
+        try:
+            if loop_policy == "proactor":
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+            elif loop_policy == "selector":
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+            else:
+                logger.warning(
+                    "Unknown TANK_WINDOWS_EVENT_LOOP=%s (expected selector|proactor|default); leaving default policy",
+                    loop_policy,
+                )
+        except Exception as e:
+            logger.warning("Could not set Windows event loop policy: %s", e)
 
 # Global tank registry - manages multiple tank simulations for Tank World Net
 # Note: create_default=False because we'll restore from snapshots first
@@ -228,6 +236,14 @@ async def lifespan(app: FastAPI):
         logger.error(f"Exception in lifespan startup: {e}", exc_info=True)
         raise
     finally:
+        # Ensure long-running poker evaluation loops can terminate during shutdown.
+        try:
+            from core.auto_evaluate_poker import request_shutdown
+
+            request_shutdown()
+        except Exception:
+            pass
+
         # Shutdown using startup manager
         if startup_manager:
             await startup_manager.shutdown()
@@ -301,10 +317,9 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
     tank_id = manager.tank_id
     logger.info("broadcast_updates[%s]: Task started", tank_id[:8])
 
-    # Unpause simulation now that broadcast task is ready
-    # This prevents initial fish from aging before the frontend sees them
-    manager.world.paused = False
-    logger.info("broadcast_updates[%s]: Simulation unpaused", tank_id[:8])
+    # Keep simulation paused until at least one client connects.
+    # This avoids running multiple tanks at full speed in the background
+    # (important for maintaining 30 FPS on the active tank).
 
     frame_count = 0
     last_sent_frame = -1
@@ -394,7 +409,8 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
                             tank_id[:8],
                             len(disconnected),
                         )
-                        clients.difference_update(disconnected)
+                        for client in disconnected:
+                            manager.remove_client(client)
 
             except asyncio.CancelledError:
                 logger.info("broadcast_updates[%s]: Task cancelled", tank_id[:8])
@@ -776,6 +792,7 @@ async def websocket_tank_endpoint(websocket: WebSocket, tank_id: str):
 
 if __name__ == "__main__":
     import logging
+    import sys
 
     import uvicorn
 
@@ -784,4 +801,15 @@ if __name__ == "__main__":
     # the `uvicorn.access` logger to WARNING to be extra sure.
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
-    uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT, access_log=False)
+
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT, access_log=False)
+    except KeyboardInterrupt:
+        # Ensure background poker evaluation loops terminate promptly.
+        try:
+            from core.auto_evaluate_poker import request_shutdown
+
+            request_shutdown()
+        except Exception:
+            pass
+        sys.exit(0)

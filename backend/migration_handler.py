@@ -79,6 +79,9 @@ class BackendMigrationHandler:
             return False
 
         # Perform the migration
+        removed_from_source = False
+        added_to_destination = False
+        new_entity = None
         try:
             # Track energy leaving the source tank (for fish only)
             from core.entities.fish import Fish
@@ -98,9 +101,16 @@ class BackendMigrationHandler:
 
             old_id = id(entity)
 
+            # Remove from source before adding to destination. This prevents entity duplication
+            # and keeps population/energy accounting stable.
+            source_manager.world.engine.remove_entity(entity)
+            removed_from_source = True
+
             # Deserialize in destination
             new_entity_outcome = try_deserialize_entity(entity_data, dest_manager.world)
             if not new_entity_outcome.ok:
+                # Failed - restore the original entity to the source tank.
+                source_manager.world.engine.add_entity(entity)
                 log_transfer(
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
@@ -125,6 +135,7 @@ class BackendMigrationHandler:
                 new_entity.pos.x = 10
 
             dest_manager.world.engine.add_entity(new_entity)
+            added_to_destination = True
 
             # Track energy entering the destination tank (for fish only)
             if isinstance(new_entity, Fish) and hasattr(new_entity, 'ecosystem') and new_entity.ecosystem is not None:
@@ -150,17 +161,20 @@ class BackendMigrationHandler:
 
             # Log successful migration
             generation = getattr(entity, "generation", None)
-            log_transfer(
-                entity_type=type(entity).__name__.lower(),
-                entity_old_id=old_id,
-                entity_new_id=id(new_entity),
-                source_tank_id=source_tank_id,
-                source_tank_name=source_manager.tank_info.name,
-                destination_tank_id=connection.destination_tank_id,
-                destination_tank_name=dest_manager.tank_info.name,
-                success=True,
-                generation=generation,
-            )
+            try:
+                log_transfer(
+                    entity_type=type(entity).__name__.lower(),
+                    entity_old_id=old_id,
+                    entity_new_id=id(new_entity),
+                    source_tank_id=source_tank_id,
+                    source_tank_name=source_manager.tank_info.name,
+                    destination_tank_id=connection.destination_tank_id,
+                    destination_tank_name=dest_manager.tank_info.name,
+                    success=True,
+                    generation=generation,
+                )
+            except Exception:
+                logger.debug("Failed to log successful migration", exc_info=True)
 
             logger.info(
                 f"{type(entity).__name__} (Gen {generation}) migrated {direction} from "
@@ -171,17 +185,29 @@ class BackendMigrationHandler:
 
         except Exception as e:
             logger.error(f"Migration failed: {e}", exc_info=True)
+            if removed_from_source and not added_to_destination:
+                try:
+                    source_manager.world.engine.add_entity(entity)
+                except Exception:
+                    logger.debug(
+                        "Failed to restore entity after migration error (tank=%s)",
+                        source_tank_id[:8],
+                        exc_info=True,
+                    )
             # Log failed transfer
-            log_transfer(
-                entity_type=type(entity).__name__.lower(),
-                entity_old_id=id(entity),
-                entity_new_id=None,
-                source_tank_id=source_tank_id,
-                source_tank_name=source_manager.tank_info.name if source_manager else "unknown",
-                destination_tank_id=connection.destination_tank_id,
-                destination_tank_name=dest_manager.tank_info.name if dest_manager else "unknown",
-                success=False,
-                error=str(e),
-                generation=getattr(entity, "generation", None),
-            )
+            try:
+                log_transfer(
+                    entity_type=type(entity).__name__.lower(),
+                    entity_old_id=id(entity),
+                    entity_new_id=None,
+                    source_tank_id=source_tank_id,
+                    source_tank_name=source_manager.tank_info.name if source_manager else "unknown",
+                    destination_tank_id=connection.destination_tank_id,
+                    destination_tank_name=dest_manager.tank_info.name if dest_manager else "unknown",
+                    success=False,
+                    error=str(e),
+                    generation=getattr(entity, "generation", None),
+                )
+            except Exception:
+                logger.debug("Failed to log failed migration", exc_info=True)
             return False

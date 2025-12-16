@@ -187,7 +187,7 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
         return (
             <div style={styles.improvementBanner}>
                 <span style={{ color: colors.textSecondary }}>
-                    Collecting data... ({improvement.total_snapshots || 0} snapshots)
+                    Collecting data... ({improvement.snapshots_collected} snapshots)
                 </span>
             </div>
         );
@@ -231,12 +231,21 @@ export function EvolutionBenchmarkDisplay() {
     const [data, setData] = useState<EvolutionBenchmarkData | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('overview');
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+
+    const isImprovementMetrics = (
+        value: EvolutionBenchmarkData['improvement'],
+    ): value is BenchmarkImprovementMetrics => {
+        return (
+            typeof value === 'object' &&
+            value !== null &&
+            'status' in value &&
+            (value as { status?: unknown }).status !== undefined
+        );
+    };
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                setError(null);
                 const response = await fetch('/api/evolution-benchmark');
 
                 // Check content type
@@ -277,24 +286,32 @@ export function EvolutionBenchmarkDisplay() {
         );
     }
 
-    if (!data || !data.latest) {
+    if (!data || data.status === 'not_available' || !data.latest) {
         return (
             <div style={styles.container}>
                 <div style={styles.header}>
                     <h2 style={styles.title}>Poker Evolution Benchmark</h2>
                 </div>
                 <div style={styles.noData}>
-                    No benchmark data available yet.
+                    {data?.status === 'not_available'
+                        ? 'Benchmark is disabled on the server.'
+                        : 'No benchmark data available yet.'}
                     <br />
                     <span style={{ fontSize: '11px', color: colors.textSecondary }}>
-                        Benchmarks run periodically to measure poker skill evolution.
+                        {data?.status === 'not_available'
+                            ? 'Set TANK_EVOLUTION_BENCHMARK_ENABLED=1 and restart the server.'
+                            : 'Benchmarks run periodically to measure poker skill evolution.'}
                     </span>
                 </div>
             </div>
         );
     }
 
-    const { latest, improvement, history } = data;
+    const latest = data.latest;
+    const history = data.history;
+    const improvement: BenchmarkImprovementMetrics = isImprovementMetrics(data.improvement)
+        ? data.improvement
+        : { status: 'insufficient_data', snapshots_collected: 0 };
 
     return (
         <div style={styles.container}>

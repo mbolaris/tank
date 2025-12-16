@@ -407,8 +407,9 @@ class BaseSimulator(ABC):
 
         all_entities_set = set(all_entities)
 
-        # Performance: Use type() for exact match (faster than isinstance)
-        fish_list = [e for e in all_entities if type(e) is Fish]
+        # Performance: Use type() for exact match (faster than isinstance),
+        # but include a duck-typing fallback to avoid issues if modules are reloaded.
+        fish_list = [e for e in all_entities if type(e) is Fish or hasattr(e, "fish_id")]
 
         # For plants, we need isinstance since we also check is_dead
         plant_list = [e for e in all_entities if isinstance(e, FractalPlant) and not e.is_dead()]
@@ -546,7 +547,7 @@ class BaseSimulator(ABC):
 
             # IMPORTANT: Require at least 1 fish in the game
             # Plant-only poker games are not allowed
-            fish_in_group = [p for p in ready_players if isinstance(p, Fish)]
+            fish_in_group = [p for p in ready_players if isinstance(p, Fish) or hasattr(p, "fish_id")]
             if len(fish_in_group) < 1:
                 continue
 
@@ -562,7 +563,7 @@ class BaseSimulator(ABC):
 
                     # Check for deaths
                     for player in ready_players:
-                        if isinstance(player, Fish) and player.is_dead():
+                        if (isinstance(player, Fish) or hasattr(player, "fish_id")) and player.is_dead():
                             if player in all_entities_set:
                                 self.record_fish_death(player)
                                 removed_entities.add(player)

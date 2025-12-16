@@ -136,6 +136,7 @@ class SimulationManager:
     @property
     def connected_clients(self) -> Set[WebSocket]:
         """Get the set of connected WebSocket clients."""
+        self._prune_closed_clients()
         return self._connected_clients
 
     @property
@@ -181,7 +182,14 @@ class SimulationManager:
         Args:
             websocket: The WebSocket connection to track
         """
+        self._prune_closed_clients()
+        was_empty = len(self._connected_clients) == 0
         self._connected_clients.add(websocket)
+
+        # Unpause when the first client connects so rendering stays in sync and
+        # we don't waste CPU simulating tanks nobody is viewing.
+        if self._runner.world.paused and (was_empty or len(self._connected_clients) == 1):
+            self._runner.world.paused = False
         logger.info(
             "Client added to tank %s. Total clients: %d",
             self.tank_id,
@@ -195,6 +203,12 @@ class SimulationManager:
             websocket: The WebSocket connection to remove
         """
         self._connected_clients.discard(websocket)
+        self._prune_closed_clients()
+
+        # Pause when the last client disconnects to keep CPU available for the
+        # active tank (and keep the server responsive to Ctrl+C).
+        if len(self._connected_clients) == 0:
+            self._runner.world.paused = True
         logger.info(
             "Client removed from tank %s. Total clients: %d",
             self.tank_id,
