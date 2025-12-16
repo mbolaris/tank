@@ -8,11 +8,12 @@
  * - Strategy distribution and improvement metrics
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { colors } from '../styles/theme';
 import type { BenchmarkSnapshot, BenchmarkImprovementMetrics, EvolutionBenchmarkData } from '../types/simulation';
 
 type ViewMode = 'overview' | 'vs_baselines' | 'longitudinal';
+type LongitudinalMetric = 'confidence' | 'bb100' | 'elo';
 
 function BbPer100Display({ value, label, showRating = true }: {
     value: number;
@@ -42,86 +43,409 @@ function BbPer100Display({ value, label, showRating = true }: {
     );
 }
 
-function LongitudinalChart({ history }: { history: BenchmarkSnapshot[] }) {
+function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; metric: LongitudinalMetric }) {
+    const clipId = useId();
+    const [selectedIndex, setSelectedIndex] = useState(1_000_000_000);
+
+    useEffect(() => {
+        setSelectedIndex(prev => {
+            const lastIndex = Math.max(0, history.length - 1);
+            const prevLastIndex = Math.max(0, lastIndex - 1);
+
+            // Follow "latest" if we were already on the latest snapshot (or if this is the initial large sentinel value).
+            if (prev >= lastIndex || prev === prevLastIndex) return lastIndex;
+            return prev;
+        });
+    }, [history.length]);
+
     if (history.length < 2) {
         return <div style={styles.noData}>Need at least 2 snapshots for trend analysis</div>;
     }
 
+    const sorted = [...history].sort((a, b) => a.frame - b.frame);
+
     const width = 580;
     const height = 200;
-    const padding = { top: 20, right: 20, bottom: 40, left: 60 };
+    const padding = { top: 16, right: 78, bottom: 44, left: 64 };
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
 
-    const minGen = Math.min(...history.map(h => h.generation));
-    const maxGen = Math.max(...history.map(h => h.generation));
-    const genRange = maxGen - minGen || 1;
+    const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-    const allValues = history.flatMap(h => [h.pop_bb_per_100, h.vs_weak, h.vs_strong]);
-    const minVal = Math.min(-15, ...allValues);
-    const maxVal = Math.max(15, ...allValues);
-    const valRange = maxVal - minVal;
+    const formatCompact = (value: number) => {
+        const abs = Math.abs(value);
+        if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+        if (abs >= 10_000) return `${(value / 1_000).toFixed(0)}k`;
+        if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+        return `${Math.round(value)}`;
+    };
 
-    const scaleX = (gen: number) =>
-        padding.left + ((gen - minGen) / genRange) * (width - padding.left - padding.right);
+    const percentile = (values: number[], p: number) => {
+        if (values.length === 0) return 0;
+        const sortedValues = [...values].sort((a, b) => a - b);
+        const idx = clamp(Math.floor((sortedValues.length - 1) * p), 0, sortedValues.length - 1);
+        return sortedValues[idx];
+    };
+
+    const ema = (values: number[], alpha = 0.3) => {
+        const out: number[] = [];
+        let last: number | null = null;
+        for (const v of values) {
+            last = last === null ? v : alpha * v + (1 - alpha) * last;
+            out.push(last);
+        }
+        return out;
+    };
+
+    const pop = sorted.map(s => s.pop_bb_per_100);
+    const weak = sorted.map(s => s.vs_weak);
+    const strong = sorted.map(s => s.vs_strong);
+    const confWeak = sorted.map(s => s.conf_weak ?? 0.5);
+    const confStrong = sorted.map(s => s.conf_strong ?? 0.5);
+    const elo = sorted.map(s => s.pop_mean_elo ?? 1200);
+
+    const popEma = ema(pop);
+    const weakEma = ema(weak);
+    const strongEma = ema(strong);
+    const confWeakEma = ema(confWeak, 0.35);
+    const confStrongEma = ema(confStrong, 0.35);
+    const eloEma = ema(elo, 0.25);
+
+    let minVal = 0;
+    let maxVal = 1;
+    let clipped = false;
+
+    if (metric === 'confidence') {
+        minVal = 0;
+        maxVal = 1;
+    } else if (metric === 'elo') {
+        const all = [...eloEma];
+        minVal = Math.min(1100, percentile(all, 0.05));
+        maxVal = Math.max(1300, percentile(all, 0.95));
+        const pad = Math.max(20, (maxVal - minVal) * 0.12);
+        minVal -= pad;
+        maxVal += pad;
+    } else {
+        const allSmoothed = [...popEma, ...weakEma, ...strongEma];
+        minVal = Math.min(-10, percentile(allSmoothed, 0.05));
+        maxVal = Math.max(10, percentile(allSmoothed, 0.95));
+        const pad = Math.max(5, (maxVal - minVal) * 0.12);
+        minVal -= pad;
+        maxVal += pad;
+        minVal = Math.min(minVal, 0);
+        maxVal = Math.max(maxVal, 0);
+
+        if (maxVal - minVal > 400) {
+            clipped = true;
+            minVal = -200;
+            maxVal = 200;
+        }
+    }
+
+    const valRange = maxVal - minVal || 1;
+
+    const minFrame = Math.min(...sorted.map(s => s.frame));
+    const maxFrame = Math.max(...sorted.map(s => s.frame));
+    const frameRange = maxFrame - minFrame || 1;
+
+    const scaleX = (frame: number) =>
+        padding.left + ((frame - minFrame) / frameRange) * plotWidth;
+
     const scaleY = (val: number) =>
-        height - padding.bottom - ((val - minVal) / valRange) * (height - padding.top - padding.bottom);
+        padding.top + (1 - (val - minVal) / valRange) * plotHeight;
 
-    const makePath = (getter: (s: BenchmarkSnapshot) => number) =>
-        history.map((s, i) => `${i === 0 ? 'M' : 'L'}${scaleX(s.generation)},${scaleY(getter(s))}`).join(' ');
+    const points = sorted.map((s, i) => ({
+        ...s,
+        index: i,
+        pop_ema: popEma[i],
+        weak_ema: weakEma[i],
+        strong_ema: strongEma[i],
+        conf_weak_ema: confWeakEma[i],
+        conf_strong_ema: confStrongEma[i],
+        elo_ema: eloEma[i],
+    }));
+
+    const makePath = (getter: (s: typeof points[number]) => number) =>
+        points.map((s, i) => `${i === 0 ? 'M' : 'L'}${scaleX(s.frame)},${scaleY(getter(s))}`).join(' ');
+
+    const selected = points[clamp(selectedIndex, 0, points.length - 1)] ?? points[points.length - 1];
+
+    const selectedX = selected ? scaleX(selected.frame) : padding.left;
+    const safeY = (val: number) => clamp(scaleY(val), padding.top, height - padding.bottom);
+
+    const labelX = width - padding.right + 6;
+    const last = points[points.length - 1];
+
+    const series =
+        metric === 'confidence'
+            ? [
+                  { id: 'confWeak', name: 'conf vs Weak (EMA)', color: '#22c55e', dash: '6 3', get: (p: typeof points[number]) => p.conf_weak_ema },
+                  { id: 'confStrong', name: 'conf vs Strong (EMA)', color: '#ef4444', dash: '3 3', get: (p: typeof points[number]) => p.conf_strong_ema },
+              ]
+            : metric === 'elo'
+                ? [
+                      { id: 'elo', name: 'Population Elo (EMA)', color: '#a78bfa', dash: undefined as string | undefined, get: (p: typeof points[number]) => p.elo_ema },
+                  ]
+                : [
+                      { id: 'pop', name: 'Population (EMA)', color: '#a78bfa', dash: undefined as string | undefined, get: (p: typeof points[number]) => p.pop_ema },
+                      { id: 'weak', name: 'vs Weak (EMA)', color: '#22c55e', dash: '6 3', get: (p: typeof points[number]) => p.weak_ema },
+                      { id: 'strong', name: 'vs Strong (EMA)', color: '#ef4444', dash: '3 3', get: (p: typeof points[number]) => p.strong_ema },
+                  ];
+
+    const formatY = (v: number) => {
+        if (metric === 'confidence') return `${Math.round(v * 100)}%`;
+        if (metric === 'elo') return `${Math.round(v)}`;
+        return `${v >= 0 ? '+' : ''}${v.toFixed(1)}`;
+    };
+
+    const outOfRangePrefix = (v: number) => {
+        if (metric !== 'bb100') return '';
+        if (v > maxVal) return '≥ ';
+        if (v < minVal) return '≤ ';
+        return '';
+    };
+
+    const clampForPlot = (v: number) => {
+        if (metric !== 'bb100' || !clipped) return v;
+        return clamp(v, minVal, maxVal);
+    };
 
     return (
-        <svg width={width} height={height}>
-            {/* Zero line */}
-            <line
-                x1={padding.left} y1={scaleY(0)}
-                x2={width - padding.right} y2={scaleY(0)}
-                stroke={colors.border} strokeDasharray="4 4"
-            />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={styles.chartLegend}>
+                {series.map(s => (
+                    <div key={`legend-${s.id}`} style={styles.chartLegendItem}>
+                        <span
+                            style={{
+                                ...styles.chartLegendSwatch,
+                                borderTopColor: s.color,
+                                borderTopStyle: s.dash ? 'dashed' : 'solid',
+                            }}
+                        />
+                        <span>{s.name}</span>
+                    </div>
+                ))}
+            </div>
+            <svg width={width} height={height} style={{ overflow: 'hidden' }}>
+                <defs>
+                    <clipPath id={clipId}>
+                        <rect x={padding.left} y={padding.top} width={plotWidth} height={plotHeight} />
+                    </clipPath>
+                </defs>
 
-            {/* Axes */}
-            <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke={colors.border} />
-            <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke={colors.border} />
+                {/* Win/Lose shading */}
+                {(() => {
+                    const zeroY = scaleY(0);
+                    const topY = padding.top;
+                    const bottomY = height - padding.bottom;
+                    const clampedZero = clamp(zeroY, topY, bottomY);
 
-            {/* Y-axis label */}
-            <text x={15} y={height/2} fill={colors.textSecondary} fontSize={11}
-                  transform={`rotate(-90, 15, ${height/2})`} textAnchor="middle">
-                bb/100
-            </text>
+                    if (metric === 'confidence') {
+                        // Confidence bands around 50% / 55% (strong baseline threshold used elsewhere)
+                        const y50 = scaleY(0.5);
+                        const y55 = scaleY(0.55);
+                        const y45 = scaleY(0.45);
+                        const yTop = padding.top;
+                        const yBot = height - padding.bottom;
+                        return (
+                            <>
+                                <rect x={padding.left} y={yTop} width={plotWidth} height={Math.max(0, y45 - yTop)} fill="rgba(239,68,68,0.05)" />
+                                <rect x={padding.left} y={y45} width={plotWidth} height={Math.max(0, y55 - y45)} fill="rgba(148,163,184,0.05)" />
+                                <rect x={padding.left} y={y55} width={plotWidth} height={Math.max(0, yBot - y55)} fill="rgba(34,197,94,0.06)" />
+                                <line x1={padding.left} y1={y50} x2={padding.left + plotWidth} y2={y50} stroke="rgba(148,163,184,0.25)" strokeDasharray="4 4" />
+                            </>
+                        );
+                    }
 
-            {/* X-axis label */}
-            <text x={width/2} y={height - 5} fill={colors.textSecondary} fontSize={11} textAnchor="middle">
-                Generation
-            </text>
+                    if (metric === 'elo') {
+                        const y1200 = scaleY(1200);
+                        return (
+                            <>
+                                <rect x={padding.left} y={padding.top} width={plotWidth} height={plotHeight} fill="rgba(148,163,184,0.04)" />
+                                <line x1={padding.left} y1={y1200} x2={padding.left + plotWidth} y2={y1200} stroke="rgba(148,163,184,0.25)" strokeDasharray="4 4" />
+                            </>
+                        );
+                    }
+                    return (
+                        <>
+                            <rect
+                                x={padding.left}
+                                y={topY}
+                                width={plotWidth}
+                                height={Math.max(0, clampedZero - topY)}
+                                fill="rgba(34,197,94,0.06)"
+                            />
+                            <rect
+                                x={padding.left}
+                                y={clampedZero}
+                                width={plotWidth}
+                                height={Math.max(0, bottomY - clampedZero)}
+                                fill="rgba(239,68,68,0.05)"
+                            />
+                        </>
+                    );
+                })()}
 
-            {/* Y-axis ticks */}
-            {[minVal, 0, maxVal].map(val => (
-                <g key={val}>
-                    <line x1={padding.left - 5} y1={scaleY(val)} x2={padding.left} y2={scaleY(val)} stroke={colors.border} />
-                    <text x={padding.left - 8} y={scaleY(val) + 4} fill={colors.textSecondary} fontSize={10} textAnchor="end">
-                        {val > 0 ? '+' : ''}{Math.round(val)}
-                    </text>
+                {metric === 'bb100' && (
+                    <line
+                        x1={padding.left} y1={scaleY(0)}
+                        x2={padding.left + plotWidth} y2={scaleY(0)}
+                        stroke={colors.border} strokeDasharray="4 4"
+                    />
+                )}
+
+                {/* Axes */}
+                <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke={colors.border} />
+                <line x1={padding.left} y1={height - padding.bottom} x2={padding.left + plotWidth} y2={height - padding.bottom} stroke={colors.border} />
+
+                {/* Y-axis label */}
+                <text x={16} y={height / 2} fill={colors.textSecondary} fontSize={11}
+                      transform={`rotate(-90, 16, ${height / 2})`} textAnchor="middle">
+                    {metric === 'confidence' ? 'Confidence (EMA)' : metric === 'elo' ? 'Elo (EMA)' : 'bb/100 (EMA)'}
+                </text>
+
+                {/* X-axis label */}
+                <text x={padding.left + plotWidth / 2} y={height - 6} fill={colors.textSecondary} fontSize={11} textAnchor="middle">
+                    Benchmark run (time)
+                </text>
+
+                {/* Y-axis ticks */}
+                {(metric === 'confidence'
+                    ? [0, 0.5, 1]
+                    : metric === 'elo'
+                        ? [minVal, 1200, maxVal]
+                        : [minVal, 0, maxVal]
+                ).map(val => (
+                    <g key={val}>
+                        <line
+                            x1={padding.left - 5}
+                            y1={scaleY(val)}
+                            x2={padding.left + plotWidth}
+                            y2={scaleY(val)}
+                            stroke={(metric === 'bb100' && val === 0) || (metric === 'confidence' && val === 0.5) || (metric === 'elo' && val === 1200)
+                                ? colors.border
+                                : 'rgba(148,163,184,0.18)'}
+                            strokeDasharray={(metric === 'bb100' && val === 0) || (metric === 'confidence' && val === 0.5) || (metric === 'elo' && val === 1200)
+                                ? '4 4'
+                                : '2 6'}
+                        />
+                        <text x={padding.left - 8} y={scaleY(val) + 4} fill={colors.textSecondary} fontSize={10} textAnchor="end">
+                            {metric === 'confidence' ? `${Math.round(val * 100)}%` : metric === 'elo' ? `${Math.round(val)}` : `${val > 0 ? '+' : ''}${Math.round(val)}`}
+                        </text>
+                    </g>
+                ))}
+
+                {/* Data (clipped to plot area) */}
+                <g clipPath={`url(#${clipId})`}>
+                    {series.map(s => (
+                        <path
+                            key={s.id}
+                            d={makePath(p => clampForPlot(s.get(p)))}
+                            fill="none"
+                            stroke={s.color}
+                            strokeWidth={s.id === 'pop' || s.id === 'elo' ? 2.6 : 1.8}
+                            strokeDasharray={s.dash}
+                        />
+                    ))}
+
+                    {/* Selected vertical line */}
+                    <line
+                        x1={selectedX}
+                        y1={padding.top}
+                        x2={selectedX}
+                        y2={height - padding.bottom}
+                        stroke="rgba(148,163,184,0.35)"
+                    />
                 </g>
-            ))}
 
-            {/* Population average line */}
-            <path d={makePath(s => s.pop_bb_per_100)} fill="none" stroke="#a78bfa" strokeWidth={2.5} />
+                {/* Click targets + selection */}
+                {points.map(p => (
+                    <circle
+                        key={p.frame}
+                        cx={scaleX(p.frame)}
+                        cy={padding.top + plotHeight / 2}
+                        r={10}
+                        fill="transparent"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setSelectedIndex(p.index)}
+                    />
+                ))}
 
-            {/* vs Weak line */}
-            <path d={makePath(s => s.vs_weak)} fill="none" stroke="#22c55e" strokeWidth={1.5} strokeDasharray="6 3" />
+                {/* Selected point markers */}
+                {series.map(s => (
+                    <circle
+                        key={`sel-${s.id}`}
+                        cx={selectedX}
+                        cy={safeY(s.get(selected))}
+                        r={4}
+                        fill={s.color}
+                        stroke="rgba(15,23,42,0.9)"
+                        strokeWidth={2}
+                    />
+                ))}
 
-            {/* vs Strong line */}
-            <path d={makePath(s => s.vs_strong)} fill="none" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="3 3" />
+                {/* Right-side last value labels */}
+                {series.map(s => {
+                    const v = s.get(last);
+                    const prefix = outOfRangePrefix(v);
+                    return (
+                        <text
+                            key={`last-${s.id}`}
+                            x={labelX}
+                            y={safeY(v) + 4}
+                            fill={s.color}
+                            fontSize={10}
+                            fontFamily="monospace"
+                        >
+                            {prefix}{formatY(metric === 'bb100' ? clamp(v, minVal, maxVal) : v)}
+                        </text>
+                    );
+                })}
 
-            {/* Legend */}
-            <g transform={`translate(${width - padding.right - 140}, ${padding.top + 5})`}>
-                <rect x={0} y={0} width={130} height={54} fill="rgba(15,23,42,0.9)" rx={4} />
-                <line x1={8} y1={14} x2={28} y2={14} stroke="#a78bfa" strokeWidth={2.5} />
-                <text x={34} y={18} fill={colors.text} fontSize={10}>Population Avg</text>
-                <line x1={8} y1={28} x2={28} y2={28} stroke="#22c55e" strokeWidth={1.5} strokeDasharray="6 3" />
-                <text x={34} y={32} fill={colors.text} fontSize={10}>vs Weak</text>
-                <line x1={8} y1={42} x2={28} y2={42} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="3 3" />
-                <text x={34} y={46} fill={colors.text} fontSize={10}>vs Strong</text>
-            </g>
-        </svg>
+                {/* X-axis endpoints */}
+                <text x={padding.left} y={height - padding.bottom + 16} fill={colors.textSecondary} fontSize={10} textAnchor="start">
+                    run 1
+                </text>
+                <text x={padding.left + plotWidth} y={height - padding.bottom + 16} fill={colors.textSecondary} fontSize={10} textAnchor="end">
+                    run {points.length}
+                </text>
+
+                {clipped && (
+                    <text x={padding.left + 6} y={padding.top + 12} fill={colors.textSecondary} fontSize={10}>
+                        bb/100 is volatile; values clipped to ±200 (switch to Confidence for a clearer signal)
+                    </text>
+                )}
+            </svg>
+
+            {selected && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ color: colors.textSecondary, fontSize: '11px' }}>
+                        Selected: run {selected.index + 1}/{points.length} • frame {formatCompact(selected.frame)} • gen ~{selected.generation}
+                        {selected.timestamp ? ` • ${selected.timestamp.replace('T', ' ').slice(0, 19)}` : ''}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', color: colors.textSecondary, fontSize: '11px' }}>
+                        {selected.pop_mean_elo !== undefined && (
+                            <span>Elo {Math.round(selected.pop_mean_elo)}</span>
+                        )}
+                        {selected.conf_strong !== undefined && (
+                            <span>conf vs strong {(selected.conf_strong * 100).toFixed(0)}%</span>
+                        )}
+                        {selected.fish_evaluated !== undefined && (
+                            <span>{selected.fish_evaluated} fish</span>
+                        )}
+                        {selected.total_hands !== undefined && (
+                            <span>{selected.total_hands.toLocaleString()} hands</span>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {points.length < 5 && (
+                <div style={{ color: colors.textSecondary, fontSize: '11px' }}>
+                    Tip: trends are noisy with &lt; 5 snapshots; focus on Confidence vs Strong (aim &gt; 55%).
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -227,10 +551,11 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
     );
 }
 
-export function EvolutionBenchmarkDisplay() {
+export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
     const [data, setData] = useState<EvolutionBenchmarkData | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('overview');
     const [loading, setLoading] = useState(true);
+    const [longitudinalMetric, setLongitudinalMetric] = useState<LongitudinalMetric>('confidence');
 
     const isImprovementMetrics = (
         value: EvolutionBenchmarkData['improvement'],
@@ -244,15 +569,18 @@ export function EvolutionBenchmarkDisplay() {
     };
 
     useEffect(() => {
+        let cancelled = false;
+        const url = tankId ? `/api/tanks/${tankId}/evolution-benchmark` : '/api/evolution-benchmark';
+
         const fetchData = async () => {
             try {
-                const response = await fetch('/api/evolution-benchmark');
+                const response = await fetch(url);
 
                 // Check content type
                 const contentType = response.headers.get('content-type');
                 if (!contentType?.includes('application/json')) {
                     // API not available - silently fail
-                    setLoading(false);
+                    if (!cancelled) setLoading(false);
                     return;
                 }
 
@@ -261,19 +589,37 @@ export function EvolutionBenchmarkDisplay() {
                 }
 
                 const json = await response.json();
-                setData(json);
+                if (!cancelled) setData(json);
             } catch (e) {
                 // Silently fail - API might not be implemented yet
                 console.debug('Evolution benchmark API not available:', e);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
+        setLoading(true);
         fetchData();
         const interval = setInterval(fetchData, 30000); // Refresh every 30s
-        return () => clearInterval(interval);
-    }, []);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, [tankId]);
+
+    const latest = data?.latest ?? null;
+    const history = data?.history ?? [];
+    const improvementValue = data?.improvement ?? {};
+    const improvement: BenchmarkImprovementMetrics = isImprovementMetrics(improvementValue)
+        ? (improvementValue as BenchmarkImprovementMetrics)
+        : { status: 'insufficient_data', snapshots_collected: 0 };
+
+    useEffect(() => {
+        if (longitudinalMetric !== 'confidence') return;
+        if (!history.length) return;
+        const hasConfidence = history.some(h => typeof h.conf_strong === 'number' || typeof h.conf_weak === 'number');
+        if (!hasConfidence) setLongitudinalMetric('bb100');
+    }, [history, longitudinalMetric]);
 
     if (loading) {
         return (
@@ -286,7 +632,7 @@ export function EvolutionBenchmarkDisplay() {
         );
     }
 
-    if (!data || data.status === 'not_available' || !data.latest) {
+    if (!data || data.status === 'not_available' || !latest) {
         return (
             <div style={styles.container}>
                 <div style={styles.header}>
@@ -306,12 +652,6 @@ export function EvolutionBenchmarkDisplay() {
             </div>
         );
     }
-
-    const latest = data.latest;
-    const history = data.history;
-    const improvement: BenchmarkImprovementMetrics = isImprovementMetrics(data.improvement)
-        ? data.improvement
-        : { status: 'insufficient_data', snapshots_collected: 0 };
 
     return (
         <div style={styles.container}>
@@ -361,7 +701,7 @@ export function EvolutionBenchmarkDisplay() {
                         <span style={{ color: '#22c55e', fontWeight: 600 }}>
                             +{latest.best_bb.toFixed(1)} bb/100
                         </span>
-                        <span style={styles.strategyTag}>{latest.dominant_strategy}</span>
+                        <span style={styles.strategyTag}>{latest.best_strategy ?? latest.dominant_strategy}</span>
                     </div>
 
                     <ImprovementBanner improvement={improvement} />
@@ -374,7 +714,20 @@ export function EvolutionBenchmarkDisplay() {
 
             {viewMode === 'longitudinal' && (
                 <div style={styles.longitudinalView}>
-                    <LongitudinalChart history={history} />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                        <div style={styles.miniTabs}>
+                            {(['confidence', 'elo', 'bb100'] as LongitudinalMetric[]).map(m => (
+                                <button
+                                    key={m}
+                                    onClick={() => setLongitudinalMetric(m)}
+                                    style={longitudinalMetric === m ? styles.activeMiniTab : styles.miniTab}
+                                >
+                                    {m === 'confidence' ? 'Confidence' : m === 'elo' ? 'Elo' : 'bb/100'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <LongitudinalChart history={history} metric={longitudinalMetric} />
                     {improvement.status === 'tracked' && (
                         <div style={styles.trendSummary}>
                             <div>
@@ -427,6 +780,61 @@ const styles = {
     tabs: {
         display: 'flex',
         gap: '4px',
+    },
+    miniTabs: {
+        display: 'flex',
+        gap: '4px',
+        padding: '3px',
+        borderRadius: '8px',
+        backgroundColor: 'rgba(15,23,42,0.6)',
+        border: `1px solid ${colors.border}`,
+    },
+    miniTab: {
+        padding: '4px 10px',
+        borderRadius: '6px',
+        border: 'none',
+        backgroundColor: 'transparent',
+        color: colors.textSecondary,
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: 600,
+    },
+    activeMiniTab: {
+        padding: '4px 10px',
+        borderRadius: '6px',
+        border: 'none',
+        backgroundColor: '#3b82f6',
+        color: '#ffffff',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: 700,
+    },
+    chartLegend: {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '12px',
+        flexWrap: 'wrap' as const,
+        padding: '4px 2px 0 2px',
+        color: colors.textSecondary,
+        fontSize: '11px',
+    },
+    chartLegendItem: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '3px 8px',
+        borderRadius: '999px',
+        backgroundColor: 'rgba(15,23,42,0.45)',
+        border: `1px solid rgba(148,163,184,0.18)`,
+        userSelect: 'none' as const,
+    },
+    chartLegendSwatch: {
+        width: '22px',
+        borderTopWidth: '3px',
+        borderTopStyle: 'solid',
+        borderTopColor: colors.textSecondary,
+        borderRadius: '2px',
+        display: 'inline-block',
     },
     tab: {
         background: 'transparent',

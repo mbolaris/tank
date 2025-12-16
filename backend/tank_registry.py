@@ -352,6 +352,13 @@ class TankRegistry:
         manager.tank_info.allow_transfers = metadata.get("allow_transfers", True)
         manager.tank_info.server_id = metadata.get("server_id", "local-server")
 
+        # Keep runner identity consistent with restored tank metadata (important for per-tank persistence)
+        try:
+            manager.runner.set_tank_identity(tank_id=tank_id, tank_name=metadata.get("name"))
+        except Exception:
+            # Restoration should still succeed even if runner identity update fails
+            logger.exception("Failed to update runner tank identity during restore for %s", tank_id[:8])
+
         # Restore state into the tank
         if not restore_tank_from_snapshot(snapshot, manager.world):
             logger.error(f"Failed to restore tank state from {snapshot_path}")

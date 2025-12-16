@@ -296,7 +296,7 @@ export function TankView({ tankId }: TankViewProps) {
 
             {/* Poker Skill Benchmark (bb/100) */}
             <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                <EvolutionBenchmarkDisplay />
+                <EvolutionBenchmarkDisplay tankId={tankId} />
             </div>
 
             {/* Poker Dashboard - Leaderboard & Activity */}

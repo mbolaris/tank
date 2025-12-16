@@ -6,6 +6,7 @@ import logging
 import threading
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import orjson
@@ -67,6 +68,10 @@ class SimulationRunner:
         self.thread: Optional[threading.Thread] = None
         self.lock = threading.Lock()
 
+        # Tank identity (used for persistence, migration context, and UI attribution)
+        self.tank_id = tank_id or str(uuid.uuid4())
+        self.tank_name = tank_name or f"Tank {self.tank_id[:8]}"
+
         # Target frame rate
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
@@ -113,11 +118,9 @@ class SimulationRunner:
             from core.poker.evaluation.evolution_benchmark_tracker import (
                 EvolutionBenchmarkTracker,
             )
-            from pathlib import Path
-
             self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
                 eval_interval_frames=int(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "1800")),
-                export_path=Path("data") / "poker_evolution_benchmark.json",
+                export_path=self._get_evolution_benchmark_export_path(),
                 use_quick_benchmark=True,
             )
             self._evolution_benchmark_guard = threading.Lock()
@@ -127,8 +130,6 @@ class SimulationRunner:
             self._evolution_benchmark_last_completed_time = 0.0
 
         # Migration support
-        self.tank_id = tank_id
-        self.tank_name = tank_name
         self.connection_manager = None  # Set after initialization
         self.tank_registry = None  # Set after initialization
         self._migration_handler = None  # Created when dependencies are available
@@ -139,6 +140,27 @@ class SimulationRunner:
         self._entity_snapshot_builder = EntitySnapshotBuilder()
 
         # Inject migration support into environment for fish to access
+        self._update_environment_migration_context()
+
+    def _get_evolution_benchmark_export_path(self) -> Path:
+        """Get the benchmark export path scoped to this tank."""
+        tank_id = getattr(self, "tank_id", None) or "default"
+        return Path("data") / "tanks" / tank_id / "poker_evolution_benchmark.json"
+
+    def set_tank_identity(self, tank_id: str, tank_name: Optional[str] = None) -> None:
+        """Update tank identity for restored/renamed tanks.
+
+        This keeps runner-level persistence paths and migration context consistent
+        with the SimulationManager's tank metadata.
+        """
+        self.tank_id = tank_id
+        if tank_name is not None:
+            self.tank_name = tank_name
+
+        tracker = getattr(self, "evolution_benchmark_tracker", None)
+        if tracker is not None:
+            tracker.export_path = self._get_evolution_benchmark_export_path()
+
         self._update_environment_migration_context()
 
     def _update_environment_migration_context(self) -> None:

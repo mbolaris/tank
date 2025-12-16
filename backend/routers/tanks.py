@@ -133,6 +133,36 @@ def setup_router(
             )
         return JSONResponse(manager.get_status())
 
+    @router.get("/{tank_id}/evaluation-history")
+    async def get_tank_evaluation_history(tank_id: str):
+        """Get the full auto-evaluation history for a specific tank."""
+        manager = tank_registry.get_tank(tank_id)
+        if manager is None:
+            return JSONResponse(
+                {"error": f"Tank not found: {tank_id}"},
+                status_code=404,
+            )
+        return JSONResponse(manager.runner.get_full_evaluation_history())
+
+    @router.get("/{tank_id}/evolution-benchmark")
+    async def get_tank_evolution_benchmark(tank_id: str):
+        """Get evolution benchmark tracking data for a specific tank."""
+        manager = tank_registry.get_tank(tank_id)
+        if manager is None:
+            return JSONResponse(
+                {"error": f"Tank not found: {tank_id}"},
+                status_code=404,
+            )
+
+        data = manager.runner.get_evolution_benchmark_data()
+        if isinstance(data, dict):
+            data = {
+                **data,
+                "tank_id": manager.tank_id,
+                "tank_name": manager.tank_info.name,
+            }
+        return JSONResponse(data)
+
     @router.post("/{tank_id}/pause")
     async def pause_tank(tank_id: str):
         """Pause a running tank simulation."""

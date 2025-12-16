@@ -479,7 +479,15 @@ export interface CommandResponse {
 // Evolution Benchmark Types
 export interface BenchmarkSnapshot {
     frame: number;
+    timestamp?: string;
     generation: number;
+    pop_mean_elo?: number;
+    pop_median_elo?: number;
+    conf_weak?: number;
+    conf_moderate?: number;
+    conf_strong?: number;
+    fish_evaluated?: number;
+    total_hands?: number;
     pop_bb_per_100: number;
     pop_weighted_bb: number;
     vs_trivial: number;
@@ -487,6 +495,7 @@ export interface BenchmarkSnapshot {
     vs_moderate: number;
     vs_strong: number;
     best_bb: number;
+    best_strategy?: string;
     dominant_strategy: string;
     per_baseline: Record<string, number>;
 }

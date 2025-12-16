@@ -490,6 +490,7 @@ class EvolutionBenchmarkTracker:
             "history": [
                 {
                     "frame": s.frame,
+                    "timestamp": s.timestamp,
                     "generation": s.generation_estimate,
                     # Elo ratings (primary stable metric)
                     "pop_mean_elo": round(s.pop_mean_elo, 1),
@@ -512,6 +513,8 @@ class EvolutionBenchmarkTracker:
                     "per_baseline": {
                         k: round(v, 2) for k, v in s.per_baseline_bb_per_100.items()
                     },
+                    "fish_evaluated": s.fish_evaluated,
+                    "total_hands": s.total_hands,
                 }
                 for s in self.history.snapshots
             ],
@@ -525,6 +528,7 @@ class EvolutionBenchmarkTracker:
             "improvement": self.history.get_improvement_metrics(),
             "latest": {
                 "frame": self.history.snapshots[-1].frame,
+                "timestamp": self.history.snapshots[-1].timestamp,
                 "generation": self.history.snapshots[-1].generation_estimate,
                 # Elo ratings (primary stable metric)
                 "pop_mean_elo": round(self.history.snapshots[-1].pop_mean_elo, 1),
@@ -560,6 +564,8 @@ class EvolutionBenchmarkTracker:
                         -1
                     ].per_baseline_bb_per_100.items()
                 },
+                "fish_evaluated": self.history.snapshots[-1].fish_evaluated,
+                "total_hands": self.history.snapshots[-1].total_hands,
             }
             if self.history.snapshots
             else None,
