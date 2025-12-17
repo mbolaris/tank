@@ -18,6 +18,7 @@ from typing import Optional
 from core.algorithms.base import (
     ALGORITHM_PARAMETER_BOUNDS,
     BehaviorAlgorithm,
+    BehaviorHelpersMixin,
     Vector2,
 )
 
@@ -609,6 +610,7 @@ def crossover_poker_algorithms(
 __all__ = [
     # Base
     "BehaviorAlgorithm",
+    "BehaviorHelpersMixin",
     "ALGORITHM_PARAMETER_BOUNDS",
     "Vector2",
     # Food seeking
