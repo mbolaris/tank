@@ -1,20 +1,30 @@
 """Base classes and utilities for behavior algorithms.
 
 This module contains:
-- BehaviorAlgorithm base class
+- BehaviorAlgorithm base class with BehaviorHelpersMixin
 - ALGORITHM_PARAMETER_BOUNDS configuration
-- Helper functions for algorithm execution
+- Helper methods for spatial queries, predator detection, and energy state
+
+Architecture Notes:
+    The BehaviorHelpersMixin provides common functionality that all behavior
+    algorithms need (finding food, detecting predators, checking energy).
+    This mixin pattern is preferred over method injection because:
+    - Methods are visible in class definition (better IDE support)
+    - Easier to understand inheritance hierarchy
+    - More explicit than monkey-patching
+    - Type checkers can verify method signatures
 """
 
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type
 
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.world import World
 
 
 ALGORITHM_PARAMETER_BOUNDS = {
@@ -372,14 +382,290 @@ class BehaviorStrategy(ABC):
     pass
 
 
+class BehaviorHelpersMixin:
+    """Reusable helper methods for behavior algorithms.
+
+    This mixin provides common functionality needed by most behavior algorithms:
+    - Spatial queries (finding nearest agents, food, predators)
+    - Vector operations (safe normalization)
+    - Energy state checking
+    - Predator threat assessment
+
+    Design Philosophy:
+        These helpers are factored into a mixin to:
+        1. Keep BehaviorAlgorithm focused on the algorithm contract
+        2. Make helpers explicit and discoverable (vs method injection)
+        3. Allow independent testing of helper logic
+        4. Provide clear type signatures for IDE support
+
+    Usage:
+        All BehaviorAlgorithm subclasses automatically inherit these methods:
+
+        def execute(self, fish: "Fish") -> Tuple[float, float]:
+            # Use inherited helpers
+            nearest_food = self._find_nearest_food(fish)
+            is_critical, is_low, ratio = self._get_energy_state(fish)
+            should_flee, vx, vy = self._should_flee_predator(fish)
+    """
+
+    def _find_nearest(
+        self, fish: "Fish", agent_type: Type, max_distance: Optional[float] = None
+    ) -> Optional[Any]:
+        """Find nearest agent of given type within optional distance limit.
+
+        PERFORMANCE: Uses spatial queries when max_distance is specified (O(k) vs O(n)).
+        Falls back to get_agents_of_type only when no distance limit is given.
+
+        Args:
+            fish: The fish searching for agents
+            agent_type: Type of agent to search for
+            max_distance: Optional maximum detection distance (None = unlimited)
+
+        Returns:
+            Nearest agent within range, or None if no agents found/in range
+        """
+        from core.world import World
+
+        env: World = fish.environment
+        fish_x = fish.pos.x
+        fish_y = fish.pos.y
+
+        if max_distance is not None:
+            # OPTIMIZATION: Use spatial query instead of get_agents_of_type
+            # This reduces from O(n) to O(k) where k is nearby agents
+            agents = env.nearby_agents_by_type(fish, int(max_distance) + 1, agent_type)
+            if not agents:
+                return None
+
+            max_distance_sq = max_distance * max_distance
+            min_dist_sq = float("inf")
+            nearest = None
+
+            for agent in agents:
+                # Inline distance calculation to avoid function call overhead
+                dx = agent.pos.x - fish_x
+                dy = agent.pos.y - fish_y
+                dist_sq = dx * dx + dy * dy
+
+                if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
+                    min_dist_sq = dist_sq
+                    nearest = agent
+
+            return nearest
+        else:
+            # No distance limit - must check all agents
+            agents = env.get_agents_of_type(agent_type)
+            if not agents:
+                return None
+
+            min_dist_sq = float("inf")
+            nearest = None
+
+            for agent in agents:
+                dx = agent.pos.x - fish_x
+                dy = agent.pos.y - fish_y
+                dist_sq = dx * dx + dy * dy
+                if dist_sq < min_dist_sq:
+                    min_dist_sq = dist_sq
+                    nearest = agent
+
+            return nearest
+
+    def _safe_normalize(self, vector: Vector2) -> Vector2:
+        """Safely normalize a vector, returning zero vector if length is zero.
+
+        Args:
+            vector: The vector to normalize
+
+        Returns:
+            Normalized vector or Vector2(0, 0) if vector length is zero or near-zero
+        """
+        length = vector.length()
+        if length < 1e-6:  # Use small epsilon to handle floating point errors
+            return Vector2(0, 0)
+        return vector.normalize()
+
+    def _get_predator_threat(
+        self, fish: "Fish", max_distance: float = float("inf")
+    ) -> Tuple[Optional[Any], float, Vector2]:
+        """Get information about the nearest predator threat.
+
+        This helper method consolidates the common pattern of finding the nearest
+        predator, calculating distance, and computing escape direction.
+
+        Args:
+            fish: The fish to check for threats
+            max_distance: Maximum distance to consider a threat (default: infinite)
+
+        Returns:
+            Tuple of (predator, distance, escape_direction) where:
+            - predator: Nearest predator agent or None if none found/in range
+            - distance: Distance to predator or infinity if none
+            - escape_direction: Normalized vector pointing away from predator or (0,0)
+        """
+        from core.entities import Crab
+
+        nearest_predator = self._find_nearest(fish, Crab)
+        if not nearest_predator:
+            return None, float("inf"), Vector2(0, 0)
+
+        distance = (nearest_predator.pos - fish.pos).length()
+
+        if distance > max_distance:
+            return None, float("inf"), Vector2(0, 0)
+
+        escape_direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+        return nearest_predator, distance, escape_direction
+
+    def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
+        """Find nearest food within time-based detection range.
+
+        PERFORMANCE: Uses dedicated spatial food query (nearby_food) which is
+        faster than generic nearby_agents_by_type.
+
+        Fish have reduced ability to detect food at night due to lower visibility.
+        Detection range is modified by time of day:
+        - Night: 25% of base range
+        - Dawn/Dusk: 75% of base range
+        - Day: 100% of base range
+
+        Args:
+            fish: The fish searching for food
+
+        Returns:
+            Nearest food within detection range, or None if no food detected
+        """
+        from core.constants import BASE_FOOD_DETECTION_RANGE
+        from core.world import World
+
+        env: World = fish.environment
+
+        # Performance: Use cached detection modifier from environment (updated once per frame)
+        # Note: access specific property, safe to duck-type or check hasattr if strict
+        detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
+        max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+        max_distance_sq = max_distance * max_distance
+
+        # OPTIMIZATION: Use dedicated nearby_food spatial query (or generic nearby_resources)
+        # This uses the optimized food_grid in SpatialGrid
+        if hasattr(env, "nearby_resources"):
+            nearby = env.nearby_resources(fish, int(max_distance) + 1)
+        elif hasattr(env, "nearby_food"):
+            nearby = env.nearby_food(fish, int(max_distance) + 1)
+        else:
+            from core.entities import Food
+
+            nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, Food)
+
+        if not nearby:
+            return None
+
+        fish_x = fish.pos.x
+        fish_y = fish.pos.y
+        min_dist_sq = float("inf")
+        nearest = None
+
+        for food in nearby:
+            dx = food.pos.x - fish_x
+            dy = food.pos.y - fish_y
+            dist_sq = dx * dx + dy * dy
+            if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
+                min_dist_sq = dist_sq
+                nearest = food
+
+        return nearest
+
+    def _should_flee_predator(self, fish: "Fish") -> Tuple[bool, float, float]:
+        """Check if fish should flee from predators based on energy state.
+
+        Uses energy-aware flee thresholds:
+        - Critical energy: Minimal flee distance (must risk danger for food)
+        - Low energy: Moderate flee distance
+        - Normal energy: Standard flee distance
+
+        Args:
+            fish: The fish to check for predator threats
+
+        Returns:
+            Tuple of (should_flee, velocity_x, velocity_y) where:
+            - should_flee: True if fish should flee from a nearby predator
+            - velocity_x: X component of flee velocity (0 if not fleeing)
+            - velocity_y: Y component of flee velocity (0 if not fleeing)
+        """
+        from core.constants import (
+            FLEE_SPEED_CRITICAL,
+            FLEE_SPEED_NORMAL,
+            FLEE_THRESHOLD_CRITICAL,
+            FLEE_THRESHOLD_LOW,
+            FLEE_THRESHOLD_NORMAL,
+            PREDATOR_DEFAULT_FAR_DISTANCE,
+        )
+        from core.entities import Crab
+
+        # Check energy state
+        is_critical = fish.is_critical_energy()
+        is_low = fish.is_low_energy()
+
+        # Find nearest predator
+        nearest_predator = self._find_nearest(fish, Crab)
+        predator_distance = (
+            (nearest_predator.pos - fish.pos).length()
+            if nearest_predator
+            else PREDATOR_DEFAULT_FAR_DISTANCE
+        )
+
+        # Determine flee threshold based on energy
+        if is_critical:
+            flee_threshold = FLEE_THRESHOLD_CRITICAL
+            flee_speed = FLEE_SPEED_CRITICAL
+        elif is_low:
+            flee_threshold = FLEE_THRESHOLD_LOW
+            flee_speed = FLEE_SPEED_NORMAL
+        else:
+            flee_threshold = FLEE_THRESHOLD_NORMAL
+            flee_speed = FLEE_SPEED_NORMAL
+
+        # Check if should flee
+        if predator_distance < flee_threshold:
+            direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+            return True, direction.x * flee_speed, direction.y * flee_speed
+
+        return False, 0.0, 0.0
+
+    def _get_energy_state(self, fish: "Fish") -> Tuple[bool, bool, float]:
+        """Get fish energy state information.
+
+        Consolidates common energy checks into a single call.
+
+        Args:
+            fish: The fish to check energy state
+
+        Returns:
+            Tuple of (is_critical, is_low, energy_ratio) where:
+            - is_critical: True if fish has critical energy level
+            - is_low: True if fish has low energy level
+            - energy_ratio: Current energy as ratio of max energy (0.0 to 1.0)
+        """
+        is_critical = fish.is_critical_energy()
+        is_low = fish.is_low_energy()
+        energy_ratio = fish.get_energy_ratio()
+        return is_critical, is_low, energy_ratio
+
+
 @dataclass
-class BehaviorAlgorithm(BehaviorStrategy):
+class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategy):
     """Base class for all behavior algorithms.
 
     Each algorithm has:
     - A unique algorithm_id
     - A set of parameters that can mutate
     - An execute method that determines fish movement
+    - Helper methods inherited from BehaviorHelpersMixin
+
+    Inheritance:
+        BehaviorAlgorithm inherits from:
+        - BehaviorHelpersMixin: Provides _find_nearest, _safe_normalize, etc.
+        - BehaviorStrategy: Marker for registrable strategies
     """
 
     algorithm_id: str
@@ -474,255 +760,3 @@ class BehaviorAlgorithm(BehaviorStrategy):
             "algorithm_id": self.algorithm_id,
             "parameters": dict(self.parameters),  # shallow copy
         }
-
-
-def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] = None) -> Optional[Any]:
-    """Find nearest agent of given type within optional distance limit.
-
-    PERFORMANCE: Uses spatial queries when max_distance is specified (O(k) vs O(n)).
-    Falls back to get_agents_of_type only when no distance limit is given.
-
-    Args:
-        fish: The fish searching for agents
-        agent_type: Type of agent to search for
-        max_distance: Optional maximum detection distance (None = unlimited)
-
-    Returns:
-        Nearest agent within range, or None if no agents found/in range
-    """
-    env: World = fish.environment
-    fish_x = fish.pos.x
-    fish_y = fish.pos.y
-
-    if max_distance is not None:
-        # OPTIMIZATION: Use spatial query instead of get_agents_of_type
-        # This reduces from O(n) to O(k) where k is nearby agents
-        agents = env.nearby_agents_by_type(fish, int(max_distance) + 1, agent_type)
-        if not agents:
-            return None
-
-        max_distance_sq = max_distance * max_distance
-        min_dist_sq = float('inf')
-        nearest = None
-
-        for agent in agents:
-            # Inline distance calculation to avoid function call overhead
-            dx = agent.pos.x - fish_x
-            dy = agent.pos.y - fish_y
-            dist_sq = dx * dx + dy * dy
-
-            if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
-                min_dist_sq = dist_sq
-                nearest = agent
-
-        return nearest
-    else:
-        # No distance limit - must check all agents
-        agents = env.get_agents_of_type(agent_type)
-        if not agents:
-            return None
-
-        min_dist_sq = float('inf')
-        nearest = None
-
-        for agent in agents:
-            dx = agent.pos.x - fish_x
-            dy = agent.pos.y - fish_y
-            dist_sq = dx * dx + dy * dy
-            if dist_sq < min_dist_sq:
-                min_dist_sq = dist_sq
-                nearest = agent
-
-        return nearest
-
-
-def _safe_normalize(self, vector: Vector2) -> Vector2:
-    """Safely normalize a vector, returning zero vector if length is zero.
-
-    Args:
-        vector: The vector to normalize
-
-    Returns:
-        Normalized vector or Vector2(0, 0) if vector length is zero or near-zero
-    """
-    length = vector.length()
-    if length < 1e-6:  # Use small epsilon to handle floating point errors
-        return Vector2(0, 0)
-    return vector.normalize()
-
-
-def _get_predator_threat(
-    self, fish: "Fish", max_distance: float = float("inf")
-) -> Tuple[Optional[Any], float, Vector2]:
-    """Get information about the nearest predator threat.
-
-    This helper method consolidates the common pattern of finding the nearest
-    predator, calculating distance, and computing escape direction.
-
-    Args:
-        fish: The fish to check for threats
-        max_distance: Maximum distance to consider a threat (default: infinite)
-
-    Returns:
-        Tuple of (predator, distance, escape_direction) where:
-        - predator: Nearest predator agent or None if none found/in range
-        - distance: Distance to predator or infinity if none
-        - escape_direction: Normalized vector pointing away from predator or (0,0)
-    """
-    from core.entities import Crab
-
-    nearest_predator = self._find_nearest(fish, Crab)
-    if not nearest_predator:
-        return None, float("inf"), Vector2(0, 0)
-
-    distance = (nearest_predator.pos - fish.pos).length()
-
-    if distance > max_distance:
-        return None, float("inf"), Vector2(0, 0)
-
-    escape_direction = self._safe_normalize(fish.pos - nearest_predator.pos)
-    return nearest_predator, distance, escape_direction
-
-
-def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
-    """Find nearest food within time-based detection range.
-
-    PERFORMANCE: Uses dedicated spatial food query (nearby_food) which is
-    faster than generic nearby_agents_by_type.
-
-    Fish have reduced ability to detect food at night due to lower visibility.
-    Detection range is modified by time of day:
-    - Night: 25% of base range
-    - Dawn/Dusk: 75% of base range
-    - Day: 100% of base range
-
-    Args:
-        fish: The fish searching for food
-
-    Returns:
-        Nearest food within detection range, or None if no food detected
-    """
-    from core.constants import BASE_FOOD_DETECTION_RANGE
-
-    env: World = fish.environment
-
-    # Performance: Use cached detection modifier from environment (updated once per frame)
-    # Note: access specific property, safe to duck-type or check hasattr if strict
-    detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
-    max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
-    max_distance_sq = max_distance * max_distance
-
-    # OPTIMIZATION: Use dedicated nearby_food spatial query (or generic nearby_resources)
-    # This uses the optimized food_grid in SpatialGrid
-    if hasattr(env, "nearby_resources"):
-        nearby = env.nearby_resources(fish, int(max_distance) + 1)
-    elif hasattr(env, "nearby_food"):
-        nearby = env.nearby_food(fish, int(max_distance) + 1)
-    else:
-        from core.entities import Food
-        nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, Food)
-
-    if not nearby:
-        return None
-
-    fish_x = fish.pos.x
-    fish_y = fish.pos.y
-    min_dist_sq = float('inf')
-    nearest = None
-
-    for food in nearby:
-        dx = food.pos.x - fish_x
-        dy = food.pos.y - fish_y
-        dist_sq = dx * dx + dy * dy
-        if dist_sq < min_dist_sq and dist_sq <= max_distance_sq:
-            min_dist_sq = dist_sq
-            nearest = food
-
-    return nearest
-
-
-def _should_flee_predator(self, fish: "Fish") -> Tuple[bool, float, float]:
-    """Check if fish should flee from predators based on energy state.
-
-    Uses energy-aware flee thresholds:
-    - Critical energy: Minimal flee distance (must risk danger for food)
-    - Low energy: Moderate flee distance
-    - Normal energy: Standard flee distance
-
-    Args:
-        fish: The fish to check for predator threats
-
-    Returns:
-        Tuple of (should_flee, velocity_x, velocity_y) where:
-        - should_flee: True if fish should flee from a nearby predator
-        - velocity_x: X component of flee velocity (0 if not fleeing)
-        - velocity_y: Y component of flee velocity (0 if not fleeing)
-    """
-    from core.constants import (
-        FLEE_SPEED_CRITICAL,
-        FLEE_SPEED_NORMAL,
-        FLEE_THRESHOLD_CRITICAL,
-        FLEE_THRESHOLD_LOW,
-        FLEE_THRESHOLD_NORMAL,
-        PREDATOR_DEFAULT_FAR_DISTANCE,
-    )
-    from core.entities import Crab
-
-    # Check energy state
-    is_critical = fish.is_critical_energy()
-    is_low = fish.is_low_energy()
-
-    # Find nearest predator
-    nearest_predator = self._find_nearest(fish, Crab)
-    predator_distance = (
-        (nearest_predator.pos - fish.pos).length()
-        if nearest_predator
-        else PREDATOR_DEFAULT_FAR_DISTANCE
-    )
-
-    # Determine flee threshold based on energy
-    if is_critical:
-        flee_threshold = FLEE_THRESHOLD_CRITICAL
-        flee_speed = FLEE_SPEED_CRITICAL
-    elif is_low:
-        flee_threshold = FLEE_THRESHOLD_LOW
-        flee_speed = FLEE_SPEED_NORMAL
-    else:
-        flee_threshold = FLEE_THRESHOLD_NORMAL
-        flee_speed = FLEE_SPEED_NORMAL
-
-    # Check if should flee
-    if predator_distance < flee_threshold:
-        direction = self._safe_normalize(fish.pos - nearest_predator.pos)
-        return True, direction.x * flee_speed, direction.y * flee_speed
-
-    return False, 0.0, 0.0
-
-
-def _get_energy_state(self, fish: "Fish") -> Tuple[bool, bool, float]:
-    """Get fish energy state information.
-
-    Consolidates common energy checks into a single call.
-
-    Args:
-        fish: The fish to check energy state
-
-    Returns:
-        Tuple of (is_critical, is_low, energy_ratio) where:
-        - is_critical: True if fish has critical energy level
-        - is_low: True if fish has low energy level
-        - energy_ratio: Current energy as ratio of max energy (0.0 to 1.0)
-    """
-    is_critical = fish.is_critical_energy()
-    is_low = fish.is_low_energy()
-    energy_ratio = fish.get_energy_ratio()
-    return is_critical, is_low, energy_ratio
-
-
-# Inject helper methods into base class
-BehaviorAlgorithm._find_nearest = _find_nearest
-BehaviorAlgorithm._safe_normalize = _safe_normalize
-BehaviorAlgorithm._get_predator_threat = _get_predator_threat
-BehaviorAlgorithm._find_nearest_food = _find_nearest_food
-BehaviorAlgorithm._should_flee_predator = _should_flee_predator
-BehaviorAlgorithm._get_energy_state = _get_energy_state
