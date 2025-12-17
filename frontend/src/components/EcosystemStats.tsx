@@ -334,7 +334,27 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
             {/* Gene Distribution Panel - full width */}
             <div className="glass-panel" style={{ padding: '16px', gridColumn: '1 / -1' }}>
-                <CollapsibleSection title="Gene Distribution" defaultExpanded={true}>
+                <CollapsibleSection
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                            <span>Gene Distribution</span>
+                            <span style={{
+                                fontSize: '11px',
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                fontWeight: 500,
+                                marginLeft: 'auto',
+                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                                background: 'rgba(0,0,0,0.2)',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255,255,255,0.05)'
+                            }}>
+                                MR: Mutation Rate · MS: Mutation Strength · HP: Horizontal Gene Transfer Prob · Meta-Data Mut Rate: 1%
+                            </span>
+                        </div>
+                    }
+                    defaultExpanded={true}
+                >
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(3, 1fr)',
@@ -361,6 +381,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 height={100}
                                 xLabel="Adult Size"
                                 yLabel="Pop %"
+                                mutationRateMean={safeStats.adult_size_mut_rate_mean}
+                                mutationRateStd={safeStats.adult_size_mut_rate_std}
+                                mutationStrengthMean={safeStats.adult_size_mut_strength_mean}
+                                mutationStrengthStd={safeStats.adult_size_mut_strength_std}
+                                hgtProbMean={safeStats.adult_size_hgt_prob_mean}
+                                hgtProbStd={safeStats.adult_size_hgt_prob_std}
                             />
                         </div>
 
@@ -384,6 +410,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 height={100}
                                 xLabel="Eye Size"
                                 yLabel="Pop %"
+                                mutationRateMean={safeStats.eye_size_mut_rate_mean}
+                                mutationRateStd={safeStats.eye_size_mut_rate_std}
+                                mutationStrengthMean={safeStats.eye_size_mut_strength_mean}
+                                mutationStrengthStd={safeStats.eye_size_mut_strength_std}
+                                hgtProbMean={safeStats.eye_size_hgt_prob_mean}
+                                hgtProbStd={safeStats.eye_size_hgt_prob_std}
                             />
                         </div>
 
@@ -407,6 +439,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 height={100}
                                 xLabel="Fin Size"
                                 yLabel="Pop %"
+                                mutationRateMean={safeStats.fin_size_mut_rate_mean}
+                                mutationRateStd={safeStats.fin_size_mut_rate_std}
+                                mutationStrengthMean={safeStats.fin_size_mut_strength_mean}
+                                mutationStrengthStd={safeStats.fin_size_mut_strength_std}
+                                hgtProbMean={safeStats.fin_size_hgt_prob_mean}
+                                hgtProbStd={safeStats.fin_size_hgt_prob_std}
                             />
                         </div>
                     </div>
@@ -437,6 +475,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 allowedMax={stats.allowed_tail_size_max || 2.0}
                                 xLabel="Tail Size"
                                 yLabel="Pop %"
+                                mutationRateMean={stats.tail_size_mut_rate_mean}
+                                mutationRateStd={stats.tail_size_mut_rate_std}
+                                mutationStrengthMean={stats.tail_size_mut_strength_mean}
+                                mutationStrengthStd={stats.tail_size_mut_strength_std}
+                                hgtProbMean={stats.tail_size_hgt_prob_mean}
+                                hgtProbStd={stats.tail_size_hgt_prob_std}
                             />
                         </div>
                         <div className="gene-graph-card" style={{
@@ -459,6 +503,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 allowedMax={stats.allowed_body_aspect_max || 1.3}
                                 xLabel="Body Aspect"
                                 yLabel="Pop %"
+                                mutationRateMean={stats.body_aspect_mut_rate_mean}
+                                mutationRateStd={stats.body_aspect_mut_rate_std}
+                                mutationStrengthMean={stats.body_aspect_mut_strength_mean}
+                                mutationStrengthStd={stats.body_aspect_mut_strength_std}
+                                hgtProbMean={stats.body_aspect_hgt_prob_mean}
+                                hgtProbStd={stats.body_aspect_hgt_prob_std}
                             />
                         </div>
                         <div className="gene-graph-card" style={{
@@ -483,6 +533,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 yLabel="Pop %"
                                 integerValues={true}
                                 labels={['Round', 'Torpedo', 'Flat', 'Angular', 'Chubby', 'Eel']}
+                                mutationRateMean={stats.template_id_mut_rate_mean}
+                                mutationRateStd={stats.template_id_mut_rate_std}
+                                mutationStrengthMean={stats.template_id_mut_strength_mean}
+                                mutationStrengthStd={stats.template_id_mut_strength_std}
+                                hgtProbMean={stats.template_id_hgt_prob_mean}
+                                hgtProbStd={stats.template_id_hgt_prob_std}
                             />
                         </div>
                     </div>
@@ -516,6 +572,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 yLabel="Pop %"
                                 integerValues={true}
                                 labels={['Stripe', 'Spots', 'Solid', 'Grad', 'Chevn', 'Scale']}
+                                mutationRateMean={stats.pattern_type_mut_rate_mean}
+                                mutationRateStd={stats.pattern_type_mut_rate_std}
+                                mutationStrengthMean={stats.pattern_type_mut_strength_mean}
+                                mutationStrengthStd={stats.pattern_type_mut_strength_std}
+                                hgtProbMean={stats.pattern_type_hgt_prob_mean}
+                                hgtProbStd={stats.pattern_type_hgt_prob_std}
                             />
                         </div>
                         <div className="gene-graph-card" style={{
@@ -538,6 +600,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 allowedMax={stats.allowed_pattern_intensity_max || 1.0}
                                 xLabel="Pattern Intensity"
                                 yLabel="Pop %"
+                                mutationRateMean={stats.pattern_intensity_mut_rate_mean}
+                                mutationRateStd={stats.pattern_intensity_mut_rate_std}
+                                mutationStrengthMean={stats.pattern_intensity_mut_strength_mean}
+                                mutationStrengthStd={stats.pattern_intensity_mut_strength_std}
+                                hgtProbMean={stats.pattern_intensity_hgt_prob_mean}
+                                hgtProbStd={stats.pattern_intensity_hgt_prob_std}
                             />
                         </div>
                         <div className="gene-graph-card" style={{
@@ -560,6 +628,12 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 allowedMax={stats.allowed_lifespan_modifier_max || 1.4}
                                 xLabel="Lifespan Mod"
                                 yLabel="Pop %"
+                                mutationRateMean={stats.lifespan_modifier_mut_rate_mean}
+                                mutationRateStd={stats.lifespan_modifier_mut_rate_std}
+                                mutationStrengthMean={stats.lifespan_modifier_mut_strength_mean}
+                                mutationStrengthStd={stats.lifespan_modifier_mut_strength_std}
+                                hgtProbMean={stats.lifespan_modifier_hgt_prob_mean}
+                                hgtProbStd={stats.lifespan_modifier_hgt_prob_std}
                             />
                         </div>
                     </div>

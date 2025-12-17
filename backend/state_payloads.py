@@ -334,6 +334,7 @@ class StatsPayload:
         best_hand_rank=0,
         best_hand_name="",
     ))
+    meta_stats: Dict[str, float] = field(default_factory=dict)
     total_sexual_births: int = 0
     total_asexual_births: int = 0
     fps: float = 0.0
@@ -468,6 +469,8 @@ class StatsPayload:
         }
 
         data["poker_stats"] = self.poker_stats.to_dict()
+        if self.meta_stats:
+            data.update(self.meta_stats)
         return data
 
 

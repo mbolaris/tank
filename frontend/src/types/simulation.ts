@@ -329,6 +329,9 @@ export interface StatsData {
     total_asexual_births: number;
     fps?: number;
     fast_forward?: boolean;
+
+    // Allow dynamic keys for meta-trait statistics (e.g. adult_size_mut_rate_mean)
+    [key: string]: any;
 }
 
 export interface SimulationUpdate {
@@ -502,39 +505,39 @@ export interface BenchmarkSnapshot {
 
 export type BenchmarkImprovementMetrics =
     | {
-          status: 'insufficient_data';
-          snapshots_collected: number;
-      }
+        status: 'insufficient_data';
+        snapshots_collected: number;
+    }
     | {
-          status: 'tracked';
-          total_snapshots: number;
-          frames_tracked?: number;
-          generation_start?: number;
-          generation_end?: number;
-          bb_per_100_start?: number;
-          bb_per_100_end?: number;
-          bb_per_100_change?: number;
-          bb_per_100_slope?: number;
-          bb_per_100_recent_avg?: number;
-          weighted_bb_start?: number;
-          weighted_bb_end?: number;
-          weighted_bb_change?: number;
-          vs_trivial_change?: number;
-          vs_weak_change?: number;
-          vs_moderate_change?: number;
-          vs_strong_change?: number;
-          best_bb_start?: number;
-          best_bb_end?: number;
-          best_bb_change?: number;
-          dominant_strategy_start?: string;
-          dominant_strategy_end?: string;
-          is_improving?: boolean;
-          trend_direction?: 'improving' | 'declining' | 'stable';
-          can_beat_trivial?: boolean;
-          can_beat_weak?: boolean;
-          can_beat_moderate?: boolean;
-          can_beat_strong?: boolean;
-      };
+        status: 'tracked';
+        total_snapshots: number;
+        frames_tracked?: number;
+        generation_start?: number;
+        generation_end?: number;
+        bb_per_100_start?: number;
+        bb_per_100_end?: number;
+        bb_per_100_change?: number;
+        bb_per_100_slope?: number;
+        bb_per_100_recent_avg?: number;
+        weighted_bb_start?: number;
+        weighted_bb_end?: number;
+        weighted_bb_change?: number;
+        vs_trivial_change?: number;
+        vs_weak_change?: number;
+        vs_moderate_change?: number;
+        vs_strong_change?: number;
+        best_bb_start?: number;
+        best_bb_end?: number;
+        best_bb_change?: number;
+        dominant_strategy_start?: string;
+        dominant_strategy_end?: string;
+        is_improving?: boolean;
+        trend_direction?: 'improving' | 'declining' | 'stable';
+        can_beat_trivial?: boolean;
+        can_beat_weak?: boolean;
+        can_beat_moderate?: boolean;
+        can_beat_strong?: boolean;
+    };
 
 export interface EvolutionBenchmarkData {
     status?: 'not_available';

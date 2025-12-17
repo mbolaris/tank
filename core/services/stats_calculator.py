@@ -11,11 +11,12 @@ Architecture Notes:
 """
 
 import time
-from statistics import median
+from statistics import mean, median, stdev
 from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+
 
 
 class StatsCalculator:
@@ -35,6 +36,54 @@ class StatsCalculator:
             engine: The simulation engine to calculate stats for
         """
         self._engine = engine
+
+    def _calculate_meta_stats(self, traits: List[Any], prefix: str) -> Dict[str, Any]:
+        """Calculate meta-statistics (mutation rate, strength, HGT) for a list of traits.
+
+        Args:
+            traits: List of GeneticTrait objects
+            prefix: Prefix for the output keys (e.g., 'adult_size')
+
+        Returns:
+            Dictionary with mean and std dev for mutation rate, strength, and HGT
+        """
+        stats: Dict[str, Any] = {}
+        
+        if not traits:
+            # Return defaults if no traits
+            for metric in ["mut_rate", "mut_strength", "hgt_prob"]:
+                stats[f"{prefix}_{metric}_mean"] = 0.0
+                stats[f"{prefix}_{metric}_std"] = 0.0
+            return stats
+
+        # Helper to safely calc mean/std
+        def calc_safe(values: List[float]) -> tuple[float, float]:
+            if not values:
+                return 0.0, 0.0
+            m = mean(values)
+            s = stdev(values) if len(values) > 1 else 0.0
+            return m, s
+
+        # Mutation Rate
+        rates = [t.mutation_rate for t in traits]
+        r_mean, r_std = calc_safe(rates)
+        stats[f"{prefix}_mut_rate_mean"] = r_mean
+        stats[f"{prefix}_mut_rate_std"] = r_std
+
+        # Mutation Strength
+        strengths = [t.mutation_strength for t in traits]
+        s_mean, s_std = calc_safe(strengths)
+        stats[f"{prefix}_mut_strength_mean"] = s_mean
+        stats[f"{prefix}_mut_strength_std"] = s_std
+
+        # HGT Probability
+        hgts = [t.hgt_probability for t in traits]
+        h_mean, h_std = calc_safe(hgts)
+        stats[f"{prefix}_hgt_prob_mean"] = h_mean
+        stats[f"{prefix}_hgt_prob_std"] = h_std
+
+        return stats
+
 
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive simulation statistics.
@@ -244,10 +293,17 @@ class StatsCalculator:
             })
             return stats
 
-        adult_sizes = [
-            FISH_ADULT_SIZE * (f.genome.size_modifier if hasattr(f, "genome") else 1.0)
-            for f in fish_list
+        adult_size_traits = [
+            f.genome.physical.size_modifier for f in fish_list if hasattr(f, "genome")
         ]
+        
+        adult_sizes = [
+            FISH_ADULT_SIZE * t.value
+            for t in adult_size_traits
+        ]
+
+        # Calculate meta stats
+        stats.update(self._calculate_meta_stats(adult_size_traits, "adult_size"))
 
         stats["adult_size_min"] = min(adult_sizes)
         stats["adult_size_max"] = max(adult_sizes)
@@ -302,7 +358,11 @@ class StatsCalculator:
             return stats
 
         try:
-            eye_sizes = [getattr(f.genome, "eye_size", 1.0) for f in fish_list]
+            eye_traits = [f.genome.physical.eye_size for f in fish_list]
+            eye_sizes = [t.value for t in eye_traits]
+
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(eye_traits, "eye_size"))
 
             if eye_sizes:
                 stats["eye_size_min"] = min(eye_sizes)
@@ -368,7 +428,11 @@ class StatsCalculator:
             return stats
 
         try:
-            fin_sizes = [getattr(f.genome, "fin_size", 1.0) for f in fish_list]
+            fin_traits = [f.genome.physical.fin_size for f in fish_list]
+            fin_sizes = [t.value for t in fin_traits]
+
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(fin_traits, "fin_size"))
 
             if fin_sizes:
                 stats["fin_size_min"] = min(fin_sizes)
@@ -426,7 +490,11 @@ class StatsCalculator:
             return stats
 
         try:
-            values = [getattr(f.genome, "tail_size", 1.0) for f in fish_list]
+            tail_traits = [f.genome.physical.tail_size for f in fish_list]
+            values = [t.value for t in tail_traits]
+            
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(tail_traits, "tail_size"))
             if values:
                 stats["tail_size_min"] = min(values)
                 stats["tail_size_max"] = max(values)
@@ -477,7 +545,11 @@ class StatsCalculator:
             return stats
 
         try:
-            values = [getattr(f.genome, "body_aspect", 1.0) for f in fish_list]
+            aspect_traits = [f.genome.physical.body_aspect for f in fish_list]
+            values = [t.value for t in aspect_traits]
+
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(aspect_traits, "body_aspect"))
             if values:
                 stats["body_aspect_min"] = min(values)
                 stats["body_aspect_max"] = max(values)
@@ -529,7 +601,11 @@ class StatsCalculator:
             return stats
 
         try:
-            values = [float(getattr(f.genome, "template_id", 0)) for f in fish_list]
+            template_traits = [f.genome.physical.template_id for f in fish_list]
+            values = [float(t.value) for t in template_traits]
+
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(template_traits, "template_id"))
             if values:
                 stats["template_id_min"] = min(values)
                 stats["template_id_max"] = max(values)
@@ -584,7 +660,11 @@ class StatsCalculator:
             return stats
 
         try:
-            values = [float(getattr(f.genome, "pattern_type", 0)) for f in fish_list]
+            pattern_traits = [f.genome.physical.pattern_type for f in fish_list]
+            values = [float(t.value) for t in pattern_traits]
+
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(pattern_traits, "pattern_type"))
             if values:
                 stats["pattern_type_min"] = min(values)
                 stats["pattern_type_max"] = max(values)
@@ -637,7 +717,11 @@ class StatsCalculator:
             return stats
 
         try:
-            values = [getattr(f.genome, "pattern_intensity", 0.0) for f in fish_list]
+            intensity_traits = [f.genome.physical.pattern_intensity for f in fish_list]
+            values = [t.value for t in intensity_traits]
+
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(intensity_traits, "pattern_intensity"))
             if values:
                 stats["pattern_intensity_min"] = min(values)
                 stats["pattern_intensity_max"] = max(values)
@@ -689,7 +773,11 @@ class StatsCalculator:
             return stats
 
         try:
-            values = [getattr(f.genome, "lifespan_modifier", 1.0) for f in fish_list]
+            lifespan_traits = [f.genome.physical.lifespan_modifier for f in fish_list]
+            values = [t.value for t in lifespan_traits]
+
+            # Calculate meta stats
+            stats.update(self._calculate_meta_stats(lifespan_traits, "lifespan_modifier"))
             if values:
                 stats["lifespan_modifier_min"] = min(values)
                 stats["lifespan_modifier_max"] = max(values)

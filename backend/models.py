@@ -3,7 +3,7 @@
 import sys
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 # Ensure consistent module aliasing whether imported as `models` or `backend.models`
 sys.modules.setdefault("models", sys.modules[__name__])
@@ -166,6 +166,7 @@ class AutoEvaluateStats(BaseModel):
 
 class StatsData(BaseModel):
     """Ecosystem statistics."""
+    model_config = ConfigDict(extra="allow")
 
     frame: int
     population: int

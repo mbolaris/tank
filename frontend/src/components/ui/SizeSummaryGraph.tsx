@@ -13,6 +13,13 @@ interface Props {
     integerValues?: boolean;
     /** Optional labels to display for discrete x-axis values (e.g., pattern names) */
     labels?: string[];
+    // Meta stats
+    mutationRateMean?: number;
+    mutationRateStd?: number;
+    mutationStrengthMean?: number;
+    mutationStrengthStd?: number;
+    hgtProbMean?: number;
+    hgtProbStd?: number;
 }
 
 export default function SizeSummaryGraph({
@@ -28,6 +35,12 @@ export default function SizeSummaryGraph({
     yLabel = 'Count',
     integerValues = false,
     labels,
+    mutationRateMean,
+    mutationRateStd,
+    mutationStrengthMean,
+    mutationStrengthStd,
+    hgtProbMean,
+    hgtProbStd,
 }: Props) {
     if (!bins || bins.length === 0) return null;
 
@@ -127,6 +140,30 @@ export default function SizeSummaryGraph({
                     {yLabel}
                 </text>
             </svg>
+
+            {(mutationRateMean !== undefined) && (
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    fontSize: '0.7rem',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    lineHeight: 1,
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontWeight: 500,
+                    width: '100%',
+                    padding: '0 4px',
+                    boxSizing: 'border-box',
+                    marginTop: '-4px',
+                    whiteSpace: 'nowrap'
+                }}>
+                    <span>MR: {mutationRateMean.toFixed(2)} ± {mutationRateStd?.toFixed(2)}</span>
+                    <span style={{ opacity: 0.3, margin: '0 4px' }}>|</span>
+                    <span>MS: {mutationStrengthMean?.toFixed(2)} ± {mutationStrengthStd?.toFixed(2)}</span>
+                    <span style={{ opacity: 0.3, margin: '0 4px' }}>|</span>
+                    <span>HP: {hgtProbMean?.toFixed(2)} ± {hgtProbStd?.toFixed(2)}</span>
+                </div>
+            )}
 
             <div style={{ height: 6 }} />
         </div>

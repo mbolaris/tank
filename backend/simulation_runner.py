@@ -807,6 +807,18 @@ class SimulationRunner:
             "lifespan_modifier_bin_edges": stats.get("lifespan_modifier_bin_edges", []),
         }
 
+        # Helper to extract meta stats
+        meta_stats = {}
+        for trait in [
+            "adult_size", "eye_size", "fin_size", "tail_size", 
+            "body_aspect", "template_id", "pattern_type", 
+            "pattern_intensity", "lifespan_modifier"
+        ]:
+            for meta in ["mut_rate_mean", "mut_rate_std", "mut_strength_mean", "mut_strength_std", "hgt_prob_mean", "hgt_prob_std"]:
+                key = f"{trait}_{meta}"
+                if key in stats:
+                    meta_stats[key] = stats[key]
+
         # Combine into payload
         return StatsPayload(
             # Base Stats
@@ -817,6 +829,8 @@ class SimulationRunner:
             **physical_stats,
             # Poker Stats object
             poker_stats=poker_stats,
+            # Meta Stats
+            meta_stats=meta_stats,
         )
 
     def _collect_poker_events(self) -> List[PokerEventPayload]:
