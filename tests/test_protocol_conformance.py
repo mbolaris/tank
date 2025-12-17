@@ -21,9 +21,6 @@ Test Categories:
     - Signature tests: Verify method signatures match protocol expectations
 """
 
-import inspect
-from typing import get_type_hints
-
 import pytest
 
 from core.environment import Environment
