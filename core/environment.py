@@ -251,10 +251,6 @@ class SpatialGrid:
                     # OPTIMIZATION: Filter directly during iteration
                     for other in cell_fish:
                         if other is not agent:
-                            # Filter out dead or migrated fish to prevent ghost attraction
-                            # OPTIMIZATION: Use getattr with default instead of hasattr+call
-                            if getattr(other, '_is_dead_cached', False):
-                                continue
                             other_pos = other.pos
                             dx = other_pos.x - agent_x
                             dy = other_pos.y - agent_y
@@ -641,11 +637,6 @@ class Environment:
                     if is_match:
                         for other in agents:
                             if other is agent:
-                                continue
-
-                            # Filter out dead/migrated entities to prevent ghost targeting
-                            # OPTIMIZATION: Use getattr with default instead of hasattr+call
-                            if getattr(other, '_is_dead_cached', False):
                                 continue
 
                             # Distance check
