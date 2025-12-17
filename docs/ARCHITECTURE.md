@@ -34,7 +34,16 @@ tank/
 │   │   ├── schooling.py
 │   │   ├── energy_management.py
 │   │   └── territory.py
-│   ├── environment.py            # Spatial queries
+│   ├── world.py                  # World and World2D Protocols
+│   ├── interfaces.py             # SkillfulAgent and other Protocols
+│   ├── environment.py            # Spatial queries (implements World Protocol)
+│   ├── skills/                   # Skill game framework
+│   │   ├── base.py              # SkillGame, SkillStrategy abstractions
+│   │   ├── config.py            # Game configuration and registry
+│   │   └── games/               # Game implementations
+│   │       ├── rock_paper_scissors.py
+│   │       ├── number_guessing.py
+│   │       └── poker_adapter.py # Poker as SkillGame
 │   ├── time_system.py            # Day/night cycles (extends BaseSystem)
 │   ├── collision_system.py       # Collision detection (extends BaseSystem)
 │   ├── reproduction_system.py    # Reproduction logic (extends BaseSystem)
@@ -372,11 +381,41 @@ Fish behavior is modular:
 - Offspring inherit mixed parental traits
 - Population cap management
 
-### Poker System
-- Fish "play poker" when they collide
-- Winner gains energy from loser
-- Hand rankings determine outcomes
-- 5% house cut on energy transfers
+### Skill Game System
+- **Multiple game types**: Poker, Rock-Paper-Scissors, Number Guessing
+- Fish play games when they encounter each other
+- Winners gain energy from losers
+- Strategies evolve through genetic algorithm
+
+**Poker Integration:**
+- `PokerSkillGame` adapter unifies poker with skill game framework
+- Uses existing poker engine and strategy system
+- Conforms to `SkillGame` interface like other games
+- Fish use `SkillfulAgent` Protocol for uniform game interaction
+
+### Protocol-Based Architecture
+The simulation uses **Protocols** (PEP 544) for defining interfaces:
+
+**World Protocol** (`core/world.py`):
+- Defines what any simulation environment must provide
+- `nearby_agents()`, `nearby_agents_by_type()` for spatial queries
+- `get_bounds()`, `is_valid_position()` for boundary checking
+- `dimensions` property for environment size
+- Implemented by `Environment` class
+
+**SkillfulAgent Protocol** (`core/interfaces.py`):
+- Defines contract for agents that can play skill games
+- `get_strategy(game_type)` - Get agent's strategy for a game
+- `set_strategy(game_type, strategy)` - Set strategy
+- `learn_from_game(game_type, result)` - Update from game outcomes
+- `can_play_skill_games` - Check if agent is ready to play
+- Implemented by `Fish` class
+
+**Benefits:**
+- **Structural subtyping**: Classes satisfy protocols without explicit inheritance
+- **Runtime checking**: `isinstance(obj, Protocol)` works with `@runtime_checkable`
+- **Future-proof**: Easy to add new environment types or agent types
+- **Type safety**: IDE autocomplete and type checkers understand the contracts
 
 ## References
 

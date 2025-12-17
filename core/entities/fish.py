@@ -197,6 +197,10 @@ class Fish(Agent):
         # NEW: Behavioral learning system (learn from experience within lifetime)
 
         self.learning_system = BehavioralLearningSystem(self.genome)
+        
+        # NEW: Skill game component (manages strategies and stats for skill games)
+        from core.fish.skill_game_component import SkillGameComponent
+        self._skill_game_component = SkillGameComponent()
 
         # ID tracking
         self.ecosystem: Optional[EcosystemManager] = ecosystem
@@ -239,6 +243,61 @@ class Fish(Agent):
 
         # Visual effects for births
         self.birth_effect_timer: int = 0  # Frames remaining for birth visual effect (hearts + particles)
+    
+    # --- SkillfulAgent Protocol Implementation ---
+    # The following methods implement the SkillfulAgent Protocol,
+    # making Fish able to participate in any skill game type.
+    
+    def get_strategy(self, game_type: "SkillGameType") -> Optional["SkillStrategy"]:
+        """Get the fish's strategy for a specific skill game (implements SkillfulAgent Protocol).
+        
+        Args:
+            game_type: The type of skill game
+            
+        Returns:
+            The fish's strategy for that game, or None if not initialized
+        """
+        from core.skills.base import SkillGameType, SkillStrategy
+        return self._skill_game_component.get_strategy(game_type)
+    
+    def set_strategy(self, game_type: "SkillGameType", strategy: "SkillStrategy") -> None:
+        """Set the fish's strategy for a specific skill game (implements SkillfulAgent Protocol).
+        
+        Args:
+            game_type: The type of skill game
+            strategy: The strategy to use for that game
+        """
+        from core.skills.base import SkillGameType, SkillStrategy
+        self._skill_game_component.set_strategy(game_type, strategy)
+    
+    def learn_from_game(self, game_type: "SkillGameType", result: "SkillGameResult") -> None:
+        """Update strategy based on game outcome (implements SkillfulAgent Protocol).
+        
+        This is how fish learn within their lifetime. The strategy is updated
+        based on the result (win/loss/tie) and optimality of play.
+        
+        Args:
+            game_type: The type of skill game that was played
+            result: The outcome of the game
+        """
+        from core.skills.base import SkillGameType, SkillGameResult
+        self._skill_game_component.record_game_result(game_type, result)
+    
+    @property
+    def can_play_skill_games(self) -> bool:
+        """Whether this fish is currently able to play skill games (implements SkillfulAgent Protocol).
+        
+        Returns:
+            True if fish has sufficient energy and isn't on cooldown
+        """
+        # Fish can play skill games if they have enough energy and aren't on cooldown
+        # Use same minimum energy as poker system for consistency
+        from core.fish_poker import PokerInteraction
+        return (
+            self.energy >= PokerInteraction.MIN_ENERGY_TO_PLAY
+            and self.poker_cooldown <= 0
+            and not self.is_dead()
+        )
 
     @property
     def typed_id(self) -> FishId:
@@ -906,17 +965,11 @@ class Fish(Agent):
                 self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
 
         # Inherit skill game strategies from parent with mutation
-        # If parent has strategies, inherit them; otherwise baby will get default when playing
-        from core.fish.skill_game_component import SkillGameComponent
-        baby._skill_game_component = SkillGameComponent()
-        if hasattr(self, "_skill_game_component") and self._skill_game_component is not None:
-            # Parent has strategies - inherit with mutation
-            baby._skill_game_component.inherit_from_parent(
-                self._skill_game_component,
-                mutation_rate=0.1,
-            )
-        # If parent has no strategies, baby gets empty component and will
-        # receive default strategies when first playing (via _ensure_fish_has_strategy)
+        # Component is already initialized in __init__, just inherit strategies
+        baby._skill_game_component.inherit_from_parent(
+            self._skill_game_component,
+            mutation_rate=0.1,
+        )
 
         # Set visual birth effect timer (60 frames = 2 seconds at 30fps)
         self.birth_effect_timer = 60

@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from core.entities import Agent
     from core.genetics import Genome
     from core.poker.core import PokerHand
+    from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 
 
 @runtime_checkable
@@ -286,4 +287,61 @@ class Reproducible(Protocol):
     @property
     def reproduction_cooldown(self) -> int:
         """Frames until entity can reproduce again."""
+        ...
+
+
+@runtime_checkable
+class SkillfulAgent(Protocol):
+    """Any agent that can participate in skill games.
+    
+    This Protocol defines the contract for agents that can play skill games
+    (poker, rock-paper-scissors, etc.). It separates the skill game system
+    from the core entity system, allowing any agent type to participate.
+    
+    Design Philosophy:
+    - Skill games are optional capabilities, not core to being an Agent
+    - Agents can have multiple strategies (one per game type)
+    - Learning happens both within lifetime and across generations
+    - Strategies are stored/inherited through the genome
+    """
+    
+    def get_strategy(self, game_type: "SkillGameType") -> Optional["SkillStrategy"]:
+        """Get the agent's strategy for a specific skill game.
+        
+        Args:
+            game_type: The type of skill game
+            
+        Returns:
+            The agent's strategy for that game, or None if not available
+        """
+        ...
+    
+    def set_strategy(self, game_type: "SkillGameType", strategy: "SkillStrategy") -> None:
+        """Set the agent's strategy for a specific skill game.
+        
+        Args:
+            game_type: The type of skill game
+            strategy: The strategy to use for that game
+        """
+        ...
+    
+    def learn_from_game(self, game_type: "SkillGameType", result: "SkillGameResult") -> None:
+        """Update strategy based on game outcome.
+        
+        This is how agents learn within their lifetime. The strategy
+        should be updated based on the result (win/loss/tie).
+        
+        Args:
+            game_type: The type of skill game that was played
+            result: The outcome of the game
+        """
+        ...
+    
+    @property
+    def can_play_skill_games(self) -> bool:
+        """Whether this agent is currently able to play skill games.
+        
+        Returns:
+            True if agent has sufficient energy, isn't on cooldown, etc.
+        """
         ...

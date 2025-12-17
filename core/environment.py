@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
 from core.migration_protocol import MigrationHandler
+from core.world import World, World2D  # Import World protocols
 
 
 class SpatialGrid:
@@ -741,3 +742,47 @@ class Environment:
             int: Number of entities of the specified type
         """
         return len(self.get_agents_of_type(agent_class))
+    
+    # --- World Protocol Implementation ---
+    # The following methods/properties implement the World Protocol,
+    # making Environment usable as an abstract World in generic simulation code.
+    
+    @property
+    def dimensions(self) -> Tuple[float, ...]:
+        """Get environment dimensions (implements World Protocol).
+        
+        Returns:
+            Tuple of (width, height) for 2D environment
+        """
+        return (float(self.width), float(self.height))
+    
+    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """Get environment boundaries (implements World Protocol).
+        
+        Returns:
+            ((min_x, min_y), (max_x, max_y)) for 2D environment
+        """
+        return ((0.0, 0.0), (float(self.width), float(self.height)))
+    
+    def get_2d_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """Get 2D boundaries (implements World2D Protocol).
+        
+        Returns:
+            ((min_x, min_y), (max_x, max_y))
+        """
+        return self.get_bounds()
+    
+    def is_valid_position(self, position: Tuple[float, float]) -> bool:
+        """Check if a position is valid within this environment (implements World Protocol).
+        
+        Args:
+            position: (x, y) tuple to check
+            
+        Returns:
+            True if position is within bounds [0, width) x [0, height)
+        """
+        if not isinstance(position, (tuple, list)) or len(position) != 2:
+            return False
+        
+        x, y = position
+        return 0 <= x < self.width and 0 <= y < self.height

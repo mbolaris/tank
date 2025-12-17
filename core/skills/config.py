@@ -139,9 +139,12 @@ def get_active_skill_game() -> Optional[SkillGame]:
         )
 
     elif game_type == SkillGameType.POKER:
-        # Poker uses the existing poker system
-        # Return None here - poker has its own integration
-        return None
+        # Use PokerSkillGame adapter
+        game_config = config.poker_config
+        return game_class(
+            small_blind=game_config.get("small_blind", 5.0) * config.stake_multiplier,
+            big_blind=game_config.get("big_blind", 10.0) * config.stake_multiplier,
+        )
 
     else:
         # Generic instantiation
@@ -159,6 +162,12 @@ def _auto_register_games() -> None:
     try:
         from core.skills.games.number_guessing import NumberGuessingGame
         register_skill_game(SkillGameType.NUMBER_GUESSING, NumberGuessingGame)
+    except ImportError:
+        pass
+    
+    try:
+        from core.skills.games.poker_adapter import PokerSkillGame
+        register_skill_game(SkillGameType.POKER, PokerSkillGame)
     except ImportError:
         pass
 
