@@ -84,6 +84,20 @@ class World(Protocol):
         """
         ...
     
+    def get_agents_of_type(self, agent_type: Type["Agent"]) -> List["Agent"]:
+        """Get all agents of a specific type in the environment.
+        
+        This is a global query (not spatial). Use for iteration over
+        all entities of a type when spatial filtering isn't needed.
+        
+        Args:
+            agent_type: Type of agents to retrieve
+            
+        Returns:
+            List of all agents of the specified type
+        """
+        ...
+    
     # --- Boundary/Position Validation ---
     
     def get_bounds(self) -> Tuple[Any, Any]:

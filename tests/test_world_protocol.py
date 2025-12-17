@@ -25,6 +25,10 @@ class TestWorldProtocol:
         
         # Protocol check - Environment should be recognized as a World
         assert isinstance(env, World), "Environment should implement World Protocol"
+        
+        # Check specific methods
+        assert hasattr(env, 'get_agents_of_type'), "Environment should implement get_agents_of_type"
+        assert hasattr(env, 'nearby_agents_by_type'), "Environment should implement nearby_agents_by_type"
     
     def test_environment_implements_world2d_protocol(self):
         """Environment should satisfy World2D Protocol."""

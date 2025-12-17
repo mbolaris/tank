@@ -63,6 +63,7 @@ from core.constants import (
 )
 from core.entities import Crab, Food
 from core.predictive_movement import predict_intercept_point
+from core.world import World
 
 
 @dataclass
@@ -379,7 +380,9 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
             flee_speed = 1.2 if is_critical else 1.4  # Conserve energy even when fleeing
             return direction.x * flee_speed, direction.y * flee_speed
 
-        foods = fish.environment.get_agents_of_type(Food)
+        # Use World Protocol
+        env: World = fish.environment
+        foods = env.get_agents_of_type(Food)
         best_food = None
         best_score = -float("inf")
 

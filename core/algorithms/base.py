@@ -490,7 +490,7 @@ def _find_nearest(self, fish: "Fish", agent_type, max_distance: Optional[float] 
     Returns:
         Nearest agent within range, or None if no agents found/in range
     """
-    env = fish.environment
+    env: World = fish.environment
     fish_x = fish.pos.x
     fish_y = fish.pos.y
 
@@ -604,16 +604,19 @@ def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
     """
     from core.constants import BASE_FOOD_DETECTION_RANGE
 
-    env = fish.environment
+    env: World = fish.environment
 
     # Performance: Use cached detection modifier from environment (updated once per frame)
-    detection_modifier = env.get_detection_modifier()
+    # Note: access specific property, safe to duck-type or check hasattr if strict
+    detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
     max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
     max_distance_sq = max_distance * max_distance
 
-    # OPTIMIZATION: Use dedicated nearby_food spatial query
+    # OPTIMIZATION: Use dedicated nearby_food spatial query (or generic nearby_resources)
     # This uses the optimized food_grid in SpatialGrid
-    if hasattr(env, "nearby_food"):
+    if hasattr(env, "nearby_resources"):
+        nearby = env.nearby_resources(fish, int(max_distance) + 1)
+    elif hasattr(env, "nearby_food"):
         nearby = env.nearby_food(fish, int(max_distance) + 1)
     else:
         from core.entities import Food

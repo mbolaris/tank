@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 from core.algorithms.base import BehaviorAlgorithm
 from core.entities import Crab
 from core.entities import Fish as FishClass
+from core.world import World  # Import World Protocol
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -41,8 +42,12 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
     Returns:
         Tuple of (nearest_fish, distance_squared) or (None, inf)
     """
-    env = fish.environment
-    if hasattr(env, "nearby_fish"):
+    env: World = fish.environment  # Type hint as World Protocol
+    
+    # Use generic method if available, fall back to alias or type query
+    if hasattr(env, "nearby_evolving_agents"):
+        nearby = env.nearby_evolving_agents(fish, radius)
+    elif hasattr(env, "nearby_fish"):
         nearby = env.nearby_fish(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
@@ -79,10 +84,12 @@ def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> List["Fish"]:
     Returns:
         List of nearby fish (excluding self)
     """
-    env = fish.environment
+    env: World = fish.environment
     fish_id = fish.fish_id
 
-    if hasattr(env, "nearby_fish"):
+    if hasattr(env, "nearby_evolving_agents"):
+        nearby = env.nearby_evolving_agents(fish, radius)
+    elif hasattr(env, "nearby_fish"):
         nearby = env.nearby_fish(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
