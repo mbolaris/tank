@@ -157,6 +157,13 @@ class MigrationScheduler:
         if not dest_manager.tank_info.allow_transfers:
             return
 
+        # Skip migration if either tank is paused - prevents population explosions
+        # in tanks that haven't been viewed yet (fish would accumulate without dying)
+        if getattr(source_manager.world, "paused", False):
+            return
+        if getattr(dest_manager.world, "paused", False):
+            return
+
         # Get eligible entities (fish and plants)
         eligible_entities = []
         for entity in source_manager.world.entities_list:
@@ -271,6 +278,10 @@ class MigrationScheduler:
 
         # Check if source tank allows transfers
         if not source_manager.tank_info.allow_transfers:
+            return
+
+        # Skip migration if source tank is paused - prevents inconsistent state
+        if getattr(source_manager.world, "paused", False):
             return
 
         # Get eligible entities

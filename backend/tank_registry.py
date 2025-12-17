@@ -308,7 +308,7 @@ class TankRegistry:
     def restore_tank_from_snapshot(
         self,
         snapshot_path: str,
-        start_paused: bool = True,
+        start_paused: bool = False,
     ) -> Optional[SimulationManager]:
         """Restore a tank from a snapshot file.
 

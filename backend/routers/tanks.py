@@ -103,7 +103,7 @@ def setup_router(
             manager.runner._update_environment_migration_context()
 
             # Start the simulation
-            manager.start(start_paused=True)
+            manager.start(start_paused=False)
 
             # Start broadcast task for the new tank
             await start_broadcast_callback(manager)

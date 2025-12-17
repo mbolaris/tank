@@ -199,7 +199,7 @@ class StartupManager:
                     logger.info(f"Restoring tank {tank_id[:8]} from {snapshot_path}")
                     restored_manager = self.tank_registry.restore_tank_from_snapshot(
                         snapshot_path,
-                        start_paused=True,
+                        start_paused=False,
                     )
                     if restored_manager:
                         logger.info(f"Successfully restored tank {tank_id[:8]}")
@@ -262,7 +262,7 @@ class StartupManager:
                 manager.runner.tank_id = manager.tank_id
                 manager.runner._update_environment_migration_context()
 
-                manager.start(start_paused=True)
+                manager.start(start_paused=False)
                 logger.info(f"Tank {manager.tank_id[:8]} started")
         except Exception as e:
             logger.error(f"Failed to start simulations: {e}", exc_info=True)

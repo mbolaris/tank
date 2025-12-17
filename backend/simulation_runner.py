@@ -60,9 +60,8 @@ class SimulationRunner:
         self.world = TankWorld(config=config, seed=seed)
         self.world.setup()
 
-        # Start paused to prevent initial fish from aging before frontend sees them
-        # This ensures all fish (initial and spawned) appear at baby size when first created
-        self.world.paused = True
+        # Tanks start unpaused by default - they run as soon as the server starts
+        self.world.paused = False
 
         self.running = False
         self.thread: Optional[threading.Thread] = None
