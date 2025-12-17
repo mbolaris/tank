@@ -615,10 +615,10 @@ class SimulationRunner:
     def _collect_entities(self) -> List[EntitySnapshot]:
         return self._entity_snapshot_builder.collect(self.world.entities_list)
 
-    def _collect_stats(self, frame: int) -> StatsPayload:
-        stats = self.world.get_stats()
+    def _collect_poker_stats_payload(self, stats: Dict[str, Any]) -> PokerStatsPayload:
+        """Create PokerStatsPayload from stats dictionary."""
         poker_stats_dict = stats.get("poker_stats", {})
-        poker_stats_payload = PokerStatsPayload(
+        return PokerStatsPayload(
             total_games=poker_stats_dict.get("total_games", 0),
             total_fish_games=poker_stats_dict.get("total_fish_games", 0),
             total_plant_games=poker_stats_dict.get("total_plant_games", 0),
@@ -653,133 +653,170 @@ class SimulationRunner:
             avg_fold_rate=poker_stats_dict.get("avg_fold_rate", "0.0%"),
         )
 
-        return StatsPayload(
-            frame=frame,
-            population=stats.get("total_population", 0),
-            generation=stats.get("current_generation", 0),
-            max_generation=stats.get("max_generation", stats.get("current_generation", 0)),
-            births=stats.get("total_births", 0),
-            deaths=stats.get("total_deaths", 0),
-            capacity=stats.get("capacity_usage", "0%"),
-            time=stats.get("time_string", "Day"),
-            death_causes=stats.get("death_causes", {}),
-            fish_count=stats.get("fish_count", 0),
-            food_count=stats.get("food_count", 0),
-            plant_count=stats.get("plant_count", 0),
-            total_energy=stats.get("total_energy", 0.0),
-            food_energy=stats.get("food_energy", 0.0),
-            live_food_count=stats.get("live_food_count", 0),
-            live_food_energy=stats.get("live_food_energy", 0.0),
-            fish_energy=stats.get("fish_energy", 0.0),
-            plant_energy=stats.get("plant_energy", 0.0),
-            energy_sources=stats.get("energy_sources", {}),
-            energy_sources_recent=stats.get("energy_sources_recent", {}),
-            energy_from_nectar=stats.get("energy_from_nectar", 0.0),
-            energy_from_live_food=stats.get("energy_from_live_food", 0.0),
-            energy_from_falling_food=stats.get("energy_from_falling_food", 0.0),
-            energy_from_poker=stats.get("energy_from_poker", 0.0),
-            energy_from_poker_plant=stats.get("energy_from_poker_plant", 0.0),
-            energy_from_auto_eval=stats.get("energy_from_auto_eval", 0.0),
-            energy_burn_recent=stats.get("energy_burn_recent", {}),
-            energy_burn_total=stats.get("energy_burn_total", 0.0),
-            energy_gains_recent_total=stats.get("energy_gains_recent_total", 0.0),
-            energy_net_recent=stats.get("energy_net_recent", 0.0),
-            energy_accounting_discrepancy=stats.get("energy_accounting_discrepancy", 0.0),
-            plant_energy_sources=stats.get("plant_energy_sources", {}),
-            plant_energy_sources_recent=stats.get("plant_energy_sources_recent", {}),
-            plant_energy_from_photosynthesis=stats.get("plant_energy_from_photosynthesis", 0.0),
-            plant_energy_burn_recent=stats.get("plant_energy_burn_recent", {}),
-            plant_energy_burn_total=stats.get("plant_energy_burn_total", 0.0),
-            energy_delta=stats.get("energy_delta", {}),
-            avg_fish_energy=stats.get("avg_fish_energy", 0.0),
-            min_fish_energy=stats.get("min_fish_energy", 0.0),
+    def _collect_stats(self, frame: int) -> StatsPayload:
+        """Collect and organize simulation statistics."""
+        stats = self.world.get_stats()
+        
+        # Organize stats into logical groups
+        poker_stats = self._collect_poker_stats_payload(stats)
+        
+        # Extract individual stat groups to reduce cognitive load in the main constructor call
+        # while preserving the flat structure required by the existing StatsPayload definition
+        
+        # Base simulation metrics
+        base_stats = {
+            "frame": frame,
+            "population": stats.get("total_population", 0),
+            "generation": stats.get("current_generation", 0),
+            "max_generation": stats.get("max_generation", stats.get("current_generation", 0)),
+            "births": stats.get("total_births", 0),
+            "deaths": stats.get("total_deaths", 0),
+            "capacity": stats.get("capacity_usage", "0%"),
+            "time": stats.get("time_string", "Day"),
+            "death_causes": stats.get("death_causes", {}),
+            "fish_count": stats.get("fish_count", 0),
+            "food_count": stats.get("food_count", 0),
+            "plant_count": stats.get("plant_count", 0),
+            "fps": round(self.current_actual_fps, 1),
+            "fast_forward": self.fast_forward,
+            "total_sexual_births": stats.get("reproduction_stats", {}).get("total_sexual_reproductions", 0),
+            "total_asexual_births": stats.get("reproduction_stats", {}).get("total_asexual_reproductions", 0),
+        }
+        
+        # Energy metrics
+        energy_stats = {
+            "total_energy": stats.get("total_energy", 0.0),
+            "food_energy": stats.get("food_energy", 0.0),
+            "live_food_count": stats.get("live_food_count", 0),
+            "live_food_energy": stats.get("live_food_energy", 0.0),
+            "fish_energy": stats.get("fish_energy", 0.0),
+            "plant_energy": stats.get("plant_energy", 0.0),
+            "energy_sources": stats.get("energy_sources", {}),
+            "energy_sources_recent": stats.get("energy_sources_recent", {}),
+            "energy_from_nectar": stats.get("energy_from_nectar", 0.0),
+            "energy_from_live_food": stats.get("energy_from_live_food", 0.0),
+            "energy_from_falling_food": stats.get("energy_from_falling_food", 0.0),
+            "energy_from_poker": stats.get("energy_from_poker", 0.0),
+            "energy_from_poker_plant": stats.get("energy_from_poker_plant", 0.0),
+            "energy_from_auto_eval": stats.get("energy_from_auto_eval", 0.0),
+            "energy_burn_recent": stats.get("energy_burn_recent", {}),
+            "energy_burn_total": stats.get("energy_burn_total", 0.0),
+            "energy_gains_recent_total": stats.get("energy_gains_recent_total", 0.0),
+            "energy_net_recent": stats.get("energy_net_recent", 0.0),
+            "energy_accounting_discrepancy": stats.get("energy_accounting_discrepancy", 0.0),
+            "plant_energy_sources": stats.get("plant_energy_sources", {}),
+            "plant_energy_sources_recent": stats.get("plant_energy_sources_recent", {}),
+            "plant_energy_from_photosynthesis": stats.get("plant_energy_from_photosynthesis", 0.0),
+            "plant_energy_burn_recent": stats.get("plant_energy_burn_recent", {}),
+            "plant_energy_burn_total": stats.get("plant_energy_burn_total", 0.0),
+            "energy_delta": stats.get("energy_delta", {}),
+            "avg_fish_energy": stats.get("avg_fish_energy", 0.0),
+            "min_fish_energy": stats.get("min_fish_energy", 0.0),
+            "max_fish_energy": stats.get("max_fish_energy", 0.0),
+            "min_max_energy_capacity": stats.get("min_max_energy_capacity", 0.0),
+            "max_max_energy_capacity": stats.get("max_max_energy_capacity", 0.0),
+            "median_max_energy_capacity": stats.get("median_max_energy_capacity", 0.0),
+            "fish_health_critical": stats.get("fish_health_critical", 0),
+            "fish_health_low": stats.get("fish_health_low", 0),
+            "fish_health_healthy": stats.get("fish_health_healthy", 0),
+            "fish_health_full": stats.get("fish_health_full", 0),
+        }
+        
+        # Physical stats
+        physical_stats = {
+            # Adult size
+            "adult_size_min": stats.get("adult_size_min", 0.0),
+            "adult_size_max": stats.get("adult_size_max", 0.0),
+            "adult_size_median": stats.get("adult_size_median", 0.0),
+            "adult_size_range": stats.get("adult_size_range", ""),
+            "allowed_adult_size_min": stats.get("allowed_adult_size_min", 0.0),
+            "allowed_adult_size_max": stats.get("allowed_adult_size_max", 0.0),
+            "adult_size_bins": stats.get("adult_size_bins", []),
+            "adult_size_bin_edges": stats.get("adult_size_bin_edges", []),
+            
+            # Eye size
+            "eye_size_min": stats.get("eye_size_min", 0.0),
+            "eye_size_max": stats.get("eye_size_max", 0.0),
+            "eye_size_median": stats.get("eye_size_median", 0.0),
+            "eye_size_bins": stats.get("eye_size_bins", []),
+            "eye_size_bin_edges": stats.get("eye_size_bin_edges", []),
+            "allowed_eye_size_min": stats.get("allowed_eye_size_min", 0.5),
+            "allowed_eye_size_max": stats.get("allowed_eye_size_max", 2.0),
+            
+            # Fin size
+            "fin_size_min": stats.get("fin_size_min", 0.0),
+            "fin_size_max": stats.get("fin_size_max", 0.0),
+            "fin_size_median": stats.get("fin_size_median", 0.0),
+            "fin_size_bins": stats.get("fin_size_bins", []),
+            "fin_size_bin_edges": stats.get("fin_size_bin_edges", []),
+            "allowed_fin_size_min": stats.get("allowed_fin_size_min", 0.5),
+            "allowed_fin_size_max": stats.get("allowed_fin_size_max", 2.0),
+            
+            # Tail size
+            "tail_size_min": stats.get("tail_size_min", 0.0),
+            "tail_size_max": stats.get("tail_size_max", 0.0),
+            "tail_size_median": stats.get("tail_size_median", 0.0),
+            "tail_size_bins": stats.get("tail_size_bins", []),
+            "tail_size_bin_edges": stats.get("tail_size_bin_edges", []),
+            "allowed_tail_size_min": stats.get("allowed_tail_size_min", 0.5),
+            "allowed_tail_size_max": stats.get("allowed_tail_size_max", 2.0),
+            
+            # Body aspect
+            "body_aspect_min": stats.get("body_aspect_min", 0.0),
+            "body_aspect_max": stats.get("body_aspect_max", 0.0),
+            "body_aspect_median": stats.get("body_aspect_median", 0.0),
+            "allowed_body_aspect_min": stats.get("allowed_body_aspect_min", 0.0),
+            "allowed_body_aspect_max": stats.get("allowed_body_aspect_max", 0.0),
+            "body_aspect_bins": stats.get("body_aspect_bins", []),
+            "body_aspect_bin_edges": stats.get("body_aspect_bin_edges", []),
+            
+            # Template ID
+            "template_id_min": stats.get("template_id_min", 0.0),
+            "template_id_max": stats.get("template_id_max", 0.0),
+            "template_id_median": stats.get("template_id_median", 0.0),
+            "allowed_template_id_min": stats.get("allowed_template_id_min", 0.0),
+            "allowed_template_id_max": stats.get("allowed_template_id_max", 0.0),
+            "template_id_bins": stats.get("template_id_bins", []),
+            "template_id_bin_edges": stats.get("template_id_bin_edges", []),
+            
+            # Pattern type
+            "pattern_type_min": stats.get("pattern_type_min", 0.0),
+            "pattern_type_max": stats.get("pattern_type_max", 0.0),
+            "pattern_type_median": stats.get("pattern_type_median", 0.0),
+            "allowed_pattern_type_min": stats.get("allowed_pattern_type_min", 0.0),
+            "allowed_pattern_type_max": stats.get("allowed_pattern_type_max", 0.0),
+            "pattern_type_bins": stats.get("pattern_type_bins", []),
+            "pattern_type_bin_edges": stats.get("pattern_type_bin_edges", []),
+            
+            # Pattern intensity
+            "pattern_intensity_min": stats.get("pattern_intensity_min", 0.0),
+            "pattern_intensity_max": stats.get("pattern_intensity_max", 0.0),
+            "pattern_intensity_median": stats.get("pattern_intensity_median", 0.0),
+            "allowed_pattern_intensity_min": stats.get("allowed_pattern_intensity_min", 0.0),
+            "allowed_pattern_intensity_max": stats.get("allowed_pattern_intensity_max", 0.0),
+            "pattern_intensity_bins": stats.get("pattern_intensity_bins", []),
+            "pattern_intensity_bin_edges": stats.get("pattern_intensity_bin_edges", []),
+            
+            # Lifespan modifier
+            "lifespan_modifier_min": stats.get("lifespan_modifier_min", 0.0),
+            "lifespan_modifier_max": stats.get("lifespan_modifier_max", 0.0),
+            "lifespan_modifier_median": stats.get("lifespan_modifier_median", 0.0),
+            "allowed_lifespan_modifier_min": stats.get("allowed_lifespan_modifier_min", 0.0),
+            "allowed_lifespan_modifier_max": stats.get("allowed_lifespan_modifier_max", 0.0),
+            "lifespan_modifier_bins": stats.get("lifespan_modifier_bins", []),
+            "lifespan_modifier_bin_edges": stats.get("lifespan_modifier_bin_edges", []),
+        }
 
-            max_fish_energy=stats.get("max_fish_energy", 0.0),
-            min_max_energy_capacity=stats.get("min_max_energy_capacity", 0.0),
-            max_max_energy_capacity=stats.get("max_max_energy_capacity", 0.0),
-            median_max_energy_capacity=stats.get("median_max_energy_capacity", 0.0),
-            fish_health_critical=stats.get("fish_health_critical", 0),
-            fish_health_low=stats.get("fish_health_low", 0),
-            fish_health_healthy=stats.get("fish_health_healthy", 0),
-            fish_health_full=stats.get("fish_health_full", 0),
-            # Adult size fields
-            adult_size_min=stats.get("adult_size_min", 0.0),
-            adult_size_max=stats.get("adult_size_max", 0.0),
-            adult_size_median=stats.get("adult_size_median", 0.0),
-            adult_size_range=stats.get("adult_size_range", ""),
-            allowed_adult_size_min=stats.get("allowed_adult_size_min", 0.0),
-            allowed_adult_size_max=stats.get("allowed_adult_size_max", 0.0),
-            adult_size_bins=stats.get("adult_size_bins", []),
-            adult_size_bin_edges=stats.get("adult_size_bin_edges", []),
-            # Eye size fields (optional)
-            eye_size_min=stats.get("eye_size_min", 0.0),
-            eye_size_max=stats.get("eye_size_max", 0.0),
-            eye_size_median=stats.get("eye_size_median", 0.0),
-            eye_size_bins=stats.get("eye_size_bins", []),
-            eye_size_bin_edges=stats.get("eye_size_bin_edges", []),
-            allowed_eye_size_min=stats.get("allowed_eye_size_min", 0.5),
-            allowed_eye_size_max=stats.get("allowed_eye_size_max", 2.0),
-            # Fin size fields
-            fin_size_min=stats.get("fin_size_min", 0.0),
-            fin_size_max=stats.get("fin_size_max", 0.0),
-            fin_size_median=stats.get("fin_size_median", 0.0),
-            fin_size_bins=stats.get("fin_size_bins", []),
-            fin_size_bin_edges=stats.get("fin_size_bin_edges", []),
-            allowed_fin_size_min=stats.get("allowed_fin_size_min", 0.5),
-            allowed_fin_size_max=stats.get("allowed_fin_size_max", 2.0),
-            # Tail size fields
-            tail_size_min=stats.get("tail_size_min", 0.0),
-            tail_size_max=stats.get("tail_size_max", 0.0),
-            tail_size_median=stats.get("tail_size_median", 0.0),
-            allowed_tail_size_min=stats.get("allowed_tail_size_min", 0.5),
-            allowed_tail_size_max=stats.get("allowed_tail_size_max", 2.0),
-            tail_size_bins=stats.get("tail_size_bins", []),
-            tail_size_bin_edges=stats.get("tail_size_bin_edges", []),
-            # Body aspect fields
-            body_aspect_min=stats.get("body_aspect_min", 0.0),
-            body_aspect_max=stats.get("body_aspect_max", 0.0),
-            body_aspect_median=stats.get("body_aspect_median", 0.0),
-            allowed_body_aspect_min=stats.get("allowed_body_aspect_min", 0.0),
-            allowed_body_aspect_max=stats.get("allowed_body_aspect_max", 0.0),
-            body_aspect_bins=stats.get("body_aspect_bins", []),
-            body_aspect_bin_edges=stats.get("body_aspect_bin_edges", []),
-            # Template ID fields
-            template_id_min=stats.get("template_id_min", 0.0),
-            template_id_max=stats.get("template_id_max", 0.0),
-            template_id_median=stats.get("template_id_median", 0.0),
-            allowed_template_id_min=stats.get("allowed_template_id_min", 0.0),
-            allowed_template_id_max=stats.get("allowed_template_id_max", 0.0),
-            template_id_bins=stats.get("template_id_bins", []),
-            template_id_bin_edges=stats.get("template_id_bin_edges", []),
-            # Pattern type fields
-            pattern_type_min=stats.get("pattern_type_min", 0.0),
-            pattern_type_max=stats.get("pattern_type_max", 0.0),
-            pattern_type_median=stats.get("pattern_type_median", 0.0),
-            allowed_pattern_type_min=stats.get("allowed_pattern_type_min", 0.0),
-            allowed_pattern_type_max=stats.get("allowed_pattern_type_max", 0.0),
-            pattern_type_bins=stats.get("pattern_type_bins", []),
-            pattern_type_bin_edges=stats.get("pattern_type_bin_edges", []),
-            # Pattern intensity fields
-            pattern_intensity_min=stats.get("pattern_intensity_min", 0.0),
-            pattern_intensity_max=stats.get("pattern_intensity_max", 0.0),
-            pattern_intensity_median=stats.get("pattern_intensity_median", 0.0),
-            allowed_pattern_intensity_min=stats.get("allowed_pattern_intensity_min", 0.0),
-            allowed_pattern_intensity_max=stats.get("allowed_pattern_intensity_max", 0.0),
-            pattern_intensity_bins=stats.get("pattern_intensity_bins", []),
-            pattern_intensity_bin_edges=stats.get("pattern_intensity_bin_edges", []),
-            # Lifespan modifier fields
-            lifespan_modifier_min=stats.get("lifespan_modifier_min", 0.0),
-            lifespan_modifier_max=stats.get("lifespan_modifier_max", 0.0),
-            lifespan_modifier_median=stats.get("lifespan_modifier_median", 0.0),
-            allowed_lifespan_modifier_min=stats.get("allowed_lifespan_modifier_min", 0.0),
-            allowed_lifespan_modifier_max=stats.get("allowed_lifespan_modifier_max", 0.0),
-            lifespan_modifier_bins=stats.get("lifespan_modifier_bins", []),
-            lifespan_modifier_bin_edges=stats.get("lifespan_modifier_bin_edges", []),
-            poker_stats=poker_stats_payload,
-            total_sexual_births=stats.get("reproduction_stats", {}).get("total_sexual_reproductions", 0),
-            total_asexual_births=stats.get("reproduction_stats", {}).get("total_asexual_reproductions", 0),
-            fps=round(self.current_actual_fps, 1),
-            fast_forward=self.fast_forward,
+        # Combine into payload
+        return StatsPayload(
+            # Base Stats
+            **base_stats,
+            # Energy Stats
+            **energy_stats,
+            # Physical Stats
+            **physical_stats,
+            # Poker Stats object
+            poker_stats=poker_stats,
         )
 
     def _collect_poker_events(self) -> List[PokerEventPayload]:

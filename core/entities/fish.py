@@ -37,6 +37,25 @@ if TYPE_CHECKING:
     from core.genetics import Genome
     from core.movement_strategy import MovementStrategy
 
+# Runtime imports (moved from local scopes)
+from core.behavioral_learning import BehavioralLearningSystem
+from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
+from core.entities.base import LifeStage
+from core.fish.energy_component import EnergyComponent
+from core.fish.lifecycle_component import LifecycleComponent
+from core.fish.reproduction_component import ReproductionComponent
+from core.fish_memory import FishMemorySystem
+from core.genetics import Genome
+# Runtime imports (moved from local scopes)
+from core.behavioral_learning import BehavioralLearningSystem
+from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
+from core.entities.base import LifeStage
+from core.fish.energy_component import EnergyComponent
+from core.fish.lifecycle_component import LifecycleComponent
+from core.fish.reproduction_component import ReproductionComponent
+from core.fish_memory import FishMemorySystem
+from core.genetics import Genome
+
 class Fish(Agent):
     """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
 
@@ -90,11 +109,10 @@ class Fish(Agent):
             screen_height: Height of simulation area
             initial_energy: Override initial energy (for reproduction energy transfer)
         """
-        # Import here to avoid circular dependency
-        from core.genetics import Genome
-
-        # Genetics
-        self.genome: Genome = genome if genome is not None else Genome.random()
+        if genome is not None:
+            self.genome = genome
+        else:
+            self.genome = Genome.random()
 
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
         if self.genome.poker_strategy_algorithm is None:
@@ -112,7 +130,6 @@ class Fish(Agent):
         self._is_dead_cached: bool = False
 
         # Life cycle - managed by LifecycleComponent for better code organization
-        from core.fish.lifecycle_component import LifecycleComponent
 
         # Calculate max_age using both size_modifier (legacy) and new lifespan_modifier
         # This decouples size from age, allowing small but long-lived fish
@@ -124,7 +141,6 @@ class Fish(Agent):
         self._lifecycle_component = LifecycleComponent(max_age, self.genome.size_modifier)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization
-        from core.fish.energy_component import EnergyComponent
 
         # Max energy is based on fish size - bigger fish can store more energy
         # Use the actual lifecycle size (which includes FISH_BABY_SIZE for newborns)
@@ -156,7 +172,6 @@ class Fish(Agent):
         self.last_predator_encounter_age: int = FISH_LAST_EVENT_INITIAL_AGE
 
         # Reproduction - managed by ReproductionComponent for better code organization
-        from core.fish.reproduction_component import ReproductionComponent
 
         self._reproduction_component = ReproductionComponent()
 
@@ -172,7 +187,6 @@ class Fish(Agent):
         self.FOOD_MEMORY_DECAY = FISH_FOOD_MEMORY_DECAY
 
         # NEW: Enhanced memory system
-        from core.fish_memory import FishMemorySystem
 
         self.memory_system = FishMemorySystem(
             max_memories_per_type=FISH_MEMORY_MAX_PER_TYPE,
@@ -181,7 +195,6 @@ class Fish(Agent):
         )
 
         # NEW: Behavioral learning system (learn from experience within lifetime)
-        from core.behavioral_learning import BehavioralLearningSystem
 
         self.learning_system = BehavioralLearningSystem(self.genome)
 
@@ -475,8 +488,6 @@ class Fish(Agent):
         # Prefer routing overflow into reproduction rather than spawning food.
         # Bank the overflow (capped) so it can fund future births even if the fish
         # is currently too young, pregnant, or on cooldown.
-        from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
-
         max_bank = self.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
         banked = self._reproduction_component.bank_overflow_energy(overflow, max_bank=max_bank)
         remainder = overflow - banked
@@ -796,7 +807,6 @@ class Fish(Agent):
             Newborn fish if birth occurred, None otherwise
         """
         # If we've banked overflow energy and are eligible, start asexual pregnancy automatically.
-        from core.entities.base import LifeStage
 
         if (
             not self._reproduction_component.is_pregnant
