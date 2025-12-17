@@ -33,6 +33,30 @@ class TestWorldProtocol:
         # Protocol check - Environment should be recognized as a World2D
         assert isinstance(env, World2D), "Environment should implement World2D Protocol"
     
+    def test_generic_and_domain_specific_names_equivalent(self):
+        """Generic method names should return same results as domain-specific aliases."""
+        class MockAgent(Agent):
+            def __init__(self, env, x, y):
+                super().__init__(env, x, y, 0)
+        
+        env = Environment(width=800, height=600)
+        agent = MockAgent(env, 100, 100)
+        
+        # Both generic and domain-specific methods should exist
+        assert hasattr(env, 'nearby_evolving_agents'), "Should have generic method"
+        assert hasattr(env, 'nearby_resources'), "Should have generic method"
+        assert hasattr(env, 'nearby_fish'), "Should keep backward-compat alias"
+        assert hasattr(env, 'nearby_food'), "Should keep backward-compat alias"
+        
+        # Both should return same type (list)
+        evolving = env.nearby_evolving_agents(agent, 100)
+        fish = env.nearby_fish(agent, 100)
+        assert type(evolving) == type(fish), "Return types should match"
+        
+        resources = env.nearby_resources(agent, 100)
+        food = env.nearby_food(agent, 100)
+        assert type(resources) == type(food), "Return types should match"
+    
     def test_is_2d_world_helper(self):
         """is_2d_world helper should correctly identify 2D worlds."""
         env = Environment(width=800, height=600)
