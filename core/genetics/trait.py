@@ -171,6 +171,38 @@ def inherit_traits_from_specs(
     return inherited
 
 
+def inherit_traits_from_specs_recombination(
+    specs: List[TraitSpec],
+    parent1_traits: object,
+    parent2_traits: object,
+    *,
+    parent1_probability: float,
+    mutation_rate: float,
+    mutation_strength: float,
+    rng: pyrandom.Random,
+) -> dict:
+    """Inherit all traits by choosing a parent per trait (recombination).
+
+    For each trait, the offspring receives either parent1's value (probability
+    `parent1_probability`) or parent2's value; mutation is then applied.
+    """
+    inherited = {}
+    parent1_probability = max(0.0, min(1.0, parent1_probability))
+    for spec in specs:
+        trait1 = getattr(parent1_traits, spec.name)
+        trait2 = getattr(parent2_traits, spec.name)
+        trait_weight1 = 1.0 if rng.random() < parent1_probability else 0.0
+        inherited[spec.name] = spec.inherit(
+            trait1,
+            trait2,
+            weight1=trait_weight1,
+            base_mutation_rate=mutation_rate,
+            base_mutation_strength=mutation_strength,
+            rng=rng,
+        )
+    return inherited
+
+
 def trait_values_to_dict(specs: List[TraitSpec], traits: object) -> Dict[str, Any]:
     """Serialize a trait container to a primitives dict using TraitSpec definitions."""
     out: Dict[str, Any] = {}
@@ -185,13 +217,7 @@ def trait_meta_to_dict(specs: List[TraitSpec], traits: object) -> Dict[str, Dict
     out: Dict[str, Dict[str, float]] = {}
     for spec in specs:
         trait = getattr(traits, spec.name)
-        meta: Dict[str, float] = {}
-        if trait.mutation_rate != 1.0:
-            meta["mutation_rate"] = float(trait.mutation_rate)
-        if trait.mutation_strength != 1.0:
-            meta["mutation_strength"] = float(trait.mutation_strength)
-        if trait.hgt_probability != 0.1:
-            meta["hgt_probability"] = float(trait.hgt_probability)
+        meta = trait_meta_for_trait(trait)
         if meta:
             out[spec.name] = meta
     return out
@@ -219,9 +245,32 @@ def apply_trait_meta_from_dict(
         if not meta:
             continue
         trait = getattr(traits, spec.name)
-        if "mutation_rate" in meta:
-            trait.mutation_rate = max(0.0, float(meta["mutation_rate"]))
-        if "mutation_strength" in meta:
-            trait.mutation_strength = max(0.0, float(meta["mutation_strength"]))
-        if "hgt_probability" in meta:
-            trait.hgt_probability = max(0.0, min(1.0, float(meta["hgt_probability"])))
+        apply_trait_meta_to_trait(trait, meta)
+
+
+def trait_meta_for_trait(
+    trait: GeneticTrait[Any],
+    *,
+    default_mutation_rate: float = 1.0,
+    default_mutation_strength: float = 1.0,
+    default_hgt_probability: float = 0.1,
+) -> Dict[str, float]:
+    """Serialize non-default GeneticTrait metadata for a single trait."""
+    meta: Dict[str, float] = {}
+    if trait.mutation_rate != default_mutation_rate:
+        meta["mutation_rate"] = float(trait.mutation_rate)
+    if trait.mutation_strength != default_mutation_strength:
+        meta["mutation_strength"] = float(trait.mutation_strength)
+    if trait.hgt_probability != default_hgt_probability:
+        meta["hgt_probability"] = float(trait.hgt_probability)
+    return meta
+
+
+def apply_trait_meta_to_trait(trait: GeneticTrait[Any], meta: Dict[str, Any]) -> None:
+    """Apply GeneticTrait metadata onto a single trait instance."""
+    if "mutation_rate" in meta:
+        trait.mutation_rate = max(0.0, float(meta["mutation_rate"]))
+    if "mutation_strength" in meta:
+        trait.mutation_strength = max(0.0, float(meta["mutation_strength"]))
+    if "hgt_probability" in meta:
+        trait.hgt_probability = max(0.0, min(1.0, float(meta["hgt_probability"])))

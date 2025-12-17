@@ -10,7 +10,12 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 
 from core.evolution.inheritance import inherit_algorithm
 from core.evolution.inheritance import inherit_trait as _inherit_trait
-from core.genetics.trait import GeneticTrait, TraitSpec, inherit_traits_from_specs
+from core.genetics.trait import (
+    GeneticTrait,
+    TraitSpec,
+    inherit_traits_from_specs,
+    inherit_traits_from_specs_recombination,
+)
 
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm
@@ -162,6 +167,77 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
         )
+        inherited["mate_preferences"] = GeneticTrait(mate_prefs)
+
+        return cls(**inherited)
+
+    @classmethod
+    def from_parents_recombination(
+        cls,
+        parent1: "BehavioralTraits",
+        parent2: "BehavioralTraits",
+        *,
+        parent1_probability: float = 0.5,
+        mutation_rate: float = 0.1,
+        mutation_strength: float = 0.1,
+        rng: pyrandom.Random,
+    ) -> "BehavioralTraits":
+        """Inherit behavioral traits by choosing a parent per trait (recombination)."""
+        inherited = inherit_traits_from_specs_recombination(
+            BEHAVIORAL_TRAIT_SPECS,
+            parent1,
+            parent2,
+            parent1_probability=parent1_probability,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
+
+        algo_val = inherit_algorithm(
+            parent1.behavior_algorithm.value,
+            parent2.behavior_algorithm.value,
+            weight1=1.0 if rng.random() < parent1_probability else 0.0,
+            mutation_rate=mutation_rate * 1.5,
+            mutation_strength=mutation_strength * 1.5,
+            algorithm_switch_rate=0.03,
+            rng=rng,
+        )
+        inherited["behavior_algorithm"] = GeneticTrait(algo_val)
+
+        poker_algo_val = _inherit_poker_algorithm(
+            parent1.poker_algorithm.value,
+            parent2.poker_algorithm.value,
+            mutation_rate=mutation_rate * 1.2,
+            mutation_strength=mutation_strength * 1.2,
+            rng=rng,
+        )
+        inherited["poker_algorithm"] = GeneticTrait(poker_algo_val)
+
+        poker_strat_val = _inherit_poker_strategy(
+            parent1.poker_strategy_algorithm.value,
+            parent2.poker_strategy_algorithm.value,
+            mutation_rate=mutation_rate * 1.2,
+            mutation_strength=mutation_strength * 1.2,
+            winner_weight=1.0 if rng.random() < parent1_probability else 0.0,
+            rng=rng,
+        )
+        inherited["poker_strategy_algorithm"] = GeneticTrait(poker_strat_val)
+
+        mate_prefs = {}
+        for pref_key in parent1.mate_preferences.value:
+            pref_weight1 = 1.0 if rng.random() < parent1_probability else 0.0
+            p1_val = parent1.mate_preferences.value.get(pref_key, 0.5)
+            p2_val = parent2.mate_preferences.value.get(pref_key, 0.5)
+            mate_prefs[pref_key] = _inherit_trait(
+                p1_val,
+                p2_val,
+                0.0,
+                1.0,
+                weight1=pref_weight1,
+                mutation_rate=mutation_rate,
+                mutation_strength=mutation_strength,
+                rng=rng,
+            )
         inherited["mate_preferences"] = GeneticTrait(mate_prefs)
 
         return cls(**inherited)

@@ -165,7 +165,7 @@ def crossover_genomes(
         New offspring genome
     """
     # Import here to avoid circular dependency
-    from core.genetics import GeneticCrossoverMode, Genome
+    from core.genetics import GeneticCrossoverMode, Genome, ReproductionParams
 
     # Map our mode to genetics module mode
     genetics_mode = {
@@ -174,12 +174,18 @@ def crossover_genomes(
         CrossoverMode.WEIGHTED: GeneticCrossoverMode.AVERAGING,  # Weighted uses from_parents_weighted
     }.get(mode, GeneticCrossoverMode.RECOMBINATION)
 
-    return Genome.from_parents(
-        parent1_genome,
-        parent2_genome,
+    params = ReproductionParams(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         population_stress=population_stress,
+    )
+
+    return Genome.from_parents(
+        parent1_genome,
+        parent2_genome,
+        mutation_rate=params.mutation_rate,
+        mutation_strength=params.mutation_strength,
+        population_stress=params.population_stress,
         crossover_mode=genetics_mode,
     )
 
@@ -209,13 +215,15 @@ def crossover_genomes_weighted(
         New offspring genome with weighted inheritance
     """
     # Import here to avoid circular dependency
-    from core.genetics import Genome
+    from core.genetics import Genome, ReproductionParams
 
-    return Genome.from_parents_weighted(
+    return Genome.from_parents_weighted_params(
         parent1_genome,
         parent2_genome,
         parent1_weight=parent1_weight,
-        mutation_rate=mutation_rate,
-        mutation_strength=mutation_strength,
-        population_stress=population_stress,
+        params=ReproductionParams(
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            population_stress=population_stress,
+        ),
     )

@@ -22,7 +22,9 @@ from core.genetics.genome import (
 )
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.plant import PlantGenome
+from core.genetics.reproduction import ReproductionParams
 from core.genetics.trait import GeneticTrait, TraitSpec
+from core.genetics.validation import validate_traits_from_specs
 
 __all__ = [
     # Core classes
@@ -37,5 +39,8 @@ __all__ = [
     # Trait specifications
     "PHYSICAL_TRAIT_SPECS",
     "BEHAVIORAL_TRAIT_SPECS",
+    # Reproduction API
+    "ReproductionParams",
+    # Validation
+    "validate_traits_from_specs",
 ]
-

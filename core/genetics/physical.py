@@ -14,7 +14,12 @@ from core.constants import (
     FISH_SIZE_MODIFIER_MIN,
     FISH_TEMPLATE_COUNT,
 )
-from core.genetics.trait import GeneticTrait, TraitSpec, inherit_traits_from_specs
+from core.genetics.trait import (
+    GeneticTrait,
+    TraitSpec,
+    inherit_traits_from_specs,
+    inherit_traits_from_specs_recombination,
+)
 
 # Declarative specifications for all physical traits
 PHYSICAL_TRAIT_SPECS: List[TraitSpec] = [
@@ -72,6 +77,29 @@ class PhysicalTraits:
             parent1,
             parent2,
             weight1=weight1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
+        return cls(**inherited)
+
+    @classmethod
+    def from_parents_recombination(
+        cls,
+        parent1: "PhysicalTraits",
+        parent2: "PhysicalTraits",
+        *,
+        parent1_probability: float = 0.5,
+        mutation_rate: float = 0.1,
+        mutation_strength: float = 0.1,
+        rng: pyrandom.Random,
+    ) -> "PhysicalTraits":
+        """Inherit physical traits by choosing a parent per trait (recombination)."""
+        inherited = inherit_traits_from_specs_recombination(
+            PHYSICAL_TRAIT_SPECS,
+            parent1,
+            parent2,
+            parent1_probability=parent1_probability,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
             rng=rng,

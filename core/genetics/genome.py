@@ -11,16 +11,12 @@ from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 from core.evolution.inheritance import inherit_learned_behaviors
-from core.evolution.mutation import calculate_adaptive_mutation_rate
 from core.genetics.behavioral import BehavioralTraits
 from core.genetics.compatibility import GenomeCompatibilityMixin
+from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
-from core.genetics.trait import (
-    apply_trait_meta_from_dict,
-    apply_trait_values_from_dict,
-    trait_meta_to_dict,
-    trait_values_to_dict,
-)
+from core.genetics.reproduction import ReproductionParams
+from core.genetics.validation import validate_traits_from_specs
 
 logger = logging.getLogger(__name__)
 GENOME_SCHEMA_VERSION = 1
@@ -73,6 +69,7 @@ class Genome(GenomeCompatibilityMixin):
         propulsion = self.fin_size * 0.4 + self.tail_size * 0.6
         hydrodynamics = 1.0 - abs(self.body_aspect - 0.8) * 0.5
         result = template_speed_bonus * propulsion * hydrodynamics
+        result = max(0.5, min(1.5, result))
         object.__setattr__(self, '_speed_modifier_cache', result)
         return result
 
@@ -110,59 +107,13 @@ class Genome(GenomeCompatibilityMixin):
 
         This is intended as a stable boundary format for persistence and transfer.
         """
-
-        behavior_algorithm_dict = behavior_algorithm
-        if behavior_algorithm_dict is None and self.behavior_algorithm is not None:
-            behavior_algorithm_dict = self.behavior_algorithm.to_dict()
-
-        poker_algorithm_dict = poker_algorithm
-        if poker_algorithm_dict is None and self.poker_algorithm is not None:
-            poker_algorithm_dict = self.poker_algorithm.to_dict()
-
-        poker_strategy_dict = poker_strategy_algorithm
-        if poker_strategy_dict is None and self.poker_strategy_algorithm is not None:
-            poker_strategy_dict = self.poker_strategy_algorithm.to_dict()
-
-        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
-        from core.genetics.physical import PHYSICAL_TRAIT_SPECS
-
-        values: Dict[str, Any] = {}
-        values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, self.physical))
-        values.update(trait_values_to_dict(BEHAVIORAL_TRAIT_SPECS, self.behavioral))
-
-        trait_meta: Dict[str, Dict[str, float]] = {}
-        trait_meta.update(trait_meta_to_dict(PHYSICAL_TRAIT_SPECS, self.physical))
-        trait_meta.update(trait_meta_to_dict(BEHAVIORAL_TRAIT_SPECS, self.behavioral))
-
-        def _maybe_add_meta(name: str, trait: Any) -> None:
-            meta: Dict[str, float] = {}
-            if trait.mutation_rate != 1.0:
-                meta["mutation_rate"] = float(trait.mutation_rate)
-            if trait.mutation_strength != 1.0:
-                meta["mutation_strength"] = float(trait.mutation_strength)
-            if trait.hgt_probability != 0.1:
-                meta["hgt_probability"] = float(trait.hgt_probability)
-            if meta:
-                trait_meta[name] = meta
-
-        _maybe_add_meta("behavior_algorithm", self.behavioral.behavior_algorithm)
-        _maybe_add_meta("poker_algorithm", self.behavioral.poker_algorithm)
-        _maybe_add_meta("poker_strategy_algorithm", self.behavioral.poker_strategy_algorithm)
-        _maybe_add_meta("mate_preferences", self.behavioral.mate_preferences)
-
-        return {
-            "schema_version": GENOME_SCHEMA_VERSION,
-            **values,
-            # Behavioral complex traits
-            "behavior_algorithm": behavior_algorithm_dict,
-            "poker_algorithm": poker_algorithm_dict,
-            "poker_strategy_algorithm": poker_strategy_dict,
-            "mate_preferences": dict(self.behavioral.mate_preferences.value),
-            # Non-genetic (but persistable) state
-            "learned_behaviors": dict(self.learned_behaviors),
-            "epigenetic_modifiers": dict(self.epigenetic_modifiers),
-            "trait_meta": trait_meta,
-        }
+        return genome_to_dict(
+            self,
+            schema_version=GENOME_SCHEMA_VERSION,
+            behavior_algorithm=behavior_algorithm,
+            poker_algorithm=poker_algorithm,
+            poker_strategy_algorithm=poker_strategy_algorithm,
+        )
 
     @classmethod
     def from_dict(
@@ -176,125 +127,45 @@ class Genome(GenomeCompatibilityMixin):
 
         Unknown fields are ignored; missing fields keep randomized defaults.
         """
-
         rng = rng or pyrandom
-        genome = cls.random(use_algorithm=use_algorithm, rng=rng)
+        return genome_from_dict(
+            data,
+            schema_version_expected=GENOME_SCHEMA_VERSION,
+            genome_factory=lambda: cls.random(use_algorithm=use_algorithm, rng=rng),
+            rng=rng,
+        )
 
+    def debug_snapshot(self) -> Dict[str, Any]:
+        """Return a compact, stable dict for logging/debugging."""
+        return genome_debug_snapshot(self)
+
+    def validate(self) -> Dict[str, Any]:
+        """Validate trait ranges/types; returns a dict with any issues found."""
         from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
-        apply_trait_values_from_dict(PHYSICAL_TRAIT_SPECS, genome.physical, data)
-        apply_trait_values_from_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral, data)
+        issues = []
+        issues.extend(validate_traits_from_specs(PHYSICAL_TRAIT_SPECS, self.physical, path="genome.physical"))
+        issues.extend(
+            validate_traits_from_specs(BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral")
+        )
+        # Non-spec traits (broad checks only)
+        if not isinstance(self.learned_behaviors, dict):
+            issues.append(f"genome.learned_behaviors: expected dict, got {type(self.learned_behaviors).__name__}")
+        if not isinstance(self.epigenetic_modifiers, dict):
+            issues.append(
+                f"genome.epigenetic_modifiers: expected dict, got {type(self.epigenetic_modifiers).__name__}"
+            )
 
-        # Mate preferences (dictionary trait)
-        mate_preferences = data.get("mate_preferences")
-        if isinstance(mate_preferences, dict):
-            genome.mate_preferences = {
-                str(key): float(value) for key, value in mate_preferences.items()
-            }
+        return {"ok": not issues, "issues": issues}
 
-        # Evolvability metadata (mutation_rate/mutation_strength/hgt_probability)
-        trait_meta = data.get("trait_meta")
-        if isinstance(trait_meta, dict):
-            try:
-                apply_trait_meta_from_dict(PHYSICAL_TRAIT_SPECS, genome.physical, trait_meta)
-                apply_trait_meta_from_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral, trait_meta)
-            except Exception:
-                logger.debug("Failed applying trait_meta; continuing with defaults", exc_info=True)
-
-            # Apply metadata for non-spec traits on BehavioralTraits.
-            meta = trait_meta.get("behavior_algorithm")
-            if isinstance(meta, dict):
-                if "mutation_rate" in meta:
-                    genome.behavioral.behavior_algorithm.mutation_rate = max(0.0, float(meta["mutation_rate"]))
-                if "mutation_strength" in meta:
-                    genome.behavioral.behavior_algorithm.mutation_strength = max(
-                        0.0, float(meta["mutation_strength"])
-                    )
-                if "hgt_probability" in meta:
-                    genome.behavioral.behavior_algorithm.hgt_probability = max(
-                        0.0, min(1.0, float(meta["hgt_probability"]))
-                    )
-            meta = trait_meta.get("poker_algorithm")
-            if isinstance(meta, dict):
-                if "mutation_rate" in meta:
-                    genome.behavioral.poker_algorithm.mutation_rate = max(0.0, float(meta["mutation_rate"]))
-                if "mutation_strength" in meta:
-                    genome.behavioral.poker_algorithm.mutation_strength = max(
-                        0.0, float(meta["mutation_strength"])
-                    )
-                if "hgt_probability" in meta:
-                    genome.behavioral.poker_algorithm.hgt_probability = max(
-                        0.0, min(1.0, float(meta["hgt_probability"]))
-                    )
-            meta = trait_meta.get("poker_strategy_algorithm")
-            if isinstance(meta, dict):
-                if "mutation_rate" in meta:
-                    genome.behavioral.poker_strategy_algorithm.mutation_rate = max(
-                        0.0, float(meta["mutation_rate"])
-                    )
-                if "mutation_strength" in meta:
-                    genome.behavioral.poker_strategy_algorithm.mutation_strength = max(
-                        0.0, float(meta["mutation_strength"])
-                    )
-                if "hgt_probability" in meta:
-                    genome.behavioral.poker_strategy_algorithm.hgt_probability = max(
-                        0.0, min(1.0, float(meta["hgt_probability"]))
-                    )
-            meta = trait_meta.get("mate_preferences")
-            if isinstance(meta, dict):
-                if "mutation_rate" in meta:
-                    genome.behavioral.mate_preferences.mutation_rate = max(
-                        0.0, float(meta["mutation_rate"])
-                    )
-                if "mutation_strength" in meta:
-                    genome.behavioral.mate_preferences.mutation_strength = max(
-                        0.0, float(meta["mutation_strength"])
-                    )
-                if "hgt_probability" in meta:
-                    genome.behavioral.mate_preferences.hgt_probability = max(
-                        0.0, min(1.0, float(meta["hgt_probability"]))
-                    )
-
-        # Non-genetic (but persistable) state
-        learned = data.get("learned_behaviors")
-        if isinstance(learned, dict):
-            genome.learned_behaviors = {str(key): float(value) for key, value in learned.items()}
-        epigenetic = data.get("epigenetic_modifiers")
-        if isinstance(epigenetic, dict):
-            genome.epigenetic_modifiers = {
-                str(key): float(value) for key, value in epigenetic.items()
-            }
-
-        # Algorithms
-        try:
-            from core.algorithms import behavior_from_dict
-
-            behavior_data = data.get("behavior_algorithm")
-            if behavior_data:
-                genome.behavior_algorithm = behavior_from_dict(behavior_data)
-                if genome.behavior_algorithm is None:
-                    logger.warning("Failed to deserialize behavior_algorithm; keeping default")
-
-            poker_data = data.get("poker_algorithm")
-            if poker_data:
-                genome.poker_algorithm = behavior_from_dict(poker_data)
-                if genome.poker_algorithm is None:
-                    logger.warning("Failed to deserialize poker_algorithm; keeping default")
-        except Exception:
-            logger.debug("Failed deserializing behavior algorithms; keeping defaults", exc_info=True)
-
-        try:
-            strat_data = data.get("poker_strategy_algorithm")
-            if strat_data:
-                from core.poker.strategy.implementations import PokerStrategyAlgorithm
-
-                genome.poker_strategy_algorithm = PokerStrategyAlgorithm.from_dict(strat_data)
-        except Exception:
-            logger.debug("Failed deserializing poker_strategy_algorithm; keeping default", exc_info=True)
-
-        genome.invalidate_caches()
-        return genome
+    def assert_valid(self) -> None:
+        """Raise ValueError if validation finds problems (debug aid)."""
+        result = self.validate()
+        if result["ok"]:
+            return
+        issues = "\n".join(result["issues"])
+        raise ValueError(f"Invalid genome:\n{issues}")
 
     # =========================================================================
     # Factory Methods
@@ -309,6 +180,27 @@ class Genome(GenomeCompatibilityMixin):
         return cls(
             physical=PhysicalTraits.random(rng),
             behavioral=BehavioralTraits.random(rng, use_algorithm),
+        )
+
+    @classmethod
+    def from_parents_weighted_params(
+        cls,
+        parent1: "Genome",
+        parent2: "Genome",
+        parent1_weight: float = 0.5,
+        *,
+        params: ReproductionParams,
+        rng: Optional[pyrandom.Random] = None,
+    ) -> "Genome":
+        """Create offspring genome using a parameter object for mutation inputs."""
+        return cls.from_parents_weighted(
+            parent1=parent1,
+            parent2=parent2,
+            parent1_weight=parent1_weight,
+            mutation_rate=params.mutation_rate,
+            mutation_strength=params.mutation_strength,
+            population_stress=params.population_stress,
+            rng=rng,
         )
 
     @classmethod
@@ -330,9 +222,11 @@ class Genome(GenomeCompatibilityMixin):
         """
         rng = rng or pyrandom
         parent1_weight = max(0.0, min(1.0, parent1_weight))
-        adaptive_rate, adaptive_strength = calculate_adaptive_mutation_rate(
-            mutation_rate, mutation_strength, population_stress
-        )
+        adaptive_rate, adaptive_strength = ReproductionParams(
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            population_stress=population_stress,
+        ).adaptive_mutation()
 
         # Inherit traits using declarative specs
         physical = PhysicalTraits.from_parents(
@@ -358,7 +252,6 @@ class Genome(GenomeCompatibilityMixin):
             parent1.epigenetic_modifiers,
             parent2.epigenetic_modifiers,
             parent1_weight,
-            rng,
         )
 
         offspring = cls(
@@ -375,11 +268,11 @@ class Genome(GenomeCompatibilityMixin):
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
-        return cls.from_parents_weighted(
+        return cls.from_parents_weighted_params(
             parent1=parent,
             parent2=parent,
             parent1_weight=1.0,
-            population_stress=population_stress,
+            params=ReproductionParams(population_stress=population_stress),
             rng=rng,
         )
 
@@ -395,16 +288,56 @@ class Genome(GenomeCompatibilityMixin):
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
-        # All crossover modes currently delegate to weighted blend with 50/50 split
-        return cls.from_parents_weighted(
-            parent1,
-            parent2,
-            0.5,
-            mutation_rate,
-            mutation_strength,
-            population_stress,
-            rng,
+        rng = rng or pyrandom
+        params = ReproductionParams(
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            population_stress=population_stress,
         )
+
+        if crossover_mode is GeneticCrossoverMode.AVERAGING:
+            return cls.from_parents_weighted_params(
+                parent1=parent1,
+                parent2=parent2,
+                parent1_weight=0.5,
+                params=params,
+                rng=rng,
+            )
+
+        if crossover_mode is GeneticCrossoverMode.DOMINANT_RECESSIVE:
+            logger.debug(
+                "crossover_mode=%s currently behaves like recombination", crossover_mode.value
+            )
+
+        adaptive_rate, adaptive_strength = params.adaptive_mutation()
+
+        physical = PhysicalTraits.from_parents_recombination(
+            parent1.physical,
+            parent2.physical,
+            parent1_probability=0.5,
+            mutation_rate=adaptive_rate,
+            mutation_strength=adaptive_strength,
+            rng=rng,
+        )
+
+        behavioral = BehavioralTraits.from_parents_recombination(
+            parent1.behavioral,
+            parent2.behavioral,
+            parent1_probability=0.5,
+            mutation_rate=adaptive_rate,
+            mutation_strength=adaptive_strength,
+            rng=rng,
+        )
+
+        epigenetic = _inherit_epigenetics(
+            parent1.epigenetic_modifiers,
+            parent2.epigenetic_modifiers,
+            0.5,
+        )
+
+        offspring = cls(physical=physical, behavioral=behavioral, epigenetic_modifiers=epigenetic)
+        inherit_learned_behaviors(parent1, parent2, offspring)
+        return offspring
 
     @classmethod
     def from_winner_choice(
@@ -422,13 +355,15 @@ class Genome(GenomeCompatibilityMixin):
         to take from the mate vs keep from self.
         """
         # Winner-based inheritance uses 80/20 weighting favoring winner
-        return cls.from_parents_weighted(
+        return cls.from_parents_weighted_params(
             parent1=winner,
             parent2=mate,
             parent1_weight=0.8,
-            mutation_rate=mutation_rate,
-            mutation_strength=mutation_strength,
-            population_stress=population_stress,
+            params=ReproductionParams(
+                mutation_rate=mutation_rate,
+                mutation_strength=mutation_strength,
+                population_stress=population_stress,
+            ),
             rng=rng,
         )
 
@@ -489,7 +424,6 @@ def _inherit_epigenetics(
     mods1: Dict[str, float],
     mods2: Dict[str, float],
     weight1: float,
-    rng: pyrandom.Random,
 ) -> Dict[str, float]:
     """Inherit epigenetic modifiers from parents."""
     epigenetic = {}
