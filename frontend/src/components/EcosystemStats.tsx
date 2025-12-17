@@ -536,7 +536,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 max={stats.pattern_intensity_max || 0}
                                 allowedMin={stats.allowed_pattern_intensity_min || 0.0}
                                 allowedMax={stats.allowed_pattern_intensity_max || 1.0}
-                                xLabel="Pattern Int."
+                                xLabel="Pattern Intensity"
                                 yLabel="Pop %"
                             />
                         </div>

@@ -35,7 +35,7 @@ export default function SizeSummaryGraph({
     const leftPad = 28;
     const rightPad = 12;
     const topPad = 8;
-    const bottomPad = 36; // leave room for x-axis label and tick labels
+    const bottomPad = 50; // Increased to make room for labels + title
     const plotW = Math.max(16, width - leftPad - rightPad);
     const plotH = Math.max(12, height - topPad - bottomPad);
 
@@ -67,10 +67,13 @@ export default function SizeSummaryGraph({
                 {/* bars */}
                 {bins.map((count, i) => {
                     const h = (count / maxCount) * (plotH - 6);
-                    const x = leftPad + i * barWidth + Math.max(1, (barWidth - Math.min(barWidth, 18)) / 2);
+                    // Center the bar in the slot. Cap width at 18px-2px padding.
+                    const slotWidth = barWidth;
+                    const visualBarWidth = Math.min(slotWidth - 2, 16);
+                    const x = leftPad + i * slotWidth + (slotWidth - visualBarWidth) / 2;
                     const y = topPad + (plotH - h - 2);
                     const color = '#60a5fa';
-                    return <rect key={i} x={x} y={y} width={Math.max(0, barWidth - 2)} height={h} fill={color} rx={2} ry={2} />;
+                    return <rect key={i} x={x} y={y} width={visualBarWidth} height={h} fill={color} rx={2} ry={2} />;
                 })}
 
                 {/* allowed bounds (vertical guides) - only show if not using bar labels */}
@@ -82,7 +85,7 @@ export default function SizeSummaryGraph({
                 )}
 
                 {/* x-axis label (positioned clearly below ticks) */}
-                <text x={leftPad + plotW / 2} y={topPad + plotH + 28} fontSize={11} fill="var(--color-text-dim)" textAnchor="middle">{xLabel}</text>
+                <text x={leftPad + plotW / 2} y={topPad + plotH + 42} fontSize={11} fill="var(--color-text-dim)" textAnchor="middle">{xLabel}</text>
 
                 {/* Individual bar labels (for discrete traits) OR min/max labels (for continuous traits) */}
                 {showBarLabels ? (
@@ -93,7 +96,7 @@ export default function SizeSummaryGraph({
                             <text
                                 key={i}
                                 x={barCenterX}
-                                y={topPad + plotH + 20}
+                                y={topPad + plotH + 15}
                                 fontSize={9}
                                 fill="var(--color-text-dim)"
                                 textAnchor="middle"
