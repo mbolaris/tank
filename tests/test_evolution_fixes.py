@@ -60,20 +60,20 @@ def test_algorithm_crossover():
     genome2 = Genome.random(use_algorithm=True)
 
     # Force different algorithms for testing
-    genome1.behavior_algorithm = GreedyFoodSeeker()
-    genome2.behavior_algorithm = EnergyAwareFoodSeeker()
+    genome1.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
+    genome2.behavioral.behavior_algorithm.value = EnergyAwareFoodSeeker()
 
-    print(f"Parent 1 algorithm: {genome1.behavior_algorithm.algorithm_id}")
-    print(f"  Parameters: {genome1.behavior_algorithm.parameters}")
-    print(f"Parent 2 algorithm: {genome2.behavior_algorithm.algorithm_id}")
-    print(f"  Parameters: {genome2.behavior_algorithm.parameters}")
+    print(f"Parent 1 algorithm: {genome1.behavioral.behavior_algorithm.value.algorithm_id}")
+    print(f"  Parameters: {genome1.behavioral.behavior_algorithm.value.parameters}")
+    print(f"Parent 2 algorithm: {genome2.behavioral.behavior_algorithm.value.algorithm_id}")
+    print(f"  Parameters: {genome2.behavioral.behavior_algorithm.value.parameters}")
     print()
 
     # Test crossover multiple times to see variation
     offspring_algorithms = []
     for i in range(10):
         offspring = Genome.from_parents(genome1, genome2, mutation_rate=0.0)
-        offspring_algorithms.append(offspring.behavior_algorithm.algorithm_id)
+        offspring_algorithms.append(offspring.behavioral.behavior_algorithm.value.algorithm_id)
 
     print("Offspring algorithms from 10 crosses:")
     for i, algo_id in enumerate(offspring_algorithms):

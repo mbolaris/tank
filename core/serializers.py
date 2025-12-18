@@ -26,8 +26,9 @@ class FishSerializer:
             Dictionary with fish player data
         """
         algo_name = "Unknown"
-        if fish.genome.behavior_algorithm:
-            algo_name = fish.genome.behavior_algorithm.algorithm_id
+        behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
+        if behavior_algorithm:
+            algo_name = behavior_algorithm.algorithm_id
 
         genome_data = FishSerializer.to_genome_data(fish)
 
@@ -41,7 +42,7 @@ class FishSerializer:
         }
 
         if include_aggression:
-            player_data["aggression"] = getattr(fish.genome, "aggression", 0.5)
+            player_data["aggression"] = fish.genome.behavioral.aggression.value
 
         return player_data
 
@@ -56,19 +57,21 @@ class FishSerializer:
             return None
 
         # Handle potential missing attributes with defaults or safe access
-        size = getattr(fish, "size", getattr(fish.genome, "size_modifier", 1.0))
+        size = getattr(
+            fish, "size", fish.genome.physical.size_modifier.value
+        )
 
         return {
             "speed": fish.genome.speed_modifier,
             "size": size,
-            "color_hue": fish.genome.color_hue,
-            "template_id": fish.genome.template_id,
-            "fin_size": fish.genome.fin_size,
-            "tail_size": fish.genome.tail_size,
-            "body_aspect": fish.genome.body_aspect,
-            "eye_size": fish.genome.eye_size,
-            "pattern_intensity": fish.genome.pattern_intensity,
-            "pattern_type": fish.genome.pattern_type,
+            "color_hue": fish.genome.physical.color_hue.value,
+            "template_id": fish.genome.physical.template_id.value,
+            "fin_size": fish.genome.physical.fin_size.value,
+            "tail_size": fish.genome.physical.tail_size.value,
+            "body_aspect": fish.genome.physical.body_aspect.value,
+            "eye_size": fish.genome.physical.eye_size.value,
+            "pattern_intensity": fish.genome.physical.pattern_intensity.value,
+            "pattern_type": fish.genome.physical.pattern_type.value,
         }
 
 

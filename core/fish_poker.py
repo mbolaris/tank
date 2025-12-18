@@ -244,8 +244,10 @@ class PokerInteraction:
 
         # Get winner's algorithm ID
         winner_algo_id = None
-        if winner_fish and winner_fish.genome.behavior_algorithm is not None:
-            winner_algo_id = get_algorithm_index(winner_fish.genome.behavior_algorithm)
+        if winner_fish:
+            behavior_algorithm = winner_fish.genome.behavioral.behavior_algorithm.value
+            if behavior_algorithm is not None:
+                winner_algo_id = get_algorithm_index(behavior_algorithm)
 
         # Record as winner vs each loser
         num_losers = len(loser_fish_list)
@@ -253,8 +255,9 @@ class PokerInteraction:
 
         for i, loser_fish in enumerate(loser_fish_list):
             loser_algo_id = None
-            if loser_fish.genome.behavior_algorithm is not None:
-                loser_algo_id = get_algorithm_index(loser_fish.genome.behavior_algorithm)
+            behavior_algorithm = loser_fish.genome.behavioral.behavior_algorithm.value
+            if behavior_algorithm is not None:
+                loser_algo_id = get_algorithm_index(behavior_algorithm)
 
             loser_hand = loser_hands[i] if i < len(loser_hands) else None
 
@@ -557,7 +560,9 @@ class PokerInteraction:
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
         # This determines exactly how much energy the winner should transfer
         from core.constants import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE
-        baby_max_energy = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.size_modifier
+        baby_max_energy = (
+            ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
+        )
 
         # Winner transfers exactly what baby needs to start at 100% energy
         # But can't transfer more than winner has!
@@ -621,7 +626,7 @@ class PokerInteraction:
 
             # Use baby's algorithm if available (tracked via offspring_genome),
             # otherwise use winner's algorithm as the reproduction source
-            baby_algo = offspring_genome.behavior_algorithm
+            baby_algo = offspring_genome.behavioral.behavior_algorithm.value
             if baby_algo is not None:
                 baby_algo_id = get_algorithm_index(baby_algo)
                 if baby_algo_id >= 0:
@@ -650,15 +655,17 @@ class PokerInteraction:
 
         # Map genome aggression to poker aggression range
         player_aggressions = [
-            AGGRESSION_LOW + (fish.genome.aggression * (AGGRESSION_HIGH - AGGRESSION_LOW))
+            AGGRESSION_LOW
+            + (
+                fish.genome.behavioral.aggression.value
+                * (AGGRESSION_HIGH - AGGRESSION_LOW)
+            )
             for fish in self.fish_list
         ]
 
         # Get poker strategy algorithms from fish genomes (if available)
         player_strategies = [
-            fish.genome.poker_strategy_algorithm
-            if hasattr(fish.genome, "poker_strategy_algorithm")
-            else None
+            fish.genome.behavioral.poker_strategy_algorithm.value
             for fish in self.fish_list
         ]
 
@@ -944,11 +951,11 @@ class PokerInteraction:
         participant2 = self.participants[1]
 
         fish1_aggression = AGGRESSION_LOW + (
-            self.fish1.genome.aggression
+            self.fish1.genome.behavioral.aggression.value
             * (AGGRESSION_HIGH - AGGRESSION_LOW)
         )
         fish2_aggression = AGGRESSION_LOW + (
-            self.fish2.genome.aggression
+            self.fish2.genome.behavioral.aggression.value
             * (AGGRESSION_HIGH - AGGRESSION_LOW)
         )
 
@@ -959,16 +966,8 @@ class PokerInteraction:
         participant2.last_button_position = button_position
 
         # Get poker strategy algorithms from fish genomes (if available)
-        player1_strategy = (
-            self.fish1.genome.poker_strategy_algorithm
-            if hasattr(self.fish1.genome, "poker_strategy_algorithm")
-            else None
-        )
-        player2_strategy = (
-            self.fish2.genome.poker_strategy_algorithm
-            if hasattr(self.fish2.genome, "poker_strategy_algorithm")
-            else None
-        )
+        player1_strategy = self.fish1.genome.behavioral.poker_strategy_algorithm.value
+        player2_strategy = self.fish2.genome.behavioral.poker_strategy_algorithm.value
 
         # Simulate multi-round Texas Hold'em game with blinds and position
         # Use evolved poker strategies if available, otherwise fall back to aggression

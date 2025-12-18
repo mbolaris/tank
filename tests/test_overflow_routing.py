@@ -32,7 +32,7 @@ def _make_fish(env, fish_id: int, ecosystem):
     from core.movement_strategy import AlgorithmicMovement
 
     genome = Genome.random(use_algorithm=True)
-    genome.behavior_algorithm = GreedyFoodSeeker()
+    genome.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
 
     return Fish(
         environment=env,

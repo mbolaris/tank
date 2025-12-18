@@ -29,7 +29,7 @@ for i in range(N):
         count_meta_strength_changed += 1
     if hgt != (p1.physical.eye_size.hgt_probability + p2.physical.eye_size.hgt_probability)/2:
         count_hgt_changed += 1
-    value_changes.append(o.eye_size)
+    value_changes.append(o.physical.eye_size.value)
 
 import statistics
 print('meta_rate_changed_count:', count_meta_rate_changed, '/', N)

@@ -17,7 +17,7 @@ from core.genetics import Genome
 def _summarize_population(population: Sequence[Genome]) -> Dict[str, float]:
     """Calculate simple metrics for a population snapshot."""
     speeds = [g.speed_modifier for g in population]
-    aggression = [g.aggression for g in population]
+    aggression = [g.behavioral.aggression.value for g in population]
     metabolism = [g.metabolism_rate for g in population]
 
     def _mean(values: List[float]) -> float:

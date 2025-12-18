@@ -79,14 +79,14 @@ Instead of relying solely on neural networks or hardcoded rules, fish can now in
 Each fish's `Genome` now includes a `behavior_algorithm` field:
 
 ```python
-from genetics import Genome
+from core.genetics import Genome
 
 # Create genome with random behavior algorithm
-genome = Genome.random(use_brain=False, use_algorithm=True)
+genome = Genome.random(use_algorithm=True)
 
 # The genome now has a behavior algorithm with parameters
-print(genome.behavior_algorithm.algorithm_id)
-print(genome.behavior_algorithm.parameters)
+print(genome.behavioral.behavior_algorithm.value.algorithm_id)
+print(genome.behavioral.behavior_algorithm.value.parameters)
 ```
 
 ### 2. Algorithm Parameters

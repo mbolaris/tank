@@ -181,7 +181,7 @@ These playbooks ensure every LLM remains legibly botanical while expressing a un
 
 ### Step 1: Backend (Python)
 
-**File**: `core/plant_genetics.py`
+**File**: `core/genetics/plant.py`
 
 Add a new factory method to `PlantGenome`:
 

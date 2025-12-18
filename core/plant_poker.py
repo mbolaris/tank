@@ -140,7 +140,7 @@ class PlantPokerInteraction:
 
         # Fish uses genome-based aggression
         fish_aggression = AGGRESSION_LOW + (
-            self.fish.genome.aggression
+            self.fish.genome.behavioral.aggression.value
             * (AGGRESSION_HIGH - AGGRESSION_LOW)
         )
 

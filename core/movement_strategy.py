@@ -99,7 +99,7 @@ class AlgorithmicMovement(MovementStrategy):
         genome = sprite.genome
 
         # Check if fish has a behavior algorithm
-        behavior_algorithm = genome.behavior_algorithm
+        behavior_algorithm = genome.behavioral.behavior_algorithm.value
         if behavior_algorithm is None:
             # Fallback to simple random movement
             sprite.add_random_velocity_change(RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR)
@@ -110,7 +110,7 @@ class AlgorithmicMovement(MovementStrategy):
         primary_vx, primary_vy = behavior_algorithm.execute(sprite)
 
         # Execute poker algorithm if available (mix-and-match evolution)
-        poker_algorithm = genome.poker_algorithm
+        poker_algorithm = genome.behavioral.poker_algorithm.value
         if poker_algorithm is not None:
             poker_vx, poker_vy = poker_algorithm.execute(sprite)
 

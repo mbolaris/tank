@@ -55,7 +55,7 @@ from core.events import (
 from core.fish_poker import PokerInteraction
 from core.genetics import Genome
 from core.object_pool import FoodPool
-from core.plant_genetics import PlantGenome
+from core.genetics import PlantGenome
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
 from core.poker_system import PokerSystem
@@ -1009,7 +1009,9 @@ class SimulationEngine(BaseSimulator):
             existing_species = set()
             for fish in fish_list:
                 if hasattr(fish, "genome") and hasattr(fish.genome, "behavior_algorithm"):
-                    algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
+                    algo_idx = get_algorithm_index(
+                        fish.genome.behavioral.behavior_algorithm.value
+                    )
                     if algo_idx >= 0:
                         existing_algorithms.add(algo_idx)
                 if hasattr(fish, "species"):
@@ -1022,7 +1024,9 @@ class SimulationEngine(BaseSimulator):
             # Try to pick a different algorithm than existing ones (up to MAX_DIVERSITY_SPAWN_ATTEMPTS)
             for _ in range(MAX_DIVERSITY_SPAWN_ATTEMPTS):
                 if hasattr(genome, "behavior_algorithm"):
-                    algo_idx = get_algorithm_index(genome.behavior_algorithm)
+                    algo_idx = get_algorithm_index(
+                        genome.behavioral.behavior_algorithm.value
+                    )
                     if algo_idx >= 0 and algo_idx not in existing_algorithms:
                         break
                 genome = Genome.random(use_algorithm=True, rng=self.rng)

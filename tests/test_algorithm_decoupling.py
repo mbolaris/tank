@@ -64,8 +64,9 @@ def test_algorithm_works_with_mock_world():
     fish.is_low_energy.return_value = False
     fish.get_energy_ratio.return_value = 1.0
     fish.genome = MagicMock()
-    fish.genome.pursuit_aggression = 0.5
-    fish.genome.prediction_skill = 0.5
+    fish.genome.behavioral = MagicMock()
+    fish.genome.behavioral.pursuit_aggression.value = 0.5
+    fish.genome.behavioral.prediction_skill.value = 0.5
     
     # Add food to world
     food = MagicMock(spec=Food)

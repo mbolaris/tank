@@ -277,8 +277,8 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 genome_data = entity_data.get("genome", {})
                 # Create genome using random() then override with saved values
                 genome = Genome.random()
-                genome.size_modifier = genome_data.get("size_modifier", 1.0)
-                genome.color_hue = genome_data.get("color_hue", 0.5)
+                genome.physical.size_modifier.value = genome_data.get("size_modifier", 1.0)
+                genome.physical.color_hue.value = genome_data.get("color_hue", 0.5)
 
                 crab = Crab(
                     environment=target_world.engine.environment,

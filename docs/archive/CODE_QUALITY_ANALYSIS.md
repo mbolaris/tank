@@ -94,8 +94,8 @@ The pattern for recording fish deaths is duplicated 3 times in `fishtank.py` wit
 if sprite.is_dead():
     if self.ecosystem is not None:
         algorithm_id = None
-        if sprite.genome.behavior_algorithm is not None:
-            algorithm_id = get_algorithm_index(sprite.genome.behavior_algorithm)
+        if sprite.genome.behavioral.behavior_algorithm.value is not None:
+            algorithm_id = get_algorithm_index(sprite.genome.behavioral.behavior_algorithm.value)
         self.ecosystem.record_death(
             sprite.fish_id,
             sprite.generation,
@@ -111,8 +111,8 @@ if sprite.is_dead():
 ```python
 if self.ecosystem is not None:
     algorithm_id = None
-    if fish.genome.behavior_algorithm is not None:
-        algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+    if fish.genome.behavioral.behavior_algorithm.value is not None:
+        algorithm_id = get_algorithm_index(fish.genome.behavioral.behavior_algorithm.value)
     self.ecosystem.record_death(...)
 ```
 
@@ -132,8 +132,8 @@ def record_fish_death(self, fish: agents.Fish, cause: str) -> None:
         return
     
     algorithm_id = None
-    if fish.genome.behavior_algorithm is not None:
-        algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+    if fish.genome.behavioral.behavior_algorithm.value is not None:
+        algorithm_id = get_algorithm_index(fish.genome.behavioral.behavior_algorithm.value)
     
     self.ecosystem.record_death(
         fish.fish_id,

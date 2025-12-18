@@ -260,8 +260,8 @@ def __init__(self, ..., speed: float, ...):
     self.speed = speed  # Could be negative!
 
 # In ecosystem.py - silent failures
-if fish.genome.behavior_algorithm is not None:
-    algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+if fish.genome.behavioral.behavior_algorithm.value is not None:
+    algorithm_id = get_algorithm_index(fish.genome.behavioral.behavior_algorithm.value)
     # What if get_algorithm_index fails?
 ```
 
@@ -353,14 +353,14 @@ def handle_fish_collision(self, fish1: Fish, fish2: Fish) -> None:
 ```python
 # Location 1: Line 100-113
 algorithm_id = None
-if sprite.genome.behavior_algorithm is not None:
-    algorithm_id = get_algorithm_index(sprite.genome.behavior_algorithm)
+if sprite.genome.behavioral.behavior_algorithm.value is not None:
+    algorithm_id = get_algorithm_index(sprite.genome.behavioral.behavior_algorithm.value)
 self.ecosystem.record_death(...)
 
 # Location 2: Line 186-200 (identical)
 algorithm_id = None
-if fish.genome.behavior_algorithm is not None:
-    algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+if fish.genome.behavioral.behavior_algorithm.value is not None:
+    algorithm_id = get_algorithm_index(fish.genome.behavioral.behavior_algorithm.value)
 self.ecosystem.record_death(...)
 
 # Location 3: Line 213-224 (identical)

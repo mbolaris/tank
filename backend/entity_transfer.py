@@ -305,16 +305,19 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     # Capture genome parameters if they are mutable
     # We capture them as dicts here to ensure thread safety
     behavior_params = None
-    if fish.genome.behavior_algorithm:
-        behavior_params = fish.genome.behavior_algorithm.to_dict()
+    behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
+    if behavior_algorithm:
+        behavior_params = behavior_algorithm.to_dict()
 
     poker_algo_params = None
-    if fish.genome.poker_algorithm:
-        poker_algo_params = fish.genome.poker_algorithm.to_dict()
+    poker_algorithm = fish.genome.behavioral.poker_algorithm.value
+    if poker_algorithm:
+        poker_algo_params = poker_algorithm.to_dict()
 
     poker_strat_params = None
-    if fish.genome.poker_strategy_algorithm:
-        poker_strat_params = fish.genome.poker_strategy_algorithm.to_dict()
+    poker_strategy = fish.genome.behavioral.poker_strategy_algorithm.value
+    if poker_strategy:
+        poker_strat_params = poker_strategy.to_dict()
 
     return {
         "x": fish.pos.x,
@@ -527,7 +530,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
     """Deserialize and create a FractalPlant entity."""
     try:
         from core.entities.fractal_plant import FractalPlant
-        from core.plant_genetics import PlantGenome
+        from core.genetics import PlantGenome
 
         if not _require_keys(
             data,

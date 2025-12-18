@@ -14,7 +14,7 @@ Design Philosophy (ALife vs GA):
 - Selection emerges from survival and reproduction success
 """
 
-# Re-export main classes for backward compatibility
+# Re-export main classes for package convenience
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, BehavioralTraits
 from core.genetics.genome import (
     GeneticCrossoverMode,

@@ -167,8 +167,9 @@ class BaseSimulator(ABC):
         """
         if self.ecosystem is not None:
             algorithm_id = None
-            if fish.genome.behavior_algorithm is not None:
-                algorithm_id = get_algorithm_index(fish.genome.behavior_algorithm)
+            behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
+            if behavior_algorithm is not None:
+                algorithm_id = get_algorithm_index(behavior_algorithm)
 
             death_cause = cause if cause is not None else fish.get_death_cause()
             self.ecosystem.record_death(

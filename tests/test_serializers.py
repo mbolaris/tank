@@ -9,17 +9,22 @@ class TestSerializers(unittest.TestCase):
         # Mock objects
         self.mock_genome = MagicMock()
         self.mock_genome.speed_modifier = 1.0
-        self.mock_genome.size_modifier = 1.0
-        self.mock_genome.color_hue = 0.5
-        self.mock_genome.template_id = "test_template"
-        self.mock_genome.fin_size = 1.0
-        self.mock_genome.tail_size = 1.0
-        self.mock_genome.body_aspect = 1.0
-        self.mock_genome.eye_size = 1.0
-        self.mock_genome.pattern_intensity = 0.5
-        self.mock_genome.pattern_type = "striped"
-        self.mock_genome.behavior_algorithm.algorithm_id = "test_algo"
-        self.mock_genome.aggression = 0.7
+
+        self.mock_genome.physical = MagicMock()
+        self.mock_genome.physical.size_modifier.value = 1.0
+        self.mock_genome.physical.color_hue.value = 0.5
+        self.mock_genome.physical.template_id.value = "test_template"
+        self.mock_genome.physical.fin_size.value = 1.0
+        self.mock_genome.physical.tail_size.value = 1.0
+        self.mock_genome.physical.body_aspect.value = 1.0
+        self.mock_genome.physical.eye_size.value = 1.0
+        self.mock_genome.physical.pattern_intensity.value = 0.5
+        self.mock_genome.physical.pattern_type.value = "striped"
+
+        self.mock_genome.behavioral = MagicMock()
+        self.mock_genome.behavioral.behavior_algorithm.value = MagicMock()
+        self.mock_genome.behavioral.behavior_algorithm.value.algorithm_id = "test_algo"
+        self.mock_genome.behavioral.aggression.value = 0.7
 
         self.mock_fish = MagicMock(spec=Fish)
         self.mock_fish.fish_id = 123

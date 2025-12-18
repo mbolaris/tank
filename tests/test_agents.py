@@ -116,7 +116,7 @@ class TestFish:
         from core.genetics import Genome
 
         genome = Genome.random(use_algorithm=False)
-        genome.size_modifier = 1.0
+        genome.physical.size_modifier.value = 1.0
         fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
 
         # Fish start as babies with size 0.5 (when genetic size_modifier is 1.0)

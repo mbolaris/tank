@@ -160,8 +160,12 @@ def update_population_stats(ecosystem: EcosystemManager, fish_list: List[Fish]) 
         fishes_with_genome = [f for f in fishes if hasattr(f, "genome")]
         if fishes_with_genome:
             stats.avg_speed = sum(f.genome.speed_modifier for f in fishes_with_genome) / len(fishes)
-            stats.avg_size = sum(f.genome.size_modifier for f in fishes_with_genome) / len(fishes)
-            stats.avg_energy = sum(f.genome.size_modifier for f in fishes_with_genome) / len(fishes)  # Max energy is based on size
+            stats.avg_size = sum(
+                f.genome.physical.size_modifier.value for f in fishes_with_genome
+            ) / len(fishes)
+            stats.avg_energy = sum(
+                f.genome.physical.size_modifier.value for f in fishes_with_genome
+            ) / len(fishes)  # Max energy is based on size
 
     update_genetic_diversity_stats(ecosystem, fish_list)
 
@@ -209,17 +213,18 @@ def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: List[
     for fish in fish_list:
         genome = fish.genome
 
-        if get_algorithm_index is not None and genome.behavior_algorithm is not None:
-            algo_idx = get_algorithm_index(genome.behavior_algorithm)
+        behavior_algorithm = genome.behavioral.behavior_algorithm.value
+        if get_algorithm_index is not None and behavior_algorithm is not None:
+            algo_idx = get_algorithm_index(behavior_algorithm)
             if algo_idx >= 0:
                 algorithms.add(algo_idx)
 
         species.add(fish.species)
 
         # Direct attribute access - these exist on FishGenome
-        color_hues.append(genome.color_hue)
+        color_hues.append(genome.physical.color_hue.value)
         speed_modifiers.append(genome.speed_modifier)
-        size_modifiers.append(genome.size_modifier)
+        size_modifiers.append(genome.physical.size_modifier.value)
         vision_ranges.append(genome.vision_range)
 
     # OPTIMIZATION: Only calculate variances if we have data
@@ -301,8 +306,16 @@ def get_summary_stats(
     adult_size_median = 0.0
     adult_size_range = "0.0-0.0"
     if fish_list:
-        # Adult size = FISH_ADULT_SIZE * genome.size_modifier
-        adult_sizes = [FISH_ADULT_SIZE * (f.genome.size_modifier if hasattr(f, 'genome') else 1.0) for f in fish_list]
+        # Adult size = FISH_ADULT_SIZE * genome.physical.size_modifier.value
+        adult_sizes = [
+            FISH_ADULT_SIZE
+            * (
+                f.genome.physical.size_modifier.value
+                if hasattr(f, "genome")
+                else 1.0
+            )
+            for f in fish_list
+        ]
         adult_size_min = min(adult_sizes)
         adult_size_max = max(adult_sizes)
         try:

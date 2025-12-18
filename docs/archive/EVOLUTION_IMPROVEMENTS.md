@@ -183,7 +183,7 @@ With these fixes, the population should evolve to:
 - `core/fish/reproduction_component.py`: Energy transfer system
 - `core/entities.py`: Baby energy initialization
 - `core/algorithms/__init__.py`: Algorithm crossover function
-- `core/genetics.py`: Use crossover for algorithm inheritance
+- `core/genetics/`: Use crossover for algorithm inheritance
 - `core/behavior_algorithms.py`: Export crossover function
 
 ## Performance Tracking

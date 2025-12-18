@@ -394,9 +394,9 @@ class SimulationManager:
                             # Serialize crab with genome
                             genome_data = {
                                 "speed_modifier": entity.genome.speed_modifier,
-                                "size_modifier": entity.genome.size_modifier,
+                                "size_modifier": entity.genome.physical.size_modifier.value,
                                 "metabolism_rate": entity.genome.metabolism_rate,
-                                "color_hue": entity.genome.color_hue,
+                                "color_hue": entity.genome.physical.color_hue.value,
                                 "vision_range": entity.genome.vision_range,
                             }
                             entities_data.append({

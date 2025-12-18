@@ -195,7 +195,9 @@ class EnhancedStatisticsTracker:
         # Use average energy as a proxy for success (replaces fitness_score)
         avg_fitness = sum(f.energy / f.max_energy for f in fish_list) / population
         avg_speed = sum(f.genome.speed_modifier for f in fish_list) / population
-        avg_size = sum(f.genome.size_modifier for f in fish_list) / population
+        avg_size = sum(
+            f.genome.physical.size_modifier.value for f in fish_list
+        ) / population
         avg_metabolism = sum(f.genome.metabolism_rate for f in fish_list) / population
         avg_energy = sum(f.energy for f in fish_list) / population
         total_energy = sum(f.energy for f in fish_list)
@@ -205,8 +207,9 @@ class EnhancedStatisticsTracker:
 
         algorithms = set()
         for f in fish_list:
-            if f.genome.behavior_algorithm is not None:
-                algo_id = get_algorithm_index(f.genome.behavior_algorithm)
+            behavior_algorithm = f.genome.behavioral.behavior_algorithm.value
+            if behavior_algorithm is not None:
+                algo_id = get_algorithm_index(behavior_algorithm)
                 if algo_id >= 0:
                     algorithms.add(algo_id)
                     self.algorithm_last_seen[algo_id] = frame
@@ -218,7 +221,10 @@ class EnhancedStatisticsTracker:
             sum((f.genome.speed_modifier - avg_speed) ** 2 for f in fish_list) / population
         )
         size_variance = (
-            sum((f.genome.size_modifier - avg_size) ** 2 for f in fish_list) / population
+            sum(
+                (f.genome.physical.size_modifier.value - avg_size) ** 2
+                for f in fish_list
+            ) / population
         )
         diversity_score = min(1.0, (speed_variance + size_variance) / 2.0 * 5.0)  # Normalize
 

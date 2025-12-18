@@ -235,7 +235,7 @@ def fish_should_respond_to_signal(fish: "Fish", signal: Signal) -> bool:
         True if fish should respond
     """
     # Check social tendency - more social fish respond more
-    social_response_threshold = 1.0 - fish.genome.social_tendency
+    social_response_threshold = 1.0 - fish.genome.behavioral.social_tendency.value
 
     # Check signal relevance based on fish state
     if signal.signal_type == SignalType.DANGER_WARNING:
@@ -247,7 +247,7 @@ def fish_should_respond_to_signal(fish: "Fish", signal: Signal) -> bool:
         if fish.is_low_energy() or fish.is_critical_energy():
             return True
         # Otherwise based on social tendency
-        return fish.genome.social_tendency > social_response_threshold
+        return fish.genome.behavioral.social_tendency.value > social_response_threshold
 
     elif signal.signal_type == SignalType.MATING_CALL:
         # Respond if can reproduce
@@ -255,11 +255,11 @@ def fish_should_respond_to_signal(fish: "Fish", signal: Signal) -> bool:
 
     elif signal.signal_type == SignalType.DISTRESS:
         # Help if highly social
-        return fish.genome.social_tendency > 0.7
+        return fish.genome.behavioral.social_tendency.value > 0.7
 
     elif signal.signal_type == SignalType.FOLLOW_ME:
         # Follow if social
-        return fish.genome.social_tendency > social_response_threshold
+        return fish.genome.behavioral.social_tendency.value > social_response_threshold
 
     # Default: respond based on social tendency
-    return fish.genome.social_tendency > 0.5
+    return fish.genome.behavioral.social_tendency.value > 0.5

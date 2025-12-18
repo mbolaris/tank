@@ -15,7 +15,7 @@ from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 if TYPE_CHECKING:  # pragma: no cover
     from core.entities.fractal_plant import FractalPlant
-    from core.plant_genetics import PlantGenome
+    from core.genetics import PlantGenome
 
 from core.poker.betting.actions import BettingAction
 

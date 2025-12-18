@@ -37,14 +37,14 @@ def test_genome_with_algorithm():
     # Create genome with algorithm
     genome = Genome.random(use_algorithm=True)
 
-    assert genome.behavior_algorithm is not None, "Genome should have a behavior algorithm"
+    assert genome.behavioral.behavior_algorithm.value is not None, "Genome should have a behavior algorithm"
 
-    print(f"✓ Genome created with algorithm: {genome.behavior_algorithm.algorithm_id}")
-    print(f"  Parameters: {genome.behavior_algorithm.parameters}")
+    print(f"✓ Genome created with algorithm: {genome.behavioral.behavior_algorithm.value.algorithm_id}")
+    print(f"  Parameters: {genome.behavioral.behavior_algorithm.value.parameters}")
 
     # Create genome without algorithm
     genome_no_algo = Genome.random(use_algorithm=False)
-    assert genome_no_algo.behavior_algorithm is None, "Genome should NOT have a behavior algorithm"
+    assert genome_no_algo.behavioral.behavior_algorithm.value is None, "Genome should NOT have a behavior algorithm"
 
     print("✓ Genome created without algorithm")
 
@@ -57,30 +57,30 @@ def test_algorithm_inheritance():
     parent1 = Genome.random(use_algorithm=True)
     parent2 = Genome.random(use_algorithm=True)
 
-    print(f"Parent 1 algorithm: {parent1.behavior_algorithm.algorithm_id}")
-    print(f"  Parameters: {parent1.behavior_algorithm.parameters}")
-    print(f"Parent 2 algorithm: {parent2.behavior_algorithm.algorithm_id}")
-    print(f"  Parameters: {parent2.behavior_algorithm.parameters}")
+    print(f"Parent 1 algorithm: {parent1.behavioral.behavior_algorithm.value.algorithm_id}")
+    print(f"  Parameters: {parent1.behavioral.behavior_algorithm.value.parameters}")
+    print(f"Parent 2 algorithm: {parent2.behavioral.behavior_algorithm.value.algorithm_id}")
+    print(f"  Parameters: {parent2.behavioral.behavior_algorithm.value.parameters}")
 
     # Create offspring
     offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.3, mutation_strength=0.2)
 
-    assert offspring.behavior_algorithm is not None, "Offspring should have a behavior algorithm"
+    assert offspring.behavioral.behavior_algorithm.value is not None, "Offspring should have a behavior algorithm"
 
-    print(f"\nOffspring algorithm: {offspring.behavior_algorithm.algorithm_id}")
-    print(f"  Parameters: {offspring.behavior_algorithm.parameters}")
+    print(f"\nOffspring algorithm: {offspring.behavioral.behavior_algorithm.value.algorithm_id}")
+    print(f"  Parameters: {offspring.behavioral.behavior_algorithm.value.parameters}")
 
     # Check that offspring inherited from parent 1 (with possible mutations)
     # The algorithm ID should match parent 1
-    if offspring.behavior_algorithm.algorithm_id == parent1.behavior_algorithm.algorithm_id:
+    if offspring.behavioral.behavior_algorithm.value.algorithm_id == parent1.behavioral.behavior_algorithm.value.algorithm_id:
         print("✓ Offspring inherited algorithm from parent 1")
 
         # Check if parameters were mutated (they might be different)
         params_changed = False
-        for key in parent1.behavior_algorithm.parameters:
-            if key in offspring.behavior_algorithm.parameters:
-                parent_val = parent1.behavior_algorithm.parameters[key]
-                offspring_val = offspring.behavior_algorithm.parameters[key]
+        for key in parent1.behavioral.behavior_algorithm.value.parameters:
+            if key in offspring.behavioral.behavior_algorithm.value.parameters:
+                parent_val = parent1.behavioral.behavior_algorithm.value.parameters[key]
+                offspring_val = offspring.behavioral.behavior_algorithm.value.parameters[key]
                 # Only check numeric parameters for mutation
                 if isinstance(parent_val, (int, float)) and isinstance(offspring_val, (int, float)):
                     if abs(parent_val - offspring_val) > 0.01:
@@ -95,7 +95,7 @@ def test_algorithm_inheritance():
 
         if params_changed:
             print("✓ Parameters were mutated during inheritance")
-    elif offspring.behavior_algorithm.algorithm_id == parent2.behavior_algorithm.algorithm_id:
+    elif offspring.behavioral.behavior_algorithm.value.algorithm_id == parent2.behavioral.behavior_algorithm.value.algorithm_id:
         print("✓ Offspring inherited algorithm from parent 2")
     else:
         print("✓ Offspring got a new random algorithm")
@@ -162,7 +162,7 @@ def test_multiple_generations():
     print(f"Generation 0: {len(population)} fish")
     algo_distribution = {}
     for genome in population:
-        algo_id = genome.behavior_algorithm.algorithm_id
+        algo_id = genome.behavioral.behavior_algorithm.value.algorithm_id
         algo_distribution[algo_id] = algo_distribution.get(algo_id, 0) + 1
     print(f"  Algorithm distribution: {dict(list(algo_distribution.items())[:5])}...")
 
@@ -183,7 +183,7 @@ def test_multiple_generations():
         # Check distribution
         algo_distribution = {}
         for genome in population:
-            algo_id = genome.behavior_algorithm.algorithm_id
+            algo_id = genome.behavioral.behavior_algorithm.value.algorithm_id
             algo_distribution[algo_id] = algo_distribution.get(algo_id, 0) + 1
 
         print(f"Generation {gen}: {len(population)} fish")

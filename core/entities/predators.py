@@ -41,7 +41,9 @@ class Crab(Agent):
         self.is_predator = True
 
         # Energy system - max energy based on size
-        self.max_energy: float = CRAB_INITIAL_ENERGY * self.genome.size_modifier
+        self.max_energy: float = (
+            CRAB_INITIAL_ENERGY * self.genome.physical.size_modifier.value
+        )
         self.energy: float = self.max_energy
 
         # Hunting mechanics

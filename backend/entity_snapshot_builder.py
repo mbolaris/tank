@@ -122,14 +122,14 @@ class EntitySnapshotBuilder:
                     genome_data = {
                         "speed": entity.genome.speed_modifier,
                         "size": entity.size,  # Includes baby stage growth
-                        "color_hue": entity.genome.color_hue,
-                        "template_id": entity.genome.template_id,
-                        "fin_size": entity.genome.fin_size,
-                        "tail_size": entity.genome.tail_size,
-                        "body_aspect": entity.genome.body_aspect,
-                        "eye_size": entity.genome.eye_size,
-                        "pattern_intensity": entity.genome.pattern_intensity,
-                        "pattern_type": entity.genome.pattern_type,
+                        "color_hue": entity.genome.physical.color_hue.value,
+                        "template_id": entity.genome.physical.template_id.value,
+                        "fin_size": entity.genome.physical.fin_size.value,
+                        "tail_size": entity.genome.physical.tail_size.value,
+                        "body_aspect": entity.genome.physical.body_aspect.value,
+                        "eye_size": entity.genome.physical.eye_size.value,
+                        "pattern_intensity": entity.genome.physical.pattern_intensity.value,
+                        "pattern_type": entity.genome.physical.pattern_type.value,
                     }
 
                 species_label = None
@@ -140,7 +140,8 @@ class EntitySnapshotBuilder:
                     species_label = "schooling"
 
                 if species_label is None and hasattr(entity, "genome"):
-                    algo_id = getattr(entity.genome.behavior_algorithm, "algorithm_id", "").lower()
+                    behavior_algorithm = entity.genome.behavioral.behavior_algorithm.value
+                    algo_id = getattr(behavior_algorithm, "algorithm_id", "").lower()
                     if "neural" in algo_id:
                         species_label = "neural"
                     elif "school" in algo_id:
@@ -257,4 +258,3 @@ class EntitySnapshotBuilder:
         except Exception as exc:
             logger.error("Error converting entity to snapshot: %s", exc, exc_info=True)
             return None
-

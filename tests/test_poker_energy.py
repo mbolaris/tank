@@ -25,12 +25,12 @@ def test_poker_energy_transfer():
     # This ensures we're testing with realistic values that respect energy caps
 
     genome1 = Genome.random(use_algorithm=True)
-    genome1.behavior_algorithm = GreedyFoodSeeker()
-    genome1.aggression = 0.5  # Medium aggression
+    genome1.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
+    genome1.behavioral.aggression.value = 0.5  # Medium aggression
 
     genome2 = Genome.random(use_algorithm=True)
-    genome2.behavior_algorithm = GreedyFoodSeeker()
-    genome2.aggression = 0.5  # Medium aggression
+    genome2.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
+    genome2.behavioral.aggression.value = 0.5  # Medium aggression
 
     fish1 = Fish(
         environment=None,
@@ -307,12 +307,12 @@ def test_poker_result_fields():
     from core.movement_strategy import AlgorithmicMovement
 
     genome1 = Genome.random(use_algorithm=True)
-    genome1.behavior_algorithm = GreedyFoodSeeker()
-    genome1.aggression = 0.5
+    genome1.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
+    genome1.behavioral.aggression.value = 0.5
 
     genome2 = Genome.random(use_algorithm=True)
-    genome2.behavior_algorithm = GreedyFoodSeeker()
-    genome2.aggression = 0.5
+    genome2.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
+    genome2.behavioral.aggression.value = 0.5
 
     fish1 = Fish(
         environment=None,

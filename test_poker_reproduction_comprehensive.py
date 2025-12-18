@@ -290,12 +290,21 @@ def test_genome_inheritance():
     fish1 = create_test_fish(env, ecosystem, x=100, y=100)
     fish2 = create_test_fish(env, ecosystem, x=120, y=100)
 
-    # Set distinct genome traits
-    fish1.genome.speed_modifier = 1.5
-    fish2.genome.speed_modifier = 0.5
+    # Set distinct genome traits via physical/behavioral containers
+    fish1.genome.physical.template_id.value = 1
+    fish1.genome.physical.fin_size.value = 1.4
+    fish1.genome.physical.tail_size.value = 1.4
+    fish1.genome.physical.body_aspect.value = 0.8
+    fish1.genome.invalidate_caches()
 
-    fish1.genome.aggression = 1.0
-    fish2.genome.aggression = 0.0
+    fish2.genome.physical.template_id.value = 2
+    fish2.genome.physical.fin_size.value = 0.6
+    fish2.genome.physical.tail_size.value = 0.6
+    fish2.genome.physical.body_aspect.value = 1.2
+    fish2.genome.invalidate_caches()
+
+    fish1.genome.behavioral.aggression.value = 1.0
+    fish2.genome.behavioral.aggression.value = 0.0
 
     env.agents = [fish1, fish2]
 
@@ -304,16 +313,23 @@ def test_genome_inheritance():
     offspring = poker.try_post_poker_reproduction(fish1, fish2, 10.0)
 
     if offspring:
-        print(f"Parent 1 (winner) speed: {fish1.genome.speed_modifier}")
-        print(f"Parent 2 (loser) speed: {fish2.genome.speed_modifier}")
-        print(f"Offspring speed: {offspring.genome.speed_modifier}")
+        parent1_speed = fish1.genome.speed_modifier
+        parent2_speed = fish2.genome.speed_modifier
+        offspring_speed = offspring.genome.speed_modifier
 
-        # Expected: 1.5 * 0.7 + 0.5 * 0.3 = 1.05 + 0.15 = 1.2 (before mutation)
-        expected_speed = 1.5 * POST_POKER_CROSSOVER_WINNER_WEIGHT + 0.5 * (1 - POST_POKER_CROSSOVER_WINNER_WEIGHT)
+        print(f"Parent 1 (winner) speed: {parent1_speed}")
+        print(f"Parent 2 (loser) speed: {parent2_speed}")
+        print(f"Offspring speed: {offspring_speed}")
+
+        # Expected: weighted average of parent derived speeds (before mutation).
+        expected_speed = (
+            parent1_speed * POST_POKER_CROSSOVER_WINNER_WEIGHT
+            + parent2_speed * (1 - POST_POKER_CROSSOVER_WINNER_WEIGHT)
+        )
         print(f"Expected speed (before mutation): {expected_speed:.2f}")
 
         # Allow for mutation (±10%)
-        assert abs(offspring.genome.speed_modifier - expected_speed) < 0.3, "Offspring speed not in expected range"
+        assert abs(offspring_speed - expected_speed) < 0.3, "Offspring speed not in expected range"
 
         print("✓ Genome inheritance appears to use weighted crossover")
     else:

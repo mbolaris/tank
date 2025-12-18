@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Optional
 
 from core.entities.base import Agent
 from core.entity_ids import PlantId
-from core.plant_genetics import PlantGenome
+from core.genetics import PlantGenome
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager

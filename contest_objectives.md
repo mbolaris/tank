@@ -73,7 +73,7 @@ The goal of this contest is to determine which Large Language Model (LLM) can ge
 To add a new LLM contestant to the beauty contest, follow these steps:
 
 ### 1. Define the Genome
-In `core/plant_genetics.py`:
+In `core/genetics/plant.py`:
 - Add a new `create_<variant>_variant` method to the `PlantGenome` class.
 - Define unique L-system parameters, colors, and production rules.
 - Update the `PlantGenome` docstring to list the new variant.

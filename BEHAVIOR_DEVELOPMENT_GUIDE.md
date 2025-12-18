@@ -416,11 +416,15 @@ When two fish reproduce:
 
 ```python
 # Option 1: Single parent (asexual)
-offspring_behavior = inherit_algorithm_with_mutation(parent.genome.behavior_algorithm)
+offspring_behavior = inherit_algorithm_with_mutation(
+    parent.genome.behavioral.behavior_algorithm.value
+)
 
 # Option 2: Two parents (sexual)
-offspring_behavior = crossover_algorithms(parent1.genome.behavior_algorithm,
-                                          parent2.genome.behavior_algorithm)
+offspring_behavior = crossover_algorithms(
+    parent1.genome.behavioral.behavior_algorithm.value,
+    parent2.genome.behavioral.behavior_algorithm.value,
+)
 
 # Option 3: Weighted crossover (poker winner influence)
 offspring_behavior = crossover_algorithms_weighted(winner_behavior, loser_behavior,
@@ -731,7 +735,7 @@ def execute(self, fish):
     # Count how many nearby fish have same algorithm
     same_behavior_count = sum(
         1 for other in fish.visible_fish
-        if other.genome.behavior_algorithm.algorithm_id == self.algorithm_id
+        if other.genome.behavioral.behavior_algorithm.value.algorithm_id == self.algorithm_id
     )
 
     # Strategy: Be aggressive when rare, cautious when common

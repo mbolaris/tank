@@ -283,7 +283,7 @@ def _evaluate_single_fish(
     if not hasattr(fish, "genome") or fish.genome is None:
         return None
 
-    strat = fish.genome.poker_strategy_algorithm
+    strat = fish.genome.behavioral.poker_strategy_algorithm.value
     if strat is None:
         return None
 

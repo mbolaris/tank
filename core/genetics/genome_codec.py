@@ -42,9 +42,16 @@ def genome_to_dict(
             return None
         return algo.to_dict()
 
-    behavior_algorithm_dict = _algorithm_dict(behavior_algorithm, genome.behavior_algorithm)
-    poker_algorithm_dict = _algorithm_dict(poker_algorithm, genome.poker_algorithm)
-    poker_strategy_dict = _algorithm_dict(poker_strategy_algorithm, genome.poker_strategy_algorithm)
+    behavior_algorithm_dict = _algorithm_dict(
+        behavior_algorithm, genome.behavioral.behavior_algorithm.value
+    )
+    poker_algorithm_dict = _algorithm_dict(
+        poker_algorithm, genome.behavioral.poker_algorithm.value
+    )
+    poker_strategy_dict = _algorithm_dict(
+        poker_strategy_algorithm,
+        genome.behavioral.poker_strategy_algorithm.value,
+    )
 
     values: Dict[str, Any] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
@@ -107,7 +114,9 @@ def genome_from_dict(
     # Mate preferences (dictionary trait)
     mate_preferences = data.get("mate_preferences")
     if isinstance(mate_preferences, dict):
-        genome.mate_preferences = {str(key): float(value) for key, value in mate_preferences.items()}
+        genome.behavioral.mate_preferences.value = {
+            str(key): float(value) for key, value in mate_preferences.items()
+        }
 
     # Evolvability metadata (mutation_rate/mutation_strength/hgt_probability)
     trait_meta = data.get("trait_meta")
@@ -143,14 +152,14 @@ def genome_from_dict(
 
         behavior_data = data.get("behavior_algorithm")
         if behavior_data:
-            genome.behavior_algorithm = behavior_from_dict(behavior_data)
-            if genome.behavior_algorithm is None:
+            genome.behavioral.behavior_algorithm.value = behavior_from_dict(behavior_data)
+            if genome.behavioral.behavior_algorithm.value is None:
                 logger.warning("Failed to deserialize behavior_algorithm; keeping default")
 
         poker_data = data.get("poker_algorithm")
         if poker_data:
-            genome.poker_algorithm = behavior_from_dict(poker_data)
-            if genome.poker_algorithm is None:
+            genome.behavioral.poker_algorithm.value = behavior_from_dict(poker_data)
+            if genome.behavioral.poker_algorithm.value is None:
                 logger.warning("Failed to deserialize poker_algorithm; keeping default")
     except Exception:
         logger.debug("Failed deserializing behavior algorithms; keeping defaults", exc_info=True)
@@ -160,7 +169,9 @@ def genome_from_dict(
         if strat_data:
             from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
-            genome.poker_strategy_algorithm = PokerStrategyAlgorithm.from_dict(strat_data)
+            genome.behavioral.poker_strategy_algorithm.value = (
+                PokerStrategyAlgorithm.from_dict(strat_data)
+            )
     except Exception:
         logger.debug("Failed deserializing poker_strategy_algorithm; keeping default", exc_info=True)
 
@@ -190,13 +201,16 @@ def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
         "trait_meta": trait_meta,
         "learned_behaviors_count": len(getattr(genome, "learned_behaviors", {}) or {}),
         "epigenetic_modifiers_count": len(getattr(genome, "epigenetic_modifiers", {}) or {}),
-        "behavior_algorithm_type": _algo_name(genome.behavior_algorithm),
-        "poker_algorithm_type": _algo_name(genome.poker_algorithm),
-        "poker_strategy_algorithm_type": _algo_name(genome.poker_strategy_algorithm),
+        "behavior_algorithm_type": _algo_name(
+            genome.behavioral.behavior_algorithm.value
+        ),
+        "poker_algorithm_type": _algo_name(genome.behavioral.poker_algorithm.value),
+        "poker_strategy_algorithm_type": _algo_name(
+            genome.behavioral.poker_strategy_algorithm.value
+        ),
         "derived": {
             "speed_modifier": getattr(genome, "speed_modifier", None),
             "metabolism_rate": getattr(genome, "metabolism_rate", None),
             "vision_range": getattr(genome, "vision_range", None),
         },
     }
-

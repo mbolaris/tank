@@ -247,10 +247,10 @@ def test_behavioral_traits_vs_strategy_conflict():
 
     for aggression in [0.0, 0.25, 0.5, 0.75, 1.0]:
         genome = Genome.random(use_algorithm=True)
-        genome.aggression = aggression
+        genome.behavioral.aggression.value = aggression
 
         # Get the poker strategy from genome
-        strategy = genome.poker_strategy_algorithm
+        strategy = genome.behavioral.poker_strategy_algorithm.value
 
         if strategy is None:
             continue
@@ -286,7 +286,7 @@ def test_behavioral_traits_vs_strategy_conflict():
     for r in results:
         print(f"  Aggression: {r['aggression']:.2f} | Strategy: {r['strategy']:20} | BB/100: {r['bb_per_100']:+6.2f}")
 
-    print("\nNOTE: In the simulation, genome.aggression is mapped to poker aggression")
+    print("\nNOTE: In the simulation, genome.behavioral.aggression is mapped to poker aggression")
     print("      but the poker_strategy_algorithm makes its own decisions.")
     print("      This creates potential for conflicting selection pressures.")
 
@@ -401,8 +401,10 @@ def diagnose_behavioral_inheritance():
     parent1 = Genome.random(use_algorithm=True)
     parent2 = Genome.random(use_algorithm=True)
 
-    print(f"\nParent 1 poker strategy: {parent1.poker_strategy_algorithm.strategy_id if parent1.poker_strategy_algorithm else 'None'}")
-    print(f"Parent 2 poker strategy: {parent2.poker_strategy_algorithm.strategy_id if parent2.poker_strategy_algorithm else 'None'}")
+    parent1_strategy = parent1.behavioral.poker_strategy_algorithm.value
+    parent2_strategy = parent2.behavioral.poker_strategy_algorithm.value
+    print(f"\nParent 1 poker strategy: {parent1_strategy.strategy_id if parent1_strategy else 'None'}")
+    print(f"Parent 2 poker strategy: {parent2_strategy.strategy_id if parent2_strategy else 'None'}")
 
     # Simulate winner-choice inheritance (80/20 weighting)
     # This is what happens in fish_poker.py:523-529
@@ -415,7 +417,8 @@ def diagnose_behavioral_inheritance():
     )
 
     print(f"\nOffspring (from_winner_choice with parent1 as winner):")
-    print(f"  Poker strategy: {offspring.poker_strategy_algorithm.strategy_id if offspring.poker_strategy_algorithm else 'None'}")
+    offspring_strategy = offspring.behavioral.poker_strategy_algorithm.value
+    print(f"  Poker strategy: {offspring_strategy.strategy_id if offspring_strategy else 'None'}")
 
     # Run multiple trials to see distribution
     n_trials = 100
@@ -432,10 +435,11 @@ def diagnose_behavioral_inheritance():
             mutation_strength=0.1,
         )
 
-        if offspring.poker_strategy_algorithm:
-            if parent1.poker_strategy_algorithm and offspring.poker_strategy_algorithm.strategy_id == parent1.poker_strategy_algorithm.strategy_id:
+        offspring_strategy = offspring.behavioral.poker_strategy_algorithm.value
+        if offspring_strategy:
+            if parent1_strategy and offspring_strategy.strategy_id == parent1_strategy.strategy_id:
                 same_as_winner += 1
-            elif parent2.poker_strategy_algorithm and offspring.poker_strategy_algorithm.strategy_id == parent2.poker_strategy_algorithm.strategy_id:
+            elif parent2_strategy and offspring_strategy.strategy_id == parent2_strategy.strategy_id:
                 same_as_loser += 1
             else:
                 new_strategy += 1

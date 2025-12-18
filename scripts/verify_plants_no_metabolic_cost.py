@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 from core.entities.fractal_plant import FractalPlant
 from core.environment import Environment
-from core.plant_genetics import PlantGenome
+from core.genetics import PlantGenome
 from core.root_spots import RootSpot, RootSpotManager
 
 

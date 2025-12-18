@@ -70,18 +70,17 @@ class TestGeneticsRefactor:
         assert isinstance(behav.mate_preferences.value, dict)
         assert "prefer_similar_size" in behav.mate_preferences.value
 
-    def test_genome_backward_compatibility(self):
-        """Test that Genome properties provide backward compatibility."""
+    def test_genome_traits(self):
+        """Test that Genome trait containers expose expected values."""
         genome = Genome.random()
         
-        # Test getter
-        val = genome.size_modifier
+        # Test value access
+        val = genome.physical.size_modifier.value
         assert val == genome.physical.size_modifier.value
         
-        # Test setter
-        genome.size_modifier = 1.25
+        # Test mutation through container
+        genome.physical.size_modifier.value = 1.25
         assert genome.physical.size_modifier.value == 1.25
-        assert genome.size_modifier == 1.25
         
         # Test derived property
         # speed_modifier depends on template_id, fin_size, tail_size, body_aspect
@@ -95,8 +94,8 @@ class TestGeneticsRefactor:
         parent2 = Genome.random()
         
         # Set distinct values to verify mixing
-        parent1.size_modifier = 0.8
-        parent2.size_modifier = 1.2
+        parent1.physical.size_modifier.value = 0.8
+        parent2.physical.size_modifier.value = 1.2
         
         # Set metadata to verify inheritance
         parent1.physical.size_modifier.mutation_rate = 0.5
@@ -107,7 +106,7 @@ class TestGeneticsRefactor:
         # With 0 mutation, value should be between parents (weighted average logic in base inherit_trait)
         # Note: inherit_trait might add small noise even with 0 mutation if not careful, 
         # but generally it blends.
-        assert 0.8 <= offspring.size_modifier <= 1.2
+        assert 0.8 <= offspring.physical.size_modifier.value <= 1.2
         
         # Check metadata inheritance (average of parents)
         # 0.5 and 1.5 average to 1.0. Allow small float error or mutation noise if any.
@@ -143,7 +142,7 @@ class TestGeneticsRefactor:
         
         # Check accessing traits via fish properties (if any exist) or genome
         assert isinstance(fish.genome, Genome)
-        assert isinstance(fish.genome.size_modifier, float)
+        assert isinstance(fish.genome.physical.size_modifier.value, float)
         
         # Run update loop
         try:
@@ -164,7 +163,7 @@ class TestGeneticsRefactor:
         g3 = Genome.random()
         g3.physical = g1.physical # Clone physical traits
         # Reset color to be different to maximize score if preference is for difference
-        g3.color_hue = (g1.color_hue + 0.5) % 1.0
+        g3.physical.color_hue.value = (g1.physical.color_hue.value + 0.5) % 1.0
         
         score_clone = g1.calculate_mate_compatibility(g3)
         assert score_clone > 0.0
@@ -266,7 +265,7 @@ if __name__ == "__main__":
     t.test_genetic_trait_mutation()
     t.test_physical_traits_random()
     t.test_behavioral_traits_random()
-    t.test_genome_backward_compatibility()
+    t.test_genome_traits()
     t.test_genome_inheritance()
     t.test_genome_crossover_modes()
     # t.test_fish_integration() # Requires more setup

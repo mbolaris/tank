@@ -26,7 +26,7 @@ def run_stress(stress, N=10000):
             count_meta_strength_changed += 1
         if hgt != (p1.physical.eye_size.hgt_probability + p2.physical.eye_size.hgt_probability)/2:
             count_hgt_changed += 1
-        values.append(o.eye_size)
+        values.append(o.physical.eye_size.value)
     print(f'stress={stress} adaptive_rate={ar:.3f} adaptive_strength={as_:.3f} N={N}')
     print(' meta_rate_changed:', count_meta_rate_changed)
     print(' meta_strength_changed:', count_meta_strength_changed)

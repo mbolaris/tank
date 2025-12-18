@@ -325,8 +325,8 @@ class TestFullGenomeEvolution:
 
         # Offspring should have valid values
         assert 0.5 <= offspring.speed_modifier <= 1.5
-        assert 0.0 <= offspring.aggression <= 1.0
-        assert offspring.behavior_algorithm is not None
+        assert 0.0 <= offspring.behavioral.aggression.value <= 1.0
+        assert offspring.behavioral.behavior_algorithm.value is not None
 
     def test_genome_weighted_crossover_favors_winner(self):
         """Weighted crossover should favor the higher-weighted parent."""
@@ -335,13 +335,13 @@ class TestFullGenomeEvolution:
         # Create parents with distinct traits (using actual dataclass fields)
         # Note: speed_modifier is a computed property, so we use fin_size/tail_size instead
         parent1 = Genome.random()
-        parent1.aggression = 0.1
-        parent1.fin_size = 0.8
-        parent1.tail_size = 0.8
+        parent1.behavioral.aggression.value = 0.1
+        parent1.physical.fin_size.value = 0.8
+        parent1.physical.tail_size.value = 0.8
         parent2 = Genome.random()
-        parent2.aggression = 0.9
-        parent2.fin_size = 1.3
-        parent2.tail_size = 1.3
+        parent2.behavioral.aggression.value = 0.9
+        parent2.physical.fin_size.value = 1.3
+        parent2.physical.tail_size.value = 1.3
 
         # Run multiple times to get average
         aggression_sum = 0.0
@@ -353,7 +353,7 @@ class TestFullGenomeEvolution:
                 parent1_weight=0.8,  # Parent1 contributes 80%
                 mutation_rate=0.0,  # No mutation for clearer test
             )
-            aggression_sum += offspring.aggression
+            aggression_sum += offspring.behavioral.aggression.value
 
         avg_aggression = aggression_sum / trials
 
@@ -380,7 +380,7 @@ class TestFullGenomeEvolution:
 
         # Calculate variance in fin_size (a directly inherited trait)
         def variance(genomes):
-            values = [g.fin_size for g in genomes]
+            values = [g.physical.fin_size.value for g in genomes]
             mean = sum(values) / len(values)
             return sum((v - mean) ** 2 for v in values) / len(values)
 
@@ -418,9 +418,9 @@ class TestFullGenomeEvolution:
         # Final population should have valid genomes
         for genome in population:
             assert 0.5 <= genome.speed_modifier <= 1.5
-            assert 0.0 <= genome.aggression <= 1.0
-            assert genome.behavior_algorithm is not None
-            assert genome.poker_algorithm is not None
+            assert 0.0 <= genome.behavioral.aggression.value <= 1.0
+            assert genome.behavioral.behavior_algorithm.value is not None
+            assert genome.behavioral.poker_algorithm.value is not None
 
 
 class TestPlantEvolution:
@@ -428,7 +428,7 @@ class TestPlantEvolution:
 
     def test_plant_from_parent_produces_valid_offspring(self):
         """PlantGenome.from_parent should produce valid offspring."""
-        from core.plant_genetics import PlantGenome
+        from core.genetics import PlantGenome
 
         parent = PlantGenome.create_random()
         offspring = PlantGenome.from_parent(parent, mutation_rate=0.2)
@@ -440,7 +440,7 @@ class TestPlantEvolution:
 
     def test_plant_variant_preserved(self):
         """Plant variant type should be preserved across generations."""
-        from core.plant_genetics import PlantGenome
+        from core.genetics import PlantGenome
 
         # Create a specific variant
         parent = PlantGenome.create_claude_variant()

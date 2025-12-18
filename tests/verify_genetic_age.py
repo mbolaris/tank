@@ -41,7 +41,7 @@ def verify_genetic_age():
     # We must set the .value of the GeneticTrait
     
     # Case A: Normal lifespan (1.0)
-    # genome.size_modifier is a property wrapper, but physical traits are GeneticTraits
+    # Physical traits store their values inside GeneticTrait wrappers.
     genome.physical.size_modifier.value = 1.0
     genome.physical.lifespan_modifier.value = 1.0
     

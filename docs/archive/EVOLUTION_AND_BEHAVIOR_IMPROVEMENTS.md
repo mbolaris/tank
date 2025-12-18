@@ -15,7 +15,7 @@ This document describes the comprehensive improvements made to the fish evolutio
 
 ### 1. Advanced Genetic Crossover
 
-**Location:** `core/genetics.py`
+**Location:** `core/genetics/`
 
 Implemented three crossover modes for more realistic genetic inheritance:
 
@@ -129,7 +129,7 @@ communication_system.broadcast_signal(
     SignalType.FOOD_FOUND,
     sender_pos=fish.pos,
     target_location=food.pos,
-    strength=fish.genome.social_tendency,
+    strength=fish.genome.behavioral.social_tendency.value,
     urgency=0.7
 )
 
@@ -371,7 +371,7 @@ environment.communication_system.broadcast_signal(
     SignalType.FOOD_FOUND,
     sender_pos=fish_a.pos,
     target_location=food.pos,
-    strength=fish_a.genome.social_tendency,  # Social fish signal stronger
+    strength=fish_a.genome.behavioral.social_tendency.value,  # Social fish signal stronger
     urgency=0.7
 )
 

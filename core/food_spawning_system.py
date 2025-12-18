@@ -332,16 +332,18 @@ class EmergencyFishSpawner:
         if fish_list:
             existing_algorithms = set()
             for fish in fish_list:
-                if hasattr(fish, "genome") and hasattr(fish.genome, "behavior_algorithm"):
-                    algo_idx = get_algorithm_index(fish.genome.behavior_algorithm)
+                if hasattr(fish, "genome"):
+                    behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
+                    algo_idx = get_algorithm_index(behavior_algorithm)
                     if algo_idx >= 0:
                         existing_algorithms.add(algo_idx)
 
             # Create genome, preferring algorithms not in population
             genome = Genome.random(use_algorithm=True, rng=self.rng)
             for _ in range(MAX_DIVERSITY_SPAWN_ATTEMPTS):
-                if hasattr(genome, "behavior_algorithm"):
-                    algo_idx = get_algorithm_index(genome.behavior_algorithm)
+                behavior_algorithm = genome.behavioral.behavior_algorithm.value
+                if behavior_algorithm is not None:
+                    algo_idx = get_algorithm_index(behavior_algorithm)
                     if algo_idx >= 0 and algo_idx not in existing_algorithms:
                         break
                 genome = Genome.random(use_algorithm=True, rng=self.rng)

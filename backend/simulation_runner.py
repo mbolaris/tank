@@ -1176,15 +1176,16 @@ class SimulationRunner:
                             # Fallback to fish from list
                             fish = fish_list[i]
                             algo_name = "Unknown"
-                            if fish.genome.behavior_algorithm:
-                                algo_name = fish.genome.behavior_algorithm.algorithm_id
+                            behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
+                            if behavior_algorithm:
+                                algo_name = behavior_algorithm.algorithm_id
                             fish_name = f"{algo_name[:15]} (Gen {fish.generation}) #{fish.fish_id}"
 
                         fish_players.append({
                             "name": fish_name,
                             "fish_id": fish.fish_id,
                             "generation": fish.generation,
-                            "poker_strategy": fish.genome.poker_strategy_algorithm,
+                            "poker_strategy": fish.genome.behavioral.poker_strategy_algorithm.value,
                         })
 
                     # Create benchmark series with multiple fish

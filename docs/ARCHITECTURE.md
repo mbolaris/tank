@@ -347,7 +347,7 @@ Fish behavior is modular:
 
 ### ✓ Fully Separated
 - Pure entity logic in `core/entities.py`
-- Pure genetics in `core/genetics.py`
+- Pure genetics in `core/genetics/`
 - Pure ecosystem tracking in `core/ecosystem.py`
 - All algorithms are pure Python
 - Time system is pure

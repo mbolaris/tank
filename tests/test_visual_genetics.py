@@ -15,44 +15,46 @@ def test_visual_traits():
     # Test 1: Random genome generation
     print("\n1. Testing random genome generation:")
     genome1 = Genome.random(use_algorithm=False)
+    phys1 = genome1.physical
 
-    print(f"   Template ID: {genome1.template_id} (should be 0-{FISH_TEMPLATE_COUNT - 1})")
-    print(f"   Fin Size: {genome1.fin_size:.2f} (should be 0.5-2.0)")
-    print(f"   Tail Size: {genome1.tail_size:.2f} (should be 0.5-2.0)")
-    print(f"   Body Aspect: {genome1.body_aspect:.2f} (should be 0.7-1.3)")
-    print(f"   Eye Size: {genome1.eye_size:.2f} (should be 0.7-1.3)")
-    print(f"   Pattern Intensity: {genome1.pattern_intensity:.2f} (should be 0.0-1.0)")
-    print(f"   Pattern Type: {genome1.pattern_type} (should be 0-{FISH_PATTERN_COUNT - 1})")
-    print(f"   Color Hue: {genome1.color_hue:.2f} (should be 0.0-1.0)")
+    print(f"   Template ID: {phys1.template_id.value} (should be 0-{FISH_TEMPLATE_COUNT - 1})")
+    print(f"   Fin Size: {phys1.fin_size.value:.2f} (should be 0.5-2.0)")
+    print(f"   Tail Size: {phys1.tail_size.value:.2f} (should be 0.5-2.0)")
+    print(f"   Body Aspect: {phys1.body_aspect.value:.2f} (should be 0.7-1.3)")
+    print(f"   Eye Size: {phys1.eye_size.value:.2f} (should be 0.7-1.3)")
+    print(f"   Pattern Intensity: {phys1.pattern_intensity.value:.2f} (should be 0.0-1.0)")
+    print(f"   Pattern Type: {phys1.pattern_type.value} (should be 0-{FISH_PATTERN_COUNT - 1})")
+    print(f"   Color Hue: {phys1.color_hue.value:.2f} (should be 0.0-1.0)")
 
     # Validate ranges
-    assert 0 <= genome1.template_id <= FISH_TEMPLATE_COUNT - 1, "template_id out of range"
-    assert 0.5 <= genome1.fin_size <= 2.0, "fin_size out of range"
-    assert 0.5 <= genome1.tail_size <= 2.0, "tail_size out of range"
-    assert 0.7 <= genome1.body_aspect <= 1.3, "body_aspect out of range"
-    assert 0.7 <= genome1.eye_size <= 1.3, "eye_size out of range"
-    assert 0.0 <= genome1.pattern_intensity <= 1.0, "pattern_intensity out of range"
-    assert 0 <= genome1.pattern_type <= FISH_PATTERN_COUNT - 1, "pattern_type out of range"
+    assert 0 <= phys1.template_id.value <= FISH_TEMPLATE_COUNT - 1, "template_id out of range"
+    assert 0.5 <= phys1.fin_size.value <= 2.0, "fin_size out of range"
+    assert 0.5 <= phys1.tail_size.value <= 2.0, "tail_size out of range"
+    assert 0.7 <= phys1.body_aspect.value <= 1.3, "body_aspect out of range"
+    assert 0.7 <= phys1.eye_size.value <= 1.3, "eye_size out of range"
+    assert 0.0 <= phys1.pattern_intensity.value <= 1.0, "pattern_intensity out of range"
+    assert 0 <= phys1.pattern_type.value <= FISH_PATTERN_COUNT - 1, "pattern_type out of range"
 
     print("   ✓ All visual traits within valid ranges")
 
     # Test 2: Create another random genome for breeding
     print("\n2. Testing inheritance from two parents:")
     genome2 = Genome.random(use_algorithm=False)
+    phys2 = genome2.physical
 
     print("\n   Parent 1:")
     print(
-        f"      Template: {genome1.template_id}, Fin: {genome1.fin_size:.2f}, Tail: {genome1.tail_size:.2f}"
+        f"      Template: {phys1.template_id.value}, Fin: {phys1.fin_size.value:.2f}, Tail: {phys1.tail_size.value:.2f}"
     )
-    print(f"      Body Aspect: {genome1.body_aspect:.2f}, Eye: {genome1.eye_size:.2f}")
-    print(f"      Pattern: Type {genome1.pattern_type}, Intensity {genome1.pattern_intensity:.2f}")
+    print(f"      Body Aspect: {phys1.body_aspect.value:.2f}, Eye: {phys1.eye_size.value:.2f}")
+    print(f"      Pattern: Type {phys1.pattern_type.value}, Intensity {phys1.pattern_intensity.value:.2f}")
 
     print("\n   Parent 2:")
     print(
-        f"      Template: {genome2.template_id}, Fin: {genome2.fin_size:.2f}, Tail: {genome2.tail_size:.2f}"
+        f"      Template: {phys2.template_id.value}, Fin: {phys2.fin_size.value:.2f}, Tail: {phys2.tail_size.value:.2f}"
     )
-    print(f"      Body Aspect: {genome2.body_aspect:.2f}, Eye: {genome2.eye_size:.2f}")
-    print(f"      Pattern: Type {genome2.pattern_type}, Intensity {genome2.pattern_intensity:.2f}")
+    print(f"      Body Aspect: {phys2.body_aspect.value:.2f}, Eye: {phys2.eye_size.value:.2f}")
+    print(f"      Pattern: Type {phys2.pattern_type.value}, Intensity {phys2.pattern_intensity.value:.2f}")
 
     # Test 3: Create offspring
     offspring = Genome.from_parents(
@@ -60,22 +62,32 @@ def test_visual_traits():
     )
 
     print("\n   Offspring:")
+    offspring_phys = offspring.physical
     print(
-        f"      Template: {offspring.template_id}, Fin: {offspring.fin_size:.2f}, Tail: {offspring.tail_size:.2f}"
+        f"      Template: {offspring_phys.template_id.value}, "
+        f"Fin: {offspring_phys.fin_size.value:.2f}, Tail: {offspring_phys.tail_size.value:.2f}"
     )
-    print(f"      Body Aspect: {offspring.body_aspect:.2f}, Eye: {offspring.eye_size:.2f}")
     print(
-        f"      Pattern: Type {offspring.pattern_type}, Intensity {offspring.pattern_intensity:.2f}"
+        f"      Body Aspect: {offspring_phys.body_aspect.value:.2f}, "
+        f"Eye: {offspring_phys.eye_size.value:.2f}"
+    )
+    print(
+        f"      Pattern: Type {offspring_phys.pattern_type.value}, "
+        f"Intensity {offspring_phys.pattern_intensity.value:.2f}"
     )
 
     # Validate offspring ranges
-    assert 0 <= offspring.template_id <= FISH_TEMPLATE_COUNT - 1, "offspring template_id out of range"
-    assert 0.5 <= offspring.fin_size <= 2.0, "offspring fin_size out of range"
-    assert 0.5 <= offspring.tail_size <= 2.0, "offspring tail_size out of range"
-    assert 0.7 <= offspring.body_aspect <= 1.3, "offspring body_aspect out of range"
-    assert 0.7 <= offspring.eye_size <= 1.3, "offspring eye_size out of range"
-    assert 0.0 <= offspring.pattern_intensity <= 1.0, "offspring pattern_intensity out of range"
-    assert 0 <= offspring.pattern_type <= FISH_PATTERN_COUNT - 1, "offspring pattern_type out of range"
+    assert (
+        0 <= offspring_phys.template_id.value <= FISH_TEMPLATE_COUNT - 1
+    ), "offspring template_id out of range"
+    assert 0.5 <= offspring_phys.fin_size.value <= 2.0, "offspring fin_size out of range"
+    assert 0.5 <= offspring_phys.tail_size.value <= 2.0, "offspring tail_size out of range"
+    assert 0.7 <= offspring_phys.body_aspect.value <= 1.3, "offspring body_aspect out of range"
+    assert 0.7 <= offspring_phys.eye_size.value <= 1.3, "offspring eye_size out of range"
+    assert 0.0 <= offspring_phys.pattern_intensity.value <= 1.0, "offspring pattern_intensity out of range"
+    assert (
+        0 <= offspring_phys.pattern_type.value <= FISH_PATTERN_COUNT - 1
+    ), "offspring pattern_type out of range"
 
     print("\n   ✓ Offspring visual traits within valid ranges")
 
@@ -92,15 +104,15 @@ def test_visual_traits():
             next_gen.append(child)
 
         print(f"   Generation {gen}: {len(next_gen)} offspring created")
-        print(f"      Templates: {[child.template_id for child in next_gen]}")
-        print(f"      Fin sizes: {[f'{child.fin_size:.2f}' for child in next_gen]}")
-        print(f"      Pattern types: {[child.pattern_type for child in next_gen]}")
+        print(f"      Templates: {[child.physical.template_id.value for child in next_gen]}")
+        print(f"      Fin sizes: {[f'{child.physical.fin_size.value:.2f}' for child in next_gen]}")
+        print(f"      Pattern types: {[child.physical.pattern_type.value for child in next_gen]}")
 
         # Validate all offspring
         for child in next_gen:
-            assert 0 <= child.template_id <= FISH_TEMPLATE_COUNT - 1
-            assert 0.5 <= child.fin_size <= 2.0
-            assert 0 <= child.pattern_type <= FISH_PATTERN_COUNT - 1
+            assert 0 <= child.physical.template_id.value <= FISH_TEMPLATE_COUNT - 1
+            assert 0.5 <= child.physical.fin_size.value <= 2.0
+            assert 0 <= child.physical.pattern_type.value <= FISH_PATTERN_COUNT - 1
 
         current_gen = next_gen
 
@@ -117,11 +129,13 @@ def test_visual_traits():
         population_stress=0.8,  # High stress
     )
 
+    stressed_phys = stressed_offspring.physical
     print("   Stressed offspring:")
-    print(f"      Template: {stressed_offspring.template_id}")
-    print(f"      Fin: {stressed_offspring.fin_size:.2f}, Tail: {stressed_offspring.tail_size:.2f}")
+    print(f"      Template: {stressed_phys.template_id.value}")
+    print(f"      Fin: {stressed_phys.fin_size.value:.2f}, Tail: {stressed_phys.tail_size.value:.2f}")
     print(
-        f"      Pattern: Type {stressed_offspring.pattern_type}, Intensity {stressed_offspring.pattern_intensity:.2f}"
+        f"      Pattern: Type {stressed_phys.pattern_type.value}, "
+        f"Intensity {stressed_phys.pattern_intensity.value:.2f}"
     )
 
     print("\n   ✓ High-stress mutations applied successfully")

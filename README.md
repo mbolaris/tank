@@ -338,10 +338,9 @@ tank/
 │   │   ├── evaluation/      # Hand evaluation logic
 │   │   └── strategy/        # AI poker strategies
 │   ├── algorithms/          # Behavior algorithm library (58 strategies)
-│   ├── plant_genetics.py    # PlantGenome with L-system parameters
+│   ├── genetics/    # Fish/plant genome, traits, inheritance
 │   ├── plant_poker.py       # Plant vs fish poker games
 │   ├── root_spots.py        # Plant anchor point management
-│   ├── genetics.py          # Fish genome and inheritance
 │   ├── ecosystem.py         # Population tracking & statistics
 │   ├── environment.py       # Spatial queries & collision detection
 │   ├── time_system.py       # Day/night cycle management

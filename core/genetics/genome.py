@@ -12,7 +12,6 @@ from typing import Any, Dict, Optional, Tuple
 
 from core.evolution.inheritance import inherit_learned_behaviors
 from core.genetics.behavioral import BehavioralTraits
-from core.genetics.compatibility import GenomeCompatibilityMixin
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
 from core.genetics.reproduction import ReproductionParams
@@ -31,7 +30,7 @@ class GeneticCrossoverMode(Enum):
 
 
 @dataclass
-class Genome(GenomeCompatibilityMixin):
+class Genome:
     """Represents the complete genetic makeup of a fish.
 
     Attributes:
@@ -48,8 +47,6 @@ class Genome(GenomeCompatibilityMixin):
     learned_behaviors: Dict[str, float] = field(default_factory=dict)
     epigenetic_modifiers: Dict[str, float] = field(default_factory=dict)
 
-    # Backward compatibility properties are provided by GenomeCompatibilityMixin
-
     # =========================================================================
     # Derived Properties (computed from base traits with caching)
     # =========================================================================
@@ -63,11 +60,12 @@ class Genome(GenomeCompatibilityMixin):
         """Calculate speed modifier based on physical traits (cached)."""
         if self._speed_modifier_cache is not None:
             return self._speed_modifier_cache
+        template_id = self.physical.template_id.value
         template_speed_bonus = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}.get(
-            self.template_id, 1.0
+            template_id, 1.0
         )
-        propulsion = self.fin_size * 0.4 + self.tail_size * 0.6
-        hydrodynamics = 1.0 - abs(self.body_aspect - 0.8) * 0.5
+        propulsion = self.physical.fin_size.value * 0.4 + self.physical.tail_size.value * 0.6
+        hydrodynamics = 1.0 - abs(self.physical.body_aspect.value - 0.8) * 0.5
         result = template_speed_bonus * propulsion * hydrodynamics
         result = max(0.5, min(1.5, result))
         object.__setattr__(self, '_speed_modifier_cache', result)
@@ -76,7 +74,7 @@ class Genome(GenomeCompatibilityMixin):
     @property
     def vision_range(self) -> float:
         """Calculate vision range based on eye size."""
-        return self.eye_size
+        return self.physical.eye_size.value
 
     @property
     def metabolism_rate(self) -> float:
@@ -84,9 +82,9 @@ class Genome(GenomeCompatibilityMixin):
         if self._metabolism_rate_cache is not None:
             return self._metabolism_rate_cache
         cost = 1.0
-        cost += (self.size_modifier - 1.0) * 0.5
+        cost += (self.physical.size_modifier.value - 1.0) * 0.5
         cost += (self.speed_modifier - 1.0) * 0.8
-        cost += (self.eye_size - 1.0) * 0.3
+        cost += (self.physical.eye_size.value - 1.0) * 0.3
         result = max(0.5, cost)
         object.__setattr__(self, '_metabolism_rate_cache', result)
         return result
@@ -247,18 +245,18 @@ class Genome(GenomeCompatibilityMixin):
             rng=rng,
         )
 
-        # Inherit epigenetics
         epigenetic = _inherit_epigenetics(
             parent1.epigenetic_modifiers,
             parent2.epigenetic_modifiers,
             parent1_weight,
         )
-
-        offspring = cls(
-            physical=physical, behavioral=behavioral, epigenetic_modifiers=epigenetic
+        return cls._assemble_offspring(
+            parent1=parent1,
+            parent2=parent2,
+            physical=physical,
+            behavioral=behavioral,
+            epigenetic_modifiers=epigenetic,
         )
-        inherit_learned_behaviors(parent1, parent2, offspring)
-        return offspring
 
     @classmethod
     def clone_with_mutation(
@@ -335,9 +333,13 @@ class Genome(GenomeCompatibilityMixin):
             0.5,
         )
 
-        offspring = cls(physical=physical, behavioral=behavioral, epigenetic_modifiers=epigenetic)
-        inherit_learned_behaviors(parent1, parent2, offspring)
-        return offspring
+        return cls._assemble_offspring(
+            parent1=parent1,
+            parent2=parent2,
+            physical=physical,
+            behavioral=behavioral,
+            epigenetic_modifiers=epigenetic,
+        )
 
     @classmethod
     def from_winner_choice(
@@ -367,6 +369,24 @@ class Genome(GenomeCompatibilityMixin):
             rng=rng,
         )
 
+    @classmethod
+    def _assemble_offspring(
+        cls,
+        *,
+        parent1: "Genome",
+        parent2: "Genome",
+        physical: PhysicalTraits,
+        behavioral: BehavioralTraits,
+        epigenetic_modifiers: Dict[str, float],
+    ) -> "Genome":
+        """Build an offspring genome and apply non-genetic inheritance."""
+        offspring = cls(
+            physical=physical,
+            behavioral=behavioral,
+            epigenetic_modifiers=epigenetic_modifiers,
+        )
+        inherit_learned_behaviors(parent1, parent2, offspring)
+        return offspring
     # =========================================================================
     # Instance Methods
     # =========================================================================
@@ -374,17 +394,22 @@ class Genome(GenomeCompatibilityMixin):
     def calculate_mate_compatibility(self, other: "Genome") -> float:
         """Calculate compatibility score with potential mate (0.0-1.0)."""
         compatibility = 0.0
+        preferences = self.behavioral.mate_preferences.value
 
         # Size similarity preference
-        size_diff = abs(self.size_modifier - other.size_modifier)
+        size_diff = abs(
+            self.physical.size_modifier.value - other.physical.size_modifier.value
+        )
         size_score = 1.0 - min(size_diff / 0.6, 1.0)
-        compatibility += self.mate_preferences.get("prefer_similar_size", 0.5) * size_score * 0.3
+        compatibility += preferences.get("prefer_similar_size", 0.5) * size_score * 0.3
 
         # Color diversity preference
-        color_diff = abs(self.color_hue - other.color_hue)
+        color_diff = abs(
+            self.physical.color_hue.value - other.physical.color_hue.value
+        )
         color_score = min(color_diff / 0.5, 1.0)
         compatibility += (
-            self.mate_preferences.get("prefer_different_color", 0.5) * color_score * 0.3
+            preferences.get("prefer_different_color", 0.5) * color_score * 0.3
         )
 
         # General genetic diversity
@@ -399,7 +424,7 @@ class Genome(GenomeCompatibilityMixin):
 
     def get_color_tint(self) -> Tuple[int, int, int]:
         """Get RGB color tint based on genome."""
-        hue = self.color_hue * 360
+        hue = self.physical.color_hue.value * 360
         if hue < 60:
             r, g, b = 255, int(hue / 60 * 255), 0
         elif hue < 120:
@@ -426,9 +451,10 @@ def _inherit_epigenetics(
     weight1: float,
 ) -> Dict[str, float]:
     """Inherit epigenetic modifiers from parents."""
+    weight1 = max(0.0, min(1.0, weight1))
     epigenetic = {}
     if mods1 or mods2:
-        for modifier_key in set(list(mods1.keys()) + list(mods2.keys())):
+        for modifier_key in set(mods1.keys()) | set(mods2.keys()):
             p1_val = mods1.get(modifier_key, 0.0)
             p2_val = mods2.get(modifier_key, 0.0)
             weighted_val = p1_val * weight1 + p2_val * (1.0 - weight1)

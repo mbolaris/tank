@@ -115,9 +115,9 @@ class Fish(Agent):
             self.genome = Genome.random()
 
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
-        if self.genome.poker_strategy_algorithm is None:
+        if self.genome.behavioral.poker_strategy_algorithm.value is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            self.genome.poker_strategy_algorithm = get_random_poker_strategy()
+            self.genome.behavioral.poker_strategy_algorithm.value = get_random_poker_strategy()
 
         self.generation: int = generation
         self.species: str = species
@@ -131,20 +131,21 @@ class Fish(Agent):
 
         # Life cycle - managed by LifecycleComponent for better code organization
 
-        # Calculate max_age using both size_modifier (legacy) and new lifespan_modifier
-        # This decouples size from age, allowing small but long-lived fish
+        # Calculate max_age using size_modifier and lifespan_modifier.
+        # This decouples size from age, allowing small but long-lived fish.
         lifespan_mult = 1.0
         if hasattr(self.genome.physical, "lifespan_modifier"):
             lifespan_mult = self.genome.physical.lifespan_modifier.value
 
-        max_age = int(LIFE_STAGE_MATURE_MAX * self.genome.size_modifier * lifespan_mult)
-        self._lifecycle_component = LifecycleComponent(max_age, self.genome.size_modifier)
+        size_modifier = self.genome.physical.size_modifier.value
+        max_age = int(LIFE_STAGE_MATURE_MAX * size_modifier * lifespan_mult)
+        self._lifecycle_component = LifecycleComponent(max_age, size_modifier)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization
 
         # Max energy is based on fish size - bigger fish can store more energy
         # Use the actual lifecycle size (which includes FISH_BABY_SIZE for newborns)
-        # not just genome.size_modifier, to match the dynamic max_energy property
+        # not just genome.physical.size_modifier, to match the dynamic max_energy property
         initial_size = self._lifecycle_component.size
         max_energy = ENERGY_MAX_DEFAULT * initial_size
         if initial_energy is not None and initial_energy > max_energy:
@@ -324,10 +325,11 @@ class Fish(Agent):
 
         # Get algorithm ID if fish has a behavior algorithm
         algorithm_id = None
-        if self.genome.behavior_algorithm is not None:
+        behavior_algorithm = self.genome.behavioral.behavior_algorithm.value
+        if behavior_algorithm is not None:
             from core.algorithms import get_algorithm_index
 
-            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            algorithm_id = get_algorithm_index(behavior_algorithm)
 
         # Get color as hex string for phylogenetic tree
         r, g, b = self.genome.get_color_tint()
@@ -912,7 +914,11 @@ class Fish(Agent):
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
         # This determines exactly how much energy the parent should transfer
         from core.constants import FISH_BABY_SIZE
-        baby_max_energy = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.size_modifier
+        baby_max_energy = (
+            ENERGY_MAX_DEFAULT
+            * FISH_BABY_SIZE
+            * offspring_genome.physical.size_modifier.value
+        )
 
         bank_used = self._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
         remaining_needed = baby_max_energy - bank_used
@@ -957,10 +963,11 @@ class Fish(Agent):
         )
 
         # Record reproduction stats
-        if self.ecosystem is not None and self.genome.behavior_algorithm is not None:
+        behavior_algorithm = self.genome.behavioral.behavior_algorithm.value
+        if self.ecosystem is not None and behavior_algorithm is not None:
             from core.algorithms import get_algorithm_index
 
-            algorithm_id = get_algorithm_index(self.genome.behavior_algorithm)
+            algorithm_id = get_algorithm_index(behavior_algorithm)
             if algorithm_id >= 0:
                 self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
 
@@ -1126,7 +1133,7 @@ class Fish(Agent):
         # Record food consumption for algorithm performance tracking
         # Performance: Cache algorithm_id check
         ecosystem = self.ecosystem
-        behavior_algorithm = self.genome.behavior_algorithm
+        behavior_algorithm = self.genome.behavioral.behavior_algorithm.value
         if ecosystem is not None and behavior_algorithm is not None:
             from core.algorithms import get_algorithm_index
             from core.entities.fractal_plant import PlantNectar

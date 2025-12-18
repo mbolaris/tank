@@ -6,7 +6,7 @@ from backend.entity_transfer import deserialize_entity, serialize_entity_for_tra
 from core.constants import FRACTAL_PLANTS_ENABLED
 from core.entities.fish import Fish
 from core.entities.fractal_plant import FractalPlant
-from core.plant_genetics import PlantGenome
+from core.genetics import PlantGenome
 from core.tank_world import TankWorld, TankWorldConfig
 
 
@@ -38,8 +38,13 @@ def test_fish_transfer_round_trip() -> None:
     assert restored.species == data["species"]
     assert restored.energy == pytest.approx(data["energy"])
     assert restored.generation == data["generation"]
-    assert restored.genome.mate_preferences == data["genome_data"]["mate_preferences"]
-    assert restored.genome.lifespan_modifier == pytest.approx(data["genome_data"]["lifespan_modifier"])
+    assert (
+        restored.genome.behavioral.mate_preferences.value
+        == data["genome_data"]["mate_preferences"]
+    )
+    assert restored.genome.physical.lifespan_modifier.value == pytest.approx(
+        data["genome_data"]["lifespan_modifier"]
+    )
     assert restored.genome.physical.size_modifier.mutation_rate == pytest.approx(1.7)
     assert restored.genome.behavioral.aggression.hgt_probability == pytest.approx(0.42)
 

@@ -35,7 +35,7 @@ from core.evolution.inheritance import (
     inherit_learned_behaviors,
 )
 from core.genetics import Genome, GeneticTrait, PhysicalTraits, BehavioralTraits
-from core.plant_genetics import PlantGenome
+from core.genetics import PlantGenome
 from core.algorithms import (
     BehaviorAlgorithm,
     crossover_algorithms,
@@ -182,9 +182,9 @@ class TestEdgeCasesAndBoundaries:
         )
 
         # Should be valid
-        assert genome.size_modifier == 0.5
-        assert genome.aggression == 1.0
-        assert genome.social_tendency == 0.0
+        assert genome.physical.size_modifier.value == 0.5
+        assert genome.behavioral.aggression.value == 1.0
+        assert genome.behavioral.social_tendency.value == 0.0
         # speed_modifier is computed from visual traits
         assert genome.speed_modifier > 1.0  # Should be high with these settings
         # vision_range equals eye_size
@@ -248,14 +248,14 @@ class TestMultiGenerationEvolution:
         """Test that weighted crossover favors winner's traits."""
         # Create genomes with distinct traits (using actual dataclass fields, not computed properties)
         winner = Genome.random(use_algorithm=False)
-        winner.aggression = 1.0
-        winner.fin_size = 1.4
-        winner.tail_size = 1.4  # High aggression, large fins
+        winner.behavioral.aggression.value = 1.0
+        winner.physical.fin_size.value = 1.4
+        winner.physical.tail_size.value = 1.4  # High aggression, large fins
 
         loser = Genome.random(use_algorithm=False)
-        loser.aggression = 0.0
-        loser.fin_size = 0.6
-        loser.tail_size = 0.6  # Low aggression, small fins
+        loser.behavioral.aggression.value = 0.0
+        loser.physical.fin_size.value = 0.6
+        loser.physical.tail_size.value = 0.6  # Low aggression, small fins
 
         # Generate many offspring with parent1_weight (not winner_weight)
         offspring = []
@@ -268,8 +268,8 @@ class TestMultiGenerationEvolution:
             offspring.append(child)
 
         # Offspring should be biased toward winner (parent1)
-        avg_fin_size = sum(o.fin_size for o in offspring) / len(offspring)
-        avg_aggression = sum(o.aggression for o in offspring) / len(offspring)
+        avg_fin_size = sum(o.physical.fin_size.value for o in offspring) / len(offspring)
+        avg_aggression = sum(o.behavioral.aggression.value for o in offspring) / len(offspring)
 
         # Should be closer to winner (1.4, 1.0) than loser (0.6, 0.0)
         assert avg_fin_size > 1.0, f"Fin size {avg_fin_size:.3f} should favor winner's 1.4"
@@ -278,12 +278,12 @@ class TestMultiGenerationEvolution:
     def test_population_stress_increases_variation(self):
         """Test that population stress increases genetic variation."""
         parent1 = Genome.random(use_algorithm=False)
-        parent1.fin_size = 1.0
-        parent1.tail_size = 1.0
+        parent1.physical.fin_size.value = 1.0
+        parent1.physical.tail_size.value = 1.0
 
         parent2 = Genome.random(use_algorithm=False)
-        parent2.fin_size = 1.0
-        parent2.tail_size = 1.0
+        parent2.physical.fin_size.value = 1.0
+        parent2.physical.tail_size.value = 1.0
 
         # Low stress offspring
         low_stress_offspring = [
@@ -298,8 +298,8 @@ class TestMultiGenerationEvolution:
         ]
 
         # Calculate variance using fin_size (directly inherited trait)
-        low_variance = sum((o.fin_size - 1.0) ** 2 for o in low_stress_offspring) / 100
-        high_variance = sum((o.fin_size - 1.0) ** 2 for o in high_stress_offspring) / 100
+        low_variance = sum((o.physical.fin_size.value - 1.0) ** 2 for o in low_stress_offspring) / 100
+        high_variance = sum((o.physical.fin_size.value - 1.0) ** 2 for o in high_stress_offspring) / 100
 
         assert high_variance > low_variance, \
             f"High stress variance {high_variance:.4f} should exceed low stress {low_variance:.4f}"
@@ -417,7 +417,7 @@ class TestPokerEvolution:
             offspring.append(child)
 
         # Offspring should inherit more from winner
-        avg_aggression = sum(o.aggression for o in offspring) / len(offspring)
+        avg_aggression = sum(o.behavioral.aggression.value for o in offspring) / len(offspring)
         assert avg_aggression > 0.5, \
             f"Offspring aggression {avg_aggression:.3f} should favor winner's 0.9"
 
@@ -427,7 +427,7 @@ class TestPokerEvolution:
         # we expect roughly 90% * 75% = 68% max, but with added strategy switching we lower the bar
         tight_aggressive_count = sum(
             1 for o in offspring
-            if isinstance(o.poker_strategy_algorithm, TightAggressiveStrategy)
+            if isinstance(o.behavioral.poker_strategy_algorithm.value, TightAggressiveStrategy)
         )
         assert tight_aggressive_count > 25, \
             f"Should inherit winner's strategy somewhat often (with novelty injection), got {tight_aggressive_count}/100"
@@ -573,7 +573,7 @@ class TestStatisticalProperties:
 
         # Calculate diversity metrics
         speeds = [g.speed_modifier for g in population]
-        aggression = [g.aggression for g in population]
+        aggression = [g.behavioral.aggression.value for g in population]
 
         speed_variance = sum((s - sum(speeds)/50) ** 2 for s in speeds) / 50
         aggression_variance = sum((a - sum(aggression)/50) ** 2 for a in aggression) / 50
@@ -587,14 +587,14 @@ class TestStatisticalProperties:
         """Test that offspring traits correlate with parents."""
         # Use actual dataclass fields (fin_size, tail_size) instead of computed speed_modifier
         parent1 = Genome.random(use_algorithm=False)
-        parent1.fin_size = 1.4
-        parent1.tail_size = 1.4
-        parent1.size_modifier = 1.5
+        parent1.physical.fin_size.value = 1.4
+        parent1.physical.tail_size.value = 1.4
+        parent1.physical.size_modifier.value = 1.5
 
         parent2 = Genome.random(use_algorithm=False)
-        parent2.fin_size = 0.6
-        parent2.tail_size = 0.6
-        parent2.size_modifier = 0.5
+        parent2.physical.fin_size.value = 0.6
+        parent2.physical.tail_size.value = 0.6
+        parent2.physical.size_modifier.value = 0.5
 
         offspring = [
             Genome.from_parents(parent1, parent2, population_stress=0.0)
@@ -602,8 +602,8 @@ class TestStatisticalProperties:
         ]
 
         # Offspring fin_size and sizes should correlate with parents
-        avg_fin_size = sum(o.fin_size for o in offspring) / len(offspring)
-        avg_size = sum(o.size_modifier for o in offspring) / len(offspring)
+        avg_fin_size = sum(o.physical.fin_size.value for o in offspring) / len(offspring)
+        avg_size = sum(o.physical.size_modifier.value for o in offspring) / len(offspring)
 
         # Should be between parents (roughly average)
         assert 0.8 < avg_fin_size < 1.2, f"Average fin_size {avg_fin_size:.3f} should be near 1.0"
