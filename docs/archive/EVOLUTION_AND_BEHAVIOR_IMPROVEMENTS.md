@@ -59,14 +59,7 @@ Related traits now evolve together:
 - **Speed ↔ Metabolism**: Faster fish have higher metabolism (realistic trade-off)
 - Linked traits create more coherent evolutionary strategies
 
-### 5. Epigenetic Effects
-
-Environmental stress can affect offspring through epigenetic modifiers:
-- Modifiers decay by 50% each generation
-- Allow rapid adaptation to environmental changes
-- Effects are heritable but temporary
-
-### 6. Mate Preferences
+### 5. Mate Preferences
 
 Fish have evolvable mate preferences:
 - `prefer_high_fitness`: Attraction to successful individuals
@@ -327,7 +320,6 @@ offspring_genome = Genome.from_parents(
 
 # Offspring inherits:
 # - Recombined genes from parents
-# - Epigenetic modifiers
 # - Mate preferences
 # - Starts with 0 fitness (must earn it)
 ```
@@ -454,7 +446,6 @@ These improvements enable:
 
 ### Long-term Evolution (across generations)
 - **Trait linkage**: Coherent evolutionary strategies emerge
-- **Epigenetic adaptation**: Rapid response to environmental shifts
 - **Communication evolution**: Social behaviors can evolve and spread
 - **Predictive abilities**: Fish evolve better prediction parameters
 
