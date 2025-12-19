@@ -328,7 +328,8 @@ class MixedPokerInteraction:
         For plants, this creates a PlantPokerStrategyAdapter.
         """
         if self._is_fish_player(player):
-            return player.genome.behavioral.poker_strategy_algorithm.value
+            trait = player.genome.behavioral.poker_strategy_algorithm
+            return trait.value if trait else None
         elif self._is_fractal_plant_player(player):
             from core.plant_poker_strategy import PlantPokerStrategyAdapter
             return PlantPokerStrategyAdapter.from_plant(player)

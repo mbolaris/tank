@@ -1188,7 +1188,7 @@ class SimulationRunner:
                             "name": fish_name,
                             "fish_id": fish.fish_id,
                             "generation": fish.generation,
-                            "poker_strategy": fish.genome.behavioral.poker_strategy_algorithm.value,
+                            "poker_strategy": fish.genome.behavioral.poker_strategy_algorithm.value if fish.genome.behavioral.poker_strategy_algorithm else None,
                         })
 
                     # Create benchmark series with multiple fish
