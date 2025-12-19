@@ -37,15 +37,13 @@ class Genome:
         physical: Physical appearance traits
         behavioral: Behavioral and decision-making traits
         learned_behaviors: Non-genetic learned adjustments (cultural evolution)
-        epigenetic_modifiers: Environmental expression modifiers
     """
 
     physical: PhysicalTraits
     behavioral: BehavioralTraits
 
-    # Learned behaviors and epigenetics (not strictly genetic)
+    # Learned behaviors (not strictly genetic)
     learned_behaviors: Dict[str, float] = field(default_factory=dict)
-    epigenetic_modifiers: Dict[str, float] = field(default_factory=dict)
 
     # =========================================================================
     # Derived Properties (computed from base traits with caching)
@@ -150,10 +148,6 @@ class Genome:
         # Non-spec traits (broad checks only)
         if not isinstance(self.learned_behaviors, dict):
             issues.append(f"genome.learned_behaviors: expected dict, got {type(self.learned_behaviors).__name__}")
-        if not isinstance(self.epigenetic_modifiers, dict):
-            issues.append(
-                f"genome.epigenetic_modifiers: expected dict, got {type(self.epigenetic_modifiers).__name__}"
-            )
 
         return {"ok": not issues, "issues": issues}
 
@@ -242,17 +236,11 @@ class Genome:
             rng=rng,
         )
 
-        epigenetic = _inherit_epigenetics(
-            parent1.epigenetic_modifiers,
-            parent2.epigenetic_modifiers,
-            parent1_weight,
-        )
         return cls._assemble_offspring(
             parent1=parent1,
             parent2=parent2,
             physical=physical,
             behavioral=behavioral,
-            epigenetic_modifiers=epigenetic,
         )
 
     @classmethod
@@ -321,18 +309,11 @@ class Genome:
             rng=rng,
         )
 
-        epigenetic = _inherit_epigenetics(
-            parent1.epigenetic_modifiers,
-            parent2.epigenetic_modifiers,
-            0.5,
-        )
-
         return cls._assemble_offspring(
             parent1=parent1,
             parent2=parent2,
             physical=physical,
             behavioral=behavioral,
-            epigenetic_modifiers=epigenetic,
         )
 
     @classmethod
@@ -369,13 +350,11 @@ class Genome:
         parent2: "Genome",
         physical: PhysicalTraits,
         behavioral: BehavioralTraits,
-        epigenetic_modifiers: Dict[str, float],
     ) -> "Genome":
         """Build an offspring genome and apply non-genetic inheritance."""
         offspring = cls(
             physical=physical,
             behavioral=behavioral,
-            epigenetic_modifiers=epigenetic_modifiers,
         )
         inherit_learned_behaviors(parent1, parent2, offspring)
         return offspring
@@ -436,21 +415,3 @@ class Genome:
         g = int(g * saturation + 255 * (1 - saturation))
         b = int(b * saturation + 255 * (1 - saturation))
         return (r, g, b)
-
-
-def _inherit_epigenetics(
-    mods1: Dict[str, float],
-    mods2: Dict[str, float],
-    weight1: float,
-) -> Dict[str, float]:
-    """Inherit epigenetic modifiers from parents."""
-    weight1 = max(0.0, min(1.0, weight1))
-    epigenetic = {}
-    if mods1 or mods2:
-        for modifier_key in set(mods1.keys()) | set(mods2.keys()):
-            p1_val = mods1.get(modifier_key, 0.0)
-            p2_val = mods2.get(modifier_key, 0.0)
-            weighted_val = p1_val * weight1 + p2_val * (1.0 - weight1)
-            if abs(weighted_val) > 0.01:
-                epigenetic[modifier_key] = weighted_val * 0.5
-    return epigenetic

@@ -81,7 +81,6 @@ def genome_to_dict(
         "mate_preferences": dict(genome.behavioral.mate_preferences.value),
         # Non-genetic (but persistable) state
         "learned_behaviors": dict(genome.learned_behaviors),
-        "epigenetic_modifiers": dict(genome.epigenetic_modifiers),
         "trait_meta": trait_meta,
     }
 
@@ -142,9 +141,6 @@ def genome_from_dict(
     learned = data.get("learned_behaviors")
     if isinstance(learned, dict):
         genome.learned_behaviors = {str(key): float(value) for key, value in learned.items()}
-    epigenetic = data.get("epigenetic_modifiers")
-    if isinstance(epigenetic, dict):
-        genome.epigenetic_modifiers = {str(key): float(value) for key, value in epigenetic.items()}
 
     # Algorithms
     try:
@@ -200,7 +196,6 @@ def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
         **values,
         "trait_meta": trait_meta,
         "learned_behaviors_count": len(getattr(genome, "learned_behaviors", {}) or {}),
-        "epigenetic_modifiers_count": len(getattr(genome, "epigenetic_modifiers", {}) or {}),
         "behavior_algorithm_type": _algo_name(
             genome.behavioral.behavior_algorithm.value
         ),
