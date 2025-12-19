@@ -582,7 +582,7 @@ class TestComplexIntegration:
     """Test complex integration scenarios."""
 
     def test_mate_compatibility_calculation(self):
-        """Test mate compatibility scoring (lower score = more compatible)."""
+        """Test mate compatibility scoring (higher score = more compatible)."""
         # Note: speed_modifier is a computed property, so we set underlying traits instead
         fish1 = Genome(
             physical=PhysicalTraits(
@@ -615,7 +615,7 @@ class TestComplexIntegration:
             ),
         )
 
-        # Similar fish - better compatibility (lower score)
+        # Similar fish - better compatibility (higher score)
         fish2 = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.0),
@@ -647,7 +647,7 @@ class TestComplexIntegration:
             ),
         )
 
-        # Very different fish - worse compatibility (higher score)
+        # Very different fish - worse compatibility (lower score)
         fish3 = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.3),  # Changed from 1.5 to valid range
@@ -682,9 +682,9 @@ class TestComplexIntegration:
         compatibility_similar = fish1.calculate_mate_compatibility(fish2)
         compatibility_different = fish1.calculate_mate_compatibility(fish3)
 
-        # Similar fish should have lower compatibility score (lower is better)
-        assert compatibility_similar < compatibility_different, \
-            f"Similar fish compatibility {compatibility_similar:.3f} should be less than different fish {compatibility_different:.3f}"
+        # Similar fish should have higher compatibility score (higher is better)
+        assert compatibility_similar > compatibility_different, \
+            f"Similar fish compatibility {compatibility_similar:.3f} should be greater than different fish {compatibility_different:.3f}"
 
     # Note: test_fitness_tracking_updates removed - fitness_score tracking was deprecated
     # Fitness is now implicit through survival and reproduction success
