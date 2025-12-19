@@ -240,14 +240,13 @@ class PokerInteraction:
         if ecosystem is None:
             return
 
-        from core.algorithms import get_algorithm_index
-
-        # Get winner's algorithm ID
+        # Get winner's behavior ID
         winner_algo_id = None
         if winner_fish:
-            behavior_algorithm = winner_fish.genome.behavioral.behavior_algorithm.value
-            if behavior_algorithm is not None:
-                winner_algo_id = get_algorithm_index(behavior_algorithm)
+            composable = winner_fish.genome.behavioral.composable_behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                winner_algo_id = hash(behavior_id) % 1000
 
         # Record as winner vs each loser
         num_losers = len(loser_fish_list)
@@ -255,9 +254,10 @@ class PokerInteraction:
 
         for i, loser_fish in enumerate(loser_fish_list):
             loser_algo_id = None
-            behavior_algorithm = loser_fish.genome.behavioral.behavior_algorithm.value
-            if behavior_algorithm is not None:
-                loser_algo_id = get_algorithm_index(behavior_algorithm)
+            composable = loser_fish.genome.behavioral.composable_behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                loser_algo_id = hash(behavior_id) % 1000
 
             loser_hand = loser_hands[i] if i < len(loser_hands) else None
 
@@ -594,17 +594,13 @@ class PokerInteraction:
         )
 
         # Record sexual reproduction in ecosystem (once per baby, not per parent)
-        # The baby's algorithm is derived from winner-driven selective inheritance
+        # The baby's behavior is derived from winner-driven selective inheritance
         if winner_fish.ecosystem is not None:
-            from core.algorithms import get_algorithm_index
-
-            # Use baby's algorithm if available (tracked via offspring_genome),
-            # otherwise use winner's algorithm as the reproduction source
-            baby_algo = offspring_genome.behavioral.behavior_algorithm.value
-            if baby_algo is not None:
-                baby_algo_id = get_algorithm_index(baby_algo)
-                if baby_algo_id >= 0:
-                    winner_fish.ecosystem.record_reproduction(baby_algo_id, is_asexual=False)
+            composable = offspring_genome.behavioral.composable_behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                baby_algo_id = hash(behavior_id) % 1000
+                winner_fish.ecosystem.record_reproduction(baby_algo_id, is_asexual=False)
 
         # Register birth stats (balances the cost paid above)
         baby.register_birth()

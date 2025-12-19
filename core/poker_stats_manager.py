@@ -234,14 +234,9 @@ class PokerStatsManager:
             )
 
             algo_name = "Unknown"
-            behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
-            if behavior_algorithm is not None:
-                from core.algorithms import get_algorithm_name
-
-                if isinstance(behavior_algorithm, int):
-                    algo_name = get_algorithm_name(behavior_algorithm)
-                else:
-                    algo_name = behavior_algorithm.__class__.__name__
+            composable = fish.genome.behavioral.composable_behavior
+            if composable is not None and composable.value is not None:
+                algo_name = composable.value.short_description
 
             leaderboard.append(
                 {

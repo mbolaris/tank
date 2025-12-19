@@ -64,6 +64,18 @@ from core.algorithms.poker import (
     SelectivePoker,
 )
 
+# Import composable behavior system
+from core.algorithms.composable import (
+    ComposableBehavior,
+    ThreatResponse,
+    FoodApproach,
+    EnergyStyle,
+    SocialMode,
+    PokerEngagement,
+    SUB_BEHAVIOR_COUNTS,
+    SUB_BEHAVIOR_PARAMS,
+)
+
 # Import all predator avoidance algorithms
 from core.algorithms.predator_avoidance import (
     BorderHugger,
@@ -721,4 +733,13 @@ __all__ = [
     "crossover_algorithms_weighted",
     "crossover_poker_algorithms",
     "calculate_adaptive_mutation_factor",
+    # Composable behavior system
+    "ComposableBehavior",
+    "ThreatResponse",
+    "FoodApproach",
+    "EnergyStyle",
+    "SocialMode",
+    "PokerEngagement",
+    "SUB_BEHAVIOR_COUNTS",
+    "SUB_BEHAVIOR_PARAMS",
 ]
