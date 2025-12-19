@@ -62,7 +62,7 @@ operations more explicit and debuggable.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Generic, TypeVar, Union
+from typing import Callable, Generic, List, TypeVar, Union
 
 # Type variables for Result
 T = TypeVar("T")  # Success value type
@@ -232,7 +232,7 @@ def try_result(f: Callable[[], T], error_type: type = Exception) -> Result[T, st
         return Err(str(e))
 
 
-def collect_results(results: list[Result[T, E]]) -> Result[list[T], E]:
+def collect_results(results: List[Result[T, E]]) -> Result[List[T], E]:
     """Collect a list of Results into a Result of list.
 
     If all results are Ok, returns Ok with list of values.
@@ -248,7 +248,7 @@ def collect_results(results: list[Result[T, E]]) -> Result[list[T], E]:
     Returns:
         Ok([values]) if all Ok, first Err otherwise
     """
-    values: list[T] = []
+    values: List[T] = []
     for result in results:
         if isinstance(result, Err):
             return result
