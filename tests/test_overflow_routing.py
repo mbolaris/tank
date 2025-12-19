@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import math
+from typing import List, Tuple
 
 
 class _EnvironmentStub:
     def __init__(self) -> None:
-        self.added: list[object] = []
+        self.added: List[object] = []
 
     def add_entity(self, entity: object) -> None:
         self.added.append(entity)
@@ -18,7 +19,7 @@ class _ReproductionManagerStub:
 
 class _EcosystemStub:
     def __init__(self) -> None:
-        self.burns: list[tuple[str, float]] = []
+        self.burns: List[Tuple[str, float]] = []
         self.reproduction_manager = _ReproductionManagerStub()
 
     def record_energy_burn(self, category: str, amount: float) -> None:

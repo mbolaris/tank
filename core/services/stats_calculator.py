@@ -12,7 +12,7 @@ Architecture Notes:
 
 import time
 from statistics import mean, median, stdev
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
@@ -57,7 +57,7 @@ class StatsCalculator:
             return stats
 
         # Helper to safely calc mean/std
-        def calc_safe(values: List[float]) -> tuple[float, float]:
+        def calc_safe(values: List[float]) -> Tuple[float, float]:
             if not values:
                 return 0.0, 0.0
             m = mean(values)

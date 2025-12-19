@@ -28,7 +28,7 @@ import os
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -324,7 +324,7 @@ class AlgorithmValidator:
             "total_deaths": algo_metrics.get("total_deaths", 0),
         }
 
-    def validate_syntax(self, new_code: str) -> tuple[bool, str]:
+    def validate_syntax(self, new_code: str) -> Tuple[bool, str]:
         """Validate that the new code has valid Python syntax.
 
         Args:
