@@ -145,20 +145,25 @@ class FishSkillGameStats:
         }
 
 
-@dataclass
 class SkillGameComponent:
     """Manages skill game strategies and stats for a fish.
 
     This component stores:
     1. The fish's strategies for each game type
     2. Statistics for each game type
+
+    Uses __slots__ for memory efficiency, matching the pattern of other
+    fish components (EnergyComponent, LifecycleComponent, ReproductionComponent).
     """
 
-    # Strategies for each game type
-    _strategies: Dict[SkillGameType, SkillStrategy] = field(default_factory=dict)
+    __slots__ = ("_strategies", "_stats")
 
-    # Stats for each game type
-    _stats: Dict[SkillGameType, FishSkillGameStats] = field(default_factory=dict)
+    def __init__(self) -> None:
+        """Initialize the skill game component."""
+        # Strategies for each game type
+        self._strategies: Dict[SkillGameType, SkillStrategy] = {}
+        # Stats for each game type
+        self._stats: Dict[SkillGameType, FishSkillGameStats] = {}
 
     def get_strategy(self, game_type: SkillGameType) -> Optional[SkillStrategy]:
         """Get the fish's strategy for a game type.

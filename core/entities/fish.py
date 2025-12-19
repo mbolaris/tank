@@ -40,16 +40,6 @@ if TYPE_CHECKING:
 # Runtime imports (moved from local scopes)
 from core.behavioral_learning import BehavioralLearningSystem
 from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
-from core.entities.base import LifeStage
-from core.fish.energy_component import EnergyComponent
-from core.fish.lifecycle_component import LifecycleComponent
-from core.fish.reproduction_component import ReproductionComponent
-from core.fish_memory import FishMemorySystem
-from core.genetics import Genome
-# Runtime imports (moved from local scopes)
-from core.behavioral_learning import BehavioralLearningSystem
-from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
-from core.entities.base import LifeStage
 from core.fish.energy_component import EnergyComponent
 from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent

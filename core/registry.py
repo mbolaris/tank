@@ -13,13 +13,13 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Type
 
 from core import algorithms
-from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategy
+from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategyBase
 
 
 class AlgorithmRegistry:
     """Dynamic registry for behavior strategies."""
 
-    _strategies: Dict[str, Type[BehaviorStrategy]] = {}
+    _strategies: Dict[str, Type[BehaviorStrategyBase]] = {}
 
     @classmethod
     def load_algorithms(cls) -> None:
@@ -35,14 +35,14 @@ class AlgorithmRegistry:
 
                 if (
                     inspect.isclass(attribute)
-                    and issubclass(attribute, BehaviorStrategy)
-                    and attribute is not BehaviorStrategy
+                    and issubclass(attribute, BehaviorStrategyBase)
+                    and attribute is not BehaviorStrategyBase
                 ):
                     key = attribute.name() if hasattr(attribute, "name") else name
                     cls._strategies[key] = attribute
 
     @classmethod
-    def get(cls, name: str) -> Optional[Type[BehaviorStrategy]]:
+    def get(cls, name: str) -> Optional[Type[BehaviorStrategyBase]]:
         """Retrieve a registered behavior strategy class by name."""
 
         return cls._strategies.get(name)
@@ -63,17 +63,17 @@ def _iter_algorithm_modules() -> Iterable[str]:
         yield f"core.algorithms.{stem}"
 
 
-def _discover_algorithms() -> List[Type[BehaviorStrategy]]:
+def _discover_algorithms() -> List[Type[BehaviorStrategyBase]]:
     """Dynamically import and collect behavior strategy classes."""
 
-    discovered: List[Type[BehaviorStrategy]] = []
-    seen: Set[Type[BehaviorStrategy]] = set()
+    discovered: List[Type[BehaviorStrategyBase]] = []
+    seen: Set[Type[BehaviorStrategyBase]] = set()
 
     for module_name in _iter_algorithm_modules():
         module = import_module(module_name)
         for _, obj in inspect.getmembers(module, inspect.isclass):
-            if not issubclass(obj, BehaviorStrategy) or obj in {
-                BehaviorStrategy,
+            if not issubclass(obj, BehaviorStrategyBase) or obj in {
+                BehaviorStrategyBase,
                 BehaviorAlgorithm,
             }:
                 continue
@@ -85,7 +85,7 @@ def _discover_algorithms() -> List[Type[BehaviorStrategy]]:
     return discovered
 
 
-ALL_ALGORITHMS: List[Type[BehaviorStrategy]] = _discover_algorithms()
+ALL_ALGORITHMS: List[Type[BehaviorStrategyBase]] = _discover_algorithms()
 
 
 def get_algorithm_source_map() -> Dict[str, str]:

@@ -376,8 +376,13 @@ def classify_parameter(param_name: str) -> str:
     return "default"
 
 
-class BehaviorStrategy(ABC):
-    """Marker base class for registrable behavior strategies."""
+class BehaviorStrategyBase(ABC):
+    """Base class for registrable behavior strategies.
+
+    Note: For type hints and protocol checking, use the BehaviorStrategy Protocol
+    from core.interfaces instead. This ABC exists for implementation inheritance
+    and algorithm registration. The Protocol and ABC define the same contract.
+    """
 
     pass
 
@@ -653,7 +658,7 @@ class BehaviorHelpersMixin:
 
 
 @dataclass
-class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategy):
+class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
     """Base class for all behavior algorithms.
 
     Each algorithm has:

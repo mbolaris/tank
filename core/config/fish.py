@@ -25,11 +25,20 @@ DIRECTION_CHANGE_ENERGY_BASE = 0.15  # Base energy cost for direction changes (i
 DIRECTION_CHANGE_SIZE_MULTIPLIER = 2.2  # Larger fish use more energy to turn (increased from 1.8)
 MOVEMENT_SIZE_MULTIPLIER = 2.0  # Additional size-based movement cost multiplier (increased from 1.5)
 
-# Energy Thresholds (centralized for consistency across the codebase)
-STARVATION_THRESHOLD = 15.0  # Below this, fish dies from starvation
-CRITICAL_ENERGY_THRESHOLD = 15.0  # Emergency survival mode (same as starvation threshold)
-LOW_ENERGY_THRESHOLD = 30.0  # Fish should prioritize finding food
-SAFE_ENERGY_THRESHOLD = 60.0  # Comfortable energy level for exploration and breeding
+# Energy Thresholds as RATIOS (0.0 to 1.0 of max_energy)
+# Using ratios ensures consistent behavior regardless of fish size.
+# A large fish at 10% energy is just as desperate as a small fish at 10%.
+STARVATION_THRESHOLD_RATIO = 0.10  # Below 10%, fish dies from starvation
+CRITICAL_ENERGY_THRESHOLD_RATIO = 0.10  # Emergency survival mode (same as starvation)
+LOW_ENERGY_THRESHOLD_RATIO = 0.20  # Below 20%, fish should prioritize finding food
+SAFE_ENERGY_THRESHOLD_RATIO = 0.40  # Above 40%, comfortable for exploration and breeding
+
+# Legacy absolute thresholds (deprecated, kept for backward compatibility)
+# New code should use the RATIO versions above with fish.max_energy
+STARVATION_THRESHOLD = 15.0  # @deprecated: Use STARVATION_THRESHOLD_RATIO instead
+CRITICAL_ENERGY_THRESHOLD = 15.0  # @deprecated: Use CRITICAL_ENERGY_THRESHOLD_RATIO instead
+LOW_ENERGY_THRESHOLD = 30.0  # @deprecated: Use LOW_ENERGY_THRESHOLD_RATIO instead
+SAFE_ENERGY_THRESHOLD = 60.0  # @deprecated: Use SAFE_ENERGY_THRESHOLD_RATIO instead
 
 # Fish Life Stage Age Thresholds (in frames at 30fps)
 LIFE_STAGE_BABY_MAX = 600  # 20 seconds (babies grow slower)
