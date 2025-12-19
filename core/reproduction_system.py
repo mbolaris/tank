@@ -66,7 +66,8 @@ class ReproductionSystem(BaseSystem):
 
             self._asexual_checks += 1
 
-            asexual_trait = getattr(fish.genome, "asexual_reproduction_chance", 0.0)
+            # Access the trait correctly: genome.behavioral.asexual_reproduction_chance.value
+            asexual_trait = fish.genome.behavioral.asexual_reproduction_chance.value
             if random.random() < asexual_trait:
                 fish._reproduction_component.start_asexual_pregnancy()
                 self._asexual_triggered += 1
