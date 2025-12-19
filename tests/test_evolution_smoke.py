@@ -27,3 +27,14 @@ def test_smoke_test_generates_diversity_and_report():
     assert output.startswith("🚀 Evolution smoke test")
     assert re.search(r"Gen \|", output)
     assert "Top speeds in final generation" in output
+
+
+def test_smoke_test_large_population_shows_evolution():
+    # Larger population and more generations should show a clearer evolutionary signal
+    report = run_evolution_smoke_test(seed=11, population_size=30, generations=12)
+
+    first_speed = report["generations"][0]["speed_mean"]
+    final_speed = report["generations"][-1]["speed_mean"]
+
+    # With a larger sample and more generations, expect a visible change
+    assert abs(final_speed - first_speed) > 0.01
