@@ -327,28 +327,8 @@ class EmergencyFishSpawner:
         # Track spawn time
         self.last_spawn_frame = current_frame
 
-        # Analyze existing diversity
-        genome: Genome
-        if fish_list:
-            existing_algorithms = set()
-            for fish in fish_list:
-                if hasattr(fish, "genome"):
-                    behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
-                    algo_idx = get_algorithm_index(behavior_algorithm)
-                    if algo_idx >= 0:
-                        existing_algorithms.add(algo_idx)
-
-            # Create genome, preferring algorithms not in population
-            genome = Genome.random(use_algorithm=True, rng=self.rng)
-            for _ in range(MAX_DIVERSITY_SPAWN_ATTEMPTS):
-                behavior_algorithm = genome.behavioral.behavior_algorithm.value
-                if behavior_algorithm is not None:
-                    algo_idx = get_algorithm_index(behavior_algorithm)
-                    if algo_idx >= 0 and algo_idx not in existing_algorithms:
-                        break
-                genome = Genome.random(use_algorithm=True, rng=self.rng)
-        else:
-            genome = Genome.random(use_algorithm=True, rng=self.rng)
+        # With composable behaviors (1,152+ combinations), random spawns are naturally diverse
+        genome: Genome = Genome.random(use_algorithm=True, rng=self.rng)
 
         # Random spawn position (avoid edges)
         x = self.rng.randint(

@@ -8,7 +8,6 @@ import random as pyrandom
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional
 
-from core.evolution.inheritance import inherit_algorithm
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
@@ -20,7 +19,7 @@ from core.genetics.trait import (
 )
 
 if TYPE_CHECKING:
-    from core.algorithms import BehaviorAlgorithm
+    from core.algorithms import BehaviorAlgorithm, ComposableBehavior
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
     from core.genetics.physical import PhysicalTraits
 
@@ -126,6 +125,10 @@ class BehavioralTraits:
     """Behavioral attributes of a fish.
 
     These traits affect decision-making, social behavior, and AI strategies.
+
+    The composable_behavior field replaces the old behavior_algorithm and
+    poker_algorithm fields, providing a more evolvable system with 1,152+
+    possible behavior combinations instead of 48 monolithic algorithms.
     """
 
     # Numeric behavioral traits
@@ -136,13 +139,20 @@ class BehavioralTraits:
     hunting_stamina: GeneticTrait[float]
     asexual_reproduction_chance: GeneticTrait[float]
 
-    # Algorithm traits (special handling for complex objects)
-    behavior_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]]
-    poker_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]]
+    # Composable behavior (replaces behavior_algorithm + poker_algorithm)
+    # This single field encodes: threat response, food approach, energy style,
+    # social mode, and poker engagement - each with tunable parameters.
+    composable_behavior: GeneticTrait[Optional["ComposableBehavior"]]
+
+    # Poker strategy for in-game betting decisions (separate from movement)
     poker_strategy_algorithm: GeneticTrait[Optional["PokerStrategyAlgorithm"]]
 
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
     mate_preferences: GeneticTrait[Dict[str, float]]
+
+    # Legacy fields for backward compatibility (will be None for new fish)
+    behavior_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]] = None
+    poker_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]] = None
 
     @classmethod
     def random(
@@ -155,21 +165,18 @@ class BehavioralTraits:
         # Generate numeric traits from specs
         traits = {spec.name: spec.random_value(rng) for spec in BEHAVIORAL_TRAIT_SPECS}
 
-        # Generate algorithms
-        algorithm = None
-        poker_algorithm = None
+        # Generate composable behavior and poker strategy
+        composable_behavior = None
         poker_strategy_algorithm = None
 
         if use_algorithm:
-            from core.algorithms import get_random_algorithm
+            from core.algorithms import ComposableBehavior
             from core.poker.strategy.implementations import get_random_poker_strategy
 
-            algorithm = get_random_algorithm(rng=rng)
-            poker_algorithm = get_random_algorithm(rng=rng)
+            composable_behavior = ComposableBehavior.random(rng=rng)
             poker_strategy_algorithm = get_random_poker_strategy(rng=rng)
 
-        traits["behavior_algorithm"] = GeneticTrait(algorithm)
-        traits["poker_algorithm"] = GeneticTrait(poker_algorithm)
+        traits["composable_behavior"] = GeneticTrait(composable_behavior)
         traits["poker_strategy_algorithm"] = GeneticTrait(poker_strategy_algorithm)
         mate_preferences = normalize_mate_preferences({}, physical=physical, rng=rng)
         traits["mate_preferences"] = GeneticTrait(mate_preferences)
@@ -198,6 +205,8 @@ class BehavioralTraits:
             mutation_strength: Mutation magnitude
             rng: Random number generator
         """
+        from core.algorithms import ComposableBehavior
+
         # Inherit numeric traits using specs
         inherited = inherit_traits_from_specs(
             BEHAVIORAL_TRAIT_SPECS,
@@ -209,36 +218,24 @@ class BehavioralTraits:
             rng=rng,
         )
 
-        # Inherit algorithms with special handling
-        algo_val = inherit_algorithm(
-            parent1.behavior_algorithm.value,
-            parent2.behavior_algorithm.value,
+        # Inherit composable behavior
+        composable_val = _inherit_composable_behavior(
+            parent1.composable_behavior.value if parent1.composable_behavior else None,
+            parent2.composable_behavior.value if parent2.composable_behavior else None,
             weight1=weight1,
-            mutation_rate=mutation_rate * 1.5,
-            mutation_strength=mutation_strength * 1.5,
-            algorithm_switch_rate=0.03,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
             rng=rng,
         )
-        inherited["behavior_algorithm"] = GeneticTrait(algo_val)
-
-        # Inherit poker algorithms
-        poker_algo_val = _inherit_poker_algorithm(
-            parent1.poker_algorithm.value,
-            parent2.poker_algorithm.value,
-            mutation_rate=mutation_rate * 1.2,
-            mutation_strength=mutation_strength * 1.2,
-            rng=rng,
-        )
-        inherited["poker_algorithm"] = GeneticTrait(poker_algo_val)
+        inherited["composable_behavior"] = GeneticTrait(composable_val)
 
         # Inherit poker strategy with winner-biased weighting
-        # Pass weight1 as winner_weight so winner's strategy is favored
         poker_strat_val = _inherit_poker_strategy(
             parent1.poker_strategy_algorithm.value,
             parent2.poker_strategy_algorithm.value,
             mutation_rate=mutation_rate * 1.2,
             mutation_strength=mutation_strength * 1.2,
-            winner_weight=weight1,  # NEW: Pass winner bias to poker strategy
+            winner_weight=weight1,
             rng=rng,
         )
         inherited["poker_strategy_algorithm"] = GeneticTrait(poker_strat_val)
@@ -278,25 +275,16 @@ class BehavioralTraits:
             rng=rng,
         )
 
-        algo_val = inherit_algorithm(
-            parent1.behavior_algorithm.value,
-            parent2.behavior_algorithm.value,
+        # Inherit composable behavior with recombination-style weighting
+        composable_val = _inherit_composable_behavior(
+            parent1.composable_behavior.value if parent1.composable_behavior else None,
+            parent2.composable_behavior.value if parent2.composable_behavior else None,
             weight1=1.0 if rng.random() < parent1_probability else 0.0,
-            mutation_rate=mutation_rate * 1.5,
-            mutation_strength=mutation_strength * 1.5,
-            algorithm_switch_rate=0.03,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
             rng=rng,
         )
-        inherited["behavior_algorithm"] = GeneticTrait(algo_val)
-
-        poker_algo_val = _inherit_poker_algorithm(
-            parent1.poker_algorithm.value,
-            parent2.poker_algorithm.value,
-            mutation_rate=mutation_rate * 1.2,
-            mutation_strength=mutation_strength * 1.2,
-            rng=rng,
-        )
-        inherited["poker_algorithm"] = GeneticTrait(poker_algo_val)
+        inherited["composable_behavior"] = GeneticTrait(composable_val)
 
         poker_strat_val = _inherit_poker_strategy(
             parent1.poker_strategy_algorithm.value,
@@ -334,29 +322,47 @@ class BehavioralTraits:
         return cls(**inherited)
 
 
-def _inherit_poker_algorithm(
-    alg1: Optional["BehaviorAlgorithm"],
-    alg2: Optional["BehaviorAlgorithm"],
+def _inherit_composable_behavior(
+    behavior1: Optional["ComposableBehavior"],
+    behavior2: Optional["ComposableBehavior"],
+    weight1: float,
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
-) -> Optional["BehaviorAlgorithm"]:
-    """Inherit poker algorithm from parents."""
-    if alg1 is not None or alg2 is not None:
-        from core.algorithms import crossover_poker_algorithms
+) -> "ComposableBehavior":
+    """Inherit composable behavior from two parents.
 
-        return crossover_poker_algorithms(
-            alg1,
-            alg2,
-            parent1_poker_wins=0,
-            parent2_poker_wins=0,
+    Uses ComposableBehavior.from_parents() which handles:
+    - Mendelian inheritance for discrete sub-behaviors (threat, food, energy, social, poker)
+    - Weighted blending for continuous parameters
+    - Mutation of both sub-behavior selections and parameters
+    """
+    from core.algorithms import ComposableBehavior
+
+    if behavior1 is None and behavior2 is None:
+        return ComposableBehavior.random(rng=rng)
+    elif behavior1 is None:
+        return behavior2.clone_with_mutation(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
+            rng=rng,
         )
-    else:
-        from core.algorithms import get_random_algorithm
+    elif behavior2 is None:
+        return behavior1.clone_with_mutation(
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
 
-        return get_random_algorithm(rng=rng)
+    return ComposableBehavior.from_parents(
+        behavior1,
+        behavior2,
+        weight1=weight1,
+        mutation_rate=mutation_rate,
+        mutation_strength=mutation_strength,
+        sub_behavior_switch_rate=0.03,
+        rng=rng,
+    )
 
 
 def _inherit_poker_strategy(

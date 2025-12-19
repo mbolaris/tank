@@ -307,13 +307,14 @@ class Fish(Agent):
         if self.ecosystem is None:
             return
 
-        # Get algorithm ID if fish has a behavior algorithm
+        # Get behavior ID from composable behavior for tracking
         algorithm_id = None
-        behavior_algorithm = self.genome.behavioral.behavior_algorithm.value
-        if behavior_algorithm is not None:
-            from core.algorithms import get_algorithm_index
-
-            algorithm_id = get_algorithm_index(behavior_algorithm)
+        composable = self.genome.behavioral.composable_behavior
+        if composable is not None and composable.value is not None:
+            # Use a hash of the behavior_id for backwards compatibility with integer tracking
+            # The ecosystem stats system expects an integer algorithm_id
+            behavior_id = composable.value.behavior_id
+            algorithm_id = hash(behavior_id) % 1000  # Keep it in a reasonable range
 
         # Get color as hex string for phylogenetic tree
         r, g, b = self.genome.get_color_tint()
@@ -925,14 +926,12 @@ class Fish(Agent):
             parent_id=self.fish_id,  # Track lineage for phylogenetic tree
         )
 
-        # Record reproduction stats
-        behavior_algorithm = self.genome.behavioral.behavior_algorithm.value
-        if self.ecosystem is not None and behavior_algorithm is not None:
-            from core.algorithms import get_algorithm_index
-
-            algorithm_id = get_algorithm_index(behavior_algorithm)
-            if algorithm_id >= 0:
-                self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
+        # Record reproduction stats using composable behavior ID
+        composable = self.genome.behavioral.composable_behavior
+        if self.ecosystem is not None and composable is not None and composable.value is not None:
+            behavior_id = composable.value.behavior_id
+            algorithm_id = hash(behavior_id) % 1000
+            self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
 
         # Inherit skill game strategies from parent with mutation
         # Component is already initialized in __init__, just inherit strategies
@@ -1102,27 +1101,25 @@ class Fish(Agent):
             )
             self.learning_system.learn_from_event(food_event)
 
-        # Record food consumption for algorithm performance tracking
-        # Performance: Cache algorithm_id check
+        # Record food consumption for behavior performance tracking
         ecosystem = self.ecosystem
-        behavior_algorithm = self.genome.behavioral.behavior_algorithm.value
-        if ecosystem is not None and behavior_algorithm is not None:
-            from core.algorithms import get_algorithm_index
+        composable = self.genome.behavioral.composable_behavior
+        if ecosystem is not None and composable is not None and composable.value is not None:
             from core.entities.fractal_plant import PlantNectar
             from core.entities.resources import LiveFood
 
-            algorithm_id = get_algorithm_index(behavior_algorithm)
-            if algorithm_id >= 0:
-                # Determine food type and call appropriate tracking method
-                # Use actual_energy to prevent "phantom" stats
-                if isinstance(food, PlantNectar):
-                    ecosystem.record_nectar_eaten(algorithm_id, actual_energy)
-                elif isinstance(food, LiveFood):
-                    ecosystem.record_live_food_eaten(
-                        algorithm_id, actual_energy, self.genome, self.generation
-                    )
-                else:
-                    ecosystem.record_falling_food_eaten(algorithm_id, actual_energy)
+            behavior_id = composable.value.behavior_id
+            algorithm_id = hash(behavior_id) % 1000
+            # Determine food type and call appropriate tracking method
+            # Use actual_energy to prevent "phantom" stats
+            if isinstance(food, PlantNectar):
+                ecosystem.record_nectar_eaten(algorithm_id, actual_energy)
+            elif isinstance(food, LiveFood):
+                ecosystem.record_live_food_eaten(
+                    algorithm_id, actual_energy, self.genome, self.generation
+                )
+            else:
+                ecosystem.record_falling_food_eaten(algorithm_id, actual_energy)
 
     def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
         """Apply an energy penalty for direction changes, scaled by turn angle and fish size.

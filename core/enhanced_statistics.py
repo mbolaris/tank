@@ -202,17 +202,15 @@ class EnhancedStatisticsTracker:
         avg_energy = sum(f.energy for f in fish_list) / population
         total_energy = sum(f.energy for f in fish_list)
 
-        # Count unique algorithms
-        from core.algorithms import get_algorithm_index
-
+        # Count unique behavior combinations
         algorithms = set()
         for f in fish_list:
-            behavior_algorithm = f.genome.behavioral.behavior_algorithm.value
-            if behavior_algorithm is not None:
-                algo_id = get_algorithm_index(behavior_algorithm)
-                if algo_id >= 0:
-                    algorithms.add(algo_id)
-                    self.algorithm_last_seen[algo_id] = frame
+            composable = f.genome.behavioral.composable_behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                algo_id = hash(behavior_id) % 1000
+                algorithms.add(algo_id)
+                self.algorithm_last_seen[algo_id] = frame
 
         unique_algorithms = len(algorithms)
 
@@ -471,14 +469,14 @@ class EnhancedStatisticsTracker:
         stats = self.live_food_performance[algorithm_id]
         stats.add_capture(genome, energy_gained)
 
-        # Keep a human-readable snapshot of what the food-chasing algorithm looks like
-        behavior_algorithm = getattr(genome, "behavior_algorithm", None)
-        if behavior_algorithm is not None:
-            algo_dict = behavior_algorithm.to_dict()
+        # Keep a human-readable snapshot of the composable behavior
+        composable = genome.behavioral.composable_behavior
+        if composable is not None and composable.value is not None:
+            cb = composable.value
             self.live_food_algorithm_snapshots[algorithm_id] = {
-                "name": behavior_algorithm.__class__.__name__,
-                "parameters": algo_dict.get("parameters", {}),
-                "algorithm_id": algo_dict.get("algorithm_id", behavior_algorithm.algorithm_id),
+                "name": cb.short_description,
+                "behavior_id": cb.behavior_id,
+                "food_approach": cb.food_approach.name,
                 "generation": generation,
             }
 

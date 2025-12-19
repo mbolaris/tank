@@ -213,11 +213,11 @@ def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: List[
     for fish in fish_list:
         genome = fish.genome
 
-        behavior_algorithm = genome.behavioral.behavior_algorithm.value
-        if get_algorithm_index is not None and behavior_algorithm is not None:
-            algo_idx = get_algorithm_index(behavior_algorithm)
-            if algo_idx >= 0:
-                algorithms.add(algo_idx)
+        composable = genome.behavioral.composable_behavior
+        if composable is not None and composable.value is not None:
+            # Use hash of behavior_id for diversity tracking
+            behavior_id = composable.value.behavior_id
+            algorithms.add(hash(behavior_id) % 1000)
 
         species.add(fish.species)
 

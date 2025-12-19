@@ -1003,38 +1003,9 @@ class SimulationEngine(BaseSimulator):
         # Get current fish to analyze diversity (use cached list)
         fish_list = self.get_fish_list()
 
-        # If we have existing fish, try to spawn diverse genomes
-        # Otherwise, spawn completely random
-        if fish_list:
-            # Get existing algorithms (as indices)
-            existing_algorithms = set()
-            existing_species = set()
-            for fish in fish_list:
-                if hasattr(fish, "genome") and hasattr(fish.genome, "behavior_algorithm"):
-                    algo_idx = get_algorithm_index(
-                        fish.genome.behavioral.behavior_algorithm.value
-                    )
-                    if algo_idx >= 0:
-                        existing_algorithms.add(algo_idx)
-                if hasattr(fish, "species"):
-                    existing_species.add(fish.species)
-
-            # Create genome with an algorithm not currently in population (if possible)
-            # This helps maintain diversity
-            genome = Genome.random(use_algorithm=True, rng=self.rng)
-
-            # Try to pick a different algorithm than existing ones (up to MAX_DIVERSITY_SPAWN_ATTEMPTS)
-            for _ in range(MAX_DIVERSITY_SPAWN_ATTEMPTS):
-                if hasattr(genome, "behavior_algorithm"):
-                    algo_idx = get_algorithm_index(
-                        genome.behavioral.behavior_algorithm.value
-                    )
-                    if algo_idx >= 0 and algo_idx not in existing_algorithms:
-                        break
-                genome = Genome.random(use_algorithm=True, rng=self.rng)
-        else:
-            # No existing fish, spawn completely random
-            genome = Genome.random(use_algorithm=True, rng=self.rng)
+        # With composable behaviors (1,152+ combinations), random spawns are naturally diverse
+        # No need for explicit diversity tracking - each random genome will have unique sub-behaviors
+        genome = Genome.random(use_algorithm=True, rng=self.rng)
 
         # Random spawn position (avoid edges)
         bounds = self.environment.get_bounds()
