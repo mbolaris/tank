@@ -571,7 +571,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                                 xLabel="Pattern"
                                 yLabel="Pop %"
                                 integerValues={true}
-                                labels={['Stripe', 'Spots', 'Solid', 'Grad', 'Chevn', 'Scale']}
+                                labels={['Stripe', 'Spots', 'Solid', 'Grad', 'Chevron', 'Scale']}
                                 mutationRateMean={stats.pattern_type_mut_rate_mean}
                                 mutationRateStd={stats.pattern_type_mut_rate_std}
                                 mutationStrengthMean={stats.pattern_type_mut_strength_mean}

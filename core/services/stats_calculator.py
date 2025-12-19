@@ -471,8 +471,11 @@ class StatsCalculator:
     def _get_tail_size_stats(self) -> Dict[str, Any]:
         """Calculate tail size distribution statistics."""
         fish_list = self._engine.get_fish_list()
-        allowed_min = 0.5
-        allowed_max = 2.0
+        from core.constants import BODY_ASPECT_MIN, BODY_ASPECT_MAX
+
+        fish_list = self._engine.get_fish_list()
+        allowed_min = BODY_ASPECT_MIN
+        allowed_max = BODY_ASPECT_MAX
 
         stats = {
             "allowed_tail_size_min": allowed_min,
@@ -526,8 +529,8 @@ class StatsCalculator:
     def _get_body_aspect_stats(self) -> Dict[str, Any]:
         """Calculate body aspect distribution statistics."""
         fish_list = self._engine.get_fish_list()
-        allowed_min = 0.7
-        allowed_max = 1.3
+        allowed_min = 0.5
+        allowed_max = 2.0
 
         stats = {
             "allowed_body_aspect_min": allowed_min,
@@ -753,9 +756,11 @@ class StatsCalculator:
     def _get_lifespan_modifier_stats(self) -> Dict[str, Any]:
         """Calculate lifespan modifier distribution statistics."""
         fish_list = self._engine.get_fish_list()
-        # From physical.py
-        allowed_min = 0.6
-        allowed_max = 1.4
+        from core.constants import LIFESPAN_MODIFIER_MIN, LIFESPAN_MODIFIER_MAX
+
+        # Allowed range matches core/genetics/physical.py
+        allowed_min = LIFESPAN_MODIFIER_MIN
+        allowed_max = LIFESPAN_MODIFIER_MAX
 
         stats = {
             "allowed_lifespan_modifier_min": allowed_min,

@@ -100,6 +100,12 @@ FISH_SIZE_MODIFIER_MAX = 2.0  # Genetic size modifier upper bound (was 1.3)
 # Eye size allowed bounds (visual trait)
 EYE_SIZE_MIN = 0.5
 EYE_SIZE_MAX = 2.0
+# Body aspect allowed bounds (visual trait)
+BODY_ASPECT_MIN = 0.5
+BODY_ASPECT_MAX = 2.0
+# Lifespan modifier allowed bounds (genetic trait)
+LIFESPAN_MODIFIER_MIN = 0.5
+LIFESPAN_MODIFIER_MAX = 2.0
 FISH_BASE_WIDTH = 50  # Base width for fish sprite
 FISH_BASE_HEIGHT = 50  # Base height for fish sprite
 FISH_TEMPLATE_COUNT = 6  # Number of parametric fish templates (0-5)

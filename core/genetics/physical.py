@@ -13,6 +13,12 @@ from core.constants import (
     FISH_SIZE_MODIFIER_MAX,
     FISH_SIZE_MODIFIER_MIN,
     FISH_TEMPLATE_COUNT,
+    BODY_ASPECT_MIN,
+    BODY_ASPECT_MAX,
+    EYE_SIZE_MIN,
+    EYE_SIZE_MAX,
+    LIFESPAN_MODIFIER_MIN,
+    LIFESPAN_MODIFIER_MAX,
 )
 from core.genetics.trait import (
     GeneticTrait,
@@ -28,11 +34,11 @@ PHYSICAL_TRAIT_SPECS: List[TraitSpec] = [
     TraitSpec("template_id", 0, FISH_TEMPLATE_COUNT - 1, discrete=True),
     TraitSpec("fin_size", 0.5, 2.0),
     TraitSpec("tail_size", 0.5, 2.0),
-    TraitSpec("body_aspect", 0.7, 1.3),
-    TraitSpec("eye_size", 0.7, 1.3),
+    TraitSpec("body_aspect", BODY_ASPECT_MIN, BODY_ASPECT_MAX),
+    TraitSpec("eye_size", EYE_SIZE_MIN, EYE_SIZE_MAX),
     TraitSpec("pattern_intensity", 0.0, 1.0),
     TraitSpec("pattern_type", 0, FISH_PATTERN_COUNT - 1, discrete=True),
-    TraitSpec("lifespan_modifier", 0.6, 1.4),
+    TraitSpec("lifespan_modifier", LIFESPAN_MODIFIER_MIN, LIFESPAN_MODIFIER_MAX),
 ]
 
 
