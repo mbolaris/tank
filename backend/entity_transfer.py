@@ -305,17 +305,20 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     # Capture genome parameters if they are mutable
     # We capture them as dicts here to ensure thread safety
     behavior_params = None
-    behavior_algorithm = fish.genome.behavioral.behavior_algorithm.value
+    behavior_algorithm_trait = fish.genome.behavioral.behavior_algorithm
+    behavior_algorithm = behavior_algorithm_trait.value if behavior_algorithm_trait else None
     if behavior_algorithm:
         behavior_params = behavior_algorithm.to_dict()
 
     poker_algo_params = None
-    poker_algorithm = fish.genome.behavioral.poker_algorithm.value
+    poker_algorithm_trait = fish.genome.behavioral.poker_algorithm
+    poker_algorithm = poker_algorithm_trait.value if poker_algorithm_trait else None
     if poker_algorithm:
         poker_algo_params = poker_algorithm.to_dict()
 
     poker_strat_params = None
-    poker_strategy = fish.genome.behavioral.poker_strategy_algorithm.value
+    poker_strategy_trait = fish.genome.behavioral.poker_strategy_algorithm
+    poker_strategy = poker_strategy_trait.value if poker_strategy_trait else None
     if poker_strategy:
         poker_strat_params = poker_strategy.to_dict()
 

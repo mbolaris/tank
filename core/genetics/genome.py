@@ -398,7 +398,7 @@ class Genome:
         Compatibility is based on how closely the mate matches this fish's
         preferred physical trait values, plus a bonus for higher pattern intensity.
         """
-        raw_prefs = self.behavioral.mate_preferences.value
+        raw_prefs = self.behavioral.mate_preferences.value if self.behavioral.mate_preferences else {}
         preferences = raw_prefs if isinstance(raw_prefs, dict) else {}
         normalized_prefs = normalize_mate_preferences(
             preferences,

@@ -636,6 +636,7 @@ class PokerInteraction:
         # Get poker strategy algorithms from fish genomes (if available)
         player_strategies = [
             fish.genome.behavioral.poker_strategy_algorithm.value
+            if fish.genome.behavioral.poker_strategy_algorithm else None
             for fish in self.fish_list
         ]
 
@@ -936,8 +937,10 @@ class PokerInteraction:
         participant2.last_button_position = button_position
 
         # Get poker strategy algorithms from fish genomes (if available)
-        player1_strategy = self.fish1.genome.behavioral.poker_strategy_algorithm.value
-        player2_strategy = self.fish2.genome.behavioral.poker_strategy_algorithm.value
+        trait1 = self.fish1.genome.behavioral.poker_strategy_algorithm
+        trait2 = self.fish2.genome.behavioral.poker_strategy_algorithm
+        player1_strategy = trait1.value if trait1 else None
+        player2_strategy = trait2.value if trait2 else None
 
         # Simulate multi-round Texas Hold'em game with blinds and position
         # Use evolved poker strategies if available, otherwise fall back to aggression

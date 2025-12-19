@@ -142,17 +142,18 @@ class BehavioralTraits:
     # Composable behavior (replaces behavior_algorithm + poker_algorithm)
     # This single field encodes: threat response, food approach, energy style,
     # social mode, and poker engagement - each with tunable parameters.
-    composable_behavior: GeneticTrait[Optional["ComposableBehavior"]]
+    # Optional for backward compatibility - None means no algorithm assigned.
+    composable_behavior: Optional[GeneticTrait[Optional["ComposableBehavior"]]] = None
 
     # Poker strategy for in-game betting decisions (separate from movement)
-    poker_strategy_algorithm: GeneticTrait[Optional["PokerStrategyAlgorithm"]]
+    poker_strategy_algorithm: Optional[GeneticTrait[Optional["PokerStrategyAlgorithm"]]] = None
 
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
-    mate_preferences: GeneticTrait[Dict[str, float]]
+    mate_preferences: Optional[GeneticTrait[Dict[str, float]]] = None
 
     # Legacy fields for backward compatibility (will be None for new fish)
-    behavior_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]] = None
-    poker_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]] = None
+    behavior_algorithm: Optional[GeneticTrait[Optional["BehaviorAlgorithm"]]] = None
+    poker_algorithm: Optional[GeneticTrait[Optional["BehaviorAlgorithm"]]] = None
 
     @classmethod
     def random(
@@ -230,9 +231,11 @@ class BehavioralTraits:
         inherited["composable_behavior"] = GeneticTrait(composable_val)
 
         # Inherit poker strategy with winner-biased weighting
+        strat1 = parent1.poker_strategy_algorithm.value if parent1.poker_strategy_algorithm else None
+        strat2 = parent2.poker_strategy_algorithm.value if parent2.poker_strategy_algorithm else None
         poker_strat_val = _inherit_poker_strategy(
-            parent1.poker_strategy_algorithm.value,
-            parent2.poker_strategy_algorithm.value,
+            strat1,
+            strat2,
             mutation_rate=mutation_rate * 1.2,
             mutation_strength=mutation_strength * 1.2,
             winner_weight=weight1,
@@ -241,9 +244,11 @@ class BehavioralTraits:
         inherited["poker_strategy_algorithm"] = GeneticTrait(poker_strat_val)
 
         # Inherit mate preferences
+        prefs1 = parent1.mate_preferences.value if parent1.mate_preferences else {}
+        prefs2 = parent2.mate_preferences.value if parent2.mate_preferences else {}
         mate_prefs = _inherit_mate_preferences(
-            parent1.mate_preferences.value,
-            parent2.mate_preferences.value,
+            prefs1,
+            prefs2,
             weight1=weight1,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
@@ -286,9 +291,11 @@ class BehavioralTraits:
         )
         inherited["composable_behavior"] = GeneticTrait(composable_val)
 
+        strat1 = parent1.poker_strategy_algorithm.value if parent1.poker_strategy_algorithm else None
+        strat2 = parent2.poker_strategy_algorithm.value if parent2.poker_strategy_algorithm else None
         poker_strat_val = _inherit_poker_strategy(
-            parent1.poker_strategy_algorithm.value,
-            parent2.poker_strategy_algorithm.value,
+            strat1,
+            strat2,
             mutation_rate=mutation_rate * 1.2,
             mutation_strength=mutation_strength * 1.2,
             winner_weight=1.0 if rng.random() < parent1_probability else 0.0,
@@ -296,18 +303,20 @@ class BehavioralTraits:
         )
         inherited["poker_strategy_algorithm"] = GeneticTrait(poker_strat_val)
 
+        prefs1 = parent1.mate_preferences.value if parent1.mate_preferences else {}
+        prefs2 = parent2.mate_preferences.value if parent2.mate_preferences else {}
         mate_prefs = {}
         keys = (
             set(DEFAULT_MATE_PREFERENCES)
             | set(MATE_PREFERENCE_SPECS)
-            | set(parent1.mate_preferences.value)
-            | set(parent2.mate_preferences.value)
+            | set(prefs1)
+            | set(prefs2)
         )
         for pref_key in keys:
             pref_weight1 = 1.0 if rng.random() < parent1_probability else 0.0
             default_val = _default_preference_for_key(pref_key)
-            p1_val = parent1.mate_preferences.value.get(pref_key, default_val)
-            p2_val = parent2.mate_preferences.value.get(pref_key, default_val)
+            p1_val = prefs1.get(pref_key, default_val)
+            p2_val = prefs2.get(pref_key, default_val)
             mate_prefs[pref_key] = _inherit_mate_preference_value(
                 pref_key,
                 p1_val,

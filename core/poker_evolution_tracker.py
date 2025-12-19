@@ -193,7 +193,8 @@ class PokerEvolutionTracker:
 
             # Get poker strategy
             if hasattr(fish, "genome") and fish.genome is not None:
-                strat = fish.genome.behavioral.poker_strategy_algorithm.value
+                trait = fish.genome.behavioral.poker_strategy_algorithm
+                strat = trait.value if trait else None
                 if strat is not None:
                     strategy_counts[strat.strategy_id] += 1
                     strategy_params[strat.strategy_id].append(strat.parameters.copy())

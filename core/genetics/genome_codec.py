@@ -48,7 +48,7 @@ def genome_to_dict(
     )
     poker_strategy_dict = _to_dict(
         poker_strategy_algorithm,
-        genome.behavioral.poker_strategy_algorithm.value,
+        genome.behavioral.poker_strategy_algorithm.value if genome.behavioral.poker_strategy_algorithm else None,
     )
 
     values: Dict[str, Any] = {}
@@ -77,7 +77,7 @@ def genome_to_dict(
         "composable_behavior": composable_behavior_dict,
         # Poker strategy for in-game betting decisions
         "poker_strategy_algorithm": poker_strategy_dict,
-        "mate_preferences": dict(genome.behavioral.mate_preferences.value),
+        "mate_preferences": dict(genome.behavioral.mate_preferences.value) if genome.behavioral.mate_preferences else {},
         # Non-genetic (but persistable) state
         "learned_behaviors": dict(genome.learned_behaviors),
         "trait_meta": trait_meta,
@@ -113,11 +113,15 @@ def genome_from_dict(
     # Mate preferences (dictionary trait)
     mate_preferences = data.get("mate_preferences")
     if isinstance(mate_preferences, dict):
+        from core.genetics.trait import GeneticTrait
         normalized = normalize_mate_preferences(
             {str(key): value for key, value in mate_preferences.items()},
             physical=genome.physical,
         )
-        genome.behavioral.mate_preferences.value = normalized
+        if genome.behavioral.mate_preferences is None:
+            genome.behavioral.mate_preferences = GeneticTrait(normalized)
+        else:
+            genome.behavioral.mate_preferences.value = normalized
 
     # Evolvability metadata (mutation_rate/mutation_strength/hgt_probability)
     trait_meta = data.get("trait_meta")
@@ -147,17 +151,24 @@ def genome_from_dict(
     # Composable behavior (new system)
     try:
         from core.algorithms import ComposableBehavior
+        from core.genetics.trait import GeneticTrait
 
         composable_data = data.get("composable_behavior")
         if composable_data and isinstance(composable_data, dict):
-            genome.behavioral.composable_behavior.value = ComposableBehavior.from_dict(
-                composable_data
-            )
+            cb = ComposableBehavior.from_dict(composable_data)
+            if genome.behavioral.composable_behavior is None:
+                genome.behavioral.composable_behavior = GeneticTrait(cb)
+            else:
+                genome.behavioral.composable_behavior.value = cb
         # Legacy fallback: if old genome has behavior_algorithm but no composable_behavior,
         # generate a random composable behavior (the fish will get fresh genes)
         elif data.get("behavior_algorithm") and not composable_data:
             logger.info("Migrating legacy genome: generating new composable_behavior")
-            genome.behavioral.composable_behavior.value = ComposableBehavior.random(rng=rng)
+            cb = ComposableBehavior.random(rng=rng)
+            if genome.behavioral.composable_behavior is None:
+                genome.behavioral.composable_behavior = GeneticTrait(cb)
+            else:
+                genome.behavioral.composable_behavior.value = cb
     except Exception:
         logger.debug("Failed deserializing composable_behavior; keeping default", exc_info=True)
 
@@ -166,10 +177,13 @@ def genome_from_dict(
         strat_data = data.get("poker_strategy_algorithm")
         if strat_data:
             from core.poker.strategy.implementations import PokerStrategyAlgorithm
+            from core.genetics.trait import GeneticTrait
 
-            genome.behavioral.poker_strategy_algorithm.value = (
-                PokerStrategyAlgorithm.from_dict(strat_data)
-            )
+            strat = PokerStrategyAlgorithm.from_dict(strat_data)
+            if genome.behavioral.poker_strategy_algorithm is None:
+                genome.behavioral.poker_strategy_algorithm = GeneticTrait(strat)
+            else:
+                genome.behavioral.poker_strategy_algorithm.value = strat
     except Exception:
         logger.debug("Failed deserializing poker_strategy_algorithm; keeping default", exc_info=True)
 
@@ -210,7 +224,7 @@ def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
         "learned_behaviors_count": len(getattr(genome, "learned_behaviors", {}) or {}),
         "composable_behavior": composable_info,
         "poker_strategy_algorithm_type": _algo_name(
-            genome.behavioral.poker_strategy_algorithm.value
+            genome.behavioral.poker_strategy_algorithm.value if genome.behavioral.poker_strategy_algorithm else None
         ),
         "derived": {
             "speed_modifier": getattr(genome, "speed_modifier", None),
