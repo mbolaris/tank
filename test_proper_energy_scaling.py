@@ -63,8 +63,6 @@ def test_with_scaled_energy():
         genome=genome1,
         generation=1,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
         initial_energy=50.0  # Placeholder
     )
 
@@ -78,8 +76,6 @@ def test_with_scaled_energy():
         genome=genome2,
         generation=1,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
         initial_energy=50.0  # Placeholder
     )
 

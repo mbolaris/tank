@@ -930,8 +930,6 @@ class SimulationRunner:
                     0,
                     source_plant=None,
                     allow_stationary_types=False,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
                 food.pos.y = 0
                 self.world.add_entity(food)
@@ -964,8 +962,6 @@ class SimulationRunner:
                         genome=genome,
                         generation=0,
                         ecosystem=self.world.ecosystem,
-                        screen_width=SCREEN_WIDTH,
-                        screen_height=SCREEN_HEIGHT,
                     )
                     self.world.add_entity(new_fish)
                     self._invalidate_state_cache()

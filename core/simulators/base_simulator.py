@@ -1214,9 +1214,8 @@ class BaseSimulator(ABC):
                     environment,
                     food_x,
                     food_y,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
+                    # Removed unmatched closing parenthesis
             else:
                 # Spawn food from the top at random x position
                 x = random.randint(0, SCREEN_WIDTH)
@@ -1226,8 +1225,6 @@ class BaseSimulator(ABC):
                     0,
                     source_plant=None,
                     allow_stationary_types=False,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
                 # Ensure the food starts exactly at the top edge before falling
                 food.pos.y = 0

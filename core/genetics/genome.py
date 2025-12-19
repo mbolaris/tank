@@ -86,6 +86,16 @@ class Genome:
         """Calculate speed modifier based on physical traits (cached)."""
         if self._speed_modifier_cache is not None:
             return self._speed_modifier_cache
+        # Defensive checks: ensure traits exist and have values
+        if self.physical.template_id is None or getattr(self.physical.template_id, "value", None) is None:
+            raise ValueError("Missing physical.template_id trait on genome")
+        if self.physical.fin_size is None or getattr(self.physical.fin_size, "value", None) is None:
+            raise ValueError("Missing physical.fin_size trait on genome")
+        if self.physical.tail_size is None or getattr(self.physical.tail_size, "value", None) is None:
+            raise ValueError("Missing physical.tail_size trait on genome")
+        if self.physical.body_aspect is None or getattr(self.physical.body_aspect, "value", None) is None:
+            raise ValueError("Missing physical.body_aspect trait on genome")
+
         template_id = self.physical.template_id.value
         template_speed_bonus = _TEMPLATE_SPEED_BONUS.get(template_id, 1.0)
         propulsion = self.physical.fin_size.value * 0.4 + self.physical.tail_size.value * 0.6
@@ -98,20 +108,29 @@ class Genome:
     @property
     def vision_range(self) -> float:
         """Calculate vision range based on eye size."""
-        return self.physical.eye_size.value
+        if self.physical.eye_size is None or getattr(self.physical.eye_size, "value", None) is None:
+            raise ValueError("Missing physical.eye_size trait on genome")
+        # Clamp to allowed physical bounds to avoid out-of-range visual traits
+        from core.constants import EYE_SIZE_MIN, EYE_SIZE_MAX
+        val = float(self.physical.eye_size.value)
+        return max(EYE_SIZE_MIN, min(EYE_SIZE_MAX, val))
 
     @property
     def metabolism_rate(self) -> float:
         """Calculate metabolism rate based on physical traits (cached)."""
         if self._metabolism_rate_cache is not None:
             return self._metabolism_rate_cache
+        # Defensive checks for required traits
+        for trait_name in ("size_modifier", "eye_size", "pattern_intensity"):
+            trait = getattr(self.physical, trait_name, None)
+            if trait is None or getattr(trait, "value", None) is None:
+                raise ValueError(f"Missing physical.{trait_name} trait on genome")
+
         cost = 1.0
         cost += (self.physical.size_modifier.value - 1.0) * 0.5
         cost += (self.speed_modifier - 1.0) * 0.8
         cost += (self.physical.eye_size.value - 1.0) * 0.3
-        cost += (
-            self.physical.pattern_intensity.value - _PATTERN_INTENSITY_BASELINE
-        ) * _PATTERN_INTENSITY_COST_WEIGHT
+        cost += (self.physical.pattern_intensity.value - _PATTERN_INTENSITY_BASELINE) * _PATTERN_INTENSITY_COST_WEIGHT
         result = max(_METABOLISM_RATE_MIN, cost)
         object.__setattr__(self, '_metabolism_rate_cache', result)
         return result
@@ -409,7 +428,10 @@ class Genome:
         weights = []
         for trait_name, spec in MATE_PREFERENCE_SPECS.items():
             desired = normalized_prefs[trait_name]
-            mate_value = getattr(other.physical, trait_name).value
+            other_trait = getattr(other.physical, trait_name, None)
+            if other_trait is None or getattr(other_trait, "value", None) is None:
+                raise ValueError(f"Missing other.physical.{trait_name} trait when calculating mate compatibility")
+            mate_value = other_trait.value
             score = _normalized_similarity(
                 mate_value,
                 desired,

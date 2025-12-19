@@ -63,8 +63,6 @@ def test_energy_flow():
         genome=genome1,
         generation=1,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
         initial_energy=100.0  # Start at max
     )
 
@@ -78,8 +76,6 @@ def test_energy_flow():
         genome=genome2,
         generation=1,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
         initial_energy=100.0  # Start at max
     )
 

@@ -65,8 +65,6 @@ def test_live_food_persistence():
                 environment=env,
                 x=x,
                 y=y,
-                screen_width=800,
-                screen_height=600,
             )
             print("  Restored as LiveFood (has movement behavior)")
         else:

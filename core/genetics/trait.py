@@ -230,10 +230,21 @@ def apply_trait_values_from_dict(specs: List[TraitSpec], traits: object, data: D
             continue
         trait = getattr(traits, spec.name)
         raw = data[spec.name]
+        # Coerce and clamp incoming values to the declared spec bounds.
+        try:
+            if spec.discrete:
+                val = int(raw)
+            else:
+                val = float(raw)
+        except (TypeError, ValueError):
+            # Ignore invalid incoming values; keep existing trait value
+            continue
         if spec.discrete:
-            trait.value = int(raw)
+            val = max(int(spec.min_val), min(int(spec.max_val), int(val)))
+            trait.value = int(val)
         else:
-            trait.value = float(raw)
+            val = max(spec.min_val, min(spec.max_val, float(val)))
+            trait.value = float(val)
 
 
 def apply_trait_meta_from_dict(

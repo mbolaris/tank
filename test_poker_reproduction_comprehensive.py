@@ -61,8 +61,6 @@ def create_test_fish(env, ecosystem, x=100, y=100, energy=95.0, species="test"):
         genome=genome,
         generation=1,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
         initial_energy=energy
     )
     fish._lifecycle_component.age = 100

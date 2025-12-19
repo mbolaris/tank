@@ -181,8 +181,7 @@ class AutoFoodSpawner:
                 environment,
                 food_x,
                 food_y,
-                screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT,
+            )
             )
         else:
             # Spawn regular food from top
@@ -195,8 +194,6 @@ class AutoFoodSpawner:
                     y=0,
                     source_plant=None,
                     allow_stationary_types=False,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
             else:
                 # Create new food directly
@@ -206,8 +203,6 @@ class AutoFoodSpawner:
                     0,
                     source_plant=None,
                     allow_stationary_types=False,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
 
         return food
@@ -349,8 +344,7 @@ class EmergencyFishSpawner:
             genome=genome,
             generation=0,
             ecosystem=ecosystem,
-            screen_width=SCREEN_WIDTH,
-            screen_height=SCREEN_HEIGHT,
+        )
         )
         new_fish.register_birth()
 

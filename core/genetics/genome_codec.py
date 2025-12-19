@@ -29,8 +29,14 @@ def genome_to_dict(
     genome: Any,
     *,
     schema_version: int,
+    # Backwards-compatible kwargs: older callers (and transfer code) may pass
+    # `behavior_algorithm` / `poker_algorithm`. Keep these here so callers
+    # don't raise on unexpected keywords; prefer `composable_behavior` and
+    # `poker_strategy_algorithm` for the canonical new format.
     composable_behavior: Optional[Dict[str, Any]] = None,
     poker_strategy_algorithm: Optional[Dict[str, Any]] = None,
+    behavior_algorithm: Optional[Dict[str, Any]] = None,
+    poker_algorithm: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Serialize a genome into JSON-compatible primitives."""
 
@@ -41,7 +47,8 @@ def genome_to_dict(
             return None
         return obj.to_dict()
 
-    # Serialize composable behavior
+    # Serialize composable behavior (new) or fall back to legacy behavior
+    # algorithm params if provided by callers.
     composable_behavior_dict = _to_dict(
         composable_behavior,
         genome.behavioral.composable_behavior.value if genome.behavioral.composable_behavior else None,
@@ -77,6 +84,10 @@ def genome_to_dict(
         "composable_behavior": composable_behavior_dict,
         # Poker strategy for in-game betting decisions
         "poker_strategy_algorithm": poker_strategy_dict,
+        # Legacy fields: include if caller passed legacy algorithm params so
+        # transfer/compatibility code can round-trip older formats.
+        "behavior_algorithm": behavior_algorithm if behavior_algorithm is not None else None,
+        "poker_algorithm": poker_algorithm if poker_algorithm is not None else None,
         "mate_preferences": dict(genome.behavioral.mate_preferences.value) if genome.behavioral.mate_preferences else {},
         # Non-genetic (but persistable) state
         "learned_behaviors": dict(genome.learned_behaviors),

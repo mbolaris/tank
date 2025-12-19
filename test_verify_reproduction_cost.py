@@ -101,8 +101,6 @@ def test_reproduction_energy_cost():
             genome=genome1,
             generation=1,
             ecosystem=ecosystem,
-            screen_width=800,
-            screen_height=600,
             initial_energy=50.0
         )
 
@@ -116,8 +114,6 @@ def test_reproduction_energy_cost():
             genome=genome2,
             generation=1,
             ecosystem=ecosystem,
-            screen_width=800,
-            screen_height=600,
             initial_energy=50.0
         )
 

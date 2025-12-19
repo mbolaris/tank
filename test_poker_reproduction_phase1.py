@@ -69,8 +69,6 @@ def test_deterministic_reproduction():
         genome=genome1,
         generation=1,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
         initial_energy=95.0  # 95% of default max energy (100)
     )
 
@@ -84,8 +82,6 @@ def test_deterministic_reproduction():
         genome=genome2,
         generation=1,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
         initial_energy=95.0
     )
 
@@ -186,8 +182,6 @@ def test_multiplayer_reproduction():
             genome=genome,
             generation=1,
             ecosystem=ecosystem,
-            screen_width=800,
-            screen_height=600,
             initial_energy=95.0  # High energy for reproduction
         )
         fish._lifecycle_component.age = 100  # Adult
