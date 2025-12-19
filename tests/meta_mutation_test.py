@@ -40,5 +40,5 @@ print('eye_size stdev:', statistics.stdev(value_changes))
 print('sample values:', value_changes[:10])
 
 # Diagnostic: print adaptive rate/strength for base 0.1 under current config
-ar, as_ = calculate_adaptive_mutation_rate(0.1, 0.1, population_stress=0.0)
+ar, as_ = calculate_adaptive_mutation_rate(0.1, 0.1)
 print('diagnostic adaptive_rate:', ar, 'adaptive_strength:', as_)

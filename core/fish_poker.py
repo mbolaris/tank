@@ -516,32 +516,6 @@ class PokerInteraction:
         if not winner_wants:
             return None
 
-        # Calculate population stress for adaptive mutations
-        from core.constants import (
-            POPULATION_STRESS_DEATH_RATE_MAX,
-            POPULATION_STRESS_MAX_MULTIPLIER,
-            POPULATION_STRESS_MAX_TOTAL,
-            TARGET_POPULATION,
-        )
-
-        population_stress = 0.0
-        if winner_fish.ecosystem is not None:
-            from core.entities import Fish
-
-            fish_count = len([e for e in winner_fish.environment.agents if isinstance(e, Fish)])
-            population_ratio = fish_count / TARGET_POPULATION if TARGET_POPULATION > 0 else 1.0
-
-            if population_ratio < 1.0:
-                population_stress = (1.0 - population_ratio) * POPULATION_STRESS_MAX_MULTIPLIER
-
-            if hasattr(winner_fish.ecosystem, "recent_death_rate"):
-                death_rate_stress = min(
-                    POPULATION_STRESS_DEATH_RATE_MAX, winner_fish.ecosystem.recent_death_rate
-                )
-                population_stress = min(
-                    POPULATION_STRESS_MAX_TOTAL, population_stress + death_rate_stress
-                )
-
         # Create offspring genome using winner-driven selective inheritance
         from core.constants import (
             POST_POKER_MUTATION_RATE,
@@ -551,7 +525,6 @@ class PokerInteraction:
         offspring_genome = Genome.from_winner_choice(
             winner=winner_fish.genome,
             mate=loser_fish.genome,
-            population_stress=population_stress,
             mutation_rate=POST_POKER_MUTATION_RATE,
             mutation_strength=POST_POKER_MUTATION_STRENGTH,
         )

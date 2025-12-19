@@ -21,7 +21,6 @@ from core.constants import (
     INITIAL_ENERGY_RATIO,
     LIFE_STAGE_MATURE_MAX,
     PREDATOR_ENCOUNTER_WINDOW,
-    TARGET_POPULATION,
 )
 from core.entities.base import Agent, LifeStage
 from core.entity_ids import FishId
@@ -867,32 +866,11 @@ class Fish(Agent):
         if not should_give_birth:
             return None
 
-        # Calculate population stress for adaptive mutations
-        population_stress = 0.0
-        if self.ecosystem is not None:
-            # Stress increases when population is low or death rate is high
-            fish_count = len([e for e in self.environment.agents if isinstance(e, Fish)])
-            target_population = TARGET_POPULATION  # Desired stable population
-            population_ratio = fish_count / target_population if target_population > 0 else 1.0
-
-            # Stress is higher when population is below target (inverse relationship)
-            if population_ratio < 1.0:
-                population_stress = (
-                    1.0 - population_ratio
-                ) * 0.8  # 0-80% stress from low population
-
-            # Add stress from recent death rate if available
-            if hasattr(self.ecosystem, "recent_death_rate"):
-                death_rate_stress = min(0.4, self.ecosystem.recent_death_rate)  # Up to 40% stress
-                population_stress = min(1.0, population_stress + death_rate_stress)
-
         # Capture reproduction type before it's reset in give_birth
         is_asexual = self._reproduction_component._asexual_pregnancy
 
         # Generate offspring genome using reproduction component
-        offspring_genome, _unused_fraction = self._reproduction_component.give_birth(
-            self.genome, population_stress
-        )
+        offspring_genome, _unused_fraction = self._reproduction_component.give_birth(self.genome)
 
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
         # This determines exactly how much energy the parent should transfer

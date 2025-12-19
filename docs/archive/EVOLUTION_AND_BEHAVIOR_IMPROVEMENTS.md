@@ -322,7 +322,6 @@ print(f"Mate compatibility: {compatibility:.2f}")
 offspring_genome = Genome.from_parents(
     parent1_genome,
     parent2_genome,
-    population_stress=0.2,  # 20% population stress
     crossover_mode=GeneticCrossoverMode.RECOMBINATION
 )
 

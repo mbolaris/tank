@@ -58,7 +58,7 @@ def test_visual_traits():
 
     # Test 3: Create offspring
     offspring = Genome.from_parents(
-        genome1, genome2, mutation_rate=0.1, mutation_strength=0.1, population_stress=0.0
+        genome1, genome2, mutation_rate=0.1, mutation_strength=0.1
     )
 
     print("\n   Offspring:")
@@ -118,15 +118,14 @@ def test_visual_traits():
 
     print("\n   ✓ Multi-generational inheritance successful")
 
-    # Test 5: High mutation stress
-    print("\n4. Testing with high population stress:")
+    # Test 5: Higher mutation rates
+    print("\n4. Testing with higher mutation rates:")
 
     stressed_offspring = Genome.from_parents(
         genome1,
         genome2,
         mutation_rate=0.2,
         mutation_strength=0.2,
-        population_stress=0.8,  # High stress
     )
 
     stressed_phys = stressed_offspring.physical
@@ -138,7 +137,7 @@ def test_visual_traits():
         f"Intensity {stressed_phys.pattern_intensity.value:.2f}"
     )
 
-    print("\n   ✓ High-stress mutations applied successfully")
+    print("\n   ✓ Higher-rate mutations applied successfully")
 
     print("\n" + "=" * 60)
     print("✓ ALL VISUAL GENETICS TESTS PASSED")

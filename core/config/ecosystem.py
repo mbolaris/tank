@@ -15,11 +15,6 @@ CRITICAL_POPULATION_THRESHOLD = 10  # Minimum population before emergency spawni
 EMERGENCY_SPAWN_COOLDOWN = 180  # Frames between emergency spawns (6 seconds at 30fps)
 ENERGY_STATS_WINDOW_FRAMES = 1800  # Frames for energy stats rolling window (60s at 30fps)
 
-# Population Stress Constants
-POPULATION_STRESS_MAX_MULTIPLIER = 0.8  # Maximum population stress from low population
-POPULATION_STRESS_DEATH_RATE_MAX = 0.4  # Maximum stress contribution from death rate
-POPULATION_STRESS_MAX_TOTAL = 1.0  # Maximum total population stress
-
 # Spawning Constants
 MAX_DIVERSITY_SPAWN_ATTEMPTS = 10  # Maximum attempts to spawn diverse fish
 SPAWN_MARGIN_PIXELS = 100  # Margin from screen edges for spawning

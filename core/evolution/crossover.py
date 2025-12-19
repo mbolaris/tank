@@ -146,7 +146,6 @@ def crossover_genomes(
     parent2_genome: "Genome",
     mutation_rate: float = 0.1,
     mutation_strength: float = 0.1,
-    population_stress: float = 0.0,
     mode: CrossoverMode = CrossoverMode.RECOMBINATION,
 ) -> "Genome":
     """Create offspring genome by crossing two parent genomes.
@@ -158,7 +157,6 @@ def crossover_genomes(
         parent2_genome: Second parent's genome
         mutation_rate: Base mutation rate
         mutation_strength: Base mutation strength
-        population_stress: Environmental stress (0.0-1.0)
         mode: Crossover mode
 
     Returns:
@@ -177,7 +175,6 @@ def crossover_genomes(
     params = ReproductionParams(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
-        population_stress=population_stress,
     )
 
     return Genome.from_parents(
@@ -185,7 +182,6 @@ def crossover_genomes(
         parent2_genome,
         mutation_rate=params.mutation_rate,
         mutation_strength=params.mutation_strength,
-        population_stress=params.population_stress,
         crossover_mode=genetics_mode,
     )
 
@@ -196,7 +192,6 @@ def crossover_genomes_weighted(
     parent1_weight: float = 0.5,
     mutation_rate: float = 0.1,
     mutation_strength: float = 0.1,
-    population_stress: float = 0.0,
 ) -> "Genome":
     """Create offspring genome with weighted parent contributions.
 
@@ -209,7 +204,6 @@ def crossover_genomes_weighted(
         parent1_weight: How much parent1 contributes (0.0-1.0)
         mutation_rate: Base mutation rate
         mutation_strength: Base mutation strength
-        population_stress: Environmental stress (0.0-1.0)
 
     Returns:
         New offspring genome with weighted inheritance
@@ -224,6 +218,5 @@ def crossover_genomes_weighted(
         params=ReproductionParams(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-            population_stress=population_stress,
         ),
     )

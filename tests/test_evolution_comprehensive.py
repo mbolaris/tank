@@ -88,22 +88,21 @@ class TestEdgeCasesAndBoundaries:
             )
             assert 0.0 <= result <= 1.0, f"Mutation {result} exceeded bounds [0.0, 1.0]"
 
-    def test_extreme_population_stress(self):
-        """Test adaptive mutation with extreme population stress."""
+    def test_adaptive_mutation_clamps_bounds(self):
+        """Test adaptive mutation clamps to configured bounds."""
         config = MutationConfig()
 
-        # Zero stress should give base rates
-        rate_zero, strength_zero = calculate_adaptive_mutation_rate(
-            config.base_rate, config.base_strength, population_stress=0.0, config=config
+        rate_low, strength_low = calculate_adaptive_mutation_rate(
+            0.0, 0.0, config=config
         )
-        assert rate_zero == config.base_rate
+        assert rate_low == config.min_rate
+        assert strength_low == config.min_strength
 
-        # Extreme stress should increase rates
-        rate_extreme, strength_extreme = calculate_adaptive_mutation_rate(
-            config.base_rate, config.base_strength, population_stress=1.0, config=config
+        rate_high, strength_high = calculate_adaptive_mutation_rate(
+            1.0, 1.0, config=config
         )
-        assert rate_extreme >= config.base_rate
-        assert strength_extreme >= config.base_strength
+        assert rate_high == config.max_rate
+        assert strength_high == config.max_strength
 
     def test_discrete_mutation_with_single_value_range(self):
         """Discrete mutation with single value range should stay the same."""
@@ -233,7 +232,7 @@ class TestMultiGenerationEvolution:
             for _ in range(20):
                 parent1 = random.choice(population)
                 parent2 = random.choice(population)
-                child = Genome.from_parents(parent1, parent2, population_stress=0.0)
+                child = Genome.from_parents(parent1, parent2)
                 next_gen.append(child)
 
             population = next_gen
@@ -263,7 +262,6 @@ class TestMultiGenerationEvolution:
             child = Genome.from_parents_weighted(
                 winner, loser,
                 parent1_weight=0.8,  # Corrected parameter name
-                population_stress=0.0
             )
             offspring.append(child)
 
@@ -275,40 +273,11 @@ class TestMultiGenerationEvolution:
         assert avg_fin_size > 1.0, f"Fin size {avg_fin_size:.3f} should favor winner's 1.4"
         assert avg_aggression > 0.5, f"Aggression {avg_aggression:.3f} should favor winner's 1.0"
 
-    def test_population_stress_increases_variation(self):
-        """Test that population stress increases genetic variation."""
-        parent1 = Genome.random(use_algorithm=False)
-        parent1.physical.fin_size.value = 1.0
-        parent1.physical.tail_size.value = 1.0
-
-        parent2 = Genome.random(use_algorithm=False)
-        parent2.physical.fin_size.value = 1.0
-        parent2.physical.tail_size.value = 1.0
-
-        # Low stress offspring
-        low_stress_offspring = [
-            Genome.from_parents(parent1, parent2, population_stress=0.0)
-            for _ in range(100)
-        ]
-
-        # High stress offspring
-        high_stress_offspring = [
-            Genome.from_parents(parent1, parent2, population_stress=1.0)
-            for _ in range(100)
-        ]
-
-        # Calculate variance using fin_size (directly inherited trait)
-        low_variance = sum((o.physical.fin_size.value - 1.0) ** 2 for o in low_stress_offspring) / 100
-        high_variance = sum((o.physical.fin_size.value - 1.0) ** 2 for o in high_stress_offspring) / 100
-
-        assert high_variance > low_variance, \
-            f"High stress variance {high_variance:.4f} should exceed low stress {low_variance:.4f}"
-
     def test_plant_evolution_preserves_variant(self):
         """Test that plant evolution preserves variant type."""
         parent = PlantGenome.create_claude_variant()
 
-        # Generate offspring through asexual reproduction (no population_stress param)
+        # Generate offspring through asexual reproduction.
         offspring = []
         for _ in range(50):
             child = PlantGenome.from_parent(parent)
@@ -412,7 +381,6 @@ class TestPokerEvolution:
             child = Genome.from_parents_weighted(
                 winner, loser,
                 parent1_weight=0.75,  # Corrected parameter name
-                population_stress=0.0
             )
             offspring.append(child)
 
@@ -567,7 +535,7 @@ class TestStatisticalProperties:
             next_gen = []
             for _ in range(50):
                 p1, p2 = random.sample(population, 2)
-                child = Genome.from_parents(p1, p2, population_stress=0.2)
+                child = Genome.from_parents(p1, p2)
                 next_gen.append(child)
             population = next_gen
 
@@ -597,7 +565,7 @@ class TestStatisticalProperties:
         parent2.physical.size_modifier.value = 0.5
 
         offspring = [
-            Genome.from_parents(parent1, parent2, population_stress=0.0)
+            Genome.from_parents(parent1, parent2)
             for _ in range(200)
         ]
 

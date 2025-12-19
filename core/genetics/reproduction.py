@@ -14,11 +14,7 @@ class ReproductionParams:
 
     mutation_rate: float = 0.1
     mutation_strength: float = 0.1
-    population_stress: float = 0.0
 
     def adaptive_mutation(self) -> Tuple[float, float]:
-        """Return (adaptive_rate, adaptive_strength) after stress adjustment."""
-        return calculate_adaptive_mutation_rate(
-            self.mutation_rate, self.mutation_strength, self.population_stress
-        )
-
+        """Return (adaptive_rate, adaptive_strength) after clamping."""
+        return calculate_adaptive_mutation_rate(self.mutation_rate, self.mutation_strength)

@@ -133,9 +133,9 @@ Example: `BoidsBehavior`
 ### Mutation System
 
 **Parameter Mutations:**
-- 15% chance per parameter (higher under population stress)
+- 15% chance per parameter
 - Gaussian distribution within bounds
-- Adaptive mutation rates (up to 3x higher when population struggling)
+- Adaptive mutation bounds to prevent extreme values
 
 **Algorithm Type Mutations:**
 - 5% chance to switch to random algorithm

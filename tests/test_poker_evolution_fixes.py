@@ -113,7 +113,6 @@ class TestWinnerBiasedInheritance:
             offspring = Genome.from_winner_choice(
                 winner=winner_genome,
                 mate=loser_genome,
-                population_stress=0.0,
                 mutation_rate=0.1,
                 mutation_strength=0.1,
             )

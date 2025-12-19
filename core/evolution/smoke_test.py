@@ -54,20 +54,13 @@ def run_evolution_smoke_test(
 
     for gen in range(generations):
         snapshot = _summarize_population(population)
-        # Increase stress slowly so later generations mutate more aggressively
-        snapshot["population_stress"] = min(1.0, 0.25 + gen * 0.1)
         snapshot["generation"] = gen
         generation_reports.append(snapshot)
 
         next_population: List[Genome] = []
         for _ in range(population_size):
             parent1, parent2 = rng.sample(population, 2)
-            child = Genome.from_parents(
-                parent1,
-                parent2,
-                population_stress=snapshot["population_stress"],
-                rng=rng,
-            )
+            child = Genome.from_parents(parent1, parent2, rng=rng)
             next_population.append(child)
         population = next_population
 

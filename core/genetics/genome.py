@@ -197,7 +197,6 @@ class Genome:
             parent1_weight=parent1_weight,
             mutation_rate=params.mutation_rate,
             mutation_strength=params.mutation_strength,
-            population_stress=params.population_stress,
             rng=rng,
         )
 
@@ -209,7 +208,6 @@ class Genome:
         parent1_weight: float = 0.5,
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
-        population_stress: float = 0.0,
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
@@ -223,7 +221,6 @@ class Genome:
         adaptive_rate, adaptive_strength = ReproductionParams(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-            population_stress=population_stress,
         ).adaptive_mutation()
 
         # Inherit traits using declarative specs
@@ -262,7 +259,6 @@ class Genome:
     def clone_with_mutation(
         cls,
         parent: "Genome",
-        population_stress: float = 0.0,
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
@@ -270,7 +266,7 @@ class Genome:
             parent1=parent,
             parent2=parent,
             parent1_weight=1.0,
-            params=ReproductionParams(population_stress=population_stress),
+            params=ReproductionParams(),
             rng=rng,
         )
 
@@ -281,7 +277,6 @@ class Genome:
         parent2: "Genome",
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
-        population_stress: float = 0.0,
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
@@ -290,7 +285,6 @@ class Genome:
         params = ReproductionParams(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-            population_stress=population_stress,
         )
 
         if crossover_mode is GeneticCrossoverMode.AVERAGING:
@@ -346,7 +340,6 @@ class Genome:
         cls,
         winner: "Genome",
         mate: "Genome",
-        population_stress: float = 0.0,
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: Optional[pyrandom.Random] = None,
@@ -364,7 +357,6 @@ class Genome:
             params=ReproductionParams(
                 mutation_rate=mutation_rate,
                 mutation_strength=mutation_strength,
-                population_stress=population_stress,
             ),
             rng=rng,
         )

@@ -3,7 +3,7 @@
 Verifies that the unified evolution module correctly handles:
 - Mutation of continuous and discrete traits
 - Crossover between parent genomes
-- Adaptive mutation rates based on population stress
+- Adaptive mutation bounds
 - Cultural inheritance of learned behaviors
 - Algorithm inheritance
 
@@ -100,34 +100,17 @@ class TestMutation:
 class TestAdaptiveMutation:
     """Tests for adaptive mutation rates."""
 
-    def test_stress_increases_mutation_rate(self):
-        """Population stress should increase mutation rate."""
-        base_rate = 0.1
-        base_strength = 0.1
+    def test_mutation_rate_clamps_to_min(self):
+        """Mutation rate should be clamped to configured minimums."""
+        rate, strength = calculate_adaptive_mutation_rate(0.0, 0.0)
+        assert rate >= 0.04
+        assert strength >= 0.03
 
-        # No stress
-        rate_no_stress, strength_no_stress = calculate_adaptive_mutation_rate(
-            base_rate, base_strength, population_stress=0.0
-        )
-
-        # High stress
-        rate_high_stress, strength_high_stress = calculate_adaptive_mutation_rate(
-            base_rate, base_strength, population_stress=0.8
-        )
-
-        # High stress should increase both rate and strength
-        assert rate_high_stress > rate_no_stress
-        assert strength_high_stress > strength_no_stress
-
-    def test_mutation_rate_has_upper_bound(self):
-        """Mutation rate should be capped even under extreme stress."""
-        rate, strength = calculate_adaptive_mutation_rate(
-            0.3, 0.3, population_stress=1.0
-        )
-
-        # Should be capped at reasonable values
-        assert rate <= 0.5  # Max 50% mutation rate
-        assert strength <= 0.3  # Max 30% strength
+    def test_mutation_rate_clamps_to_max(self):
+        """Mutation rate should be clamped to configured maximums."""
+        rate, strength = calculate_adaptive_mutation_rate(1.0, 1.0)
+        assert rate <= 0.25
+        assert strength <= 0.15
 
 
 class TestCrossover:
@@ -360,36 +343,6 @@ class TestFullGenomeEvolution:
         # Average should be closer to parent1's value (0.1)
         # Expected: 0.1 * 0.8 + 0.9 * 0.2 = 0.26
         assert avg_aggression < 0.4  # Closer to parent1
-
-    def test_population_stress_increases_variation(self):
-        """High population stress should increase offspring variation."""
-        parent1 = Genome.random()
-        parent2 = Genome.random()
-
-        # Generate offspring with no stress
-        no_stress_offspring = [
-            Genome.from_parents(parent1, parent2, population_stress=0.0)
-            for _ in range(20)
-        ]
-
-        # Generate offspring with high stress
-        high_stress_offspring = [
-            Genome.from_parents(parent1, parent2, population_stress=0.8)
-            for _ in range(20)
-        ]
-
-        # Calculate variance in fin_size (a directly inherited trait)
-        def variance(genomes):
-            values = [g.physical.fin_size.value for g in genomes]
-            mean = sum(values) / len(values)
-            return sum((v - mean) ** 2 for v in values) / len(values)
-
-        no_stress_var = variance(no_stress_offspring)
-        high_stress_var = variance(high_stress_offspring)
-
-        # High stress should generally produce more variation
-        # (This is probabilistic, so we just check it's not dramatically lower)
-        assert high_stress_var >= no_stress_var * 0.25
 
     def test_multi_generation_evolution(self):
         """Evolution should work across multiple generations."""

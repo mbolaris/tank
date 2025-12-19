@@ -411,7 +411,6 @@ def diagnose_behavioral_inheritance():
     offspring = Genome.from_winner_choice(
         winner=parent1,
         mate=parent2,
-        population_stress=0.0,
         mutation_rate=0.1,
         mutation_strength=0.1,
     )
@@ -430,7 +429,6 @@ def diagnose_behavioral_inheritance():
         offspring = Genome.from_winner_choice(
             winner=parent1,
             mate=parent2,
-            population_stress=0.0,
             mutation_rate=0.1,
             mutation_strength=0.1,
         )

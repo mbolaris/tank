@@ -207,14 +207,11 @@ class ReproductionComponent:
 
         return False
 
-    def give_birth(
-        self, own_genome: "Genome", population_stress: float = 0.0
-    ) -> Tuple["Genome", float]:
+    def give_birth(self, own_genome: "Genome") -> Tuple["Genome", float]:
         """Generate offspring genome from mating.
 
         Args:
             own_genome: This fish's genome
-            population_stress: Environmental stress factor (0.0-1.0)
 
         Returns:
             Tuple of (Genome, energy_for_baby): The offspring's genome and energy to transfer
@@ -222,13 +219,9 @@ class ReproductionComponent:
         from core.genetics import Genome
 
         if self._asexual_pregnancy:
-            offspring_genome = Genome.clone_with_mutation(
-                own_genome, population_stress=population_stress
-            )
+            offspring_genome = Genome.clone_with_mutation(own_genome)
         elif self.mate_genome is not None:
-            offspring_genome = Genome.from_parents(
-                own_genome, self.mate_genome, population_stress=population_stress
-            )
+            offspring_genome = Genome.from_parents(own_genome, self.mate_genome)
         else:
             # Fallback: random genome if no mate stored
             offspring_genome = Genome.random()

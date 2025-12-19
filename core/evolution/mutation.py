@@ -10,8 +10,7 @@ Mutation Types:
 - Algorithms: Parameter mutation or complete algorithm switch
 
 Adaptive Mutation:
-- Population stress increases mutation rate (more exploration when struggling)
-- This is NOT fitness-based - it's environmental pressure response
+- Clamp mutation rate/strength within configured bounds
 """
 
 import random
@@ -42,10 +41,6 @@ class MutationConfig:
     min_strength: float = 0.03
     max_strength: float = 0.15
 
-    # Population stress multipliers (reduced to limit adaptive spikes)
-    stress_rate_multiplier: float = 1.5
-    stress_strength_multiplier: float = 1.3
-
     # Algorithm mutation (INCREASED for more behavioral diversity)
     algorithm_switch_rate: float = 0.04  # 4% chance of completely new algorithm
 
@@ -57,40 +52,21 @@ DEFAULT_MUTATION_CONFIG = MutationConfig()
 def calculate_adaptive_mutation_rate(
     base_rate: float,
     base_strength: float,
-    population_stress: float = 0.0,
     config: Optional[MutationConfig] = None,
 ) -> Tuple[float, float]:
-    """Calculate mutation rate and strength based on population stress.
-
-    Population stress is NOT fitness - it's environmental pressure:
-    - Low population relative to carrying capacity
-    - High recent death rate
-    - Resource scarcity
-
-    When stressed, populations need more variation to adapt.
+    """Calculate mutation rate and strength with bounds applied.
 
     Args:
         base_rate: Base mutation rate (0.0-1.0)
         base_strength: Base mutation strength (0.0-1.0)
-        population_stress: Environmental stress level (0.0-1.0)
         config: Mutation configuration (uses default if None)
 
     Returns:
         Tuple of (adaptive_rate, adaptive_strength)
     """
     cfg = config or DEFAULT_MUTATION_CONFIG
-
-    # Calculate stress factor (1.0 = no change, higher = more mutation)
-    stress_factor = 1.0 + population_stress * cfg.stress_rate_multiplier
-    strength_factor = 1.0 + population_stress * cfg.stress_strength_multiplier
-
-    # Apply factors and clamp to bounds
-    adaptive_rate = base_rate * stress_factor
-    adaptive_rate = max(cfg.min_rate, min(cfg.max_rate, adaptive_rate))
-
-    adaptive_strength = base_strength * strength_factor
-    adaptive_strength = max(cfg.min_strength, min(cfg.max_strength, adaptive_strength))
-
+    adaptive_rate = max(cfg.min_rate, min(cfg.max_rate, base_rate))
+    adaptive_strength = max(cfg.min_strength, min(cfg.max_strength, base_strength))
     return adaptive_rate, adaptive_strength
 
 
