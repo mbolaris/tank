@@ -10,7 +10,7 @@ import logging
 import platform
 import sys
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Set
 
 from backend.auto_save_service import AutoSaveService
 from backend.connection_manager import ConnectionManager
@@ -84,7 +84,7 @@ class StartupManager:
 
         # Background tasks
         self._heartbeat_task: Optional[asyncio.Task] = None
-        self._broadcast_task_ids: set[str] = set()  # Track which tanks have broadcast tasks
+        self._broadcast_task_ids: Set[str] = set()  # Track which tanks have broadcast tasks
 
         # Parsed discovery hub info
         self._discovery_hub_info: Optional[ServerInfo] = None
