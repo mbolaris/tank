@@ -577,8 +577,6 @@ class SimulationEngine(BaseSimulator):
                 root_spot=spot,
                 initial_energy=FRACTAL_PLANT_MATURE_ENERGY,
                 ecosystem=self.ecosystem,
-                screen_width=SCREEN_WIDTH,
-                screen_height=SCREEN_HEIGHT,
             )
 
             # Claim the root spot
@@ -624,8 +622,6 @@ class SimulationEngine(BaseSimulator):
             root_spot=spot,
             initial_energy=30.0,  # Start with enough energy to mature in reasonable time
             ecosystem=self.ecosystem,
-            screen_width=SCREEN_WIDTH,
-            screen_height=SCREEN_HEIGHT,
         )
 
         # Claim the root spot
@@ -972,8 +968,6 @@ class SimulationEngine(BaseSimulator):
                     environment,
                     food_x,
                     food_y,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
             else:
                 # Use food pool for regular food (performance optimization)
@@ -984,8 +978,6 @@ class SimulationEngine(BaseSimulator):
                     y=0,
                     source_plant=None,
                     allow_stationary_types=False,
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
             self.add_entity(food)
 
@@ -1035,8 +1027,10 @@ class SimulationEngine(BaseSimulator):
             genome = Genome.random(use_algorithm=True, rng=self.rng)
 
         # Random spawn position (avoid edges)
-        x = self.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
-        y = self.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
+        bounds = self.environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+        x = self.rng.randint(int(min_x) + SPAWN_MARGIN_PIXELS, int(max_x) - SPAWN_MARGIN_PIXELS)
+        y = self.rng.randint(int(min_y) + SPAWN_MARGIN_PIXELS, int(max_y) - SPAWN_MARGIN_PIXELS)
 
         # Create the new fish
         new_fish = entities.Fish(
@@ -1049,8 +1043,6 @@ class SimulationEngine(BaseSimulator):
             genome=genome,
             generation=0,  # Reset generation for emergency spawns
             ecosystem=self.ecosystem,
-            screen_width=SCREEN_WIDTH,
-            screen_height=SCREEN_HEIGHT,
         )
         new_fish.register_birth()
         self.lifecycle_system.record_emergency_spawn()

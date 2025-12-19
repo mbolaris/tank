@@ -21,8 +21,6 @@ def _make_fish(fish_id: int):
         generation=1,
         fish_id=fish_id,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
     )
 
 

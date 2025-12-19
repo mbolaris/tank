@@ -16,6 +16,7 @@ from core.genetics import Genome
 
 if TYPE_CHECKING:
     from core.environment import Environment
+    from core.world import World
 
 
 class Crab(Agent):
@@ -23,12 +24,10 @@ class Crab(Agent):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: "World",
         genome: Optional["Genome"] = None,
         x: float = 100,
         y: float = 550,
-        screen_width: int = 800,
-        screen_height: int = 600,
     ) -> None:
         """Initialize a crab."""
         # Crabs are slower and less aggressive now
@@ -36,7 +35,7 @@ class Crab(Agent):
         base_speed = 1.5  # Much slower than before (was 2)
         speed = base_speed * self.genome.speed_modifier
 
-        super().__init__(environment, x, y, speed, screen_width, screen_height)
+        super().__init__(environment, x, y, speed)
 
         self.is_predator = True
 

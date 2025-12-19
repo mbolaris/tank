@@ -43,8 +43,6 @@ def test_poker_energy_transfer():
         generation=1,
         fish_id=1,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
     )
     # Set fish1 to 80% of max energy (typical starting point for tests)
     initial_energy_fish1 = fish1.max_energy * 0.8
@@ -61,8 +59,6 @@ def test_poker_energy_transfer():
         generation=1,
         fish_id=2,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
     )
     # Set fish2 to 80% of max energy
     initial_energy_fish2 = fish2.max_energy * 0.8
@@ -215,12 +211,9 @@ def test_multiple_poker_games():
             generation=1,
             fish_id=i * 2 + 1,
             ecosystem=None,
-            screen_width=800,
-            screen_height=600,
         )
         # Use 80% of max energy as initial energy (respects energy caps)
-        initial_energy = fish1.max_energy * 0.8
-        fish1.energy = initial_energy
+        fish1.energy = fish1.max_energy * 0.8
 
         fish2 = Fish(
             environment=None,
@@ -233,8 +226,6 @@ def test_multiple_poker_games():
             generation=1,
             fish_id=i * 2 + 2,
             ecosystem=None,
-            screen_width=800,
-            screen_height=600,
         )
         fish2.energy = fish2.max_energy * 0.8
 
@@ -325,8 +316,6 @@ def test_poker_result_fields():
         generation=1,
         fish_id=1,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
     )
     # Use 80% of max energy (respects energy caps)
     fish1.energy = fish1.max_energy * 0.8
@@ -343,8 +332,6 @@ def test_poker_result_fields():
         generation=1,
         fish_id=2,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
     )
     fish2.energy = fish2.max_energy * 0.8
     initial_energy_fish2 = fish2.energy

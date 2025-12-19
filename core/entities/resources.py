@@ -21,6 +21,7 @@ from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.environment import Environment
+    from core.world import World
 
 class Plant(Agent):
     """A plant entity that produces food over time (pure logic, no rendering).
@@ -34,24 +35,20 @@ class Plant(Agent):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: "World",
         plant_type: int,
         x: float = 100,
         y: float = 400,
-        screen_width: int = 800,
-        screen_height: int = 600,
     ) -> None:
         """Initialize a plant.
 
         Args:
-            environment: The environment the plant lives in
+            environment: The world the plant lives in
             plant_type: Type of plant (1, 2, etc.)
             x: Initial x position
             y: Initial y position
-            screen_width: Width of simulation area
-            screen_height: Height of simulation area
         """
-        super().__init__(environment, x, y, 0, screen_width, screen_height)
+        super().__init__(environment, x, y, 0)
         self.plant_type: int = plant_type
 
         # Food production
@@ -150,16 +147,18 @@ class Plant(Agent):
                 self.pos.y,  # Top of plant
                 source_plant=self,
                 food_type="nectar",
-                screen_width=self.screen_width,
-                screen_height=self.screen_height,
             )
             anchor_x = self.pos.x + self.width / 2 - food.width / 2
             anchor_y = self.pos.y - food.height
             food.pos.update(anchor_x, anchor_y)
             return food
 
+        # Get boundaries from environment (World protocol)
+        bounds = self.environment.get_bounds()
+        (min_x, _), (max_x, _) = bounds
+
         # All other food falls from top of tank
-        food_x = random.randint(0, self.screen_width)
+        food_x = random.randint(int(min_x), int(max_x))
         food_y = 0  # Top of tank
 
         return Food(
@@ -167,8 +166,6 @@ class Plant(Agent):
             food_x,
             food_y,
             source_plant=self,
-            screen_width=self.screen_width,
-            screen_height=self.screen_height,
         )
 
     def notify_food_eaten(self) -> None:
@@ -218,27 +215,23 @@ class Food(Agent):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: "World",
         x: float,
         y: float,
         source_plant: Optional["Plant"] = None,
         food_type: Optional[str] = None,
         allow_stationary_types: bool = True,
-        screen_width: int = 800,
-        screen_height: int = 600,
         speed: float = 0.0,
     ) -> None:
         """Initialize a food item.
 
         Args:
-            environment: The environment the food lives in
+            environment: The world the food lives in
             x: Initial x position
             y: Initial y position
             source_plant: Optional plant that produced this food
             food_type: Type of food (random if None)
             allow_stationary_types: Whether to allow stationary food types
-            screen_width: Width of simulation area
-            screen_height: Height of simulation area
         """
         # Select random food type based on rarity if not specified
         if food_type is None:
@@ -250,7 +243,7 @@ class Food(Agent):
         self.food_properties = self.FOOD_TYPES[food_type]
         self.is_stationary: bool = self.food_properties.get("stationary", False)
 
-        super().__init__(environment, x, y, speed, screen_width, screen_height)
+        super().__init__(environment, x, y, speed)
         self.source_plant: Optional[Plant] = source_plant
 
         # Energy tracking for partial consumption
@@ -347,11 +340,9 @@ class LiveFood(Food):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: "World",
         x: float,
         y: float,
-        screen_width: int = 800,
-        screen_height: int = 600,
         speed: float = 1.5,
         max_lifespan: int = 900,  # 30 seconds at 30fps
     ) -> None:
@@ -362,8 +353,6 @@ class LiveFood(Food):
             source_plant=None,
             food_type="live",
             allow_stationary_types=False,
-            screen_width=screen_width,
-            screen_height=screen_height,
             speed=speed,
         )
         # BALANCE: Reduced max_speed to 1.4 so average fish (speed ~1.87) can reliably catch it

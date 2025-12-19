@@ -33,8 +33,6 @@ class FoodPool:
         y: float,
         source_plant=None,
         allow_stationary_types: bool = True,
-        screen_width: int = 800,
-        screen_height: int = 600,
     ) -> Food:
         """Get a Food object from the pool or create a new one.
 
@@ -72,8 +70,6 @@ class FoodPool:
                 y=y,
                 source_plant=source_plant,
                 allow_stationary_types=allow_stationary_types,
-                screen_width=screen_width,
-                screen_height=screen_height,
             )
 
         self._active.add(food)

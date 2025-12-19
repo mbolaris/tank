@@ -29,8 +29,6 @@ def test_restore_snapshot_infers_missing_type_for_fractal_plants() -> None:
         root_spot=spot,
         initial_energy=42.0,
         ecosystem=source.engine.ecosystem,
-        screen_width=source.config.screen_width,
-        screen_height=source.config.screen_height,
     )
     spot.claim(plant)
     source.engine.add_entity(plant)

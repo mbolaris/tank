@@ -46,8 +46,6 @@ def _make_fish(env, fish_id: int, ecosystem):
         generation=1,
         fish_id=fish_id,
         ecosystem=ecosystem,
-        screen_width=800,
-        screen_height=600,
     )
 
 

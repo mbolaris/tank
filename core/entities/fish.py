@@ -1,8 +1,6 @@
-"""Fish entity logic and genetics handling."""
-
 import logging
 import random
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 from core.constants import (
     DIRECTION_CHANGE_ENERGY_BASE,
@@ -36,6 +34,7 @@ if TYPE_CHECKING:
     from core.environment import Environment
     from core.genetics import Genome
     from core.movement_strategy import MovementStrategy
+    from core.world import World
 
 # Runtime imports (moved from local scopes)
 from core.behavioral_learning import BehavioralLearningSystem
@@ -66,7 +65,7 @@ class Fish(Agent):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: "World",
         movement_strategy: "MovementStrategy",
         species: str,
         x: float,
@@ -76,8 +75,6 @@ class Fish(Agent):
         generation: int = 0,
         fish_id: Optional[int] = None,
         ecosystem: Optional["EcosystemManager"] = None,
-        screen_width: int = 800,
-        screen_height: int = 600,
         initial_energy: Optional[float] = None,
         parent_id: Optional[int] = None,
         skip_birth_recording: bool = False,
@@ -85,7 +82,7 @@ class Fish(Agent):
         """Initialize a fish with genetics and life systems.
 
         Args:
-            environment: The environment the fish lives in
+            environment: The world the fish lives in
             movement_strategy: Movement behavior strategy
             species: Species identifier (e.g., 'fish1.png')
             x: Initial x position
@@ -95,8 +92,6 @@ class Fish(Agent):
             generation: Generation number
             fish_id: Unique ID (assigned by ecosystem if None)
             ecosystem: Ecosystem manager for tracking
-            screen_width: Width of simulation area
-            screen_height: Height of simulation area
             initial_energy: Override initial energy (for reproduction energy transfer)
         """
         if genome is not None:
@@ -218,7 +213,7 @@ class Fish(Agent):
         if modified_speed > max_allowed_speed:
             modified_speed = max_allowed_speed
 
-        super().__init__(environment, x, y, modified_speed, screen_width, screen_height)
+        super().__init__(environment, x, y, modified_speed)
 
         # Store parent ID for delayed registration
         self.parent_id = parent_id
@@ -577,8 +572,6 @@ class Fish(Agent):
                 x=self.pos.x + random.uniform(-20, 20),
                 y=self.pos.y + random.uniform(-20, 20),
                 food_type="energy",  # Use energy type for overflow
-                screen_width=self.screen_width,
-                screen_height=self.screen_height,
             )
             # Set food energy to match overflow
             food.energy = min(overflow, food.max_energy)
@@ -924,6 +917,10 @@ class Fish(Agent):
         if self.ecosystem is not None:
             self.ecosystem.record_reproduction_energy(parent_transfer, baby_initial_energy)
 
+        # Get boundaries from environment (World protocol)
+        bounds = self.environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+
         # Create offspring near parent
         offset_x = random.uniform(-30, 30)
         offset_y = random.uniform(-30, 30)
@@ -931,8 +928,8 @@ class Fish(Agent):
         baby_y = self.pos.y + offset_y
 
         # Clamp to screen
-        baby_x = max(0, min(self.screen_width - 50, baby_x))
-        baby_y = max(0, min(self.screen_height - 50, baby_y))
+        baby_x = max(min_x, min(max_x - 50, baby_x))
+        baby_y = max(min_y, min(max_y - 50, baby_y))
 
         # Create baby fish with transferred energy
         # Baby gets exactly the energy transferred from parent
@@ -946,8 +943,6 @@ class Fish(Agent):
             genome=offspring_genome,
             generation=self.generation + 1,
             ecosystem=self.ecosystem,
-            screen_width=self.screen_width,
-            screen_height=self.screen_height,
             initial_energy=baby_initial_energy,  # Baby gets bank + transferred energy
             parent_id=self.fish_id,  # Track lineage for phylogenetic tree
         )
@@ -978,24 +973,33 @@ class Fish(Agent):
 
         For connected tanks, attempts migration when hitting left/right boundaries.
         """
+        from core.constants import FISH_TOP_MARGIN
+
+        # Get boundaries from environment (World protocol)
+        bounds = self.environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+
+        # Adjusted top boundary for energy bar visibility
+        adjusted_min_y = max(min_y, FISH_TOP_MARGIN)
+
         # Horizontal boundaries - check for migration first, then bounce
-        if self.pos.x < 0:
+        if self.pos.x < min_x:
             if self._attempt_migration("left"):
                 return  # Migration successful, fish removed from this tank
-            self.pos.x = 0
+            self.pos.x = min_x
             self.vel.x = abs(self.vel.x)  # Bounce right
-        elif self.pos.x + self.width > self.screen_width:
+        elif self.pos.x + self.width > max_x:
             if self._attempt_migration("right"):
                 return  # Migration successful, fish removed from this tank
-            self.pos.x = self.screen_width - self.width
+            self.pos.x = max_x - self.width
             self.vel.x = -abs(self.vel.x)  # Bounce left
 
         # Vertical boundaries with top margin for energy bar visibility
-        if self.pos.y < FISH_TOP_MARGIN:
-            self.pos.y = FISH_TOP_MARGIN
+        if self.pos.y < adjusted_min_y:
+            self.pos.y = adjusted_min_y
             self.vel.y = abs(self.vel.y)  # Bounce down
-        elif self.pos.y + self.height > self.screen_height:
-            self.pos.y = self.screen_height - self.height
+        elif self.pos.y + self.height > max_y:
+            self.pos.y = max_y - self.height
             self.vel.y = -abs(self.vel.y)  # Bounce up
 
     def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":

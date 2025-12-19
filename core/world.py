@@ -83,6 +83,46 @@ class World(Protocol):
             List of agents of the specified type within radius
         """
         ...
+
+    def nearby_evolving_agents(self, agent: "Agent", radius: float) -> List["Agent"]:
+        """Find evolving agents (entities that can reproduce) within radius.
+        
+        This is a generic query for primary simulation entities.
+        In the fish tank domain, this returns Fish.
+        
+        Args:
+            agent: The agent to search around
+            radius: Search radius
+            
+        Returns:
+            List of evolving agents within radius
+        """
+        ...
+
+    def nearby_resources(self, agent: "Agent", radius: float) -> List["Agent"]:
+        """Find consumable resources within radius.
+        
+        This is a generic query for resource entities.
+        In the fish tank domain, this returns Food.
+        
+        Args:
+            agent: The agent to search around
+            radius: Search radius
+            
+        Returns:
+            List of resource agents within radius
+        """
+        ...
+
+    # --- Backward Compatibility Aliases (Domain-Specific) ---
+
+    def nearby_fish(self, agent: "Agent", radius: float) -> List["Agent"]:
+        """Alias for nearby_evolving_agents(). Prefer generic name for new code."""
+        ...
+
+    def nearby_food(self, agent: "Agent", radius: float) -> List["Agent"]:
+        """Alias for nearby_resources(). Prefer generic name for new code."""
+        ...
     
     def get_agents_of_type(self, agent_type: Type["Agent"]) -> List["Agent"]:
         """Get all agents of a specific type in the environment.

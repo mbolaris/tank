@@ -43,8 +43,6 @@ def test_reproduction_threshold_logic():
         generation=1,
         fish_id=1,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
         initial_energy=50.0,  # 50% energy
     )
 
@@ -119,8 +117,6 @@ def test_proximity_vs_poker_reproduction():
         generation=1,
         fish_id=1,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
         initial_energy=50.0,
     )
 
@@ -135,8 +131,6 @@ def test_proximity_vs_poker_reproduction():
         generation=1,
         fish_id=2,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
         initial_energy=50.0,
     )
 
@@ -267,8 +261,8 @@ def test_energy_threshold_comparison():
             generation=1,
             fish_id=1,
             ecosystem=None,
-            screen_width=800,
-            screen_height=600,
+    
+    
             initial_energy=50.0,
         )
 
@@ -307,8 +301,6 @@ def test_realistic_scenario():
         generation=1,
         fish_id=1,
         ecosystem=None,
-        screen_width=800,
-        screen_height=600,
         initial_energy=50.0,
     )
 

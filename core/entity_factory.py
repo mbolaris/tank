@@ -67,8 +67,6 @@ def create_initial_population(
             genome=genome,
             generation=0,
             ecosystem=ecosystem,
-            screen_width=screen_width,
-            screen_height=screen_height,
         )
         fish.register_birth()
         population.append(fish)
@@ -96,14 +94,12 @@ def create_initial_population(
             source_plant=None,
             food_type=None,  # Random type
             allow_stationary_types=False,  # No stationary food at startup
-            screen_width=screen_width,
-            screen_height=screen_height,
         )
         initial_food.append(food)
 
     # Create crab and castle
-    crab = entities.Crab(env, None, *INIT_POS["crab"], screen_width, screen_height)
-    castle = entities.Castle(env, *INIT_POS["castle"], screen_width, screen_height)
+    crab = entities.Crab(env, None, *INIT_POS["crab"])
+    castle = entities.Castle(env, *INIT_POS["castle"])
 
     # Add all non-fish entities
     population.extend(initial_food + [crab, castle])

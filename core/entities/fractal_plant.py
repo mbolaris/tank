@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.environment import Environment
     from core.root_spots import RootSpot
+    from core.world import World
 
 
 # Plant lifecycle constants (can be moved to constants.py later)
@@ -65,23 +66,19 @@ class FractalPlant(Agent):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: "World",
         genome: PlantGenome,
         root_spot: "RootSpot",
         initial_energy: float = FRACTAL_PLANT_INITIAL_ENERGY,
         ecosystem: Optional["EcosystemManager"] = None,
-        screen_width: int = 800,
-        screen_height: int = 600,
     ) -> None:
         """Initialize a fractal plant.
 
         Args:
-            environment: The environment the plant lives in
+            environment: The world the plant lives in
             genome: The plant's genetic information
             root_spot: The root spot this plant grows from
             initial_energy: Starting energy level
-            screen_width: Width of simulation area
-            screen_height: Height of simulation area
         """
         # Initialize at the root spot position
         super().__init__(
@@ -89,8 +86,6 @@ class FractalPlant(Agent):
             root_spot.x,
             root_spot.y,
             0,  # Plants don't move
-            screen_width,
-            screen_height,
         )
 
         # Assign unique ID
@@ -326,8 +321,6 @@ class FractalPlant(Agent):
             x=nectar_x,
             y=nectar_y,
             source_plant=self,
-            screen_width=self.screen_width,
-            screen_height=self.screen_height,
             relative_y_offset_pct=relative_y_offset_pct,
         )
 
@@ -577,12 +570,10 @@ class PlantNectar(Food):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: "World",
         x: float,
         y: float,
         source_plant: FractalPlant,
-        screen_width: int = 800,
-        screen_height: int = 600,
         relative_y_offset_pct: float = 0.20,
     ) -> None:
         """Initialize plant nectar.
@@ -592,8 +583,6 @@ class PlantNectar(Food):
             x: X position
             y: Y position
             source_plant: The plant that produced this
-            screen_width: Screen width
-            screen_height: Screen height
             relative_y_offset_pct: Vertical offset from top as percentage of height (0.0-1.0)
         """
         super().__init__(
@@ -603,8 +592,6 @@ class PlantNectar(Food):
             source_plant=source_plant,
             food_type="nectar",
             allow_stationary_types=True,
-            screen_width=screen_width,
-            screen_height=screen_height,
         )
 
         self.source_plant = source_plant

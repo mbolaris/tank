@@ -60,6 +60,9 @@ class MiniEnvironment:
         self.height = height
         self.agents: List[Fish] = []
 
+    def get_bounds(self):
+        return (0.0, 0.0), (float(self.width), float(self.height))
+
     def nearby_agents_by_type(self, agent: Fish, radius: float, agent_class):
         """Return all other fish; spatial math is unnecessary for this test."""
         return [other for other in self.agents if other is not agent and isinstance(other, agent_class)]
@@ -99,8 +102,6 @@ def _make_adult_fish(env: MiniEnvironment, ecosystem: MiniEcosystem, *, generati
         speed=2.0,
         generation=generation,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
         initial_energy=None,
     )
     # Fast-forward to a reproducing adult with plenty of energy

@@ -597,8 +597,10 @@ class PokerInteraction:
         baby_y += random.uniform(-BABY_POSITION_RANDOM_RANGE, BABY_POSITION_RANDOM_RANGE)
 
         # Clamp to screen
-        baby_x = max(0, min(winner_fish.screen_width - BABY_SPAWN_MARGIN, baby_x))
-        baby_y = max(0, min(winner_fish.screen_height - BABY_SPAWN_MARGIN, baby_y))
+        bounds = winner_fish.environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+        baby_x = max(min_x, min(max_x - BABY_SPAWN_MARGIN, baby_x))
+        baby_y = max(min_y, min(max_y - BABY_SPAWN_MARGIN, baby_y))
 
         # Create baby fish with energy from winner parent
         from core.entities import Fish
@@ -613,8 +615,7 @@ class PokerInteraction:
             genome=offspring_genome,
             generation=max(winner_fish.generation, loser_fish.generation) + 1,
             ecosystem=winner_fish.ecosystem,
-            screen_width=winner_fish.screen_width,
-            screen_height=winner_fish.screen_height,
+
             initial_energy=baby_initial_energy,
             parent_id=winner_fish.fish_id,  # Track lineage for phylogenetic tree
         )

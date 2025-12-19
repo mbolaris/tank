@@ -194,15 +194,16 @@ class FoodSpawningSystem(BaseSystem):
 
     def _spawn_live_food(self, environment: "Environment") -> None:
         """Spawn a live food entity."""
-        x = self.rng.randint(0, SCREEN_WIDTH)
-        y = self.rng.randint(0, SCREEN_HEIGHT)
+        bounds = environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+
+        x = self.rng.randint(int(min_x), int(max_x))
+        y = self.rng.randint(int(min_y), int(max_y))
 
         food = entities.LiveFood(
             environment,
             x,
             y,
-            screen_width=SCREEN_WIDTH,
-            screen_height=SCREEN_HEIGHT,
         )
         self.engine.add_entity(food)
         self._live_food_spawned_count += 1
@@ -210,7 +211,10 @@ class FoodSpawningSystem(BaseSystem):
 
     def _spawn_regular_food(self, environment: "Environment") -> None:
         """Spawn regular food using object pool."""
-        x = self.rng.randint(0, SCREEN_WIDTH)
+        bounds = environment.get_bounds()
+        (min_x, _), (max_x, _) = bounds
+
+        x = self.rng.randint(int(min_x), int(max_x))
 
         food = self.engine.food_pool.acquire(
             environment=environment,
@@ -218,8 +222,6 @@ class FoodSpawningSystem(BaseSystem):
             y=0,  # Spawn at top
             source_plant=None,
             allow_stationary_types=False,
-            screen_width=SCREEN_WIDTH,
-            screen_height=SCREEN_HEIGHT,
         )
         self.engine.add_entity(food)
         self._food_spawned_count += 1

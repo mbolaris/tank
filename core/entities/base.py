@@ -18,12 +18,10 @@ class EntityUpdateResult:
 
 from core.constants import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE, DEFAULT_AGENT_SIZE
 from core.math_utils import Vector2
+from core.world import World
 
 # Import LifeStage from state_machine for centralized definition with transition validation
 from core.state_machine import LifeStage  # noqa: F401 - re-exported
-
-if TYPE_CHECKING:
-    from core.environment import Environment
 
 
 class Rect:
@@ -74,20 +72,18 @@ class Agent:
     """Base class for all entities in the simulation (pure logic, no rendering)."""
 
     def __init__(
-        self, environment: "Environment", *args, screen_width: int = 800, screen_height: int = 600
+        self, environment: World, *args
     ) -> None:
         """Initialize an agent.
 
         Args:
-            environment: The environment the agent lives in
+            environment: The world the agent lives in
             *args: Either (x, y, speed) or (images, x, y, speed) for backward compatibility
-            screen_width: Width of the simulation area
-            screen_height: Height of the simulation area
         """
         # Handle backward compatibility with old API that included images parameter
         if len(args) == 5:
             # API with all positional: Agent(env, x, y, speed, screen_width, screen_height)
-            x, y, speed, screen_width, screen_height = args
+            x, y, speed, _, _ = args
         elif len(args) == 4:
             # Old test API: Agent(env, images, x, y, speed)
             _, x, y, speed = args
@@ -101,9 +97,7 @@ class Agent:
         self.vel: Vector2 = Vector2(speed, 0)
         self.pos: Vector2 = Vector2(x, y)
         self.avoidance_velocity: Vector2 = Vector2(0, 0)
-        self.environment: Environment = environment
-        self.screen_width: int = screen_width
-        self.screen_height: int = screen_height
+        self.environment: World = environment
 
         # Bounding box for collision detection (will be updated by size)
         self.width: float = DEFAULT_AGENT_SIZE  # Default size
@@ -146,34 +140,39 @@ class Agent:
         Entities with migration support can attempt to leave the tank on horizontal
         boundaries. Other entities just bounce.
         """
+        # Get boundaries from environment (World protocol)
+        # 2D World returns ((min_x, min_y), (max_x, max_y))
+        bounds = self.environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+
         if self.can_attempt_migration():
             # Left boundary
-            if self.pos.x < 0:
+            if self.pos.x < min_x:
                 if self._attempt_migration("left"):
                     return  # Migration successful, entity removed from this tank
-                self.pos.x = 0
+                self.pos.x = min_x
                 self.vel.x = abs(self.vel.x)  # Bounce right
             # Right boundary
-            elif self.pos.x + self.width > self.screen_width:
+            elif self.pos.x + self.width > max_x:
                 if self._attempt_migration("right"):
                     return  # Migration successful, entity removed from this tank
-                self.pos.x = self.screen_width - self.width
+                self.pos.x = max_x - self.width
                 self.vel.x = -abs(self.vel.x)  # Bounce left
         else:
             # Non-migrating entities just bounce
-            if self.pos.x < 0:
-                self.pos.x = 0
+            if self.pos.x < min_x:
+                self.pos.x = min_x
                 self.vel.x = abs(self.vel.x)
-            elif self.pos.x + self.width > self.screen_width:
-                self.pos.x = self.screen_width - self.width
+            elif self.pos.x + self.width > max_x:
+                self.pos.x = max_x - self.width
                 self.vel.x = -abs(self.vel.x)
 
         # Vertical boundaries - always bounce (no migration)
-        if self.pos.y < 0:
-            self.pos.y = 0
+        if self.pos.y < min_y:
+            self.pos.y = min_y
             self.vel.y = abs(self.vel.y)  # Bounce down
-        elif self.pos.y + self.height > self.screen_height:
-            self.pos.y = self.screen_height - self.height
+        elif self.pos.y + self.height > max_y:
+            self.pos.y = max_y - self.height
             self.vel.y = -abs(self.vel.y)  # Bounce up
 
     def can_attempt_migration(self) -> bool:
@@ -307,22 +306,18 @@ class Castle(Agent):
 
     def __init__(
         self,
-        environment: "Environment",
+        environment: World,
         x: float = 375,
         y: float = 475,
-        screen_width: int = 800,
-        screen_height: int = 600,
     ) -> None:
         """Initialize a castle.
 
         Args:
-            environment: The environment the castle lives in
+            environment: The world the castle lives in
             x: Initial x position
             y: Initial y position
-            screen_width: Width of simulation area
-            screen_height: Height of simulation area
         """
-        super().__init__(environment, x, y, 0, screen_width, screen_height)
+        super().__init__(environment, x, y, 0)
         self.blocks_root_spots = True
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
         # Use set_size to keep the collision rect in sync

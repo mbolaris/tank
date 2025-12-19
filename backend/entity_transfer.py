@@ -498,8 +498,6 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             generation=data["generation"],
             fish_id=None,  # Will get new ID in target tank
             ecosystem=target_world.engine.ecosystem,
-            screen_width=target_world.config.screen_width,
-            screen_height=target_world.config.screen_height,
             initial_energy=data["energy"],
             parent_id=data.get("parent_id"),
             skip_birth_recording=True,  # Prevent phantom "soup_spawn" stats
@@ -612,8 +610,6 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             root_spot=root_spot,
             initial_energy=data["energy"],
             ecosystem=getattr(target_world.engine, "ecosystem", None),
-            screen_width=getattr(target_world.engine, 'screen_width', 800),
-            screen_height=getattr(target_world.engine, 'screen_height', 600),
         )
 
         # Claim the spot for this plant (may race with concurrent sprouting/migration).

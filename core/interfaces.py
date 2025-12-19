@@ -18,6 +18,8 @@ Use isinstance() checks with @runtime_checkable protocols:
 
 from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
 
+from core.world import World
+
 # Explicit public API for this module
 __all__ = [
     # Entity capability protocols
@@ -65,35 +67,6 @@ class EnergyHolder(Protocol):
 
 
 @runtime_checkable
-class PokerPlayer(Protocol):
-    """Any entity that can participate in poker games."""
-
-    @property
-    def energy(self) -> float:
-        """Current energy level."""
-        ...
-
-    def modify_energy(self, amount: float) -> None:
-        """Modify the entity's energy."""
-        ...
-
-    @property
-    def pos(self) -> Any:
-        """Position vector with x and y attributes."""
-        ...
-
-    @property
-    def width(self) -> float:
-        """Entity width for collision/proximity detection."""
-        ...
-
-    @property
-    def height(self) -> float:
-        """Entity height for collision/proximity detection."""
-        ...
-
-
-@runtime_checkable
 class Positionable(Protocol):
     """Any entity with a position in 2D space."""
 
@@ -111,6 +84,16 @@ class Positionable(Protocol):
     def height(self) -> float:
         """Entity height."""
         ...
+
+
+@runtime_checkable
+class PokerPlayer(EnergyHolder, Positionable, Protocol):
+    """Any entity that can participate in poker games.
+    
+    This protocol is a composition of EnergyHolder and Positionable,
+    as poker players need both to manage bets and proximity.
+    """
+    ...
 
 
 @runtime_checkable
@@ -193,41 +176,17 @@ class EntityManager(Protocol):
         ...
 
 
-class SpatialQuery(Protocol):
+@runtime_checkable
+class SpatialQuery(World, Protocol):
     """Interface for spatial queries in the environment.
     
     Generic method names are preferred for new code. Domain-specific aliases
     (nearby_fish, nearby_food) are maintained for backward compatibility.
+    
+    This protocol is now a specialized view of the World interface.
+    Use World protocol for new code.
     """
-
-    def nearby_agents(self, entity: "Agent", radius: float) -> List["Agent"]:
-        """Find all agents within radius of entity."""
-        ...
-
-    def nearby_evolving_agents(self, entity: "Agent", radius: float) -> List[Any]:
-        """Find evolving agents (entities that can reproduce) within radius.
-        
-        In the fish tank domain, this returns Fish. In other domains,
-        it would return the equivalent evolving entity type.
-        """
-        ...
-
-    def nearby_resources(self, entity: "Agent", radius: float) -> List[Any]:
-        """Find consumable resources within radius.
-        
-        In the fish tank domain, this returns Food. In other domains,
-        it would return the equivalent resource type.
-        """
-        ...
-
-    # Backward compatibility aliases (domain-specific names)
-    def nearby_fish(self, entity: "Agent", radius: float) -> List[Any]:
-        """Alias for nearby_evolving_agents(). Prefer generic name for new code."""
-        ...
-
-    def nearby_food(self, entity: "Agent", radius: float) -> List[Any]:
-        """Alias for nearby_resources(). Prefer generic name for new code."""
-        ...
+    ...
 
 
 class FoodSpawner(Protocol):

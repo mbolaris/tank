@@ -69,8 +69,6 @@ def test_fractal_plant_transfer_round_trip() -> None:
         root_spot=spot,
         initial_energy=42.0,
         ecosystem=source.engine.ecosystem,
-        screen_width=source.config.screen_width,
-        screen_height=source.config.screen_height,
     )
     spot.claim(plant)
     source.engine.add_entity(plant)

@@ -19,6 +19,9 @@ class _EnvStub:
         self.height = height
         self.agents = []
 
+    def get_bounds(self):
+        return (0.0, 0.0), (float(self.width), float(self.height))
+
 
 class _RootSpotStub:
     def __init__(self, x: float = 100.0, y: float = 550.0, spot_id: int = 12) -> None:
@@ -45,8 +48,6 @@ def test_skill_game_records_energy_transfer(simulation_env):
         y=100,
         speed=2.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
     fish2 = Fish(
         environment=env,
@@ -56,8 +57,6 @@ def test_skill_game_records_energy_transfer(simulation_env):
         y=100,
         speed=2.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
 
     fish1.energy = fish1.max_energy * 0.4
@@ -96,8 +95,6 @@ def test_single_player_skill_game_records_energy_delta(simulation_env):
         y=100,
         speed=2.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
 
     fish.energy = fish.max_energy * 0.2
@@ -143,8 +140,6 @@ def test_post_poker_reproduction_records_energy_transfer(monkeypatch, simulation
         y=100,
         speed=2.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
     fish2 = Fish(
         environment=env,
@@ -154,8 +149,6 @@ def test_post_poker_reproduction_records_energy_transfer(monkeypatch, simulation
         y=100,
         speed=2.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
     env.agents = [fish1, fish2]
 
@@ -188,8 +181,6 @@ def test_poker_settlement_does_not_double_count_house_cut(simulation_env):
         y=100,
         speed=2.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
     fish2 = Fish(
         environment=env,
@@ -199,8 +190,6 @@ def test_poker_settlement_does_not_double_count_house_cut(simulation_env):
         y=100,
         speed=2.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
     fish1.energy = fish1.max_energy
     fish2.energy = fish2.max_energy
@@ -230,8 +219,6 @@ def test_fractal_plant_records_energy_gains_and_spends(simulation_env):
         root_spot=spot,
         initial_energy=1.0,
         ecosystem=ecosystem,
-        screen_width=env.width,
-        screen_height=env.height,
     )
 
     before_energy = plant.energy
