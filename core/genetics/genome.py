@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 from core.evolution.inheritance import inherit_learned_behaviors
-from core.genetics.behavioral import BehavioralTraits
+from core.genetics.behavioral import BehavioralTraits, DEFAULT_MATE_PREFERENCES
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
 from core.genetics.reproduction import ReproductionParams
@@ -394,7 +394,8 @@ class Genome:
     def calculate_mate_compatibility(self, other: "Genome") -> float:
         """Calculate compatibility score with potential mate (0.0-1.0)."""
         compatibility = 0.0
-        preferences = self.behavioral.mate_preferences.value
+        preferences = dict(DEFAULT_MATE_PREFERENCES)
+        preferences.update(self.behavioral.mate_preferences.value)
 
         # Size similarity preference
         size_diff = abs(

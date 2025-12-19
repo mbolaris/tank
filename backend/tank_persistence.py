@@ -233,8 +233,6 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                         environment=target_world.engine.environment,
                         x=x,
                         y=y,
-                        screen_width=target_world.engine.environment.width,
-                        screen_height=target_world.engine.environment.height,
                     )
                 else:
                     # Regular stationary food
@@ -251,15 +249,12 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
 
             elif entity_type == "castle":
                 # Restore castle
-                from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
                 from core.entities.base import Castle
 
                 castle = Castle(
                     environment=target_world.engine.environment,
                     x=entity_data["x"],
                     y=entity_data["y"],
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
                 # Restore size if it was saved
                 if "width" in entity_data and "height" in entity_data:
@@ -269,7 +264,6 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
 
             elif entity_type == "crab":
                 # Restore crab
-                from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
                 from core.entities.predators import Crab
                 from core.genetics import Genome
 
@@ -285,8 +279,6 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                     genome=genome,
                     x=entity_data["x"],
                     y=entity_data["y"],
-                    screen_width=SCREEN_WIDTH,
-                    screen_height=SCREEN_HEIGHT,
                 )
                 crab.energy = entity_data.get("energy", crab.max_energy)
                 crab.max_energy = entity_data.get("max_energy", crab.max_energy)

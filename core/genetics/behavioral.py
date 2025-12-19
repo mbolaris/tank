@@ -33,6 +33,13 @@ BEHAVIORAL_TRAIT_SPECS: List[TraitSpec] = [
     TraitSpec("asexual_reproduction_chance", 0.0, 1.0),
 ]
 
+# Default mate preferences keep keys stable across versions and inheritance.
+DEFAULT_MATE_PREFERENCES: Dict[str, float] = {
+    "prefer_similar_size": 0.5,
+    "prefer_different_color": 0.5,
+    "prefer_high_energy": 0.5,
+}
+
 
 @dataclass
 class BehavioralTraits:
@@ -81,13 +88,7 @@ class BehavioralTraits:
         traits["behavior_algorithm"] = GeneticTrait(algorithm)
         traits["poker_algorithm"] = GeneticTrait(poker_algorithm)
         traits["poker_strategy_algorithm"] = GeneticTrait(poker_strategy_algorithm)
-        traits["mate_preferences"] = GeneticTrait(
-            {
-                "prefer_similar_size": 0.5,
-                "prefer_different_color": 0.5,
-                "prefer_high_energy": 0.5,
-            }
-        )
+        traits["mate_preferences"] = GeneticTrait(dict(DEFAULT_MATE_PREFERENCES))
 
         return cls(**traits)
 
@@ -316,9 +317,11 @@ def _inherit_mate_preferences(
 ) -> Dict[str, float]:
     """Inherit mate preferences from parents."""
     result = {}
-    for pref_key in prefs1:
-        p1_val = prefs1.get(pref_key, 0.5)
-        p2_val = prefs2.get(pref_key, 0.5)
+    keys = set(DEFAULT_MATE_PREFERENCES) | set(prefs1) | set(prefs2)
+    for pref_key in keys:
+        default_val = DEFAULT_MATE_PREFERENCES.get(pref_key, 0.5)
+        p1_val = prefs1.get(pref_key, default_val)
+        p2_val = prefs2.get(pref_key, default_val)
         result[pref_key] = _inherit_trait(
             p1_val,
             p2_val,
