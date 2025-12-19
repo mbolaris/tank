@@ -19,6 +19,17 @@ from core.genetics.validation import validate_traits_from_specs
 
 logger = logging.getLogger(__name__)
 GENOME_SCHEMA_VERSION = 1
+_TEMPLATE_SPEED_BONUS = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}
+_SPEED_MODIFIER_MIN = 0.5
+_SPEED_MODIFIER_MAX = 1.5
+_METABOLISM_RATE_MIN = 0.5
+_MATE_PREF_SIZE_WEIGHT = 0.3
+_MATE_PREF_COLOR_WEIGHT = 0.3
+_MATE_PREF_DIVERSITY_WEIGHT = 0.4
+
+
+def _clamp(value: float, min_value: float, max_value: float) -> float:
+    return max(min_value, min(max_value, value))
 
 
 class GeneticCrossoverMode(Enum):
@@ -59,13 +70,11 @@ class Genome:
         if self._speed_modifier_cache is not None:
             return self._speed_modifier_cache
         template_id = self.physical.template_id.value
-        template_speed_bonus = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}.get(
-            template_id, 1.0
-        )
+        template_speed_bonus = _TEMPLATE_SPEED_BONUS.get(template_id, 1.0)
         propulsion = self.physical.fin_size.value * 0.4 + self.physical.tail_size.value * 0.6
         hydrodynamics = 1.0 - abs(self.physical.body_aspect.value - 0.8) * 0.5
         result = template_speed_bonus * propulsion * hydrodynamics
-        result = max(0.5, min(1.5, result))
+        result = _clamp(result, _SPEED_MODIFIER_MIN, _SPEED_MODIFIER_MAX)
         object.__setattr__(self, '_speed_modifier_cache', result)
         return result
 
@@ -83,7 +92,7 @@ class Genome:
         cost += (self.physical.size_modifier.value - 1.0) * 0.5
         cost += (self.speed_modifier - 1.0) * 0.8
         cost += (self.physical.eye_size.value - 1.0) * 0.3
-        result = max(0.5, cost)
+        result = max(_METABOLISM_RATE_MIN, cost)
         object.__setattr__(self, '_metabolism_rate_cache', result)
         return result
 
@@ -366,14 +375,17 @@ class Genome:
         """Calculate compatibility score with potential mate (0.0-1.0)."""
         compatibility = 0.0
         preferences = dict(DEFAULT_MATE_PREFERENCES)
-        preferences.update(self.behavioral.mate_preferences.value)
+        if isinstance(self.behavioral.mate_preferences.value, dict):
+            preferences.update(self.behavioral.mate_preferences.value)
 
         # Size similarity preference
         size_diff = abs(
             self.physical.size_modifier.value - other.physical.size_modifier.value
         )
         size_score = 1.0 - min(size_diff / 0.6, 1.0)
-        compatibility += preferences.get("prefer_similar_size", 0.5) * size_score * 0.3
+        compatibility += (
+            preferences.get("prefer_similar_size", 0.5) * size_score * _MATE_PREF_SIZE_WEIGHT
+        )
 
         # Color diversity preference
         color_diff = abs(
@@ -381,7 +393,9 @@ class Genome:
         )
         color_score = min(color_diff / 0.5, 1.0)
         compatibility += (
-            preferences.get("prefer_different_color", 0.5) * color_score * 0.3
+            preferences.get("prefer_different_color", 0.5)
+            * color_score
+            * _MATE_PREF_COLOR_WEIGHT
         )
 
         # General genetic diversity
@@ -390,7 +404,7 @@ class Genome:
             + abs(self.metabolism_rate - other.metabolism_rate)
             + abs(self.vision_range - other.vision_range)
         ) / 3.0
-        compatibility += min(trait_variance / 0.3, 1.0) * 0.4
+        compatibility += min(trait_variance / 0.3, 1.0) * _MATE_PREF_DIVERSITY_WEIGHT
 
         return min(compatibility, 1.0)
 
