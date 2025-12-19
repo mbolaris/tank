@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 from core.evolution.inheritance import inherit_learned_behaviors
-from core.genetics.behavioral import BehavioralTraits, DEFAULT_MATE_PREFERENCES
+from core.genetics.behavioral import BehavioralTraits, MATE_PREFERENCE_SPECS, normalize_mate_preferences
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
 from core.genetics.reproduction import ReproductionParams
@@ -23,13 +23,30 @@ _TEMPLATE_SPEED_BONUS = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}
 _SPEED_MODIFIER_MIN = 0.5
 _SPEED_MODIFIER_MAX = 1.5
 _METABOLISM_RATE_MIN = 0.5
-_MATE_PREF_SIZE_WEIGHT = 0.3
-_MATE_PREF_COLOR_WEIGHT = 0.3
-_MATE_PREF_DIVERSITY_WEIGHT = 0.4
+_PATTERN_INTENSITY_BASELINE = 0.5
+_PATTERN_INTENSITY_COST_WEIGHT = 0.3
 
 
 def _clamp(value: float, min_value: float, max_value: float) -> float:
     return max(min_value, min(max_value, value))
+
+
+def _normalized_similarity(
+    value: float,
+    target: float,
+    min_value: float,
+    max_value: float,
+    *,
+    circular: bool = False,
+) -> float:
+    span = max_value - min_value
+    if span <= 0:
+        return 1.0
+    diff = abs(value - target)
+    if circular:
+        diff = diff % span
+        diff = min(diff, span - diff)
+    return 1.0 - min(diff / span, 1.0)
 
 
 class GeneticCrossoverMode(Enum):
@@ -92,6 +109,9 @@ class Genome:
         cost += (self.physical.size_modifier.value - 1.0) * 0.5
         cost += (self.speed_modifier - 1.0) * 0.8
         cost += (self.physical.eye_size.value - 1.0) * 0.3
+        cost += (
+            self.physical.pattern_intensity.value - _PATTERN_INTENSITY_BASELINE
+        ) * _PATTERN_INTENSITY_COST_WEIGHT
         result = max(_METABOLISM_RATE_MIN, cost)
         object.__setattr__(self, '_metabolism_rate_cache', result)
         return result
@@ -178,9 +198,10 @@ class Genome:
     ) -> "Genome":
         """Create a random genome."""
         rng = rng or pyrandom
+        physical = PhysicalTraits.random(rng)
         return cls(
-            physical=PhysicalTraits.random(rng),
-            behavioral=BehavioralTraits.random(rng, use_algorithm),
+            physical=physical,
+            behavioral=BehavioralTraits.random(rng, use_algorithm, physical=physical),
         )
 
     @classmethod
@@ -372,41 +393,43 @@ class Genome:
     # =========================================================================
 
     def calculate_mate_compatibility(self, other: "Genome") -> float:
-        """Calculate compatibility score with potential mate (0.0-1.0)."""
-        compatibility = 0.0
-        preferences = dict(DEFAULT_MATE_PREFERENCES)
-        if isinstance(self.behavioral.mate_preferences.value, dict):
-            preferences.update(self.behavioral.mate_preferences.value)
+        """Calculate compatibility score with potential mate (0.0-1.0).
 
-        # Size similarity preference
-        size_diff = abs(
-            self.physical.size_modifier.value - other.physical.size_modifier.value
-        )
-        size_score = 1.0 - min(size_diff / 0.6, 1.0)
-        compatibility += (
-            preferences.get("prefer_similar_size", 0.5) * size_score * _MATE_PREF_SIZE_WEIGHT
+        Compatibility is based on how closely the mate matches this fish's
+        preferred physical trait values, plus a bonus for higher pattern intensity.
+        """
+        raw_prefs = self.behavioral.mate_preferences.value
+        preferences = raw_prefs if isinstance(raw_prefs, dict) else {}
+        normalized_prefs = normalize_mate_preferences(
+            preferences,
+            physical=self.physical,
         )
 
-        # Color diversity preference
-        color_diff = abs(
-            self.physical.color_hue.value - other.physical.color_hue.value
-        )
-        color_score = min(color_diff / 0.5, 1.0)
-        compatibility += (
-            preferences.get("prefer_different_color", 0.5)
-            * color_score
-            * _MATE_PREF_COLOR_WEIGHT
-        )
+        scores = []
+        weights = []
+        for trait_name, spec in MATE_PREFERENCE_SPECS.items():
+            desired = normalized_prefs[trait_name]
+            mate_value = getattr(other.physical, trait_name).value
+            score = _normalized_similarity(
+                mate_value,
+                desired,
+                spec.min_val,
+                spec.max_val,
+                circular=(trait_name == "color_hue"),
+            )
+            scores.append(score)
+            weights.append(1.0)
 
-        # General genetic diversity
-        trait_variance = (
-            abs(self.speed_modifier - other.speed_modifier)
-            + abs(self.metabolism_rate - other.metabolism_rate)
-            + abs(self.vision_range - other.vision_range)
-        ) / 3.0
-        compatibility += min(trait_variance / 0.3, 1.0) * _MATE_PREF_DIVERSITY_WEIGHT
+        pattern_weight = normalized_prefs.get("prefer_high_pattern_intensity", 0.5)
+        if pattern_weight > 0.0:
+            scores.append(_clamp(other.physical.pattern_intensity.value, 0.0, 1.0))
+            weights.append(pattern_weight)
 
-        return min(compatibility, 1.0)
+        total_weight = sum(weights)
+        if total_weight <= 0.0:
+            return 0.0
+        compatibility = sum(score * weight for score, weight in zip(scores, weights)) / total_weight
+        return min(max(compatibility, 0.0), 1.0)
 
     def get_color_tint(self) -> Tuple[int, int, int]:
         """Get RGB color tint based on genome."""

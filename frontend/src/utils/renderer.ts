@@ -5,7 +5,7 @@
 
 import type { EntityData } from '../types/simulation';
 import { ImageLoader } from './ImageLoader';
-import { getFishPath, getEyePosition, type FishParams } from './fishTemplates';
+import { getFishPath, getEyePosition, getPatternOpacity, type FishParams } from './fishTemplates';
 import {
     pruneFractalPlantCache,
     renderFractalPlant as renderFractalPlantUtil,
@@ -797,8 +797,9 @@ export class Renderer {
         ctx.stroke(path);
 
         // Draw pattern if applicable
-        if (fishParams.pattern_intensity > 0.05) {
-            this.drawFishPattern(fishParams, scaledSize, patternColor);
+        const patternOpacity = getPatternOpacity(fishParams.pattern_intensity, 0.8);
+        if (patternOpacity > 0) {
+            this.drawFishPattern(fishParams, scaledSize, patternColor, patternOpacity);
         }
 
         // Draw eye
@@ -842,11 +843,13 @@ export class Renderer {
         }
     }
 
-    private drawFishPattern(params: FishParams, baseSize: number, color: string) {
+    private drawFishPattern(params: FishParams, baseSize: number, color: string, opacity: number) {
         const { ctx } = this;
         const width = baseSize * params.body_aspect;
         const height = baseSize;
-        const opacity = params.pattern_intensity * 0.8; // Increased from 0.4 for better visibility
+        if (opacity <= 0) {
+            return;
+        }
 
         ctx.save();
         ctx.globalAlpha = opacity;

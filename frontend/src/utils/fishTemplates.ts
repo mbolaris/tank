@@ -264,6 +264,17 @@ export function getFishPath(params: FishParams, baseSize: number = 50): string {
     return templateFunctions[templateId](params, baseSize);
 }
 
+const PATTERN_INTENSITY_THRESHOLD = 0.05;
+const PATTERN_OPACITY_GAMMA = 1.6;
+
+export function getPatternOpacity(intensity: number, maxOpacity: number = 0.8): number {
+    const clamped = Math.max(0, Math.min(1, intensity));
+    if (clamped <= PATTERN_INTENSITY_THRESHOLD) {
+        return 0;
+    }
+    return Math.pow(clamped, PATTERN_OPACITY_GAMMA) * maxOpacity;
+}
+
 /**
  * Generate pattern overlay based on pattern_type and pattern_intensity
  */
@@ -272,13 +283,12 @@ export function getFishPattern(
     baseSize: number,
     baseColor: string
 ): string | null {
-    if (params.pattern_intensity < 0.05) {
-        return null; // No pattern
-    }
-
     const width = baseSize * params.body_aspect;
     const height = baseSize;
-    const opacity = params.pattern_intensity * 0.8; // Increased from 0.4
+    const opacity = getPatternOpacity(params.pattern_intensity, 0.8);
+    if (opacity <= 0) {
+        return null; // No pattern
+    }
 
     switch (params.pattern_type) {
         case 0: // Stripes

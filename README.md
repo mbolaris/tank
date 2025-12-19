@@ -434,12 +434,14 @@ MAX_FOOD_CAPACITY = 8  # per plant
 
 ### Heritable Traits
 - **Physical traits**: Speed, size, vision range, metabolism, max energy
-- **Visual traits**: Body shape, fin size, tail size, color pattern
+- **Visual traits**: Body shape, fin size, tail size, color pattern, pattern intensity
 - **Behavior algorithm**: One of 58 parametrizable algorithms (inherited from parent)
 - **Algorithm parameters**: Tunable values that control algorithm behavior
+- **Mate preferences**: Preferred mate trait values (size, color, template, fins, body aspect, eye size, pattern type) and a preference for high pattern intensity
 
 ### Mutation
 - **Trait mutations**: Small random variations in physical traits during reproduction
+- **Preference mutations**: Mate preference targets drift over generations
 - **Parameter tuning**: Algorithm parameters mutate slightly to explore nearby strategies
 - **Algorithm switching**: Rare mutations can change to a completely different algorithm
 - **Visual variations**: Color and shape traits evolve independently

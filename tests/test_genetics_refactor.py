@@ -69,6 +69,9 @@ class TestGeneticsRefactor:
         assert isinstance(behav.mate_preferences, GeneticTrait)
         assert isinstance(behav.mate_preferences.value, dict)
         assert "prefer_similar_size" in behav.mate_preferences.value
+        assert "prefer_high_pattern_intensity" in behav.mate_preferences.value
+        assert "size_modifier" in behav.mate_preferences.value
+        assert "pattern_type" in behav.mate_preferences.value
 
     def test_genome_traits(self):
         """Test that Genome trait containers expose expected values."""

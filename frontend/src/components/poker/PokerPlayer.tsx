@@ -8,7 +8,7 @@ import { ChipStack } from './PokerChip';
 import styles from './PokerPlayer.module.css';
 import cardStyles from './PlayingCard.module.css';
 import type { FishGenomeData } from '../../types/simulation';
-import { getEyePosition, getFishPath, type FishParams } from '../../utils/fishTemplates';
+import { getEyePosition, getFishPath, getPatternOpacity, type FishParams } from '../../utils/fishTemplates';
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
@@ -47,10 +47,14 @@ function renderPattern(
     params: FishParams,
     patternColor: string,
     baseSize: number,
-    gradientId: string
+    gradientId: string,
+    patternOpacity: number
 ): React.ReactNode {
+    if (patternOpacity <= 0) {
+        return null;
+    }
     const commonProps = {
-        opacity: params.pattern_intensity * 0.4,
+        opacity: patternOpacity,
         stroke: patternColor,
         fill: 'none',
         strokeWidth: 2,
@@ -67,7 +71,7 @@ function renderPattern(
             );
         case 1: // Spots
             return (
-                <g fill={patternColor} opacity={params.pattern_intensity * 0.4}>
+                <g fill={patternColor} opacity={patternOpacity}>
                     <circle cx={baseSize * 0.4} cy={baseSize * 0.35} r={3} />
                     <circle cx={baseSize * 0.6} cy={baseSize * 0.4} r={3} />
                     <circle cx={baseSize * 0.5} cy={baseSize * 0.6} r={3} />
@@ -79,7 +83,7 @@ function renderPattern(
                 <path
                     d={getFishPath(params, baseSize)}
                     fill={patternColor}
-                    opacity={params.pattern_intensity * 0.2}
+                    opacity={patternOpacity * 0.5}
                 />
             );
         case 3: // Gradient
@@ -87,7 +91,7 @@ function renderPattern(
                 <>
                     <defs>
                         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor={patternColor} stopOpacity={params.pattern_intensity * 0.4} />
+                            <stop offset="0%" stopColor={patternColor} stopOpacity={patternOpacity} />
                             <stop offset="100%" stopColor="transparent" stopOpacity={0} />
                         </linearGradient>
                     </defs>
@@ -128,13 +132,14 @@ function FishAvatar({
     const strokeColor = `hsl(${hueDegrees}deg 80% 40%)`;
     const patternColor = `hsl(${hueDegrees}deg 75% 35%)`;
     const gradientId = `fish-pattern-${fishId ?? 'ai'}`;
+    const patternOpacity = getPatternOpacity(fishParams.pattern_intensity, 0.4);
 
     return (
         <div className={styles.avatarCircle}>
             <svg viewBox={`${-padding} ${-padding} ${viewBoxSize} ${viewBoxSize}`} className={styles.avatarSvg} aria-hidden>
                 <path d={fishPath} fill={baseColor} stroke={strokeColor} strokeWidth={2} />
-                {fishParams.pattern_intensity > 0.05 &&
-                    renderPattern(fishParams, patternColor, baseSize, gradientId)}
+                {patternOpacity > 0 &&
+                    renderPattern(fishParams, patternColor, baseSize, gradientId, patternOpacity)}
                 <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius} fill="#ffffff" />
                 <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius * 0.5} fill="#0f172a" />
             </svg>

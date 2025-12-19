@@ -9,7 +9,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 from core.evolution.inheritance import inherit_algorithm
+from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
+from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.genetics.trait import (
     GeneticTrait,
     TraitSpec,
@@ -20,6 +22,7 @@ from core.genetics.trait import (
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
+    from core.genetics.physical import PhysicalTraits
 
 
 # Declarative specifications for behavioral traits (numeric only)
@@ -34,11 +37,88 @@ BEHAVIORAL_TRAIT_SPECS: List[TraitSpec] = [
 ]
 
 # Default mate preferences keep keys stable across versions and inheritance.
+# These legacy weights are retained for backward compatibility with saved genomes.
 DEFAULT_MATE_PREFERENCES: Dict[str, float] = {
     "prefer_similar_size": 0.5,
     "prefer_different_color": 0.5,
     "prefer_high_energy": 0.5,
+    "prefer_high_pattern_intensity": 0.5,
 }
+
+MATE_PREFERENCE_TRAIT_NAMES = (
+    "size_modifier",
+    "color_hue",
+    "template_id",
+    "fin_size",
+    "tail_size",
+    "body_aspect",
+    "eye_size",
+    "pattern_type",
+)
+
+MATE_PREFERENCE_SPECS: Dict[str, TraitSpec] = {
+    spec.name: spec
+    for spec in PHYSICAL_TRAIT_SPECS
+    if spec.name in MATE_PREFERENCE_TRAIT_NAMES
+}
+
+
+def _default_preference_value(spec: TraitSpec) -> float:
+    midpoint = (spec.min_val + spec.max_val) / 2.0
+    if spec.discrete:
+        return float(int(round(midpoint)))
+    return float(midpoint)
+
+
+def _coerce_preference_value(value: object, spec: TraitSpec) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        numeric = _default_preference_value(spec)
+    if spec.discrete:
+        numeric = int(round(numeric))
+        numeric = max(int(spec.min_val), min(int(spec.max_val), numeric))
+        return float(numeric)
+    numeric = max(spec.min_val, min(spec.max_val, numeric))
+    return float(numeric)
+
+
+def _default_preference_for_key(pref_key: str) -> float:
+    spec = MATE_PREFERENCE_SPECS.get(pref_key)
+    if spec is not None:
+        return _default_preference_value(spec)
+    return DEFAULT_MATE_PREFERENCES.get(pref_key, 0.5)
+
+
+def normalize_mate_preferences(
+    prefs: Dict[str, float],
+    *,
+    physical: Optional["PhysicalTraits"] = None,
+    rng: Optional[pyrandom.Random] = None,
+) -> Dict[str, float]:
+    """Normalize mate preferences by filling defaults and clamping to valid ranges."""
+    normalized: Dict[str, float] = {str(k): v for k, v in (prefs or {}).items()}
+
+    for pref_key, default_val in DEFAULT_MATE_PREFERENCES.items():
+        normalized.setdefault(pref_key, default_val)
+        if pref_key not in MATE_PREFERENCE_SPECS:
+            try:
+                numeric = float(normalized[pref_key])
+            except (TypeError, ValueError):
+                numeric = default_val
+            normalized[pref_key] = max(0.0, min(1.0, numeric))
+
+    for name, spec in MATE_PREFERENCE_SPECS.items():
+        if name not in normalized:
+            if physical is not None:
+                normalized[name] = getattr(physical, name).value
+            elif rng is not None:
+                normalized[name] = spec.random_value(rng).value
+            else:
+                normalized[name] = _default_preference_value(spec)
+        normalized[name] = _coerce_preference_value(normalized[name], spec)
+
+    return normalized
 
 
 @dataclass
@@ -61,12 +141,15 @@ class BehavioralTraits:
     poker_algorithm: GeneticTrait[Optional["BehaviorAlgorithm"]]
     poker_strategy_algorithm: GeneticTrait[Optional["PokerStrategyAlgorithm"]]
 
-    # Mate preferences (dictionary trait)
+    # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
     mate_preferences: GeneticTrait[Dict[str, float]]
 
     @classmethod
     def random(
-        cls, rng: pyrandom.Random, use_algorithm: bool = True
+        cls,
+        rng: pyrandom.Random,
+        use_algorithm: bool = True,
+        physical: Optional["PhysicalTraits"] = None,
     ) -> "BehavioralTraits":
         """Generate random behavioral traits."""
         # Generate numeric traits from specs
@@ -88,7 +171,8 @@ class BehavioralTraits:
         traits["behavior_algorithm"] = GeneticTrait(algorithm)
         traits["poker_algorithm"] = GeneticTrait(poker_algorithm)
         traits["poker_strategy_algorithm"] = GeneticTrait(poker_strategy_algorithm)
-        traits["mate_preferences"] = GeneticTrait(dict(DEFAULT_MATE_PREFERENCES))
+        mate_preferences = normalize_mate_preferences({}, physical=physical, rng=rng)
+        traits["mate_preferences"] = GeneticTrait(mate_preferences)
 
         return cls(**traits)
 
@@ -225,15 +309,21 @@ class BehavioralTraits:
         inherited["poker_strategy_algorithm"] = GeneticTrait(poker_strat_val)
 
         mate_prefs = {}
-        for pref_key in parent1.mate_preferences.value:
+        keys = (
+            set(DEFAULT_MATE_PREFERENCES)
+            | set(MATE_PREFERENCE_SPECS)
+            | set(parent1.mate_preferences.value)
+            | set(parent2.mate_preferences.value)
+        )
+        for pref_key in keys:
             pref_weight1 = 1.0 if rng.random() < parent1_probability else 0.0
-            p1_val = parent1.mate_preferences.value.get(pref_key, 0.5)
-            p2_val = parent2.mate_preferences.value.get(pref_key, 0.5)
-            mate_prefs[pref_key] = _inherit_trait(
+            default_val = _default_preference_for_key(pref_key)
+            p1_val = parent1.mate_preferences.value.get(pref_key, default_val)
+            p2_val = parent2.mate_preferences.value.get(pref_key, default_val)
+            mate_prefs[pref_key] = _inherit_mate_preference_value(
+                pref_key,
                 p1_val,
                 p2_val,
-                0.0,
-                1.0,
                 weight1=pref_weight1,
                 mutation_rate=mutation_rate,
                 mutation_strength=mutation_strength,
@@ -307,6 +397,58 @@ def _inherit_poker_strategy(
         return get_random_poker_strategy(rng=rng)
 
 
+def _inherit_mate_preference_value(
+    pref_key: str,
+    p1_val: float,
+    p2_val: float,
+    *,
+    weight1: float,
+    mutation_rate: float,
+    mutation_strength: float,
+    rng: pyrandom.Random,
+) -> float:
+    spec = MATE_PREFERENCE_SPECS.get(pref_key)
+    if spec is None:
+        legacy_spec = TraitSpec(pref_key, 0.0, 1.0)
+        p1_val = _coerce_preference_value(p1_val, legacy_spec)
+        p2_val = _coerce_preference_value(p2_val, legacy_spec)
+        return _inherit_trait(
+            float(p1_val),
+            float(p2_val),
+            0.0,
+            1.0,
+            weight1=weight1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
+
+    p1_val = _coerce_preference_value(p1_val, spec)
+    p2_val = _coerce_preference_value(p2_val, spec)
+    if spec.discrete:
+        return float(
+            _inherit_discrete_trait(
+                int(round(p1_val)),
+                int(round(p2_val)),
+                int(spec.min_val),
+                int(spec.max_val),
+                weight1=weight1,
+                mutation_rate=mutation_rate,
+                rng=rng,
+            )
+        )
+    return _inherit_trait(
+        float(p1_val),
+        float(p2_val),
+        spec.min_val,
+        spec.max_val,
+        weight1=weight1,
+        mutation_rate=mutation_rate,
+        mutation_strength=mutation_strength,
+        rng=rng,
+    )
+
+
 def _inherit_mate_preferences(
     prefs1: Dict[str, float],
     prefs2: Dict[str, float],
@@ -317,16 +459,15 @@ def _inherit_mate_preferences(
 ) -> Dict[str, float]:
     """Inherit mate preferences from parents."""
     result = {}
-    keys = set(DEFAULT_MATE_PREFERENCES) | set(prefs1) | set(prefs2)
+    keys = set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2)
     for pref_key in keys:
-        default_val = DEFAULT_MATE_PREFERENCES.get(pref_key, 0.5)
+        default_val = _default_preference_for_key(pref_key)
         p1_val = prefs1.get(pref_key, default_val)
         p2_val = prefs2.get(pref_key, default_val)
-        result[pref_key] = _inherit_trait(
+        result[pref_key] = _inherit_mate_preference_value(
+            pref_key,
             p1_val,
             p2_val,
-            0.0,
-            1.0,
             weight1=weight1,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,

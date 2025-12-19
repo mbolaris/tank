@@ -11,7 +11,7 @@ import logging
 import random as pyrandom
 from typing import Any, Callable, Dict, Optional
 
-from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, normalize_mate_preferences
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.genetics.trait import (
     apply_trait_meta_from_dict,
@@ -113,9 +113,11 @@ def genome_from_dict(
     # Mate preferences (dictionary trait)
     mate_preferences = data.get("mate_preferences")
     if isinstance(mate_preferences, dict):
-        genome.behavioral.mate_preferences.value = {
-            str(key): float(value) for key, value in mate_preferences.items()
-        }
+        normalized = normalize_mate_preferences(
+            {str(key): value for key, value in mate_preferences.items()},
+            physical=genome.physical,
+        )
+        genome.behavioral.mate_preferences.value = normalized
 
     # Evolvability metadata (mutation_rate/mutation_strength/hgt_probability)
     trait_meta = data.get("trait_meta")
