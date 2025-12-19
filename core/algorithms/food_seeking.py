@@ -18,7 +18,7 @@ This module contains 12 algorithms focused on finding and pursuing food:
 import math
 import random
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.constants import (
@@ -76,18 +76,20 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
     - hunting_stamina: How long to sustain high-speed pursuit
     """
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="greedy_food_seeker",
             parameters={
-                "speed_multiplier": random.uniform(0.7, 1.3),
-                "detection_range": random.uniform(0.5, 1.0),
+                "speed_multiplier": rng.uniform(0.7, 1.3),
+                "detection_range": rng.uniform(0.5, 1.0),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -183,19 +185,21 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 class EnergyAwareFoodSeeker(BehaviorAlgorithm):
     """Seek food more aggressively when energy is low."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="energy_aware_food_seeker",
             parameters={
-                "urgency_threshold": random.uniform(0.3, 0.7),
-                "calm_speed": random.uniform(0.3, 0.6),
-                "urgent_speed": random.uniform(0.8, 1.2),
+                "urgency_threshold": rng.uniform(0.3, 0.7),
+                "calm_speed": rng.uniform(0.3, 0.6),
+                "urgent_speed": rng.uniform(0.8, 1.2),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -267,20 +271,22 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 class OpportunisticFeeder(BehaviorAlgorithm):
     """Only pursue food if it's close enough - IMPROVED to avoid starvation."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="opportunistic_feeder",
             parameters={
-                "max_pursuit_distance": random.uniform(150, 300),  # INCREASED from 50-200
-                "speed": random.uniform(0.9, 1.3),  # INCREASED from 0.6-1.0
-                "exploration_speed": random.uniform(0.5, 0.8),  # NEW: explore when idle
+                "max_pursuit_distance": rng.uniform(150, 300),  # INCREASED from 50-200
+                "speed": rng.uniform(0.9, 1.3),  # INCREASED from 0.6-1.0
+                "exploration_speed": rng.uniform(0.5, 0.8),  # NEW: explore when idle
             },
         )
-        self.exploration_angle = random.uniform(0, 2 * math.pi)
+        self.exploration_angle = rng.uniform(0, 2 * math.pi)
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # IMPROVEMENT: Check energy state
@@ -341,18 +347,20 @@ class OpportunisticFeeder(BehaviorAlgorithm):
 class FoodQualityOptimizer(BehaviorAlgorithm):
     """Prefer high-value food types."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="food_quality_optimizer",
             parameters={
-                "quality_weight": random.uniform(0.5, 1.0),
-                "distance_weight": random.uniform(0.3, 0.7),
+                "quality_weight": rng.uniform(0.5, 1.0),
+                "distance_weight": rng.uniform(0.3, 0.7),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -482,19 +490,21 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
 class AmbushFeeder(BehaviorAlgorithm):
     """Wait in one spot for food to come close."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="ambush_feeder",
             parameters={
-                "strike_distance": random.uniform(30, 80),
-                "strike_speed": random.uniform(1.0, 1.5),
-                "patience": random.uniform(0.5, 1.0),
+                "strike_distance": rng.uniform(30, 80),
+                "strike_speed": rng.uniform(1.0, 1.5),
+                "patience": rng.uniform(0.5, 1.0),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -528,21 +538,23 @@ class AmbushFeeder(BehaviorAlgorithm):
 class PatrolFeeder(BehaviorAlgorithm):
     """Patrol in a pattern looking for food - IMPROVED with better detection."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="patrol_feeder",
             parameters={
-                "patrol_radius": random.uniform(100, 200),  # INCREASED from 50-150
-                "patrol_speed": random.uniform(0.8, 1.2),  # INCREASED from 0.5-1.0
-                "food_priority": random.uniform(1.0, 1.4),  # INCREASED from 0.6-1.0
+                "patrol_radius": rng.uniform(100, 200),  # INCREASED from 50-150
+                "patrol_speed": rng.uniform(0.8, 1.2),  # INCREASED from 0.5-1.0
+                "food_priority": rng.uniform(1.0, 1.4),  # INCREASED from 0.6-1.0
             },
         )
+        self.rng = rng
         self.patrol_center = None
-        self.patrol_angle = random.uniform(0, 2 * math.pi)
+        self.patrol_angle = rng.uniform(0, 2 * math.pi)
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # IMPROVEMENT: Check energy and predators
@@ -592,19 +604,20 @@ class PatrolFeeder(BehaviorAlgorithm):
 class SurfaceSkimmer(BehaviorAlgorithm):
     """Stay near surface to catch falling food - IMPROVED for better survival."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="surface_skimmer",
             parameters={
-                "preferred_depth": random.uniform(0.1, 0.25),  # 10-25% from top
-                "horizontal_speed": random.uniform(0.8, 1.3),  # INCREASED from 0.5-1.0
-                "dive_for_food_threshold": random.uniform(150, 250),  # NEW: will dive for food
+                "preferred_depth": rng.uniform(0.1, 0.25),  # 10-25% from top
+                "horizontal_speed": rng.uniform(0.8, 1.3),  # INCREASED from 0.5-1.0
+                "dive_for_food_threshold": rng.uniform(150, 250),  # NEW: will dive for food
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # IMPROVEMENT: Check energy and threats
@@ -656,7 +669,8 @@ class SurfaceSkimmer(BehaviorAlgorithm):
             # IMPROVEMENT: Active patrol instead of random flip
             vx = self.parameters["horizontal_speed"]
             # Change direction periodically
-            if random.random() < 0.02:  # 2% chance per frame to reverse
+            rng = getattr(self, "rng", None) or random
+            if rng.random() < 0.02:  # 2% chance per frame to reverse
                 self.parameters["horizontal_speed"] *= -1
             return vx, vy
 
@@ -665,18 +679,19 @@ class SurfaceSkimmer(BehaviorAlgorithm):
 class BottomFeeder(BehaviorAlgorithm):
     """Stay near bottom to catch sinking food."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="bottom_feeder",
             parameters={
-                "preferred_depth": random.uniform(0.7, 0.9),  # 70-90% from top
-                "search_speed": random.uniform(0.4, 0.8),
+                "preferred_depth": rng.uniform(0.7, 0.9),  # 70-90% from top
+                "search_speed": rng.uniform(0.4, 0.8),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -698,9 +713,10 @@ class BottomFeeder(BehaviorAlgorithm):
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
             vx *= (1.0 + pursuit_aggression * 0.5)
         else:
+            rng = getattr(self, "rng", None) or random
             vx = (
                 self.parameters["search_speed"]
-                if random.random() > 0.5
+                if rng.random() > 0.5
                 else -self.parameters["search_speed"]
             )
 
@@ -711,20 +727,22 @@ class BottomFeeder(BehaviorAlgorithm):
 class ZigZagForager(BehaviorAlgorithm):
     """Move in zigzag pattern to maximize food discovery."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="zigzag_forager",
             parameters={
-                "zigzag_frequency": random.uniform(0.02, 0.08),
-                "zigzag_amplitude": random.uniform(0.5, 1.2),
-                "forward_speed": random.uniform(0.6, 1.0),
+                "zigzag_frequency": rng.uniform(0.02, 0.08),
+                "zigzag_amplitude": rng.uniform(0.5, 1.2),
+                "forward_speed": rng.uniform(0.6, 1.0),
             },
         )
-        self.zigzag_phase = random.uniform(0, 2 * math.pi)
+        self.zigzag_phase = rng.uniform(0, 2 * math.pi)
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -751,22 +769,24 @@ class ZigZagForager(BehaviorAlgorithm):
 class CircularHunter(BehaviorAlgorithm):
     """Circle around food before striking - IMPROVED for better survival."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="circular_hunter",
             parameters={
-                "circle_radius": random.uniform(50, 80),
-                "approach_speed": random.uniform(0.9, 1.2),
-                "strike_distance": random.uniform(60, 100),
-                "exploration_speed": random.uniform(0.6, 0.9),
+                "circle_radius": rng.uniform(50, 80),
+                "approach_speed": rng.uniform(0.9, 1.2),
+                "strike_distance": rng.uniform(60, 100),
+                "exploration_speed": rng.uniform(0.6, 0.9),
             },
         )
         self.circle_angle = 0
-        self.exploration_direction = random.uniform(0, 2 * math.pi)
+        self.exploration_direction = rng.uniform(0, 2 * math.pi)
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -788,7 +808,8 @@ class CircularHunter(BehaviorAlgorithm):
         if not nearest_food:
             # CRITICAL FIX: Actively explore instead of stopping!
             # Slowly change direction for more exploration coverage
-            self.exploration_direction += random.uniform(-0.3, 0.3)
+            rng = getattr(self, "rng", None) or random
+            self.exploration_direction += rng.uniform(-0.3, 0.3)
             exploration_vec = Vector2(
                 math.cos(self.exploration_direction), math.sin(self.exploration_direction)
             )
@@ -856,19 +877,21 @@ class CircularHunter(BehaviorAlgorithm):
 class FoodMemorySeeker(BehaviorAlgorithm):
     """Remember where food was found before."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="food_memory_seeker",
             parameters={
-                "memory_strength": random.uniform(0.5, 1.0),
-                "exploration_rate": random.uniform(0.2, 0.5),
+                "memory_strength": rng.uniform(0.5, 1.0),
+                "exploration_rate": rng.uniform(0.2, 0.5),
             },
         )
         self.food_memory_locations: List[Vector2] = []
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -882,8 +905,16 @@ class FoodMemorySeeker(BehaviorAlgorithm):
             return direction.x, direction.y
 
         # No food visible, check memory
-        if self.food_memory_locations and random.random() > self.parameters["exploration_rate"]:
-            target = random.choice(self.food_memory_locations)
+        if self.food_memory_locations:
+            rng = getattr(self, "rng", None) or random
+            if rng.random() > self.parameters["exploration_rate"]:
+                target = rng.choice(self.food_memory_locations)
+            else:
+                # If not randomly exploring, head to the closest remembered location
+                target = min(
+                    self.food_memory_locations,
+                    key=lambda pos: (pos - fish.pos).length(),
+                )
             direction = self._safe_normalize(target - fish.pos)
             return (
                 direction.x * self.parameters["memory_strength"],
@@ -904,20 +935,22 @@ class AggressiveHunter(BehaviorAlgorithm):
     - hunting_stamina: How long to maintain high-speed pursuit
     """
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="aggressive_hunter",
             parameters={
-                "pursuit_speed": random.uniform(1.3, 1.7),
-                "detection_range": random.uniform(250, 400),
-                "strike_speed": random.uniform(1.5, 2.0),
+                "pursuit_speed": rng.uniform(1.3, 1.7),
+                "detection_range": rng.uniform(250, 400),
+                "strike_speed": rng.uniform(1.5, 2.0),
             },
         )
         self.last_food_pos = None
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         energy_ratio = fish.energy / fish.max_energy
@@ -994,21 +1027,23 @@ class AggressiveHunter(BehaviorAlgorithm):
 class SpiralForager(BehaviorAlgorithm):
     """NEW: Spiral outward from center to systematically cover area - replaces weak algorithms."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="spiral_forager",
             parameters={
-                "spiral_speed": random.uniform(0.8, 1.2),
-                "spiral_growth": random.uniform(0.3, 0.7),
-                "food_pursuit_speed": random.uniform(1.1, 1.5),
+                "spiral_speed": rng.uniform(0.8, 1.2),
+                "spiral_growth": rng.uniform(0.3, 0.7),
+                "food_pursuit_speed": rng.uniform(1.1, 1.5),
             },
         )
         self.spiral_angle = 0
         self.spiral_radius = 10
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         energy_ratio = fish.energy / fish.max_energy
@@ -1053,19 +1088,21 @@ class SpiralForager(BehaviorAlgorithm):
 class CooperativeForager(BehaviorAlgorithm):
     """Follow other fish to food sources - HEAVILY IMPROVED."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="cooperative_forager",
             parameters={
-                "follow_strength": random.uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
-                "independence": random.uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
-                "food_pursuit_speed": random.uniform(1.1, 1.4),  # NEW
+                "follow_strength": rng.uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
+                "independence": rng.uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
+                "food_pursuit_speed": rng.uniform(1.1, 1.4),  # NEW
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # IMPROVEMENT: Check energy state
@@ -1217,7 +1254,8 @@ class CooperativeForager(BehaviorAlgorithm):
             )
 
         # No one to follow, explore independently
-        if random.random() < self.parameters["independence"]:
-            return random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)
+        rng = getattr(self, "rng", None) or random
+        if rng.random() < self.parameters["independence"]:
+            return rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5)
 
         return 0, 0

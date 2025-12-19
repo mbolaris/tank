@@ -101,19 +101,21 @@ def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> List["Fish"]:
 class PokerChallenger(BehaviorAlgorithm):
     """Actively seeks out other fish for poker games."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="poker_challenger",
             parameters={
-                "challenge_radius": random.uniform(100.0, 250.0),
-                "challenge_speed": random.uniform(0.8, 1.3),
-                "min_energy_to_challenge": random.uniform(15.0, 30.0),
+                "challenge_radius": rng.uniform(100.0, 250.0),
+                "challenge_speed": rng.uniform(0.8, 1.3),
+                "min_energy_to_challenge": rng.uniform(15.0, 30.0),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
@@ -152,26 +154,29 @@ class PokerChallenger(BehaviorAlgorithm):
             return direction.x * speed, direction.y * speed
 
         # No fish nearby - wander
-        return random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)
+        rng = getattr(self, "rng", None) or random
+        return rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5)
 
 
 @dataclass
 class PokerDodger(BehaviorAlgorithm):
     """Avoids other fish to prevent poker games."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="poker_dodger",
             parameters={
-                "avoidance_radius": random.uniform(80.0, 150.0),
-                "avoidance_speed": random.uniform(0.7, 1.1),
-                "food_priority": random.uniform(0.6, 1.0),
+                "avoidance_radius": rng.uniform(80.0, 150.0),
+                "avoidance_speed": rng.uniform(0.7, 1.1),
+                "food_priority": rng.uniform(0.6, 1.0),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # First check for predators
@@ -262,19 +267,21 @@ class PokerDodger(BehaviorAlgorithm):
 class PokerGambler(BehaviorAlgorithm):
     """Seeks poker aggressively when high energy."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="poker_gambler",
             parameters={
-                "high_energy_threshold": random.uniform(0.6, 0.9),
-                "challenge_speed": random.uniform(1.0, 1.5),
-                "risk_tolerance": random.uniform(0.3, 0.8),
+                "high_energy_threshold": rng.uniform(0.6, 0.9),
+                "challenge_speed": rng.uniform(1.0, 1.5),
+                "risk_tolerance": rng.uniform(0.3, 0.8),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
@@ -306,7 +313,8 @@ class PokerGambler(BehaviorAlgorithm):
         # If energy is medium, balance poker with food
         elif energy_ratio > 0.3:
             # 50/50 chance between seeking fish or food
-            if random.random() < 0.5:
+            rng = getattr(self, "rng", None) or random
+            if rng.random() < 0.5:
                 # OPTIMIZATION: Use spatial query
                 nearest_fish, _ = _find_nearest_fish_spatial(fish, 200)
                 if nearest_fish is not None:
@@ -326,20 +334,22 @@ class PokerGambler(BehaviorAlgorithm):
 class SelectivePoker(BehaviorAlgorithm):
     """Only engages in poker when conditions are favorable."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="selective_poker",
             parameters={
-                "min_energy_ratio": random.uniform(0.4, 0.7),
-                "max_energy_ratio": random.uniform(0.7, 0.95),
-                "challenge_speed": random.uniform(0.6, 1.0),
-                "selectivity": random.uniform(0.5, 0.9),
+                "min_energy_ratio": rng.uniform(0.4, 0.7),
+                "max_energy_ratio": rng.uniform(0.7, 0.95),
+                "challenge_speed": rng.uniform(0.6, 1.0),
+                "selectivity": rng.uniform(0.5, 0.9),
             },
         )
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
@@ -361,9 +371,9 @@ class SelectivePoker(BehaviorAlgorithm):
 
         # Only seek poker in the "sweet spot" energy range
         if self.parameters["min_energy_ratio"] < energy_ratio < self.parameters["max_energy_ratio"]:
-
             # Be selective - only challenge sometimes
-            if random.random() < self.parameters["selectivity"]:
+            rng = getattr(self, "rng", None) or random
+            if rng.random() < self.parameters["selectivity"]:
                 # OPTIMIZATION: Use spatial query with max distance 150
                 nearest_fish, dist_sq = _find_nearest_fish_spatial(fish, 150)
 
@@ -385,19 +395,20 @@ class SelectivePoker(BehaviorAlgorithm):
 class PokerOpportunist(BehaviorAlgorithm):
     """Balances food seeking with poker opportunities."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="poker_opportunist",
             parameters={
-                "poker_weight": random.uniform(0.3, 0.7),
-                "food_weight": random.uniform(0.3, 0.7),
-                "opportunity_radius": random.uniform(80.0, 150.0),
+                "poker_weight": rng.uniform(0.3, 0.7),
+                "food_weight": rng.uniform(0.3, 0.7),
+                "opportunity_radius": rng.uniform(80.0, 150.0),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
@@ -472,15 +483,16 @@ class PokerOpportunist(BehaviorAlgorithm):
 class PokerStrategist(BehaviorAlgorithm):
     """Uses opponent modeling and strategic positioning for poker."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="poker_strategist",
             parameters={
-                "aggression_variance": random.uniform(0.1, 0.4),
-                "position_awareness": random.uniform(0.5, 1.0),
-                "opponent_tracking": random.uniform(0.3, 0.8),
-                "min_energy_ratio": random.uniform(0.3, 0.6),
-                "challenge_speed": random.uniform(0.7, 1.2),
+                "aggression_variance": rng.uniform(0.1, 0.4),
+                "position_awareness": rng.uniform(0.5, 1.0),
+                "opponent_tracking": rng.uniform(0.3, 0.8),
+                "min_energy_ratio": rng.uniform(0.3, 0.6),
+                "challenge_speed": rng.uniform(0.7, 1.2),
             },
         )
         # Track recent poker encounters for opponent modeling
@@ -488,8 +500,8 @@ class PokerStrategist(BehaviorAlgorithm):
         self.max_memory = 5
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
@@ -561,7 +573,8 @@ class PokerStrategist(BehaviorAlgorithm):
                     score -= 0.3 * self.parameters["opponent_tracking"]
 
             # Add some randomness based on aggression variance
-            score += random.uniform(
+            rng = getattr(self, "rng", None) or random
+            score += rng.uniform(
                 -self.parameters["aggression_variance"], self.parameters["aggression_variance"]
             )
 
@@ -581,31 +594,34 @@ class PokerStrategist(BehaviorAlgorithm):
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * 0.8, direction.y * 0.8
 
-        return random.uniform(-0.3, 0.3), random.uniform(-0.3, 0.3)
+        rng = getattr(self, "rng", None) or random
+        return rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3)
 
 
 @dataclass
 class PokerBluffer(BehaviorAlgorithm):
     """Varies behavior unpredictably to confuse opponents."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="poker_bluffer",
             parameters={
-                "bluff_frequency": random.uniform(0.2, 0.6),
-                "aggression_swing": random.uniform(0.4, 1.0),
-                "unpredictability": random.uniform(0.3, 0.7),
-                "min_energy_to_bluff": random.uniform(20.0, 40.0),
+                "bluff_frequency": rng.uniform(0.2, 0.6),
+                "aggression_swing": rng.uniform(0.4, 1.0),
+                "unpredictability": rng.uniform(0.3, 0.7),
+                "min_energy_to_bluff": rng.uniform(20.0, 40.0),
             },
         )
         # Track behavior state
         self.current_mode = "normal"  # 'normal', 'aggressive', 'passive'
         self.mode_timer = 0
-        self.mode_duration = random.randint(50, 150)
+        self.mode_duration = rng.randint(50, 150)
+        self.rng = rng
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
@@ -627,10 +643,11 @@ class PokerBluffer(BehaviorAlgorithm):
         self.mode_timer += 1
         if self.mode_timer >= self.mode_duration:
             # Switch modes randomly
-            if random.random() < self.parameters["bluff_frequency"]:
+            rng = getattr(self, "rng", None) or random
+            if rng.random() < self.parameters["bluff_frequency"]:
                 modes = ["normal", "aggressive", "passive"]
-                self.current_mode = random.choice(modes)
-                self.mode_duration = random.randint(30, 100)
+                self.current_mode = rng.choice(modes)
+                self.mode_duration = rng.randint(30, 100)
                 self.mode_timer = 0
 
         # Don't bluff if energy is too low
@@ -692,12 +709,13 @@ class PokerBluffer(BehaviorAlgorithm):
 
         else:  # normal mode
             # Balanced approach with unpredictability
-            if other_fish and random.random() < 0.6:
+            rng = getattr(self, "rng", None) or random
+            if other_fish and rng.random() < 0.6:
                 nearest_fish, _ = _find_nearest_fish_spatial(fish, 150)
                 if nearest_fish is not None:
                     direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                     # Add unpredictable speed variation
-                    speed = 0.8 + random.uniform(0, self.parameters["unpredictability"])
+                    speed = 0.8 + rng.uniform(0, self.parameters["unpredictability"])
                     return direction.x * speed, direction.y * speed
 
             # Default to food seeking
@@ -706,28 +724,30 @@ class PokerBluffer(BehaviorAlgorithm):
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.8, direction.y * 0.8
 
-        return random.uniform(-0.4, 0.4), random.uniform(-0.4, 0.4)
+        rng = getattr(self, "rng", None) or random
+        return rng.uniform(-0.4, 0.4), rng.uniform(-0.4, 0.4)
 
 
 @dataclass
 class PokerConservative(BehaviorAlgorithm):
     """Risk-averse poker player that only engages in highly favorable conditions."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="poker_conservative",
             parameters={
-                "min_energy_ratio": random.uniform(0.6, 0.85),
-                "max_risk_tolerance": random.uniform(0.1, 0.3),
-                "safety_distance": random.uniform(100.0, 180.0),
-                "challenge_speed": random.uniform(0.5, 0.9),
-                "energy_advantage_required": random.uniform(10.0, 30.0),
+                "min_energy_ratio": rng.uniform(0.6, 0.85),
+                "max_risk_tolerance": rng.uniform(0.1, 0.3),
+                "safety_distance": rng.uniform(100.0, 180.0),
+                "challenge_speed": rng.uniform(0.5, 0.9),
+                "energy_advantage_required": rng.uniform(10.0, 30.0),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math

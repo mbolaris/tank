@@ -15,7 +15,7 @@ import math
 import random
 import time
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Optional
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.entities import Crab, Food
@@ -26,21 +26,22 @@ from core.entities import Fish as FishClass
 class EnergyConserver(BehaviorAlgorithm):
     """Minimize movement to conserve energy."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="energy_conserver",
             parameters={
-                "activity_threshold": random.uniform(0.4, 0.7),
-                "rest_speed": random.uniform(0.1, 0.3),
-                "exploration_rate": random.uniform(
+                "activity_threshold": rng.uniform(0.4, 0.7),
+                "rest_speed": rng.uniform(0.1, 0.3),
+                "exploration_rate": rng.uniform(
                     0.0, 0.4
                 ),  # 0 = no exploration, 0.4 = moderate wandering
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -102,21 +103,22 @@ class EnergyConserver(BehaviorAlgorithm):
 class BurstSwimmer(BehaviorAlgorithm):
     """Alternate between bursts of activity and rest."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="burst_swimmer",
             parameters={
-                "burst_duration": random.uniform(30, 90),
-                "rest_duration": random.uniform(60, 120),
-                "burst_speed": random.uniform(1.2, 1.6),
+                "burst_duration": rng.uniform(30, 90),
+                "rest_duration": rng.uniform(60, 120),
+                "burst_speed": rng.uniform(1.2, 1.6),
             },
         )
         self.cycle_timer = 0
         self.is_bursting = True
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -190,21 +192,22 @@ class BurstSwimmer(BehaviorAlgorithm):
 class OpportunisticRester(BehaviorAlgorithm):
     """Rest when no food or threats nearby."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="opportunistic_rester",
             parameters={
-                "safe_radius": random.uniform(100, 200),
-                "active_speed": random.uniform(0.5, 0.9),
-                "idle_wander_speed": random.uniform(
+                "safe_radius": rng.uniform(100, 200),
+                "active_speed": rng.uniform(0.5, 0.9),
+                "idle_wander_speed": rng.uniform(
                     0.0, 0.3
                 ),  # 0 = stay still, 0.3 = gentle wandering
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -245,18 +248,19 @@ class OpportunisticRester(BehaviorAlgorithm):
 class EnergyBalancer(BehaviorAlgorithm):
     """Balance energy expenditure with reserves."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="energy_balancer",
             parameters={
-                "min_energy_ratio": random.uniform(0.3, 0.5),
-                "max_energy_ratio": random.uniform(0.7, 0.9),
+                "min_energy_ratio": rng.uniform(0.3, 0.5),
+                "max_energy_ratio": rng.uniform(0.7, 0.9),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # IMPROVEMENT: Use new energy methods and be more conservative
@@ -316,18 +320,19 @@ class EnergyBalancer(BehaviorAlgorithm):
 class SustainableCruiser(BehaviorAlgorithm):
     """Maintain steady, sustainable pace."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="sustainable_cruiser",
             parameters={
-                "cruise_speed": random.uniform(0.4, 0.7),
-                "consistency": random.uniform(0.7, 1.0),
+                "cruise_speed": rng.uniform(0.4, 0.7),
+                "consistency": rng.uniform(0.7, 1.0),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Just maintain steady pace in current direction
@@ -345,18 +350,19 @@ class SustainableCruiser(BehaviorAlgorithm):
 class StarvationPreventer(BehaviorAlgorithm):
     """Prioritize food when energy gets low."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="starvation_preventer",
             parameters={
-                "critical_threshold": random.uniform(0.2, 0.4),
-                "urgency_multiplier": random.uniform(1.3, 1.8),
+                "critical_threshold": rng.uniform(0.2, 0.4),
+                "urgency_multiplier": rng.uniform(1.3, 1.8),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
@@ -419,19 +425,20 @@ class StarvationPreventer(BehaviorAlgorithm):
 class MetabolicOptimizer(BehaviorAlgorithm):
     """Adjust activity based on metabolic efficiency."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="metabolic_optimizer",
             parameters={
-                "efficiency_threshold": random.uniform(0.5, 0.8),
-                "low_efficiency_speed": random.uniform(0.2, 0.4),
-                "high_efficiency_speed": random.uniform(0.7, 1.1),
+                "efficiency_threshold": rng.uniform(0.5, 0.8),
+                "low_efficiency_speed": rng.uniform(0.2, 0.4),
+                "high_efficiency_speed": rng.uniform(0.7, 1.1),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use genome metabolism as efficiency indicator
@@ -456,18 +463,19 @@ class MetabolicOptimizer(BehaviorAlgorithm):
 class AdaptivePacer(BehaviorAlgorithm):
     """Adapt speed based on current energy and environment."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="adaptive_pacer",
             parameters={
-                "base_speed": random.uniform(0.5, 0.8),
-                "energy_influence": random.uniform(0.3, 0.7),
+                "base_speed": rng.uniform(0.5, 0.8),
+                "energy_influence": rng.uniform(0.3, 0.7),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 

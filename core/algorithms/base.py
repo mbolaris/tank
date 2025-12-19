@@ -25,6 +25,7 @@ from core.math_utils import Vector2
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.world import World
+    from core.interfaces import BehaviorStrategy
 
 
 ALGORITHM_PARAMETER_BOUNDS = {
@@ -750,8 +751,12 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
             self.parameters[key] = mutated
 
     @classmethod
-    def random_instance(cls) -> "BehaviorAlgorithm":
-        """Create a random instance of this algorithm with random parameters."""
+    def random_instance(cls, rng: Optional[random.Random] = None) -> "BehaviorAlgorithm":
+        """Create a random instance of this algorithm with random parameters.
+
+        Args:
+            rng: Optional random.Random instance for deterministic construction.
+        """
         raise NotImplementedError("Subclasses must implement random_instance")
 
     def to_dict(self) -> Dict[str, Any]:

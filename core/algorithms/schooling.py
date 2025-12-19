@@ -16,7 +16,7 @@ This module contains 10 algorithms focused on group behavior and social interact
 import math
 import random
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.entities import Crab
@@ -44,18 +44,19 @@ def _get_nearby_fish(fish: "FishClass", radius: float) -> List["FishClass"]:
 class TightSchooler(BehaviorAlgorithm):
     """Stay very close to school members."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="tight_schooler",
             parameters={
-                "cohesion_strength": random.uniform(0.7, 1.2),
-                "preferred_distance": random.uniform(20, 50),
+                "cohesion_strength": rng.uniform(0.7, 1.2),
+                "preferred_distance": rng.uniform(20, 50),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
@@ -87,18 +88,19 @@ class TightSchooler(BehaviorAlgorithm):
 class LooseSchooler(BehaviorAlgorithm):
     """Maintain loose association with school."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="loose_schooler",
             parameters={
-                "cohesion_strength": random.uniform(0.3, 0.6),
-                "max_distance": random.uniform(100, 200),
+                "cohesion_strength": rng.uniform(0.3, 0.6),
+                "max_distance": rng.uniform(100, 200),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
@@ -134,18 +136,19 @@ class LooseSchooler(BehaviorAlgorithm):
 class LeaderFollower(BehaviorAlgorithm):
     """Follow the fastest/strongest fish."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="leader_follower",
             parameters={
-                "follow_strength": random.uniform(0.6, 1.0),
-                "max_follow_distance": random.uniform(80, 150),
+                "follow_strength": rng.uniform(0.6, 1.0),
+                "max_follow_distance": rng.uniform(80, 150),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
@@ -173,18 +176,19 @@ class LeaderFollower(BehaviorAlgorithm):
 class AlignmentMatcher(BehaviorAlgorithm):
     """Match velocity with nearby fish."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="alignment_matcher",
             parameters={
-                "alignment_strength": random.uniform(0.5, 1.0),
-                "alignment_radius": random.uniform(60, 120),
+                "alignment_strength": rng.uniform(0.5, 1.0),
+                "alignment_radius": rng.uniform(60, 120),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query with alignment_radius (O(N) instead of O(N²))
@@ -219,18 +223,19 @@ class AlignmentMatcher(BehaviorAlgorithm):
 class SeparationSeeker(BehaviorAlgorithm):
     """Avoid crowding neighbors."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="separation_seeker",
             parameters={
-                "min_distance": random.uniform(30, 70),
-                "separation_strength": random.uniform(0.5, 1.0),
+                "min_distance": rng.uniform(30, 70),
+                "separation_strength": rng.uniform(0.5, 1.0),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query with min_distance (O(N) instead of O(N²))
@@ -256,18 +261,19 @@ class SeparationSeeker(BehaviorAlgorithm):
 class FrontRunner(BehaviorAlgorithm):
     """Lead the school from the front."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="front_runner",
             parameters={
-                "leadership_strength": random.uniform(0.7, 1.2),
-                "independence": random.uniform(0.5, 0.9),
+                "leadership_strength": rng.uniform(0.7, 1.2),
+                "independence": rng.uniform(0.5, 0.9),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
@@ -305,18 +311,19 @@ class FrontRunner(BehaviorAlgorithm):
 class PerimeterGuard(BehaviorAlgorithm):
     """Stay on the outside of the school."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="perimeter_guard",
             parameters={
-                "orbit_radius": random.uniform(70, 130),
-                "orbit_speed": random.uniform(0.5, 0.9),
+                "orbit_radius": rng.uniform(70, 130),
+                "orbit_speed": rng.uniform(0.5, 0.9),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
@@ -370,18 +377,19 @@ class PerimeterGuard(BehaviorAlgorithm):
 class MirrorMover(BehaviorAlgorithm):
     """Mirror the movements of nearby fish."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="mirror_mover",
             parameters={
-                "mirror_strength": random.uniform(0.6, 1.0),
-                "mirror_distance": random.uniform(50, 100),
+                "mirror_strength": rng.uniform(0.6, 1.0),
+                "mirror_distance": rng.uniform(50, 100),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query with mirror_distance (O(N) instead of O(N²))
@@ -404,19 +412,20 @@ class MirrorMover(BehaviorAlgorithm):
 class BoidsBehavior(BehaviorAlgorithm):
     """Classic boids algorithm (separation, alignment, cohesion)."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="boids_behavior",
             parameters={
-                "separation_weight": random.uniform(0.3, 0.7),
-                "alignment_weight": random.uniform(0.3, 0.7),
-                "cohesion_weight": random.uniform(0.3, 0.7),
+                "separation_weight": rng.uniform(0.3, 0.7),
+                "alignment_weight": rng.uniform(0.3, 0.7),
+                "cohesion_weight": rng.uniform(0.3, 0.7),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
@@ -553,19 +562,20 @@ class BoidsBehavior(BehaviorAlgorithm):
 class DynamicSchooler(BehaviorAlgorithm):
     """Switch between tight and loose schooling based on conditions."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             algorithm_id="dynamic_schooler",
             parameters={
-                "danger_cohesion": random.uniform(0.8, 1.2),
-                "calm_cohesion": random.uniform(0.3, 0.6),
-                "danger_threshold": random.uniform(150, 250),
+                "danger_cohesion": rng.uniform(0.8, 1.2),
+                "calm_cohesion": rng.uniform(0.3, 0.6),
+                "danger_threshold": rng.uniform(150, 250),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
 
