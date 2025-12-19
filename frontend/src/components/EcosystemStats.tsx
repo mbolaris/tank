@@ -100,21 +100,7 @@ function GeneDistributionPanel({
                     </div>
                 }
                 defaultExpanded={defaultExpanded ?? true}
-            >
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-                    <div style={{
-                        fontSize: '11px',
-                        color: 'rgba(255, 255, 255, 0.6)',
-                        fontWeight: 500,
-                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                        background: 'rgba(0,0,0,0.2)',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(255,255,255,0.05)'
-                    }}>
-                        MR: Mutation Rate · MS: Mutation Strength · HP: Horizontal Gene Transfer Prob · Meta-Data Mut Rate: 1%
-                    </div>
-                </div>
+                >
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
@@ -163,6 +149,20 @@ function GeneDistributionPanel({
                             </div>
                         );
                     })}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                    <div style={{
+                        fontSize: '11px',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        fontWeight: 500,
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        background: 'rgba(0,0,0,0.2)',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(255,255,255,0.05)'
+                    }}>
+                        MR: Mutation Rate · MS: Mutation Strength · HP: Horizontal Gene Transfer Prob · Meta-Data Mut Rate: 1%
+                    </div>
                 </div>
             </CollapsibleSection>
         </div>
