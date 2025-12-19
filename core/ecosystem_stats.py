@@ -5,7 +5,7 @@ Extracted from ecosystem.py to improve code organization and maintainability.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 
 from core.constants import TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT
 
@@ -212,6 +212,69 @@ class EcosystemEvent:
     event_type: str
     fish_id: int
     details: str = ""
+
+
+@dataclass
+class PokerOutcomeRecord:
+    """Encapsulates poker game outcome data for stats recording.
+
+    This is a Parameter Object that groups the many parameters needed
+    to record a poker outcome. Using this dataclass instead of many
+    individual parameters provides:
+
+    - Self-documenting code (field names explain meaning)
+    - Easier extension (add fields without changing method signatures)
+    - Type safety (IDE autocomplete and type checking)
+    - Default values for optional fields
+
+    Design Note:
+        This is distinct from PokerResult (in fish_poker.py) which represents
+        the full game result including hands, betting history, etc. This record
+        contains only what's needed for statistics tracking.
+
+    Example:
+        record = PokerOutcomeRecord(
+            winner_id=fish1.id,
+            loser_id=fish2.id,
+            amount=25.5,
+            winner_hand=winner_hand,
+            loser_hand=loser_hand,
+        )
+        ecosystem.record_poker_outcome(record)
+    """
+
+    # Required fields - who won and lost
+    winner_id: int
+    loser_id: int
+
+    # Energy transfer
+    amount: float
+    house_cut: float = 0.0
+
+    # Algorithm IDs for tracking performance by behavior
+    winner_algo_id: Optional[int] = None
+    loser_algo_id: Optional[int] = None
+
+    # Hand information (imported types would create circular deps, use Any)
+    winner_hand: object = None  # PokerHand
+    loser_hand: object = None  # PokerHand
+
+    # Full game result for detailed stats (optional)
+    result: object = None  # PokerResult
+
+    # Player algorithm IDs for positional stats (for multiplayer)
+    player1_algo_id: Optional[int] = None
+    player2_algo_id: Optional[int] = None
+
+    @property
+    def is_tie(self) -> bool:
+        """Check if this was a tie (winner_id == -1)."""
+        return self.winner_id == -1
+
+    @property
+    def net_amount(self) -> float:
+        """Net energy transferred (amount minus house cut)."""
+        return self.amount - self.house_cut
 
 
 @dataclass

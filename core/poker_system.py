@@ -14,7 +14,7 @@ from collections import deque
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from core.fish_poker import PokerInteraction
-from core.systems.base import BaseSystem
+from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
@@ -52,7 +52,7 @@ class PokerSystem(BaseSystem):
         self._plant_wins: int = 0
         self._ties: int = 0
 
-    def _do_update(self, frame: int) -> None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Poker system doesn't have per-frame logic.
 
         Poker games are triggered by collision/proximity detection
@@ -61,8 +61,11 @@ class PokerSystem(BaseSystem):
 
         Args:
             frame: Current simulation frame number
+
+        Returns:
+            Empty SystemResult (poker is event-driven, not frame-driven)
         """
-        pass
+        return SystemResult.empty()
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Handle poker outcomes, including reproduction and event logging.
