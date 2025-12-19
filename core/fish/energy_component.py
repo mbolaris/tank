@@ -9,17 +9,17 @@ from typing import TYPE_CHECKING, Dict
 
 from core.constants import (
     BABY_METABOLISM_MULTIPLIER,
-    CRITICAL_ENERGY_THRESHOLD,
+    CRITICAL_ENERGY_THRESHOLD_RATIO,
     ELDER_METABOLISM_MULTIPLIER,
     EXISTENCE_ENERGY_COST,
     HIGH_SPEED_ENERGY_COST,
     HIGH_SPEED_THRESHOLD,
     INITIAL_ENERGY_RATIO,
-    LOW_ENERGY_THRESHOLD,
+    LOW_ENERGY_THRESHOLD_RATIO,
     MOVEMENT_ENERGY_COST,
     MOVEMENT_SIZE_MULTIPLIER,
-    SAFE_ENERGY_THRESHOLD,
-    STARVATION_THRESHOLD,
+    SAFE_ENERGY_THRESHOLD_RATIO,
+    STARVATION_THRESHOLD_RATIO,
 )
 from core.math_utils import Vector2
 
@@ -154,34 +154,44 @@ class EnergyComponent:
     def is_starving(self) -> bool:
         """Check if fish is starving (will die soon).
 
+        Uses ratio-based threshold to ensure consistent behavior across
+        different fish sizes. A large fish at 10% is just as desperate
+        as a small fish at 10%.
+
         Returns:
-            True if energy is below starvation threshold.
+            True if energy ratio is below starvation threshold.
         """
-        return self.energy < STARVATION_THRESHOLD
+        return self.get_energy_ratio() < STARVATION_THRESHOLD_RATIO
 
     def is_critical_energy(self) -> bool:
         """Check if fish is in critical energy state (emergency survival mode).
 
+        Uses ratio-based threshold for size-independent behavior.
+
         Returns:
-            True if energy is critically low.
+            True if energy ratio is critically low.
         """
-        return self.energy < CRITICAL_ENERGY_THRESHOLD
+        return self.get_energy_ratio() < CRITICAL_ENERGY_THRESHOLD_RATIO
 
     def is_low_energy(self) -> bool:
         """Check if fish has low energy (should prioritize finding food).
 
+        Uses ratio-based threshold for size-independent behavior.
+
         Returns:
-            True if energy is low.
+            True if energy ratio is low.
         """
-        return self.energy < LOW_ENERGY_THRESHOLD
+        return self.get_energy_ratio() < LOW_ENERGY_THRESHOLD_RATIO
 
     def is_safe_energy(self) -> bool:
         """Check if fish has safe energy level (can explore/breed).
 
+        Uses ratio-based threshold for size-independent behavior.
+
         Returns:
-            True if energy is at a safe level.
+            True if energy ratio is at a safe level.
         """
-        return self.energy >= SAFE_ENERGY_THRESHOLD
+        return self.get_energy_ratio() >= SAFE_ENERGY_THRESHOLD_RATIO
 
     def get_energy_ratio(self) -> float:
         """Get current energy as a ratio of maximum energy.
