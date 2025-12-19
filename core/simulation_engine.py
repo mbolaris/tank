@@ -1229,17 +1229,16 @@ class SimulationEngine(BaseSimulator):
                 logger.info("=" * SEPARATOR_WIDTH)
                 self.export_stats_json(export_json)
 
-        def run_collect_stats(self, max_frames: int = 100) -> Dict[str, Any]:
-            """Run the engine for `max_frames` frames and return final stats.
+    def run_collect_stats(self, max_frames: int = 100) -> Dict[str, Any]:
+        """Run the engine for `max_frames` frames and return final stats.
 
-            This convenience method is designed for unit tests and deterministic
-            runs where the caller wants the resulting stats as a dictionary.
-            """
-            self.setup()
-            for _ in range(max_frames):
-                self.update()
-            return self.get_stats()
-
+        This convenience method is designed for unit tests and deterministic
+        runs where the caller wants the resulting stats as a dictionary.
+        """
+        self.setup()
+        for _ in range(max_frames):
+            self.update()
+        return self.get_stats()
 
     def add_plant_poker_event(
         self,
