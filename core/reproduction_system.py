@@ -8,12 +8,13 @@ Architecture Notes:
 - Extends BaseSystem for uniform system management
 - Runs in UpdatePhase.REPRODUCTION
 - Tracks reproduction statistics for debugging
+- Returns SystemResult for consistency with other systems
 """
 
 import random
 from typing import TYPE_CHECKING, Any, Dict
 
-from core.systems.base import BaseSystem
+from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
@@ -43,13 +44,27 @@ class ReproductionSystem(BaseSystem):
         self._asexual_checks: int = 0
         self._asexual_triggered: int = 0
 
-    def _do_update(self, frame: int) -> None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Check for asexual reproduction each frame.
 
         Args:
             frame: Current simulation frame number
+
+        Returns:
+            SystemResult with reproduction statistics
         """
+        initial_triggered = self._asexual_triggered
         self._handle_asexual_reproduction()
+
+        # Calculate how many reproductions occurred this frame
+        triggered_this_frame = self._asexual_triggered - initial_triggered
+
+        return SystemResult(
+            entities_affected=triggered_this_frame,
+            details={
+                "asexual_triggered": triggered_this_frame,
+            },
+        )
 
     def _handle_asexual_reproduction(self) -> None:
         """Handle fish reproduction by checking for asexual reproduction."""

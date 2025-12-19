@@ -13,7 +13,7 @@ Architecture Notes:
 import math
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
-from core.systems.base import BaseSystem
+from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
@@ -60,20 +60,31 @@ class TimeSystem(BaseSystem):
         self.cycle_length: int = cycle_length
         self._days_elapsed: int = 0
 
-    def _do_update(self, frame: int) -> None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Advance time by one frame.
 
         Args:
             frame: Current simulation frame number (unused, time tracked internally)
+
+        Returns:
+            SystemResult with day transition details
         """
         old_time = self.time
         self.time = (self.time + 1) % self.cycle_length
 
         # Track day transitions
-        if self.time < old_time:
+        day_transitioned = self.time < old_time
+        if day_transitioned:
             self._days_elapsed += 1
 
-    def update(self, frame: int = 0) -> None:
+        return SystemResult(
+            details={
+                "time_of_day": self.get_time_of_day(),
+                "day_transitioned": day_transitioned,
+            },
+        )
+
+    def update(self, frame: int = 0) -> SystemResult:
         """Advance time by one frame.
 
         Overrides BaseSystem.update() to support being called without frame arg
@@ -81,11 +92,15 @@ class TimeSystem(BaseSystem):
 
         Args:
             frame: Current simulation frame number (optional)
+
+        Returns:
+            SystemResult with time update details
         """
         if not self._enabled:
-            return
-        self._do_update(frame)
+            return SystemResult.skipped_result()
+        result = self._do_update(frame)
         self._update_count += 1
+        return result
 
     def get_time_of_day(self) -> float:
         """Get normalized time of day.

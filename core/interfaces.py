@@ -6,8 +6,46 @@ in the simulation. These provide:
 - Documentation of expected interfaces
 - Decoupling between components
 
-Usage:
-------
+Design Philosophy
+-----------------
+Protocols in this module follow the **Interface Segregation Principle**:
+each protocol represents ONE capability that an entity might have.
+This allows entities to implement only the protocols they need.
+
+For example, a Fish implements EnergyHolder, Positionable, PokerPlayer,
+Evolvable, Mortal, and Reproducible. A Plant might implement only
+EnergyHolder and Positionable.
+
+Protocol Composition:
+    PokerPlayer = EnergyHolder + Positionable
+
+This composition pattern means code that needs a PokerPlayer can rely on
+both energy management AND position without explicit type unions.
+
+Runtime Checking:
+    Protocols marked with @runtime_checkable can be used with isinstance():
+
+        if isinstance(entity, EnergyHolder):
+            entity.modify_energy(-10.0)
+
+    This is useful when handling heterogeneous entity collections.
+
+Extending the System:
+    To add a new entity type:
+    1. Identify which protocols it should implement
+    2. Implement the required methods from each protocol
+    3. The entity automatically works with any code using those protocols
+
+Why Protocols over ABC?
+    We use Protocols (structural subtyping) instead of ABCs (nominal subtyping)
+    because:
+    - No need to explicitly inherit from interfaces
+    - Better duck typing support
+    - Third-party classes can satisfy protocols without modification
+    - More Pythonic approach to interfaces
+
+Usage
+-----
 Import protocols for type hints:
     from core.interfaces import EnergyHolder, PokerPlayer, SpatialQuery
 
@@ -49,20 +87,35 @@ if TYPE_CHECKING:
 
 @runtime_checkable
 class EnergyHolder(Protocol):
-    """Any entity that holds and manages energy."""
+    """Any entity that holds and manages energy.
+
+    This is the fundamental resource protocol. Energy is the "currency"
+    of the simulation - entities need it to survive, move, reproduce,
+    and participate in games.
+
+    Design Note:
+        Energy modification uses modify_energy() rather than direct
+        property assignment to allow implementations to:
+        - Clamp values to valid ranges
+        - Emit events on energy changes
+        - Track energy flow for statistics
+    """
 
     @property
     def energy(self) -> float:
-        """Current energy level."""
+        """Current energy level (always >= 0)."""
         ...
 
     @property
     def max_energy(self) -> float:
-        """Maximum energy capacity."""
+        """Maximum energy capacity (energy is clamped to this)."""
         ...
 
     def modify_energy(self, amount: float) -> None:
-        """Add or remove energy (positive = gain, negative = loss)."""
+        """Add or remove energy (positive = gain, negative = loss).
+
+        The implementation should clamp the result to [0, max_energy].
+        """
         ...
 
 
@@ -98,32 +151,73 @@ class PokerPlayer(EnergyHolder, Positionable, Protocol):
 
 @runtime_checkable
 class BehaviorStrategy(Protocol):
-    """Contract for behavior algorithm implementation."""
+    """Contract for behavior algorithm implementation.
+
+    This is the **Strategy Pattern** applied to fish behavior. Each fish
+    has a behavior algorithm (strategy) that determines how it moves and
+    makes decisions. There are 48+ different behavior algorithms in the
+    simulation, each with unique characteristics.
+
+    Design Philosophy:
+        - Behaviors are **stateless**: they make decisions based only on
+          the current world state and the fish's properties
+        - Behaviors are **evolvable**: parameters can mutate during reproduction
+        - Behaviors are **composable**: complex behaviors can delegate to simpler ones
+
+    The execute() method returns a direction vector, not a position. This
+    allows the fish's movement system to apply speed, energy costs, and
+    collision detection uniformly across all behaviors.
+
+    Example Implementation:
+        class SeekFoodBehavior:
+            def execute(self, fish: Fish) -> Tuple[float, float]:
+                nearest_food = fish.environment.nearest_food(fish.pos)
+                if nearest_food:
+                    return (nearest_food.pos - fish.pos).normalized()
+                return (0.0, 0.0)
+
+            def mutate_parameters(self, strength: float = 0.1) -> None:
+                pass  # No evolvable parameters
+    """
 
     def execute(self, fish: Any) -> Tuple[float, float]:
-        """
-        Execute the behavior and return movement direction.
+        """Execute the behavior and return movement direction.
 
         Args:
             fish: The fish entity executing this behavior
 
         Returns:
-            Tuple of (direction_x, direction_y) normalized direction vector
+            Tuple of (direction_x, direction_y) - should be normalized
         """
         ...
 
     def mutate_parameters(self, strength: float = 0.1) -> None:
-        """
-        Apply genetic mutation to the behavior parameters.
+        """Apply genetic mutation to the behavior parameters.
+
+        Called during reproduction to evolve behavior parameters.
 
         Args:
-            strength: Mutation strength (0.0-1.0)
+            strength: Mutation strength (0.0-1.0), higher = larger changes
         """
         ...
 
 
 class SimulationStats(Protocol):
-    """Interface for simulation statistics collection."""
+    """Interface for simulation statistics collection.
+
+    Design Philosophy:
+        Statistics collection is decoupled from simulation logic via this protocol.
+        Implementations can record stats to memory, files, databases, or remote
+        services without changing the simulation code.
+
+    Thread Safety:
+        Implementations should be thread-safe if used in multi-threaded simulations.
+
+    Extensibility:
+        New stats methods can be added by extending this protocol. Use Parameter
+        Objects (dataclasses) for methods with many parameters to maintain
+        backward compatibility when adding new fields.
+    """
 
     def record_death(
         self,
@@ -135,11 +229,26 @@ class SimulationStats(Protocol):
         algorithm_id: Optional[int] = None,
         remaining_energy: float = 0.0,
     ) -> None:
-        """Record a fish death event."""
+        """Record a fish death event.
+
+        Args:
+            fish_id: Unique identifier of the deceased fish
+            generation: Generation number of the fish
+            age: Age in frames at time of death
+            cause: Death cause ('starvation', 'old_age', 'predation', etc.)
+            genome: The fish's genetic information for trait analysis
+            algorithm_id: Behavior algorithm ID for performance tracking
+            remaining_energy: Energy remaining at death (for debugging)
+        """
         ...
 
     def record_reproduction(self, algorithm_id: int, is_asexual: bool = True) -> None:
-        """Record a reproduction event."""
+        """Record a reproduction event.
+
+        Args:
+            algorithm_id: Behavior algorithm ID of the parent
+            is_asexual: True for asexual reproduction, False for sexual
+        """
         ...
 
     def record_poker_outcome(
@@ -156,7 +265,30 @@ class SimulationStats(Protocol):
         player1_algo_id: Optional[int],
         player2_algo_id: Optional[int],
     ) -> None:
-        """Record a poker game outcome."""
+        """Record a poker game outcome.
+
+        Note:
+            This method has many parameters for historical reasons. For new code,
+            consider using PokerOutcomeRecord from ecosystem_stats.py to group
+            these parameters into a single object:
+
+                from core.ecosystem_stats import PokerOutcomeRecord
+                record = PokerOutcomeRecord(winner_id=1, loser_id=2, amount=10.0)
+                # Then pass record fields to this method
+
+        Args:
+            winner_id: Fish ID of winner (-1 for ties)
+            loser_id: Fish ID of loser
+            winner_algo_id: Winner's behavior algorithm ID
+            loser_algo_id: Loser's behavior algorithm ID
+            amount: Energy transferred from loser to winner
+            winner_hand: Winner's poker hand (for hand rank stats)
+            loser_hand: Loser's poker hand
+            house_cut: Energy removed by house (game fee)
+            result: Full PokerResult object for detailed stats
+            player1_algo_id: Algorithm ID of player 1 (for position tracking)
+            player2_algo_id: Algorithm ID of player 2 (for position tracking)
+        """
         ...
 
 
