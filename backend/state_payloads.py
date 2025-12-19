@@ -320,6 +320,8 @@ class StatsPayload:
     allowed_lifespan_modifier_max: float = 0.0
     lifespan_modifier_bins: List[int] = field(default_factory=list)
     lifespan_modifier_bin_edges: List[float] = field(default_factory=list)
+    # Dynamic gene distributions (physical + behavioral), for dashboards
+    gene_distributions: Dict[str, Any] = field(default_factory=dict)
     poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
         total_games=0,
         total_fish_games=0,
@@ -462,6 +464,7 @@ class StatsPayload:
             "allowed_lifespan_modifier_max": self.allowed_lifespan_modifier_max,
             "lifespan_modifier_bins": self.lifespan_modifier_bins,
             "lifespan_modifier_bin_edges": self.lifespan_modifier_bin_edges,
+            "gene_distributions": self.gene_distributions,
             "total_sexual_births": self.total_sexual_births,
             "total_asexual_births": self.total_asexual_births,
             "fps": self.fps,

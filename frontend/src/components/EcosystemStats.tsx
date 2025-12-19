@@ -6,7 +6,7 @@ import { SizeSummaryGraph, CollapsibleSection } from './ui';
 
 import EnergyEconomyPanel from './EnergyEconomyPanel';
 // import SizeHistogram from './ui/SizeHistogram'; // Removed unused import
-import type { StatsData } from '../types/simulation';
+import type { GeneDistributionEntry, StatsData } from '../types/simulation';
 
 interface EcosystemStatsProps {
     stats: StatsData | null;
@@ -17,6 +17,156 @@ function normalizeBins(bins: number[] | undefined): number[] {
     const total = bins.reduce((a, b) => a + b, 0);
     if (total === 0) return bins.map(() => 0);
     return bins.map(b => (b / total) * 100);
+}
+
+function legacyPhysicalGeneDistributions(stats: Partial<StatsData>): GeneDistributionEntry[] {
+    // Back-compat: build a small set of physical distributions from legacy flat fields
+    const mk = (
+        key: string,
+        label: string,
+        bins?: number[],
+        bin_edges?: number[],
+        min?: number,
+        median?: number,
+        max?: number,
+        allowedMin?: number,
+        allowedMax?: number,
+        discrete: boolean = false
+    ): GeneDistributionEntry => ({
+        key,
+        label,
+        category: 'physical',
+        discrete,
+        allowed_min: allowedMin ?? 0,
+        allowed_max: allowedMax ?? 0,
+        min: min ?? 0,
+        median: median ?? 0,
+        max: max ?? 0,
+        bins: bins ?? [],
+        bin_edges: bin_edges ?? [],
+        meta: {
+            mut_rate_mean: (stats as any)[`${key}_mut_rate_mean`] ?? 0,
+            mut_rate_std: (stats as any)[`${key}_mut_rate_std`] ?? 0,
+            mut_strength_mean: (stats as any)[`${key}_mut_strength_mean`] ?? 0,
+            mut_strength_std: (stats as any)[`${key}_mut_strength_std`] ?? 0,
+            hgt_prob_mean: (stats as any)[`${key}_hgt_prob_mean`] ?? 0,
+            hgt_prob_std: (stats as any)[`${key}_hgt_prob_std`] ?? 0,
+        }
+    });
+
+    return [
+        mk(
+            'adult_size',
+            'Adult Size',
+            stats.adult_size_bins,
+            stats.adult_size_bin_edges,
+            stats.adult_size_min,
+            stats.adult_size_median,
+            stats.adult_size_max,
+            stats.allowed_adult_size_min,
+            stats.allowed_adult_size_max,
+        ),
+        mk('eye_size', 'Eye Size', stats.eye_size_bins, stats.eye_size_bin_edges, stats.eye_size_min, stats.eye_size_median, stats.eye_size_max, stats.allowed_eye_size_min, stats.allowed_eye_size_max),
+        mk('fin_size', 'Fin Size', stats.fin_size_bins, stats.fin_size_bin_edges, stats.fin_size_min, stats.fin_size_median, stats.fin_size_max, stats.allowed_fin_size_min, stats.allowed_fin_size_max),
+        mk('tail_size', 'Tail Size', (stats as any).tail_size_bins, (stats as any).tail_size_bin_edges, (stats as any).tail_size_min, (stats as any).tail_size_median, (stats as any).tail_size_max, (stats as any).allowed_tail_size_min, (stats as any).allowed_tail_size_max),
+        mk('body_aspect', 'Body Aspect', (stats as any).body_aspect_bins, (stats as any).body_aspect_bin_edges, (stats as any).body_aspect_min, (stats as any).body_aspect_median, (stats as any).body_aspect_max, (stats as any).allowed_body_aspect_min, (stats as any).allowed_body_aspect_max),
+        mk('template_id', 'Template', (stats as any).template_id_bins, (stats as any).template_id_bin_edges, (stats as any).template_id_min, (stats as any).template_id_median, (stats as any).template_id_max, (stats as any).allowed_template_id_min, (stats as any).allowed_template_id_max, true),
+        mk('pattern_type', 'Pattern', (stats as any).pattern_type_bins, (stats as any).pattern_type_bin_edges, (stats as any).pattern_type_min, (stats as any).pattern_type_median, (stats as any).pattern_type_max, (stats as any).allowed_pattern_type_min, (stats as any).allowed_pattern_type_max, true),
+        mk('pattern_intensity', 'Pattern Intensity', (stats as any).pattern_intensity_bins, (stats as any).pattern_intensity_bin_edges, (stats as any).pattern_intensity_min, (stats as any).pattern_intensity_median, (stats as any).pattern_intensity_max, (stats as any).allowed_pattern_intensity_min, (stats as any).allowed_pattern_intensity_max),
+        mk('lifespan_modifier', 'Lifespan Mod', (stats as any).lifespan_modifier_bins, (stats as any).lifespan_modifier_bin_edges, (stats as any).lifespan_modifier_min, (stats as any).lifespan_modifier_median, (stats as any).lifespan_modifier_max, (stats as any).allowed_lifespan_modifier_min, (stats as any).allowed_lifespan_modifier_max),
+    ];
+}
+
+function GeneDistributionPanel({
+    title,
+    items,
+    chartWidth,
+    defaultExpanded,
+}: {
+    title: string;
+    items: GeneDistributionEntry[];
+    chartWidth: number;
+    defaultExpanded?: boolean;
+}) {
+    const templateLabels = ['Round', 'Torpedo', 'Flat', 'Angular', 'Chubby', 'Eel'];
+    const patternLabels = ['Stripe', 'Spots', 'Solid', 'Grad', 'Chevron', 'Scale'];
+
+    return (
+        <div className="glass-panel" style={{ padding: '16px', gridColumn: '1 / -1' }}>
+            <CollapsibleSection
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                        <span>{title}</span>
+                    </div>
+                }
+                defaultExpanded={defaultExpanded ?? true}
+            >
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                    <div style={{
+                        fontSize: '11px',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        fontWeight: 500,
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        background: 'rgba(0,0,0,0.2)',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(255,255,255,0.05)'
+                    }}>
+                        MR: Mutation Rate · MS: Mutation Strength · HP: Horizontal Gene Transfer Prob · Meta-Data Mut Rate: 1%
+                    </div>
+                </div>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                    gap: '16px',
+                    marginTop: '8px'
+                }}>
+                    {items.map((g) => {
+                        const integerValues = g.discrete === true;
+                        const labels = g.key === 'template_id'
+                            ? templateLabels
+                            : g.key === 'pattern_type'
+                                ? patternLabels
+                                : undefined;
+
+                        const meta = g.meta;
+                        return (
+                            <div key={g.key} className="gene-graph-card" style={{
+                                background: 'rgba(0,0,0,0.25)',
+                                borderRadius: '8px',
+                                padding: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center'
+                            }}>
+                                <SizeSummaryGraph
+                                    bins={normalizeBins(g.bins)}
+                                    binEdges={g.bin_edges || []}
+                                    min={g.min}
+                                    median={g.median}
+                                    max={g.max}
+                                    allowedMin={g.allowed_min}
+                                    allowedMax={g.allowed_max}
+                                    width={chartWidth}
+                                    height={140}
+                                    xLabel={g.label}
+                                    yLabel="Pop %"
+                                    integerValues={integerValues}
+                                    labels={labels}
+                                    mutationRateMean={meta?.mut_rate_mean}
+                                    mutationRateStd={meta?.mut_rate_std}
+                                    mutationStrengthMean={meta?.mut_strength_mean}
+                                    mutationStrengthStd={meta?.mut_strength_std}
+                                    hgtProbMean={meta?.hgt_prob_mean}
+                                    hgtProbStd={meta?.hgt_prob_std}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+            </CollapsibleSection>
+        </div>
+    );
 }
 
 export function EcosystemStats({ stats }: EcosystemStatsProps) {
@@ -106,6 +256,10 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     if (!stats) return null;
 
     const chartWidth = 280;
+
+    const geneDistributions = safeStats.gene_distributions;
+    const physicalGenes = geneDistributions?.physical ?? legacyPhysicalGeneDistributions(safeStats);
+    const behavioralGenes = geneDistributions?.behavioral ?? [];
 
     // Energy source percentages
     return (
@@ -332,313 +486,19 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                 </div>
             )}
 
-            {/* Gene Distribution Panel - full width */}
-            <div className="glass-panel" style={{ padding: '16px', gridColumn: '1 / -1' }}>
-                <CollapsibleSection
-                    title={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
-                            <span>Gene Distribution</span>
-                            <span style={{
-                                fontSize: '11px',
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                fontWeight: 500,
-                                marginLeft: 'auto',
-                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                                background: 'rgba(0,0,0,0.2)',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                border: '1px solid rgba(255,255,255,0.05)'
-                            }}>
-                                MR: Mutation Rate · MS: Mutation Strength · HP: Horizontal Gene Transfer Prob · Meta-Data Mut Rate: 1%
-                            </span>
-                        </div>
-                    }
-                    defaultExpanded={true}
-                >
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '16px',
-                        marginTop: '8px'
-                    }}>
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                bins={normalizeBins(safeStats.adult_size_bins)}
-                                binEdges={safeStats.adult_size_bin_edges || []}
-                                min={safeStats.adult_size_min}
-                                median={safeStats.adult_size_median}
-                                max={safeStats.adult_size_max}
-                                allowedMin={safeStats.allowed_adult_size_min}
-                                allowedMax={safeStats.allowed_adult_size_max}
-                                width={chartWidth}
-                                height={100}
-                                xLabel="Adult Size"
-                                yLabel="Pop %"
-                                mutationRateMean={safeStats.adult_size_mut_rate_mean}
-                                mutationRateStd={safeStats.adult_size_mut_rate_std}
-                                mutationStrengthMean={safeStats.adult_size_mut_strength_mean}
-                                mutationStrengthStd={safeStats.adult_size_mut_strength_std}
-                                hgtProbMean={safeStats.adult_size_hgt_prob_mean}
-                                hgtProbStd={safeStats.adult_size_hgt_prob_std}
-                            />
-                        </div>
+            <GeneDistributionPanel
+                title="Physical Gene Distribution"
+                items={physicalGenes}
+                chartWidth={chartWidth}
+                defaultExpanded={true}
+            />
 
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                bins={normalizeBins(safeStats.eye_size_bins)}
-                                binEdges={safeStats.eye_size_bin_edges || []}
-                                min={safeStats.eye_size_min}
-                                median={safeStats.eye_size_median}
-                                max={safeStats.eye_size_max}
-                                allowedMin={safeStats.allowed_eye_size_min ?? 0.5}
-                                allowedMax={safeStats.allowed_eye_size_max ?? 2.0}
-                                width={chartWidth}
-                                height={100}
-                                xLabel="Eye Size"
-                                yLabel="Pop %"
-                                mutationRateMean={safeStats.eye_size_mut_rate_mean}
-                                mutationRateStd={safeStats.eye_size_mut_rate_std}
-                                mutationStrengthMean={safeStats.eye_size_mut_strength_mean}
-                                mutationStrengthStd={safeStats.eye_size_mut_strength_std}
-                                hgtProbMean={safeStats.eye_size_hgt_prob_mean}
-                                hgtProbStd={safeStats.eye_size_hgt_prob_std}
-                            />
-                        </div>
-
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                bins={normalizeBins(safeStats.fin_size_bins)}
-                                binEdges={safeStats.fin_size_bin_edges || []}
-                                min={safeStats.fin_size_min}
-                                median={safeStats.fin_size_median}
-                                max={safeStats.fin_size_max}
-                                allowedMin={safeStats.allowed_fin_size_min ?? 0.5}
-                                allowedMax={safeStats.allowed_fin_size_max ?? 2.0}
-                                width={chartWidth}
-                                height={100}
-                                xLabel="Fin Size"
-                                yLabel="Pop %"
-                                mutationRateMean={safeStats.fin_size_mut_rate_mean}
-                                mutationRateStd={safeStats.fin_size_mut_rate_std}
-                                mutationStrengthMean={safeStats.fin_size_mut_strength_mean}
-                                mutationStrengthStd={safeStats.fin_size_mut_strength_std}
-                                hgtProbMean={safeStats.fin_size_hgt_prob_mean}
-                                hgtProbStd={safeStats.fin_size_hgt_prob_std}
-                            />
-                        </div>
-                    </div>
-                    {/* Row 2: Physical Structure */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '16px',
-                        marginTop: '16px'
-                    }}>
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                width={chartWidth}
-                                height={140}
-                                bins={normalizeBins(stats.tail_size_bins)}
-                                binEdges={stats.tail_size_bin_edges || []}
-                                min={stats.tail_size_min || 0}
-                                median={stats.tail_size_median || 0}
-                                max={stats.tail_size_max || 0}
-                                allowedMin={stats.allowed_tail_size_min || 0.5}
-                                allowedMax={stats.allowed_tail_size_max || 2.0}
-                                xLabel="Tail Size"
-                                yLabel="Pop %"
-                                mutationRateMean={stats.tail_size_mut_rate_mean}
-                                mutationRateStd={stats.tail_size_mut_rate_std}
-                                mutationStrengthMean={stats.tail_size_mut_strength_mean}
-                                mutationStrengthStd={stats.tail_size_mut_strength_std}
-                                hgtProbMean={stats.tail_size_hgt_prob_mean}
-                                hgtProbStd={stats.tail_size_hgt_prob_std}
-                            />
-                        </div>
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                width={chartWidth}
-                                height={140}
-                                bins={normalizeBins(stats.body_aspect_bins)}
-                                binEdges={stats.body_aspect_bin_edges || []}
-                                min={stats.body_aspect_min || 0}
-                                median={stats.body_aspect_median || 0}
-                                max={stats.body_aspect_max || 0}
-                                allowedMin={stats.allowed_body_aspect_min || 0.7}
-                                allowedMax={stats.allowed_body_aspect_max || 1.3}
-                                xLabel="Body Aspect"
-                                yLabel="Pop %"
-                                mutationRateMean={stats.body_aspect_mut_rate_mean}
-                                mutationRateStd={stats.body_aspect_mut_rate_std}
-                                mutationStrengthMean={stats.body_aspect_mut_strength_mean}
-                                mutationStrengthStd={stats.body_aspect_mut_strength_std}
-                                hgtProbMean={stats.body_aspect_hgt_prob_mean}
-                                hgtProbStd={stats.body_aspect_hgt_prob_std}
-                            />
-                        </div>
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                width={chartWidth}
-                                height={140}
-                                bins={normalizeBins(stats.template_id_bins)}
-                                binEdges={stats.template_id_bin_edges || []}
-                                min={stats.template_id_min || 0}
-                                median={stats.template_id_median || 0}
-                                max={stats.template_id_max || 0}
-                                allowedMin={stats.allowed_template_id_min || 0}
-                                allowedMax={stats.allowed_template_id_max || 5}
-                                xLabel="Template"
-                                yLabel="Pop %"
-                                integerValues={true}
-                                labels={['Round', 'Torpedo', 'Flat', 'Angular', 'Chubby', 'Eel']}
-                                mutationRateMean={stats.template_id_mut_rate_mean}
-                                mutationRateStd={stats.template_id_mut_rate_std}
-                                mutationStrengthMean={stats.template_id_mut_strength_mean}
-                                mutationStrengthStd={stats.template_id_mut_strength_std}
-                                hgtProbMean={stats.template_id_hgt_prob_mean}
-                                hgtProbStd={stats.template_id_hgt_prob_std}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 3: Pattern & Lifespan */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '16px',
-                        marginTop: '16px'
-                    }}>
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                width={chartWidth}
-                                height={140}
-                                bins={normalizeBins(stats.pattern_type_bins)}
-                                binEdges={stats.pattern_type_bin_edges || []}
-                                min={stats.pattern_type_min || 0}
-                                median={stats.pattern_type_median || 0}
-                                max={stats.pattern_type_max || 0}
-                                allowedMin={stats.allowed_pattern_type_min || 0}
-                                allowedMax={stats.allowed_pattern_type_max || 5}
-                                xLabel="Pattern"
-                                yLabel="Pop %"
-                                integerValues={true}
-                                labels={['Stripe', 'Spots', 'Solid', 'Grad', 'Chevron', 'Scale']}
-                                mutationRateMean={stats.pattern_type_mut_rate_mean}
-                                mutationRateStd={stats.pattern_type_mut_rate_std}
-                                mutationStrengthMean={stats.pattern_type_mut_strength_mean}
-                                mutationStrengthStd={stats.pattern_type_mut_strength_std}
-                                hgtProbMean={stats.pattern_type_hgt_prob_mean}
-                                hgtProbStd={stats.pattern_type_hgt_prob_std}
-                            />
-                        </div>
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                width={chartWidth}
-                                height={140}
-                                bins={normalizeBins(stats.pattern_intensity_bins)}
-                                binEdges={stats.pattern_intensity_bin_edges || []}
-                                min={stats.pattern_intensity_min || 0}
-                                median={stats.pattern_intensity_median || 0}
-                                max={stats.pattern_intensity_max || 0}
-                                allowedMin={stats.allowed_pattern_intensity_min || 0.0}
-                                allowedMax={stats.allowed_pattern_intensity_max || 1.0}
-                                xLabel="Pattern Intensity"
-                                yLabel="Pop %"
-                                mutationRateMean={stats.pattern_intensity_mut_rate_mean}
-                                mutationRateStd={stats.pattern_intensity_mut_rate_std}
-                                mutationStrengthMean={stats.pattern_intensity_mut_strength_mean}
-                                mutationStrengthStd={stats.pattern_intensity_mut_strength_std}
-                                hgtProbMean={stats.pattern_intensity_hgt_prob_mean}
-                                hgtProbStd={stats.pattern_intensity_hgt_prob_std}
-                            />
-                        </div>
-                        <div className="gene-graph-card" style={{
-                            background: 'rgba(0,0,0,0.25)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                            <SizeSummaryGraph
-                                width={chartWidth}
-                                height={140}
-                                bins={normalizeBins(stats.lifespan_modifier_bins)}
-                                binEdges={stats.lifespan_modifier_bin_edges || []}
-                                min={stats.lifespan_modifier_min || 0}
-                                median={stats.lifespan_modifier_median || 0}
-                                max={stats.lifespan_modifier_max || 0}
-                                allowedMin={stats.allowed_lifespan_modifier_min || 0.6}
-                                allowedMax={stats.allowed_lifespan_modifier_max || 1.4}
-                                xLabel="Lifespan Mod"
-                                yLabel="Pop %"
-                                mutationRateMean={stats.lifespan_modifier_mut_rate_mean}
-                                mutationRateStd={stats.lifespan_modifier_mut_rate_std}
-                                mutationStrengthMean={stats.lifespan_modifier_mut_strength_mean}
-                                mutationStrengthStd={stats.lifespan_modifier_mut_strength_std}
-                                hgtProbMean={stats.lifespan_modifier_hgt_prob_mean}
-                                hgtProbStd={stats.lifespan_modifier_hgt_prob_std}
-                            />
-                        </div>
-                    </div>
-                </CollapsibleSection>
-            </div>
+            <GeneDistributionPanel
+                title="Behavioral Gene Distribution"
+                items={behavioralGenes}
+                chartWidth={chartWidth}
+                defaultExpanded={false}
+            />
         </div>
     );
 }

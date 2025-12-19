@@ -804,6 +804,9 @@ class SimulationRunner:
             "allowed_lifespan_modifier_max": stats.get("allowed_lifespan_modifier_max", 0.0),
             "lifespan_modifier_bins": stats.get("lifespan_modifier_bins", []),
             "lifespan_modifier_bin_edges": stats.get("lifespan_modifier_bin_edges", []),
+
+            # Dynamic gene distributions
+            "gene_distributions": stats.get("gene_distributions", {}),
         }
 
         # Helper to extract meta stats

@@ -180,6 +180,35 @@ export interface PokerStatsData {
     avg_fold_rate?: string;
 }
 
+export interface GeneDistributionMeta {
+    mut_rate_mean: number;
+    mut_rate_std: number;
+    mut_strength_mean: number;
+    mut_strength_std: number;
+    hgt_prob_mean: number;
+    hgt_prob_std: number;
+}
+
+export interface GeneDistributionEntry {
+    key: string;
+    label: string;
+    category: 'physical' | 'behavioral';
+    discrete: boolean;
+    allowed_min: number;
+    allowed_max: number;
+    min: number;
+    max: number;
+    median: number;
+    bins: number[];
+    bin_edges: number[];
+    meta?: GeneDistributionMeta;
+}
+
+export interface GeneDistributionsPayload {
+    physical: GeneDistributionEntry[];
+    behavioral: GeneDistributionEntry[];
+}
+
 export interface StatsData {
     frame: number;
     population: number;
@@ -318,6 +347,9 @@ export interface StatsData {
     lifespan_modifier_bin_edges?: number[];
     allowed_lifespan_modifier_min?: number;
     allowed_lifespan_modifier_max?: number;
+
+    // Dynamic gene distributions (preferred over legacy per-trait fields)
+    gene_distributions?: GeneDistributionsPayload;
 
     // Fish health status counts (by energy ratio)
     fish_health_critical: number;  // <15% energy

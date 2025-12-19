@@ -84,6 +84,227 @@ class StatsCalculator:
 
         return stats
 
+    def _humanize_gene_label(self, key: str) -> str:
+        special = {
+            "size_modifier": "Size Modifier",
+            "adult_size": "Adult Size",
+            "template_id": "Template",
+            "pattern_type": "Pattern",
+            "pattern_intensity": "Pattern Intensity",
+            "lifespan_modifier": "Lifespan Mod",
+        }
+        if key in special:
+            return special[key]
+        return " ".join(part.capitalize() for part in key.split("_"))
+
+    def _build_gene_distributions(self) -> Dict[str, Any]:
+        """Build a dynamic gene distribution payload.
+
+        This is intended for the frontend dashboards so new genes can appear
+        automatically when added to the trait spec lists.
+        """
+        fish_list = self._engine.get_fish_list()
+
+        def meta_for_traits(traits: List[Any]) -> Dict[str, float]:
+            # Inline meta computation so the payload is self-contained.
+            if not traits:
+                return {
+                    "mut_rate_mean": 0.0,
+                    "mut_rate_std": 0.0,
+                    "mut_strength_mean": 0.0,
+                    "mut_strength_std": 0.0,
+                    "hgt_prob_mean": 0.0,
+                    "hgt_prob_std": 0.0,
+                }
+
+            def calc_safe(values: List[float]) -> Tuple[float, float]:
+                if not values:
+                    return 0.0, 0.0
+                m = mean(values)
+                s = stdev(values) if len(values) > 1 else 0.0
+                return float(m), float(s)
+
+            rates = [float(getattr(t, "mutation_rate", 1.0)) for t in traits]
+            strengths = [float(getattr(t, "mutation_strength", 1.0)) for t in traits]
+            hgts = [float(getattr(t, "hgt_probability", 0.1)) for t in traits]
+            r_mean, r_std = calc_safe(rates)
+            s_mean, s_std = calc_safe(strengths)
+            h_mean, h_std = calc_safe(hgts)
+            return {
+                "mut_rate_mean": r_mean,
+                "mut_rate_std": r_std,
+                "mut_strength_mean": s_mean,
+                "mut_strength_std": s_std,
+                "hgt_prob_mean": h_mean,
+                "hgt_prob_std": h_std,
+            }
+
+        def build_from_specs(*, category: str, traits_attr: str, specs: List[Any]) -> List[Dict[str, Any]]:
+            out: List[Dict[str, Any]] = []
+            if not fish_list:
+                # Still emit entries with bounds so UI can render empty graphs.
+                for spec in specs:
+                    allowed_min = float(spec.min_val)
+                    allowed_max = float(spec.max_val)
+                    out.append(
+                        {
+                            "key": spec.name,
+                            "label": self._humanize_gene_label(spec.name),
+                            "category": category,
+                            "discrete": bool(getattr(spec, "discrete", False)),
+                            "allowed_min": allowed_min,
+                            "allowed_max": allowed_max,
+                            "min": 0.0,
+                            "max": 0.0,
+                            "median": 0.0,
+                            "bins": [],
+                            "bin_edges": [],
+                            "meta": meta_for_traits([]),
+                        }
+                    )
+                return out
+
+            for spec in specs:
+                try:
+                    traits = [
+                        getattr(getattr(f.genome, traits_attr), spec.name)
+                        for f in fish_list
+                        if hasattr(f, "genome")
+                        and hasattr(f.genome, traits_attr)
+                        and hasattr(getattr(f.genome, traits_attr), spec.name)
+                    ]
+                    values = [float(t.value) for t in traits]
+                    allowed_min = float(spec.min_val)
+                    allowed_max = float(spec.max_val)
+                    if not values:
+                        out.append(
+                            {
+                                "key": spec.name,
+                                "label": self._humanize_gene_label(spec.name),
+                                "category": category,
+                                "discrete": bool(getattr(spec, "discrete", False)),
+                                "allowed_min": allowed_min,
+                                "allowed_max": allowed_max,
+                                "min": 0.0,
+                                "max": 0.0,
+                                "median": 0.0,
+                                "bins": [],
+                                "bin_edges": [],
+                                "meta": meta_for_traits([]),
+                            }
+                        )
+                        continue
+
+                    v_min = min(values)
+                    v_max = max(values)
+                    try:
+                        v_median = median(values)
+                    except Exception:
+                        v_median = 0.0
+
+                    discrete = bool(getattr(spec, "discrete", False))
+                    if discrete:
+                        # One bin per discrete value.
+                        bin_count = int(round(allowed_max - allowed_min + 1))
+                        bins, edges = self._create_histogram(
+                            values,
+                            allowed_min - 0.5,
+                            allowed_max + 0.5,
+                            num_bins=max(1, bin_count),
+                        )
+                    else:
+                        bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+
+                    out.append(
+                        {
+                            "key": spec.name,
+                            "label": self._humanize_gene_label(spec.name),
+                            "category": category,
+                            "discrete": discrete,
+                            "allowed_min": allowed_min,
+                            "allowed_max": allowed_max,
+                            "min": float(v_min),
+                            "max": float(v_max),
+                            "median": float(v_median),
+                            "bins": bins,
+                            "bin_edges": edges,
+                            "meta": meta_for_traits(traits),
+                        }
+                    )
+                except Exception:
+                    # Skip individual trait failures; keep the rest.
+                    continue
+            return out
+
+        physical_specs: List[Any] = []
+        behavioral_specs: List[Any] = []
+        try:
+            from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+
+            physical_specs = list(PHYSICAL_TRAIT_SPECS)
+        except Exception:
+            physical_specs = []
+
+        try:
+            from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+
+            behavioral_specs = list(BEHAVIORAL_TRAIT_SPECS)
+        except Exception:
+            behavioral_specs = []
+
+        physical = build_from_specs(category="physical", traits_attr="physical", specs=physical_specs)
+        behavioral = build_from_specs(category="behavioral", traits_attr="behavioral", specs=behavioral_specs)
+
+        # Add derived adult size (based on size_modifier) as a first-class metric.
+        try:
+            from core.constants import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
+
+            allowed_min = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN)
+            allowed_max = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX)
+
+            size_traits = [
+                f.genome.physical.size_modifier
+                for f in fish_list
+                if hasattr(f, "genome") and hasattr(f.genome, "physical")
+            ]
+            adult_sizes = [float(FISH_ADULT_SIZE * t.value) for t in size_traits]
+
+            if adult_sizes:
+                a_min = float(min(adult_sizes))
+                a_max = float(max(adult_sizes))
+                try:
+                    a_median = float(median(adult_sizes))
+                except Exception:
+                    a_median = 0.0
+                bins, edges = self._create_histogram(adult_sizes, allowed_min, allowed_max, num_bins=16)
+            else:
+                a_min = 0.0
+                a_max = 0.0
+                a_median = 0.0
+                bins, edges = [], []
+
+            physical.insert(
+                0,
+                {
+                    "key": "adult_size",
+                    "label": self._humanize_gene_label("adult_size"),
+                    "category": "physical",
+                    "discrete": False,
+                    "allowed_min": allowed_min,
+                    "allowed_max": allowed_max,
+                    "min": a_min,
+                    "max": a_max,
+                    "median": a_median,
+                    "bins": bins,
+                    "bin_edges": edges,
+                    "meta": meta_for_traits(size_traits),
+                },
+            )
+        except Exception:
+            pass
+
+        return {"physical": physical, "behavioral": behavioral}
+
 
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive simulation statistics.
@@ -256,6 +477,9 @@ class StatsCalculator:
         stats.update(self._get_pattern_type_stats())
         stats.update(self._get_pattern_intensity_stats())
         stats.update(self._get_lifespan_modifier_stats())
+
+        # Dynamic gene distributions for the UI (physical + behavioral)
+        stats["gene_distributions"] = self._build_gene_distributions()
 
         return stats
 

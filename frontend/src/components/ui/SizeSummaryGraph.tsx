@@ -74,6 +74,20 @@ export default function SizeSummaryGraph({
     const formatMin = labels && labels.length > 0 && !showBarLabels ? labels[0] : (integerValues ? allowedMin.toFixed(0) : allowedMin.toFixed(2));
     const formatMax = labels && labels.length > 1 && !showBarLabels ? labels[labels.length - 1] : (integerValues ? allowedMax.toFixed(0) : allowedMax.toFixed(2));
 
+    // Better formatting for the meta stats (MR/MS as multipliers, HP as percent)
+    const fmtMultiplierPlusMinus = (mean?: number, std?: number) => {
+        if (mean === undefined) return '—';
+        const m = mean.toFixed(2) + '×';
+        const s = (std === undefined) ? '0.00' : std.toFixed(2);
+        return `${m} ± ${s}`;
+    };
+    const fmtPercentPlusMinus = (mean?: number, std?: number) => {
+        if (mean === undefined) return '—';
+        const m = (mean * 100).toFixed(1) + '%';
+        const s = (std === undefined) ? '0.0' : (std * 100).toFixed(1) + '%';
+        return `${m} ± ${s}`;
+    };
+
     return (
         <div style={{ width, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <svg width={width} height={svgHeight}>
@@ -141,27 +155,31 @@ export default function SizeSummaryGraph({
                 </text>
             </svg>
 
-            {(mutationRateMean !== undefined) && (
+            {(mutationRateMean !== undefined || mutationStrengthMean !== undefined || hgtProbMean !== undefined) && (
                 <div style={{
                     display: 'flex',
+                    flexWrap: 'wrap',
                     justifyContent: 'center',
-                    gap: '4px',
-                    fontSize: '0.7rem',
+                    gap: '4px 12px',
+                    fontSize: '0.75rem',
                     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    lineHeight: 1,
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    fontWeight: 500,
+                    lineHeight: 1.2,
+                    color: 'rgba(255, 255, 255, 0.78)',
+                    fontWeight: 600,
                     width: '100%',
-                    padding: '0 4px',
+                    padding: '2px 4px',
                     boxSizing: 'border-box',
-                    marginTop: '-4px',
-                    whiteSpace: 'nowrap'
+                    marginTop: '-4px'
                 }}>
-                    <span>MR: {mutationRateMean.toFixed(2)} ± {mutationRateStd?.toFixed(2)}</span>
-                    <span style={{ opacity: 0.3, margin: '0 4px' }}>|</span>
-                    <span>MS: {mutationStrengthMean?.toFixed(2)} ± {mutationStrengthStd?.toFixed(2)}</span>
-                    <span style={{ opacity: 0.3, margin: '0 4px' }}>|</span>
-                    <span>HP: {hgtProbMean?.toFixed(2)} ± {hgtProbStd?.toFixed(2)}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ color: 'var(--color-text-dim)' }}>MR:</span> {fmtMultiplierPlusMinus(mutationRateMean, mutationRateStd)}
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ color: 'var(--color-text-dim)' }}>MS:</span> {fmtMultiplierPlusMinus(mutationStrengthMean, mutationStrengthStd)}
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ color: 'var(--color-text-dim)' }}>HP:</span> {fmtPercentPlusMinus(hgtProbMean, hgtProbStd)}
+                    </span>
                 </div>
             )}
 
