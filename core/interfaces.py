@@ -5,9 +5,38 @@ in the simulation. These provide:
 - Better IDE autocomplete and type checking
 - Documentation of expected interfaces
 - Decoupling between components
+
+Usage:
+------
+Import protocols for type hints:
+    from core.interfaces import EnergyHolder, PokerPlayer, SpatialQuery
+
+Use isinstance() checks with @runtime_checkable protocols:
+    if isinstance(entity, EnergyHolder):
+        entity.modify_energy(-10.0)
 """
 
 from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
+
+# Explicit public API for this module
+__all__ = [
+    # Entity capability protocols
+    "EnergyHolder",
+    "PokerPlayer",
+    "Positionable",
+    "Evolvable",
+    "Mortal",
+    "Reproducible",
+    "SkillfulAgent",
+    # System protocols
+    "BehaviorStrategy",
+    "SimulationStats",
+    "EntityManager",
+    "SpatialQuery",
+    "FoodSpawner",
+    "CollisionHandler",
+    "PokerCoordinator",
+]
 
 if TYPE_CHECKING:
     from core.entities import Agent

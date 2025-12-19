@@ -5,6 +5,7 @@ The system extends BaseSystem for consistent interface and lifecycle management.
 
 Architecture Notes:
 - Extends BaseSystem for uniform system management
+- Runs in UpdatePhase.INTERACTION
 - Manages poker event history with configurable max size
 - Tracks poker statistics for debugging and analysis
 """
@@ -14,15 +15,17 @@ from typing import TYPE_CHECKING, Any, Dict, List
 
 from core.fish_poker import PokerInteraction
 from core.systems.base import BaseSystem
+from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
 
 
+@runs_in_phase(UpdatePhase.INTERACTION)
 class PokerSystem(BaseSystem):
     """Handle poker interactions and event history.
 
-    This system manages:
+    This system runs in the INTERACTION phase and manages:
     - Poker event history for UI display
     - Poker result processing (energy transfer, reproduction)
     - Statistics tracking for debugging

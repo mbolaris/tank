@@ -5,6 +5,7 @@ The system extends BaseSystem for consistent interface and lifecycle management.
 
 Architecture Notes:
 - Extends BaseSystem for uniform system management
+- Runs in UpdatePhase.TIME_UPDATE
 - Can operate independently (engine reference optional for backward compatibility)
 - Provides time-based modifiers for fish behavior and visibility
 """
@@ -13,16 +14,19 @@ import math
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from core.systems.base import BaseSystem
+from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
 
 
+@runs_in_phase(UpdatePhase.TIME_UPDATE)
 class TimeSystem(BaseSystem):
     """Manages the day/night cycle and time-related effects.
 
-    This system tracks the simulation's day/night cycle and provides
-    modifiers for fish behavior, visibility, and screen rendering.
+    This system runs in the TIME_UPDATE phase and tracks the simulation's
+    day/night cycle, providing modifiers for fish behavior, visibility,
+    and screen rendering.
 
     Attributes:
         time: Current time in the cycle (0.0 to cycle_length)

@@ -6,6 +6,7 @@ the simulation engine.
 
 Architecture Notes:
 - Extends BaseSystem for uniform system management
+- Runs in UpdatePhase.LIFECYCLE (but also resets counters at FRAME_START)
 - Manages entity death processing and cleanup
 - Handles food expiration and removal
 - Coordinates emergency fish spawning
@@ -16,6 +17,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict
 
 from core.systems.base import BaseSystem
+from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.entities import Agent, Food
@@ -24,14 +26,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@runs_in_phase(UpdatePhase.LIFECYCLE)
 class EntityLifecycleSystem(BaseSystem):
     """Manages entity lifecycle events including births, deaths, and cleanup.
 
-    This system consolidates lifecycle management logic:
+    This system runs in the LIFECYCLE phase and consolidates lifecycle
+    management logic:
     - Processing entity deaths with proper cleanup
     - Removing expired/consumed food
     - Emergency fish spawning when population is critical
     - Tracking lifecycle statistics
+
+    Note: The system also resets per-frame counters at FRAME_START via
+    _do_update(), which is called by the engine at the start of each frame.
 
     Attributes:
         _deaths_this_frame: Count of deaths in current frame

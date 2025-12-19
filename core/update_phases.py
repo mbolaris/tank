@@ -47,6 +47,20 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Protocol
 
+# Explicit public API
+__all__ = [
+    # Core types
+    "UpdatePhase",
+    "PhaseContext",
+    "PhaseRunner",
+    # Protocol
+    "PhaseAware",
+    # Helpers
+    "PHASE_DESCRIPTIONS",
+    "runs_in_phase",
+    "get_system_phase",
+]
+
 if TYPE_CHECKING:
     from core.systems.base import BaseSystem
 
