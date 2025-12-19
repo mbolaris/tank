@@ -6,7 +6,7 @@ interface and lifecycle management.
 
 Architecture Notes:
 - Extends BaseSystem for uniform system management
-- Called via update(frame) in the system registry
+- Runs in UpdatePhase.REPRODUCTION
 - Tracks reproduction statistics for debugging
 """
 
@@ -14,16 +14,19 @@ import random
 from typing import TYPE_CHECKING, Any, Dict
 
 from core.systems.base import BaseSystem
+from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
 
 
+@runs_in_phase(UpdatePhase.REPRODUCTION)
 class ReproductionSystem(BaseSystem):
     """Handle fish reproduction logic using the engine context.
 
-    This system manages asexual reproduction based on genetic traits.
-    Sexual reproduction is handled through the poker system.
+    This system runs in the REPRODUCTION phase and manages asexual
+    reproduction based on genetic traits. Sexual reproduction is
+    handled through the poker system.
 
     Attributes:
         _asexual_checks: Number of fish checked for asexual reproduction

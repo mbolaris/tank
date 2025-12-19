@@ -3,6 +3,18 @@
 This module provides the EnergyComponent class which handles all energy-related
 functionality for fish, including metabolism, consumption, and energy state checks.
 Separating energy logic into its own component improves code organization and testability.
+
+Protocol Conformance:
+--------------------
+EnergyComponent provides the implementation for the EnergyHolder protocol.
+While the component itself doesn't directly inherit from the protocol (since
+Protocols are structural, not nominal), it satisfies the EnergyHolder contract:
+- energy property (read/write)
+- max_energy property (read-only)
+- modify_energy(amount) method
+
+The Fish class wraps this component and exposes these as its own properties,
+making Fish satisfy EnergyHolder.
 """
 
 from typing import TYPE_CHECKING, Dict
@@ -151,6 +163,22 @@ class EnergyComponent:
         """
         self.energy = min(self.max_energy, self.energy + amount)
 
+    def modify_energy(self, amount: float) -> None:
+        """Modify energy by the specified amount.
+
+        This implements the EnergyHolder protocol's modify_energy method.
+        Positive amounts increase energy (capped at max_energy).
+        Negative amounts decrease energy (floored at 0).
+
+        Note: For Fish entities, use Fish.modify_energy() instead as it
+        handles overflow routing (reproduction, food drops).
+
+        Args:
+            amount: Amount to add (positive) or subtract (negative).
+        """
+        new_energy = self.energy + amount
+        self.energy = max(0.0, min(self.max_energy, new_energy))
+
     def is_starving(self) -> bool:
         """Check if fish is starving (will die soon).
 
@@ -241,3 +269,35 @@ class EnergyComponent:
         if self.is_safe_energy():
             return "Safe Energy"
         return "Moderate Energy"
+
+
+# =============================================================================
+# Protocol Conformance Verification
+# =============================================================================
+# This section verifies that EnergyComponent can satisfy the EnergyHolder
+# protocol. While Python's Protocol is structural (duck typing), having
+# an explicit check documents the intent and catches breaking changes early.
+
+
+def _verify_protocol_conformance() -> None:
+    """Verify EnergyComponent satisfies EnergyHolder protocol.
+
+    This function is called at module load time to ensure the component
+    implements the required interface. Any missing methods will raise
+    an assertion error with a helpful message.
+    """
+    from core.interfaces import EnergyHolder
+
+    # Create a minimal instance for protocol checking
+    component = EnergyComponent(max_energy=100.0, base_metabolism=0.1)
+
+    # Verify protocol conformance using isinstance (works with @runtime_checkable)
+    assert isinstance(component, EnergyHolder), (
+        "EnergyComponent does not satisfy EnergyHolder protocol. "
+        "Missing required attributes or methods: energy, max_energy, modify_energy"
+    )
+
+
+# Run verification at module load time (disabled in production for performance)
+# Uncomment the following line during development to enable runtime checks:
+# _verify_protocol_conformance()

@@ -6,7 +6,7 @@ Architecture Notes:
 - CollisionDetector classes implement the Strategy pattern for different
   collision algorithms (AABB, circle-based, etc.)
 - CollisionSystem is a simulation system that handles collision logic
-- The system now extends BaseSystem for consistent interface
+- The system extends BaseSystem and declares UpdatePhase.COLLISION
 
 TODO: Extract plant sprouting logic from handle_fish_food_collision into
       a separate PlantPropagationSystem for better separation of concerns.
@@ -19,6 +19,7 @@ from core.config.plants import FRACTAL_PLANT_SPROUTING_CHANCE
 from core.constants import FRACTAL_PLANTS_ENABLED
 from core.entities.fractal_plant import PlantNectar
 from core.systems.base import BaseSystem, SystemResult
+from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.entities import Agent
@@ -106,10 +107,11 @@ class CircleCollisionDetector(CollisionDetector):
 default_collision_detector = RectCollisionDetector()
 
 
+@runs_in_phase(UpdatePhase.COLLISION)
 class CollisionSystem(BaseSystem):
     """System for detecting and handling collisions between entities.
 
-    This system:
+    This system runs in the COLLISION phase and:
     - Checks for collisions between fish and food
     - Handles collision effects (eating, etc.)
     - Tracks collision statistics for debugging

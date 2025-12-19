@@ -7,16 +7,37 @@ Design Principles:
 - Each system has ONE responsibility (Single Responsibility Principle)
 - Systems are initialized with their dependencies (Dependency Injection)
 - Systems can be enabled/disabled without code changes
+- Systems declare which phase they run in (explicit ordering)
 - Systems report their state for debugging
 - Systems return results describing what they did (for debugging/metrics)
+
+Phase-System Mapping:
+---------------------
+Systems declare which UpdatePhase they belong to. This makes execution order
+explicit and self-documenting:
+
+    @runs_in_phase(UpdatePhase.COLLISION)
+    class CollisionSystem(BaseSystem):
+        ...
+
+The simulation engine can then orchestrate systems by phase, ensuring
+predictable execution order regardless of registration order.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, runtime_checkable
 
+# Explicit public API
+__all__ = [
+    "SystemResult",
+    "System",
+    "BaseSystem",
+]
+
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+    from core.update_phases import UpdatePhase
 
 
 @dataclass
@@ -120,7 +141,13 @@ class BaseSystem(ABC):
     Provides common functionality and enforces the System protocol.
     Subclass this when creating new systems.
 
+    Systems can optionally declare which phase they run in using the
+    @runs_in_phase decorator or by setting _phase in __init__.
+
     Example:
+        from core.update_phases import UpdatePhase, runs_in_phase
+
+        @runs_in_phase(UpdatePhase.ENVIRONMENT)
         class WeatherSystem(BaseSystem):
             def __init__(self, engine: SimulationEngine):
                 super().__init__(engine, "Weather")
@@ -133,6 +160,9 @@ class BaseSystem(ABC):
             def get_debug_info(self) -> Dict[str, Any]:
                 return {"weather": self.current_weather}
     """
+
+    # Class-level phase declaration (set by @runs_in_phase decorator)
+    _phase: Optional["UpdatePhase"] = None
 
     def __init__(self, engine: "SimulationEngine", name: str) -> None:
         """Initialize the system.
@@ -208,6 +238,18 @@ class BaseSystem(ABC):
         """
         pass
 
+    @property
+    def phase(self) -> Optional["UpdatePhase"]:
+        """The update phase this system runs in.
+
+        Systems can declare their phase using the @runs_in_phase decorator
+        or by overriding this property.
+
+        Returns:
+            The UpdatePhase this system belongs to, or None if not phase-aware
+        """
+        return self._phase
+
     def get_debug_info(self) -> Dict[str, Any]:
         """Return debug information about this system's state.
 
@@ -221,7 +263,9 @@ class BaseSystem(ABC):
             "name": self._name,
             "enabled": self._enabled,
             "update_count": self._update_count,
+            "phase": self._phase.name if self._phase else None,
         }
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(name={self._name!r}, enabled={self._enabled})"
+        phase_str = f", phase={self._phase.name}" if self._phase else ""
+        return f"{self.__class__.__name__}(name={self._name!r}, enabled={self._enabled}{phase_str})"
