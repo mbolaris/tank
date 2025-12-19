@@ -169,6 +169,7 @@ class SimulationEngine(BaseSimulator):
         self,
         headless: bool = True,
         rng: Optional[random.Random] = None,
+        seed: Optional[int] = None,
         enable_poker_benchmarks: bool = False,
     ) -> None:
         """Initialize the simulation engine.
@@ -180,7 +181,16 @@ class SimulationEngine(BaseSimulator):
         """
         super().__init__()
         self.headless = headless
-        self.rng: random.Random = rng or random.Random()
+        # Backwards-compatible RNG handling: prefer explicit rng, then seed, then fresh RNG
+        if rng is not None:
+            self.rng: random.Random = rng
+            self.seed = None
+        elif seed is not None:
+            self.rng = random.Random(seed)
+            self.seed = seed
+        else:
+            self.rng = random.Random()
+            self.seed = None
         self.entities_list: List[entities.Agent] = []
         self.agents = AgentsWrapper(self)
         self.environment: Optional[environment.Environment] = None
@@ -1218,6 +1228,17 @@ class SimulationEngine(BaseSimulator):
                 logger.info("EXPORTING JSON STATISTICS FOR LLM ANALYSIS...")
                 logger.info("=" * SEPARATOR_WIDTH)
                 self.export_stats_json(export_json)
+
+        def run_collect_stats(self, max_frames: int = 100) -> Dict[str, Any]:
+            """Run the engine for `max_frames` frames and return final stats.
+
+            This convenience method is designed for unit tests and deterministic
+            runs where the caller wants the resulting stats as a dictionary.
+            """
+            self.setup()
+            for _ in range(max_frames):
+                self.update()
+            return self.get_stats()
 
 
     def add_plant_poker_event(

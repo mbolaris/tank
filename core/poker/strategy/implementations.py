@@ -58,9 +58,10 @@ class PokerStrategyAlgorithm:
                     self.parameters[param_key] = max(0.1, min(3.0, self.parameters[param_key]))
 
     @classmethod
-    def random_instance(cls) -> "PokerStrategyAlgorithm":
-        """Create random instance."""
-        return cls()
+    @classmethod
+    def random_instance(cls, rng: Optional[random.Random] = None) -> "PokerStrategyAlgorithm":
+        """Create random instance using optional RNG for determinism."""
+        return cls(rng=rng)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize strategy to dictionary."""
@@ -113,21 +114,22 @@ class PokerStrategyAlgorithm:
 class TightAggressiveStrategy(PokerStrategyAlgorithm):
     """TAG: Plays few hands aggressively."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="tight_aggressive",
             parameters={
-                "weak_fold_threshold": random.uniform(0.3, 0.5),
-                "strong_raise_threshold": random.uniform(0.6, 0.8),
-                "value_raise_multiplier": random.uniform(0.5, 1.0),
-                "bluff_frequency": random.uniform(0.05, 0.15),
-                "position_bonus": random.uniform(0.05, 0.15),
+                "weak_fold_threshold": rng.uniform(0.3, 0.5),
+                "strong_raise_threshold": rng.uniform(0.6, 0.8),
+                "value_raise_multiplier": rng.uniform(0.5, 1.0),
+                "bluff_frequency": rng.uniform(0.05, 0.15),
+                "position_bonus": rng.uniform(0.05, 0.15),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -166,21 +168,22 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
 class LooseAggressiveStrategy(PokerStrategyAlgorithm):
     """LAG: Plays many hands aggressively."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="loose_aggressive",
             parameters={
-                "weak_fold_threshold": random.uniform(0.15, 0.30),
-                "raise_threshold": random.uniform(0.4, 0.6),
-                "raise_multiplier": random.uniform(0.7, 1.5),
-                "bluff_frequency": random.uniform(0.25, 0.45),
-                "position_aggression": random.uniform(0.1, 0.25),
+                "weak_fold_threshold": rng.uniform(0.15, 0.30),
+                "raise_threshold": rng.uniform(0.4, 0.6),
+                "raise_multiplier": rng.uniform(0.7, 1.5),
+                "bluff_frequency": rng.uniform(0.25, 0.45),
+                "position_aggression": rng.uniform(0.1, 0.25),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -221,22 +224,22 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 @dataclass
 class TightPassiveStrategy(PokerStrategyAlgorithm):
     """Rock: Plays few hands, rarely raises."""
-
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="tight_passive",
             parameters={
-                "weak_fold_threshold": random.uniform(0.4, 0.6),
-                "raise_threshold": random.uniform(0.75, 0.90),
-                "call_threshold": random.uniform(0.35, 0.55),
-                "raise_multiplier": random.uniform(0.3, 0.6),
-                "bluff_frequency": random.uniform(0.01, 0.05),
+                "weak_fold_threshold": rng.uniform(0.4, 0.6),
+                "raise_threshold": rng.uniform(0.75, 0.90),
+                "call_threshold": rng.uniform(0.35, 0.55),
+                "raise_multiplier": rng.uniform(0.3, 0.6),
+                "bluff_frequency": rng.uniform(0.01, 0.05),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -274,24 +277,25 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
 class BalancedStrategy(PokerStrategyAlgorithm):
     """Balanced/GTO-inspired strategy."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="balanced",
             parameters={
-                "weak_fold_threshold": random.uniform(0.25, 0.40),
-                "medium_threshold": random.uniform(0.45, 0.60),
-                "strong_threshold": random.uniform(0.70, 0.85),
-                "value_raise_multiplier": random.uniform(0.5, 0.9),
-                "bluff_multiplier": random.uniform(0.4, 0.8),
-                "bluff_frequency": random.uniform(0.15, 0.30),
-                "position_bonus": random.uniform(0.08, 0.18),
-                "pot_odds_factor": random.uniform(1.2, 1.8),
+                "weak_fold_threshold": rng.uniform(0.25, 0.40),
+                "medium_threshold": rng.uniform(0.45, 0.60),
+                "strong_threshold": rng.uniform(0.70, 0.85),
+                "value_raise_multiplier": rng.uniform(0.5, 0.9),
+                "bluff_multiplier": rng.uniform(0.4, 0.8),
+                "bluff_frequency": rng.uniform(0.15, 0.30),
+                "position_bonus": rng.uniform(0.08, 0.18),
+                "pot_odds_factor": rng.uniform(1.2, 1.8),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -353,21 +357,22 @@ class BalancedStrategy(PokerStrategyAlgorithm):
 class ManiacStrategy(PokerStrategyAlgorithm):
     """Ultra-aggressive strategy."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="maniac",
             parameters={
-                "min_hand_to_play": random.uniform(0.05, 0.20),
-                "raise_frequency": random.uniform(0.60, 0.85),
-                "raise_sizing": random.uniform(1.0, 2.5),
-                "bluff_frequency": random.uniform(0.40, 0.65),
-                "all_in_threshold": random.uniform(0.75, 0.95),
+                "min_hand_to_play": rng.uniform(0.05, 0.20),
+                "raise_frequency": rng.uniform(0.60, 0.85),
+                "raise_sizing": rng.uniform(1.0, 2.5),
+                "bluff_frequency": rng.uniform(0.40, 0.65),
+                "all_in_threshold": rng.uniform(0.75, 0.95),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -405,21 +410,22 @@ class ManiacStrategy(PokerStrategyAlgorithm):
 class LoosePassiveStrategy(PokerStrategyAlgorithm):
     """Calling station: plays many hands passively."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="loose_passive",
             parameters={
-                "weak_fold_threshold": random.uniform(0.10, 0.25),
-                "raise_threshold": random.uniform(0.80, 0.95),
-                "call_threshold": random.uniform(0.15, 0.30),
-                "raise_multiplier": random.uniform(0.25, 0.50),
-                "pot_odds_sensitivity": random.uniform(0.5, 1.5),
+                "weak_fold_threshold": rng.uniform(0.10, 0.25),
+                "raise_threshold": rng.uniform(0.80, 0.95),
+                "call_threshold": rng.uniform(0.15, 0.30),
+                "raise_multiplier": rng.uniform(0.25, 0.50),
+                "pot_odds_sensitivity": rng.uniform(0.5, 1.5),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -455,22 +461,23 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
 class AdaptiveStrategy(PokerStrategyAlgorithm):
     """Adapts play style based on pot size and stack depth."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="adaptive",
             parameters={
-                "aggression_base": random.uniform(0.3, 0.6),
-                "pot_size_adjustment": random.uniform(0.1, 0.3),  # More aggressive with bigger pots
-                "stack_depth_factor": random.uniform(0.5, 1.5),
-                "fold_threshold_tight": random.uniform(0.35, 0.50),
-                "fold_threshold_loose": random.uniform(0.15, 0.30),
-                "position_bonus": random.uniform(0.08, 0.18),
+                "aggression_base": rng.uniform(0.3, 0.6),
+                "pot_size_adjustment": rng.uniform(0.1, 0.3),  # More aggressive with bigger pots
+                "stack_depth_factor": rng.uniform(0.5, 1.5),
+                "fold_threshold_tight": rng.uniform(0.35, 0.50),
+                "fold_threshold_loose": rng.uniform(0.15, 0.30),
+                "position_bonus": rng.uniform(0.08, 0.18),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -517,21 +524,22 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
 class PositionalExploiter(PokerStrategyAlgorithm):
     """Heavily exploits positional advantage."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="positional_exploiter",
             parameters={
-                "ip_raise_threshold": random.uniform(0.25, 0.40),  # Raise more in position
-                "oop_fold_threshold": random.uniform(0.40, 0.55),  # Fold more out of position
-                "ip_aggression_boost": random.uniform(0.20, 0.40),
-                "steal_frequency": random.uniform(0.35, 0.55),
-                "value_sizing": random.uniform(0.6, 1.2),
+                "ip_raise_threshold": rng.uniform(0.25, 0.40),  # Raise more in position
+                "oop_fold_threshold": rng.uniform(0.40, 0.55),  # Fold more out of position
+                "ip_aggression_boost": rng.uniform(0.20, 0.40),
+                "steal_frequency": rng.uniform(0.35, 0.55),
+                "value_sizing": rng.uniform(0.6, 1.2),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -578,21 +586,22 @@ class PositionalExploiter(PokerStrategyAlgorithm):
 class TrapSetterStrategy(PokerStrategyAlgorithm):
     """Slowplays strong hands to trap opponents."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="trap_setter",
             parameters={
-                "trap_threshold": random.uniform(0.70, 0.85),  # Slowplay above this strength
-                "trap_frequency": random.uniform(0.50, 0.75),  # How often to trap vs value bet
-                "spring_trap_threshold": random.uniform(0.80, 0.95),  # When to spring the trap
-                "weak_fold_threshold": random.uniform(0.30, 0.45),
-                "check_raise_frequency": random.uniform(0.25, 0.45),
+                "trap_threshold": rng.uniform(0.70, 0.85),  # Slowplay above this strength
+                "trap_frequency": rng.uniform(0.50, 0.75),  # How often to trap vs value bet
+                "spring_trap_threshold": rng.uniform(0.80, 0.95),  # When to spring the trap
+                "weak_fold_threshold": rng.uniform(0.30, 0.45),
+                "check_raise_frequency": rng.uniform(0.25, 0.45),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -642,21 +651,22 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
 class MathematicalStrategy(PokerStrategyAlgorithm):
     """Pure pot odds and equity-based decisions."""
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
+        rng = rng or random
         super().__init__(
             strategy_id="mathematical",
             parameters={
-                "required_equity_multiplier": random.uniform(1.0, 1.4),  # How much equity needed vs pot odds
-                "implied_odds_factor": random.uniform(1.2, 2.0),
-                "value_bet_threshold": random.uniform(0.55, 0.70),
-                "bet_sizing_pot_fraction": random.uniform(0.5, 0.8),
-                "fold_equity_threshold": random.uniform(0.25, 0.40),
+                "required_equity_multiplier": rng.uniform(1.0, 1.4),  # How much equity needed vs pot odds
+                "implied_odds_factor": rng.uniform(1.2, 2.0),
+                "value_bet_threshold": rng.uniform(0.55, 0.70),
+                "bet_sizing_pot_fraction": rng.uniform(0.5, 0.8),
+                "fold_equity_threshold": rng.uniform(0.25, 0.40),
             },
         )
 
     @classmethod
-    def random_instance(cls):
-        return cls()
+    def random_instance(cls, rng: Optional[random.Random] = None):
+        return cls(rng=rng)
 
     def decide_action(
         self,
@@ -858,7 +868,11 @@ BASELINE_STRATEGIES = [
 def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
     """Get random poker strategy."""
     rng = rng or random
-    return rng.choice(ALL_POKER_STRATEGIES).random_instance()
+    cls = rng.choice(ALL_POKER_STRATEGIES)
+    try:
+        return cls.random_instance(rng=rng)
+    except TypeError:
+        return cls.random_instance()
 
 
 # Configuration flags for poker evolution tuning

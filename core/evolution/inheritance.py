@@ -152,11 +152,13 @@ def inherit_algorithm(
 
     # Use the algorithms module's crossover
     return crossover_algorithms_weighted(
-        alg1, alg2,
+        alg1,
+        alg2,
         parent1_weight=weight1,
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         algorithm_switch_rate=algorithm_switch_rate,
+        rng=rng,
     )
 
 
