@@ -530,9 +530,9 @@ class Fish(Agent):
 
         # If the bank is full, spill the remainder as food to maintain energy conservation.
         if remainder > 0:
-            self._drop_overflow_as_food(remainder)
+            self._spawn_overflow_food(remainder)
 
-    def _drop_overflow_as_food(self, overflow: float) -> None:
+    def _spawn_overflow_food(self, overflow: float) -> None:
         """Convert overflow energy into a food drop near the fish.
 
         Args:
