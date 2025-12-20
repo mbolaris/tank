@@ -33,13 +33,6 @@ CRITICAL_ENERGY_THRESHOLD_RATIO = 0.10  # Emergency survival mode (same as starv
 LOW_ENERGY_THRESHOLD_RATIO = 0.20  # Below 20%, fish should prioritize finding food
 SAFE_ENERGY_THRESHOLD_RATIO = 0.40  # Above 40%, comfortable for exploration and breeding
 
-# Legacy absolute thresholds (deprecated, kept for backward compatibility)
-# New code should use the RATIO versions above with fish.max_energy
-STARVATION_THRESHOLD = 15.0  # @deprecated: Use STARVATION_THRESHOLD_RATIO instead
-CRITICAL_ENERGY_THRESHOLD = 15.0  # @deprecated: Use CRITICAL_ENERGY_THRESHOLD_RATIO instead
-LOW_ENERGY_THRESHOLD = 30.0  # @deprecated: Use LOW_ENERGY_THRESHOLD_RATIO instead
-SAFE_ENERGY_THRESHOLD = 60.0  # @deprecated: Use SAFE_ENERGY_THRESHOLD_RATIO instead
-
 # Fish Life Stage Age Thresholds (in frames at 30fps)
 LIFE_STAGE_BABY_MAX = 600  # 20 seconds (babies grow slower)
 LIFE_STAGE_JUVENILE_MAX = 900  # 30 seconds

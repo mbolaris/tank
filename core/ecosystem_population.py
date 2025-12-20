@@ -123,9 +123,6 @@ def record_death(
         elif cause == "predation":
             algo_stats.deaths_predation += 1
 
-    if genome is not None:
-        ecosystem.enhanced_stats.record_trait_fitness_sample(genome)
-
     ecosystem.enhanced_stats.record_death_energy_loss(remaining_energy)
 
     # Record energy burn for economy stats

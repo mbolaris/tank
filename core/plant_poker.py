@@ -203,7 +203,6 @@ class PlantPokerInteraction:
         winnings = total_pot
 
         # Transfer energy
-        # Transfer energy
         if fish_won:
             # Fish wins - takes energy from plant
             energy_transferred = winnings / 2
@@ -326,10 +325,3 @@ def check_fish_plant_poker_proximity(
     # Must be within max distance but farther than min distance (not touching)
     return min_distance * min_distance < distance_sq <= max_distance * max_distance
 
-
-# Legacy alias for backwards compatibility
-def check_fish_plant_poker_collision(
-    fish: "Fish", plant: "Plant", collision_distance: float = 50.0
-) -> bool:
-    """Legacy function - now uses proximity check instead of collision."""
-    return check_fish_plant_poker_proximity(fish, plant, min_distance=40.0, max_distance=collision_distance)

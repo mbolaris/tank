@@ -253,19 +253,6 @@ class EnhancedStatisticsTracker:
         self.trait_history["size"].append(avg_size)
         self.trait_history["metabolism"].append(avg_metabolism)
 
-    def record_trait_fitness_sample(self, genome: "Genome") -> None:
-        """Record a trait-fitness data point for correlation analysis.
-
-        Note: fitness_score has been removed. This method is now deprecated
-        and does nothing. Kept for backward compatibility.
-
-        Args:
-            genome: Genome to sample from (unused)
-        """
-        # Method deprecated - fitness_score removed
-        # Correlation analysis now done differently
-        pass
-
     def calculate_trait_correlations(self) -> List[TraitCorrelation]:
         """Calculate correlations between traits and fitness.
 
