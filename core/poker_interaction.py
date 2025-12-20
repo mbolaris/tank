@@ -66,6 +66,62 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     return True
 
 
+def calculate_house_cut(winner_size: float, net_gain: float) -> float:
+    """Calculate house cut based on winner's size.
+
+    Larger winners pay more: Size 0.35: 8%, Size 1.0: ~20%, Size 1.3: ~25%
+    
+    Args:
+        winner_size: Size of the winning player
+        net_gain: Net energy gain from the pot
+        
+    Returns:
+        House cut amount (energy taken by the house)
+    """
+    from core.constants import (
+        POKER_BET_MIN_SIZE,
+        POKER_HOUSE_CUT_MIN_PERCENTAGE,
+        POKER_HOUSE_CUT_SIZE_MULTIPLIER,
+    )
+
+    house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
+        0, (winner_size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
+    )
+    # Clamp to 8-25% range
+    house_cut_percentage = min(house_cut_percentage, 0.25)
+    # Never exceed the winner's profit
+    return min(net_gain * house_cut_percentage, net_gain)
+
+
+def should_offer_post_poker_reproduction(
+    fish, opponent, is_winner: bool, energy_gained: float = 0.0
+) -> bool:
+    """Legacy alias for should_trigger_reproduction for fish.
+    
+    DEPRECATED: Prefer using should_trigger_reproduction() for new code.
+    
+    This performs the same check as should_trigger_reproduction but with
+    the original signature for backward compatibility.
+    """
+    from core.entities.base import LifeStage
+    
+    # Original logic from fish_poker.py
+    min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+    if fish.energy < min_energy_for_reproduction:
+        return False
+
+    if fish.reproduction_cooldown > 0:
+        return False
+
+    if fish.life_stage.value < LifeStage.ADULT.value:
+        return False
+
+    if fish.species != opponent.species:
+        return False
+
+    return True
+
+
 __all__ = [
     "PokerInteraction",
     "PokerResult", 
@@ -74,4 +130,6 @@ __all__ = [
     "PlayerContext",
     "Player",
     "should_trigger_reproduction",
+    "should_offer_post_poker_reproduction",
+    "calculate_house_cut",
 ]
