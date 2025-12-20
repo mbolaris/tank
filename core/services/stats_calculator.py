@@ -62,9 +62,9 @@ class StatsCalculator:
         def calc_safe(values: List[float]) -> Tuple[float, float]:
             if not values:
                 return 0.0, 0.0
-            m = mean(values)
-            s = stdev(values) if len(values) > 1 else 0.0
-            return m, s
+            mean_value = mean(values)
+            std_deviation = stdev(values) if len(values) > 1 else 0.0
+            return mean_value, std_deviation
 
         # Mutation Rate
         rates = [t.mutation_rate for t in traits]
@@ -122,9 +122,9 @@ class StatsCalculator:
             def calc_safe(values: List[float]) -> Tuple[float, float]:
                 if not values:
                     return 0.0, 0.0
-                m = mean(values)
-                s = stdev(values) if len(values) > 1 else 0.0
-                return float(m), float(s)
+                mean_value = mean(values)
+                std_deviation = stdev(values) if len(values) > 1 else 0.0
+                return float(mean_value), float(std_deviation)
 
             rates = [float(getattr(t, "mutation_rate", 1.0)) for t in traits]
             strengths = [float(getattr(t, "mutation_strength", 1.0)) for t in traits]

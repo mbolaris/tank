@@ -49,12 +49,12 @@ def predict_intercept_point(
     # Let t be time to intercept:
     # |target_pos + target_vel*t - fish_pos| = fish_speed * t
 
-    a = target_vel.length_squared() - fish_speed * fish_speed
-    b = 2 * rel_pos.dot(target_vel)
-    c = rel_pos.length_squared()
+    velocity_coefficient = target_vel.length_squared() - fish_speed * fish_speed
+    position_velocity_coefficient = 2 * rel_pos.dot(target_vel)
+    distance_coefficient = rel_pos.length_squared()
 
     # Solve quadratic equation
-    discriminant = b * b - 4 * a * c
+    discriminant = position_velocity_coefficient * position_velocity_coefficient - 4 * velocity_coefficient * distance_coefficient
 
     if discriminant < 0:
         # No solution - can't intercept
@@ -66,30 +66,30 @@ def predict_intercept_point(
     # Two solutions - we want the smaller positive one
     sqrt_discriminant = discriminant**0.5
 
-    if abs(a) < 0.001:  # Near zero, use linear approximation
-        t = -c / b if abs(b) > 0.001 else 0.0
+    if abs(velocity_coefficient) < 0.001:  # Near zero, use linear approximation
+        time_to_intercept = -distance_coefficient / position_velocity_coefficient if abs(position_velocity_coefficient) > 0.001 else 0.0
     else:
-        t1 = (-b + sqrt_discriminant) / (2 * a)
-        t2 = (-b - sqrt_discriminant) / (2 * a)
+        time_solution_1 = (-position_velocity_coefficient + sqrt_discriminant) / (2 * velocity_coefficient)
+        time_solution_2 = (-position_velocity_coefficient - sqrt_discriminant) / (2 * velocity_coefficient)
 
         # Choose smallest positive time
-        if t1 > 0 and t2 > 0:
-            t = min(t1, t2)
-        elif t1 > 0:
-            t = t1
-        elif t2 > 0:
-            t = t2
+        if time_solution_1 > 0 and time_solution_2 > 0:
+            time_to_intercept = min(time_solution_1, time_solution_2)
+        elif time_solution_1 > 0:
+            time_to_intercept = time_solution_1
+        elif time_solution_2 > 0:
+            time_to_intercept = time_solution_2
         else:
             # Both negative - aim for current position
-            t = 0.0
+            time_to_intercept = 0.0
 
     # Limit prediction time to reasonable value (2 seconds max)
-    t = max(0.0, min(t, 2.0))
+    time_to_intercept = max(0.0, min(time_to_intercept, 2.0))
 
     # Calculate intercept point
-    intercept_point = target_pos + target_vel * t
+    intercept_point = target_pos + target_vel * time_to_intercept
 
-    return intercept_point, t
+    return intercept_point, time_to_intercept
 
 
 def predict_position(pos: Vector2, vel: Vector2, frames_ahead: float) -> Vector2:

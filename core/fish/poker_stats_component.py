@@ -34,8 +34,8 @@ class FishPokerStats:
         total_house_cuts_paid: Total house cut paid from winnings
         games_on_button: Games played on the button
         wins_on_button: Wins when on the button
-        games_off_button: Games played off the button
-        wins_off_button: Wins when off the button
+        games_non_button: Games played when not on the button
+        wins_non_button: Wins when not on the button
     """
 
     total_games: int = 0
@@ -55,8 +55,8 @@ class FishPokerStats:
     total_house_cuts_paid: float = 0.0
     games_on_button: int = 0
     wins_on_button: int = 0
-    games_off_button: int = 0
-    wins_off_button: int = 0
+    games_non_button: int = 0
+    wins_non_button: int = 0
 
     # Private fields for tracking
     _hand_rank_sum: float = field(default=0.0, repr=False)
@@ -104,15 +104,15 @@ class FishPokerStats:
             return 0.0
         return self.wins_on_button / self.games_on_button
 
-    def get_off_button_win_rate(self) -> float:
+    def get_non_button_win_rate(self) -> float:
         """Calculate win rate when off the button."""
-        if self.games_off_button == 0:
+        if self.games_non_button == 0:
             return 0.0
-        return self.wins_off_button / self.games_off_button
+        return self.wins_non_button / self.games_non_button
 
     def get_positional_advantage(self) -> float:
         """Calculate positional advantage (button win rate - off button win rate)."""
-        return self.get_button_win_rate() - self.get_off_button_win_rate()
+        return self.get_button_win_rate() - self.get_non_button_win_rate()
 
     def get_recent_win_rate(self) -> float:
         """Calculate win rate for recent games (last 10 games).
@@ -184,8 +184,8 @@ class FishPokerStats:
             self.games_on_button += 1
             self.wins_on_button += 1
         else:
-            self.games_off_button += 1
-            self.wins_off_button += 1
+            self.games_non_button += 1
+            self.wins_non_button += 1
 
     def record_loss(
         self,
@@ -229,7 +229,7 @@ class FishPokerStats:
         if on_button:
             self.games_on_button += 1
         else:
-            self.games_off_button += 1
+            self.games_non_button += 1
 
     def record_tie(self, hand_rank: int, on_button: bool) -> None:
         """Record a poker tie.
@@ -253,7 +253,7 @@ class FishPokerStats:
         if on_button:
             self.games_on_button += 1
         else:
-            self.games_off_button += 1
+            self.games_non_button += 1
 
     def get_stats_dict(self) -> dict:
         """Get statistics as a dictionary for serialization.
@@ -279,7 +279,7 @@ class FishPokerStats:
             "best_hand_rank": self.best_hand_rank,
             "avg_hand_rank": self.get_avg_hand_rank(),
             "button_win_rate": self.get_button_win_rate(),
-            "off_button_win_rate": self.get_off_button_win_rate(),
+            "non_button_win_rate": self.get_non_button_win_rate(),
             "positional_advantage": self.get_positional_advantage(),
             "recent_win_rate": self.get_recent_win_rate(),
             "skill_trend": self.get_skill_trend(),

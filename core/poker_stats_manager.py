@@ -126,13 +126,13 @@ class PokerStatsManager:
 
         total_button_wins = sum(s.button_wins for s in self.poker_stats.values())
         total_button_games = sum(s.button_games for s in self.poker_stats.values())
-        total_off_button_wins = sum(s.off_button_wins for s in self.poker_stats.values())
-        total_off_button_games = sum(s.off_button_games for s in self.poker_stats.values())
+        total_non_button_wins = sum(s.non_button_wins for s in self.poker_stats.values())
+        total_non_button_games = sum(s.non_button_games for s in self.poker_stats.values())
         button_win_rate = (total_button_wins / total_button_games) if total_button_games > 0 else 0.0
-        off_button_win_rate = (
-            (total_off_button_wins / total_off_button_games) if total_off_button_games > 0 else 0.0
+        non_button_win_rate = (
+            (total_non_button_wins / total_non_button_games) if total_non_button_games > 0 else 0.0
         )
-        positional_advantage = button_win_rate - off_button_win_rate
+        positional_advantage = button_win_rate - non_button_win_rate
 
         total_raises = sum(s.total_raises for s in self.poker_stats.values())
         total_calls = sum(s.total_calls for s in self.poker_stats.values())
@@ -169,8 +169,8 @@ class PokerStatsManager:
             ),
             "button_win_rate": button_win_rate,
             "button_win_rate_pct": f"{button_win_rate:.1%}",
-            "off_button_win_rate": off_button_win_rate,
-            "off_button_win_rate_pct": f"{off_button_win_rate:.1%}",
+            "non_button_win_rate": non_button_win_rate,
+            "non_button_win_rate_pct": f"{non_button_win_rate:.1%}",
             "positional_advantage": positional_advantage,
             "positional_advantage_pct": f"{positional_advantage:.1%}",
             "aggression_factor": aggression_factor,
@@ -435,8 +435,8 @@ class PokerStatsManager:
             stats.button_games += 1
             stats.button_wins += 1
         else:
-            stats.off_button_games += 1
-            stats.off_button_wins += 1
+            stats.non_button_games += 1
+            stats.non_button_wins += 1
 
         for player, action, _ in result.betting_history:
             if (player == 1 and winner_algo_id == player1_algo_id) or (
@@ -500,7 +500,7 @@ class PokerStatsManager:
         if loser_on_button:
             stats.button_games += 1
         else:
-            stats.off_button_games += 1
+            stats.non_button_games += 1
 
         for player, action, _ in result.betting_history:
             if (player == 1 and loser_algo_id == player1_algo_id) or (
