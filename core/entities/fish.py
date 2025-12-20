@@ -504,12 +504,14 @@ class Fish(Agent):
         return self._energy_component.energy - old_energy
 
     def _handle_overflow_energy(self, overflow: float) -> None:
-        """Route overflow energy into reproduction or food drops.
+        """Route overflow energy into reproduction bank.
 
-        When a fish gains more energy than it can hold, this method attempts
-        to use that overflow productively:
-        1. First, try to trigger asexual reproduction if eligible
-        2. If reproduction isn't possible, drop the overflow as food
+        When a fish gains more energy than it can hold, this method banks
+        the overflow for future reproduction. Actual reproduction is handled
+        separately by update_reproduction in the normal lifecycle.
+
+        If the bank is full, excess is dropped as food to maintain energy
+        conservation.
 
         Args:
             overflow: Amount of energy exceeding max capacity
@@ -517,28 +519,14 @@ class Fish(Agent):
         if overflow <= 0:
             return
 
-        # Prefer routing overflow into reproduction rather than spawning food.
         # Bank the overflow (capped) so it can fund future births even if the fish
-        # is currently too young or on cooldown.
+        # is currently too young or on cooldown. Prefer banking over dropping food.
         max_bank = self.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
         banked = self._reproduction_component.bank_overflow_energy(overflow, max_bank=max_bank)
         remainder = overflow - banked
 
         if banked > 0 and self.ecosystem is not None:
             self.ecosystem.record_energy_burn("overflow_reproduction", banked)
-
-        # Try instant asexual reproduction (requires being adult, off cooldown, etc.).
-        if self._reproduction_component.can_asexually_reproduce(
-            self.life_stage, self.energy, self.max_energy
-        ):
-            baby = self._create_asexual_offspring()
-            if baby is not None:
-                if self.ecosystem is not None:
-                    self.ecosystem.reproduction_manager.record_reproduction_attempt(success=True)
-                # Add baby to environment
-                if hasattr(self.environment, "add_entity"):
-                    self.environment.add_entity(baby)
-                    baby.register_birth()
 
         # If the bank is full, spill the remainder as food to maintain energy conservation.
         if remainder > 0:
