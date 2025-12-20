@@ -710,7 +710,7 @@ class Fish(Agent):
             if success:
                 # Mark this fish for removal from source tank
                 self._marked_for_removal = True
-                logger.info(f"Fish #{self.fish_id} successfully migrated {direction}")
+                logger.debug(f"Fish #{self.fish_id} successfully migrated {direction}")
 
             return success
 

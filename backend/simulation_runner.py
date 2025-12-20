@@ -323,12 +323,29 @@ class SimulationRunner:
                         # Log stats periodically
                         stats = self.world.get_stats()
                         tank_label = self.tank_name or self.tank_id or "Unknown Tank"
+                        
+                        # Get migration counts since last report
+                        from backend.transfer_history import get_and_reset_migration_counts
+                        migrations_in, migrations_out = get_and_reset_migration_counts()
+                        migration_str = ""
+                        if migrations_in > 0 or migrations_out > 0:
+                            migration_str = f", Migrations=+{migrations_in}/-{migrations_out}"
+                        
+                        # Get poker score (confidence vs strong opponents), formatted as percentage
+                        poker_str = ""
+                        if self.evolution_benchmark_tracker is not None:
+                            latest = self.evolution_benchmark_tracker.get_latest_snapshot()
+                            if latest is not None:
+                                # conf_strong as percentage (e.g., 0.85 -> "85%")
+                                poker_str = f", Poker={latest.confidence_vs_strong:.0%}"
+                        
                         logger.info(
                             f"{tank_label} Simulation Status "
                             f"FPS={self.current_actual_fps:.1f}, "
                             f"Fish={stats.get('fish_count', 0)}, "
                             f"Plants={stats.get('plant_count', 0)}, "
                             f"Energy={stats.get('total_energy', 0.0):.1f}"
+                            f"{migration_str}{poker_str}"
                         )
 
                     # Maintain frame rate with drift correction

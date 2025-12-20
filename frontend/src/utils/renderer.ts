@@ -114,6 +114,9 @@ export class Renderer {
     // Track live instances to help detect leaked Renderer objects
     private static _instances = 0;
 
+    // Cache for Path2D objects to avoid recreating them every frame
+    private pathCache: Map<string, Path2D> = new Map();
+
     constructor(ctx: CanvasRenderingContext2D) {
         this.ctx = ctx;
         Renderer._instances += 1;
@@ -148,8 +151,26 @@ export class Renderer {
         // Clear maps that may grow over time
         this.entityFacingLeft.clear();
         this.pokerEffectStartTime.clear();
+        this.pathCache.clear();
 
         Renderer._instances = Math.max(0, Renderer._instances - 1);
+    }
+
+    /**
+     * Get or create a cached Path2D for a given SVG path string
+     */
+    private getPath(pathString: string): Path2D {
+        // Path2D is not available in some testing environments (JSDOM without canvas), fallback safely
+        if (typeof Path2D === 'undefined') {
+            return null as unknown as Path2D;
+        }
+
+        let path = this.pathCache.get(pathString);
+        if (!path) {
+            path = new Path2D(pathString);
+            this.pathCache.set(pathString, path);
+        }
+        return path;
     }
 
     private initParticles() {
@@ -190,6 +211,12 @@ export class Renderer {
             if (!activeIds.has(cachedId)) {
                 this.pokerEffectStartTime.delete(cachedId);
             }
+        }
+
+        // Periodic maintenance of path cache (simple LRU-like safety)
+        // If cache gets too big (e.g. many different fish sizes/params), clear it
+        if (this.pathCache.size > 2000) {
+            this.pathCache.clear();
         }
     }
 
@@ -782,7 +809,7 @@ export class Renderer {
         const fishPath = getFishPath(fishParams, scaledSize);
 
         // Draw fish body
-        const path = new Path2D(fishPath);
+        const path = this.getPath(fishPath);
 
         // Fill with base color
         ctx.fillStyle = baseColor;
@@ -854,7 +881,8 @@ export class Renderer {
         ctx.fillStyle = color;
 
         // Clip to fish body shape to prevent pattern overflow
-        const fishPath = new Path2D(getFishPath(params, baseSize));
+        const fishPathStr = getFishPath(params, baseSize);
+        const fishPath = this.getPath(fishPathStr);
         ctx.clip(fishPath);
 
         switch (params.pattern_type) {
@@ -884,7 +912,7 @@ export class Renderer {
                 break;
 
             case 2: { // Solid (darker overlay)
-                const path = new Path2D(getFishPath(params, baseSize));
+                const path = this.getPath(getFishPath(params, baseSize));
                 ctx.globalAlpha = opacity * 0.6; // Increased from 0.5 for better visibility
                 ctx.fill(path);
                 break;
@@ -895,7 +923,7 @@ export class Renderer {
                 gradient.addColorStop(0, color);
                 gradient.addColorStop(1, 'transparent');
                 ctx.fillStyle = gradient;
-                const gradPath = new Path2D(getFishPath(params, baseSize));
+                const gradPath = this.getPath(getFishPath(params, baseSize));
                 ctx.fill(gradPath);
                 break;
             }

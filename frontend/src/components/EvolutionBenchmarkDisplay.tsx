@@ -21,9 +21,9 @@ function BbPer100Display({ value, label, showRating = true }: {
     showRating?: boolean;
 }) {
     const color = value > 10 ? '#22c55e' : value > 5 ? '#84cc16' : value > 0 ? '#a3e635' :
-                  value > -5 ? '#eab308' : value > -10 ? '#f97316' : '#ef4444';
+        value > -5 ? '#eab308' : value > -10 ? '#f97316' : '#ef4444';
     const rating = value > 20 ? 'Crushing' : value > 10 ? 'Strong' : value > 5 ? 'Winning' :
-                   value > 0 ? 'Break-even' : value > -5 ? 'Losing' : 'Fish';
+        value > 0 ? 'Break-even' : value > -5 ? 'Losing' : 'Fish';
 
     return (
         <div style={styles.metricCard}>
@@ -36,6 +36,99 @@ function BbPer100Display({ value, label, showRating = true }: {
                 {showRating && (
                     <span style={{ color: colors.textSecondary, fontSize: '10px', fontStyle: 'italic' }}>
                         {rating}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Prominent Poker Score display - the single number to focus on for poker skill.
+ * Uses conf_strong (confidence vs strong opponents) as the metric.
+ * - 50% = coin flip (average)
+ * - 55% = can beat strong bots
+ * - 70%+ = very good
+ * - 90%+ = excellent
+ */
+function PokerScore({ confStrong, confStrongEma, trend }: {
+    confStrong: number;
+    confStrongEma?: number;
+    trend?: 'improving' | 'stable' | 'declining';
+}) {
+    // Color based on score
+    const score = confStrong * 100;
+    const color = score >= 70 ? '#22c55e' :  // Green - very good
+        score >= 55 ? '#84cc16' :  // Lime - good (beating strong)
+            score >= 50 ? '#eab308' :  // Yellow - average
+                score >= 40 ? '#f97316' :  // Orange - below average
+                    '#ef4444';                  // Red - poor
+
+    // Rating description
+    const rating = score >= 90 ? 'Excellent' :
+        score >= 70 ? 'Very Good' :
+            score >= 55 ? 'Good' :
+                score >= 50 ? 'Average' :
+                    score >= 40 ? 'Below Average' :
+                        'Needs Work';
+
+    // Trend indicator
+    const trendIcon = trend === 'improving' ? '↑' :
+        trend === 'declining' ? '↓' : '';
+    const trendColor = trend === 'improving' ? '#22c55e' :
+        trend === 'declining' ? '#ef4444' : colors.textSecondary;
+
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    const tooltipText = `Poker Score measures confidence that the population is PROFITABLE (not just winning hands) against strong AI opponents.
+
+Based on bb/100 (big blinds won per 100 hands) — this accounts for amounts won/lost, not just hand count.
+
+• 50% = Uncertain (break-even)
+• 55%+ = Likely profitable
+• 70%+ = Confidently profitable
+• 90%+ = Strongly profitable`;
+
+    return (
+        <div style={styles.pokerScoreContainer}>
+            <div style={styles.pokerScoreHeader}>
+                <span style={{ color: colors.textSecondary, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Poker Score
+                </span>
+                <span
+                    style={styles.tooltipIcon}
+                    onMouseEnter={() => setShowTooltip(true)}
+                    onMouseLeave={() => setShowTooltip(false)}
+                >
+                    ?
+                    {showTooltip && (
+                        <div style={styles.tooltip}>
+                            {tooltipText}
+                        </div>
+                    )}
+                </span>
+                {trend && trendIcon && (
+                    <span style={{ color: trendColor, fontSize: '14px', fontWeight: 700 }}>
+                        {trendIcon}
+                    </span>
+                )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <span style={{ color, fontSize: '42px', fontWeight: 700, lineHeight: 1 }}>
+                    {Math.round(score)}
+                </span>
+                <span style={{ color, fontSize: '20px', fontWeight: 600 }}>%</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <span style={{ color, fontSize: '12px', fontWeight: 600 }}>
+                    {rating}
+                </span>
+                <span style={{ color: colors.textSecondary, fontSize: '10px' }}>
+                    vs Strong Opponents
+                </span>
+                {confStrongEma !== undefined && Math.abs(confStrongEma - confStrong) > 0.02 && (
+                    <span style={{ color: colors.textSecondary, fontSize: '10px' }}>
+                        (EMA: {Math.round(confStrongEma * 100)}%)
                     </span>
                 )}
             </div>
@@ -179,18 +272,18 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
     const series =
         metric === 'confidence'
             ? [
-                  { id: 'confWeak', name: 'conf vs Weak (EMA)', color: '#22c55e', dash: '6 3', get: (p: typeof points[number]) => p.conf_weak_ema },
-                  { id: 'confStrong', name: 'conf vs Strong (EMA)', color: '#ef4444', dash: '3 3', get: (p: typeof points[number]) => p.conf_strong_ema },
-              ]
+                { id: 'confWeak', name: 'conf vs Weak (EMA)', color: '#22c55e', dash: '6 3', get: (p: typeof points[number]) => p.conf_weak_ema },
+                { id: 'confStrong', name: 'conf vs Strong (EMA)', color: '#ef4444', dash: '3 3', get: (p: typeof points[number]) => p.conf_strong_ema },
+            ]
             : metric === 'elo'
                 ? [
-                      { id: 'elo', name: 'Population Elo (EMA)', color: '#a78bfa', dash: undefined as string | undefined, get: (p: typeof points[number]) => p.elo_ema },
-                  ]
+                    { id: 'elo', name: 'Population Elo (EMA)', color: '#a78bfa', dash: undefined as string | undefined, get: (p: typeof points[number]) => p.elo_ema },
+                ]
                 : [
-                      { id: 'pop', name: 'Population (EMA)', color: '#a78bfa', dash: undefined as string | undefined, get: (p: typeof points[number]) => p.pop_ema },
-                      { id: 'weak', name: 'vs Weak (EMA)', color: '#22c55e', dash: '6 3', get: (p: typeof points[number]) => p.weak_ema },
-                      { id: 'strong', name: 'vs Strong (EMA)', color: '#ef4444', dash: '3 3', get: (p: typeof points[number]) => p.strong_ema },
-                  ];
+                    { id: 'pop', name: 'Population (EMA)', color: '#a78bfa', dash: undefined as string | undefined, get: (p: typeof points[number]) => p.pop_ema },
+                    { id: 'weak', name: 'vs Weak (EMA)', color: '#22c55e', dash: '6 3', get: (p: typeof points[number]) => p.weak_ema },
+                    { id: 'strong', name: 'vs Strong (EMA)', color: '#ef4444', dash: '3 3', get: (p: typeof points[number]) => p.strong_ema },
+                ];
 
     const formatY = (v: number) => {
         if (metric === 'confidence') return `${Math.round(v * 100)}%`;
@@ -300,7 +393,7 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
 
                 {/* Y-axis label */}
                 <text x={16} y={height / 2} fill={colors.textSecondary} fontSize={11}
-                      transform={`rotate(-90, 16, ${height / 2})`} textAnchor="middle">
+                    transform={`rotate(-90, 16, ${height / 2})`} textAnchor="middle">
                     {metric === 'confidence' ? 'Confidence (EMA)' : metric === 'elo' ? 'Elo (EMA)' : 'bb/100 (EMA)'}
                 </text>
 
@@ -519,7 +612,7 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
 
     const changeColor = (improvement.bb_per_100_change ?? 0) >= 0 ? '#22c55e' : '#ef4444';
     const trendIcon = improvement.is_improving ? '📈' :
-                      improvement.trend_direction === 'stable' ? '➡️' : '📉';
+        improvement.trend_direction === 'stable' ? '➡️' : '📉';
 
     return (
         <div style={styles.improvementBanner}>
@@ -665,8 +758,8 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
                             style={viewMode === mode ? styles.activeTab : styles.tab}
                         >
                             {mode === 'overview' ? 'Overview' :
-                             mode === 'vs_baselines' ? 'vs Baselines' :
-                             'Evolution'}
+                                mode === 'vs_baselines' ? 'vs Baselines' :
+                                    'Evolution'}
                         </button>
                     ))}
                 </div>
@@ -674,6 +767,14 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
 
             {viewMode === 'overview' && (
                 <>
+                    {/* Prominent Poker Score - the single number to focus on */}
+                    {latest.conf_strong !== undefined && (
+                        <PokerScore
+                            confStrong={latest.conf_strong}
+                            trend={improvement.status === 'tracked' ? improvement.trend_direction : undefined}
+                        />
+                    )}
+
                     <div style={styles.overviewGrid}>
                         <BbPer100Display
                             value={latest.pop_bb_per_100}
@@ -853,6 +954,54 @@ const styles = {
         padding: '3px 8px',
         borderRadius: '4px',
         cursor: 'pointer',
+    },
+    pokerScoreContainer: {
+        backgroundColor: colors.bgLight,
+        borderRadius: '12px',
+        padding: '16px 20px',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        gap: '4px',
+        marginBottom: '12px',
+        border: `2px solid rgba(59, 130, 246, 0.3)`,
+    },
+    pokerScoreHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '4px',
+    },
+    tooltipIcon: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '16px',
+        height: '16px',
+        borderRadius: '50%',
+        backgroundColor: 'rgba(148, 163, 184, 0.3)',
+        color: colors.textSecondary,
+        fontSize: '10px',
+        fontWeight: 700,
+        cursor: 'help',
+        position: 'relative' as const,
+    },
+    tooltip: {
+        position: 'absolute' as const,
+        top: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        border: `1px solid ${colors.border}`,
+        borderRadius: '8px',
+        padding: '12px 14px',
+        fontSize: '11px',
+        color: colors.text,
+        whiteSpace: 'pre-line' as const,
+        width: '260px',
+        zIndex: 100,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        lineHeight: 1.5,
     },
     overviewGrid: {
         display: 'grid',

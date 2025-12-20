@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 HISTORY_FILE = Path("data/transfers.log")
 _transfer_history: Deque["TransferRecord"] = deque(maxlen=100)  # Keep last 100 in memory
 
+# Migration counters for summary stats (reset periodically)
+_migration_in_count: int = 0
+_migration_out_count: int = 0
+
 
 @dataclass
 class TransferRecord:
@@ -87,8 +91,14 @@ def log_transfer(
     # Append to log file
     _append_to_log(record)
 
+    # Update migration counters (for summary stats)
+    global _migration_in_count, _migration_out_count
+    if success:
+        _migration_out_count += 1  # From source perspective
+
+    # Log at DEBUG level to reduce noise (summary appears in Simulation Status)
     status = "success" if success else f"failed: {error}"
-    logger.info(
+    logger.debug(
         f"Transfer {entity_type} #{entity_old_id} "
         f"{source_tank_name} → {destination_tank_name} ({status})"
     )
@@ -242,6 +252,26 @@ def clear_history() -> None:
     if HISTORY_FILE.exists():
         HISTORY_FILE.unlink()
     logger.warning("Transfer history cleared")
+
+
+def record_migration_in() -> None:
+    """Record an incoming migration for summary stats."""
+    global _migration_in_count
+    _migration_in_count += 1
+
+
+def get_and_reset_migration_counts() -> tuple:
+    """Get migration counts since last reset and reset them.
+    
+    Returns:
+        Tuple of (migrations_in, migrations_out)
+    """
+    global _migration_in_count, _migration_out_count
+    in_count = _migration_in_count
+    out_count = _migration_out_count
+    _migration_in_count = 0
+    _migration_out_count = 0
+    return (in_count, out_count)
 
 
 # Load history on module import

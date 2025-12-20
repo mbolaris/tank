@@ -501,7 +501,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
                 title="Physical Gene Distribution"
                 items={physicalGenes}
                 chartWidth={chartWidth}
-                defaultExpanded={true}
+                defaultExpanded={false}
             />
 
             <GeneDistributionPanel

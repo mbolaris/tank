@@ -189,6 +189,10 @@ class BackendMigrationHandler:
             if isinstance(new_entity, Fish) and hasattr(new_entity, 'ecosystem') and new_entity.ecosystem is not None:
                 new_entity.ecosystem.record_energy_gain("migration_in", new_entity.energy)
 
+            # Track migration for summary stats
+            from backend.transfer_history import record_migration_in
+            record_migration_in()
+
             # Invalidate cached state on destination and source runners so
             # websocket clients immediately see updated stats (e.g., max generation).
             try:
@@ -224,7 +228,7 @@ class BackendMigrationHandler:
             except Exception:
                 logger.debug("Failed to log successful migration", exc_info=True)
 
-            logger.info(
+            logger.debug(
                 f"{type(entity).__name__} (Gen {generation}) migrated {direction} from "
                 f"{source_manager.tank_info.name} to {dest_manager.tank_info.name}"
             )

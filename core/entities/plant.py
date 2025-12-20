@@ -521,7 +521,7 @@ class Plant(Agent):
             if success:
                 # Mark this plant for removal from source tank
                 self._marked_for_removal = True
-                logger.info(f"Plant #{self.plant_id} successfully migrated {direction}")
+                logger.debug(f"Plant #{self.plant_id} successfully migrated {direction}")
 
             return success
 
