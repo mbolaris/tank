@@ -11,6 +11,10 @@ class _EnvironmentStub:
     def add_entity(self, entity: object) -> None:
         self.added.append(entity)
 
+    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """Return default environment bounds."""
+        return ((0.0, 0.0), (500.0, 500.0))
+
 
 class _ReproductionManagerStub:
     def record_reproduction_attempt(self, success: bool) -> None:
@@ -21,12 +25,35 @@ class _EcosystemStub:
     def __init__(self) -> None:
         self.burns: List[Tuple[str, float]] = []
         self.reproduction_manager = _ReproductionManagerStub()
+        self._next_fish_id = 100
 
     def record_energy_burn(self, category: str, amount: float) -> None:
         self.burns.append((category, float(amount)))
 
     def record_reproduction_energy(self, *args, **kwargs) -> None:
         """Stub method for recording reproduction energy."""
+        pass
+
+    def get_next_fish_id(self) -> int:
+        """Return next available fish ID."""
+        fish_id = self._next_fish_id
+        self._next_fish_id += 1
+        return fish_id
+
+    def record_reproduction(self, *args, **kwargs) -> None:
+        """Stub method for recording reproduction."""
+        pass
+
+    def record_birth(self, *args, **kwargs) -> None:
+        """Stub method for recording birth."""
+        pass
+
+    def record_death(self, *args, **kwargs) -> None:
+        """Stub method for recording death."""
+        pass
+
+    def record_consumption(self, *args, **kwargs) -> None:
+        """Stub method for recording consumption."""
         pass
 
 
