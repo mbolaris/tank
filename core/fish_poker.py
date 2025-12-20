@@ -1,6 +1,9 @@
 """
 Fish poker interaction system.
 
+DEPRECATED: For new code, prefer importing from core.poker_interaction:
+    from core.poker_interaction import PokerInteraction, PokerResult
+    
 This module handles poker games between fish when they collide.
 The outcome determines energy transfer between the fish.
 
