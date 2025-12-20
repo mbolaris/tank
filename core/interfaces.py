@@ -68,6 +68,7 @@ __all__ = [
     "Mortal",
     "Reproducible",
     "SkillfulAgent",
+    "TraitContainer",
     # System protocols
     "BehaviorStrategy",
     "SimulationStats",
@@ -79,10 +80,51 @@ __all__ = [
 ]
 
 if TYPE_CHECKING:
+    import random as pyrandom
+
     from core.entities import Agent
     from core.genetics import Genome
     from core.poker.core import PokerHand
     from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
+
+
+@runtime_checkable
+class TraitContainer(Protocol):
+    """Any object that holds genetic traits.
+    
+    This protocol enables generic code to work with any trait container
+    (PhysicalTraits, BehavioralTraits, or future trait categories).
+    
+    Both PhysicalTraits and BehavioralTraits implement this pattern,
+    allowing functions to accept either type while maintaining type safety.
+    
+    Example:
+        def inherit_all_traits(
+            parent1: TraitContainer,
+            parent2: TraitContainer,
+            rng: random.Random
+        ) -> TraitContainer:
+            return type(parent1).from_parents(parent1, parent2, rng=rng)
+    """
+    
+    @classmethod
+    def random(cls, rng: "pyrandom.Random") -> "TraitContainer":
+        """Generate random traits."""
+        ...
+    
+    @classmethod
+    def from_parents(
+        cls,
+        parent1: "TraitContainer",
+        parent2: "TraitContainer",
+        *,
+        weight1: float = 0.5,
+        mutation_rate: float = 0.1,
+        mutation_strength: float = 0.1,
+        rng: "pyrandom.Random",
+    ) -> "TraitContainer":
+        """Inherit traits from two parents with mutation."""
+        ...
 
 
 @runtime_checkable

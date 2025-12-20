@@ -18,6 +18,23 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
+# =============================================================================
+# Meta-Mutation Constants
+# =============================================================================
+# These control the "evolution of evolution" - how quickly the meta-genetic
+# parameters (mutation_rate, mutation_strength, hgt_probability) can change.
+# Keep these low to prevent runaway evolvability oscillations.
+
+META_MUTATION_CHANCE: float = 0.01  # 1% chance per trait per generation
+META_HGT_MUTATION_CHANCE: float = 0.02  # HGT mutates slightly more often
+META_MUTATION_SIGMA: float = 0.02  # Gaussian sigma for meta-changes
+
+# Bounds to prevent extreme evolvability values
+META_MUTATION_RATE_MIN: float = 0.5
+META_MUTATION_RATE_MAX: float = 2.0
+META_MUTATION_STRENGTH_MIN: float = 0.5
+META_MUTATION_STRENGTH_MAX: float = 2.0
+
 
 @dataclass
 class GeneticTrait(Generic[T]):
@@ -36,18 +53,24 @@ class GeneticTrait(Generic[T]):
     hgt_probability: float = 0.1
 
     def mutate_meta(self, rng: pyrandom.Random = pyrandom) -> None:
-        """Mutate the metadata itself (evolution of evolution)."""
-        # Dampen meta-mutation to avoid runaway evolvability changes.
-        # Lower chance and smaller gaussian steps; tighten clamps.
-        if rng.random() < 0.01:
-            self.mutation_rate = max(0.5, min(2.0, self.mutation_rate + rng.gauss(0, 0.02)))
-        if rng.random() < 0.01:
-            self.mutation_strength = max(
-                0.5, min(2.0, self.mutation_strength + rng.gauss(0, 0.02))
+        """Mutate the metadata itself (evolution of evolution).
+        
+        Uses dampened mutation rates to prevent runaway evolvability changes.
+        See module-level META_* constants for tuning parameters.
+        """
+        if rng.random() < META_MUTATION_CHANCE:
+            self.mutation_rate = max(
+                META_MUTATION_RATE_MIN,
+                min(META_MUTATION_RATE_MAX, self.mutation_rate + rng.gauss(0, META_MUTATION_SIGMA)),
             )
-        if rng.random() < 0.02:
+        if rng.random() < META_MUTATION_CHANCE:
+            self.mutation_strength = max(
+                META_MUTATION_STRENGTH_MIN,
+                min(META_MUTATION_STRENGTH_MAX, self.mutation_strength + rng.gauss(0, META_MUTATION_SIGMA)),
+            )
+        if rng.random() < META_HGT_MUTATION_CHANCE:
             self.hgt_probability = max(
-                0.0, min(1.0, self.hgt_probability + rng.gauss(0, 0.02))
+                0.0, min(1.0, self.hgt_probability + rng.gauss(0, META_MUTATION_SIGMA))
             )
 
 
