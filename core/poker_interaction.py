@@ -122,6 +122,45 @@ def should_offer_post_poker_reproduction(
     return True
 
 
+def check_poker_proximity(
+    entity1, entity2, min_distance: float = 40.0, max_distance: float = 80.0
+) -> bool:
+    """Check if two entities are close enough for poker but not touching.
+
+    Poker triggers when entities are near each other but not overlapping.
+
+    Args:
+        entity1: First entity (any with pos, width, height)
+        entity2: Second entity
+        min_distance: Minimum center-to-center distance
+        max_distance: Maximum center-to-center distance for poker trigger
+
+    Returns:
+        True if they are in the poker proximity zone
+    """
+    # Calculate centers
+    e1_cx = entity1.pos.x + entity1.width / 2
+    e1_cy = entity1.pos.y + entity1.height / 2
+    e2_cx = entity2.pos.x + entity2.width / 2
+    e2_cy = entity2.pos.y + entity2.height / 2
+
+    dx = e1_cx - e2_cx
+    dy = e1_cy - e2_cy
+    distance_sq = dx * dx + dy * dy
+
+    return min_distance * min_distance < distance_sq <= max_distance * max_distance
+
+
+def check_fish_plant_poker_proximity(
+    fish, plant, min_distance: float = 40.0, max_distance: float = 80.0
+) -> bool:
+    """Check if a fish and plant are close enough for poker.
+    
+    Legacy alias for check_poker_proximity for backward compatibility.
+    """
+    return check_poker_proximity(fish, plant, min_distance, max_distance)
+
+
 __all__ = [
     "PokerInteraction",
     "PokerResult", 
@@ -132,4 +171,6 @@ __all__ = [
     "should_trigger_reproduction",
     "should_offer_post_poker_reproduction",
     "calculate_house_cut",
+    "check_poker_proximity",
+    "check_fish_plant_poker_proximity",
 ]

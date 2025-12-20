@@ -37,7 +37,8 @@ from core.mixed_poker import (
     MixedPokerInteraction,
     should_trigger_plant_poker_asexual_reproduction,
 )
-from core.plant_poker import PlantPokerInteraction, check_fish_plant_poker_proximity
+from core.plant_poker import PlantPokerInteraction
+from core.poker_interaction import check_fish_plant_poker_proximity
 
 logger = logging.getLogger(__name__)
 
