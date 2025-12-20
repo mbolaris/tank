@@ -145,6 +145,46 @@ export function getPlantCacheSizes(): Record<string, number> {
 }
 
 /**
+ * Clear ALL plant caches to forcibly release texture memory.
+ * This is useful for periodic cleanup to prevent memory growth during long sessions.
+ * Plants will regenerate their cached data on the next render.
+ */
+export function clearAllPlantCaches(): void {
+    const caches = [
+        plantCache,
+        mandelbrotCache,
+        claudeCache,
+        antigravityCache,
+        gptCache,
+        sonnetCache,
+        gptCodexCache,
+    ];
+
+    for (const cache of caches) {
+        for (const [_id, entry] of cache.entries()) {
+            const typedEntry = entry as any;
+            // Release HTMLCanvasElement texture memory
+            if (typedEntry.texture && typedEntry.texture instanceof HTMLCanvasElement) {
+                try {
+                    typedEntry.texture.width = 0;
+                } catch (e) {
+                    // ignore
+                }
+            }
+            // Clear geometry arrays
+            try {
+                if (Array.isArray(typedEntry.segments)) typedEntry.segments.length = 0;
+                if (Array.isArray(typedEntry.sortedSegments)) typedEntry.sortedSegments.length = 0;
+                if (Array.isArray(typedEntry.leaves)) typedEntry.leaves.length = 0;
+            } catch (e) {
+                // ignore
+            }
+        }
+        cache.clear();
+    }
+}
+
+/**
  * Create a stable signature for a genome so cache invalidation happens when traits change.
  */
 function getGenomeSignature(genome: PlantGenomeData): string {

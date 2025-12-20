@@ -5,7 +5,7 @@
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
 import { Renderer } from '../utils/renderer';
-import { getPlantCacheSizes } from '../utils/plant';
+import { clearAllPlantCaches } from '../utils/plant';
 import { ImageLoader } from '../utils/ImageLoader';
 
 interface CanvasProps {
@@ -184,15 +184,31 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         }
     }, [state, width, height, imagesLoaded, selectedEntityId, showEffects, error, setErrorOnce]);
 
-    // Development-only diagnostic: periodically report renderer & cache sizes
+    // Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
+    // This clears plant texture caches and path caches every 30 seconds.
+    // Caches will be regenerated on demand - plants may briefly flicker but memory stays bounded.
     useEffect(() => {
-        if (!import.meta.env.DEV) return;
+        const CLEANUP_INTERVAL_MS = 30_000; // 30 seconds
+
         const interval = setInterval(() => {
             try {
-                // eslint-disable-next-line no-console
-                console.debug('Renderer instances:', Renderer.instanceCount, 'Fractal caches:', getPlantCacheSizes());
-            } catch (e) { }
-        }, 60000); // log every minute
+                // Clear all plant texture and geometry caches
+                clearAllPlantCaches();
+
+                // Clear the renderer's path cache
+                if (rendererRef.current) {
+                    rendererRef.current.clearPathCache();
+                }
+
+                if (import.meta.env.DEV) {
+                    // eslint-disable-next-line no-console
+                    console.debug('[Memory Cleanup] Cleared plant caches and path cache');
+                }
+            } catch (e) {
+                // Ignore cleanup errors
+            }
+        }, CLEANUP_INTERVAL_MS);
+
         return () => clearInterval(interval);
     }, []);
 

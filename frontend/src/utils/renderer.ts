@@ -227,6 +227,14 @@ export class Renderer {
         prunePlantCachesUtil(activePlantIds);
     }
 
+    /**
+     * Clear the Path2D cache to release memory.
+     * Paths will be regenerated on demand.
+     */
+    clearPathCache() {
+        this.pathCache.clear();
+    }
+
     private getTimeOfDayPalette(timeOfDay?: string): TimeOfDayPalette {
         const key = timeOfDay?.toLowerCase() ?? 'day';
 
