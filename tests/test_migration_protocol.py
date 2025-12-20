@@ -35,7 +35,7 @@ def test_fish_migration_returns_false_without_handler() -> None:
     fish = _make_fish(env)
 
     assert fish._attempt_migration("left") is False
-    assert fish._migrated is False
+    assert fish._marked_for_removal is False
 
 
 def test_fish_migration_returns_false_without_tank_id() -> None:
@@ -44,10 +44,10 @@ def test_fish_migration_returns_false_without_tank_id() -> None:
     fish = _make_fish(env)
 
     assert fish._attempt_migration("left") is False
-    assert fish._migrated is False
+    assert fish._marked_for_removal is False
 
 
-def test_fish_migration_marks_migrated_on_success() -> None:
+def test_fish_migration_marks_for_removal_on_success() -> None:
     env = Environment(width=800, height=600)
     env.tank_id = "tank-123"
     handler = FakeMigrationHandler(result=True)
@@ -55,5 +55,5 @@ def test_fish_migration_marks_migrated_on_success() -> None:
     fish = _make_fish(env)
 
     assert fish._attempt_migration("right") is True
-    assert fish._migrated is True
+    assert fish._marked_for_removal is True
     assert handler.last_call == ("Fish", "right", "tank-123")
