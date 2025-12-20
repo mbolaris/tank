@@ -140,6 +140,17 @@ class BackendMigrationHandler:
             # Deserialize in destination
             new_entity_outcome = try_deserialize_entity(entity_data, dest_manager.world)
             if not new_entity_outcome.ok:
+                if new_entity_outcome.error and new_entity_outcome.error.code == "no_root_spots":
+                    # SILENT FAIL: No room for plant in destination.
+                    # Restore original entity to source but don't log to history or console.
+                    if original_root_spot is not None:
+                        try:
+                            original_root_spot.claim(entity)
+                        except Exception:
+                            logger.debug("Failed to re-claim root spot after migration failure", exc_info=True)
+                    source_manager.world.engine.add_entity(entity)
+                    return False
+
                 # Failed - restore the original entity to the source tank.
                 if original_root_spot is not None:
                     try:
@@ -160,6 +171,7 @@ class BackendMigrationHandler:
                     generation=getattr(entity, "generation", None),
                 )
                 return False
+
             new_entity = new_entity_outcome.value
 
             # Position entity at opposite edge of destination tank

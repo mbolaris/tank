@@ -180,7 +180,7 @@ class MigrationScheduler:
 
         # Perform the migration
         try:
-            from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
+            from backend.entity_transfer import try_deserialize_entity, serialize_entity_for_transfer
             from backend.transfer_history import log_transfer
 
             # Serialize entity
@@ -197,9 +197,19 @@ class MigrationScheduler:
             source_manager.world.engine.remove_entity(entity)
 
             # Add to destination
-            new_entity = deserialize_entity(entity_data, dest_manager.world)
-            if new_entity is None:
+            outcome = try_deserialize_entity(entity_data, dest_manager.world)
+            if not outcome.ok:
+                # SILENT FAIL check
+                if outcome.error and outcome.error.code == "no_root_spots":
+                    # Restore to source silently
+                    from backend.entity_transfer import deserialize_entity
+                    restored = deserialize_entity(entity_data, source_manager.world)
+                    if restored:
+                        source_manager.world.engine.add_entity(restored)
+                    return
+
                 # Failed - try to restore
+                from backend.entity_transfer import deserialize_entity
                 restored = deserialize_entity(entity_data, source_manager.world)
                 if restored:
                     source_manager.world.engine.add_entity(restored)
@@ -213,10 +223,11 @@ class MigrationScheduler:
                     destination_tank_id=connection.destination_tank_id,
                     destination_tank_name=dest_manager.tank_info.name,
                     success=False,
-                    error="Failed to deserialize in destination",
+                    error=outcome.error.message if outcome.error else "Failed to deserialize in destination",
                 )
                 return
 
+            new_entity = outcome.value
             dest_manager.world.engine.add_entity(new_entity)
 
             # Track energy entering the destination tank (for fish only)
@@ -358,6 +369,12 @@ class MigrationScheduler:
                     source_manager.world.engine.add_entity(restored)
 
                 error_msg = result.get("error", "Unknown error") if result else "No response from remote server"
+                
+                # SILENT FAIL check
+                if error_msg == "no_root_spots":
+                    # Restore silently
+                    return
+                
                 logger.warning(f"Remote migration failed: {error_msg}")
 
                 log_transfer(

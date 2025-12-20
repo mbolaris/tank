@@ -16,6 +16,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+    from core.entities import Fish
+
 
 
 
@@ -305,6 +307,162 @@ class StatsCalculator:
 
         return {"physical": physical, "behavioral": behavioral}
 
+    def _get_composable_behavior_distributions(self, fish_list: List["Fish"]) -> List[Dict[str, Any]]:
+        """Build gene distributions for composable behavior traits."""
+        try:
+            from core.algorithms.composable import (
+                SUB_BEHAVIOR_PARAMS,
+                ThreatResponse,
+                FoodApproach,
+                EnergyStyle,
+                SocialMode,
+                PokerEngagement,
+            )
+        except ImportError:
+            return []
+
+        out: List[Dict[str, Any]] = []
+
+        # 1. Discrete Traits (Enums)
+        # We manually map these because they are special enum selections in the ComposableBehavior
+        discrete_traits = [
+            ("threat_response", ThreatResponse, "Threat Response"),
+            ("food_approach", FoodApproach, "Food Approach"),
+            ("energy_style", EnergyStyle, "Energy Style"),
+            ("social_mode", SocialMode, "Social Mode"),
+            ("poker_engagement", PokerEngagement, "Poker Engagement"),
+        ]
+
+        # Shared metadata for all composable traits (since they are all packed in one GeneticTrait wrapper)
+        # We calculate it once effectively.
+        composable_traits = [
+            f.genome.behavioral.composable_behavior
+            for f in fish_list
+            if f.genome.behavioral.composable_behavior is not None
+        ]
+        shared_meta = self._calculate_meta_stats(composable_traits, "composable")
+        # Rename keys to be generic so they fit the schema 'mut_rate_mean' etc without prefix
+        # actually _calculate_meta_stats adds prefix. Let's just use a helper to strip it or reuse logic.
+        # simpler: re-implement meta-calc for just these to fit the expected "meta" dict format 
+        # which expects keys like "mut_rate_mean" directly.
+        
+        def compute_meta_direct(traits):
+            if not traits: 
+                return {k: 0.0 for k in ["mut_rate_mean", "mut_rate_std", "mut_strength_mean", "mut_strength_std", "hgt_prob_mean", "hgt_prob_std"]}
+            
+            rates = [t.mutation_rate for t in traits]
+            strengths = [t.mutation_strength for t in traits]
+            hgts = [t.hgt_probability for t in traits]
+            
+            def ms(vals):
+                if not vals: return 0.0, 0.0
+                return float(mean(vals)), float(stdev(vals)) if len(vals) > 1 else 0.0
+
+            rm, rs = ms(rates)
+            sm, ss = ms(strengths)
+            hm, hs = ms(hgts)
+            return {
+                "mut_rate_mean": rm, "mut_rate_std": rs,
+                "mut_strength_mean": sm, "mut_strength_std": ss,
+                "hgt_prob_mean": hm, "hgt_prob_std": hs
+            }
+
+        meta_dict = compute_meta_direct(composable_traits)
+
+        for key, enum_cls, label in discrete_traits:
+            allowed_min = 0.0
+            allowed_max = float(len(enum_cls) - 1)
+            
+            values = []
+            for f in fish_list:
+                cb = f.genome.behavioral.composable_behavior.value
+                if cb:
+                    val = getattr(cb, key, 0)
+                    values.append(float(val))
+            
+            if not values:
+                out.append({
+                    "key": key,
+                    "label": label,
+                    "category": "behavioral",
+                    "discrete": True,
+                    "allowed_min": allowed_min,
+                    "allowed_max": allowed_max,
+                    "min": 0.0, "max": 0.0, "median": 0.0,
+                    "bins": [], "bin_edges": [],
+                    "meta": meta_dict
+                })
+                continue
+
+            v_min = min(values)
+            v_max = max(values)
+            v_median = median(values)
+            
+            # Histogram for discrete: one bin per option
+            bin_count = int(allowed_max - allowed_min + 1)
+            bins, edges = self._create_histogram(values, allowed_min - 0.5, allowed_max + 0.5, num_bins=bin_count)
+            
+            out.append({
+                "key": key,
+                "label": label,
+                "category": "behavioral",
+                "discrete": True,
+                "allowed_min": allowed_min,
+                "allowed_max": allowed_max,
+                "min": float(v_min),
+                "max": float(v_max),
+                "median": float(v_median),
+                "bins": bins,
+                "bin_edges": edges,
+                "meta": meta_dict
+            })
+
+        # 2. Continuous Parameters
+        for param_key, (p_min, p_max) in SUB_BEHAVIOR_PARAMS.items():
+            human_label = self._humanize_gene_label(param_key)
+            values = []
+            for f in fish_list:
+                cb = f.genome.behavioral.composable_behavior.value
+                if cb and param_key in cb.parameters:
+                    values.append(cb.parameters[param_key])
+
+            if not values:
+                out.append({
+                    "key": param_key,
+                    "label": human_label,
+                    "category": "behavioral",
+                    "discrete": False,
+                    "allowed_min": p_min,
+                    "allowed_max": p_max,
+                    "min": 0.0, "max": 0.0, "median": 0.0,
+                    "bins": [], "bin_edges": [],
+                    "meta": meta_dict  # Share same meta since they are part of same gene complex
+                })
+                continue
+                
+            v_min = min(values)
+            v_max = max(values)
+            v_median = median(values)
+            bins, edges = self._create_histogram(values, p_min, p_max, num_bins=12)
+
+            out.append({
+                "key": param_key,
+                "label": human_label,
+                "category": "behavioral",
+                "discrete": False,
+                "allowed_min": p_min,
+                "allowed_max": p_max,
+                "min": float(v_min),
+                "max": float(v_max),
+                "median": float(v_median),
+                "bins": bins,
+                "bin_edges": edges,
+                "meta": meta_dict
+            })
+
+        return out
+
+
 
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive simulation statistics.
@@ -479,7 +637,13 @@ class StatsCalculator:
         stats.update(self._get_lifespan_modifier_stats())
 
         # Dynamic gene distributions for the UI (physical + behavioral)
-        stats["gene_distributions"] = self._build_gene_distributions()
+        built_dists = self._build_gene_distributions()
+        
+        # Merge composable traits into behavioral list
+        composable_dists = self._get_composable_behavior_distributions(self._engine.get_fish_list())
+        built_dists["behavioral"].extend(composable_dists)
+
+        stats["gene_distributions"] = built_dists
 
         return stats
 

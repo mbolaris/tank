@@ -164,8 +164,19 @@ def setup_router(
             logger.info(f"Removed entity {entity_id} from tank {source_tank_id[:8]}")
 
             # Deserialize and add to destination tank
-            new_entity = deserialize_entity(entity_data, dest_manager.world)
-            if new_entity is None:
+            outcome = try_deserialize_entity(entity_data, dest_manager.world)
+            if not outcome.ok:
+                # SILENT FAIL check
+                if outcome.error and outcome.error.code == "no_root_spots":
+                    # Restore to source silently
+                    restored_entity = deserialize_entity(entity_data, source_manager.world)
+                    if restored_entity:
+                        source_manager.world.engine.add_entity(restored_entity)
+                    return JSONResponse(
+                        {"error": "no_root_spots", "message": "No available root spots in destination"},
+                        status_code=409,  # Conflict/No space
+                    )
+
                 # Transfer failed - try to restore to source tank
                 restored_entity = deserialize_entity(entity_data, source_manager.world)
                 if restored_entity:
@@ -179,14 +190,15 @@ def setup_router(
                     source_tank_name=source_manager.tank_info.name,
                     dest_tank_id=destination_tank_id,
                     dest_tank_name=dest_manager.tank_info.name,
-                    error="Failed to deserialize entity in destination tank",
+                    error=outcome.error.message if outcome.error else "Failed to deserialize entity in destination tank",
                 )
 
                 return JSONResponse(
-                    {"error": "Failed to deserialize entity in destination tank"},
+                    {"error": outcome.error.message if outcome.error else "Failed to deserialize entity in destination tank"},
                     status_code=500,
                 )
 
+            new_entity = outcome.value
             dest_manager.world.engine.add_entity(new_entity)
 
             # Record migration inflow for Fish entities
@@ -292,8 +304,17 @@ def setup_router(
 
         try:
             # Deserialize and add to destination tank
-            new_entity = deserialize_entity(entity_data, dest_manager.world)
-            if new_entity is None:
+            from backend.entity_transfer import try_deserialize_entity
+            outcome = try_deserialize_entity(entity_data, dest_manager.world)
+            if not outcome.ok:
+                # SILENT FAIL check
+                if outcome.error and outcome.error.code == "no_root_spots":
+                    # No log_transfer_failure call here
+                    return JSONResponse(
+                        {"error": "no_root_spots", "message": "No available root spots"},
+                        status_code=409,
+                    )
+
                 # Log failed transfer
                 log_transfer_failure(
                     entity_data=entity_data,
@@ -302,14 +323,15 @@ def setup_router(
                     source_tank_name=remote_source_name,
                     dest_tank_id=destination_tank_id,
                     dest_tank_name=dest_manager.tank_info.name,
-                    error="Failed to deserialize entity",
+                    error=outcome.error.message if outcome.error else "Failed to deserialize entity",
                 )
 
                 return JSONResponse(
-                    {"error": "Failed to deserialize entity"},
+                    {"error": outcome.error.message if outcome.error else "Failed to deserialize entity"},
                     status_code=500,
                 )
 
+            new_entity = outcome.value
             dest_manager.world.engine.add_entity(new_entity)
 
             # Record migration inflow for Fish entities

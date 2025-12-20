@@ -91,6 +91,13 @@ function GeneDistributionPanel({
     const templateLabels = ['Round', 'Torpedo', 'Flat', 'Angular', 'Chubby', 'Eel'];
     const patternLabels = ['Stripe', 'Spots', 'Solid', 'Grad', 'Chevron', 'Scale'];
 
+    // Composable Behavior Labels
+    const threatLabels = ['Panic', 'Stealth', 'Freeze', 'Erratic'];
+    const foodLabels = ['Direct', 'Predict', 'Circle', 'Ambush', 'Zigzag', 'Patrol'];
+    const energyLabels = ['Conserv', 'Burst', 'Balance'];
+    const socialLabels = ['Solo', 'Loose', 'Tight', 'Follow'];
+    const pokerLabels = ['Avoid', 'Passive', 'Opport', 'Aggro'];
+
     return (
         <div className="glass-panel" style={{ padding: '16px', gridColumn: '1 / -1' }}>
             <CollapsibleSection
@@ -100,7 +107,7 @@ function GeneDistributionPanel({
                     </div>
                 }
                 defaultExpanded={defaultExpanded ?? true}
-                >
+            >
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
@@ -109,11 +116,15 @@ function GeneDistributionPanel({
                 }}>
                     {items.map((g) => {
                         const integerValues = g.discrete === true;
-                        const labels = g.key === 'template_id'
-                            ? templateLabels
-                            : g.key === 'pattern_type'
-                                ? patternLabels
-                                : undefined;
+                        let labels: string[] | undefined;
+
+                        if (g.key === 'template_id') labels = templateLabels;
+                        else if (g.key === 'pattern_type') labels = patternLabels;
+                        else if (g.key === 'threat_response') labels = threatLabels;
+                        else if (g.key === 'food_approach') labels = foodLabels;
+                        else if (g.key === 'energy_style') labels = energyLabels;
+                        else if (g.key === 'social_mode') labels = socialLabels;
+                        else if (g.key === 'poker_engagement') labels = pokerLabels;
 
                         const meta = g.meta;
                         return (

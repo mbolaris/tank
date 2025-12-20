@@ -21,6 +21,11 @@ class TransferError:
     context: Dict[str, Any] = field(default_factory=dict)
 
 
+class NoRootSpotsError(Exception):
+    """Raised when an entity cannot be deserialized because the target tank lacks root spots."""
+    pass
+
+
 @dataclass(frozen=True)
 class TransferOutcome:
     value: Optional[Any] = None
@@ -222,6 +227,14 @@ class TransferRegistry:
 
         try:
             entity = codec.deserialize(data, target_world)
+        except NoRootSpotsError:
+            return TransferOutcome(
+                error=TransferError(
+                    code="no_root_spots",
+                    message="No available root spots",
+                    context={"codec": codec.type_name, "entity_type": entity_type},
+                )
+            )
         except Exception as exc:
             return TransferOutcome(
                 error=TransferError(
@@ -243,6 +256,10 @@ class TransferRegistry:
     def deserialize_entity(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
         outcome = self.try_deserialize_entity(data, target_world)
         if not outcome.ok:
+            if outcome.error and outcome.error.code == "no_root_spots":
+                # Suppress logging for common, expected failure case: no space for plant.
+                return None
+
             logger.error(
                 "Deserialize failed (code=%s entity_type=%s codec=%s): %s",
                 outcome.error.code if outcome.error else "unknown",
@@ -572,8 +589,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             root_spot = root_spot_manager.get_nearest_empty_spot(data["x"], data["y"])
 
         if root_spot is None:
-            logger.warning("Cannot deserialize plant: no available root spots")
-            return None
+            raise NoRootSpotsError("No available root spots")
 
         # Recreate genome
         genome_data = data["genome_data"]
@@ -617,8 +633,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
 
         # Claim the spot for this plant (may race with concurrent sprouting/migration).
         if not root_spot.claim(plant):
-            logger.warning("Cannot deserialize plant: failed to claim root spot (spot_id=%s)", getattr(root_spot, "spot_id", None))
-            return None
+            raise NoRootSpotsError(f"Failed to claim root spot (spot_id={getattr(root_spot, 'spot_id', None)})")
 
         # Restore additional state
         plant.age = data.get("age", 0)
@@ -640,6 +655,8 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             plant.nectar_produced = data["nectar_produced"]
 
         return plant
+    except NoRootSpotsError:
+        raise
     except Exception as e:
         logger.error(f"Failed to deserialize plant: {e}", exc_info=True)
         return None
