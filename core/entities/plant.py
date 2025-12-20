@@ -110,7 +110,7 @@ class Plant(Agent):
         # Add random offset to prevent synchronized migrations
         self.migration_check_interval = 300
         self.migration_timer = random.randint(0, self.migration_check_interval)
-        self._migrated = False  # Set to True when plant migrates
+        self._marked_for_removal = False  # Set to True when plant should be removed (e.g., after migration)
 
         # Statistics
         self.age = 0
@@ -380,7 +380,7 @@ class Plant(Agent):
         Returns:
             True if plant should be removed
         """
-        return self._migrated or self.energy < PLANT_DEATH_ENERGY
+        return self._marked_for_removal or self.energy < PLANT_DEATH_ENERGY
 
     def get_size_multiplier(self) -> float:
         """Get current size multiplier for rendering.
@@ -520,7 +520,7 @@ class Plant(Agent):
 
             if success:
                 # Mark this plant for removal from source tank
-                self._migrated = True
+                self._marked_for_removal = True
                 logger.info(f"Plant #{self.plant_id} successfully migrated {direction}")
 
             return success

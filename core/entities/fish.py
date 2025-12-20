@@ -108,12 +108,12 @@ class Fish(Agent):
         self.generation: int = generation
         self.species: str = species
 
-        # Migration flag - set to True when fish migrates to another tank
-        self._migrated: bool = False
+        # Removal flag - set to True when fish should be removed (e.g., after migration)
+        self._marked_for_removal: bool = False
 
-        # OPTIMIZATION: Cache dead state to avoid repeated is_dead() checks
+        # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
         # This is checked ~11x per fish per frame in various places
-        self._is_dead_cached: bool = False
+        self._cached_is_dead: bool = False
 
         # Life cycle - managed by LifecycleComponent for better code organization
 
@@ -361,7 +361,7 @@ class Fish(Agent):
         self._energy_component.energy = value
         # OPTIMIZATION: Update dead cache if energy drops to/below zero
         if value <= 0:
-            self._is_dead_cached = True
+            self._cached_is_dead = True
 
     @property
     def max_energy(self) -> float:
@@ -505,7 +505,7 @@ class Fish(Agent):
             self._energy_component.energy = final_energy
             # OPTIMIZATION: Update dead cache if energy drops to zero
             if final_energy <= 0:
-                self._is_dead_cached = True
+                self._cached_is_dead = True
 
         return self._energy_component.energy - old_energy
 
@@ -596,7 +596,7 @@ class Fish(Agent):
 
         # OPTIMIZATION: Update dead cache if energy drops to zero
         if self._energy_component.energy <= 0:
-            self._is_dead_cached = True
+            self._cached_is_dead = True
 
         if self.ecosystem is not None:
             # Report existence cost (size-based baseline)
@@ -676,20 +676,6 @@ class Fish(Agent):
         max_energy = self.max_energy
         return self.energy / max_energy if max_energy > 0 else 0.0
 
-        """Remember a food location for future reference.
-
-        Args:
-            position: Position where food was found
-        """
-        from core.fish_memory import MemoryType
-
-        # Add to enhanced memory system
-        self.memory_system.add_memory(
-            memory_type=MemoryType.FOOD_LOCATION,
-            location=position,
-            strength=1.0,  # Fresh memory has full strength
-        )
-
     def can_attempt_migration(self) -> bool:
         """Fish can migrate when hitting horizontal tank boundaries."""
 
@@ -723,7 +709,7 @@ class Fish(Agent):
 
             if success:
                 # Mark this fish for removal from source tank
-                self._migrated = True
+                self._marked_for_removal = True
                 logger.info(f"Fish #{self.fish_id} successfully migrated {direction}")
 
             return success
@@ -752,12 +738,12 @@ class Fish(Agent):
         Cache is updated when energy changes or age increments.
         """
         # OPTIMIZATION: Return cached value if already dead
-        if self._is_dead_cached:
+        if self._cached_is_dead:
             return True
         # Check conditions and update cache if now dead
-        dead = self._migrated or self.energy <= 0 or self.age >= self.max_age
+        dead = self._marked_for_removal or self.energy <= 0 or self.age >= self.max_age
         if dead:
-            self._is_dead_cached = True
+            self._cached_is_dead = True
         return dead
 
     def get_death_cause(self) -> str:
@@ -767,7 +753,7 @@ class Fish(Agent):
         (within PREDATOR_ENCOUNTER_WINDOW) count as predation deaths.
         Otherwise, energy depletion counts as starvation.
         """
-        if self._migrated:
+        if self._marked_for_removal:
             return "migration"  # Fish migrated to another tank
         if self.energy <= 0:
             # Check if there was a recent predator encounter
