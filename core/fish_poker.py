@@ -111,7 +111,7 @@ def should_offer_post_poker_reproduction(
     if fish.energy < min_energy_for_reproduction:
         return False
 
-    if fish.is_pregnant or fish.reproduction_cooldown > 0:
+    if fish.reproduction_cooldown > 0:
         return False
 
     if fish.life_stage.value < LifeStage.ADULT.value:
@@ -432,11 +432,6 @@ class PokerInteraction:
         for participant in self.participants:
             participant.sync_with_age()
             if participant.cooldown > 0:
-                return False
-
-        # Don't interrupt pregnant fish
-        for fish in self.fish_list:
-            if hasattr(fish, "is_pregnant") and fish.is_pregnant:
                 return False
 
         return True

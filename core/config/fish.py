@@ -57,7 +57,6 @@ ENERGY_MOVEMENT_BASE_COST = 0.05  # Base energy cost for movement
 # Fish Reproduction Constants
 REPRODUCTION_MIN_ENERGY = 35.0  # Minimum energy to initiate reproduction
 REPRODUCTION_COOLDOWN = 360  # Frames between reproduction attempts (12 seconds)
-REPRODUCTION_GESTATION = 300  # Frames for pregnancy (10 seconds)
 REPRODUCTION_ENERGY_COST = 60.0  # Energy cost to give birth
 MATING_DISTANCE = 60.0  # Maximum distance for mating (pixels)
 

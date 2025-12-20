@@ -99,10 +99,6 @@ class PlantPokerInteraction:
         if self.plant.poker_cooldown > 0:
             return False
 
-        # Don't interrupt pregnant fish
-        if hasattr(self.fish, "is_pregnant") and self.fish.is_pregnant:
-            return False
-
         return True
 
     def calculate_bet_amount(self, base_bet: float = DEFAULT_BET_AMOUNT) -> float:

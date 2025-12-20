@@ -1,8 +1,11 @@
 """Reproduction management component for fish.
 
 This module provides the ReproductionComponent class which handles all reproduction-related
-functionality for fish, including mating, pregnancy, and offspring generation.
+functionality for fish, including mating and offspring generation.
 Separating reproduction logic into its own component improves code organization and testability.
+
+Note: All reproduction is now instant (no pregnancy/gestation period). Asexual reproduction
+triggers immediately when conditions are met, and offspring are created in the same frame.
 """
 
 from typing import TYPE_CHECKING, Optional, Tuple
@@ -13,46 +16,36 @@ if TYPE_CHECKING:
 
 
 class ReproductionComponent:
-    """Manages fish reproduction, pregnancy, and mating mechanics.
+    """Manages fish reproduction and mating mechanics.
 
     This component encapsulates all reproduction-related logic for a fish, including:
     - Mate compatibility calculation
-    - Pregnancy state management
     - Reproduction cooldown tracking
-    - Offspring generation
+    - Offspring genome generation
+
+    All reproduction is instant - there is no pregnancy/gestation period.
 
     Attributes:
-        is_pregnant: Whether the fish is currently pregnant.
-        pregnancy_timer: Frames remaining until birth.
         reproduction_cooldown: Frames until can reproduce again.
-        mate_genome: Genome of the mate (stored for offspring generation).
+        overflow_energy_bank: Energy banked for future reproduction.
     """
 
     # Reproduction constants
     REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Require ~90% energy before any reproduction path
     REPRODUCTION_COOLDOWN = 180  # 6 seconds (reduced for better breeding and faster generations)
-    PREGNANCY_DURATION = 240  # 8 seconds (reduced for faster generations)
     MATING_DISTANCE = 60.0  # Maximum distance for mating
     REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for initiating mating
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby
     MIN_ACCEPTANCE_THRESHOLD = 0.3  # Minimum chance to accept mate (30%)
 
     __slots__ = (
-        "is_pregnant",
-        "pregnancy_timer",
         "reproduction_cooldown",
-        "mate_genome",
-        "_asexual_pregnancy",
         "overflow_energy_bank",
     )
 
     def __init__(self) -> None:
         """Initialize the reproduction component."""
-        self.is_pregnant: bool = False
-        self.pregnancy_timer: int = 0
         self.reproduction_cooldown: int = 0
-        self.mate_genome: Optional[Genome] = None
-        self._asexual_pregnancy: bool = False
         self.overflow_energy_bank: float = 0.0
 
     def bank_overflow_energy(self, amount: float, max_bank: Optional[float] = None) -> float:
@@ -101,7 +94,6 @@ class ReproductionComponent:
             life_stage == LifeStage.ADULT
             and energy >= min_energy_for_reproduction
             and self.reproduction_cooldown <= 0
-            and not self.is_pregnant
         )
 
     def can_asexually_reproduce(
@@ -177,68 +169,35 @@ class ReproductionComponent:
         # Standard mating is disabled; sexual reproduction now occurs only via poker.
         return False
 
-    def start_asexual_pregnancy(self) -> None:
-        """Begin asexual reproduction cycle."""
+    def trigger_asexual_reproduction(self, own_genome: "Genome") -> Tuple["Genome", float]:
+        """Trigger instant asexual reproduction and return offspring genome.
 
-        self.is_pregnant = True
-        self.pregnancy_timer = self.PREGNANCY_DURATION
-        self.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
-        self.mate_genome = None
-        self._asexual_pregnancy = True
-
-    def update_state(self) -> bool:
-        """Update reproduction state (cooldown and pregnancy timer).
-
-        Returns:
-            bool: True if birth should occur this frame
-        """
-        # Update cooldown
-        if self.reproduction_cooldown > 0:
-            self.reproduction_cooldown -= 1
-
-        # Update pregnancy
-        if self.is_pregnant:
-            self.pregnancy_timer -= 1
-
-            if self.pregnancy_timer <= 0:
-                # Time to give birth!
-                self.is_pregnant = False
-                return True
-
-        return False
-
-    def give_birth(self, own_genome: "Genome") -> Tuple["Genome", float]:
-        """Generate offspring genome from mating.
+        This creates a mutated clone of the parent's genome. The reproduction
+        happens immediately (no pregnancy period).
 
         Args:
             own_genome: This fish's genome
 
         Returns:
-            Tuple of (Genome, energy_for_baby): The offspring's genome and energy to transfer
+            Tuple of (offspring_genome, energy_transfer_fraction)
         """
         from core.genetics import Genome
 
-        if self._asexual_pregnancy:
-            offspring_genome = Genome.clone_with_mutation(own_genome)
-        elif self.mate_genome is not None:
-            offspring_genome = Genome.from_parents(own_genome, self.mate_genome)
-        else:
-            # Fallback: random genome if no mate stored
-            offspring_genome = Genome.random()
+        # Set cooldown to prevent immediate re-reproduction
+        self.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
 
-        # Clear mate genome after birth
-        self.mate_genome = None
-        self._asexual_pregnancy = False
+        # Create mutated clone
+        offspring_genome = Genome.clone_with_mutation(own_genome)
 
-        # Calculate energy to transfer to baby (as a fraction, to be calculated by caller)
-        # The caller will compute: energy_to_transfer = parent.energy * ENERGY_TRANSFER_TO_BABY
         return offspring_genome, self.ENERGY_TRANSFER_TO_BABY
 
-    def reset_pregnancy(self) -> None:
-        """Reset pregnancy state (e.g., due to starvation or death)."""
-        self.is_pregnant = False
-        self.pregnancy_timer = 0
-        self.mate_genome = None
+    def update_cooldown(self) -> None:
+        """Update reproduction cooldown timer.
+
+        Call this once per frame to decrement the cooldown.
+        """
+        if self.reproduction_cooldown > 0:
+            self.reproduction_cooldown -= 1
 
     def get_reproduction_state(self) -> str:
         """Get a human-readable description of reproduction state.
@@ -246,10 +205,7 @@ class ReproductionComponent:
         Returns:
             str: Description of reproduction state
         """
-        if self.is_pregnant:
-            seconds_until_birth = self.pregnancy_timer / 30.0  # Assuming 30 FPS
-            return f"Pregnant ({seconds_until_birth:.1f}s until birth)"
-        elif self.reproduction_cooldown > 0:
+        if self.reproduction_cooldown > 0:
             seconds_until_ready = self.reproduction_cooldown / 30.0
             return f"Cooldown ({seconds_until_ready:.1f}s until ready)"
         else:

@@ -92,15 +92,13 @@ def test_deterministic_reproduction():
     fish2._lifecycle_component.current_stage = LifeStage.ADULT
     fish1.reproduction_cooldown = 0
     fish2.reproduction_cooldown = 0
-    fish1.is_pregnant = False
-    fish2.is_pregnant = False
 
     # Add fish to environment
     env.agents = [fish1, fish2]
 
     # Debug: check fish state
-    print(f"Fish 1: energy={fish1.energy}/{fish1.max_energy}, age={fish1.age}, life_stage={fish1.life_stage}, pregnant={fish1.is_pregnant}, cooldown={fish1.reproduction_cooldown}")
-    print(f"Fish 2: energy={fish2.energy}/{fish2.max_energy}, age={fish2.age}, life_stage={fish2.life_stage}, pregnant={fish2.is_pregnant}, cooldown={fish2.reproduction_cooldown}")
+    print(f"Fish 1: energy={fish1.energy}/{fish1.max_energy}, age={fish1.age}, life_stage={fish1.life_stage}, cooldown={fish1.reproduction_cooldown}")
+    print(f"Fish 2: energy={fish2.energy}/{fish2.max_energy}, age={fish2.age}, life_stage={fish2.life_stage}, cooldown={fish2.reproduction_cooldown}")
 
     # Check if both fish should offer reproduction
     fish1_wants = should_offer_post_poker_reproduction(fish1, fish2, is_winner=True)
@@ -187,7 +185,6 @@ def test_multiplayer_reproduction():
         fish._lifecycle_component.age = 100  # Adult
         fish._lifecycle_component.current_stage = LifeStage.ADULT
         fish.reproduction_cooldown = 0
-        fish.is_pregnant = False
         fish_list.append(fish)
 
     env.agents = fish_list

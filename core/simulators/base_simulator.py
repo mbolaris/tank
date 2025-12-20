@@ -686,8 +686,6 @@ class BaseSimulator(ABC):
 
             # Fish-specific checks
             if isinstance(player, Fish):
-                if hasattr(player, "is_pregnant") and player.is_pregnant:
-                    continue
                 if player.energy < MixedPokerInteraction.MIN_ENERGY_TO_PLAY:
                     continue
 
@@ -774,8 +772,11 @@ class BaseSimulator(ABC):
                     break
 
             if winner_fish is not None and should_trigger_plant_poker_asexual_reproduction(winner_fish):
-                # Start asexual pregnancy - baby will be born after pregnancy duration
-                winner_fish._reproduction_component.start_asexual_pregnancy()
+                # Trigger instant asexual reproduction
+                baby = winner_fish._create_asexual_offspring()
+                if baby is not None:
+                    self.add_entity(baby)
+                    baby.register_birth()
 
     def find_fish_groups_in_contact(self) -> List[List["Fish"]]:
         """Find groups of fish that are in poker proximity (close but not touching).

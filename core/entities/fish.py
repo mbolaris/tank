@@ -54,8 +54,6 @@ class Fish(Agent):
         life_stage: Current life stage
         generation: Generation number
         fish_id: Unique identifier
-        is_pregnant: Whether fish is carrying offspring
-        pregnancy_timer: Frames until birth
         reproduction_cooldown: Frames until can reproduce again
         species: Fish species identifier
     """
@@ -374,26 +372,6 @@ class Fish(Agent):
 
     # Reproduction properties for backward compatibility
     @property
-    def is_pregnant(self) -> bool:
-        """Whether fish is currently pregnant (delegating to ReproductionComponent)."""
-        return self._reproduction_component.is_pregnant
-
-    @is_pregnant.setter
-    def is_pregnant(self, value: bool) -> None:
-        """Set pregnancy state (setter for backward compatibility)."""
-        self._reproduction_component.is_pregnant = value
-
-    @property
-    def pregnancy_timer(self) -> int:
-        """Frames until birth (delegating to ReproductionComponent)."""
-        return self._reproduction_component.pregnancy_timer
-
-    @pregnancy_timer.setter
-    def pregnancy_timer(self, value: int) -> None:
-        """Set pregnancy timer (setter for backward compatibility)."""
-        self._reproduction_component.pregnancy_timer = value
-
-    @property
     def reproduction_cooldown(self) -> int:
         """Frames until can reproduce again (delegating to ReproductionComponent)."""
         return self._reproduction_component.reproduction_cooldown
@@ -402,16 +380,6 @@ class Fish(Agent):
     def reproduction_cooldown(self, value: int) -> None:
         """Set reproduction cooldown (setter for backward compatibility)."""
         self._reproduction_component.reproduction_cooldown = value
-
-    @property
-    def mate_genome(self) -> Optional["Genome"]:
-        """Mate's genome stored for offspring (delegating to ReproductionComponent)."""
-        return self._reproduction_component.mate_genome
-
-    @mate_genome.setter
-    def mate_genome(self, value: Optional["Genome"]) -> None:
-        """Set mate genome (setter for backward compatibility)."""
-        self._reproduction_component.mate_genome = value
 
     # Lifecycle properties for backward compatibility
     @property
@@ -526,7 +494,7 @@ class Fish(Agent):
 
         # Prefer routing overflow into reproduction rather than spawning food.
         # Bank the overflow (capped) so it can fund future births even if the fish
-        # is currently too young, pregnant, or on cooldown.
+        # is currently too young or on cooldown.
         max_bank = self.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
         banked = self._reproduction_component.bank_overflow_energy(overflow, max_bank=max_bank)
         remainder = overflow - banked
@@ -534,13 +502,18 @@ class Fish(Agent):
         if banked > 0 and self.ecosystem is not None:
             self.ecosystem.record_energy_burn("overflow_reproduction", banked)
 
-        # Try asexual reproduction (requires being adult, not pregnant, etc.).
+        # Try instant asexual reproduction (requires being adult, off cooldown, etc.).
         if self._reproduction_component.can_asexually_reproduce(
             self.life_stage, self.energy, self.max_energy
         ):
-            self._reproduction_component.start_asexual_pregnancy()
-            if self.ecosystem is not None:
-                self.ecosystem.reproduction_manager.record_reproduction_attempt(success=True)
+            baby = self._create_asexual_offspring()
+            if baby is not None:
+                if self.ecosystem is not None:
+                    self.ecosystem.reproduction_manager.record_reproduction_attempt(success=True)
+                # Add baby to environment
+                if hasattr(self.environment, "add_entity"):
+                    self.environment.add_entity(baby)
+                    baby.register_birth()
 
         # If the bank is full, spill the remainder as food to maintain energy conservation.
         if remainder > 0:
@@ -835,38 +808,41 @@ class Fish(Agent):
         return False
 
     def update_reproduction(self) -> Optional["Fish"]:
-        """Update reproduction state and potentially give birth.
+        """Update reproduction state and potentially create offspring.
 
-        Delegates state updates to ReproductionComponent for cleaner code organization.
+        Updates cooldown timer and checks if conditions are met for instant
+        asexual reproduction (overflow energy banked + eligible).
 
         Returns:
-            Newborn fish if birth occurred, None otherwise
+            Newborn fish if reproduction occurred, None otherwise
         """
-        # If we've banked overflow energy and are eligible, start asexual pregnancy automatically.
+        # Update reproduction cooldown
+        self._reproduction_component.update_cooldown()
 
+        # If we've banked overflow energy and are eligible, reproduce instantly.
         if (
-            not self._reproduction_component.is_pregnant
-            and self._reproduction_component.reproduction_cooldown <= 0
+            self._reproduction_component.reproduction_cooldown <= 0
             and self.life_stage == LifeStage.ADULT
             and self.energy >= self.max_energy
             and self._reproduction_component.overflow_energy_bank > 0
         ):
-            self._reproduction_component.start_asexual_pregnancy()
+            return self._create_asexual_offspring()
 
-        # Update reproduction state (cooldown and pregnancy timer)
-        should_give_birth = self._reproduction_component.update_state()
+        return None
 
-        if not should_give_birth:
-            return None
+    def _create_asexual_offspring(self) -> Optional["Fish"]:
+        """Create an offspring through asexual reproduction.
 
-        # Capture reproduction type before it's reset in give_birth
-        is_asexual = self._reproduction_component._asexual_pregnancy
+        This is called when conditions are met for instant asexual reproduction.
+        The baby is created immediately (no pregnancy/gestation period).
 
-        # Generate offspring genome using reproduction component
-        offspring_genome, _unused_fraction = self._reproduction_component.give_birth(self.genome)
+        Returns:
+            The newly created baby fish, or None if creation failed
+        """
+        # Generate offspring genome (also sets cooldown)
+        offspring_genome, _unused_fraction = self._reproduction_component.trigger_asexual_reproduction(self.genome)
 
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
-        # This determines exactly how much energy the parent should transfer
         from core.constants import FISH_BABY_SIZE
         baby_max_energy = (
             ENERGY_MAX_DEFAULT
@@ -874,17 +850,16 @@ class Fish(Agent):
             * offspring_genome.physical.size_modifier.value
         )
 
+        # Use banked overflow energy first, then draw from parent
         bank_used = self._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
         remaining_needed = baby_max_energy - bank_used
         parent_transfer = min(self.energy, remaining_needed)
 
-        # If parent can't afford to fill the remaining need, the baby starts with less.
+        # Transfer energy from parent to baby
         self.energy -= parent_transfer
         baby_initial_energy = bank_used + parent_transfer
 
         # Record reproduction energy for visibility in stats
-        # While it's an internal transfer (parent→baby), showing it helps users
-        # understand population dynamics and where energy goes during births.
         if self.ecosystem is not None:
             self.ecosystem.record_reproduction_energy(parent_transfer, baby_initial_energy)
 
@@ -903,19 +878,18 @@ class Fish(Agent):
         baby_y = max(min_y, min(max_y - 50, baby_y))
 
         # Create baby fish with transferred energy
-        # Baby gets exactly the energy transferred from parent
         baby = Fish(
             environment=self.environment,
-            movement_strategy=self.movement_strategy.__class__(),  # Same strategy type
-            species=self.species,  # Same species
+            movement_strategy=self.movement_strategy.__class__(),
+            species=self.species,
             x=baby_x,
             y=baby_y,
-            speed=FISH_BASE_SPEED,  # Base speed
+            speed=FISH_BASE_SPEED,
             genome=offspring_genome,
             generation=self.generation + 1,
             ecosystem=self.ecosystem,
-            initial_energy=baby_initial_energy,  # Baby gets bank + transferred energy
-            parent_id=self.fish_id,  # Track lineage for phylogenetic tree
+            initial_energy=baby_initial_energy,
+            parent_id=self.fish_id,
         )
 
         # Record reproduction stats using composable behavior ID
@@ -923,10 +897,9 @@ class Fish(Agent):
         if self.ecosystem is not None and composable is not None and composable.value is not None:
             behavior_id = composable.value.behavior_id
             algorithm_id = hash(behavior_id) % 1000
-            self.ecosystem.record_reproduction(algorithm_id, is_asexual=is_asexual)
+            self.ecosystem.record_reproduction(algorithm_id, is_asexual=True)
 
         # Inherit skill game strategies from parent with mutation
-        # Component is already initialized in __init__, just inherit strategies
         baby._skill_game_component.inherit_from_parent(
             self._skill_game_component,
             mutation_rate=0.1,

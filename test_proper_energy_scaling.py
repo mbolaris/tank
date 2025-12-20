@@ -89,8 +89,6 @@ def test_with_scaled_energy():
     fish2._lifecycle_component.current_stage = LifeStage.ADULT
     fish1.reproduction_cooldown = 0
     fish2.reproduction_cooldown = 0
-    fish1.is_pregnant = False
-    fish2.is_pregnant = False
 
     env.agents = [fish1, fish2]
 

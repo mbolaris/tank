@@ -5,6 +5,9 @@ confident the core code supports actual life evolution without needing the
 full simulation stack. It intentionally uses lightweight engine/environment
 stubs so it stays fast while still exercising the real fish and reproduction
 components.
+
+Note: All reproduction is now instant (no pregnancy timer). Babies are created
+immediately when reproduction conditions are met.
 """
 
 import random
@@ -67,6 +70,11 @@ class MiniEnvironment:
         """Return all other fish; spatial math is unnecessary for this test."""
         return [other for other in self.agents if other is not agent and isinstance(other, agent_class)]
 
+    def add_entity(self, entity):
+        """Add an entity to the environment."""
+        if entity not in self.agents:
+            self.agents.append(entity)
+
 
 class MiniEngine:
     """Engine stub that supports the ReproductionSystem API."""
@@ -82,11 +90,6 @@ class MiniEngine:
     def add_entity(self, entity):
         if entity not in self.entities_list:
             self.entities_list.append(entity)
-            self.environment.agents = self.entities_list
-
-    def remove_entity(self, entity):
-        if entity in self.entities_list:
-            self.entities_list.remove(entity)
             self.environment.agents = self.entities_list
 
 
@@ -109,20 +112,36 @@ def _make_adult_fish(env: MiniEnvironment, ecosystem: MiniEcosystem, *, generati
     fish._lifecycle_component.age = 200
     fish.energy = fish.max_energy
     fish.reproduction_cooldown = 0
-    fish.is_pregnant = False
+    # Bank some overflow energy so reproduction can trigger
+    fish._reproduction_component.bank_overflow_energy(fish.max_energy * 0.5, max_bank=fish.max_energy)
     return fish
 
 
-def _advance_pregnancies(fish_list):
-    """Tick reproduction state forward until any pregnancies resolve."""
+def _trigger_instant_reproductions(fish_list, env):
+    """Trigger asexual reproduction via trait check and collect newborns.
+    
+    Since reproduction is now instant, we just call update_reproduction()
+    which checks if conditions are met and creates baby immediately.
+    """
     newborns = []
-    for _ in range(ReproductionComponent.PREGNANCY_DURATION + 1):
-        for fish in list(fish_list):
-            baby = fish.update_reproduction()
-            if baby is not None:
-                baby.register_birth()  # Register birth stats explicitly
-                newborns.append(baby)
-                fish_list.append(baby)
+    for fish in list(fish_list):
+        # Ensure fish is eligible: adult, full energy, has banked overflow
+        if fish.life_stage != LifeStage.ADULT:
+            continue
+        if fish.energy < fish.max_energy:
+            continue
+        if fish._reproduction_component.reproduction_cooldown > 0:
+            continue
+        if fish._reproduction_component.overflow_energy_bank <= 0:
+            continue
+            
+        # Call update_reproduction which will trigger instant birth
+        baby = fish.update_reproduction()
+        if baby is not None:
+            baby.register_birth()
+            newborns.append(baby)
+            fish_list.append(baby)
+            env.add_entity(baby)
     return newborns
 
 
@@ -144,9 +163,8 @@ def test_multi_generation_reproduction(monkeypatch):
     engine.add_entity(parent_a)
     engine.add_entity(parent_b)
 
-    # Generation 1 → 2
-    engine.reproduction_system.handle_reproduction()
-    first_generation = _advance_pregnancies(engine.entities_list)
+    # Generation 1 → 2: Instant reproduction (no pregnancy timer)
+    first_generation = _trigger_instant_reproductions(engine.entities_list, env)
 
     assert first_generation, "Initial parents should produce at least one offspring"
     baby = first_generation[0]
@@ -161,7 +179,7 @@ def test_multi_generation_reproduction(monkeypatch):
     baby._lifecycle_component.age = 200
     baby.energy = baby.max_energy
     baby.reproduction_cooldown = 0
-    baby.is_pregnant = False
+    baby._reproduction_component.bank_overflow_energy(baby.max_energy * 0.5, max_bank=baby.max_energy)
 
     parent_b.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
     parent_b.energy = parent_b.max_energy * 0.1
@@ -173,9 +191,8 @@ def test_multi_generation_reproduction(monkeypatch):
     engine.entities_list = [baby, helper, parent_a, parent_b]
     env.agents = engine.entities_list
 
-    # Generation 2 → 3
-    engine.reproduction_system.handle_reproduction()
-    second_generation = _advance_pregnancies(engine.entities_list)
+    # Generation 2 → 3: Instant reproduction
+    second_generation = _trigger_instant_reproductions(engine.entities_list, env)
 
     assert second_generation, "Second generation fish should also be able to reproduce"
     grandbaby = second_generation[0]

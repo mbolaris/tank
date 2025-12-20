@@ -66,7 +66,6 @@ def create_test_fish(env, ecosystem, x=100, y=100, energy=95.0, species="test"):
     fish._lifecycle_component.age = 100
     fish._lifecycle_component.current_stage = LifeStage.ADULT
     fish.reproduction_cooldown = 0
-    fish.is_pregnant = False
     return fish
 
 
@@ -116,29 +115,9 @@ def test_different_species():
     print("✓ Different species correctly blocked")
 
 
-def test_pregnant_fish():
-    """Test that pregnant fish cannot reproduce."""
-    print("\n=== Test 3: Pregnant Fish Block ===")
-
-    env = MockEnvironment()
-    ecosystem = MockEcosystem()
-
-    fish1 = create_test_fish(env, ecosystem)
-    fish2 = create_test_fish(env, ecosystem)
-    fish1.is_pregnant = True
-
-    env.agents = [fish1, fish2]
-
-    fish1_wants = should_offer_post_poker_reproduction(fish1, fish2, is_winner=True)
-
-    print(f"Pregnant fish wants to reproduce: {fish1_wants}")
-    assert fish1_wants == False, "Pregnant fish should not be able to reproduce"
-    print("✓ Pregnant fish correctly blocked")
-
-
 def test_cooldown():
     """Test that fish on cooldown cannot reproduce."""
-    print("\n=== Test 4: Cooldown Block ===")
+    print("\n=== Test 3: Cooldown Block ===")
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -158,7 +137,7 @@ def test_cooldown():
 
 def test_baby_fish():
     """Test that baby fish cannot reproduce."""
-    print("\n=== Test 5: Baby Fish Block ===")
+    print("\n=== Test 4: Baby Fish Block ===")
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -178,7 +157,7 @@ def test_baby_fish():
 
 def test_distance_check():
     """Test that distance is checked during reproduction."""
-    print("\n=== Test 6: Distance Check ===")
+    print("\n=== Test 5: Distance Check ===")
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -206,7 +185,7 @@ def test_distance_check():
 
 def test_two_player_poker():
     """Test that 2-player poker reproduction still works."""
-    print("\n=== Test 7: 2-Player Poker Reproduction ===")
+    print("\n=== Test 6: 2-Player Poker Reproduction ===")
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -239,7 +218,7 @@ def test_two_player_poker():
 
 def test_energy_costs():
     """Test that energy costs are applied correctly."""
-    print("\n=== Test 8: Energy Costs ===")
+    print("\n=== Test 7: Energy Costs ===")
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -279,7 +258,7 @@ def test_energy_costs():
 
 def test_genome_inheritance():
     """Test that offspring inherits 70%/30% genome split."""
-    print("\n=== Test 9: Genome Inheritance (70%/30%) ===")
+    print("\n=== Test 8: Genome Inheritance (70%/30%) ===")
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -336,7 +315,7 @@ def test_genome_inheritance():
 
 def test_multiplayer_second_place():
     """Test that multiplayer poker selects second place correctly."""
-    print("\n=== Test 10: Multiplayer Second Place Selection ===")
+    print("\n=== Test 9: Multiplayer Second Place Selection ===")
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -397,7 +376,6 @@ if __name__ == "__main__":
     try:
         test_exact_90_percent_threshold()
         test_different_species()
-        test_pregnant_fish()
         test_cooldown()
         test_baby_fish()
         test_distance_check()

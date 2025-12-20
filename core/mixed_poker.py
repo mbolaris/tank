@@ -438,11 +438,6 @@ class MixedPokerInteraction:
             if cooldown > 0:
                 return False
 
-            # Check if fish is pregnant (don't interrupt)
-            if self._is_fish_player(player):
-                if hasattr(player, "is_pregnant") and player.is_pregnant:
-                    return False
-
         return True
 
     def calculate_bet_amount(self, base_bet: float = DEFAULT_BET_AMOUNT) -> float:
@@ -1050,10 +1045,6 @@ def should_trigger_plant_poker_asexual_reproduction(fish: "Fish") -> bool:
     # Check energy threshold
     min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
     if fish.energy < min_energy_for_reproduction:
-        return False
-
-    # Check not pregnant
-    if fish.is_pregnant:
         return False
 
     # Check off cooldown

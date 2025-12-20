@@ -444,7 +444,11 @@ class Mortal(Protocol):
 
 
 class Reproducible(Protocol):
-    """Any entity that can reproduce."""
+    """Any entity that can reproduce.
+    
+    Note: Reproduction is now instant (no pregnancy timer). Offspring are
+    created immediately when conditions are met.
+    """
 
     def can_reproduce(self) -> bool:
         """Check if the entity can currently reproduce."""
@@ -460,11 +464,6 @@ class Reproducible(Protocol):
         Returns:
             True if mating was successful
         """
-        ...
-
-    @property
-    def is_pregnant(self) -> bool:
-        """Whether the entity is currently pregnant."""
         ...
 
     @property

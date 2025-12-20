@@ -177,8 +177,6 @@ def test_proximity_vs_poker_reproduction():
     fish2.energy = fish2.max_energy * 0.50
     fish1.reproduction_cooldown = 0
     fish2.reproduction_cooldown = 0
-    fish1._reproduction_component.is_pregnant = False
-    fish2._reproduction_component.is_pregnant = False
 
     # Test at 50% energy
     winner_wants = should_offer_post_poker_reproduction(fish1, fish2, is_winner=True, energy_gained=10.0)

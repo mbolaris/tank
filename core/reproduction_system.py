@@ -87,8 +87,15 @@ class ReproductionSystem(BaseSystem):
             # Access the trait correctly: genome.behavioral.asexual_reproduction_chance.value
             asexual_trait = fish.genome.behavioral.asexual_reproduction_chance.value
             if random.random() < asexual_trait:
-                fish._reproduction_component.start_asexual_pregnancy()
-                self._asexual_triggered += 1
+                # Trigger instant asexual reproduction
+                baby = fish._create_asexual_offspring()
+                if baby is not None:
+                    # Add baby to environment
+                    environment = fish.environment
+                    if environment is not None and hasattr(environment, "add_entity"):
+                        environment.add_entity(baby)
+                        baby.register_birth()
+                    self._asexual_triggered += 1
 
     def handle_reproduction(self) -> None:
         """Legacy method for backward compatibility.

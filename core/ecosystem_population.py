@@ -166,12 +166,8 @@ def update_population_stats(ecosystem: EcosystemManager, fish_list: List[Fish]) 
 
     update_genetic_diversity_stats(ecosystem, fish_list)
 
-    pregnant_count = sum(
-        1
-        for fish in fish_list
-        if hasattr(fish, "reproduction") and fish.reproduction.is_pregnant
-    )
-    ecosystem.update_pregnant_count(pregnant_count)
+    # Pregnancy no longer exists - reproduction is now instant
+    ecosystem.update_pregnant_count(0)
 
     if ecosystem.frame_count % 10 == 0:
         ecosystem.enhanced_stats.record_frame_snapshot(

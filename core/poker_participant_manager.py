@@ -201,9 +201,6 @@ def get_ready_players(fish_list: List["Fish"], min_energy: float = 10.0) -> List
         if participant.cooldown > 0:
             continue
 
-        if hasattr(fish, "is_pregnant") and fish.is_pregnant:
-            continue
-
         ready.append(fish)
 
     return ready
