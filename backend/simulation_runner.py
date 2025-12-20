@@ -177,9 +177,9 @@ class SimulationRunner:
                 if self.connection_manager is not None and self.tank_registry is not None:
                     deps = (self.connection_manager, self.tank_registry)
                     if self._migration_handler is None or self._migration_handler_deps != deps:
-                        from backend.migration_handler import BackendMigrationHandler
+                        from backend.migration_handler import MigrationHandler
 
-                        self._migration_handler = BackendMigrationHandler(
+                        self._migration_handler = MigrationHandler(
                             connection_manager=self.connection_manager,
                             tank_registry=self.tank_registry,
                         )
@@ -1201,7 +1201,7 @@ class SimulationRunner:
                             "name": fish_name,
                             "fish_id": fish.fish_id,
                             "generation": fish.generation,
-                            "poker_strategy": fish.genome.behavioral.poker_strategy_algorithm.value if fish.genome.behavioral.poker_strategy_algorithm else None,
+                            "poker_strategy": fish.genome.behavioral.poker_strategy.value if fish.genome.behavioral.poker_strategy else None,
                         })
 
                     # Create benchmark series with multiple fish

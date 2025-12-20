@@ -268,7 +268,7 @@ class TestFullGenomeEvolution:
         # Offspring should have valid values
         assert 0.5 <= offspring.speed_modifier <= 1.5
         assert 0.0 <= offspring.behavioral.aggression.value <= 1.0
-        assert offspring.behavioral.composable_behavior.value is not None
+        assert offspring.behavioral.behavior.value is not None
 
     def test_genome_weighted_crossover_favors_winner(self):
         """Weighted crossover should favor the higher-weighted parent."""
@@ -331,7 +331,7 @@ class TestFullGenomeEvolution:
         for genome in population:
             assert 0.5 <= genome.speed_modifier <= 1.5
             assert 0.0 <= genome.behavioral.aggression.value <= 1.0
-            assert genome.behavioral.composable_behavior.value is not None
+            assert genome.behavioral.behavior.value is not None
 
 
 class TestPlantEvolution:
@@ -347,7 +347,7 @@ class TestPlantEvolution:
         # Offspring should have valid values
         assert 15.0 <= offspring.angle <= 45.0
         assert 0.5 <= offspring.length_ratio <= 0.85
-        assert offspring.fractal_type == parent.fractal_type  # Should preserve variant
+        assert offspring.type == parent.type  # Should preserve variant
 
     def test_plant_variant_preserved(self):
         """Plant variant type should be preserved across generations."""
@@ -362,4 +362,4 @@ class TestPlantEvolution:
             current = PlantGenome.from_parent(current, mutation_rate=0.2)
 
         # Variant should be preserved
-        assert current.fractal_type == "claude"
+        assert current.type == "claude"

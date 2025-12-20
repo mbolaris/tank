@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class BackendMigrationHandler:
+class MigrationHandler:
     """Handles entity migrations between tanks in the backend.
 
     This class implements the migration logic that was previously embedded in

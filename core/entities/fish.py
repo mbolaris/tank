@@ -97,14 +97,14 @@ class Fish(Agent):
             self.genome = Genome.random()
 
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
-        if self.genome.behavioral.poker_strategy_algorithm is None:
+        if self.genome.behavioral.poker_strategy is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
             from core.genetics.trait import GeneticTrait
-            self.genome.behavioral.poker_strategy_algorithm = GeneticTrait(get_random_poker_strategy())
-        elif self.genome.behavioral.poker_strategy_algorithm.value is None:
+            self.genome.behavioral.poker_strategy = GeneticTrait(get_random_poker_strategy())
+        elif self.genome.behavioral.poker_strategy.value is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            self.genome.behavioral.poker_strategy_algorithm.value = get_random_poker_strategy()
-
+            self.genome.behavioral.poker_strategy.value = get_random_poker_strategy()
+        
         self.generation: int = generation
         self.species: str = species
 
@@ -299,13 +299,13 @@ class Fish(Agent):
         if self.ecosystem is None:
             return
 
-        # Get behavior ID from composable behavior for tracking
+        # Get behavior ID from behavior for tracking
         algorithm_id = None
-        composable = self.genome.behavioral.composable_behavior
-        if composable is not None and composable.value is not None:
+        behavior = self.genome.behavioral.behavior
+        if behavior is not None and behavior.value is not None:
             # Use a hash of the behavior_id for backwards compatibility with integer tracking
             # The ecosystem stats system expects an integer algorithm_id
-            behavior_id = composable.value.behavior_id
+            behavior_id = behavior.value.behavior_id
             algorithm_id = hash(behavior_id) % 1000  # Keep it in a reasonable range
 
         # Get color as hex string for phylogenetic tree
@@ -886,7 +886,7 @@ class Fish(Agent):
         )
 
         # Record reproduction stats using composable behavior ID
-        composable = self.genome.behavioral.composable_behavior
+        composable = self.genome.behavioral.behavior
         if self.ecosystem is not None and composable is not None and composable.value is not None:
             behavior_id = composable.value.behavior_id
             algorithm_id = hash(behavior_id) % 1000
@@ -1045,7 +1045,7 @@ class Fish(Agent):
 
         # Record food consumption for behavior performance tracking
         ecosystem = self.ecosystem
-        composable = self.genome.behavioral.composable_behavior
+        composable = self.genome.behavioral.behavior
         if ecosystem is not None and composable is not None and composable.value is not None:
             from core.entities.plant import PlantNectar
             from core.entities.resources import LiveFood

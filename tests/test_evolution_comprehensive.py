@@ -168,7 +168,7 @@ class TestEdgeCasesAndBoundaries:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy_algorithm=GeneticTrait(None),
+                poker_strategy=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,
@@ -282,8 +282,8 @@ class TestMultiGenerationEvolution:
 
         # All should maintain Claude variant type (most important characteristic)
         for child in offspring:
-            assert child.fractal_type == "claude", \
-                f"Offspring fractal_type {child.fractal_type} should maintain parent's 'claude' type"
+            assert child.type == "claude", \
+                f"Offspring type {child.type} should maintain parent's 'claude' type"
 
         # Color should still have some variety across offspring
         colors = [child.color_hue for child in offspring]
@@ -330,7 +330,7 @@ class TestPokerEvolution:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy_algorithm=GeneticTrait(TightAggressiveStrategy()),
+                poker_strategy=GeneticTrait(TightAggressiveStrategy()),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,
@@ -359,7 +359,7 @@ class TestPokerEvolution:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy_algorithm=GeneticTrait(ManiacStrategy()),
+                poker_strategy=GeneticTrait(ManiacStrategy()),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,
@@ -388,7 +388,7 @@ class TestPokerEvolution:
         # we expect roughly 90% * 75% = 68% max, but with added strategy switching we lower the bar
         tight_aggressive_count = sum(
             1 for o in offspring
-            if isinstance(o.behavioral.poker_strategy_algorithm.value, TightAggressiveStrategy)
+            if isinstance(o.behavioral.poker_strategy.value, TightAggressiveStrategy)
         )
         assert tight_aggressive_count > 25, \
             f"Should inherit winner's strategy somewhat often (with novelty injection), got {tight_aggressive_count}/100"
@@ -449,8 +449,8 @@ class TestPlantGenetics:
         """Test cosmic fern variant creation and evolution."""
         fern = PlantGenome.create_cosmic_fern_variant()
 
-        # Should have specific characteristics (fractal_type is the key identifier)
-        assert fern.fractal_type == "cosmic_fern"
+        # Should have specific characteristics (type is the key identifier)
+        assert fern.type == "cosmic_fern"
         assert 0.65 <= fern.color_hue <= 0.90  # Initial color range
 
         # Evolve it
@@ -458,8 +458,8 @@ class TestPlantGenetics:
 
         # All should maintain cosmic_fern variant type (most important)
         for child in offspring:
-            assert child.fractal_type == "cosmic_fern", \
-                f"Offspring fractal_type {child.fractal_type} should maintain parent's 'cosmic_fern' type"
+            assert child.type == "cosmic_fern", \
+                f"Offspring type {child.type} should maintain parent's 'cosmic_fern' type"
 
         # Color should vary across offspring (shows mutation is working)
         colors = [child.color_hue for child in offspring]
@@ -597,7 +597,7 @@ class TestComplexIntegration:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy_algorithm=GeneticTrait(None),
+                poker_strategy=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,
@@ -627,7 +627,7 @@ class TestComplexIntegration:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy_algorithm=GeneticTrait(None),
+                poker_strategy=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,
@@ -657,7 +657,7 @@ class TestComplexIntegration:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy_algorithm=GeneticTrait(None),
+                poker_strategy=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,

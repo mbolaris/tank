@@ -29,7 +29,7 @@ export interface PlantGenomeData {
     color_saturation: number;
     stem_thickness: number;
     leaf_density: number;
-    fractal_type?:
+    type?:
     | 'lsystem'
     | 'mandelbrot'
     | 'claude'

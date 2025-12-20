@@ -83,4 +83,4 @@ def test_plant_transfer_round_trip() -> None:
     restored = deserialize_entity(data, dest)
     assert isinstance(restored, Plant)
     assert restored.energy == pytest.approx(data["energy"])
-    assert restored.genome.fractal_type == data["genome_data"].get("fractal_type")
+    assert restored.genome.type == data["genome_data"].get("type")

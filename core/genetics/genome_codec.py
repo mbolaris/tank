@@ -31,10 +31,10 @@ def genome_to_dict(
     schema_version: int,
     # Backwards-compatible kwargs: older callers (and transfer code) may pass
     # `behavior_algorithm` / `poker_algorithm`. Keep these here so callers
-    # don't raise on unexpected keywords; prefer `composable_behavior` and
-    # `poker_strategy_algorithm` for the canonical new format.
-    composable_behavior: Optional[Dict[str, Any]] = None,
-    poker_strategy_algorithm: Optional[Dict[str, Any]] = None,
+    # don't raise on unexpected keywords; prefer `behavior` and
+    # `poker_strategy` for the canonical new format.
+    behavior: Optional[Dict[str, Any]] = None,
+    poker_strategy: Optional[Dict[str, Any]] = None,
 
 ) -> Dict[str, Any]:
     """Serialize a genome into JSON-compatible primitives."""
@@ -46,15 +46,15 @@ def genome_to_dict(
             return None
         return obj.to_dict()
 
-    # Serialize composable behavior (new) or fall back to legacy behavior
+    # Serialize behavior (new) or fall back to legacy behavior
     # algorithm params if provided by callers.
-    composable_behavior_dict = _to_dict(
-        composable_behavior,
-        genome.behavioral.composable_behavior.value if genome.behavioral.composable_behavior else None,
+    behavior_dict = _to_dict(
+        behavior,
+        genome.behavioral.behavior.value if genome.behavioral.behavior else None,
     )
     poker_strategy_dict = _to_dict(
-        poker_strategy_algorithm,
-        genome.behavioral.poker_strategy_algorithm.value if genome.behavioral.poker_strategy_algorithm else None,
+        poker_strategy,
+        genome.behavioral.poker_strategy.value if genome.behavioral.poker_strategy else None,
     )
 
     values: Dict[str, Any] = {}
@@ -67,8 +67,8 @@ def genome_to_dict(
 
     # Collect trait metadata for complex traits
     for name, trait in (
-        ("composable_behavior", genome.behavioral.composable_behavior),
-        ("poker_strategy_algorithm", genome.behavioral.poker_strategy_algorithm),
+        ("behavior", genome.behavioral.behavior),
+        ("poker_strategy", genome.behavioral.poker_strategy),
         ("mate_preferences", genome.behavioral.mate_preferences),
     ):
         if trait is not None:
@@ -79,10 +79,11 @@ def genome_to_dict(
     return {
         "schema_version": schema_version,
         **values,
-        # Composable behavior (new system - replaces behavior_algorithm + poker_algorithm)
-        "composable_behavior": composable_behavior_dict,
+        **values,
+        # Behavior (new system - replaces behavior_algorithm + poker_algorithm)
+        "behavior": behavior_dict,
         # Poker strategy for in-game betting decisions
-        "poker_strategy_algorithm": poker_strategy_dict,
+        "poker_strategy": poker_strategy_dict,
         # Legacy fields: include if caller passed legacy algorithm params so
         # transfer/compatibility code can round-trip older formats.
         "mate_preferences": dict(genome.behavioral.mate_preferences.value) if genome.behavioral.mate_preferences else {},
@@ -140,55 +141,66 @@ def genome_from_dict(
 
         # Apply metadata for non-spec traits on BehavioralTraits.
         for name, trait in (
-            ("composable_behavior", genome.behavioral.composable_behavior),
-            ("poker_strategy_algorithm", genome.behavioral.poker_strategy_algorithm),
+            ("behavior", genome.behavioral.behavior),
+            ("poker_strategy", genome.behavioral.poker_strategy),
             ("mate_preferences", genome.behavioral.mate_preferences),
         ):
             if trait is not None:
-                meta = trait_meta.get(name)
+                # Handle legacy meta keys if present
+                key = name
+                if name == "behavior" and "composable_behavior" in trait_meta:
+                    key = "composable_behavior"
+                elif name == "poker_strategy" and "poker_strategy_algorithm" in trait_meta:
+                    key = "poker_strategy_algorithm"
+                    
+                meta = trait_meta.get(key)
                 if isinstance(meta, dict):
                     apply_trait_meta_to_trait(trait, meta)
 
 
 
-    # Composable behavior (new system)
+    # Behavior (new system)
     try:
         from core.algorithms import ComposableBehavior
         from core.genetics.trait import GeneticTrait
 
-        composable_data = data.get("composable_behavior")
-        if composable_data and isinstance(composable_data, dict):
-            cb = ComposableBehavior.from_dict(composable_data)
-            if genome.behavioral.composable_behavior is None:
-                genome.behavioral.composable_behavior = GeneticTrait(cb)
+        # Support both new 'behavior' and old 'composable_behavior' keys
+        behavior_data = data.get("behavior") or data.get("composable_behavior")
+        
+        if behavior_data and isinstance(behavior_data, dict):
+            cb = ComposableBehavior.from_dict(behavior_data)
+            if genome.behavioral.behavior is None:
+                genome.behavioral.behavior = GeneticTrait(cb)
             else:
-                genome.behavioral.composable_behavior.value = cb
-        # Legacy fallback: if old genome has behavior_algorithm but no composable_behavior,
+                genome.behavioral.behavior.value = cb
+        # Legacy fallback: if old genome has behavior_algorithm but no behavior
         # generate a random composable behavior (the fish will get fresh genes)
-        elif data.get("behavior_algorithm") and not composable_data:
-            logger.info("Migrating legacy genome: generating new composable_behavior")
+        elif data.get("behavior_algorithm") and not behavior_data:
+            logger.info("Migrating legacy genome: generating new behavior")
             cb = ComposableBehavior.random(rng=rng)
-            if genome.behavioral.composable_behavior is None:
-                genome.behavioral.composable_behavior = GeneticTrait(cb)
+            if genome.behavioral.behavior is None:
+                genome.behavioral.behavior = GeneticTrait(cb)
             else:
-                genome.behavioral.composable_behavior.value = cb
+                genome.behavioral.behavior.value = cb
     except Exception:
         logger.debug("Failed deserializing composable_behavior; keeping default", exc_info=True)
 
-    # Poker strategy algorithm (in-game betting decisions)
+    # Poker strategy (in-game betting decisions)
     try:
-        strat_data = data.get("poker_strategy_algorithm")
+        # Support both new 'poker_strategy' and old 'poker_strategy_algorithm' keys
+        strat_data = data.get("poker_strategy") or data.get("poker_strategy_algorithm")
+        
         if strat_data:
             from core.poker.strategy.implementations import PokerStrategyAlgorithm
             from core.genetics.trait import GeneticTrait
 
             strat = PokerStrategyAlgorithm.from_dict(strat_data)
-            if genome.behavioral.poker_strategy_algorithm is None:
-                genome.behavioral.poker_strategy_algorithm = GeneticTrait(strat)
+            if genome.behavioral.poker_strategy is None:
+                genome.behavioral.poker_strategy = GeneticTrait(strat)
             else:
-                genome.behavioral.poker_strategy_algorithm.value = strat
+                genome.behavioral.poker_strategy.value = strat
     except Exception:
-        logger.debug("Failed deserializing poker_strategy_algorithm; keeping default", exc_info=True)
+        logger.debug("Failed deserializing poker_strategy; keeping default", exc_info=True)
 
     invalidate = getattr(genome, "invalidate_caches", None)
     if callable(invalidate):
@@ -211,12 +223,12 @@ def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
             return None
         return type(algo).__name__
 
-    # Get composable behavior info
-    composable = genome.behavioral.composable_behavior
-    composable_info = None
-    if composable and composable.value:
-        cb = composable.value
-        composable_info = {
+    # Get behavior info
+    behavior = genome.behavioral.behavior
+    behavior_info = None
+    if behavior and behavior.value:
+        cb = behavior.value
+        behavior_info = {
             "behavior_id": cb.behavior_id,
             "short_description": cb.short_description,
         }
@@ -225,9 +237,9 @@ def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
         **values,
         "trait_meta": trait_meta,
 
-        "composable_behavior": composable_info,
-        "poker_strategy_algorithm_type": _algo_name(
-            genome.behavioral.poker_strategy_algorithm.value if genome.behavioral.poker_strategy_algorithm else None
+        "behavior": behavior_info,
+        "poker_strategy_type": _algo_name(
+            genome.behavioral.poker_strategy.value if genome.behavioral.poker_strategy else None
         ),
         "derived": {
             "speed_modifier": getattr(genome, "speed_modifier", None),

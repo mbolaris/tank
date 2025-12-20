@@ -43,7 +43,7 @@ Plants earn fitness points through:
 
 | Attribute | Value |
 |-----------|-------|
-| **Fractal Type** | L-System (Fern Pattern) |
+| **Type** | L-System (Fern Pattern) |
 | **Color Palette** | Coral/Terracotta (hue: 0.02-0.08) |
 | **Visual Style** | Natural fern fronds with organic branching |
 | **L-System Rules** | `X -> F+[[X]-X]-F[-FX]+X` (classic fern) |
@@ -67,7 +67,7 @@ F -> FF                   (100% - stem extension)
 
 | Attribute | Value |
 |-----------|-------|
-| **Fractal Type** | Stochastic L-System (aerial root recursion) |
+| **Type** | Stochastic L-System (aerial root recursion) |
 | **Color Palette** | Cool jade trunks (hue: 0.30–0.40) with neon ink highlights (0.55–0.60) |
 | **Visual Style** | Tiered canopies with looping roots that reconnect to the soil and trunk | 
 | **Special Features** | Woven bark striations hinting at brackets/semicolons, oscillating leaf fans, nectar nodes pulsing like cursor blinks |
@@ -103,7 +103,7 @@ F -> FF                     (100% - trunk/branch extension)
 
 | Attribute | Value |
 |-----------|-------|
-| **Fractal Type** | Julia Set |
+| **Type** | Julia Set |
 | **Color Palette** | Golden/Amber (hue: 0.08-0.14) |
 | **Visual Style** | 5-petal Fibonacci flower with spiral animation |
 | **Special Features** | Golden ratio proportions, sparkle particles, pulsing bloom |
@@ -116,7 +116,7 @@ F -> FF                     (100% - trunk/branch extension)
 
 | Attribute | Value |
 |-----------|-------|
-| **Fractal Type** | Tricorn |
+| **Type** | Tricorn |
 | **Color Palette** | Electric Cyan/Teal (hue: 0.48-0.55) |
 | **Visual Style** | Hexagonal network nodes with electric connections |
 | **Special Features** | Neural connection lines, electric sparks, node points |
@@ -129,7 +129,7 @@ F -> FF                     (100% - trunk/branch extension)
 
 | Attribute | Value |
 |-----------|-------|
-| **Fractal Type** | Mandelbrot Set |
+| **Type** | Mandelbrot Set |
 | **Color Palette** | Deep Purple (hue: 0.55-0.75) |
 | **Visual Style** | Wavy leaf outline with vein impressions |
 | **Special Features** | Smooth iteration coloring, botanical glow aura |
@@ -142,7 +142,7 @@ F -> FF                     (100% - trunk/branch extension)
 
 | Attribute | Value |
 |-----------|-------|
-| **Fractal Type** | Burning Ship |
+| **Type** | Burning Ship |
 | **Color Palette** | Violet (hue: 0.70-0.85) |
 | **Visual Style** | Asymmetric flame patterns with swirling vortex |
 | **Special Features** | Rising floating particles, ethereal glow, diamond leaves |
@@ -155,7 +155,7 @@ F -> FF                     (100% - trunk/branch extension)
 
 | Attribute | Value |
 |-----------|-------|
-| **Fractal Type** | Traditional L-System |
+| **Type** | Traditional L-System |
 | **Color Palette** | Green (hue: 0.25-0.45) |
 | **Visual Style** | Standard botanical branching with leaves |
 | **Special Features** | Dynamic branching, elliptical leaves with veins |
@@ -208,7 +208,7 @@ def create_your_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenom
         base_energy_rate=rng.uniform(0.02, 0.045),
         growth_efficiency=rng.uniform(1.0, 1.4),
         nectar_threshold_ratio=rng.uniform(0.6, 0.8),
-        fractal_type="your_variant",
+        type="your_variant",
     )
     # Define L-system production rules
     g._production_rules = [
@@ -220,7 +220,7 @@ def create_your_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenom
 
 **Add color mutation range** in `from_parent()`:
 ```python
-elif parent.fractal_type == "your_variant":
+elif parent.type == "your_variant":
     color_min, color_max = X, Y  # Your hue range
 ```
 
@@ -252,11 +252,11 @@ variant_factories = {
 
 ### Step 3: Frontend (TypeScript)
 
-**File**: `frontend/src/utils/fractalPlant.ts`
+**File**: `frontend/src/utils/plant.ts`
 
 1. Update the type union:
 ```typescript
-fractal_type?: 'lsystem' | 'mandelbrot' | 'claude' | 'antigravity' | 'gpt' | 'sonnet' | 'your_variant';
+type?: 'lsystem' | 'mandelbrot' | 'claude' | 'antigravity' | 'gpt' | 'sonnet' | 'your_variant';
 ```
 
 2. Add cache (if using custom textures):

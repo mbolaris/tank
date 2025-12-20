@@ -15,7 +15,7 @@ export interface PlantGenomeData {
     color_saturation: number;
     stem_thickness: number;
     leaf_density: number;
-    fractal_type?:
+    type?:
     | 'lsystem'
     | 'cosmic_fern'
     | 'claude'
@@ -160,7 +160,7 @@ function getGenomeSignature(genome: PlantGenomeData): string {
         genome.length_ratio,
         genome.branch_probability,
         genome.curve_factor,
-        genome.fractal_type ?? 'lsystem',
+        genome.type ?? 'lsystem',
         genome.color_hue,
         genome.color_saturation,
         genome.stem_thickness,
@@ -960,7 +960,7 @@ export function renderPlant(
     elapsedTime: number,
     nectarReady: boolean = false
 ): void {
-    const fractalType = genome.fractal_type ?? 'lsystem';
+    const fractalType = genome.type ?? 'lsystem';
     // Cosmic Fern uses standard L-system rendering, so we let it fall through
     // Note: 'mandelbrot' type was removed but renderMandelbrotPlant exists for legacy support if needed
     // claude, antigravity, and gpt fall through to default L-system renderer

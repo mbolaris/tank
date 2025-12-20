@@ -167,7 +167,7 @@ class BaseSimulator(ABC):
         """
         if self.ecosystem is not None:
             algorithm_id = None
-            composable = fish.genome.behavioral.composable_behavior
+            composable = fish.genome.behavioral.behavior
             if composable is not None and composable.value is not None:
                 behavior_id = composable.value.behavior_id
                 algorithm_id = hash(behavior_id) % 1000

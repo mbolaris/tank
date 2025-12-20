@@ -328,7 +328,7 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     # We capture them as dicts here to ensure thread safety
     # Capture poker strategy state
     poker_strat_params = None
-    poker_strategy_trait = fish.genome.behavioral.poker_strategy_algorithm
+    poker_strategy_trait = fish.genome.behavioral.poker_strategy
     poker_strategy = poker_strategy_trait.value if poker_strategy_trait else None
     if poker_strategy:
         poker_strat_params = poker_strategy.to_dict()
@@ -351,7 +351,7 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
 def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
     """Construct full fish serialization using captured mutable state."""
     genome_data = fish.genome.to_dict(
-        poker_strategy_algorithm=mutable_state["poker_strat_params"],
+        poker_strategy=mutable_state["poker_strat_params"],
     )
     return {
         "type": "fish",
@@ -442,7 +442,7 @@ def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> S
             "base_energy_rate": plant.genome.base_energy_rate,
             "growth_efficiency": plant.genome.growth_efficiency,
             "nectar_threshold_ratio": plant.genome.nectar_threshold_ratio,
-            "fractal_type": plant.genome.fractal_type,
+            "type": plant.genome.type,
             "floral_type": plant.genome.floral_type,
             "floral_petals": plant.genome.floral_petals,
             "floral_layers": plant.genome.floral_layers,
@@ -602,7 +602,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             base_energy_rate=genome_data.get("base_energy_rate", 0.02),
             growth_efficiency=genome_data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=genome_data.get("nectar_threshold_ratio", 0.75),
-            fractal_type=genome_data.get("fractal_type", "lsystem"),
+            type=genome_data.get("type") or genome_data.get("fractal_type", "lsystem"),
             # Floral traits
             floral_type=genome_data.get("floral_type", "spiral"),
             floral_petals=genome_data.get("floral_petals", 5),

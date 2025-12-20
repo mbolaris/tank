@@ -870,7 +870,7 @@ class EcosystemManager:
             if not hasattr(fish, "genome") or fish.genome is None:
                 continue
 
-            trait = fish.genome.behavioral.poker_strategy_algorithm
+            trait = fish.genome.behavioral.poker_strategy
             strat = trait.value if trait else None
             if strat is None:
                 continue

@@ -106,8 +106,8 @@ class TestWinnerBiasedInheritance:
             loser_genome = Genome.random(use_algorithm=True)
 
             # Ensure they have different strategies
-            winner_genome.behavioral.poker_strategy_algorithm.value = TightAggressiveStrategy()
-            loser_genome.behavioral.poker_strategy_algorithm.value = LooseAggressiveStrategy()
+            winner_genome.behavioral.poker_strategy.value = TightAggressiveStrategy()
+            loser_genome.behavioral.poker_strategy.value = LooseAggressiveStrategy()
 
             # Create offspring using winner-choice (80/20 split)
             offspring = Genome.from_winner_choice(
@@ -117,7 +117,7 @@ class TestWinnerBiasedInheritance:
                 mutation_strength=0.1,
             )
 
-            if offspring.behavioral.poker_strategy_algorithm.value.strategy_id == "tight_aggressive":
+            if offspring.behavioral.poker_strategy.value.strategy_id == "tight_aggressive":
                 winner_strategy_count += 1
 
         winner_pct = winner_strategy_count / n_trials

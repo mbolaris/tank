@@ -336,9 +336,9 @@ class StatsCalculator:
         # Shared metadata for all composable traits (since they are all packed in one GeneticTrait wrapper)
         # We calculate it once effectively.
         composable_traits = [
-            f.genome.behavioral.composable_behavior
+            f.genome.behavioral.behavior
             for f in fish_list
-            if f.genome.behavioral.composable_behavior is not None
+            if f.genome.behavioral.behavior is not None
         ]
         shared_meta = self._calculate_meta_stats(composable_traits, "composable")
         # Rename keys to be generic so they fit the schema 'mut_rate_mean' etc without prefix
@@ -375,7 +375,7 @@ class StatsCalculator:
             
             values = []
             for f in fish_list:
-                cb = f.genome.behavioral.composable_behavior.value
+                cb = f.genome.behavioral.behavior.value
                 if cb:
                     val = getattr(cb, key, 0)
                     values.append(float(val))
@@ -422,7 +422,7 @@ class StatsCalculator:
             human_label = self._humanize_gene_label(param_key)
             values = []
             for f in fish_list:
-                cb = f.genome.behavioral.composable_behavior.value
+                cb = f.genome.behavioral.behavior.value
                 if cb and param_key in cb.parameters:
                     values.append(cb.parameters[param_key])
 

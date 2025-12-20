@@ -114,14 +114,14 @@ class AutoEvalService:
                 continue
 
             # Ensure fish has a poker strategy
-            if fish.genome.behavioral.poker_strategy_algorithm is None:
+            if fish.genome.behavioral.poker_strategy is None:
                 from core.poker.strategy.implementations import get_random_poker_strategy
                 from core.genetics.trait import GeneticTrait
-                fish.genome.behavioral.poker_strategy_algorithm = GeneticTrait(get_random_poker_strategy())
+                fish.genome.behavioral.poker_strategy = GeneticTrait(get_random_poker_strategy())
                 logger.info(f"Assigned random poker strategy to fish #{fish.fish_id} for auto-eval")
-            elif fish.genome.behavioral.poker_strategy_algorithm.value is None:
+            elif fish.genome.behavioral.poker_strategy.value is None:
                 from core.poker.strategy.implementations import get_random_poker_strategy
-                fish.genome.behavioral.poker_strategy_algorithm.value = get_random_poker_strategy()
+                fish.genome.behavioral.poker_strategy.value = get_random_poker_strategy()
                 logger.info(f"Assigned random poker strategy to fish #{fish.fish_id} for auto-eval")
 
             # Use rudimentary dict creation here because we need specific fields for the player pool
@@ -135,7 +135,7 @@ class AutoEvalService:
                     "name": fish_name,
                     "fish_id": fish.fish_id,
                     "generation": fish.generation,
-                    "poker_strategy": fish.genome.behavioral.poker_strategy_algorithm.value if fish.genome.behavioral.poker_strategy_algorithm else None,
+                    "poker_strategy": fish.genome.behavioral.poker_strategy.value if fish.genome.behavioral.poker_strategy else None,
                 }
             )
 

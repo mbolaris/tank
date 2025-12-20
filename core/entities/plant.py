@@ -4,7 +4,7 @@ This module implements plants that grow from root spots,
 collect energy passively, produce nectar for reproduction, and
 can play poker against fish.
 
-This replaces the old 'Plant' and 'Plant' classes with a single unified 'Plant'.
+This replaces the old 'Plant' and 'FractalPlant' classes with a single unified 'Plant'.
 """
 
 import logging
@@ -263,7 +263,7 @@ class Plant(Agent):
         energy_gain *= reduction_factor
 
         # Cosmic Fern variants have a small energy collection bonus
-        if getattr(self.genome, "fractal_type", "lsystem") == "cosmic_fern":
+        if getattr(self.genome, "type", "lsystem") == "cosmic_fern":
             energy_gain *= 1.1
 
         before = self.energy

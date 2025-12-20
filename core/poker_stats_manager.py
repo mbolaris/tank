@@ -234,7 +234,7 @@ class PokerStatsManager:
             )
 
             algo_name = "Unknown"
-            composable = fish.genome.behavioral.composable_behavior
+            composable = fish.genome.behavioral.behavior
             if composable is not None and composable.value is not None:
                 algo_name = composable.value.short_description
 

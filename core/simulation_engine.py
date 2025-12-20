@@ -476,7 +476,7 @@ class SimulationEngine(BaseSimulator):
         counts = dict.fromkeys(self._fractal_variants, 0)
         for entity in self.entities_list:
             if isinstance(entity, Plant):
-                variant = getattr(entity.genome, "fractal_type", "lsystem")
+                variant = getattr(entity.genome, "type", "lsystem")
                 if variant not in counts:
                     counts[variant] = 0
                 counts[variant] += 1
@@ -525,7 +525,7 @@ class SimulationEngine(BaseSimulator):
             "lsystem": PlantGenome.create_random,
         }
 
-        if parent_genome and variant == parent_genome.fractal_type:
+        if parent_genome and variant == parent_genome.type:
             return PlantGenome.from_parent(
                 parent_genome,
                 mutation_rate=0.15,
@@ -620,7 +620,7 @@ class SimulationEngine(BaseSimulator):
             return False  # No available spots
 
         # Create offspring genome with mutations
-        variant = self._pick_balanced_variant(preferred_type=parent_genome.fractal_type)
+        variant = self._pick_balanced_variant(preferred_type=parent_genome.type)
         offspring_genome = self._create_variant_genome(
             variant, parent_genome=parent_genome
         )

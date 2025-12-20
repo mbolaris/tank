@@ -324,11 +324,11 @@ class MixedPokerInteraction:
         """Get the poker strategy algorithm of a player.
 
         Returns the player's evolved poker strategy if available.
-        For fish, this is genome.behavioral.poker_strategy_algorithm.value.
+        For fish, this is genome.behavioral.poker_strategy.value.
         For plants, this creates a PlantPokerStrategyAdapter.
         """
         if self._is_fish_player(player):
-            trait = player.genome.behavioral.poker_strategy_algorithm
+            trait = player.genome.behavioral.poker_strategy
             return trait.value if trait else None
         elif self._is_plant_player(player):
             from core.plant_poker_strategy import PlantPokerStrategyAdapter

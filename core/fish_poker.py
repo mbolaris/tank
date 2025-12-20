@@ -243,9 +243,9 @@ class PokerInteraction:
         # Get winner's behavior ID
         winner_algo_id = None
         if winner_fish:
-            composable = winner_fish.genome.behavioral.composable_behavior
-            if composable is not None and composable.value is not None:
-                behavior_id = composable.value.behavior_id
+            behavior = winner_fish.genome.behavioral.behavior
+            if behavior is not None and behavior.value is not None:
+                behavior_id = behavior.value.behavior_id
                 winner_algo_id = hash(behavior_id) % 1000
 
         # Record as winner vs each loser
@@ -254,9 +254,9 @@ class PokerInteraction:
 
         for i, loser_fish in enumerate(loser_fish_list):
             loser_algo_id = None
-            composable = loser_fish.genome.behavioral.composable_behavior
-            if composable is not None and composable.value is not None:
-                behavior_id = composable.value.behavior_id
+            behavior = loser_fish.genome.behavioral.behavior
+            if behavior is not None and behavior.value is not None:
+                behavior_id = behavior.value.behavior_id
                 loser_algo_id = hash(behavior_id) % 1000
 
             loser_hand = loser_hands[i] if i < len(loser_hands) else None
@@ -596,9 +596,9 @@ class PokerInteraction:
         # Record sexual reproduction in ecosystem (once per baby, not per parent)
         # The baby's behavior is derived from winner-driven selective inheritance
         if winner_fish.ecosystem is not None:
-            composable = offspring_genome.behavioral.composable_behavior
-            if composable is not None and composable.value is not None:
-                behavior_id = composable.value.behavior_id
+            behavior = offspring_genome.behavioral.behavior
+            if behavior is not None and behavior.value is not None:
+                behavior_id = behavior.value.behavior_id
                 baby_algo_id = hash(behavior_id) % 1000
                 winner_fish.ecosystem.record_reproduction(baby_algo_id, is_asexual=False)
 
@@ -635,8 +635,8 @@ class PokerInteraction:
 
         # Get poker strategy algorithms from fish genomes (if available)
         player_strategies = [
-            fish.genome.behavioral.poker_strategy_algorithm.value
-            if fish.genome.behavioral.poker_strategy_algorithm else None
+            fish.genome.behavioral.poker_strategy.value
+            if fish.genome.behavioral.poker_strategy else None
             for fish in self.fish_list
         ]
 
@@ -922,8 +922,8 @@ class PokerInteraction:
         participant2.last_button_position = button_position
 
         # Get poker strategy algorithms from fish genomes (if available)
-        trait1 = self.fish1.genome.behavioral.poker_strategy_algorithm
-        trait2 = self.fish2.genome.behavioral.poker_strategy_algorithm
+        trait1 = self.fish1.genome.behavioral.poker_strategy
+        trait2 = self.fish2.genome.behavioral.poker_strategy
         player1_strategy = trait1.value if trait1 else None
         player2_strategy = trait2.value if trait2 else None
 

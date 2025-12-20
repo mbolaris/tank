@@ -26,7 +26,7 @@ class FishSerializer:
             Dictionary with fish player data
         """
         algo_name = "Unknown"
-        composable = fish.genome.behavioral.composable_behavior
+        composable = fish.genome.behavioral.behavior
         if composable and composable.value:
             algo_name = composable.value.short_description
 

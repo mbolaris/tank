@@ -52,7 +52,7 @@ class PlantGenome:
     nectar_threshold_ratio: float = 0.75
 
     # Variant traits
-    fractal_type: str = "lsystem"
+    type: str = "lsystem"
 
     # Floral/nectar fractal traits - determines how nectar looks
     floral_type: str = "spiral"  # spiral, julia, vortex, starburst, hypno, rose, mandelbrot, dahlia, sunflower, chrysanthemum
@@ -169,7 +169,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.01, 0.04),
             growth_efficiency=rng.uniform(0.6, 1.4),
             nectar_threshold_ratio=rng.uniform(0.6, 0.9),
-            fractal_type="lsystem",
+            type="lsystem",
             # Random floral traits - favor psychedelic patterns over flowers
             floral_type=rng.choice([
                 # Psychedelic patterns (common)
@@ -213,7 +213,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.025, 0.045),
             growth_efficiency=rng.uniform(1.0, 1.4),
             nectar_threshold_ratio=rng.uniform(0.6, 0.8),
-            fractal_type="cosmic_fern",
+            type="cosmic_fern",
         )
         # Complex 3D fern rules
         g._production_rules = [
@@ -243,7 +243,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.026, 0.05),
             growth_efficiency=rng.uniform(1.05, 1.5),
             nectar_threshold_ratio=rng.uniform(0.56, 0.82),
-            fractal_type="claude",
+            type="claude",
         )
         g._production_rules = [
             ("X", "F[+X][++X]F[-X][--X]FX", 0.55),
@@ -273,7 +273,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.032, 0.042),
             growth_efficiency=rng.uniform(1.08, 1.32),
             nectar_threshold_ratio=rng.uniform(0.66, 0.76),
-            fractal_type="antigravity",
+            type="antigravity",
         )
         g._production_rules = [
             ("X", "F[+&FX][-&FX]F", 0.5),
@@ -303,7 +303,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.023, 0.043),
             growth_efficiency=rng.uniform(0.98, 1.36),
             nectar_threshold_ratio=rng.uniform(0.6, 0.8),
-            fractal_type="gpt",
+            type="gpt",
         )
         g._production_rules = [
             ("X", "F[+X]F[-X]|F[+X][-X]", 0.5),
@@ -333,7 +333,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.022, 0.042),
             growth_efficiency=rng.uniform(1.05, 1.45),
             nectar_threshold_ratio=rng.uniform(0.62, 0.82),
-            fractal_type="gpt_codex",
+            type="gpt_codex",
         )
         g._production_rules = [
             ("X", "F[+X][-X]R[&FX]", 0.4),
@@ -369,7 +369,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.025, 0.045),
             growth_efficiency=rng.uniform(1.0, 1.4),
             nectar_threshold_ratio=rng.uniform(0.6, 0.8),
-            fractal_type="gemini",
+            type="gemini",
         )
         # Complex, multimodal branching rules
         g._production_rules = [
@@ -406,7 +406,7 @@ class PlantGenome:
             base_energy_rate=rng.uniform(0.025, 0.045),
             growth_efficiency=rng.uniform(1.0, 1.4),
             nectar_threshold_ratio=rng.uniform(0.6, 0.8),
-            fractal_type="sonnet",
+            type="sonnet",
         )
         # Classic botanical L-system rules that produce fern-like structures
         # These create natural, organic branching patterns
@@ -465,19 +465,19 @@ class PlantGenome:
             )
 
         # Determine color mutation range based on variant to preserve identity
-        if parent.fractal_type == "claude":
+        if parent.type == "claude":
             color_min, color_max = 0.05, 0.18  # Golden range
-        elif parent.fractal_type == "cosmic_fern":
+        elif parent.type == "cosmic_fern":
             color_min, color_max = 0.65, 0.90  # Cosmic purple/violet range
-        elif parent.fractal_type == "antigravity":
+        elif parent.type == "antigravity":
             color_min, color_max = 0.65, 0.90  # Violet range
-        elif parent.fractal_type == "gpt":
+        elif parent.type == "gpt":
             color_min, color_max = 0.45, 0.58  # Cyan range
-        elif parent.fractal_type == "gpt_codex":
+        elif parent.type == "gpt_codex":
             color_min, color_max = 0.30, 0.42  # Cool jade with teal ink range
-        elif parent.fractal_type == "sonnet":
+        elif parent.type == "sonnet":
             color_min, color_max = 0.0, 0.12  # Coral/terracotta range
-        elif parent.fractal_type == "gemini":
+        elif parent.type == "gemini":
             color_min, color_max = 0.75, 0.82  # Deep Indigo/Violet range
         else:
             color_min, color_max = 0.20, 0.50  # Green range for lsystem
@@ -509,7 +509,7 @@ class PlantGenome:
             base_energy_rate=mutate_float(parent.base_energy_rate, 0.01, 0.05),
             growth_efficiency=mutate_float(parent.growth_efficiency, 0.5, 1.5),
             nectar_threshold_ratio=mutate_float(parent.nectar_threshold_ratio, 0.6, 0.9),
-            fractal_type=parent.fractal_type,  # Preserve variant type
+            type=parent.type,  # Preserve variant type
             # Inherit and mutate floral traits
             floral_type=floral_type,
             floral_petals=mutate_int(parent.floral_petals, 3, 12),
@@ -598,7 +598,7 @@ class PlantGenome:
             "base_energy_rate": self.base_energy_rate,
             "growth_efficiency": self.growth_efficiency,
             "nectar_threshold_ratio": self.nectar_threshold_ratio,
-            "fractal_type": self.fractal_type,
+            "type": self.type,
             # Floral traits
             "floral_type": self.floral_type,
             "floral_petals": self.floral_petals,
@@ -634,7 +634,7 @@ class PlantGenome:
             base_energy_rate=data.get("base_energy_rate", 0.02),
             growth_efficiency=data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.75),
-            fractal_type=data.get("fractal_type", "lsystem"),
+            type=data.get("type") or data.get("fractal_type", "lsystem"),
             # Floral traits
             floral_type=data.get("floral_type", "spiral"),
             floral_petals=data.get("floral_petals", 5),

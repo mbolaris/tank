@@ -205,7 +205,7 @@ class EnhancedStatisticsTracker:
         # Count unique behavior combinations
         algorithms = set()
         for f in fish_list:
-            composable = f.genome.behavioral.composable_behavior
+            composable = f.genome.behavioral.behavior
             if composable is not None and composable.value is not None:
                 behavior_id = composable.value.behavior_id
                 algo_id = hash(behavior_id) % 1000
@@ -470,7 +470,7 @@ class EnhancedStatisticsTracker:
         stats.add_capture(genome, energy_gained)
 
         # Keep a human-readable snapshot of the composable behavior
-        composable = genome.behavioral.composable_behavior
+        composable = genome.behavioral.behavior
         if composable is not None and composable.value is not None:
             cb = composable.value
             self.live_food_algorithm_snapshots[algorithm_id] = {

@@ -89,8 +89,8 @@ class AlgorithmicMovement(MovementStrategy):
 
         # Check if fish has a composable behavior
         composable_behavior = (
-            genome.behavioral.composable_behavior.value
-            if genome.behavioral.composable_behavior
+            genome.behavioral.behavior.value
+            if genome.behavioral.behavior
             else None
         )
 

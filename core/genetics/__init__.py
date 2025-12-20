@@ -21,7 +21,7 @@ from core.genetics.genome import (
     Genome,
 )
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
-from core.genetics.plant import PlantGenome
+from core.genetics.plant_genome import PlantGenome
 from core.genetics.reproduction import ReproductionParams
 from core.genetics.trait import (
     GeneticTrait,
