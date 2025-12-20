@@ -228,14 +228,14 @@ class TestPokerPlayerLimits:
 
     def test_fish_poker_max_players_enforced(self, engine_with_entities):
         """Verify PokerInteraction enforces MAX_PLAYERS limit."""
-        from core.fish_poker import PokerInteraction
+        from core.poker_interaction import PokerInteraction, MAX_PLAYERS
         
         fish = engine_with_entities["fish"]
         
-        # Even if we pass more than MAX_PLAYERS, it should truncate
-        if len(fish) > PokerInteraction.MAX_PLAYERS:
-            poker = PokerInteraction(*fish)
-            assert poker.num_players <= PokerInteraction.MAX_PLAYERS
+        # MixedPokerInteraction raises ValueError if too many players
+        if len(fish) > MAX_PLAYERS:
+            with pytest.raises(ValueError):
+                PokerInteraction(list(fish))
     
     def test_mixed_poker_max_players_enforced(self, engine_with_entities):
         """Verify MixedPokerInteraction enforces POKER_MAX_PLAYERS limit."""
@@ -252,7 +252,7 @@ class TestPokerPlayerLimits:
     
     def test_deck_has_enough_cards_for_max_players(self):
         """Verify a 52-card deck can handle MAX_PLAYERS."""
-        from core.fish_poker import PokerInteraction
+        from core.poker_interaction import PokerInteraction, MAX_PLAYERS
         
         # With 52 cards:
         # - Each player needs 2 hole cards
@@ -262,8 +262,8 @@ class TestPokerPlayerLimits:
         cards_per_player = 2
         max_theoretical = (52 - cards_for_community) // cards_per_player
         
-        assert PokerInteraction.MAX_PLAYERS <= max_theoretical, (
-            f"MAX_PLAYERS ({PokerInteraction.MAX_PLAYERS}) exceeds deck capacity ({max_theoretical})"
+        assert MAX_PLAYERS <= max_theoretical, (
+            f"MAX_PLAYERS ({MAX_PLAYERS}) exceeds deck capacity ({max_theoretical})"
         )
 
 

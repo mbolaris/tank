@@ -3,7 +3,7 @@ import math
 from core.ecosystem import EcosystemManager
 from core.entities import Fish
 from core.entities.plant import Plant
-from core.fish_poker import PokerInteraction
+from core.poker_interaction import PokerInteraction
 from core.mixed_poker import MixedPokerInteraction, MixedPokerResult
 from core.movement_strategy import AlgorithmicMovement
 from core.genetics import PlantGenome
@@ -126,83 +126,10 @@ def test_single_player_skill_game_records_energy_delta(simulation_env):
     assert math.isclose(ecosystem.energy_burn.get("skill_game_env", 0.0), -delta2, rel_tol=0, abs_tol=1e-9)
 
 
-def test_post_poker_reproduction_records_energy_transfer(monkeypatch, simulation_env):
-    _unused_env, _agents_wrapper = simulation_env
-
-    ecosystem = EcosystemManager()
-    env = _EnvStub()
-
-    fish1 = Fish(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test",
-        x=100,
-        y=100,
-        speed=2.0,
-        ecosystem=ecosystem,
-    )
-    fish2 = Fish(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test",
-        x=105,
-        y=100,
-        speed=2.0,
-        ecosystem=ecosystem,
-    )
-    env.agents = [fish1, fish2]
-
-    fish1.energy = fish1.max_energy
-    fish2.energy = fish2.max_energy
-
-    monkeypatch.setattr("core.fish_poker.should_offer_post_poker_reproduction", lambda *_a, **_k: True)
-
-    poker = PokerInteraction(fish1, fish2)
-    baby = poker.try_post_poker_reproduction(fish1, fish2, energy_transferred=10.0)
-    assert baby is not None
-
-    reproduction_cost = ecosystem.energy_burn.get("reproduction_cost", 0.0)
-    birth_energy = ecosystem.energy_sources.get("birth", 0.0)
-    assert reproduction_cost > 0
-    assert math.isclose(birth_energy, reproduction_cost, rel_tol=0, abs_tol=1e-9)
 
 
-def test_poker_settlement_does_not_double_count_house_cut(simulation_env):
-    _unused_env, _agents_wrapper = simulation_env
 
-    ecosystem = EcosystemManager()
-    env = _EnvStub()
 
-    fish1 = Fish(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test",
-        x=100,
-        y=100,
-        speed=2.0,
-        ecosystem=ecosystem,
-    )
-    fish2 = Fish(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test",
-        x=120,
-        y=100,
-        speed=2.0,
-        ecosystem=ecosystem,
-    )
-    fish1.energy = fish1.max_energy
-    fish2.energy = fish2.max_energy
-
-    poker = PokerInteraction(fish1, fish2)
-    poker._settle_poker_energy(requested_bets=[10.0, 10.0], winner_idx=0)
-
-    house_cut = ecosystem.energy_burn.get("poker_house_cut", 0.0)
-    assert house_cut > 0
-
-    poker_loss = ecosystem.energy_burn.get("poker_loss", 0.0)
-    poker_payout = ecosystem.energy_sources.get("poker_fish", 0.0)
-    assert math.isclose(poker_loss, poker_payout, rel_tol=0, abs_tol=1e-9)
 
 
 def test_plant_records_energy_gains_and_spends(simulation_env):

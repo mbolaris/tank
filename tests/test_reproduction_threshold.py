@@ -282,8 +282,14 @@ def test_realistic_scenario():
 
     genome = Genome.random(use_algorithm=True)
 
+    class MockEnvironment:
+        def get_bounds(self):
+            return ((0.0, 0.0), (800.0, 600.0))
+        def add_entity(self, entity):
+            pass
+
     fish = make_adult_fish(
-        environment=None,
+        environment=MockEnvironment(),
         movement_strategy=AlgorithmicMovement(),
         species="test",
         x=100,

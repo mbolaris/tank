@@ -37,6 +37,7 @@ from core.poker_interaction import (
     MAX_PLAYERS as POKER_MAX_PLAYERS,
     MIN_ENERGY_TO_PLAY as POKER_MIN_ENERGY,
     check_poker_proximity,
+    get_ready_players
 )
 from core.mixed_poker import (
     MixedPokerInteraction,
@@ -1017,7 +1018,7 @@ class BaseSimulator(ABC):
                     # exhausted or pregnant fish is touching them, which should
                     # increase multi-player games instead of skipping the whole
                     # contact cluster until everyone is ready again.
-                    ready_fish = PokerInteraction.get_ready_players(valid_fish)
+                    ready_fish = get_ready_players(valid_fish)
 
                     if len(ready_fish) < 2:
                         continue
