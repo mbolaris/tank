@@ -19,7 +19,7 @@ Usage:
 
 # Re-export the unified poker classes
 from core.mixed_poker import (
-    MixedPokerInteraction as PokerInteraction,
+    MixedPokerInteraction,
     MixedPokerResult as PokerResult,
     MultiplayerBettingRound as BettingRound,
     MultiplayerGameState as GameState,
@@ -28,6 +28,91 @@ from core.mixed_poker import (
 
 # Also export utility types
 from core.mixed_poker import Player
+
+# Re-export participant manager for get_ready_players
+from core.poker_participant_manager import get_ready_players
+
+# Constants for poker games
+MIN_ENERGY_TO_PLAY = 10.0
+DEFAULT_BET_AMOUNT = 5.0
+POKER_COOLDOWN = 60
+MAX_PLAYERS = 6
+
+
+# Primary PokerInteraction class - works with any PokerPlayer entities
+PokerInteraction = MixedPokerInteraction
+
+
+class FishPokerInteraction(MixedPokerInteraction):
+    """Backward-compatible wrapper for fish-only poker games.
+    
+    This class provides the same API as the old fish_poker.PokerInteraction
+    while using MixedPokerInteraction internally.
+    """
+    
+    MIN_ENERGY_TO_PLAY = MIN_ENERGY_TO_PLAY
+    DEFAULT_BET_AMOUNT = DEFAULT_BET_AMOUNT
+    POKER_COOLDOWN = POKER_COOLDOWN
+    MAX_PLAYERS = MAX_PLAYERS
+    
+    def __init__(self, *fish):
+        """Initialize with varargs for backward compatibility."""
+        super().__init__(list(fish))
+        self._fish_list = list(fish)
+    
+    @property
+    def fish1(self):
+        """Get first fish (backward compat)."""
+        return self._fish_list[0] if len(self._fish_list) > 0 else None
+    
+    @property
+    def fish2(self):
+        """Get second fish (backward compat)."""
+        return self._fish_list[1] if len(self._fish_list) > 1 else None
+    
+    @property
+    def fish_list(self):
+        """Get list of fish."""
+        return self._fish_list
+    
+    @property
+    def hand1(self):
+        """Get first player's hand (backward compat)."""
+        return self.player_hands[0] if self.player_hands else None
+    
+    @hand1.setter
+    def hand1(self, value):
+        if len(self.player_hands) > 0:
+            self.player_hands[0] = value
+    
+    @property
+    def hand2(self):
+        """Get second player's hand (backward compat)."""
+        return self.player_hands[1] if len(self.player_hands) > 1 else None
+    
+    @hand2.setter
+    def hand2(self, value):
+        if len(self.player_hands) > 1:
+            self.player_hands[1] = value
+    
+    @classmethod
+    def get_ready_players(cls, fish_list):
+        """Return fish eligible to play poker (backward compat)."""
+        return get_ready_players(fish_list, min_energy=cls.MIN_ENERGY_TO_PLAY)
+    
+    @staticmethod
+    def calculate_house_cut(winner_size: float, net_gain: float) -> float:
+        """Calculate house cut (backward compat static method)."""
+        from core.constants import (
+            POKER_BET_MIN_SIZE,
+            POKER_HOUSE_CUT_MIN_PERCENTAGE,
+            POKER_HOUSE_CUT_SIZE_MULTIPLIER,
+        )
+        house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
+            0, (winner_size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
+        )
+        house_cut_percentage = min(house_cut_percentage, 0.25)
+        return min(net_gain * house_cut_percentage, net_gain)
 
 # Reproduction helpers (moved from fish_poker.py)
 from core.constants import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD

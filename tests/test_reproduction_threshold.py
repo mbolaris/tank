@@ -170,7 +170,7 @@ def test_proximity_vs_poker_reproduction():
     # Test poker reproduction
     print("\n2. Testing POKER-BASED reproduction:")
 
-    from core.fish_poker import should_offer_post_poker_reproduction
+    from core.poker_interaction import should_offer_post_poker_reproduction
 
     # Reset fish
     fish1.energy = fish1.max_energy * 0.50

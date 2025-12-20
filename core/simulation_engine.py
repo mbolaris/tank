@@ -52,7 +52,7 @@ from core.events import (
     EventBus,
     PokerGameEvent,
 )
-from core.fish_poker import PokerInteraction
+from core.poker_interaction import FishPokerInteraction as PokerInteraction
 from core.genetics import Genome
 from core.object_pool import FoodPool
 from core.genetics import PlantGenome

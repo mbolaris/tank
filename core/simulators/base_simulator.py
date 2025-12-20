@@ -32,12 +32,11 @@ from core.constants import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from core.fish_poker import PokerInteraction
+from core.poker_interaction import FishPokerInteraction as PokerInteraction
 from core.mixed_poker import (
     MixedPokerInteraction,
     should_trigger_plant_poker_asexual_reproduction,
 )
-from core.plant_poker import PlantPokerInteraction
 from core.poker_interaction import check_fish_plant_poker_proximity
 
 logger = logging.getLogger(__name__)
@@ -293,22 +292,30 @@ class BaseSimulator(ABC):
         """
         # Fish-to-plant poker interaction
         if POKER_ACTIVITY_ENABLED:
-            poker = PlantPokerInteraction(fish, plant)
+            poker = MixedPokerInteraction([fish, plant])
             if poker.play_poker():
                 # Add plant poker event if available
+                result = poker.result
                 if (
                     hasattr(self, "add_plant_poker_event")
-                    and poker.result is not None
-                    and poker.result.fish_hand is not None
-                    and poker.result.plant_hand is not None
+                    and result is not None
+                    and len(result.player_hands) >= 2
+                    and result.player_hands[0] is not None
+                    and result.player_hands[1] is not None
                 ):
+                    # Determine fish won based on winner matching fish ID
+                    fish_id = fish.get_poker_id()
+                    plant_id = plant.get_poker_id()
+                    fish_won = result.winner_id == fish_id
+                    fish_hand = result.player_hands[0].description
+                    plant_hand = result.player_hands[1].description
                     self.add_plant_poker_event(
-                        fish_id=poker.result.fish_id,
-                        plant_id=poker.result.plant_id,
-                        fish_won=poker.result.fish_won,
-                        fish_hand=poker.result.fish_hand.description,
-                        plant_hand=poker.result.plant_hand.description,
-                        energy_transferred=abs(poker.result.energy_transferred),
+                        fish_id=fish_id,
+                        plant_id=plant_id,
+                        fish_won=fish_won,
+                        fish_hand=fish_hand,
+                        plant_hand=plant_hand,
+                        energy_transferred=abs(result.energy_transferred),
                     )
                 # Check if fish died from poker
                 if fish.is_dead() and fish in self.get_all_entities():

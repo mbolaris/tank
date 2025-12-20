@@ -264,7 +264,7 @@ class Fish(Agent):
         """
         # Fish can play skill games if they have enough energy and aren't on cooldown
         # Use same minimum energy as poker system for consistency
-        from core.fish_poker import PokerInteraction
+        from core.poker_interaction import FishPokerInteraction as PokerInteraction
         return (
             self.energy >= PokerInteraction.MIN_ENERGY_TO_PLAY
             and self.poker_cooldown <= 0
