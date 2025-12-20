@@ -96,8 +96,8 @@ class PokerStats:
         showdown_count: Number of times reached showdown
         button_wins: Wins when on the button
         button_games: Games played on the button
-        off_button_wins: Wins when not on the button
-        off_button_games: Games played off the button
+        non_button_wins: Wins when not on the button
+        non_button_games: Games played when not on the button
         preflop_folds: Folds during pre-flop
         postflop_folds: Folds after seeing flop
         avg_pot_size: Average pot size
@@ -124,8 +124,8 @@ class PokerStats:
     showdown_count: int = 0
     button_wins: int = 0
     button_games: int = 0
-    off_button_wins: int = 0
-    off_button_games: int = 0
+    non_button_wins: int = 0
+    non_button_games: int = 0
     preflop_folds: int = 0
     postflop_folds: int = 0
     avg_pot_size: float = 0.0
@@ -148,8 +148,8 @@ class PokerStats:
     def get_button_win_rate(self) -> float:
         return self.button_wins / self.button_games if self.button_games > 0 else 0.0
 
-    def get_off_button_win_rate(self) -> float:
-        return self.off_button_wins / self.off_button_games if self.off_button_games > 0 else 0.0
+    def get_non_button_win_rate(self) -> float:
+        return self.non_button_wins / self.non_button_games if self.non_button_games > 0 else 0.0
 
     def get_aggression_factor(self) -> float:
         return self.total_raises / self.total_calls if self.total_calls > 0 else 0.0

@@ -73,9 +73,9 @@ class TightSchooler(BehaviorAlgorithm):
             for f in allies:
                 center_x += f.pos.x
                 center_y += f.pos.y
-            n = len(allies)
-            center_x /= n
-            center_y /= n
+            ally_count = len(allies)
+            center_x /= ally_count
+            center_y /= ally_count
             direction = self._safe_normalize(Vector2(center_x - fish.pos.x, center_y - fish.pos.y))
             return (
                 direction.x * self.parameters["cohesion_strength"],
@@ -117,9 +117,9 @@ class LooseSchooler(BehaviorAlgorithm):
             for f in allies:
                 center_x += f.pos.x
                 center_y += f.pos.y
-            n = len(allies)
-            center_x /= n
-            center_y /= n
+            ally_count = len(allies)
+            center_x /= ally_count
+            center_y /= ally_count
             fish_x, fish_y = fish.pos.x, fish.pos.y
             dx, dy = center_x - fish_x, center_y - fish_y
             distance = (dx * dx + dy * dy) ** 0.5
@@ -205,9 +205,9 @@ class AlignmentMatcher(BehaviorAlgorithm):
             for f in allies:
                 avg_vel_x += f.vel.x
                 avg_vel_y += f.vel.y
-            n = len(allies)
-            avg_vel_x /= n
-            avg_vel_y /= n
+            ally_count = len(allies)
+            avg_vel_x /= ally_count
+            avg_vel_y /= ally_count
             avg_vel_len = (avg_vel_x * avg_vel_x + avg_vel_y * avg_vel_y) ** 0.5
             if avg_vel_len > 0:
                 avg_vel_x /= avg_vel_len
@@ -291,9 +291,9 @@ class FrontRunner(BehaviorAlgorithm):
             for f in allies:
                 center_x += f.pos.x
                 center_y += f.pos.y
-            n = len(allies)
-            center_x /= n
-            center_y /= n
+            ally_count = len(allies)
+            center_x /= ally_count
+            center_y /= ally_count
             # Move away from center to lead
             direction = self._safe_normalize(Vector2(fish.pos.x - center_x, fish.pos.y - center_y))
             return (
@@ -340,9 +340,9 @@ class PerimeterGuard(BehaviorAlgorithm):
             for f in allies:
                 center_x += f.pos.x
                 center_y += f.pos.y
-            n = len(allies)
-            center_x /= n
-            center_y /= n
+            ally_count = len(allies)
+            center_x /= ally_count
+            center_y /= ally_count
             fish_x, fish_y = fish.pos.x, fish.pos.y
             to_center_x = center_x - fish_x
             to_center_y = center_y - fish_y
@@ -629,9 +629,9 @@ class DynamicSchooler(BehaviorAlgorithm):
             for f in allies:
                 center_x += f.pos.x
                 center_y += f.pos.y
-            n = len(allies)
-            center_x /= n
-            center_y /= n
+            ally_count = len(allies)
+            center_x /= ally_count
+            center_y /= ally_count
             direction = self._safe_normalize(Vector2(center_x - fish.pos.x, center_y - fish.pos.y))
 
             vx = direction.x * cohesion
