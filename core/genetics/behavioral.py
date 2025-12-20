@@ -384,6 +384,11 @@ class BehavioralTraits:
 
         return cls(**inherited)
 
+    @property
+    def composable_behavior(self) -> Optional[GeneticTrait[Optional["ComposableBehavior"]]]:
+        """Alias for the behavior field for backward compatibility with tests."""
+        return self.behavior
+
 
 def _inherit_composable_behavior(
     behavior1: Optional["ComposableBehavior"],

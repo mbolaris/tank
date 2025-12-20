@@ -24,11 +24,13 @@ def _base_result(**overrides):
     defaults = {
         "winner_id": -1,
         "loser_id": -1,
+        "is_tie": True,
         "player_ids": [1, 2],
         "loser_ids": [2],
         "player_hands": [SimpleNamespace(description="Pair of Aces"), SimpleNamespace(description="Two Pair")],
         "hand1": SimpleNamespace(description="Pair of Aces"),
         "hand2": SimpleNamespace(description="Two Pair"),
+        "winner_hand": SimpleNamespace(description="Pair of Aces"),
         "winner_actual_gain": 0.0,
         "energy_transferred": 0.0,
         "reproduction_occurred": False,
@@ -39,10 +41,15 @@ def _base_result(**overrides):
 
 
 def _poker(result):
+    fish1 = SimpleNamespace(fish_id=1)
+    fish1.get_poker_id = lambda: 1
+    fish2 = SimpleNamespace(fish_id=2)
+    fish2.get_poker_id = lambda: 2
     return SimpleNamespace(
         result=result,
-        fish1=SimpleNamespace(fish_id=1),
-        fish2=SimpleNamespace(fish_id=2),
+        fish1=fish1,
+        fish2=fish2,
+        players=[fish1, fish2],
         hand1=result.hand1,
         hand2=result.hand2,
     )
@@ -52,7 +59,7 @@ def test_add_poker_event_records_tie_message():
     engine = DummyEngine()
     system = PokerSystem(engine, max_events=10)
 
-    tie_result = _base_result(winner_id=-1, loser_id=-1)
+    tie_result = _base_result(winner_id=-1, loser_id=-1, is_tie=True)
     poker = _poker(tie_result)
 
     system.add_poker_event(poker)
@@ -68,7 +75,7 @@ def test_add_poker_event_records_win_message():
     engine = DummyEngine()
     system = PokerSystem(engine, max_events=10)
 
-    result = _base_result(winner_id=1, loser_id=2, winner_actual_gain=12.5, energy_transferred=7.5)
+    result = _base_result(winner_id=1, loser_id=2, is_tie=False, winner_actual_gain=12.5, energy_transferred=7.5)
     poker = _poker(result)
 
     system.add_poker_event(poker)
@@ -88,6 +95,7 @@ def test_handle_poker_result_adds_offspring():
     result = _base_result(
         winner_id=1,
         loser_id=2,
+        is_tie=False,
         energy_transferred=3.0,
         reproduction_occurred=True,
         offspring=offspring,

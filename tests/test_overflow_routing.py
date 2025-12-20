@@ -25,6 +25,10 @@ class _EcosystemStub:
     def record_energy_burn(self, category: str, amount: float) -> None:
         self.burns.append((category, float(amount)))
 
+    def record_reproduction_energy(self, *args, **kwargs) -> None:
+        """Stub method for recording reproduction energy."""
+        pass
+
 
 def _make_fish(env, fish_id: int, ecosystem):
     from core.entities import Fish
