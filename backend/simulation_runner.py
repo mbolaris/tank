@@ -285,24 +285,24 @@ class SimulationRunner:
     def _run_loop(self):
         """Main simulation loop."""
         logger.info("Simulation loop: Starting")
-        frame_count = 0
-        
+        loop_iteration_count = 0
+
         # Drift correction: Track when the next frame *should* start
-        next_frame_target = time.time()
-        
+        next_frame_start_time = time.time()
+
         try:
             while self.running:
                 try:
                     # Advance target time by one frame duration
-                    next_frame_target += self.frame_time
-                    frame_count += 1
+                    next_frame_start_time += self.frame_time
+                    loop_iteration_count += 1
 
                     with self.lock:
                         try:
                             self.world.update()
                         except Exception as e:
                             logger.error(
-                                f"Simulation loop: Error updating world at frame {frame_count}: {e}",
+                                f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",
                                 exc_info=True,
                             )
                             # Continue running even if update fails
@@ -351,29 +351,29 @@ class SimulationRunner:
                     # Maintain frame rate with drift correction
                     if not self.fast_forward:
                         now = time.time()
-                        sleep_time = next_frame_target - now
-                        
+                        sleep_time = next_frame_start_time - now
+
                         if sleep_time > 0:
                             time.sleep(sleep_time)
                         elif sleep_time < -0.1:  # Lagging by > 100ms
                             # We are falling too far behind, reset target to avoid "spiral of death"
                             # where we try to execute 0-delay frames forever to catch up
-                            next_frame_target = now
+                            next_frame_start_time = now
                     else:
                         # Even in fast-forward mode, yield occasionally so signals/shutdown remain responsive.
                         time.sleep(0)
 
                 except Exception as e:
-                    logger.error(f"Simulation loop: Unexpected error at frame {frame_count}: {e}", exc_info=True)
+                    logger.error(f"Simulation loop: Unexpected error at frame {loop_iteration_count}: {e}", exc_info=True)
                     # Use simple sleep on error to prevent tight loops
                     time.sleep(self.frame_time)
                     # Reset timing target after error recovery
-                    next_frame_target = time.time()
+                    next_frame_start_time = time.time()
 
         except Exception as e:
             logger.error(f"Simulation loop: Fatal error, loop exiting: {e}", exc_info=True)
         finally:
-            logger.info(f"Simulation loop: Ended after {frame_count} frames")
+            logger.info(f"Simulation loop: Ended after {loop_iteration_count} frames")
 
     def _start_auto_evaluation_if_needed(self) -> None:
         """Periodically benchmark top fish against the static evaluator."""

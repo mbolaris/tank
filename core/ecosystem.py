@@ -105,7 +105,6 @@ class EcosystemManager:
         # Storing per-frame aggregates prevents buffer overflow from high event volume
         self.recent_energy_gains: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=2000)
         self._current_frame_gains: Dict[str, float] = defaultdict(float)
-        self.current_frame: int = 0
 
         # Track energy spent (metabolism, movement, etc.) with same rolling window
         self.energy_burn: Dict[str, float] = defaultdict(float)
@@ -182,29 +181,28 @@ class EcosystemManager:
             frame: Current frame number
         """
         # Snapshot energy stats from the PREVIOUS frame before moving to new frame
-        if self.current_frame < frame:
+        if self.frame_count < frame:
             if self._current_frame_gains:
-                self.recent_energy_gains.append((self.current_frame, dict(self._current_frame_gains)))
+                self.recent_energy_gains.append((self.frame_count, dict(self._current_frame_gains)))
                 self._current_frame_gains.clear()
 
             if self._current_frame_burns:
-                self.recent_energy_burns.append((self.current_frame, dict(self._current_frame_burns)))
+                self.recent_energy_burns.append((self.frame_count, dict(self._current_frame_burns)))
                 self._current_frame_burns.clear()
 
             if self._current_frame_plant_gains:
                 self.recent_plant_energy_gains.append(
-                    (self.current_frame, dict(self._current_frame_plant_gains))
+                    (self.frame_count, dict(self._current_frame_plant_gains))
                 )
                 self._current_frame_plant_gains.clear()
 
             if self._current_frame_plant_burns:
                 self.recent_plant_energy_burns.append(
-                    (self.current_frame, dict(self._current_frame_plant_burns))
+                    (self.frame_count, dict(self._current_frame_plant_burns))
                 )
                 self._current_frame_plant_burns.clear()
 
         self.frame_count = frame
-        self.current_frame = frame
 
         # NEW: Check for algorithm extinctions
         self.enhanced_stats.check_for_extinctions(frame, self)
@@ -671,8 +669,8 @@ class EcosystemManager:
             return {}
 
         # Include exactly `window_frames` frames:
-        # (current_frame - window_frames + 1) .. current_frame
-        cutoff_frame = self.current_frame - window_frames + 1
+        # (frame_count - window_frames + 1) .. frame_count
+        cutoff_frame = self.frame_count - window_frames + 1
         recent_totals: Dict[str, float] = defaultdict(float)
 
         # Sum up energy from recent history (stored as per-frame dicts)
@@ -694,7 +692,7 @@ class EcosystemManager:
         if window_frames <= 0:
             return {}
 
-        cutoff_frame = self.current_frame - window_frames + 1
+        cutoff_frame = self.frame_count - window_frames + 1
         recent_totals: Dict[str, float] = defaultdict(float)
 
         for frame, gains in self.recent_plant_energy_gains:
@@ -713,7 +711,7 @@ class EcosystemManager:
         if window_frames <= 0:
             return {}
 
-        cutoff_frame = self.current_frame - window_frames + 1
+        cutoff_frame = self.frame_count - window_frames + 1
         recent_totals: Dict[str, float] = defaultdict(float)
 
         for frame, burns in self.recent_energy_burns:
@@ -734,7 +732,7 @@ class EcosystemManager:
         if window_frames <= 0:
             return {}
 
-        cutoff_frame = self.current_frame - window_frames + 1
+        cutoff_frame = self.frame_count - window_frames + 1
         recent_totals: Dict[str, float] = defaultdict(float)
 
         for frame, burns in self.recent_plant_energy_burns:
@@ -760,10 +758,10 @@ class EcosystemManager:
         """
         # Always record the first snapshot, then throttle based on snapshot interval.
         if not self.energy_history or (
-            self.current_frame - self._last_snapshot_frame >= self._snapshot_interval
+            self.frame_count - self._last_snapshot_frame >= self._snapshot_interval
         ):
-            self.energy_history.append((self.current_frame, total_fish_energy, fish_count))
-            self._last_snapshot_frame = self.current_frame
+            self.energy_history.append((self.frame_count, total_fish_energy, fish_count))
+            self._last_snapshot_frame = self.frame_count
 
     def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, Any]:
         """Calculate the true change in fish population energy over a time window.
