@@ -20,9 +20,6 @@ from core.genetics.validation import validate_traits_from_specs
 
 logger = logging.getLogger(__name__)
 GENOME_SCHEMA_VERSION = 1
-GENOME_SCHEMA_VERSION = 1
-
-
 
 
 class GeneticCrossoverMode(Enum):

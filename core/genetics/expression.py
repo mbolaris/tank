@@ -7,8 +7,10 @@ characteristics from genetic traits. Separating this logic from the data storage
 
 from typing import Dict, Tuple
 
+from core.color import hue_to_rgb, FISH_COLOR_SATURATION
 from core.genetics.behavioral import MATE_PREFERENCE_SPECS, BehavioralTraits, normalize_mate_preferences
 from core.genetics.physical import PhysicalTraits
+from core.genetics.trait_utils import get_trait_value, has_trait_value
 
 # =============================================================================
 # Tuning Constants
@@ -52,16 +54,15 @@ def calculate_speed_modifier(physical: PhysicalTraits) -> float:
     
     Combines template bonuses, propulsion from fins/tail, and hydrodynamic efficiency.
     """
-    # Defensive checks handled by type system mostly, but we ensure values exist
-    if physical.template_id is None or getattr(physical.template_id, "value", None) is None:
+    if not has_trait_value(physical.template_id):
         return 1.0
         
-    template_id = physical.template_id.value
+    template_id = get_trait_value(physical.template_id, default=0)
     template_speed_bonus = _TEMPLATE_SPEED_BONUS.get(template_id, 1.0)
     
-    fin_val = physical.fin_size.value if physical.fin_size else 1.0
-    tail_val = physical.tail_size.value if physical.tail_size else 1.0
-    aspect_val = physical.body_aspect.value if physical.body_aspect else 1.0
+    fin_val = get_trait_value(physical.fin_size, default=1.0)
+    tail_val = get_trait_value(physical.tail_size, default=1.0)
+    aspect_val = get_trait_value(physical.body_aspect, default=1.0)
     
     propulsion = fin_val * 0.4 + tail_val * 0.6
     hydrodynamics = 1.0 - abs(aspect_val - 0.8) * 0.5
@@ -77,9 +78,9 @@ def calculate_metabolism_rate(physical: PhysicalTraits, speed_modifier: float) -
     """
     cost = 1.0
     
-    size_val = physical.size_modifier.value if physical.size_modifier else 1.0
-    eye_val = physical.eye_size.value if physical.eye_size else 1.0
-    pattern_val = physical.pattern_intensity.value if physical.pattern_intensity else 0.0
+    size_val = get_trait_value(physical.size_modifier, default=1.0)
+    eye_val = get_trait_value(physical.eye_size, default=1.0)
+    pattern_val = get_trait_value(physical.pattern_intensity, default=0.0)
     
     cost += (size_val - 1.0) * 0.5
     cost += (speed_modifier - 1.0) * 0.8
@@ -91,39 +92,25 @@ def calculate_metabolism_rate(physical: PhysicalTraits, speed_modifier: float) -
 
 def calculate_vision_range(physical: PhysicalTraits) -> float:
     """Calculate vision range based on eye size."""
-    if physical.eye_size is None or getattr(physical.eye_size, "value", None) is None:
+    if not has_trait_value(physical.eye_size):
         return 1.0
         
     # Clamp to allowed physical bounds to avoid out-of-range visual traits
     from core.constants import EYE_SIZE_MAX, EYE_SIZE_MIN
-    val = float(physical.eye_size.value)
+    val = float(get_trait_value(physical.eye_size, default=1.0))
     return max(EYE_SIZE_MIN, min(EYE_SIZE_MAX, val))
 
 
 def calculate_color_tint(physical: PhysicalTraits) -> Tuple[int, int, int]:
-    """Get RGB color tint based on genome."""
-    if physical.color_hue is None or getattr(physical.color_hue, "value", None) is None:
+    """Get RGB color tint based on genome.
+    
+    Delegates to core.color.hue_to_rgb for the actual conversion.
+    """
+    if not has_trait_value(physical.color_hue):
         return (255, 255, 255)
 
-    hue = physical.color_hue.value * 360
-    if hue < 60:
-        r, g, b = 255, int(hue / 60 * 255), 0
-    elif hue < 120:
-        r, g, b = int((120 - hue) / 60 * 255), 255, 0
-    elif hue < 180:
-        r, g, b = 0, 255, int((hue - 120) / 60 * 255)
-    elif hue < 240:
-        r, g, b = 0, int((240 - hue) / 60 * 255), 255
-    elif hue < 300:
-        r, g, b = int((hue - 240) / 60 * 255), 0, 255
-    else:
-        r, g, b = 255, 0, int((360 - hue) / 60 * 255)
-
-    saturation = 0.3
-    r = int(r * saturation + 255 * (1 - saturation))
-    g = int(g * saturation + 255 * (1 - saturation))
-    b = int(b * saturation + 255 * (1 - saturation))
-    return (r, g, b)
+    hue = get_trait_value(physical.color_hue, default=0.0)
+    return hue_to_rgb(hue, FISH_COLOR_SATURATION)
 
 
 def calculate_mate_compatibility(
@@ -153,11 +140,11 @@ def calculate_mate_compatibility(
         desired = normalized_prefs[trait_name]
         other_trait = getattr(other_physical, trait_name, None)
         
-        if other_trait is None or getattr(other_trait, "value", None) is None:
-            # Skip missing traits or default to low score
+        if not has_trait_value(other_trait):
+            # Skip missing traits
             continue
             
-        mate_value = other_trait.value
+        mate_value = get_trait_value(other_trait)
         score = _normalized_similarity(
             mate_value,
             desired,
@@ -169,8 +156,9 @@ def calculate_mate_compatibility(
         weights.append(1.0)
 
     pattern_weight = normalized_prefs.get("prefer_high_pattern_intensity", 0.5)
-    if pattern_weight > 0.0 and other_physical.pattern_intensity is not None:
-        scores.append(_clamp(other_physical.pattern_intensity.value, 0.0, 1.0))
+    if pattern_weight > 0.0 and has_trait_value(other_physical.pattern_intensity):
+        pattern_val = get_trait_value(other_physical.pattern_intensity, default=0.0)
+        scores.append(_clamp(pattern_val, 0.0, 1.0))
         weights.append(pattern_weight)
 
     total_weight = sum(weights)
