@@ -23,8 +23,8 @@ from core.constants import (
     COLLISION_QUERY_RADIUS,
     FISH_POKER_MAX_DISTANCE,
     FISH_POKER_MIN_DISTANCE,
-    FRACTAL_PLANT_POKER_MAX_DISTANCE,
-    FRACTAL_PLANT_POKER_MIN_DISTANCE,
+    PLANT_POKER_MAX_DISTANCE,
+    PLANT_POKER_MIN_DISTANCE,
     LIVE_FOOD_SPAWN_CHANCE,
     MATING_QUERY_RADIUS,
     POKER_ACTIVITY_ENABLED,
@@ -45,11 +45,11 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.entities import Agent, Fish
-    from core.entities.fractal_plant import FractalPlant
+    from core.entities.plant import Plant
     from core.environment import Environment
 
 # Type alias for poker-eligible entities
-PokerPlayer = Union["Fish", "FractalPlant"]
+PokerPlayer = Union["Fish", "Plant"]
 
 class BaseSimulator(ABC):
     """Base class for simulation logic shared between graphical and headless modes.
@@ -280,12 +280,12 @@ class BaseSimulator(ABC):
                 return fish1_died
         return False
 
-    def handle_fish_fractal_plant_collision(self, fish: "Agent", plant: "Agent") -> bool:
-        """Handle collision between a fish and a fractal plant (poker interaction).
+    def handle_fish_plant_collision(self, fish: "Agent", plant: "Agent") -> bool:
+        """Handle collision between a fish and a plant (poker interaction).
 
         Args:
             fish: The fish entity
-            plant: The fractal plant entity
+            plant: The plant entity
 
         Returns:
             bool: True if fish died from the collision, False otherwise
@@ -315,20 +315,20 @@ class BaseSimulator(ABC):
                     return True
         return False
 
-    def handle_fractal_plant_collisions(self) -> None:
-        """Handle collisions involving fractal plants.
+    def handle_plant_collisions(self) -> None:
+        """Handle collisions involving plants.
 
-        Fish can play poker against fractal plants to consume their energy.
+        Fish can play poker against plants to consume their energy.
         Uses spatial partitioning for efficient collision detection.
         """
         from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         all_entities = self.get_all_entities()
         all_entities_set = set(all_entities)
 
-        # Find all fractal plants
-        plant_list = [e for e in all_entities if isinstance(e, FractalPlant)]
+        # Find all plants
+        plant_list = [e for e in all_entities if isinstance(e, Plant)]
 
         if not plant_list:
             return
@@ -351,7 +351,7 @@ class BaseSimulator(ABC):
 
             # Use spatial grid for nearby entity lookup
             # Add buffer for entity sizes since query uses position but proximity uses center
-            search_radius = FRACTAL_PLANT_POKER_MAX_DISTANCE + max(plant.width, plant.height) / 2
+            search_radius = PLANT_POKER_MAX_DISTANCE + max(plant.width, plant.height) / 2
             if environment is not None:
                 # Optimize: Only look for fish
                 if hasattr(environment, "nearby_fish"):
@@ -368,11 +368,11 @@ class BaseSimulator(ABC):
                 # Check if fish is in poker proximity zone (close but not touching)
                 if check_fish_plant_poker_proximity(
                     fish, plant,
-                    min_distance=FRACTAL_PLANT_POKER_MIN_DISTANCE,
-                    max_distance=FRACTAL_PLANT_POKER_MAX_DISTANCE
+                    min_distance=PLANT_POKER_MIN_DISTANCE,
+                    max_distance=PLANT_POKER_MAX_DISTANCE
                 ):
                     # Try to play poker
-                    self.handle_fish_fractal_plant_collision(fish, plant)
+                    self.handle_fish_plant_collision(fish, plant)
 
                     # Check if plant died from poker
                     if plant.is_dead():
@@ -396,7 +396,7 @@ class BaseSimulator(ABC):
         - Skip spatial query for entities with no nearby_poker_entities method
         """
         from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         if not POKER_ACTIVITY_ENABLED:
             return
@@ -414,7 +414,7 @@ class BaseSimulator(ABC):
         fish_list = [e for e in all_entities if type(e) is Fish or hasattr(e, "fish_id")]
 
         # For plants, we need isinstance since we also check is_dead
-        plant_list = [e for e in all_entities if isinstance(e, FractalPlant) and not e.is_dead()]
+        plant_list = [e for e in all_entities if isinstance(e, Plant) and not e.is_dead()]
 
         # Need at least 1 fish and 1 other entity for poker
         n_fish = len(fish_list)
@@ -426,8 +426,8 @@ class BaseSimulator(ABC):
         all_poker_entities: List[PokerPlayer] = fish_list + plant_list  # type: ignore
 
         # Pre-compute squared proximity values
-        proximity_max = max(FISH_POKER_MAX_DISTANCE, FRACTAL_PLANT_POKER_MAX_DISTANCE)
-        proximity_min = min(FISH_POKER_MIN_DISTANCE, FRACTAL_PLANT_POKER_MIN_DISTANCE)
+        proximity_max = max(FISH_POKER_MAX_DISTANCE, PLANT_POKER_MAX_DISTANCE)
+        proximity_min = min(FISH_POKER_MIN_DISTANCE, PLANT_POKER_MIN_DISTANCE)
         proximity_max_sq = proximity_max * proximity_max
         proximity_min_sq = proximity_min * proximity_min
 
@@ -467,7 +467,7 @@ class BaseSimulator(ABC):
                         if hasattr(environment, "nearby_fish"):
                             nearby.extend(environment.nearby_fish(entity, radius=search_radius))
                         if hasattr(environment, "nearby_agents_by_type"):
-                            nearby_plants = environment.nearby_agents_by_type(entity, radius=search_radius, agent_class=FractalPlant)
+                            nearby_plants = environment.nearby_agents_by_type(entity, radius=search_radius, agent_class=Plant)
                             for plant in nearby_plants:
                                 if plant not in nearby:
                                     nearby.append(plant)
@@ -571,7 +571,7 @@ class BaseSimulator(ABC):
                                 self.record_fish_death(player)
                                 removed_entities.add(player)
                                 all_entities_set.discard(player)
-                        elif isinstance(player, FractalPlant) and player.is_dead():
+                        elif isinstance(player, Plant) and player.is_dead():
                             if player in all_entities_set:
                                 player.die()
                                 self.remove_entity(player)
@@ -676,7 +676,7 @@ class BaseSimulator(ABC):
             List of players ready to play (not on cooldown, not pregnant, etc.)
         """
         from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         ready = []
         for player in players:
@@ -692,7 +692,7 @@ class BaseSimulator(ABC):
                     continue
 
             # Plant-specific checks
-            if isinstance(player, FractalPlant):
+            if isinstance(player, Plant):
                 if player.is_dead():
                     continue
 
@@ -737,7 +737,7 @@ class BaseSimulator(ABC):
         # Record mixed fish+plant poker energy economy with correct attribution.
         if self.ecosystem is not None and result.plant_count > 0:
             from core.entities import Fish
-            from core.entities.fractal_plant import FractalPlant
+            from core.entities.plant import Plant
 
             initial = getattr(poker, "_initial_player_energies", None)
             fish_delta = 0.0
@@ -748,7 +748,7 @@ class BaseSimulator(ABC):
                     delta = getattr(player, "energy", 0.0) - float(initial[idx])
                     if isinstance(player, Fish):
                         fish_delta += delta
-                    elif isinstance(player, FractalPlant):
+                    elif isinstance(player, Plant):
                         plant_delta += delta
 
             self.ecosystem.record_mixed_poker_outcome(

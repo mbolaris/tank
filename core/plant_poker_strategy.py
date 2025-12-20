@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Tuple
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 if TYPE_CHECKING:  # pragma: no cover
-    from core.entities.fractal_plant import FractalPlant
+    from core.entities.plant import Plant
     from core.genetics import PlantGenome
 
 from core.poker.betting.actions import BettingAction
@@ -41,7 +41,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         return cls(genome)
 
     @classmethod
-    def from_plant(cls, plant: FractalPlant) -> PlantPokerStrategyAdapter:
+    def from_plant(cls, plant: Plant) -> PlantPokerStrategyAdapter:
         """Convenience constructor that reads the genome from a plant."""
 
         return cls(plant.genome)

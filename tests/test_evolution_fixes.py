@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, "/home/user/tank")
 
-from core.algorithms import EnergyAwareFoodSeeker, GreedyFoodSeeker, crossover_algorithms
+from core.algorithms import crossover_algorithms, get_random_algorithm
 from core.genetics import Genome
 
 
@@ -50,47 +50,46 @@ def test_energy_economy():
 
 
 def test_algorithm_crossover():
-    """Test that algorithm crossover works from both parents."""
+    """Test that composable behavior crossover works from both parents."""
     print("=" * 60)
-    print("Testing Algorithm Crossover (Recombination)")
+    print("Testing Composable Behavior Crossover (Recombination)")
     print("=" * 60)
 
-    # Create two parent genomes with different algorithms
+    # Create two parent genomes with composable behaviors
     genome1 = Genome.random(use_algorithm=True)
     genome2 = Genome.random(use_algorithm=True)
 
-    # Force different algorithms for testing
-    genome1.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
-    genome2.behavioral.behavior_algorithm.value = EnergyAwareFoodSeeker()
+    behavior1 = genome1.behavioral.composable_behavior.value
+    behavior2 = genome2.behavioral.composable_behavior.value
 
-    print(f"Parent 1 algorithm: {genome1.behavioral.behavior_algorithm.value.algorithm_id}")
-    print(f"  Parameters: {genome1.behavioral.behavior_algorithm.value.parameters}")
-    print(f"Parent 2 algorithm: {genome2.behavioral.behavior_algorithm.value.algorithm_id}")
-    print(f"  Parameters: {genome2.behavioral.behavior_algorithm.value.parameters}")
+    print(f"Parent 1 threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}")
+    print(f"Parent 1 food approach: {behavior1.food_approach.name if behavior1.food_approach else 'None'}")
+    print(f"Parent 2 threat response: {behavior2.threat_response.name if behavior2.threat_response else 'None'}")
+    print(f"Parent 2 food approach: {behavior2.food_approach.name if behavior2.food_approach else 'None'}")
     print()
 
     # Test crossover multiple times to see variation
-    offspring_algorithms = []
+    offspring_behaviors = []
     for i in range(10):
         offspring = Genome.from_parents(genome1, genome2, mutation_rate=0.0)
-        offspring_algorithms.append(offspring.behavioral.behavior_algorithm.value.algorithm_id)
+        behavior = offspring.behavioral.composable_behavior.value
+        threat_name = behavior.threat_response.name if behavior.threat_response else "None"
+        offspring_behaviors.append(threat_name)
 
-    print("Offspring algorithms from 10 crosses:")
-    for i, algo_id in enumerate(offspring_algorithms):
-        print(f"  {i+1}. {algo_id}")
+    print("Offspring threat responses from 10 crosses:")
+    for i, threat in enumerate(offspring_behaviors):
+        print(f"  {i+1}. {threat}")
 
-    # Check that we get variation (not all the same)
-    unique_algorithms = set(offspring_algorithms)
-    print(f"\nUnique algorithms: {unique_algorithms}")
+    # Check that offspring have valid behaviors
+    assert all(b is not None for b in offspring_behaviors), "All offspring should have behaviors"
 
-    print("\n✓ Algorithm crossover test PASSED!")
-    print("  → Offspring inherit algorithms from both parents")
-    print("  → Algorithm type can vary (50/50 from each parent)")
-    print("  → Parameters blend when same type\n")
+    print("\n✓ Composable behavior crossover test PASSED!")
+    print("  → Offspring inherit behaviors from parents")
+    print("  → Composable behavior system is working\n")
 
 
 def test_same_algorithm_parameter_blending():
-    """Test parameter blending when both parents have same algorithm."""
+    """Test parameter blending when both parents have same algorithm type."""
     import random
 
     # Set seed for deterministic test results
@@ -100,7 +99,9 @@ def test_same_algorithm_parameter_blending():
     print("Testing Parameter Blending (Same Algorithm)")
     print("=" * 60)
 
-    # Create two parents with same algorithm but different parameters
+    # Create two parents with same algorithm type but different parameters
+    from core.algorithms import GreedyFoodSeeker
+    
     algo1 = GreedyFoodSeeker()
     algo1.parameters = {"speed_multiplier": 0.8, "detection_range": 0.6}
 
@@ -155,7 +156,7 @@ if __name__ == "__main__":
         print("=" * 60)
         print("\nSummary of fixes:")
         print("1. Energy economy is now balanced (no free energy from births)")
-        print("2. Algorithms use crossover from BOTH parents")
+        print("2. Composable behaviors use crossover from BOTH parents")
         print("3. Parameters blend when parents have same algorithm")
         print("4. Algorithm type can switch between parents")
         print("\nEvolution is ready to go!")

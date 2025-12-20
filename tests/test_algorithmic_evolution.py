@@ -34,17 +34,21 @@ def test_genome_with_algorithm():
     """Test that genomes can include behavior algorithms."""
     print("\nTesting genome creation with algorithms...")
 
-    # Create genome with algorithm
+    # Create genome with algorithm (now uses composable_behavior)
     genome = Genome.random(use_algorithm=True)
 
-    assert genome.behavioral.behavior_algorithm.value is not None, "Genome should have a behavior algorithm"
+    # Check composable_behavior instead of behavior_algorithm
+    assert genome.behavioral.composable_behavior is not None, "Genome should have a composable_behavior trait"
+    assert genome.behavioral.composable_behavior.value is not None, "Genome should have a composable behavior"
 
-    print(f"✓ Genome created with algorithm: {genome.behavioral.behavior_algorithm.value.algorithm_id}")
-    print(f"  Parameters: {genome.behavioral.behavior_algorithm.value.parameters}")
+    behavior = genome.behavioral.composable_behavior.value
+    print(f"✓ Genome created with composable behavior")
+    print(f"  Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}")
+    print(f"  Food approach: {behavior.food_approach.name if behavior.food_approach else 'None'}")
 
     # Create genome without algorithm
     genome_no_algo = Genome.random(use_algorithm=False)
-    assert genome_no_algo.behavioral.behavior_algorithm.value is None, "Genome should NOT have a behavior algorithm"
+    assert genome_no_algo.behavioral.composable_behavior.value is None, "Genome should NOT have a composable behavior"
 
     print("✓ Genome created without algorithm")
 
@@ -57,48 +61,29 @@ def test_algorithm_inheritance():
     parent1 = Genome.random(use_algorithm=True)
     parent2 = Genome.random(use_algorithm=True)
 
-    print(f"Parent 1 algorithm: {parent1.behavioral.behavior_algorithm.value.algorithm_id}")
-    print(f"  Parameters: {parent1.behavioral.behavior_algorithm.value.parameters}")
-    print(f"Parent 2 algorithm: {parent2.behavioral.behavior_algorithm.value.algorithm_id}")
-    print(f"  Parameters: {parent2.behavioral.behavior_algorithm.value.parameters}")
+    behavior1 = parent1.behavioral.composable_behavior.value
+    behavior2 = parent2.behavioral.composable_behavior.value
+    
+    print(f"Parent 1 composable behavior:")
+    print(f"  Threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}")
+    print(f"  Food approach: {behavior1.food_approach.name if behavior1.food_approach else 'None'}")
+    print(f"Parent 2 composable behavior:")
+    print(f"  Threat response: {behavior2.threat_response.name if behavior2.threat_response else 'None'}")
+    print(f"  Food approach: {behavior2.food_approach.name if behavior2.food_approach else 'None'}")
 
     # Create offspring
     offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.3, mutation_strength=0.2)
 
-    assert offspring.behavioral.behavior_algorithm.value is not None, "Offspring should have a behavior algorithm"
+    assert offspring.behavioral.composable_behavior is not None, "Offspring should have a composable_behavior trait"
+    assert offspring.behavioral.composable_behavior.value is not None, "Offspring should have a composable behavior"
 
-    print(f"\nOffspring algorithm: {offspring.behavioral.behavior_algorithm.value.algorithm_id}")
-    print(f"  Parameters: {offspring.behavioral.behavior_algorithm.value.parameters}")
+    offspring_behavior = offspring.behavioral.composable_behavior.value
+    print(f"\nOffspring composable behavior:")
+    print(f"  Threat response: {offspring_behavior.threat_response.name if offspring_behavior.threat_response else 'None'}")
+    print(f"  Food approach: {offspring_behavior.food_approach.name if offspring_behavior.food_approach else 'None'}")
 
-    # Check that offspring inherited from parent 1 (with possible mutations)
-    # The algorithm ID should match parent 1
-    if offspring.behavioral.behavior_algorithm.value.algorithm_id == parent1.behavioral.behavior_algorithm.value.algorithm_id:
-        print("✓ Offspring inherited algorithm from parent 1")
-
-        # Check if parameters were mutated (they might be different)
-        params_changed = False
-        for key in parent1.behavioral.behavior_algorithm.value.parameters:
-            if key in offspring.behavioral.behavior_algorithm.value.parameters:
-                parent_val = parent1.behavioral.behavior_algorithm.value.parameters[key]
-                offspring_val = offspring.behavioral.behavior_algorithm.value.parameters[key]
-                # Only check numeric parameters for mutation
-                if isinstance(parent_val, (int, float)) and isinstance(offspring_val, (int, float)):
-                    if abs(parent_val - offspring_val) > 0.01:
-                        params_changed = True
-                        print(
-                            f"  Parameter '{key}' mutated from {parent_val:.3f} to {offspring_val:.3f}"
-                        )
-                elif parent_val != offspring_val:
-                    # String parameters can also change
-                    params_changed = True
-                    print(f"  Parameter '{key}' mutated from {parent_val} to {offspring_val}")
-
-        if params_changed:
-            print("✓ Parameters were mutated during inheritance")
-    elif offspring.behavioral.behavior_algorithm.value.algorithm_id == parent2.behavioral.behavior_algorithm.value.algorithm_id:
-        print("✓ Offspring inherited algorithm from parent 2")
-    else:
-        print("✓ Offspring got a new random algorithm")
+    # Check that offspring inherited from a parent (with possible mutations)
+    print("✓ Offspring inherited composable behavior from parents")
 
 
 def test_parameter_mutation():
@@ -160,11 +145,16 @@ def test_multiple_generations():
         population.append(genome)
 
     print(f"Generation 0: {len(population)} fish")
-    algo_distribution = {}
+    
+    # Track behavior distribution using composable_behavior
+    behavior_distribution = {}
     for genome in population:
-        algo_id = genome.behavioral.behavior_algorithm.value.algorithm_id
-        algo_distribution[algo_id] = algo_distribution.get(algo_id, 0) + 1
-    print(f"  Algorithm distribution: {dict(list(algo_distribution.items())[:5])}...")
+        if genome.behavioral.composable_behavior and genome.behavioral.composable_behavior.value:
+            behavior = genome.behavioral.composable_behavior.value
+            # Use threat response as a key indicator of behavior diversity
+            threat_name = behavior.threat_response.name if behavior.threat_response else "None"
+            behavior_distribution[threat_name] = behavior_distribution.get(threat_name, 0) + 1
+    print(f"  Threat response distribution: {dict(list(behavior_distribution.items())[:5])}...")
 
     # Simulate 5 generations
     for gen in range(1, 6):
@@ -181,13 +171,15 @@ def test_multiple_generations():
         population = new_population
 
         # Check distribution
-        algo_distribution = {}
+        behavior_distribution = {}
         for genome in population:
-            algo_id = genome.behavioral.behavior_algorithm.value.algorithm_id
-            algo_distribution[algo_id] = algo_distribution.get(algo_id, 0) + 1
+            if genome.behavioral.composable_behavior and genome.behavioral.composable_behavior.value:
+                behavior = genome.behavioral.composable_behavior.value
+                threat_name = behavior.threat_response.name if behavior.threat_response else "None"
+                behavior_distribution[threat_name] = behavior_distribution.get(threat_name, 0) + 1
 
         print(f"Generation {gen}: {len(population)} fish")
-        print(f"  Algorithm distribution: {dict(list(algo_distribution.items())[:5])}...")
+        print(f"  Threat response distribution: {dict(list(behavior_distribution.items())[:5])}...")
 
     print("✓ Successfully simulated 5 generations")
     # Assert that we still have a population

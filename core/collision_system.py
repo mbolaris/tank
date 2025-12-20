@@ -15,9 +15,9 @@ TODO: Extract plant sprouting logic from handle_fish_food_collision into
 import random
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from core.config.plants import FRACTAL_PLANT_SPROUTING_CHANCE
-from core.constants import FRACTAL_PLANTS_ENABLED
-from core.entities.fractal_plant import PlantNectar
+from core.config.plants import PLANT_SPROUTING_CHANCE
+from core.constants import PLANTS_ENABLED
+from core.entities.plant import PlantNectar
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
@@ -203,7 +203,7 @@ class CollisionSystem(BaseSystem):
         self._fish_food_collisions += 1
         self._frame_food_eaten += 1
 
-        if isinstance(food, PlantNectar) and FRACTAL_PLANTS_ENABLED:
+        if isinstance(food, PlantNectar) and PLANTS_ENABLED:
             fish.eat(food)
 
             if food.is_consumed():
@@ -213,7 +213,7 @@ class CollisionSystem(BaseSystem):
 
                 # TODO: Move this to PlantPropagationSystem
                 # Check sprouting chance
-                if random.random() < FRACTAL_PLANT_SPROUTING_CHANCE:
+                if random.random() < PLANT_SPROUTING_CHANCE:
                     self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
 
                 self.engine.remove_entity(food)

@@ -77,7 +77,7 @@ functions, so they work across Linux, macOS, Windows, and ARM boards like Raspbe
 
 **Requirements:**
 - Both source and destination tanks must have `allow_transfers: true`
-- Only Fish and FractalPlant entities can be transferred (Food/Nectar excluded)
+- Only Fish and Plant entities can be transferred (Food/Nectar excluded)
 - Entity receives new ID in destination tank for proper isolation
 - Transfer is atomic with automatic rollback on failure
 

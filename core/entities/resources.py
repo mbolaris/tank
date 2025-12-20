@@ -4,16 +4,8 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 from core.constants import (
-    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
-    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
-    AUTO_FOOD_HIGH_POP_THRESHOLD_1,
-    AUTO_FOOD_HIGH_POP_THRESHOLD_2,
-    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
     FOOD_SINK_ACCELERATION,
     FOOD_TYPES,
-    PLANT_FOOD_PRODUCTION_ENERGY,
-    PLANT_FOOD_PRODUCTION_INTERVAL,
-    PLANT_PRODUCTION_CHANCE,
 )
 from core.entities.base import Agent
 from core.entities.fish import Fish
@@ -22,180 +14,9 @@ from core.math_utils import Vector2
 if TYPE_CHECKING:
     from core.environment import Environment
     from core.world import World
+    from core.entities.plant import Plant
 
-class Plant(Agent):
-    """A plant entity that produces food over time (pure logic, no rendering).
 
-    Attributes:
-        food_production_timer: Frames until next food production
-        food_production_rate: Base frames between food production
-        max_food_capacity: Maximum food that can exist from this plant
-        current_food_count: Current number of food items from this plant
-    """
-
-    def __init__(
-        self,
-        environment: "World",
-        plant_type: int,
-        x: float = 100,
-        y: float = 400,
-    ) -> None:
-        """Initialize a plant.
-
-        Args:
-            environment: The world the plant lives in
-            plant_type: Type of plant (1, 2, etc.)
-            x: Initial x position
-            y: Initial y position
-        """
-        super().__init__(environment, x, y, 0)
-        self.plant_type: int = plant_type
-
-        # Food production
-        self.food_production_timer: int = PLANT_FOOD_PRODUCTION_INTERVAL
-        self.food_production_rate: int = PLANT_FOOD_PRODUCTION_INTERVAL
-        self.current_food_count: int = 0
-
-    def update_position(self) -> None:
-        """Don't update the position of the plant (stationary)."""
-        pass
-
-    def should_produce_food(self, time_modifier: float = 1.0) -> bool:
-        """Check if plant should produce food.
-
-        Dynamically adjusts production chance based on ecosystem energy levels:
-        - Higher production when total energy is low (fish are starving)
-        - Lower production when total energy or population is high
-
-        Args:
-            time_modifier: Modifier based on day/night (produce more during day)
-
-        Returns:
-            True if food should be produced
-        """
-        # Update timer
-        self.food_production_timer -= time_modifier
-
-        if (
-            self.food_production_timer <= 0
-            and self.current_food_count < PLANT_FOOD_PRODUCTION_ENERGY
-        ):
-            self.food_production_timer = self.food_production_rate
-
-            # Calculate ecosystem metrics for dynamic production
-            fish_list = self.environment.get_agents_of_type(Fish)
-            fish_count = len(fish_list)
-            total_energy = sum(fish.energy for fish in fish_list)
-
-            # Adjust production chance based on ecosystem state
-            production_chance = PLANT_PRODUCTION_CHANCE
-
-            # Increase production when energy is critically low
-            if total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
-                production_chance = min(0.6, PLANT_PRODUCTION_CHANCE * 1.5)  # +50% chance
-            # Decrease production when energy or population is very high
-            elif (
-                total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2
-                or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2
-            ):
-                production_chance = PLANT_PRODUCTION_CHANCE * 0.3  # 70% reduction
-            # Moderate decrease when energy or population is high
-            elif (
-                total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1
-                or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1
-            ):
-                production_chance = PLANT_PRODUCTION_CHANCE * 0.6  # 40% reduction
-
-            # Roll for production with adjusted chance
-            return random.random() < production_chance
-
-        return False
-
-    def _get_nectar_chance(self, time_of_day: Optional[float]) -> float:
-        """Calculate the chance of producing nectar based on time of day."""
-        if time_of_day is None:
-            return PLANT_PRODUCTION_CHANCE
-
-        is_dawn = 0.15 <= time_of_day < 0.35
-        is_day = 0.35 <= time_of_day < 0.65
-        is_dusk = 0.65 <= time_of_day < 0.85
-
-        if is_day:
-            return min(0.9, PLANT_PRODUCTION_CHANCE * 1.35)
-        if is_dawn or is_dusk:
-            return min(0.75, PLANT_PRODUCTION_CHANCE * 1.1)
-        return PLANT_PRODUCTION_CHANCE * 0.6
-
-    def produce_food(self, time_of_day: Optional[float] = None) -> "Food":
-        """Produce a food item near or on the plant.
-
-        Args:
-            time_of_day: Normalized time of day (0.0-1.0) to shape nectar output.
-
-        Returns:
-            New food item
-        """
-        self.current_food_count += 1
-
-        nectar_chance = self._get_nectar_chance(time_of_day)
-
-        if random.random() < nectar_chance:
-            # Grow nectar that clings to the top of the plant
-            food = Food(
-                self.environment,
-                self.pos.x + self.width / 2,  # Center of plant
-                self.pos.y,  # Top of plant
-                source_plant=self,
-                food_type="nectar",
-            )
-            anchor_x = self.pos.x + self.width / 2 - food.width / 2
-            anchor_y = self.pos.y - food.height
-            food.pos.update(anchor_x, anchor_y)
-            return food
-
-        # Get boundaries from environment (World protocol)
-        bounds = self.environment.get_bounds()
-        (min_x, _), (max_x, _) = bounds
-
-        # All other food falls from top of tank
-        food_x = random.randint(int(min_x), int(max_x))
-        food_y = 0  # Top of tank
-
-        return Food(
-            self.environment,
-            food_x,
-            food_y,
-            source_plant=self,
-        )
-
-    def notify_food_eaten(self) -> None:
-        """Notify plant that one of its food items was eaten."""
-        self.current_food_count = max(0, self.current_food_count - 1)
-
-    def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
-    ) -> "EntityUpdateResult":
-        """Update the plant.
-
-        Args:
-            frame_count: Time elapsed since start
-            time_modifier: Time-based modifier (higher during day)
-            time_of_day: Normalized time of day (0.0-1.0) for nectar biasing
-
-        Returns:
-            EntityUpdateResult containing new food item if produced
-        """
-        from core.entities.base import EntityUpdateResult
-
-        super().update(frame_count, time_modifier, time_of_day)
-
-        # Check food production
-        result = EntityUpdateResult()
-        if self.should_produce_food(time_modifier):
-            food = self.produce_food(time_of_day)
-            result.spawned_entities.append(food)
-
-        return result
 class Food(Agent):
     """A food entity with variable nutrients (pure logic, no rendering).
 
@@ -244,7 +65,7 @@ class Food(Agent):
         self.is_stationary: bool = self.food_properties.get("stationary", False)
 
         super().__init__(environment, x, y, speed)
-        self.source_plant: Optional[Plant] = source_plant
+        self.source_plant: Optional["Plant"] = source_plant
 
         # Energy tracking for partial consumption
         self.max_energy: float = self.food_properties["energy"]

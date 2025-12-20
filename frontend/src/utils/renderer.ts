@@ -7,11 +7,11 @@ import type { EntityData } from '../types/simulation';
 import { ImageLoader } from './ImageLoader';
 import { getFishPath, getEyePosition, getPatternOpacity, type FishParams } from './fishTemplates';
 import {
-    pruneFractalPlantCache,
-    renderFractalPlant as renderFractalPlantUtil,
+    prunePlantCaches as prunePlantCachesUtil,
+    renderPlant as renderPlantUtil,
     renderPlantNectar as renderPlantNectarUtil,
     type PlantGenomeData,
-} from './fractalPlant';
+} from './plant';
 
 // Animation constants
 const IMAGE_CHANGE_RATE = 500; // milliseconds
@@ -197,7 +197,7 @@ export class Renderer {
      * Trim plant render caches for plants that are no longer in the scene.
      */
     prunePlantCaches(activePlantIds: Iterable<number>) {
-        pruneFractalPlantCache(activePlantIds);
+        prunePlantCachesUtil(activePlantIds);
     }
 
     private getTimeOfDayPalette(timeOfDay?: string): TimeOfDayPalette {
@@ -416,16 +416,13 @@ export class Renderer {
                 this.renderFood(entity, elapsedTime);
                 break;
             case 'plant':
-                this.renderPlant(entity, elapsedTime);
+                this.renderPlant(entity, elapsedTime, allEntities, showEffects);
                 break;
             case 'crab':
                 this.renderCrab(entity, elapsedTime);
                 break;
             case 'castle':
                 this.renderCastle(entity);
-                break;
-            case 'fractal_plant':
-                this.renderFractalPlant(entity, elapsedTime, allEntities, showEffects);
                 break;
             case 'plant_nectar':
                 this.renderPlantNectar(entity, elapsedTime);
@@ -1072,127 +1069,7 @@ export class Renderer {
         this.drawImage(image, x + offsetX, y + offsetY, scaledWidth, scaledHeight, false);
     }
 
-    private renderPlant(plant: EntityData, elapsedTime: number) {
-        const { ctx } = this;
-        const { x, y, width, height, plant_type = 1 } = plant;
-
-        // Get plant image (plant_type is 1 or 2)
-        const imageName = plant_type === 1 ? 'plant1-improved.png' : 'plant2.png';
-        const image = ImageLoader.getCachedImage(imageName);
-
-        if (!image) return;
-
-        // Make plant images 100% larger (2x scale)
-        const plantScale = 2.0;
-        const scaledWidth = width * plantScale;
-        const scaledHeight = height * plantScale;
-
-        ctx.save();
-        const canvasHeight = ctx.canvas.height;
-        const seabedOffset = Math.max(40, canvasHeight * 0.08);
-        const restingY = canvasHeight - seabedOffset;
-
-        // Enhanced multi-frequency swaying for organic motion
-        const plantSeed = x + y; // Unique seed per plant
-        const primarySway = Math.sin(elapsedTime * 0.0005 + plantSeed * 0.01) * 6;
-        const secondarySway = Math.sin(elapsedTime * 0.0012 + plantSeed * 0.02) * 3;
-        const tertiarySway = Math.sin(elapsedTime * 0.0008 + plantSeed * 0.015) * 2;
-        const swayAngle = primarySway + secondarySway + tertiarySway;
-
-        // Horizontal sway offset for more natural movement
-        const swayOffset = Math.sin(elapsedTime * 0.0006 + plantSeed * 0.01) * 8;
-
-        // Position setup
-        const centerX = x + scaledWidth / 2 + swayOffset;
-        const centerY = restingY;
-
-        // Draw shadow for plant (using base position without sway)
-        this.drawShadow(x + scaledWidth / 2, restingY + 5, scaledWidth * 0.6, scaledHeight * 0.2);
-
-        // Draw shadow for depth
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = 'rgba(0, 20, 40, 0.4)';
-        ctx.beginPath();
-        ctx.ellipse(
-            centerX,
-            restingY + 5,
-            scaledWidth * 0.4,
-            scaledHeight * 0.1,
-            0,
-            0,
-            Math.PI * 2
-        );
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-
-        // Add subtle glow effect
-        const glowIntensity = 0.15 + Math.sin(elapsedTime * 0.001 + plantSeed) * 0.05;
-        ctx.shadowColor = plant_type === 1 ? 'rgba(100, 200, 150, 0.4)' : 'rgba(150, 100, 200, 0.4)';
-        ctx.shadowBlur = 15 * glowIntensity;
-
-        // Apply color tinting based on shimmer
-        const shimmer = 1.0 + Math.sin(elapsedTime * 0.0015 + plantSeed * 0.03) * 0.08;
-        ctx.filter = `brightness(${shimmer}) saturate(1.1)`;
-
-        // Apply transformation and draw plant
-        ctx.translate(centerX, centerY);
-        ctx.rotate((swayAngle * Math.PI) / 180);
-        ctx.drawImage(image, -scaledWidth / 2, -scaledHeight, scaledWidth, scaledHeight);
-
-        ctx.restore();
-
-        // Draw occasional bubbles rising from plants
-        this.renderPlantBubbles(plant, elapsedTime, centerX, restingY - scaledHeight * 0.7);
-    }
-
-    private renderPlantBubbles(plant: EntityData, elapsedTime: number, x: number, y: number) {
-        const { ctx } = this;
-        const plantSeed = (plant.x || 0) + (plant.y || 0);
-
-        // Each plant produces 2-3 bubbles at different intervals
-        for (let i = 0; i < 3; i++) {
-            const bubblePhase = (elapsedTime * 0.0008 + plantSeed * 0.1 + i * 2.1) % 6.28; // 0 to 2π
-            const bubbleActive = bubblePhase < 4.0; // Bubble exists for part of cycle
-
-            if (!bubbleActive) continue;
-
-            // Bubble rises and drifts
-            const riseProgress = bubblePhase / 4.0;
-            const bubbleY = y - riseProgress * 80;
-            const bubbleX = x + Math.sin(bubblePhase * 3 + i) * 15;
-            const bubbleSize = (2 + i * 0.5) * (1 - riseProgress * 0.3); // Shrink slightly as it rises
-
-            // Fade out as bubble rises
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, 1 - riseProgress);
-
-            // Draw bubble
-            const gradient = ctx.createRadialGradient(
-                bubbleX - bubbleSize * 0.3,
-                bubbleY - bubbleSize * 0.3,
-                0,
-                bubbleX,
-                bubbleY,
-                bubbleSize
-            );
-            gradient.addColorStop(0, 'rgba(200, 240, 255, 0.6)');
-            gradient.addColorStop(0.5, 'rgba(150, 220, 255, 0.3)');
-            gradient.addColorStop(1, 'rgba(100, 200, 255, 0.1)');
-
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(bubbleX, bubbleY, bubbleSize, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Add bubble highlight
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.beginPath();
-            ctx.arc(bubbleX - bubbleSize * 0.3, bubbleY - bubbleSize * 0.3, bubbleSize * 0.3, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
-        }
-    }
+    // Unified plant rendering now uses renderFractalPlant. Legacy static plant renderer removed.
 
     private renderCrab(crab: EntityData, elapsedTime: number) {
         const { x, y, width, height, vel_x = 1, can_hunt = true } = crab;
@@ -1418,10 +1295,7 @@ export class Renderer {
         return Math.floor(elapsedTime / IMAGE_CHANGE_RATE) % frameCount;
     }
 
-    /**
-     * Render an evolving fractal plant using L-system genetics.
-     */
-    private renderFractalPlant(plant: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
+    private renderPlant(plant: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
         const { ctx } = this;
         const { x, y, width, height } = plant;
 
@@ -1452,8 +1326,8 @@ export class Renderer {
         // Draw shadow for fractal plant
         this.drawShadow(x + width / 2, baseY + 5, width * 0.8, height * 0.15);
 
-        // Render using the fractal plant utility
-        renderFractalPlantUtil(
+        // Render using the unified plant utility
+        renderPlantUtil(
             ctx,
             plant.id,
             genome,

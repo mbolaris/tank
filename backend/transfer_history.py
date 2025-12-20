@@ -26,7 +26,7 @@ class TransferRecord:
 
     transfer_id: str
     timestamp: str  # ISO format
-    entity_type: str  # "fish" or "fractal_plant"
+    entity_type: str  # "fish" or "plant"
     entity_old_id: int
     entity_new_id: Optional[int]
     source_tank_id: str
@@ -53,7 +53,7 @@ def log_transfer(
     """Log a transfer event.
 
     Args:
-        entity_type: Type of entity ("fish" or "fractal_plant")
+        entity_type: Type of entity ("fish" or "plant")
         entity_old_id: Entity ID in source tank
         entity_new_id: Entity ID in destination tank (None if failed)
         source_tank_id: Source tank identifier

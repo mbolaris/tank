@@ -27,13 +27,12 @@ class _EcosystemStub:
 
 
 def _make_fish(env, fish_id: int, ecosystem):
-    from core.algorithms import GreedyFoodSeeker
     from core.entities import Fish
     from core.genetics import Genome
     from core.movement_strategy import AlgorithmicMovement
 
+    # use_algorithm=True creates a composable_behavior automatically
     genome = Genome.random(use_algorithm=True)
-    genome.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
 
     return Fish(
         environment=env,

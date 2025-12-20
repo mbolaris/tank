@@ -7,7 +7,6 @@ from pathlib import Path
 repo_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(repo_root))
 
-from core.algorithms import GreedyFoodSeeker
 from core.entities import Fish
 from core.fish_poker import PokerInteraction
 from core.genetics import Genome
@@ -25,11 +24,9 @@ def test_poker_energy_transfer():
     # This ensures we're testing with realistic values that respect energy caps
 
     genome1 = Genome.random(use_algorithm=True)
-    genome1.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
     genome1.behavioral.aggression.value = 0.5  # Medium aggression
 
     genome2 = Genome.random(use_algorithm=True)
-    genome2.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
     genome2.behavioral.aggression.value = 0.5  # Medium aggression
 
     fish1 = Fish(
@@ -298,11 +295,9 @@ def test_poker_result_fields():
     from core.movement_strategy import AlgorithmicMovement
 
     genome1 = Genome.random(use_algorithm=True)
-    genome1.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
     genome1.behavioral.aggression.value = 0.5
 
     genome2 = Genome.random(use_algorithm=True)
-    genome2.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
     genome2.behavioral.aggression.value = 0.5
 
     fish1 = Fish(

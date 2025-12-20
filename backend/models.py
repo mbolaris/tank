@@ -14,7 +14,7 @@ class EntityData(BaseModel):
     """Represents an entity in the simulation."""
 
     id: int
-    type: str  # 'fish', 'food', 'plant', 'crab', 'castle', 'fractal_plant', 'plant_nectar'
+    type: str  # 'fish', 'food', 'plant', 'crab', 'castle', 'plant', 'plant_nectar'
     x: float
     y: float
     width: float

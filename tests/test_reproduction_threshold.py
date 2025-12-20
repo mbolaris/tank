@@ -5,7 +5,6 @@ import sys
 
 sys.path.insert(0, "/home/user/tank")
 
-from core.algorithms import GreedyFoodSeeker
 from core.entities import Fish, LifeStage
 from core.genetics import Genome
 from core.movement_strategy import AlgorithmicMovement
@@ -29,7 +28,6 @@ def test_reproduction_threshold_logic():
 
     # Create a test fish
     genome = Genome.random(use_algorithm=True)
-    genome.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
     genome.physical.size_modifier.value = 1.0  # Normal size (determines max energy)
 
     fish = make_adult_fish(
@@ -101,10 +99,8 @@ def test_proximity_vs_poker_reproduction():
 
     # Create two fish for mating tests
     genome1 = Genome.random(use_algorithm=True)
-    genome1.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
 
     genome2 = Genome.random(use_algorithm=True)
-    genome2.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
 
     fish1 = make_adult_fish(
         environment=None,
@@ -247,7 +243,6 @@ def test_energy_threshold_comparison():
 
     for max_e in max_energies:
         genome = Genome.random(use_algorithm=True)
-        genome.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
         genome.physical.size_modifier.value = max_e / 100.0  # Normalize (size determines max energy)
 
         fish = make_adult_fish(
@@ -288,7 +283,6 @@ def test_realistic_scenario():
     print("=" * 80)
 
     genome = Genome.random(use_algorithm=True)
-    genome.behavioral.behavior_algorithm.value = GreedyFoodSeeker()
 
     fish = make_adult_fish(
         environment=None,

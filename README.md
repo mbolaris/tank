@@ -324,7 +324,7 @@ tank/
 │   ├── simulation_engine.py # Headless engine used by both modes
 │   ├── entities/            # Entity classes (modular structure)
 │   │   ├── fish.py          # Fish entity with component system
-│   │   ├── fractal_plant.py # L-system fractal plants
+│   │   ├── plant.py         # L-system fractal plants
 │   │   ├── resources.py     # Food, Plant, PlantNectar, Castle
 │   │   ├── predators.py     # Crab entity
 │   │   └── base.py          # Base Agent class
@@ -539,7 +539,7 @@ The simulation uses a clean architecture with separation of concerns:
   - Fully testable and reproducible
   - Used by both web and headless modes
   - Algorithm-based evolution system
-  - Modular entity system (Fish, FractalPlant, Crab, Food, PlantNectar)
+  - Modular entity system (Fish, Plant, Crab, Food, PlantNectar)
 
 - **Backend** (`backend/`): FastAPI WebSocket server
   - Runs simulation in background thread

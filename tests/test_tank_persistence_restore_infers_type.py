@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from backend.entity_transfer import serialize_entity_for_transfer
 from backend.tank_persistence import restore_tank_from_snapshot
-from core.constants import FRACTAL_PLANTS_ENABLED
-from core.entities.fractal_plant import FractalPlant
+from core.constants import PLANTS_ENABLED
+from core.entities.plant import Plant
 from core.genetics import PlantGenome
 from core.tank_world import TankWorld, TankWorldConfig
 
@@ -14,8 +14,8 @@ def _make_world(seed: int) -> TankWorld:
     return world
 
 
-def test_restore_snapshot_infers_missing_type_for_fractal_plants() -> None:
-    if not FRACTAL_PLANTS_ENABLED:
+def test_restore_snapshot_infers_missing_type_for_plants() -> None:
+    if not PLANTS_ENABLED:
         return
 
     source = _make_world(seed=100)
@@ -23,7 +23,7 @@ def test_restore_snapshot_infers_missing_type_for_fractal_plants() -> None:
     spot = source.engine.root_spot_manager.get_random_empty_spot()
     assert spot is not None
 
-    plant = FractalPlant(
+    plant = Plant(
         environment=source.engine.environment,
         genome=PlantGenome.create_random(rng=source.rng),
         root_spot=spot,
@@ -46,7 +46,7 @@ def test_restore_snapshot_infers_missing_type_for_fractal_plants() -> None:
     }
 
     assert restore_tank_from_snapshot(snapshot, dest) is True
-    restored = [e for e in dest.entities_list if isinstance(e, FractalPlant)]
+    restored = [e for e in dest.entities_list if isinstance(e, Plant)]
     assert len(restored) == 1
     assert restored[0].plant_id == original_id
 

@@ -81,7 +81,7 @@ class EntityLifecycleSystem(BaseSystem):
 
         Handles different entity types appropriately:
         - Fish: Records death in ecosystem, removes from simulation
-        - FractalPlant: Releases root spot, removes from simulation
+        - Plant: Releases root spot, removes from simulation
         - PlantNectar: Simply removes from simulation
         - Food: Returns to pool if applicable, removes from simulation
 
@@ -92,7 +92,7 @@ class EntityLifecycleSystem(BaseSystem):
             True if entity was processed and removed, False otherwise
         """
         from core.entities import Fish, Food
-        from core.entities.fractal_plant import FractalPlant, PlantNectar
+        from core.entities.plant import Plant, PlantNectar
 
         if isinstance(entity, Fish):
             self._engine.record_fish_death(entity)
@@ -100,13 +100,13 @@ class EntityLifecycleSystem(BaseSystem):
             self._total_deaths += 1
             return True
 
-        elif isinstance(entity, FractalPlant):
+        elif isinstance(entity, Plant):
             entity.die()  # Release root spot
             self._engine.remove_entity(entity)
             self._deaths_this_frame += 1
             self._total_deaths += 1
             self._plants_died += 1
-            logger.debug(f"FractalPlant #{entity.plant_id} died at age {entity.age}")
+            logger.debug(f"Plant #{entity.plant_id} died at age {entity.age}")
             return True
 
         elif isinstance(entity, PlantNectar):

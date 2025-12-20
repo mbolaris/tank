@@ -26,7 +26,7 @@ from core import entities, movement_strategy
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.constants import FILES, FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
 from core.entities import Fish
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
 from core.plant_poker_strategy import PlantPokerStrategyAdapter
@@ -248,7 +248,7 @@ class SimulationRunner:
         from core.serializers import FishSerializer
         return FishSerializer.to_player_data(fish, include_aggression)
 
-    def _create_plant_player_data(self, plant: FractalPlant) -> Dict[str, Any]:
+    def _create_plant_player_data(self, plant: Plant) -> Dict[str, Any]:
         """Create benchmark player metadata for a plant."""
         from core.serializers import PlantSerializer
         return PlantSerializer.to_player_data(plant)
@@ -471,7 +471,7 @@ class SimulationRunner:
 
                 elif plant_id is not None:
                     plant = next((e for e in self.world.entities_list
-                                if isinstance(e, FractalPlant) and e.plant_id == plant_id), None)
+                                if isinstance(e, Plant) and e.plant_id == plant_id), None)
                     if plant:
                         reward = min(net_energy, plant.max_energy - plant.energy)
                         if reward > 0:

@@ -80,7 +80,7 @@ export function TransferDialog({
         }
     };
 
-    const entityTypeDisplay = entityType === 'fish' ? 'Fish' : entityType === 'fractal_plant' ? 'Plant' : entityType;
+    const entityTypeDisplay = entityType === 'fish' ? 'Fish' : entityType === 'plant' ? 'Plant' : entityType;
 
     return (
         <div

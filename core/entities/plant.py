@@ -1,8 +1,10 @@
-"""Fractal plant entity with evolving L-system genetics.
+"""Plant entity with evolving L-system genetics.
 
-This module implements fractal plants that grow from root spots,
+This module implements plants that grow from root spots,
 collect energy passively, produce nectar for reproduction, and
 can play poker against fish.
+
+This replaces the old 'Plant' and 'Plant' classes with a single unified 'Plant'.
 """
 
 import logging
@@ -12,6 +14,7 @@ from typing import TYPE_CHECKING, Optional
 from core.entities.base import Agent
 from core.entity_ids import PlantId
 from core.genetics import PlantGenome
+from core.entities.resources import Food
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -22,25 +25,25 @@ if TYPE_CHECKING:
 
 # Plant lifecycle constants (can be moved to constants.py later)
 from core.constants import (
-    FRACTAL_PLANT_BASE_HEIGHT,
-    FRACTAL_PLANT_BASE_WIDTH,
-    FRACTAL_PLANT_DEATH_ENERGY,
-    FRACTAL_PLANT_INITIAL_ENERGY,
-    FRACTAL_PLANT_MAX_ENERGY,
-    FRACTAL_PLANT_MAX_SIZE,
-    FRACTAL_PLANT_MIN_POKER_ENERGY,
-    FRACTAL_PLANT_MIN_SIZE,
-    FRACTAL_PLANT_NECTAR_COOLDOWN,
-    FRACTAL_PLANT_NECTAR_ENERGY,
+    PLANT_BASE_HEIGHT,
+    PLANT_BASE_WIDTH,
+    PLANT_DEATH_ENERGY,
+    PLANT_INITIAL_ENERGY,
+    PLANT_MAX_ENERGY,
+    PLANT_MAX_SIZE,
+    PLANT_MIN_POKER_ENERGY,
+    PLANT_MIN_SIZE,
+    PLANT_NECTAR_COOLDOWN,
+    PLANT_NECTAR_ENERGY,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class FractalPlant(Agent):
-    """A fractal plant entity with evolving L-system genetics.
+class Plant(Agent):
+    """A plant entity with evolving L-system genetics.
 
-    Fractal plants:
+    Plants:
     - Grow from fixed root spots at the tank bottom
     - Collect energy passively (more energy = bigger = more collection)
     - Produce nectar when large enough (triggers reproduction)
@@ -69,10 +72,10 @@ class FractalPlant(Agent):
         environment: "World",
         genome: PlantGenome,
         root_spot: "RootSpot",
-        initial_energy: float = FRACTAL_PLANT_INITIAL_ENERGY,
+        initial_energy: float = PLANT_INITIAL_ENERGY,
         ecosystem: Optional["EcosystemManager"] = None,
     ) -> None:
-        """Initialize a fractal plant.
+        """Initialize a plant.
 
         Args:
             environment: The world the plant lives in
@@ -89,19 +92,19 @@ class FractalPlant(Agent):
         )
 
         # Assign unique ID
-        self.plant_id = FractalPlant._next_id
-        FractalPlant._next_id += 1
+        self.plant_id = Plant._next_id
+        Plant._next_id += 1
 
         # Core attributes
         self.genome = genome
         self.root_spot = root_spot
         self.energy = initial_energy
-        self.max_energy = FRACTAL_PLANT_MAX_ENERGY * genome.growth_efficiency
+        self.max_energy = PLANT_MAX_ENERGY * genome.growth_efficiency
         self.ecosystem = ecosystem
 
         # Cooldowns
         self.poker_cooldown = 0
-        self.nectar_cooldown = FRACTAL_PLANT_NECTAR_COOLDOWN // 2  # Start partially ready
+        self.nectar_cooldown = PLANT_NECTAR_COOLDOWN // 2  # Start partially ready
 
         # Migration timer - check for migration every 300 frames (5 seconds at 60fps)
         # Add random offset to prevent synchronized migrations
@@ -133,13 +136,13 @@ class FractalPlant(Agent):
         """Update plant size based on current energy."""
         # Size scales with energy
         energy_ratio = self.energy / self.max_energy
-        size_multiplier = FRACTAL_PLANT_MIN_SIZE + (
-            (FRACTAL_PLANT_MAX_SIZE - FRACTAL_PLANT_MIN_SIZE) * energy_ratio
+        size_multiplier = PLANT_MIN_SIZE + (
+            (PLANT_MAX_SIZE - PLANT_MIN_SIZE) * energy_ratio
         )
 
         self.set_size(
-            FRACTAL_PLANT_BASE_WIDTH * size_multiplier,
-            FRACTAL_PLANT_BASE_HEIGHT * size_multiplier,
+            PLANT_BASE_WIDTH * size_multiplier,
+            PLANT_BASE_HEIGHT * size_multiplier,
         )
 
         # Anchor bottom of plant to root spot
@@ -289,13 +292,13 @@ class FractalPlant(Agent):
 
         # Nectar should be an energy transfer from the plant, not free energy.
         # If a plant can't afford the full cost, skip production.
-        if self.energy < FRACTAL_PLANT_NECTAR_ENERGY:
+        if self.energy < PLANT_NECTAR_ENERGY:
             return None
 
         # Produce nectar
-        self.nectar_cooldown = FRACTAL_PLANT_NECTAR_COOLDOWN
+        self.nectar_cooldown = PLANT_NECTAR_COOLDOWN
         self.nectar_produced += 1
-        self.lose_energy(FRACTAL_PLANT_NECTAR_ENERGY, source="nectar")
+        self.lose_energy(PLANT_NECTAR_ENERGY, source="nectar")
 
         # Nectar spawns in the upper portion of the plant visual
         # The visual plant only fills about 50-70% of the bounding box height
@@ -314,7 +317,8 @@ class FractalPlant(Agent):
         relative_y_offset_pct = (base_y - nectar_y) / self.height
 
         # Import here to avoid circular imports
-        from core.entities.fractal_plant import PlantNectar
+        # Note: In the same file in the new structure
+        # from core.entities.plant import PlantNectar
 
         return PlantNectar(
             environment=self.environment,
@@ -332,7 +336,7 @@ class FractalPlant(Agent):
         """
         if self.is_dead():
             return False
-        if self.energy < FRACTAL_PLANT_MIN_POKER_ENERGY:
+        if self.energy < PLANT_MIN_POKER_ENERGY:
             return False
         if self.poker_cooldown > 0:
             return False
@@ -376,7 +380,7 @@ class FractalPlant(Agent):
         Returns:
             True if plant should be removed
         """
-        return self._migrated or self.energy < FRACTAL_PLANT_DEATH_ENERGY
+        return self._migrated or self.energy < PLANT_DEATH_ENERGY
 
     def get_size_multiplier(self) -> float:
         """Get current size multiplier for rendering.
@@ -385,8 +389,8 @@ class FractalPlant(Agent):
             Size multiplier (0.3 to 1.5)
         """
         energy_ratio = self.energy / self.max_energy
-        return FRACTAL_PLANT_MIN_SIZE + (
-            (FRACTAL_PLANT_MAX_SIZE - FRACTAL_PLANT_MIN_SIZE) * energy_ratio
+        return PLANT_MIN_SIZE + (
+            (PLANT_MAX_SIZE - PLANT_MIN_SIZE) * energy_ratio
         )
 
     def get_fractal_iterations(self) -> int:
@@ -435,7 +439,7 @@ class FractalPlant(Agent):
             amount: Amount won or lost (for display)
             duration: How long to show the effect in frames
             target_id: ID of the opponent/target entity (for drawing arrows)
-            target_type: Type of the opponent/target entity ('fish', 'fractal_plant')
+            target_type: Type of the opponent/target entity ('fish', 'plant')
         """
         self.poker_effect_state = {
             "status": status,
@@ -459,7 +463,7 @@ class FractalPlant(Agent):
     def notify_food_eaten(self) -> None:
         """Notify plant that one of its food items was eaten.
 
-        For FractalPlant, this is a no-op as nectar production is controlled
+        For Plant, this is a no-op as nectar production is controlled
         by cooldowns and energy thresholds, not a concurrent count limit.
         """
         pass
@@ -531,8 +535,9 @@ class FractalPlant(Agent):
         Returns:
             Dictionary with plant state
         """
+        # NOTE: returning type="plant" to maintain compatibility with frontend renderer
         return {
-            "type": "fractal_plant",
+            "type": "plant",
             "id": self.plant_id,
             "x": self.pos.x,
             "y": self.pos.y,
@@ -551,11 +556,8 @@ class FractalPlant(Agent):
         }
 
 
-from core.entities.resources import Food
-
-
 class PlantNectar(Food):
-    """Nectar produced by fractal plants.
+    """Nectar produced by plants.
 
     When consumed by fish, triggers plant reproduction at a nearby root spot.
 
@@ -565,7 +567,7 @@ class PlantNectar(Food):
         energy: Energy value when consumed
     """
 
-    NECTAR_ENERGY = FRACTAL_PLANT_NECTAR_ENERGY
+    NECTAR_ENERGY = PLANT_NECTAR_ENERGY
     NECTAR_SIZE = 15
 
     def __init__(
@@ -573,7 +575,7 @@ class PlantNectar(Food):
         environment: "World",
         x: float,
         y: float,
-        source_plant: FractalPlant,
+        source_plant: Plant,
         relative_y_offset_pct: float = 0.20,
     ) -> None:
         """Initialize plant nectar.

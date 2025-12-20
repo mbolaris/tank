@@ -22,7 +22,7 @@ def save_tank_state(tank_id: str, manager: SimulationManager) -> str:
 
     Returns: filepath of saved state
     """
-    - Serialize all entities (Fish, FractalPlant, Food, Nectar)
+    - Serialize all entities (Fish, Plant, Food, Nectar)
     - Save ecosystem statistics
     - Save tank metadata (name, description, settings)
     - Save RNG state for deterministic resume

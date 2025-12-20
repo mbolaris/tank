@@ -61,27 +61,25 @@ def test_opportunistic_rester_wandering():
 
 
 def test_algorithm_parameters_genetic():
-    """Test that new parameters can be inherited genetically."""
-    print("\nTesting genetic inheritance of new parameters...")
+    """Test that composable behaviors can be inherited genetically."""
+    print("\nTesting genetic inheritance of composable behaviors...")
 
     from core.genetics import Genome
 
-    # Test that genomes can be created with algorithms containing new parameters
+    # Test that genomes can be created with composable behaviors
     genome1 = Genome.random(use_algorithm=True)
 
-    behavior_algorithm = genome1.behavioral.behavior_algorithm.value
-    if behavior_algorithm:
-        print(f"  Random genome created with algorithm: {behavior_algorithm.algorithm_id}")
+    composable_behavior = genome1.behavioral.composable_behavior
+    if composable_behavior and composable_behavior.value:
+        behavior = composable_behavior.value
+        print(f"  Random genome created with composable behavior:")
+        print(f"    - Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}")
+        print(f"    - Food approach: {behavior.food_approach.name if behavior.food_approach else 'None'}")
+        print(f"    - Energy style: {behavior.energy_style.name if behavior.energy_style else 'None'}")
+        print(f"    - Social mode: {behavior.social_mode.name if behavior.social_mode else 'None'}")
+        print(f"    - Poker engagement: {behavior.poker_engagement.name if behavior.poker_engagement else 'None'}")
 
-        # Check if it's one of our modified algorithms
-        if behavior_algorithm.algorithm_id == "energy_conserver":
-            assert "exploration_rate" in behavior_algorithm.parameters
-            print(f"    - exploration_rate: {behavior_algorithm.parameters['exploration_rate']:.3f}")
-        elif behavior_algorithm.algorithm_id == "opportunistic_rester":
-            assert "idle_wander_speed" in behavior_algorithm.parameters
-            print(f"    - idle_wander_speed: {behavior_algorithm.parameters['idle_wander_speed']:.3f}")
-
-    print("  ✓ New parameters are properly integrated into genetic system")
+    print("  ✓ Composable behaviors are properly integrated into genetic system")
 
 
 if __name__ == "__main__":

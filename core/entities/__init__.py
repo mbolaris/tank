@@ -2,9 +2,9 @@
 
 from core.entities.base import Agent, Castle, LifeStage, Rect
 from core.entities.fish import Fish
-from core.entities.fractal_plant import FractalPlant, PlantNectar
+from core.entities.plant import Plant, PlantNectar
 from core.entities.predators import Crab
-from core.entities.resources import Food, LiveFood, Plant
+from core.entities.resources import Food, LiveFood
 
 __all__ = [
     "Agent",
@@ -16,6 +16,5 @@ __all__ = [
     "Food",
     "LiveFood",
     "Plant",
-    "FractalPlant",
     "PlantNectar",
 ]

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.entities.fish import Fish
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 from core.serializers import FishSerializer, PlantSerializer
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class AutoEvalService:
         """Collect top fish and plants for benchmarking."""
         # This logic mirrors the previous implementation but uses serializers
         fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
-        plant_list = [e for e in self.world.entities_list if isinstance(e, FractalPlant)]
+        plant_list = [e for e in self.world.entities_list if isinstance(e, Plant)]
         
         # Get leaderboard from ecosystem
         leaderboard = []
@@ -238,7 +238,7 @@ class AutoEvalService:
                         (
                             e
                             for e in self.world.entities_list
-                            if isinstance(e, FractalPlant) and e.plant_id == plant_id
+                            if isinstance(e, Plant) and e.plant_id == plant_id
                         ),
                         None,
                     )

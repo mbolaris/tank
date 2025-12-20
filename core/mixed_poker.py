@@ -29,7 +29,7 @@ from core.poker.evaluation.strength import evaluate_starting_hand_strength
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.entities.fractal_plant import FractalPlant
+    from core.entities.plant import Plant
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class MultiplayerBettingRound(IntEnum):
     SHOWDOWN = 4
 
 # Type alias for players
-Player = Union["Fish", "FractalPlant"]
+Player = Union["Fish", "Plant"]
 
 
 @dataclass
@@ -244,12 +244,12 @@ class MixedPokerInteraction:
         return hasattr(player, "fish_id") and hasattr(player, "genome")
 
     @staticmethod
-    def _is_fractal_plant_player(player: Any) -> bool:
-        """Robust fractal plant detection (see `_is_fish_player`)."""
+    def _is_plant_player(player: Any) -> bool:
+        """Robust plant detection (see `_is_fish_player`)."""
         try:
-            from core.entities.fractal_plant import FractalPlant  # type: ignore
+            from core.entities.plant import Plant  # type: ignore
 
-            if isinstance(player, FractalPlant):
+            if isinstance(player, Plant):
                 return True
         except Exception:
             pass
@@ -260,7 +260,7 @@ class MixedPokerInteraction:
         """Initialize a mixed poker interaction.
 
         Args:
-            players: List of Fish and/or FractalPlant objects (2-6 players)
+            players: List of Fish and/or Plant objects (2-6 players)
 
         Raises:
             ValueError: If fewer than 2 players, more than max players,
@@ -284,7 +284,7 @@ class MixedPokerInteraction:
 
         # Categorize players
         self.fish_players = [p for p in players if self._is_fish_player(p)]
-        self.plant_players = [p for p in players if self._is_fractal_plant_player(p)]
+        self.plant_players = [p for p in players if self._is_plant_player(p)]
         self.fish_count = len(self.fish_players)
         self.plant_count = len(self.plant_players)
 
@@ -300,7 +300,7 @@ class MixedPokerInteraction:
 
         if self._is_fish_player(player):
             return player.fish_id + FISH_ID_OFFSET
-        elif self._is_fractal_plant_player(player):
+        elif self._is_plant_player(player):
             return player.plant_id + PLANT_ID_OFFSET
         return id(player)
 
@@ -308,8 +308,8 @@ class MixedPokerInteraction:
         """Get the type of a player (matching frontend entity type names)."""
         if self._is_fish_player(player):
             return "fish"
-        elif self._is_fractal_plant_player(player):
-            return "fractal_plant"  # Must match frontend entity type
+        elif self._is_plant_player(player):
+            return "plant"  # Must match frontend entity type
         return "unknown"
 
     def _get_player_energy(self, player: Player) -> float:
@@ -330,7 +330,7 @@ class MixedPokerInteraction:
         if self._is_fish_player(player):
             trait = player.genome.behavioral.poker_strategy_algorithm
             return trait.value if trait else None
-        elif self._is_fractal_plant_player(player):
+        elif self._is_plant_player(player):
             from core.plant_poker_strategy import PlantPokerStrategyAdapter
             return PlantPokerStrategyAdapter.from_plant(player)
         return None
@@ -342,7 +342,7 @@ class MixedPokerInteraction:
                 player.genome.behavioral.aggression.value
                 * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW)
             )
-        elif self._is_fractal_plant_player(player):
+        elif self._is_plant_player(player):
             return POKER_AGGRESSION_LOW + (
                 player.get_poker_aggression() * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW)
             )
@@ -353,7 +353,7 @@ class MixedPokerInteraction:
         if self._is_fish_player(player) or hasattr(player, "modify_energy"):
             # Use modify_energy to properly cap at max and route overflow to reproduction/food
             player.modify_energy(amount)
-        elif self._is_fractal_plant_player(player):
+        elif self._is_plant_player(player):
             if amount > 0:
                 player.gain_energy(amount)
             else:
@@ -382,7 +382,7 @@ class MixedPokerInteraction:
             target_type: Type of the opponent ('fish' or 'plant')
         """
         from core.entities import Fish
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         status = "won" if won else "lost"
 
@@ -399,7 +399,7 @@ class MixedPokerInteraction:
                 }
                 if hasattr(player, "poker_effect_timer"):
                     player.poker_effect_timer = 60
-        elif isinstance(player, FractalPlant):
+        elif isinstance(player, Plant):
             # Plants have similar structure
             player.poker_effect_state = {
                 "status": status,
@@ -430,7 +430,7 @@ class MixedPokerInteraction:
                 return False
 
             # Check if plant is dead
-            if self._is_fractal_plant_player(player) and player.is_dead():
+            if self._is_plant_player(player) and player.is_dead():
                 return False
 
             # Check cooldown
@@ -979,10 +979,10 @@ class MixedPokerInteraction:
                     player.poker_losses = getattr(player, "poker_losses", 0) + 1
 
         # Update plant stats
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         for i, player in enumerate(self.players):
-            if not isinstance(player, FractalPlant):
+            if not isinstance(player, Plant):
                 continue
 
             is_winner = i == winner_idx or i in tied_players
@@ -1001,8 +1001,8 @@ def check_poker_proximity(
     """Check if two entities are in poker proximity (close but not touching).
 
     Args:
-        entity1: First entity (Fish or FractalPlant)
-        entity2: Second entity (Fish or FractalPlant)
+        entity1: First entity (Fish or Plant)
+        entity2: Second entity (Fish or Plant)
         min_distance: Minimum center-to-center distance
         max_distance: Maximum center-to-center distance
 

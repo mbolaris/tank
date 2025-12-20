@@ -37,7 +37,6 @@ class Genome:
     Attributes:
         physical: Physical appearance traits
         behavioral: Behavioral and decision-making traits
-        learned_behaviors: Non-genetic learned adjustments (cultural evolution)
     """
 
     physical: PhysicalTraits
@@ -133,9 +132,6 @@ class Genome:
         issues.extend(
             validate_traits_from_specs(BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral")
         )
-        # Non-spec traits (broad checks only)
-        if not isinstance(self.learned_behaviors, dict):
-            issues.append(f"genome.learned_behaviors: expected dict, got {type(self.learned_behaviors).__name__}")
 
         return {"ok": not issues, "issues": issues}
 

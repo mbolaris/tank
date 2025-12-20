@@ -87,7 +87,7 @@ const gptCodexCache = new Map<number, PlantRenderCache>();
  * Without pruning, the caches can grow unbounded when the simulation spawns
  * and deletes many plants, eventually exhausting browser memory.
  */
-export function pruneFractalPlantCache(activePlantIds: Iterable<number>): void {
+export function prunePlantCaches(activePlantIds: Iterable<number>): void {
     const activeIds = new Set(activePlantIds);
 
     const caches = [
@@ -132,7 +132,7 @@ export function pruneFractalPlantCache(activePlantIds: Iterable<number>): void {
 /**
  * Diagnostic helper: return sizes of each internal cache (useful for leak investigation)
  */
-export function getFractalPlantCacheSizes(): Record<string, number> {
+export function getPlantCacheSizes(): Record<string, number> {
     return {
         plantCache: plantCache.size,
         mandelbrotCache: mandelbrotCache.size,
@@ -949,7 +949,7 @@ function hslToRgbTuple(h: number, s: number, l: number): [number, number, number
 /**
  * Render a fractal plant to a canvas context.
  */
-export function renderFractalPlant(
+export function renderPlant(
     ctx: CanvasRenderingContext2D,
     plantId: number,
     genome: PlantGenomeData,

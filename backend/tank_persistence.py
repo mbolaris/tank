@@ -172,7 +172,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
             if "species" in entity_data and "genome_data" in entity_data:
                 return "fish"
             if "root_spot_id" in entity_data and "genome_data" in entity_data:
-                return "fractal_plant"
+                return "plant"
             return None
 
         # Clear existing entities
@@ -186,7 +186,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 spot.release()
 
         # Restore entities
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         # Track restored plants for nectar association
         plants_by_id = {}
@@ -196,27 +196,35 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         # Pass 1: Restore non-nectar entities
         for entity_data in snapshot["entities"]:
             entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
+            
+            # Backward compatibility: old saves used "fractal_plant", remap to "plant"
+            if entity_type == "fractal_plant":
+                entity_type = "plant"
+                
             if entity_type and "type" not in entity_data:
                 entity_data["type"] = entity_type
+            elif entity_type and entity_data.get("type") == "fractal_plant":
+                # Update the data dict as well for downstream deserialization
+                entity_data["type"] = "plant"
 
             if entity_type == "plant_nectar":
                 nectar_data_list.append(entity_data)
                 continue
 
-            if entity_type in ("fish", "fractal_plant"):
+            if entity_type in ("fish", "plant"):
                 # Use existing deserialization logic
                 entity = deserialize_entity(entity_data, target_world)
                 if entity:
                     # Fix for ID mismatch: Restore original ID for consistency (critical for Nectar->Plant links)
-                    if isinstance(entity, FractalPlant) and "id" in entity_data:
+                    if isinstance(entity, Plant) and "id" in entity_data:
                         entity.plant_id = entity_data["id"]
                         # Ensure internal ID counter is higher than this ID to avoid collisions
-                        if entity.plant_id >= FractalPlant._next_id:
-                            FractalPlant._next_id = entity.plant_id + 1
+                        if entity.plant_id >= Plant._next_id:
+                            Plant._next_id = entity.plant_id + 1
 
                     target_world.engine.add_entity(entity)
                     restored_count += 1
-                    if isinstance(entity, FractalPlant):
+                    if isinstance(entity, Plant):
                         plants_by_id[entity.plant_id] = entity
 
             elif entity_type == "food":

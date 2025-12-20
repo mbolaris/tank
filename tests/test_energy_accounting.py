@@ -2,7 +2,7 @@ import math
 
 from core.ecosystem import EcosystemManager
 from core.entities import Fish
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 from core.fish_poker import PokerInteraction
 from core.mixed_poker import MixedPokerInteraction, MixedPokerResult
 from core.movement_strategy import AlgorithmicMovement
@@ -205,7 +205,7 @@ def test_poker_settlement_does_not_double_count_house_cut(simulation_env):
     assert math.isclose(poker_loss, poker_payout, rel_tol=0, abs_tol=1e-9)
 
 
-def test_fractal_plant_records_energy_gains_and_spends(simulation_env):
+def test_plant_records_energy_gains_and_spends(simulation_env):
     _unused_env, _agents_wrapper = simulation_env
 
     ecosystem = EcosystemManager()
@@ -213,7 +213,7 @@ def test_fractal_plant_records_energy_gains_and_spends(simulation_env):
     spot = _RootSpotStub(spot_id=12)
     genome = PlantGenome.create_random()
 
-    plant = FractalPlant(
+    plant = Plant(
         environment=env,
         genome=genome,
         root_spot=spot,
@@ -275,7 +275,7 @@ def test_mixed_poker_house_cut_only_hits_fish_when_fish_wins():
 
     all_entities = engine.get_all_entities()
     fish = next(e for e in all_entities if isinstance(e, Fish))
-    plant = next(e for e in all_entities if isinstance(e, FractalPlant))
+    plant = next(e for e in all_entities if isinstance(e, Plant))
 
     fish.energy = 50.0
     plant.energy = 50.0
@@ -292,7 +292,7 @@ def test_mixed_poker_house_cut_only_hits_fish_when_fish_wins():
         winner_type="fish",
         winner_hand=None,
         loser_ids=[poker._get_player_id(plant)],
-        loser_types=["fractal_plant"],
+        loser_types=["plant"],
         loser_hands=[None],
         energy_transferred=8.0,
         total_pot=20.0,
@@ -318,7 +318,7 @@ def test_mixed_poker_house_cut_only_hits_plants_when_plant_wins():
 
     all_entities = engine.get_all_entities()
     fish = next(e for e in all_entities if isinstance(e, Fish))
-    plant = next(e for e in all_entities if isinstance(e, FractalPlant))
+    plant = next(e for e in all_entities if isinstance(e, Plant))
 
     fish.energy = 50.0
     plant.energy = 50.0
@@ -332,7 +332,7 @@ def test_mixed_poker_house_cut_only_hits_plants_when_plant_wins():
 
     poker.result = MixedPokerResult(
         winner_id=poker._get_player_id(plant),
-        winner_type="fractal_plant",
+        winner_type="plant",
         winner_hand=None,
         loser_ids=[poker._get_player_id(fish)],
         loser_types=["fish"],

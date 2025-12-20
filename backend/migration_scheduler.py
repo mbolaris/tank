@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Optional
 from backend.connection_manager import ConnectionManager
 from backend.tank_registry import TankRegistry
 from core.entities import Fish
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 
 if TYPE_CHECKING:
     from backend.discovery_service import DiscoveryService
@@ -167,7 +167,7 @@ class MigrationScheduler:
         # Get eligible entities (fish and plants)
         eligible_entities = []
         for entity in source_manager.world.entities_list:
-            if isinstance(entity, (Fish, FractalPlant)):
+            if isinstance(entity, (Fish, Plant)):
                 eligible_entities.append(entity)
 
         if not eligible_entities:
@@ -298,7 +298,7 @@ class MigrationScheduler:
         # Get eligible entities
         eligible_entities = []
         for entity in source_manager.world.entities_list:
-            if isinstance(entity, (Fish, FractalPlant)):
+            if isinstance(entity, (Fish, Plant)):
                 eligible_entities.append(entity)
 
         if not eligible_entities:

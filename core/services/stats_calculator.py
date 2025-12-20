@@ -524,7 +524,7 @@ class StatsCalculator:
             Dictionary with entity counts and energy totals
         """
         from core import entities
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         fish_list = self._engine.get_fish_list()
         all_food_list = self._engine.get_food_list()
@@ -538,11 +538,8 @@ class StatsCalculator:
         ]
 
         # Plant lists
-        regular_plants = [
-            e for e in self._engine.entities_list if isinstance(e, entities.Plant)
-        ]
-        fractal_plants = [
-            e for e in self._engine.entities_list if isinstance(e, FractalPlant)
+        plants = [
+            e for e in self._engine.entities_list if isinstance(e, Plant)
         ]
 
         return {
@@ -552,8 +549,8 @@ class StatsCalculator:
             "food_energy": sum(food.energy for food in regular_food_list),
             "live_food_count": len(live_food_list),
             "live_food_energy": sum(food.energy for food in live_food_list),
-            "plant_count": len(regular_plants) + len(fractal_plants),
-            "plant_energy": sum(plant.energy for plant in fractal_plants),
+            "plant_count": len(plants),
+            "plant_energy": sum(plant.energy for plant in plants),
         }
 
     def _get_fish_health_stats(self) -> Dict[str, Any]:

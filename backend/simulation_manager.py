@@ -295,7 +295,7 @@ class SimulationManager:
                     capture_fish_mutable_state,
                     capture_plant_mutable_state,
                 )
-                from core.entities import Fish, Food, FractalPlant, PlantNectar
+                from core.entities import Fish, Food, Plant, PlantNectar
                 from core.entities.base import Castle
                 from core.entities.predators import Crab
 
@@ -333,7 +333,7 @@ class SimulationManager:
                 for entity in engine.entities_list:
                     if isinstance(entity, Fish):
                         captured_entities.append(("fish", entity, capture_fish_mutable_state(entity)))
-                    elif isinstance(entity, FractalPlant):
+                    elif isinstance(entity, Plant):
                         captured_entities.append(("plant", entity, capture_plant_mutable_state(entity)))
                     elif isinstance(entity, (PlantNectar, Food, Castle, Crab)):
                         # For simple entities, we can just capture them directly or copy needed data
@@ -347,7 +347,7 @@ class SimulationManager:
                 finalize_fish_serialization,
                 finalize_plant_serialization,
             )
-            from core.entities import Fish, Food, FractalPlant, PlantNectar
+            from core.entities import Fish, Food, Plant, PlantNectar
             from core.entities.base import Castle
             from core.entities.predators import Crab
 

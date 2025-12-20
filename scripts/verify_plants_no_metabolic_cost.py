@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from typing import Optional, Tuple
 
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 from core.environment import Environment
 from core.genetics import PlantGenome
 from core.root_spots import RootSpot, RootSpotManager
@@ -27,7 +27,7 @@ def verify_single_plant(spot_id: int = 10, frames: int = 100) -> int:
         return 1
 
     genome = PlantGenome.create_random()
-    plant = FractalPlant(
+    plant = Plant(
         environment=environment, genome=genome, root_spot=spot, initial_energy=50.0
     )
     spot.claim(plant)

@@ -5,7 +5,7 @@
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
 import { Renderer } from '../utils/renderer';
-import { getFractalPlantCacheSizes } from '../utils/fractalPlant';
+import { getPlantCacheSizes } from '../utils/plant';
 import { ImageLoader } from '../utils/ImageLoader';
 
 interface CanvasProps {
@@ -139,7 +139,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         // Keep fractal plant caches bounded as plants spawn and despawn
         renderer.prunePlantCaches(
             state.entities
-                .filter((entity) => entity.type === 'fractal_plant')
+                .filter((entity) => entity.type === 'plant')
                 .map((entity) => entity.id)
         );
 
@@ -190,8 +190,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         const interval = setInterval(() => {
             try {
                 // eslint-disable-next-line no-console
-                console.debug('Renderer instances:', Renderer.instanceCount, 'Fractal caches:', getFractalPlantCacheSizes());
-            } catch (e) {}
+                console.debug('Renderer instances:', Renderer.instanceCount, 'Fractal caches:', getPlantCacheSizes());
+            } catch (e) { }
         }, 60000); // log every minute
         return () => clearInterval(interval);
     }, []);

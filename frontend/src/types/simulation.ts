@@ -54,7 +54,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'fractal_plant' | 'plant_nectar';
+    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar';
     x: number;
     y: number;
     width: number;
@@ -74,7 +74,7 @@ export interface EntityData {
         status: 'playing' | 'won' | 'lost' | 'tie';
         amount: number;
         target_id?: number;
-        target_type?: 'fish' | 'fractal_plant';
+        target_type?: 'fish' | 'plant';
     };
     birth_effect_timer?: number;  // Frames remaining for birth visual effect
 

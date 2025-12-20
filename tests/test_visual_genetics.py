@@ -2,6 +2,10 @@
 """Test script to verify visual genetics inheritance"""
 
 from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
+from core.config.fish import (
+    EYE_SIZE_MIN, EYE_SIZE_MAX,
+    BODY_ASPECT_MIN, BODY_ASPECT_MAX,
+)
 from core.genetics import Genome
 
 
@@ -20,8 +24,8 @@ def test_visual_traits():
     print(f"   Template ID: {phys1.template_id.value} (should be 0-{FISH_TEMPLATE_COUNT - 1})")
     print(f"   Fin Size: {phys1.fin_size.value:.2f} (should be 0.5-2.0)")
     print(f"   Tail Size: {phys1.tail_size.value:.2f} (should be 0.5-2.0)")
-    print(f"   Body Aspect: {phys1.body_aspect.value:.2f} (should be 0.7-1.3)")
-    print(f"   Eye Size: {phys1.eye_size.value:.2f} (should be 0.7-1.3)")
+    print(f"   Body Aspect: {phys1.body_aspect.value:.2f} (should be {BODY_ASPECT_MIN}-{BODY_ASPECT_MAX})")
+    print(f"   Eye Size: {phys1.eye_size.value:.2f} (should be {EYE_SIZE_MIN}-{EYE_SIZE_MAX})")
     print(f"   Pattern Intensity: {phys1.pattern_intensity.value:.2f} (should be 0.0-1.0)")
     print(f"   Pattern Type: {phys1.pattern_type.value} (should be 0-{FISH_PATTERN_COUNT - 1})")
     print(f"   Color Hue: {phys1.color_hue.value:.2f} (should be 0.0-1.0)")
@@ -30,8 +34,8 @@ def test_visual_traits():
     assert 0 <= phys1.template_id.value <= FISH_TEMPLATE_COUNT - 1, "template_id out of range"
     assert 0.5 <= phys1.fin_size.value <= 2.0, "fin_size out of range"
     assert 0.5 <= phys1.tail_size.value <= 2.0, "tail_size out of range"
-    assert 0.7 <= phys1.body_aspect.value <= 1.3, "body_aspect out of range"
-    assert 0.7 <= phys1.eye_size.value <= 1.3, "eye_size out of range"
+    assert BODY_ASPECT_MIN <= phys1.body_aspect.value <= BODY_ASPECT_MAX, "body_aspect out of range"
+    assert EYE_SIZE_MIN <= phys1.eye_size.value <= EYE_SIZE_MAX, "eye_size out of range"
     assert 0.0 <= phys1.pattern_intensity.value <= 1.0, "pattern_intensity out of range"
     assert 0 <= phys1.pattern_type.value <= FISH_PATTERN_COUNT - 1, "pattern_type out of range"
 
@@ -82,8 +86,8 @@ def test_visual_traits():
     ), "offspring template_id out of range"
     assert 0.5 <= offspring_phys.fin_size.value <= 2.0, "offspring fin_size out of range"
     assert 0.5 <= offspring_phys.tail_size.value <= 2.0, "offspring tail_size out of range"
-    assert 0.7 <= offspring_phys.body_aspect.value <= 1.3, "offspring body_aspect out of range"
-    assert 0.7 <= offspring_phys.eye_size.value <= 1.3, "offspring eye_size out of range"
+    assert BODY_ASPECT_MIN <= offspring_phys.body_aspect.value <= BODY_ASPECT_MAX, "offspring body_aspect out of range"
+    assert EYE_SIZE_MIN <= offspring_phys.eye_size.value <= EYE_SIZE_MAX, "offspring eye_size out of range"
     assert 0.0 <= offspring_phys.pattern_intensity.value <= 1.0, "offspring pattern_intensity out of range"
     assert (
         0 <= offspring_phys.pattern_type.value <= FISH_PATTERN_COUNT - 1

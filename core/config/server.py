@@ -5,4 +5,4 @@ DEFAULT_API_PORT = 8000  # Default port for FastAPI backend
 
 # Feature Flags
 POKER_ACTIVITY_ENABLED = True  # Enable poker activity
-FRACTAL_PLANTS_ENABLED = True  # Enable fractal plant system
+PLANTS_ENABLED = True  # Enable unified plant system

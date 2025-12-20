@@ -200,10 +200,16 @@ class TestFood:
     def test_food_gets_eaten(self, simulation_env):
         """Test that food notifies source plant when eaten."""
         env, agents = simulation_env
-        from core.entities import Plant
+        from unittest.mock import MagicMock
 
-        plant = Plant(env, 1)
+        # Create a mock plant with the legacy interface for testing
+        plant = MagicMock()
         plant.current_food_count = 5
+        
+        def decrement_count():
+            plant.current_food_count -= 1
+        plant.notify_food_eaten = decrement_count
+        
         food = Food(env, 100, 50, source_plant=plant)
         agents.add(food)
 
@@ -220,14 +226,36 @@ class TestPlant:
 
     def test_plant_initialization(self, simulation_env):
         """Test that plant initializes correctly."""
+        from core.genetics import PlantGenome
+        from unittest.mock import MagicMock
+        
         env, _ = simulation_env
-        plant = Plant(env, 1)
+        # Create a mock root spot
+        root_spot = MagicMock()
+        root_spot.x = 100.0
+        root_spot.y = 500.0
+        root_spot.spot_id = 1
+        root_spot.manager = None
+        
+        genome = PlantGenome.create_random()
+        plant = Plant(env, genome=genome, root_spot=root_spot)
         assert plant.speed == 0
 
     def test_plant_does_not_move(self, simulation_env):
         """Test that plant stays in place."""
+        from core.genetics import PlantGenome
+        from unittest.mock import MagicMock
+        
         env, _ = simulation_env
-        plant = Plant(env, 1)
+        # Create a mock root spot
+        root_spot = MagicMock()
+        root_spot.x = 100.0
+        root_spot.y = 500.0
+        root_spot.spot_id = 1
+        root_spot.manager = None
+        
+        genome = PlantGenome.create_random()
+        plant = Plant(env, genome=genome, root_spot=root_spot)
         initial_pos = plant.pos.copy()
 
         plant.update_position()

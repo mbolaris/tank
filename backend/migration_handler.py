@@ -108,11 +108,11 @@ class BackendMigrationHandler:
         try:
             # Track energy leaving the source tank (for fish only)
             from core.entities.fish import Fish
-            from core.entities.fractal_plant import FractalPlant
+            from core.entities.plant import Plant
             if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
-            if isinstance(entity, FractalPlant):
+            if isinstance(entity, Plant):
                 # If destination has no available root spots, fail fast to avoid churn.
                 dest_root_spot_manager = getattr(dest_manager.world.engine, "root_spot_manager", None)
                 if dest_root_spot_manager is None or dest_root_spot_manager.get_empty_count() <= 0:

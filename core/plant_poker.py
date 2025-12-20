@@ -1,7 +1,7 @@
 """
-Fractal Plant-Fish poker interaction system.
+Plant-Fish poker interaction system.
 
-This module handles poker games between fish and fractal plants.
+This module handles poker games between fish and plants.
 Fish can "eat" plants by playing poker - if the fish wins, they take
 energy from the plant. If the plant wins, it takes energy from the fish.
 """
@@ -15,12 +15,12 @@ from core.poker.simulation import simulate_multi_round_game
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.entities.fractal_plant import FractalPlant
+    from core.entities.plant import Plant
 
 
 @dataclass
 class PlantPokerResult:
-    """Result of a poker game between a fish and fractal plant."""
+    """Result of a poker game between a fish and plant."""
 
     fish_hand: PokerHand
     plant_hand: PokerHand
@@ -38,9 +38,9 @@ class PlantPokerResult:
 
 
 class PlantPokerInteraction:
-    """Handles poker encounters between fish and fractal plants.
+    """Handles poker encounters between fish and plants.
 
-    When a fish collides with a fractal plant, they can play poker.
+    When a fish collides with a plant, they can play poker.
     The winner takes energy from the loser. This allows fish to
     "eat" plants by winning poker games.
     """
@@ -52,15 +52,15 @@ class PlantPokerInteraction:
     DEFAULT_BET_AMOUNT = 8.0
 
     # Cooldown between poker games (in frames)
-    from core.config.plants import FRACTAL_PLANT_POKER_COOLDOWN
-    POKER_COOLDOWN = FRACTAL_PLANT_POKER_COOLDOWN
+    from core.config.plants import PLANT_POKER_COOLDOWN
+    POKER_COOLDOWN = PLANT_POKER_COOLDOWN
 
-    def __init__(self, fish: "Fish", plant: "FractalPlant"):
+    def __init__(self, fish: "Fish", plant: "Plant"):
         """Initialize a poker interaction between a fish and plant.
 
         Args:
             fish: The fish player
-            plant: The fractal plant player
+            plant: The plant player
         """
         self.fish = fish
         self.plant = plant
@@ -240,10 +240,10 @@ class PlantPokerInteraction:
         plant_stable_id = self.plant.plant_id + PLANT_ID_OFFSET
 
         if fish_won:
-            self.fish.set_poker_effect("won", abs(energy_transferred), target_id=plant_stable_id, target_type="fractal_plant")
+            self.fish.set_poker_effect("won", abs(energy_transferred), target_id=plant_stable_id, target_type="plant")
             self.plant.set_poker_effect("lost", abs(energy_transferred), target_id=fish_stable_id, target_type="fish")
         else:
-            self.fish.set_poker_effect("lost", abs(energy_transferred), target_id=plant_stable_id, target_type="fractal_plant")
+            self.fish.set_poker_effect("lost", abs(energy_transferred), target_id=plant_stable_id, target_type="plant")
             self.plant.set_poker_effect("won", abs(energy_transferred), target_id=fish_stable_id, target_type="fish")
 
         # Store result
@@ -298,7 +298,7 @@ class PlantPokerInteraction:
 
 
 def check_fish_plant_poker_proximity(
-    fish: "Fish", plant: "FractalPlant", min_distance: float = 40.0, max_distance: float = 80.0
+    fish: "Fish", plant: "Plant", min_distance: float = 40.0, max_distance: float = 80.0
 ) -> bool:
     """Check if a fish and plant are close enough for poker but not touching.
 
@@ -306,7 +306,7 @@ def check_fish_plant_poker_proximity(
 
     Args:
         fish: The fish
-        plant: The fractal plant
+        plant: The plant
         min_distance: Minimum center-to-center distance (must be farther than this to not be touching)
         max_distance: Maximum center-to-center distance for poker trigger
 
@@ -329,7 +329,7 @@ def check_fish_plant_poker_proximity(
 
 # Legacy alias for backwards compatibility
 def check_fish_plant_poker_collision(
-    fish: "Fish", plant: "FractalPlant", collision_distance: float = 50.0
+    fish: "Fish", plant: "Plant", collision_distance: float = 50.0
 ) -> bool:
     """Legacy function - now uses proximity check instead of collision."""
     return check_fish_plant_poker_proximity(fish, plant, min_distance=40.0, max_distance=collision_distance)

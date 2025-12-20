@@ -52,7 +52,6 @@ class EntitySnapshotBuilder:
         z_order = {
             "castle": 0,
             "plant": 1,
-            "fractal_plant": 1,  # Same layer as regular plants
             "plant_nectar": 2,  # Same layer as food
             "food": 2,
             "fish": 4,
@@ -82,7 +81,7 @@ class EntitySnapshotBuilder:
 
             if isinstance(entity, entities.Fish) and hasattr(entity, "fish_id"):
                 stable_id = entity.fish_id + FISH_ID_OFFSET
-            elif isinstance(entity, entities.FractalPlant) and hasattr(entity, "plant_id"):
+            elif isinstance(entity, entities.Plant) and hasattr(entity, "plant_id"):
                 stable_id = entity.plant_id + PLANT_ID_OFFSET
             elif isinstance(entity, entities.PlantNectar):
                 if python_id in self._entity_stable_ids:
@@ -212,27 +211,9 @@ class EntitySnapshotBuilder:
                 )
 
             if isinstance(entity, entities.Plant):
-                return EntitySnapshot(
-                    type="plant",
-                    plant_type=entity.plant_type if hasattr(entity, "plant_type") else 1,
-                    **base_data,
-                )
-
-            if isinstance(entity, entities.Crab):
-                return EntitySnapshot(
-                    type="crab",
-                    energy=entity.energy if hasattr(entity, "energy") else 100,
-                    can_hunt=entity.can_hunt() if hasattr(entity, "can_hunt") else True,
-                    **base_data,
-                )
-
-            if isinstance(entity, entities.Castle):
-                return EntitySnapshot(type="castle", **base_data)
-
-            if isinstance(entity, entities.FractalPlant):
                 genome_dict = entity.genome.to_dict() if hasattr(entity, "genome") else None
                 return EntitySnapshot(
-                    type="fractal_plant",
+                    type="plant",
                     energy=entity.energy if hasattr(entity, "energy") else 0,
                     max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100,
                     genome=genome_dict,
@@ -247,12 +228,23 @@ class EntitySnapshotBuilder:
                     if hasattr(entity, "nectar_cooldown")
                     else False,
                     age=entity.age if hasattr(entity, "age") else 0,
-                    plant_type=2,
+                    plant_type=2,  # Mark as fractal-capable for backward compat if needed
                     poker_effect_state=entity.poker_effect_state
                     if hasattr(entity, "poker_effect_state")
                     else None,
                     **base_data,
                 )
+
+            if isinstance(entity, entities.Crab):
+                return EntitySnapshot(
+                    type="crab",
+                    energy=entity.energy if hasattr(entity, "energy") else 100,
+                    can_hunt=entity.can_hunt() if hasattr(entity, "can_hunt") else True,
+                    **base_data,
+                )
+
+            if isinstance(entity, entities.Castle):
+                return EntitySnapshot(type="castle", **base_data)
 
             return None
         except Exception as exc:

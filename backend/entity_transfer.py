@@ -73,13 +73,13 @@ class FishTransferCodec:
         return _deserialize_fish(data, target_world)
 
 
-class FractalPlantTransferCodec:
-    type_name = "fractal_plant"
+class PlantTransferCodec:
+    type_name = "plant"
 
     def can_serialize(self, entity: Any) -> bool:
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
-        return isinstance(entity, FractalPlant)
+        return isinstance(entity, Plant)
 
     def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
         return _serialize_plant(entity, ctx.migration_direction)
@@ -215,6 +215,11 @@ class TransferRegistry:
                 )
             )
 
+        # Backward compatibility: old saves used "fractal_plant", remap to "plant"
+        if entity_type == "fractal_plant":
+            entity_type = "plant"
+            data["type"] = "plant"  # Update data dict for downstream logic
+
         codec = self.codecs_by_type.get(entity_type)
         if codec is None:
             return TransferOutcome(
@@ -271,7 +276,7 @@ class TransferRegistry:
         return outcome.value
 
 
-DEFAULT_REGISTRY = TransferRegistry(codecs=[FishTransferCodec(), FractalPlantTransferCodec()])
+DEFAULT_REGISTRY = TransferRegistry(codecs=[FishTransferCodec(), PlantTransferCodec()])
 
 
 def _require_keys(data: SerializedEntity, keys: List[str], *, entity_type: str) -> bool:
@@ -294,7 +299,7 @@ def serialize_entity_for_transfer(
     """Serialize an entity for transfer to another tank.
 
     Args:
-        entity: The entity to serialize (Fish, FractalPlant, etc.)
+        entity: The entity to serialize (Fish, Plant, etc.)
         migration_direction: Optional direction of migration for plants ("left" or "right")
 
     Returns:
@@ -373,7 +378,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Ser
 
 
 def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> SerializedEntity:
-    """Serialize a FractalPlant entity."""
+    """Serialize a Plant entity."""
     mutable_state = capture_plant_mutable_state(plant, migration_direction)
     return finalize_plant_serialization(plant, mutable_state)
 
@@ -406,7 +411,7 @@ def capture_plant_mutable_state(plant: Any, migration_direction: Optional[str] =
 def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
     """Construct full plant serialization using captured mutable state."""
     return {
-        "type": "fractal_plant",
+        "type": "plant",
         "id": mutable_state["id"],
         "x": mutable_state["x"],
         "y": mutable_state["y"],
@@ -530,15 +535,15 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
 
 
 def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
-    """Deserialize and create a FractalPlant entity."""
+    """Deserialize and create a Plant entity."""
     try:
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
         from core.genetics import PlantGenome
 
         if not _require_keys(
             data,
             ["genome_data", "x", "y", "energy", "age"],
-            entity_type="fractal_plant",
+            entity_type="plant",
         ):
             return None
 
@@ -608,7 +613,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
         )
 
         # Create plant with proper constructor
-        plant = FractalPlant(
+        plant = Plant(
             environment=target_world.engine.environment,
             genome=genome,
             root_spot=root_spot,

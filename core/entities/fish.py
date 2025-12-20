@@ -339,7 +339,7 @@ class Fish(Agent):
             amount: Amount won or lost (for display)
             duration: How long to show the effect in frames
             target_id: ID of the opponent/target entity (for drawing arrows)
-            target_type: Type of the opponent/target entity ('fish', 'fractal_plant')
+            target_type: Type of the opponent/target entity ('fish', 'plant')
         """
         self.poker_effect_state = {
             "status": status,
@@ -1061,7 +1061,7 @@ class Fish(Agent):
         ecosystem = self.ecosystem
         composable = self.genome.behavioral.composable_behavior
         if ecosystem is not None and composable is not None and composable.value is not None:
-            from core.entities.fractal_plant import PlantNectar
+            from core.entities.plant import PlantNectar
             from core.entities.resources import LiveFood
 
             behavior_id = composable.value.behavior_id

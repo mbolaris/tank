@@ -26,10 +26,10 @@ from core.constants import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
     FILES,
-    FRACTAL_PLANT_CULL_INTERVAL,
-    FRACTAL_PLANT_INITIAL_COUNT,
-    FRACTAL_PLANT_MATURE_ENERGY,
-    FRACTAL_PLANTS_ENABLED,
+    PLANT_CULL_INTERVAL,
+    PLANT_INITIAL_COUNT,
+    PLANT_MATURE_ENERGY,
+    PLANTS_ENABLED,
     FRAME_RATE,
     LIVE_FOOD_SPAWN_CHANCE,
     MAX_DIVERSITY_SPAWN_ATTEMPTS,
@@ -43,7 +43,7 @@ from core.constants import (
     TOTAL_ALGORITHM_COUNT,
 )
 from core.ecosystem import EcosystemManager
-from core.entities.fractal_plant import FractalPlant, PlantNectar
+from core.entities.plant import Plant, PlantNectar
 from core.entity_factory import create_initial_population
 from core.events import (
     EnergyChangedEvent,
@@ -251,7 +251,7 @@ class SimulationEngine(BaseSimulator):
         # Phase tracking for debugging and monitoring
         self._current_phase: Optional[UpdatePhase] = None
         self._phase_debug_enabled: bool = False
-        self._last_fractal_plant_reconcile_frame: int = -1
+        self._last_plant_reconcile_frame: int = -1
 
 
     def setup(self) -> None:
@@ -261,7 +261,7 @@ class SimulationEngine(BaseSimulator):
         self.ecosystem = EcosystemManager(max_population=MAX_POPULATION)
 
         # Initialize fractal plant root spot manager
-        if FRACTAL_PLANTS_ENABLED:
+        if PLANTS_ENABLED:
             self.root_spot_manager = RootSpotManager(SCREEN_WIDTH, SCREEN_HEIGHT)
 
         # Register systems in execution order
@@ -281,9 +281,9 @@ class SimulationEngine(BaseSimulator):
         self.create_initial_entities()
 
         # Create initial fractal plants
-        if FRACTAL_PLANTS_ENABLED and self.root_spot_manager is not None:
+        if PLANTS_ENABLED and self.root_spot_manager is not None:
             self._block_root_spots_with_obstacles()
-            self.create_initial_fractal_plants()
+            self.create_initial_plants()
 
     # =========================================================================
     # System Registry Methods
@@ -475,7 +475,7 @@ class SimulationEngine(BaseSimulator):
 
         counts = dict.fromkeys(self._fractal_variants, 0)
         for entity in self.entities_list:
-            if isinstance(entity, FractalPlant):
+            if isinstance(entity, Plant):
                 variant = getattr(entity.genome, "fractal_type", "lsystem")
                 if variant not in counts:
                     counts[variant] = 0
@@ -536,8 +536,8 @@ class SimulationEngine(BaseSimulator):
         factory = variant_factories.get(variant, PlantGenome.create_random)
         return factory(rng=self.rng)
 
-    def _reconcile_fractal_plants_with_root_spots(self) -> None:
-        """Remove any FractalPlant not recorded as its RootSpot occupant.
+    def _reconcile_plants_with_root_spots(self) -> None:
+        """Remove any Plant not recorded as its RootSpot occupant.
 
         Only one plant can own a RootSpot. Under concurrent migrations and
         sprouting, historical code paths could create duplicate plants that
@@ -546,9 +546,9 @@ class SimulationEngine(BaseSimulator):
         if self.root_spot_manager is None:
             return
 
-        plants_to_remove: List[FractalPlant] = []
+        plants_to_remove: List[Plant] = []
         for entity in self.entities_list:
-            if not isinstance(entity, FractalPlant):
+            if not isinstance(entity, Plant):
                 continue
             spot = getattr(entity, "root_spot", None)
             if spot is None:
@@ -564,12 +564,12 @@ class SimulationEngine(BaseSimulator):
         for plant in plants_to_remove:
             self.remove_entity(plant)
 
-    def create_initial_fractal_plants(self) -> None:
+    def create_initial_plants(self) -> None:
         """Create initial fractal plants at random root spots."""
         if self.root_spot_manager is None or self.environment is None:
             return
 
-        for _ in range(FRACTAL_PLANT_INITIAL_COUNT):
+        for _ in range(PLANT_INITIAL_COUNT):
             # Get a random empty root spot
             spot = self.root_spot_manager.get_random_empty_spot()
             if spot is None:
@@ -581,11 +581,11 @@ class SimulationEngine(BaseSimulator):
             genome = self._create_variant_genome(variant)
 
             # Create the plant with full energy (mature)
-            plant = FractalPlant(
+            plant = Plant(
                 environment=self.environment,
                 genome=genome,
                 root_spot=spot,
-                initial_energy=FRACTAL_PLANT_MATURE_ENERGY,
+                initial_energy=PLANT_MATURE_ENERGY,
                 ecosystem=self.ecosystem,
             )
 
@@ -626,7 +626,7 @@ class SimulationEngine(BaseSimulator):
         )
 
         # Create the new plant
-        plant = FractalPlant(
+        plant = Plant(
             environment=self.environment,
             genome=offspring_genome,
             root_spot=spot,
@@ -667,7 +667,7 @@ class SimulationEngine(BaseSimulator):
         """Remove an entity from the simulation."""
         if entity in self.entities_list:
             # Ensure fractal plant root spots are released even when removed externally
-            if isinstance(entity, FractalPlant):
+            if isinstance(entity, Plant):
                 entity.die()
             self.entities_list.remove(entity)
             # Remove from spatial grid incrementally
@@ -744,17 +744,17 @@ class SimulationEngine(BaseSimulator):
         # Update lifecycle system first to reset per-frame counters
         self.lifecycle_system.update(self.frame_count)
 
-        # Enforce the invariant: at most one FractalPlant per RootSpot.
+        # Enforce the invariant: at most one Plant per RootSpot.
         # This is a defensive guard against concurrent migrations/sprouting.
         if (
-            FRACTAL_PLANTS_ENABLED
+            PLANTS_ENABLED
             and self.root_spot_manager is not None
-            and FRACTAL_PLANT_CULL_INTERVAL > 0
-            and self.frame_count - self._last_fractal_plant_reconcile_frame
-            >= FRACTAL_PLANT_CULL_INTERVAL
+            and PLANT_CULL_INTERVAL > 0
+            and self.frame_count - self._last_plant_reconcile_frame
+            >= PLANT_CULL_INTERVAL
         ):
-            self._reconcile_fractal_plants_with_root_spots()
-            self._last_fractal_plant_reconcile_frame = self.frame_count
+            self._reconcile_plants_with_root_spots()
+            self._last_plant_reconcile_frame = self.frame_count
 
         # ===== PHASE: TIME_UPDATE =====
         self._current_phase = UpdatePhase.TIME_UPDATE
@@ -815,10 +815,10 @@ class SimulationEngine(BaseSimulator):
             if entity.is_dead():
                 if isinstance(entity, Fish):
                     self.record_fish_death(entity)
-                elif isinstance(entity, FractalPlant):
+                elif isinstance(entity, Plant):
                     entity.die()  # Release root spot
                     entities_to_remove.append(entity)
-                    logger.debug(f"FractalPlant #{entity.plant_id} died at age {entity.age}")
+                    logger.debug(f"Plant #{entity.plant_id} died at age {entity.age}")
                 elif isinstance(entity, PlantNectar):
                      # Nectar consumed or invalid
                      entities_to_remove.append(entity)

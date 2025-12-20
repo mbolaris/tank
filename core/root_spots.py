@@ -8,15 +8,15 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
-from core.constants import FRACTAL_PLANT_ROOT_SPOT_COUNT, SCREEN_HEIGHT, SCREEN_WIDTH
+from core.constants import PLANT_ROOT_SPOT_COUNT, SCREEN_HEIGHT, SCREEN_WIDTH
 
 if TYPE_CHECKING:
     from core.entities.base import Agent
-    from core.entities.fractal_plant import FractalPlant
+    from core.entities.plant import Plant
 
 
 # Root spot configuration
-ROOT_SPOT_COUNT = FRACTAL_PLANT_ROOT_SPOT_COUNT if 'FRACTAL_PLANT_ROOT_SPOT_COUNT' in globals() else 25
+ROOT_SPOT_COUNT = PLANT_ROOT_SPOT_COUNT if 'PLANT_ROOT_SPOT_COUNT' in globals() else 25
 ROOT_SPOT_Y_BASE = SCREEN_HEIGHT - 40  # Position near tank bottom
 ROOT_SPOT_Y_VARIANCE = 8  # Slight y variation for natural look
 ROOT_SPOT_MIN_SPACING = 8  # Minimum pixels between spots
@@ -38,13 +38,13 @@ class RootSpot:
     x: float
     y: float
     occupied: bool = False
-    occupant: Optional["FractalPlant"] = field(default=None, repr=False)
+    occupant: Optional["Plant"] = field(default=None, repr=False)
     # Back-reference to the manager that created this spot (set by RootSpotManager)
     manager: Optional["RootSpotManager"] = field(default=None, repr=False)
     # Spots can be blocked by obstacles like castles so plants don't spawn there
     blocked: bool = False
 
-    def claim(self, plant: "FractalPlant") -> bool:
+    def claim(self, plant: "Plant") -> bool:
         """Claim this spot for a plant.
 
         Args:
@@ -64,7 +64,7 @@ class RootSpot:
         self.occupied = False
         self.occupant = None
 
-    def release_if_occupant(self, plant: "FractalPlant") -> bool:
+    def release_if_occupant(self, plant: "Plant") -> bool:
         """Release this spot if *plant* is the recorded occupant.
 
         This protects spot state under concurrency or historical bugs where
@@ -171,7 +171,7 @@ class RootSpotManager:
             return self.spots[spot_id]
         return None
 
-    def claim_spot(self, spot_id: int, plant: "FractalPlant") -> bool:
+    def claim_spot(self, spot_id: int, plant: "Plant") -> bool:
         """Claim a specific spot for a plant.
 
         Args:

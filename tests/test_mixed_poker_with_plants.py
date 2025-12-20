@@ -18,13 +18,13 @@ Performance optimizations:
 import math
 import pytest
 
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 from core.entities import Fish
 from core.simulation_engine import SimulationEngine
 from core.constants import (
     FISH_POKER_MAX_DISTANCE,
-    FRACTAL_PLANT_POKER_MAX_DISTANCE,
-    FRACTAL_PLANT_POKER_MIN_DISTANCE,
+    PLANT_POKER_MAX_DISTANCE,
+    PLANT_POKER_MIN_DISTANCE,
     POKER_MAX_PLAYERS,
 )
 from core.mixed_poker import MixedPokerInteraction, check_poker_proximity
@@ -49,7 +49,7 @@ def engine_with_entities(engine):
     return {
         "engine": engine,
         "fish": [e for e in all_entities if isinstance(e, Fish)],
-        "plants": [e for e in all_entities if isinstance(e, FractalPlant)],
+        "plants": [e for e in all_entities if isinstance(e, Plant)],
     }
 
 
@@ -65,7 +65,7 @@ def run_simulation():
         return {
             "engine": engine,
             "fish": [e for e in all_entities if isinstance(e, Fish)],
-            "plants": [e for e in all_entities if isinstance(e, FractalPlant)],
+            "plants": [e for e in all_entities if isinstance(e, Plant)],
         }
     return _run
 
@@ -121,10 +121,10 @@ class TestPlantPokerDetection:
 
     def test_plants_in_spatial_grid(self, engine):
         """Verify plants are properly added to the spatial grid."""
-        plant_list = [e for e in engine.get_all_entities() if isinstance(e, FractalPlant)]
+        plant_list = [e for e in engine.get_all_entities() if isinstance(e, Plant)]
         assert len(plant_list) > 0, "Should have at least one plant"
         
-        # Check spatial grid contains FractalPlant type
+        # Check spatial grid contains Plant type
         grid = engine.environment.spatial_grid
         types_in_grid = {
             type_key.__name__
@@ -132,10 +132,10 @@ class TestPlantPokerDetection:
             for type_key in buckets.keys()
         }
         
-        assert 'FractalPlant' in types_in_grid, "FractalPlant should be in spatial grid"
+        assert 'Plant' in types_in_grid, "Plant should be in spatial grid"
 
     def test_nearby_agents_by_type_finds_plants(self, engine_with_entities):
-        """Verify nearby_agents_by_type can find FractalPlant entities."""
+        """Verify nearby_agents_by_type can find Plant entities."""
         engine = engine_with_entities["engine"]
         plant_list = engine_with_entities["plants"]
         
@@ -147,7 +147,7 @@ class TestPlantPokerDetection:
         
         # Use large radius to ensure we find other plants
         search_radius = 500
-        nearby = env.nearby_agents_by_type(plant, radius=search_radius, agent_class=FractalPlant)
+        nearby = env.nearby_agents_by_type(plant, radius=search_radius, agent_class=Plant)
 
         # Should find at least one other plant (excluding self)
         if len(nearby) < 1:
@@ -163,10 +163,10 @@ class TestPlantPokerDetection:
         
         min_dist = get_min_distance_between_entities(plant_list)
         
-        if min_dist > FRACTAL_PLANT_POKER_MAX_DISTANCE:
+        if min_dist > PLANT_POKER_MAX_DISTANCE:
             pytest.skip(
                 f"Random plant placement resulted in spread-out plants "
-                f"(min distance {min_dist:.1f}px > {FRACTAL_PLANT_POKER_MAX_DISTANCE}px). "
+                f"(min distance {min_dist:.1f}px > {PLANT_POKER_MAX_DISTANCE}px). "
                 f"This is expected occasionally."
             )
 
@@ -384,11 +384,11 @@ class TestProximityCheck:
         # Check with large max distance to ensure they're in range
         in_range = check_poker_proximity(
             p1, p2,
-            min_distance=FRACTAL_PLANT_POKER_MIN_DISTANCE,
+            min_distance=PLANT_POKER_MIN_DISTANCE,
             max_distance=500
         )
         
-        if dist > FRACTAL_PLANT_POKER_MIN_DISTANCE and dist <= 500:
+        if dist > PLANT_POKER_MIN_DISTANCE and dist <= 500:
             assert in_range is True, f"Plants at {dist:.1f}px should be in range"
 
     def test_check_poker_proximity_too_close(self, engine_with_entities):
@@ -459,7 +459,7 @@ class TestMutualProximityFiltering:
         result = run_simulation(frames=600)
         engine = result["engine"]
         
-        max_dist = max(FISH_POKER_MAX_DISTANCE, FRACTAL_PLANT_POKER_MAX_DISTANCE)
+        max_dist = max(FISH_POKER_MAX_DISTANCE, PLANT_POKER_MAX_DISTANCE)
         max_dist_sq = max_dist * max_dist
         
         for event in engine.poker_events:
@@ -483,7 +483,7 @@ class TestPokerEffectState:
         for _ in range(600):
             engine.update()
             
-            for p in (e for e in engine.get_all_entities() if isinstance(e, FractalPlant)):
+            for p in (e for e in engine.get_all_entities() if isinstance(e, Plant)):
                 if p.poker_effect_state is not None:
                     # Verify it's a dict with expected keys
                     assert isinstance(p.poker_effect_state, dict), (
@@ -618,7 +618,7 @@ def run_manual_test():
     
     all_entities = engine.get_all_entities()
     fish_list = [e for e in all_entities if isinstance(e, Fish)]
-    plant_list = [e for e in all_entities if isinstance(e, FractalPlant)]
+    plant_list = [e for e in all_entities if isinstance(e, Plant)]
     
     print(f"\nInitial state:")
     print(f"  Fish: {len(fish_list)}")
@@ -630,7 +630,7 @@ def run_manual_test():
     
     print(f"\nProximity settings:")
     print(f"  FISH_POKER_MAX_DISTANCE: {FISH_POKER_MAX_DISTANCE}")
-    print(f"  FRACTAL_PLANT_POKER_MAX_DISTANCE: {FRACTAL_PLANT_POKER_MAX_DISTANCE}")
+    print(f"  PLANT_POKER_MAX_DISTANCE: {PLANT_POKER_MAX_DISTANCE}")
     
     # Calculate plant distances using helper
     if len(plant_list) >= 2:
@@ -638,7 +638,7 @@ def run_manual_test():
         for i, p1 in enumerate(plant_list):
             for j, p2 in enumerate(plant_list[i + 1:], i + 1):
                 dist = distance(p1, p2)
-                in_range = dist <= FRACTAL_PLANT_POKER_MAX_DISTANCE
+                in_range = dist <= PLANT_POKER_MAX_DISTANCE
                 print(f"  Plant {i} <-> Plant {j}: {dist:.1f}px {'(in range)' if in_range else '(out of range)'}")
     
     print(f"\nRunning simulation for 600 frames...")
@@ -646,12 +646,12 @@ def run_manual_test():
         engine.update()
         
         if frame % 100 == 99:
-            plants = [e for e in engine.get_all_entities() if isinstance(e, FractalPlant)]
+            plants = [e for e in engine.get_all_entities() if isinstance(e, Plant)]
             games_played = sum(p.poker_wins + p.poker_losses for p in plants)
             print(f"  Frame {frame + 1}: {games_played} total plant poker games")
     
     print(f"\nFinal plant poker stats:")
-    final_plants = [e for e in engine.get_all_entities() if isinstance(e, FractalPlant)]
+    final_plants = [e for e in engine.get_all_entities() if isinstance(e, Plant)]
     for p in final_plants:
         print(f"  Plant {p.plant_id}: {p.poker_wins} wins, {p.poker_losses} losses, energy={p.energy:.1f}")
     

@@ -368,13 +368,13 @@ class SpatialGrid:
 
     def query_poker_entities(self, agent: Agent, radius: float) -> List[Agent]:
         """
-        Optimized query for poker-eligible entities (Fish and FractalPlant).
+        Optimized query for poker-eligible entities (Fish and Plant).
 
         PERFORMANCE: Single pass through spatial grid for both fish and plants.
         Uses dedicated fish_grid and type-specific plant lookup.
         Filters inline during iteration to avoid intermediate list.
         """
-        from core.entities.fractal_plant import FractalPlant
+        from core.entities.plant import Plant
 
         # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
         pos = agent.pos
@@ -411,7 +411,7 @@ class SpatialGrid:
                 # Get plants from type-specific bucket - inline filter
                 cell_agents = grid.get(cell)
                 if cell_agents:
-                    cell_plants = cell_agents.get(FractalPlant)
+                    cell_plants = cell_agents.get(Plant)
                     if cell_plants:
                         for other in cell_plants:
                             if other is not agent:
@@ -682,7 +682,7 @@ class Environment:
 
     def nearby_poker_entities(self, agent: Agent, radius: int) -> List[Agent]:
         """
-        Optimized method to get nearby fish and FractalPlant entities for poker.
+        Optimized method to get nearby fish and Plant entities for poker.
 
         PERFORMANCE: Single pass through spatial grid collecting both fish and plants.
         """

@@ -13,16 +13,16 @@ left = spots[mid-1]
 center = spots[mid]
 right = spots[mid+1]
 
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 
 # Create genomes
 g1 = PlantGenome.create_random()
 g2 = PlantGenome.create_random()
 g3 = PlantGenome.create_random()
 
-p1 = FractalPlant(sim.environment, g1, left)
-p2 = FractalPlant(sim.environment, g2, center)
-p3 = FractalPlant(sim.environment, g3, right)
+p1 = Plant(sim.environment, g1, left)
+p2 = Plant(sim.environment, g2, center)
+p3 = Plant(sim.environment, g3, right)
 
 # Claim spots
 left.claim(p1)

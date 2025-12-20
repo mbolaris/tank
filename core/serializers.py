@@ -7,7 +7,7 @@ simple dictionaries suitable for JSON serialization and network transmission.
 from typing import Any, Dict, Optional
 
 from core.entities.fish import Fish
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 from core.plant_poker_strategy import PlantPokerStrategyAdapter
 
 
@@ -79,7 +79,7 @@ class PlantSerializer:
     """Serializer for Plant entities."""
 
     @staticmethod
-    def to_player_data(plant: FractalPlant) -> Dict[str, Any]:
+    def to_player_data(plant: Plant) -> Dict[str, Any]:
         """Convert plant to poker player data dictionary.
 
         Args:

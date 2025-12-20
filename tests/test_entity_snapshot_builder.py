@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from backend.entity_snapshot_builder import EntitySnapshotBuilder
 from core.constants import FOOD_ID_OFFSET, NECTAR_ID_OFFSET
-from core.entities.fractal_plant import PlantNectar
+from core.entities.plant import PlantNectar
 from core.entities.resources import Food
 from core.math_utils import Vector2
 

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 from core.entities.fish import Fish
-from core.entities.fractal_plant import FractalPlant
+from core.entities.plant import Plant
 from core.serializers import FishSerializer, PlantSerializer
 
 class TestSerializers(unittest.TestCase):
@@ -22,8 +22,8 @@ class TestSerializers(unittest.TestCase):
         self.mock_genome.physical.pattern_type.value = "striped"
 
         self.mock_genome.behavioral = MagicMock()
-        self.mock_genome.behavioral.behavior_algorithm.value = MagicMock()
-        self.mock_genome.behavioral.behavior_algorithm.value.algorithm_id = "test_algo"
+        self.mock_genome.behavioral.composable_behavior = MagicMock()
+        self.mock_genome.behavioral.composable_behavior.value = MagicMock()
         self.mock_genome.behavioral.aggression.value = 0.7
 
         self.mock_fish = MagicMock(spec=Fish)
@@ -33,7 +33,7 @@ class TestSerializers(unittest.TestCase):
         self.mock_fish.genome = self.mock_genome
         self.mock_fish.size = 1.0
 
-        self.mock_plant = MagicMock(spec=FractalPlant)
+        self.mock_plant = MagicMock(spec=Plant)
         self.mock_plant.plant_id = 456
         self.mock_plant.generation = 2
         self.mock_plant.energy = 200.0
