@@ -11,7 +11,8 @@ from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 from core.evolution.inheritance import inherit_learned_behaviors
-from core.genetics.behavioral import BehavioralTraits, MATE_PREFERENCE_SPECS, normalize_mate_preferences
+from core.genetics import expression
+from core.genetics.behavioral import BehavioralTraits, normalize_mate_preferences
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
 from core.genetics.reproduction import ReproductionParams
@@ -19,34 +20,9 @@ from core.genetics.validation import validate_traits_from_specs
 
 logger = logging.getLogger(__name__)
 GENOME_SCHEMA_VERSION = 1
-_TEMPLATE_SPEED_BONUS = {0: 1.0, 1: 1.2, 2: 0.8, 3: 1.0, 4: 0.9, 5: 1.1}
-_SPEED_MODIFIER_MIN = 0.5
-_SPEED_MODIFIER_MAX = 1.5
-_METABOLISM_RATE_MIN = 0.5
-_PATTERN_INTENSITY_BASELINE = 0.5
-_PATTERN_INTENSITY_COST_WEIGHT = 0.3
+GENOME_SCHEMA_VERSION = 1
 
 
-def _clamp(value: float, min_value: float, max_value: float) -> float:
-    return max(min_value, min(max_value, value))
-
-
-def _normalized_similarity(
-    value: float,
-    target: float,
-    min_value: float,
-    max_value: float,
-    *,
-    circular: bool = False,
-) -> float:
-    span = max_value - min_value
-    if span <= 0:
-        return 1.0
-    diff = abs(value - target)
-    if circular:
-        diff = diff % span
-        diff = min(diff, span - diff)
-    return 1.0 - min(diff / span, 1.0)
 
 
 class GeneticCrossoverMode(Enum):
@@ -86,52 +62,23 @@ class Genome:
         """Calculate speed modifier based on physical traits (cached)."""
         if self._speed_modifier_cache is not None:
             return self._speed_modifier_cache
-        # Defensive checks: ensure traits exist and have values
-        if self.physical.template_id is None or getattr(self.physical.template_id, "value", None) is None:
-            raise ValueError("Missing physical.template_id trait on genome")
-        if self.physical.fin_size is None or getattr(self.physical.fin_size, "value", None) is None:
-            raise ValueError("Missing physical.fin_size trait on genome")
-        if self.physical.tail_size is None or getattr(self.physical.tail_size, "value", None) is None:
-            raise ValueError("Missing physical.tail_size trait on genome")
-        if self.physical.body_aspect is None or getattr(self.physical.body_aspect, "value", None) is None:
-            raise ValueError("Missing physical.body_aspect trait on genome")
-
-        template_id = self.physical.template_id.value
-        template_speed_bonus = _TEMPLATE_SPEED_BONUS.get(template_id, 1.0)
-        propulsion = self.physical.fin_size.value * 0.4 + self.physical.tail_size.value * 0.6
-        hydrodynamics = 1.0 - abs(self.physical.body_aspect.value - 0.8) * 0.5
-        result = template_speed_bonus * propulsion * hydrodynamics
-        result = _clamp(result, _SPEED_MODIFIER_MIN, _SPEED_MODIFIER_MAX)
+            
+        result = expression.calculate_speed_modifier(self.physical)
         object.__setattr__(self, '_speed_modifier_cache', result)
         return result
 
     @property
     def vision_range(self) -> float:
         """Calculate vision range based on eye size."""
-        if self.physical.eye_size is None or getattr(self.physical.eye_size, "value", None) is None:
-            raise ValueError("Missing physical.eye_size trait on genome")
-        # Clamp to allowed physical bounds to avoid out-of-range visual traits
-        from core.constants import EYE_SIZE_MIN, EYE_SIZE_MAX
-        val = float(self.physical.eye_size.value)
-        return max(EYE_SIZE_MIN, min(EYE_SIZE_MAX, val))
+        return expression.calculate_vision_range(self.physical)
 
     @property
     def metabolism_rate(self) -> float:
         """Calculate metabolism rate based on physical traits (cached)."""
         if self._metabolism_rate_cache is not None:
             return self._metabolism_rate_cache
-        # Defensive checks for required traits
-        for trait_name in ("size_modifier", "eye_size", "pattern_intensity"):
-            trait = getattr(self.physical, trait_name, None)
-            if trait is None or getattr(trait, "value", None) is None:
-                raise ValueError(f"Missing physical.{trait_name} trait on genome")
-
-        cost = 1.0
-        cost += (self.physical.size_modifier.value - 1.0) * 0.5
-        cost += (self.speed_modifier - 1.0) * 0.8
-        cost += (self.physical.eye_size.value - 1.0) * 0.3
-        cost += (self.physical.pattern_intensity.value - _PATTERN_INTENSITY_BASELINE) * _PATTERN_INTENSITY_COST_WEIGHT
-        result = max(_METABOLISM_RATE_MIN, cost)
+            
+        result = expression.calculate_metabolism_rate(self.physical, self.speed_modifier)
         object.__setattr__(self, '_metabolism_rate_cache', result)
         return result
 
@@ -413,64 +360,16 @@ class Genome:
 
     def calculate_mate_compatibility(self, other: "Genome") -> float:
         """Calculate compatibility score with potential mate (0.0-1.0).
-
+        
         Compatibility is based on how closely the mate matches this fish's
         preferred physical trait values, plus a bonus for higher pattern intensity.
         """
-        raw_prefs = self.behavioral.mate_preferences.value if self.behavioral.mate_preferences else {}
-        preferences = raw_prefs if isinstance(raw_prefs, dict) else {}
-        normalized_prefs = normalize_mate_preferences(
-            preferences,
-            physical=self.physical,
+        return expression.calculate_mate_compatibility(
+            self.physical,
+            self.behavioral,
+            other.physical
         )
-
-        scores = []
-        weights = []
-        for trait_name, spec in MATE_PREFERENCE_SPECS.items():
-            desired = normalized_prefs[trait_name]
-            other_trait = getattr(other.physical, trait_name, None)
-            if other_trait is None or getattr(other_trait, "value", None) is None:
-                raise ValueError(f"Missing other.physical.{trait_name} trait when calculating mate compatibility")
-            mate_value = other_trait.value
-            score = _normalized_similarity(
-                mate_value,
-                desired,
-                spec.min_val,
-                spec.max_val,
-                circular=(trait_name == "color_hue"),
-            )
-            scores.append(score)
-            weights.append(1.0)
-
-        pattern_weight = normalized_prefs.get("prefer_high_pattern_intensity", 0.5)
-        if pattern_weight > 0.0:
-            scores.append(_clamp(other.physical.pattern_intensity.value, 0.0, 1.0))
-            weights.append(pattern_weight)
-
-        total_weight = sum(weights)
-        if total_weight <= 0.0:
-            return 0.0
-        compatibility = sum(score * weight for score, weight in zip(scores, weights)) / total_weight
-        return min(max(compatibility, 0.0), 1.0)
 
     def get_color_tint(self) -> Tuple[int, int, int]:
         """Get RGB color tint based on genome."""
-        hue = self.physical.color_hue.value * 360
-        if hue < 60:
-            r, g, b = 255, int(hue / 60 * 255), 0
-        elif hue < 120:
-            r, g, b = int((120 - hue) / 60 * 255), 255, 0
-        elif hue < 180:
-            r, g, b = 0, 255, int((hue - 120) / 60 * 255)
-        elif hue < 240:
-            r, g, b = 0, int((240 - hue) / 60 * 255), 255
-        elif hue < 300:
-            r, g, b = int((hue - 240) / 60 * 255), 0, 255
-        else:
-            r, g, b = 255, 0, int((360 - hue) / 60 * 255)
-
-        saturation = 0.3
-        r = int(r * saturation + 255 * (1 - saturation))
-        g = int(g * saturation + 255 * (1 - saturation))
-        b = int(b * saturation + 255 * (1 - saturation))
-        return (r, g, b)
+        return expression.calculate_color_tint(self.physical)
