@@ -29,7 +29,6 @@ from core.evolution.crossover import (
 from core.evolution.inheritance import (
     inherit_algorithm,
     inherit_discrete_trait,
-    inherit_learned_behaviors,
     inherit_trait,
 )
 from core.evolution.mutation import (
@@ -55,5 +54,4 @@ __all__ = [
     "inherit_trait",
     "inherit_discrete_trait",
     "inherit_algorithm",
-    "inherit_learned_behaviors",
 ]

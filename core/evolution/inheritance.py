@@ -8,7 +8,6 @@ Inheritance in ALife follows biological principles:
 - Continuous traits: Blend or select from parents
 - Discrete traits: Mendelian-style selection
 - Algorithms: Copy structure, blend parameters
-- Learned behaviors: Cultural transmission (partial inheritance)
 
 The inheritance system does NOT include fitness-based selection.
 Selection pressure comes from the environment - fish that inherit
@@ -160,41 +159,3 @@ def inherit_algorithm(
         algorithm_switch_rate=algorithm_switch_rate,
         rng=rng,
     )
-
-
-def inherit_learned_behaviors(
-    parent1: "Genome",
-    parent2: "Genome",
-    offspring: "Genome",
-    inheritance_rate: float = 0.25,
-) -> None:
-    """Transfer learned behaviors to offspring (cultural evolution).
-
-    This represents non-genetic inheritance - offspring benefit from
-    their parents' experience. Learned behaviors (like poker skill
-    adjustments) are partially passed down.
-
-    This is NOT Lamarckian inheritance of acquired traits into genes.
-    Learned behaviors are stored separately and decay over time.
-
-    Args:
-        parent1: First parent's genome
-        parent2: Second parent's genome
-        offspring: Offspring genome to modify (in-place)
-        inheritance_rate: Fraction of learning that passes to offspring
-    """
-    # Skip counters (games played, etc.) - only inherit adjustments
-    skip_suffixes = ("_finds", "_escapes", "_won", "_lost")
-
-    for key in parent1.learned_behaviors:
-        if any(key.endswith(suffix) for suffix in skip_suffixes):
-            continue
-
-        if key in parent2.learned_behaviors:
-            # Average parents' learned values
-            p1_val = parent1.learned_behaviors[key]
-            p2_val = parent2.learned_behaviors[key]
-            avg_val = (p1_val + p2_val) / 2.0
-
-            # Offspring inherits a fraction
-            offspring.learned_behaviors[key] = avg_val * inheritance_rate

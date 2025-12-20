@@ -321,18 +321,7 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     """Capture mutable state of a fish that must be read under lock."""
     # Capture genome parameters if they are mutable
     # We capture them as dicts here to ensure thread safety
-    behavior_params = None
-    behavior_algorithm_trait = fish.genome.behavioral.behavior_algorithm
-    behavior_algorithm = behavior_algorithm_trait.value if behavior_algorithm_trait else None
-    if behavior_algorithm:
-        behavior_params = behavior_algorithm.to_dict()
-
-    poker_algo_params = None
-    poker_algorithm_trait = fish.genome.behavioral.poker_algorithm
-    poker_algorithm = poker_algorithm_trait.value if poker_algorithm_trait else None
-    if poker_algorithm:
-        poker_algo_params = poker_algorithm.to_dict()
-
+    # Capture poker strategy state
     poker_strat_params = None
     poker_strategy_trait = fish.genome.behavioral.poker_strategy_algorithm
     poker_strategy = poker_strategy_trait.value if poker_strategy_trait else None
@@ -350,8 +339,6 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
         "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
         "predator_last_seen": fish.memory.predator_last_seen if hasattr(fish, "memory") else 0,
         # Capture algorithm states here as they might change
-        "behavior_params": behavior_params,
-        "poker_algo_params": poker_algo_params,
         "poker_strat_params": poker_strat_params,
     }
 
@@ -359,8 +346,6 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
 def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
     """Construct full fish serialization using captured mutable state."""
     genome_data = fish.genome.to_dict(
-        behavior_algorithm=mutable_state["behavior_params"],
-        poker_algorithm=mutable_state["poker_algo_params"],
         poker_strategy_algorithm=mutable_state["poker_strat_params"],
     )
     return {

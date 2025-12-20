@@ -118,7 +118,7 @@ class ReproductionComponent:
         # Asexual reproduction only triggers when fully energized
         return energy >= max_energy
 
-    def calculate_mate_compatibility(
+    def calculate_mate_attraction(
         self,
         own_genome: "Genome",
         mate_genome: "Genome",
@@ -127,7 +127,7 @@ class ReproductionComponent:
         mate_energy: float,
         mate_max_energy: float,
     ) -> float:
-        """Calculate compatibility with a potential mate.
+        """Calculate attraction to a potential mate.
 
         Args:
             own_genome: This fish's genome
@@ -138,17 +138,17 @@ class ReproductionComponent:
             mate_max_energy: Mate's maximum energy
 
         Returns:
-            float: Compatibility score (0.0 to 1.0)
+            float: Attraction score (0.0 to 1.0)
         """
-        # Base compatibility from genome
-        compatibility = own_genome.calculate_mate_compatibility(mate_genome)
+        # Base attraction from genome
+        attraction = own_genome.calculate_mate_attraction(mate_genome)
 
         # Add energy consideration (prefer mates with good energy)
         energy_ratio = mate_energy / mate_max_energy if mate_max_energy > 0 else 0.0
         energy_bonus = energy_ratio * 0.2
-        total_compatibility = min(compatibility + energy_bonus, 1.0)
+        total_attraction = min(attraction + energy_bonus, 1.0)
 
-        return total_compatibility
+        return total_attraction
 
     def attempt_mating(
         self,

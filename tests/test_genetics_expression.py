@@ -55,15 +55,15 @@ class TestGenomeExpressionRefactor(unittest.TestCase):
         expected = expression.calculate_color_tint(self.genome.physical)
         self.assertEqual(tint, expected)
 
-    def test_mate_compatibility_delegation(self):
-        """Verify calculate_mate_compatibility delegates correctly."""
+    def test_mate_attraction_delegation(self):
+        """Verify calculate_mate_attraction delegates correctly."""
         other = Genome.random()
-        score = self.genome.calculate_mate_compatibility(other)
+        score = self.genome.calculate_mate_attraction(other)
         self.assertIsInstance(score, float)
         self.assertGreaterEqual(score, 0.0)
         self.assertLessEqual(score, 1.0)
         
-        expected = expression.calculate_mate_compatibility(
+        expected = expression.calculate_mate_attraction(
             self.genome.physical,
             self.genome.behavioral,
             other.physical

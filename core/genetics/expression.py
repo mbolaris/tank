@@ -113,14 +113,15 @@ def calculate_color_tint(physical: PhysicalTraits) -> Tuple[int, int, int]:
     return hue_to_rgb(hue, FISH_COLOR_SATURATION)
 
 
-def calculate_mate_compatibility(
+
+def calculate_mate_attraction(
     self_physical: PhysicalTraits,
     self_behavioral: BehavioralTraits,
     other_physical: PhysicalTraits
 ) -> float:
-    """Calculate compatibility score with potential mate (0.0-1.0).
+    """Calculate attraction score to a potential mate (0.0-1.0).
 
-    Compatibility is based on how closely the mate matches this fish's
+    Attraction is based on how closely the mate matches this fish's
     preferred physical trait values, plus a bonus for higher pattern intensity.
     """
     raw_prefs = self_behavioral.mate_preferences.value if self_behavioral.mate_preferences else {}
@@ -165,5 +166,5 @@ def calculate_mate_compatibility(
     if total_weight <= 0.0:
         return 0.0
         
-    compatibility = sum(score * weight for score, weight in zip(scores, weights)) / total_weight
-    return min(max(compatibility, 0.0), 1.0)
+    attraction = sum(score * weight for score, weight in zip(scores, weights)) / total_weight
+    return min(max(attraction, 0.0), 1.0)

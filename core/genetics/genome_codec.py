@@ -35,8 +35,7 @@ def genome_to_dict(
     # `poker_strategy_algorithm` for the canonical new format.
     composable_behavior: Optional[Dict[str, Any]] = None,
     poker_strategy_algorithm: Optional[Dict[str, Any]] = None,
-    behavior_algorithm: Optional[Dict[str, Any]] = None,
-    poker_algorithm: Optional[Dict[str, Any]] = None,
+
 ) -> Dict[str, Any]:
     """Serialize a genome into JSON-compatible primitives."""
 
@@ -86,11 +85,7 @@ def genome_to_dict(
         "poker_strategy_algorithm": poker_strategy_dict,
         # Legacy fields: include if caller passed legacy algorithm params so
         # transfer/compatibility code can round-trip older formats.
-        "behavior_algorithm": behavior_algorithm if behavior_algorithm is not None else None,
-        "poker_algorithm": poker_algorithm if poker_algorithm is not None else None,
         "mate_preferences": dict(genome.behavioral.mate_preferences.value) if genome.behavioral.mate_preferences else {},
-        # Non-genetic (but persistable) state
-        "learned_behaviors": dict(genome.learned_behaviors),
         "trait_meta": trait_meta,
     }
 
@@ -154,10 +149,7 @@ def genome_from_dict(
                 if isinstance(meta, dict):
                     apply_trait_meta_to_trait(trait, meta)
 
-    # Non-genetic (but persistable) state
-    learned = data.get("learned_behaviors")
-    if isinstance(learned, dict):
-        genome.learned_behaviors = {str(key): float(value) for key, value in learned.items()}
+
 
     # Composable behavior (new system)
     try:
@@ -232,7 +224,7 @@ def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
     return {
         **values,
         "trait_meta": trait_meta,
-        "learned_behaviors_count": len(getattr(genome, "learned_behaviors", {}) or {}),
+
         "composable_behavior": composable_info,
         "poker_strategy_algorithm_type": _algo_name(
             genome.behavioral.poker_strategy_algorithm.value if genome.behavioral.poker_strategy_algorithm else None

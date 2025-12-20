@@ -56,10 +56,7 @@ class PeriodicBenchmarkEvaluator:
             # Fish may have poker_strategy directly or through behavior algorithm
             if hasattr(fish, "poker_strategy"):
                 algo = fish.poker_strategy
-            elif hasattr(fish, "behavior_algorithm"):
-                # Some fish may use behavior algorithm for poker decisions
-                # This is a fallback - adjust based on actual architecture
-                continue
+
             else:
                 continue
 

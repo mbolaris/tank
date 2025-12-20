@@ -4,7 +4,6 @@ Verifies that the unified evolution module correctly handles:
 - Mutation of continuous and discrete traits
 - Crossover between parent genomes
 - Adaptive mutation bounds
-- Cultural inheritance of learned behaviors
 - Algorithm inheritance
 
 These tests verify ALife principles: no explicit fitness functions,
@@ -23,7 +22,6 @@ from core.evolution.crossover import blend_values, crossover_dict_values
 from core.evolution.inheritance import (
     inherit_algorithm,
     inherit_discrete_trait,
-    inherit_learned_behaviors,
     inherit_trait,
 )
 from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
@@ -251,45 +249,6 @@ class TestAlgorithmInheritance:
         assert child is not None
 
 
-class TestLearnedBehaviorInheritance:
-    """Tests for cultural inheritance of learned behaviors."""
-
-    def test_learned_behaviors_partially_inherited(self):
-        """Offspring should inherit fraction of learned behaviors."""
-        parent1 = Genome.random()
-        parent2 = Genome.random()
-        offspring = Genome.random()
-
-        # Set up learned behaviors
-        parent1.learned_behaviors = {"poker_aggression_adj": 0.4}
-        parent2.learned_behaviors = {"poker_aggression_adj": 0.2}
-        offspring.learned_behaviors = {}
-
-        inherit_learned_behaviors(parent1, parent2, offspring, inheritance_rate=0.25)
-
-        # Should inherit 25% of average (0.3 * 0.25 = 0.075)
-        assert "poker_aggression_adj" in offspring.learned_behaviors
-        assert offspring.learned_behaviors["poker_aggression_adj"] == pytest.approx(0.075, abs=0.01)
-
-    def test_counters_not_inherited(self):
-        """Counter values (games won, etc.) should not be inherited."""
-        parent1 = Genome.random()
-        parent2 = Genome.random()
-        offspring = Genome.random()
-
-        parent1.learned_behaviors = {
-            "poker_aggression_adj": 0.4,
-            "poker_won": 10,  # Counter - should not inherit
-        }
-        parent2.learned_behaviors = {
-            "poker_aggression_adj": 0.2,
-            "poker_won": 5,
-        }
-        offspring.learned_behaviors = {}
-
-        inherit_learned_behaviors(parent1, parent2, offspring)
-
-        assert "poker_won" not in offspring.learned_behaviors
 
 
 class TestFullGenomeEvolution:
@@ -309,7 +268,7 @@ class TestFullGenomeEvolution:
         # Offspring should have valid values
         assert 0.5 <= offspring.speed_modifier <= 1.5
         assert 0.0 <= offspring.behavioral.aggression.value <= 1.0
-        assert offspring.behavioral.behavior_algorithm.value is not None
+        assert offspring.behavioral.composable_behavior.value is not None
 
     def test_genome_weighted_crossover_favors_winner(self):
         """Weighted crossover should favor the higher-weighted parent."""
@@ -372,8 +331,7 @@ class TestFullGenomeEvolution:
         for genome in population:
             assert 0.5 <= genome.speed_modifier <= 1.5
             assert 0.0 <= genome.behavioral.aggression.value <= 1.0
-            assert genome.behavioral.behavior_algorithm.value is not None
-            assert genome.behavioral.poker_algorithm.value is not None
+            assert genome.behavioral.composable_behavior.value is not None
 
 
 class TestPlantEvolution:

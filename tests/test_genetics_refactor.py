@@ -153,12 +153,12 @@ class TestGeneticsRefactor:
         except Exception as e:
             pytest.fail(f"Fish update failed with new genetics: {e}")
 
-    def test_mate_compatibility(self):
-        """Test mate compatibility calculation."""
+    def test_mate_attraction(self):
+        """Test mate attraction calculation."""
         g1 = Genome.random()
         g2 = Genome.random()
         
-        score = g1.calculate_mate_compatibility(g2)
+        score = g1.calculate_mate_attraction(g2)
         assert 0.0 <= score <= 1.0
         
         # Identical genomes should have high compatibility (based on size/traits)
@@ -168,7 +168,7 @@ class TestGeneticsRefactor:
         # Reset color to be different to maximize score if preference is for difference
         g3.physical.color_hue.value = (g1.physical.color_hue.value + 0.5) % 1.0
         
-        score_clone = g1.calculate_mate_compatibility(g3)
+        score_clone = g1.calculate_mate_attraction(g3)
         assert score_clone > 0.0
 
     def test_meta_mutation_occurs(self):

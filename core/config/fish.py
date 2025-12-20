@@ -81,8 +81,7 @@ POST_POKER_MUTATION_RATE = 0.1  # Mutation rate for post-poker offspring
 POST_POKER_MUTATION_STRENGTH = 0.1  # Mutation strength for post-poker offspring
 
 # Fish Memory and Learning Constants
-FISH_MAX_FOOD_MEMORIES = 5  # Remember up to 5 good food locations
-FISH_FOOD_MEMORY_DECAY = 600  # Forget food locations after 20 seconds (600 frames)
+
 FISH_MEMORY_MAX_PER_TYPE = 10  # Max memories per type in enhanced memory system
 FISH_MEMORY_DECAY_RATE = 0.001  # Memory decay rate for enhanced system
 FISH_MEMORY_LEARNING_RATE = 0.05  # Learning rate for memory system

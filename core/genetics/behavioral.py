@@ -151,9 +151,7 @@ class BehavioralTraits:
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
     mate_preferences: Optional[GeneticTrait[Dict[str, float]]] = None
 
-    # Legacy fields for backward compatibility (will be None for new fish)
-    behavior_algorithm: Optional[GeneticTrait[Optional["BehaviorAlgorithm"]]] = None
-    poker_algorithm: Optional[GeneticTrait[Optional["BehaviorAlgorithm"]]] = None
+
 
     @classmethod
     def random(

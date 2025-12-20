@@ -32,7 +32,6 @@ from core.evolution.inheritance import (
     inherit_trait,
     inherit_discrete_trait,
     inherit_algorithm,
-    inherit_learned_behaviors,
 )
 from core.genetics import Genome, GeneticTrait, PhysicalTraits, BehavioralTraits
 from core.genetics import PlantGenome
@@ -169,8 +168,6 @@ class TestEdgeCasesAndBoundaries:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                behavior_algorithm=GeneticTrait(None),
-                poker_algorithm=GeneticTrait(None),
                 poker_strategy_algorithm=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
@@ -333,8 +330,6 @@ class TestPokerEvolution:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                behavior_algorithm=GeneticTrait(None),
-                poker_algorithm=GeneticTrait(PokerChallenger()),
                 poker_strategy_algorithm=GeneticTrait(TightAggressiveStrategy()),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
@@ -364,8 +359,6 @@ class TestPokerEvolution:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                behavior_algorithm=GeneticTrait(None),
-                poker_algorithm=GeneticTrait(PokerChallenger()),
                 poker_strategy_algorithm=GeneticTrait(ManiacStrategy()),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
@@ -581,8 +574,8 @@ class TestStatisticalProperties:
 class TestComplexIntegration:
     """Test complex integration scenarios."""
 
-    def test_mate_compatibility_calculation(self):
-        """Test mate compatibility scoring (higher score = more compatible)."""
+    def test_mate_attraction_calculation(self):
+        """Test mate attraction scoring (higher score = more compatible)."""
         # Note: speed_modifier is a computed property, so we set underlying traits instead
         fish1 = Genome(
             physical=PhysicalTraits(
@@ -604,8 +597,6 @@ class TestComplexIntegration:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                behavior_algorithm=GeneticTrait(None),
-                poker_algorithm=GeneticTrait(None),
                 poker_strategy_algorithm=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
@@ -636,8 +627,6 @@ class TestComplexIntegration:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                behavior_algorithm=GeneticTrait(None),
-                poker_algorithm=GeneticTrait(None),
                 poker_strategy_algorithm=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
@@ -668,8 +657,6 @@ class TestComplexIntegration:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                behavior_algorithm=GeneticTrait(None),
-                poker_algorithm=GeneticTrait(None),
                 poker_strategy_algorithm=GeneticTrait(None),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
@@ -679,120 +666,15 @@ class TestComplexIntegration:
             ),
         )
 
-        compatibility_similar = fish1.calculate_mate_compatibility(fish2)
-        compatibility_different = fish1.calculate_mate_compatibility(fish3)
+        attraction_similar = fish1.calculate_mate_attraction(fish2)
+        attraction_different = fish1.calculate_mate_attraction(fish3)
 
-        # Similar fish should have higher compatibility score (higher is better)
-        assert compatibility_similar > compatibility_different, \
-            f"Similar fish compatibility {compatibility_similar:.3f} should be greater than different fish {compatibility_different:.3f}"
+        # Similar fish should have higher attraction score (higher is better)
+        assert attraction_similar > attraction_different, \
+            f"Similar fish attraction {attraction_similar:.3f} should be greater than different fish {attraction_different:.3f}"
 
     # Note: test_fitness_tracking_updates removed - fitness_score tracking was deprecated
     # Fitness is now implicit through survival and reproduction success
-
-    def test_learned_behaviors_inheritance(self):
-        """Test learned behaviors are inherited culturally."""
-        # Use numeric values for learned behaviors (not strings)
-        parent1_physical = PhysicalTraits(
-            size_modifier=GeneticTrait(1.0),
-            color_hue=GeneticTrait(0.5),
-            template_id=GeneticTrait(0),
-            fin_size=GeneticTrait(1.0),
-            tail_size=GeneticTrait(1.0),
-            body_aspect=GeneticTrait(1.0),
-            eye_size=GeneticTrait(1.0),
-            pattern_intensity=GeneticTrait(0.5),
-            pattern_type=GeneticTrait(0),
-            lifespan_modifier=GeneticTrait(1.0),
-        )
-
-        parent1_behavioral = BehavioralTraits(
-            aggression=GeneticTrait(0.5),
-            social_tendency=GeneticTrait(0.5),
-            pursuit_aggression=GeneticTrait(0.5),
-            prediction_skill=GeneticTrait(0.5),
-            hunting_stamina=GeneticTrait(0.5),
-            asexual_reproduction_chance=GeneticTrait(0.5),
-            behavior_algorithm=GeneticTrait(None),
-            poker_algorithm=GeneticTrait(None),
-            poker_strategy_algorithm=GeneticTrait(None),
-            mate_preferences=GeneticTrait({
-                "prefer_similar_size": 0.5,
-                "prefer_different_color": 0.5,
-                "prefer_high_energy": 0.5,
-            }),
-        )
-
-        parent1 = Genome(
-            physical=parent1_physical,
-            behavioral=parent1_behavioral,
-            learned_behaviors={"territory_size": 50.0, "hunting_success": 0.8},
-        )
-
-        parent2 = Genome(
-            physical=PhysicalTraits(
-                size_modifier=GeneticTrait(parent1_physical.size_modifier.value),
-                color_hue=GeneticTrait(parent1_physical.color_hue.value),
-                template_id=GeneticTrait(parent1_physical.template_id.value),
-                fin_size=GeneticTrait(parent1_physical.fin_size.value),
-                tail_size=GeneticTrait(parent1_physical.tail_size.value),
-                body_aspect=GeneticTrait(parent1_physical.body_aspect.value),
-                eye_size=GeneticTrait(parent1_physical.eye_size.value),
-                pattern_intensity=GeneticTrait(parent1_physical.pattern_intensity.value),
-                pattern_type=GeneticTrait(parent1_physical.pattern_type.value),
-                lifespan_modifier=GeneticTrait(parent1_physical.lifespan_modifier.value),
-            ),
-            behavioral=BehavioralTraits(
-                aggression=GeneticTrait(parent1_behavioral.aggression.value),
-                social_tendency=GeneticTrait(parent1_behavioral.social_tendency.value),
-                pursuit_aggression=GeneticTrait(parent1_behavioral.pursuit_aggression.value),
-                prediction_skill=GeneticTrait(parent1_behavioral.prediction_skill.value),
-                hunting_stamina=GeneticTrait(parent1_behavioral.hunting_stamina.value),
-                asexual_reproduction_chance=GeneticTrait(parent1_behavioral.asexual_reproduction_chance.value),
-                behavior_algorithm=GeneticTrait(parent1_behavioral.behavior_algorithm.value),
-                poker_algorithm=GeneticTrait(parent1_behavioral.poker_algorithm.value),
-                poker_strategy_algorithm=GeneticTrait(parent1_behavioral.poker_strategy_algorithm.value),
-                mate_preferences=GeneticTrait(dict(parent1_behavioral.mate_preferences.value)),
-            ),
-            learned_behaviors={"territory_size": 30.0, "social_rank": 3.0},
-        )
-
-        offspring = Genome(
-            physical=PhysicalTraits(
-                size_modifier=GeneticTrait(parent1_physical.size_modifier.value),
-                color_hue=GeneticTrait(parent1_physical.color_hue.value),
-                template_id=GeneticTrait(parent1_physical.template_id.value),
-                fin_size=GeneticTrait(parent1_physical.fin_size.value),
-                tail_size=GeneticTrait(parent1_physical.tail_size.value),
-                body_aspect=GeneticTrait(parent1_physical.body_aspect.value),
-                eye_size=GeneticTrait(parent1_physical.eye_size.value),
-                pattern_intensity=GeneticTrait(parent1_physical.pattern_intensity.value),
-                pattern_type=GeneticTrait(parent1_physical.pattern_type.value),
-                lifespan_modifier=GeneticTrait(parent1_physical.lifespan_modifier.value),
-            ),
-            behavioral=BehavioralTraits(
-                aggression=GeneticTrait(parent1_behavioral.aggression.value),
-                social_tendency=GeneticTrait(parent1_behavioral.social_tendency.value),
-                pursuit_aggression=GeneticTrait(parent1_behavioral.pursuit_aggression.value),
-                prediction_skill=GeneticTrait(parent1_behavioral.prediction_skill.value),
-                hunting_stamina=GeneticTrait(parent1_behavioral.hunting_stamina.value),
-                asexual_reproduction_chance=GeneticTrait(parent1_behavioral.asexual_reproduction_chance.value),
-                behavior_algorithm=GeneticTrait(parent1_behavioral.behavior_algorithm.value),
-                poker_algorithm=GeneticTrait(parent1_behavioral.poker_algorithm.value),
-                poker_strategy_algorithm=GeneticTrait(parent1_behavioral.poker_strategy_algorithm.value),
-                mate_preferences=GeneticTrait(dict(parent1_behavioral.mate_preferences.value)),
-            ),
-        )
-
-        # Inherit behaviors (requires offspring param)
-        inherit_learned_behaviors(parent1, parent2, offspring, inheritance_rate=0.7)
-
-        # Should have some behaviors from parents
-        assert len(offspring.learned_behaviors) > 0, "Should inherit some behaviors"
-
-        # Check that numeric values were averaged (allow mutation drift)
-        if "territory_size" in offspring.learned_behaviors:
-            # Should be roughly average of 50.0 and 30.0, with some mutation
-            assert 20.0 <= offspring.learned_behaviors["territory_size"] <= 60.0
 
     def test_algorithm_evolution_preserves_functionality(self):
         """Test that evolved algorithms remain functional."""

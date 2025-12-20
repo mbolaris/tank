@@ -10,9 +10,7 @@ from core.constants import (
     FISH_BASE_HEIGHT,
     FISH_BASE_SPEED,
     FISH_BASE_WIDTH,
-    FISH_FOOD_MEMORY_DECAY,
     FISH_LAST_EVENT_INITIAL_AGE,
-    FISH_MAX_FOOD_MEMORIES,
     FISH_MEMORY_DECAY_RATE,
     FISH_MEMORY_LEARNING_RATE,
     FISH_MEMORY_MAX_PER_TYPE,
@@ -36,7 +34,7 @@ if TYPE_CHECKING:
     from core.world import World
 
 # Runtime imports (moved from local scopes)
-from core.behavioral_learning import BehavioralLearningSystem
+
 from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.fish.energy_component import EnergyComponent
 from core.fish.lifecycle_component import LifecycleComponent
@@ -166,14 +164,6 @@ class Fish(Agent):
 
         # Backward compatibility: expose reproduction attributes as properties
 
-        # IMPROVEMENT: Memory and learning system (legacy - kept for compatibility)
-        self.food_memory: List[Tuple[Vector2, int]] = (
-            []
-        )  # (position, age_when_found) for food hotspots
-        self.last_food_found_age: int = FISH_LAST_EVENT_INITIAL_AGE
-        self.successful_food_finds: int = 0  # Track learning success
-        self.MAX_FOOD_MEMORIES = FISH_MAX_FOOD_MEMORIES
-        self.FOOD_MEMORY_DECAY = FISH_FOOD_MEMORY_DECAY
 
         # NEW: Enhanced memory system
 
@@ -183,9 +173,7 @@ class Fish(Agent):
             learning_rate=FISH_MEMORY_LEARNING_RATE,
         )
 
-        # NEW: Behavioral learning system (learn from experience within lifetime)
 
-        self.learning_system = BehavioralLearningSystem(self.genome)
         
         # NEW: Skill game component (manages strategies and stats for skill games)
         from core.fish.skill_game_component import SkillGameComponent
@@ -688,20 +676,19 @@ class Fish(Agent):
         max_energy = self.max_energy
         return self.energy / max_energy if max_energy > 0 else 0.0
 
-    def remember_food_location(self, position: Vector2) -> None:
         """Remember a food location for future reference.
 
         Args:
             position: Position where food was found
         """
-        # Add to memory
-        self.food_memory.append((position, self.age))
-        self.last_food_found_age = self.age
-        # Note: successful_food_finds is incremented in eat() for performance tracking
+        from core.fish_memory import MemoryType
 
-        # Keep only recent memories (FIFO)
-        if len(self.food_memory) > self.MAX_FOOD_MEMORIES:
-            self.food_memory.pop(0)
+        # Add to enhanced memory system
+        self.memory_system.add_memory(
+            memory_type=MemoryType.FOOD_LOCATION,
+            location=position,
+            strength=1.0,  # Fresh memory has full strength
+        )
 
     def can_attempt_migration(self) -> bool:
         """Fish can migrate when hitting horizontal tank boundaries."""
@@ -751,19 +738,12 @@ class Fish(Agent):
         Returns:
             List of Vector2 positions where food was previously found
         """
-        current_memories = []
-        for position, found_age in self.food_memory:
-            # Only keep memories that haven't decayed
-            if self.age - found_age < self.FOOD_MEMORY_DECAY:
-                current_memories.append(position)
+        from core.fish_memory import MemoryType
 
-        return current_memories
+        memories = self.memory_system.get_all_memories(MemoryType.FOOD_LOCATION, min_strength=0.1)
+        return [m.location for m in memories]
 
-    def clean_old_memories(self) -> None:
-        """Remove expired food memories."""
-        self.food_memory = [
-            (pos, age) for pos, age in self.food_memory if self.age - age < self.FOOD_MEMORY_DECAY
-        ]
+
 
     def is_dead(self) -> bool:
         """Check if fish should die or has migrated.
@@ -810,17 +790,6 @@ class Fish(Agent):
             damage_taken: Amount of damage/energy lost
         """
         self.last_predator_encounter_age = self.age
-
-        # NEW: Learn from predator encounter
-        from core.behavioral_learning import LearningEvent, LearningType
-
-        predator_event = LearningEvent(
-            learning_type=LearningType.PREDATOR_AVOIDANCE,
-            success=escaped,
-            reward=max(0.0, 1.0 - damage_taken / 10.0),  # Higher reward if less damage
-            context={"damage": damage_taken},
-        )
-        self.learning_system.learn_from_event(predator_event)
 
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce.
@@ -1007,12 +976,8 @@ class Fish(Agent):
             # Update enhanced memory system less frequently
             self.memory_system.update(age)
 
-            # Apply learning decay less frequently
-            self.learning_system.apply_decay()
 
-        # Performance: Clean old food memories less frequently (every 2 seconds instead of 1)
-        if age % (FRAME_RATE * 2) == 0:
-            self.clean_old_memories()
+
 
         # Energy consumption
         self.consume_energy(time_modifier)
@@ -1088,22 +1053,9 @@ class Fish(Agent):
         potential_energy = food.take_bite(effective_bite_size)
         actual_energy = self.gain_energy(potential_energy)
 
-        # IMPROVEMENT: Remember this food location for future reference
-        self.remember_food_location(food.pos)
-
-        # Performance: Only create learning events occasionally (every 5 foods eaten)
-        # This significantly reduces object allocation overhead
-        self.successful_food_finds += 1
-        if self.successful_food_finds % 5 == 0:
-            from core.behavioral_learning import LearningEvent, LearningType
-
-            food_event = LearningEvent(
-                learning_type=LearningType.FOOD_FINDING,
-                success=True,
-                reward=actual_energy / 10.0,  # Normalize reward based on ACTUAL energy
-                context={},
-            )
-            self.learning_system.learn_from_event(food_event)
+        # Record food location in memory
+        from core.fish_memory import MemoryType
+        self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)
 
         # Record food consumption for behavior performance tracking
         ecosystem = self.ecosystem

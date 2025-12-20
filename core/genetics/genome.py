@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
-from core.evolution.inheritance import inherit_learned_behaviors
+
 from core.genetics import expression
 from core.genetics.behavioral import BehavioralTraits, normalize_mate_preferences
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
@@ -43,8 +43,7 @@ class Genome:
     physical: PhysicalTraits
     behavioral: BehavioralTraits
 
-    # Learned behaviors (not strictly genetic)
-    learned_behaviors: Dict[str, float] = field(default_factory=dict)
+
 
     # =========================================================================
     # Derived Properties (computed from base traits with caching)
@@ -87,8 +86,6 @@ class Genome:
     def to_dict(
         self,
         *,
-        behavior_algorithm: Optional[Dict[str, Any]] = None,
-        poker_algorithm: Optional[Dict[str, Any]] = None,
         poker_strategy_algorithm: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Serialize this genome into JSON-compatible primitives.
@@ -98,8 +95,7 @@ class Genome:
         return genome_to_dict(
             self,
             schema_version=GENOME_SCHEMA_VERSION,
-            behavior_algorithm=behavior_algorithm,
-            poker_algorithm=poker_algorithm,
+
             poker_strategy_algorithm=poker_strategy_algorithm,
         )
 
@@ -345,23 +341,21 @@ class Genome:
         behavioral: BehavioralTraits,
     ) -> "Genome":
         """Build an offspring genome and apply non-genetic inheritance."""
-        offspring = cls(
+        return cls(
             physical=physical,
             behavioral=behavioral,
         )
-        inherit_learned_behaviors(parent1, parent2, offspring)
-        return offspring
     # =========================================================================
     # Instance Methods
     # =========================================================================
 
-    def calculate_mate_compatibility(self, other: "Genome") -> float:
-        """Calculate compatibility score with potential mate (0.0-1.0).
-        
-        Compatibility is based on how closely the mate matches this fish's
+    def calculate_mate_attraction(self, other: "Genome") -> float:
+        """Calculate how much this genome is attracted to another (0.0-1.0).
+
+        Attraction is based on how closely the mate matches this fish's
         preferred physical trait values, plus a bonus for higher pattern intensity.
         """
-        return expression.calculate_mate_compatibility(
+        return expression.calculate_mate_attraction(
             self.physical,
             self.behavioral,
             other.physical

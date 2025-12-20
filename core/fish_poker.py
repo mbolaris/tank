@@ -748,7 +748,6 @@ class PokerInteraction:
 
         # Update poker strategy learning for all players (like 2-player version)
         if winner_id != -1 and not won_by_fold:
-            from core.behavioral_learning import LearningEvent, LearningType
             from core.constants import POKER_MAX_HAND_RANK, POKER_WEAK_HAND_THRESHOLD
 
             for i, fish in enumerate(self.fish_list):
@@ -772,20 +771,6 @@ class PokerInteraction:
                     bluffed=bluffed,
                     opponent_id=winner_fish.fish_id if not is_winner else self.fish_list[0].fish_id,
                 )
-
-                # Behavioral learning (use actual net delta)
-                energy_change = settlement.net_deltas[i]
-                poker_event = LearningEvent(
-                    learning_type=LearningType.POKER_STRATEGY,
-                    success=is_winner,
-                    reward=energy_change / 10.0,
-                    context={
-                        "hand_strength": hand_strength,
-                        "position": 0 if on_button else 1,
-                        "bluffed": 1.0 if bluffed else 0.0,
-                    },
-                )
-                fish.learning_system.learn_from_event(poker_event)
 
         # Try post-poker reproduction
         offspring = None
@@ -1105,34 +1090,7 @@ class PokerInteraction:
                     frame=loser_fish.ecosystem.frame_count if loser_fish.ecosystem else 0,
                 )
 
-                # NEW: Trigger learning events for behavioral learning system
-                from core.behavioral_learning import LearningEvent, LearningType
 
-                # Winner's learning event
-                winner_poker_event = LearningEvent(
-                    learning_type=LearningType.POKER_STRATEGY,
-                    success=True,
-                    reward=energy_transferred / 10.0,  # Normalize reward
-                    context={
-                        "hand_strength": winner_hand_strength,
-                        "position": 0 if winner_on_button else 1,
-                        "bluffed": 1.0 if winner_bluffed else 0.0,
-                    },
-                )
-                winner_fish.learning_system.learn_from_event(winner_poker_event)
-
-                # Loser's learning event
-                loser_poker_event = LearningEvent(
-                    learning_type=LearningType.POKER_STRATEGY,
-                    success=False,
-                    reward=-energy_transferred / 10.0,  # Negative reward for loss
-                    context={
-                        "hand_strength": loser_hand_strength,
-                        "position": 0 if loser_on_button else 1,
-                        "bluffed": 0.0,
-                    },
-                )
-                loser_fish.learning_system.learn_from_event(loser_poker_event)
 
         # Try post-poker reproduction (voluntary sexual reproduction)
         offspring = None
