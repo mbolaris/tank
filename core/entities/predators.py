@@ -67,9 +67,7 @@ class Crab(Agent):
         energy_gained = food.get_energy_value()
         self.energy = min(self.max_energy, self.energy + energy_gained)
 
-    def is_dead(self) -> bool:
-        """Check if crab is dead (currently crabs don't die)."""
-        return False
+
 
     def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
         """Update the crab state.

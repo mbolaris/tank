@@ -5,7 +5,9 @@ from typing import Optional, Tuple
 
 from core.environment import Environment
 from core.movement_strategy import AlgorithmicMovement
+
 from core.entities.fish import Fish
+from core.state_machine import EntityState
 
 
 @dataclass
@@ -35,7 +37,8 @@ def test_fish_migration_returns_false_without_handler() -> None:
     fish = _make_fish(env)
 
     assert fish._attempt_migration("left") is False
-    assert fish._marked_for_removal is False
+
+    assert fish.state.state != EntityState.REMOVED
 
 
 def test_fish_migration_returns_false_without_tank_id() -> None:
@@ -44,7 +47,8 @@ def test_fish_migration_returns_false_without_tank_id() -> None:
     fish = _make_fish(env)
 
     assert fish._attempt_migration("left") is False
-    assert fish._marked_for_removal is False
+
+    assert fish.state.state != EntityState.REMOVED
 
 
 def test_fish_migration_marks_for_removal_on_success() -> None:
@@ -55,5 +59,6 @@ def test_fish_migration_marks_for_removal_on_success() -> None:
     fish = _make_fish(env)
 
     assert fish._attempt_migration("right") is True
-    assert fish._marked_for_removal is True
+
+    assert fish.state.state == EntityState.REMOVED
     assert handler.last_call == ("Fish", "right", "tank-123")

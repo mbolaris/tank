@@ -21,7 +21,7 @@ from core.math_utils import Vector2
 from core.world import World
 
 # Import LifeStage from state_machine for centralized definition with transition validation
-from core.state_machine import LifeStage  # noqa: F401 - re-exported
+from core.state_machine import LifeStage, EntityState, create_entity_state_machine  # noqa: F401 - re-exported
 
 
 class Rect:
@@ -113,6 +113,10 @@ class Agent:
         self.rect: Rect = Rect(x, y, self.width, self.height)
         self.image: Optional[object] = None  # Placeholder for test compatibility
         self._groups: List = []  # Track sprite groups for kill() method
+
+        # Lifecycle state machine (Active -> Dead/Removed)
+        self.state = create_entity_state_machine(track_history=True)
+        self.state.transition(EntityState.ACTIVE, reason="spawned")
 
     def get_rect(self) -> Tuple[float, float, float, float]:
         """Get bounding rectangle (x, y, width, height) for collision detection."""
@@ -285,7 +289,7 @@ class Agent:
 
     def is_dead(self) -> bool:
         """Check if the agent is dead."""
-        return False
+        return self.state.state in (EntityState.DEAD, EntityState.REMOVED)
 
     def kill(self) -> None:
         """Remove this agent from all groups."""

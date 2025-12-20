@@ -323,7 +323,7 @@ class EntityState(Enum):
 
 ENTITY_STATE_TRANSITIONS: Dict[EntityState, List[EntityState]] = {
     EntityState.INITIALIZING: [EntityState.ACTIVE, EntityState.DEAD],
-    EntityState.ACTIVE: [EntityState.DYING, EntityState.DEAD],
+    EntityState.ACTIVE: [EntityState.DYING, EntityState.DEAD, EntityState.REMOVED],
     EntityState.DYING: [EntityState.DEAD],
     EntityState.DEAD: [EntityState.REMOVED],
     EntityState.REMOVED: [],  # Terminal state

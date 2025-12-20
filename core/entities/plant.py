@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Optional
 
 from core.entities.base import Agent
 from core.entity_ids import PlantId
+from core.state_machine import EntityState
 from core.genetics import PlantGenome
 from core.entities.resources import Food
 
@@ -110,7 +111,6 @@ class Plant(Agent):
         # Add random offset to prevent synchronized migrations
         self.migration_check_interval = 300
         self.migration_timer = random.randint(0, self.migration_check_interval)
-        self._marked_for_removal = False  # Set to True when plant should be removed (e.g., after migration)
 
         # Statistics
         self.age = 0
@@ -380,7 +380,16 @@ class Plant(Agent):
         Returns:
             True if plant should be removed
         """
-        return self._marked_for_removal or self.energy < PLANT_DEATH_ENERGY
+        # Check explicit state first (e.g. migrated)
+        if self.state.state in (EntityState.DEAD, EntityState.REMOVED):
+            return True
+            
+        # Check condition-based death (low energy)
+        if self.energy < PLANT_DEATH_ENERGY:
+            self.state.transition(EntityState.DEAD, reason="low_energy")
+            return True
+            
+        return False
 
     def get_size_multiplier(self) -> float:
         """Get current size multiplier for rendering.
@@ -520,7 +529,7 @@ class Plant(Agent):
 
             if success:
                 # Mark this plant for removal from source tank
-                self._marked_for_removal = True
+                self.state.transition(EntityState.REMOVED, reason="migration")
                 logger.debug(f"Plant #{self.plant_id} successfully migrated {direction}")
 
             return success

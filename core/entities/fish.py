@@ -20,7 +20,7 @@ from core.constants import (
     LIFE_STAGE_MATURE_MAX,
     PREDATOR_ENCOUNTER_WINDOW,
 )
-from core.entities.base import Agent, LifeStage
+from core.entities.base import Agent, LifeStage, EntityState
 from core.entity_ids import FishId
 from core.math_utils import Vector2
 
@@ -107,9 +107,6 @@ class Fish(Agent):
         
         self.generation: int = generation
         self.species: str = species
-
-        # Removal flag - set to True when fish should be removed (e.g., after migration)
-        self._marked_for_removal: bool = False
 
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
         # This is checked ~11x per fish per frame in various places
@@ -361,6 +358,8 @@ class Fish(Agent):
         self._energy_component.energy = value
         # OPTIMIZATION: Update dead cache if energy drops to/below zero
         if value <= 0:
+            if self.state.state == EntityState.ACTIVE:
+                self.state.transition(EntityState.DEAD, reason="starvation")
             self._cached_is_dead = True
 
     @property
@@ -505,6 +504,8 @@ class Fish(Agent):
             self._energy_component.energy = final_energy
             # OPTIMIZATION: Update dead cache if energy drops to zero
             if final_energy <= 0:
+                if self.state.state == EntityState.ACTIVE:
+                    self.state.transition(EntityState.DEAD, reason="starvation")
                 self._cached_is_dead = True
 
         return self._energy_component.energy - old_energy
@@ -596,6 +597,8 @@ class Fish(Agent):
 
         # OPTIMIZATION: Update dead cache if energy drops to zero
         if self._energy_component.energy <= 0:
+            if self.state.state == EntityState.ACTIVE:
+                self.state.transition(EntityState.DEAD, reason="starvation")
             self._cached_is_dead = True
 
         if self.ecosystem is not None:
@@ -709,7 +712,7 @@ class Fish(Agent):
 
             if success:
                 # Mark this fish for removal from source tank
-                self._marked_for_removal = True
+                self.state.transition(EntityState.REMOVED, reason="migration")
                 logger.debug(f"Fish #{self.fish_id} successfully migrated {direction}")
 
             return success
@@ -740,21 +743,51 @@ class Fish(Agent):
         # OPTIMIZATION: Return cached value if already dead
         if self._cached_is_dead:
             return True
-        # Check conditions and update cache if now dead
-        dead = self._marked_for_removal or self.energy <= 0 or self.age >= self.max_age
-        if dead:
+            
+        # Check active state first (checks underlying state machine)
+        if self.state.state in (EntityState.DEAD, EntityState.REMOVED):
             self._cached_is_dead = True
-        return dead
+            return True
+
+        # Check conditions and update state if now dead
+        # 1. Energy depletion
+        if self.energy <= 0:
+            self.state.transition(EntityState.DEAD, reason="starvation")
+            self._cached_is_dead = True
+            return True
+            
+        # 2. Old age
+        if self.age >= self.max_age:
+            self.state.transition(EntityState.DEAD, reason="old_age")
+            self._cached_is_dead = True
+            return True
+            
+        return False
 
     def get_death_cause(self) -> str:
         """Get the cause of death.
 
-        Note: Fish that run out of energy after a recent predator encounter
-        (within PREDATOR_ENCOUNTER_WINDOW) count as predation deaths.
-        Otherwise, energy depletion counts as starvation.
+        Checks state machine history first, then falls back to condition checks.
         """
-        if self._marked_for_removal:
-            return "migration"  # Fish migrated to another tank
+        # Try to get explicit reason from state machine history
+        history = self.state.history
+        if history:
+            last_transition = history[-1]
+            if last_transition.to_state in (EntityState.DEAD, EntityState.REMOVED):
+                # Reason is stored in transition (e.g. "starvation", "old_age", "migration")
+                # Normalize reason to match expected strings
+                reason = last_transition.reason
+                if "migration" in reason: return "migration"
+                if "starvation" in reason:
+                    # Check for predation overlap even if recorded as starvation
+                    if self.age - self.last_predator_encounter_age <= PREDATOR_ENCOUNTER_WINDOW:
+                        return "predation"
+                    return "starvation"
+                if "old_age" in reason: return "old_age"
+
+        # Fallback to inference if history unavailable/unclear
+        if self.state.state == EntityState.REMOVED:
+            return "migration"
         if self.energy <= 0:
             # Check if there was a recent predator encounter
             if self.age - self.last_predator_encounter_age <= PREDATOR_ENCOUNTER_WINDOW:
