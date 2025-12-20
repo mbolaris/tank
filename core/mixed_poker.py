@@ -295,14 +295,11 @@ class MixedPokerInteraction:
         ]
 
     def _get_player_id(self, player: Player) -> int:
-        """Get the stable ID of a player (matching frontend entity IDs)."""
-        from core.constants import FISH_ID_OFFSET, PLANT_ID_OFFSET
-
-        if self._is_fish_player(player):
-            return player.fish_id + FISH_ID_OFFSET
-        elif self._is_plant_player(player):
-            return player.plant_id + PLANT_ID_OFFSET
-        return id(player)
+        """Get the stable ID of a player (matching frontend entity IDs).
+        
+        Uses the PokerPlayer protocol's get_poker_id() method.
+        """
+        return player.get_poker_id()
 
     def _get_player_type(self, player: Player) -> str:
         """Get the type of a player (matching frontend entity type names)."""
@@ -323,30 +320,18 @@ class MixedPokerInteraction:
     def _get_player_strategy(self, player: Player) -> Optional[Any]:
         """Get the poker strategy algorithm of a player.
 
-        Returns the player's evolved poker strategy if available.
-        For fish, this is genome.behavioral.poker_strategy.value.
-        For plants, this creates a PlantPokerStrategyAdapter.
+        Uses the PokerPlayer protocol's get_poker_strategy() method.
         """
-        if self._is_fish_player(player):
-            trait = player.genome.behavioral.poker_strategy
-            return trait.value if trait else None
-        elif self._is_plant_player(player):
-            from core.plant_poker_strategy import PlantPokerStrategyAdapter
-            return PlantPokerStrategyAdapter.from_plant(player)
-        return None
+        return player.get_poker_strategy()
 
     def _get_player_aggression(self, player: Player) -> float:
-        """Get the poker aggression of a player."""
-        if self._is_fish_player(player):
-            return POKER_AGGRESSION_LOW + (
-                player.genome.behavioral.aggression.value
-                * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW)
-            )
-        elif self._is_plant_player(player):
-            return POKER_AGGRESSION_LOW + (
-                player.get_poker_aggression() * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW)
-            )
-        return 0.5
+        """Get the poker aggression of a player.
+        
+        Uses the PokerPlayer protocol's get_poker_aggression() method.
+        Maps base aggression (0-1) to poker range.
+        """
+        base = player.get_poker_aggression()
+        return POKER_AGGRESSION_LOW + (base * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW))
 
     def _modify_player_energy(self, player: Player, amount: float) -> None:
         """Modify the energy of a player."""

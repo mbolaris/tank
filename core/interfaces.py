@@ -187,8 +187,37 @@ class PokerPlayer(EnergyHolder, Positionable, Protocol):
     
     This protocol is a composition of EnergyHolder and Positionable,
     as poker players need both to manage bets and proximity.
+    
+    Implementations must provide poker-specific attributes and methods
+    for aggression, strategy, identification, and cooldown management.
     """
-    ...
+    
+    @property
+    def species(self) -> str:
+        """Species identifier for same-species reproduction checks."""
+        ...
+    
+    @property
+    def poker_cooldown(self) -> int:
+        """Frames until entity can play poker again."""
+        ...
+    
+    @poker_cooldown.setter
+    def poker_cooldown(self, value: int) -> None:
+        """Set poker cooldown."""
+        ...
+    
+    def get_poker_aggression(self) -> float:
+        """Get aggression level for poker decisions (0.0-1.0)."""
+        ...
+    
+    def get_poker_strategy(self) -> Optional[Any]:
+        """Get poker strategy algorithm, or None to use aggression-based play."""
+        ...
+    
+    def get_poker_id(self) -> int:
+        """Get stable ID for poker (fish_id or plant_id + offset)."""
+        ...
 
 
 @runtime_checkable

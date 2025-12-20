@@ -440,6 +440,23 @@ class Plant(Agent):
         """
         return self.genome.aggression
 
+    def get_poker_strategy(self):
+        """Get poker strategy for this plant.
+
+        Returns:
+            PlantPokerStrategyAdapter wrapping this plant's genome
+        """
+        from core.plant_poker_strategy import PlantPokerStrategyAdapter
+        return PlantPokerStrategyAdapter(self.genome)
+
+    def get_poker_id(self) -> int:
+        """Get stable ID for poker tracking.
+
+        Returns:
+            plant_id offset by 100000 to avoid collision with fish IDs
+        """
+        return self.plant_id + 100000
+
     def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
         """Set a visual effect for poker status.
 

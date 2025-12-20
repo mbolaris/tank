@@ -271,6 +271,31 @@ class Fish(Agent):
             and not self.is_dead()
         )
 
+    def get_poker_aggression(self) -> float:
+        """Get poker aggression level (implements PokerPlayer protocol).
+
+        Returns:
+            Aggression value for poker decisions (0.0-1.0)
+        """
+        return self.genome.behavioral.aggression.value
+
+    def get_poker_strategy(self):
+        """Get poker strategy for this fish (implements PokerPlayer protocol).
+
+        Returns:
+            PokerStrategyAlgorithm from genome, or None for aggression-based play
+        """
+        trait = self.genome.behavioral.poker_strategy
+        return trait.value if trait else None
+
+    def get_poker_id(self) -> int:
+        """Get stable ID for poker tracking (implements PokerPlayer protocol).
+
+        Returns:
+            fish_id for consistent identification
+        """
+        return self.fish_id
+
     @property
     def typed_id(self) -> FishId:
         """Get the type-safe fish ID.
