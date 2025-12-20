@@ -6,7 +6,7 @@ including aggression, social tendencies, and algorithm selection.
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -60,6 +60,50 @@ MATE_PREFERENCE_SPECS: Dict[str, TraitSpec] = {
     for spec in PHYSICAL_TRAIT_SPECS
     if spec.name in MATE_PREFERENCE_TRAIT_NAMES
 }
+
+
+def _inherit_trait_meta(
+    parent1_trait: Optional[GeneticTrait],
+    parent2_trait: Optional[GeneticTrait],
+    value: Any,
+    rng: pyrandom.Random,
+) -> GeneticTrait:
+    """Create a GeneticTrait with inherited meta-values from parents.
+
+    Blends mutation_rate, mutation_strength, and hgt_probability from both
+    parent traits, then applies meta-mutation to allow evolution of evolvability.
+
+    Args:
+        parent1_trait: First parent's GeneticTrait (may be None)
+        parent2_trait: Second parent's GeneticTrait (may be None)
+        value: The value for the new trait
+        rng: Random number generator for meta-mutation
+
+    Returns:
+        GeneticTrait with inherited and mutated meta-values
+    """
+    # Default meta values if parent trait is missing
+    default_rate = 1.0
+    default_strength = 1.0
+    default_hgt = 0.1
+
+    rate1 = parent1_trait.mutation_rate if parent1_trait else default_rate
+    rate2 = parent2_trait.mutation_rate if parent2_trait else default_rate
+    strength1 = parent1_trait.mutation_strength if parent1_trait else default_strength
+    strength2 = parent2_trait.mutation_strength if parent2_trait else default_strength
+    hgt1 = parent1_trait.hgt_probability if parent1_trait else default_hgt
+    hgt2 = parent2_trait.hgt_probability if parent2_trait else default_hgt
+
+    # Blend parent meta-values (same as TraitSpec.inherit)
+    new_trait = GeneticTrait(
+        value,
+        mutation_rate=(rate1 + rate2) / 2,
+        mutation_strength=(strength1 + strength2) / 2,
+        hgt_probability=(hgt1 + hgt2) / 2,
+    )
+    # Allow meta-values to evolve
+    new_trait.mutate_meta(rng)
+    return new_trait
 
 
 def _default_preference_value(spec: TraitSpec) -> float:
@@ -226,7 +270,9 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
         )
-        inherited["behavior"] = GeneticTrait(behavior_val)
+        inherited["behavior"] = _inherit_trait_meta(
+            parent1.behavior, parent2.behavior, behavior_val, rng
+        )
 
         # Inherit poker strategy with winner-biased weighting
         strat1 = parent1.poker_strategy.value if parent1.poker_strategy else None
@@ -239,7 +285,9 @@ class BehavioralTraits:
             winner_weight=weight1,
             rng=rng,
         )
-        inherited["poker_strategy"] = GeneticTrait(poker_strat_val)
+        inherited["poker_strategy"] = _inherit_trait_meta(
+            parent1.poker_strategy, parent2.poker_strategy, poker_strat_val, rng
+        )
 
         # Inherit mate preferences
         prefs1 = parent1.mate_preferences.value if parent1.mate_preferences else {}
@@ -252,7 +300,9 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
         )
-        inherited["mate_preferences"] = GeneticTrait(mate_prefs)
+        inherited["mate_preferences"] = _inherit_trait_meta(
+            parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
+        )
 
         return cls(**inherited)
 
@@ -287,7 +337,9 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
         )
-        inherited["behavior"] = GeneticTrait(behavior_val)
+        inherited["behavior"] = _inherit_trait_meta(
+            parent1.behavior, parent2.behavior, behavior_val, rng
+        )
 
         strat1 = parent1.poker_strategy.value if parent1.poker_strategy else None
         strat2 = parent2.poker_strategy.value if parent2.poker_strategy else None
@@ -299,7 +351,9 @@ class BehavioralTraits:
             winner_weight=1.0 if rng.random() < parent1_probability else 0.0,
             rng=rng,
         )
-        inherited["poker_strategy"] = GeneticTrait(poker_strat_val)
+        inherited["poker_strategy"] = _inherit_trait_meta(
+            parent1.poker_strategy, parent2.poker_strategy, poker_strat_val, rng
+        )
 
         prefs1 = parent1.mate_preferences.value if parent1.mate_preferences else {}
         prefs2 = parent2.mate_preferences.value if parent2.mate_preferences else {}
@@ -324,7 +378,9 @@ class BehavioralTraits:
                 mutation_strength=mutation_strength,
                 rng=rng,
             )
-        inherited["mate_preferences"] = GeneticTrait(mate_prefs)
+        inherited["mate_preferences"] = _inherit_trait_meta(
+            parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
+        )
 
         return cls(**inherited)
 
