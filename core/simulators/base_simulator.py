@@ -32,12 +32,16 @@ from core.constants import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from core.poker_interaction import FishPokerInteraction as PokerInteraction
+from core.poker_interaction import (
+    PokerInteraction,
+    MAX_PLAYERS as POKER_MAX_PLAYERS,
+    MIN_ENERGY_TO_PLAY as POKER_MIN_ENERGY,
+    check_poker_proximity,
+)
 from core.mixed_poker import (
     MixedPokerInteraction,
     should_trigger_plant_poker_asexual_reproduction,
 )
-from core.poker_interaction import check_fish_plant_poker_proximity
 
 logger = logging.getLogger(__name__)
 
@@ -374,7 +378,7 @@ class BaseSimulator(ABC):
                     continue
 
                 # Check if fish is in poker proximity zone (close but not touching)
-                if check_fish_plant_poker_proximity(
+                if check_poker_proximity(
                     fish, plant,
                     min_distance=PLANT_POKER_MIN_DISTANCE,
                     max_distance=PLANT_POKER_MAX_DISTANCE
@@ -1054,10 +1058,10 @@ class BaseSimulator(ABC):
                             continue
 
                         # Limit to max players to avoid deck exhaustion
-                        if len(ready_group) > PokerInteraction.MAX_PLAYERS:
-                            ready_group = ready_group[:PokerInteraction.MAX_PLAYERS]
+                        if len(ready_group) > POKER_MAX_PLAYERS:
+                            ready_group = ready_group[:POKER_MAX_PLAYERS]
 
-                        poker = PokerInteraction(*ready_group)
+                        poker = PokerInteraction(ready_group)
                         if poker.play_poker():
                             self.handle_poker_result(poker)
 

@@ -18,9 +18,9 @@ class PokerTable:
     def play_hand(self, bet_amount: Optional[float] = None) -> Optional["PokerResult"]:
         """Play a poker hand among the configured players."""
 
-        from core.poker_interaction import FishPokerInteraction as PokerInteraction
+        from core.poker_interaction import PokerInteraction
 
-        interaction = PokerInteraction(*self.players)
+        interaction = PokerInteraction(self.players)
         if not interaction.can_play_poker():
             return None
 

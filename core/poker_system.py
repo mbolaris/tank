@@ -13,7 +13,7 @@ Architecture Notes:
 from collections import deque
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from core.poker_interaction import FishPokerInteraction as PokerInteraction
+from core.poker_interaction import PokerInteraction
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 

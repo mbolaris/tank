@@ -42,86 +42,13 @@ MAX_PLAYERS = 6
 # Primary PokerInteraction class - works with any PokerPlayer entities
 PokerInteraction = MixedPokerInteraction
 
-
-class FishPokerInteraction(MixedPokerInteraction):
-    """Backward-compatible wrapper for fish-only poker games.
-    
-    This class provides the same API as the old fish_poker.PokerInteraction
-    while using MixedPokerInteraction internally.
-    """
-    
-    MIN_ENERGY_TO_PLAY = MIN_ENERGY_TO_PLAY
-    DEFAULT_BET_AMOUNT = DEFAULT_BET_AMOUNT
-    POKER_COOLDOWN = POKER_COOLDOWN
-    MAX_PLAYERS = MAX_PLAYERS
-    
-    def __init__(self, *fish):
-        """Initialize with varargs for backward compatibility."""
-        super().__init__(list(fish))
-        self._fish_list = list(fish)
-    
-    @property
-    def fish1(self):
-        """Get first fish (backward compat)."""
-        return self._fish_list[0] if len(self._fish_list) > 0 else None
-    
-    @property
-    def fish2(self):
-        """Get second fish (backward compat)."""
-        return self._fish_list[1] if len(self._fish_list) > 1 else None
-    
-    @property
-    def fish_list(self):
-        """Get list of fish."""
-        return self._fish_list
-    
-    @property
-    def hand1(self):
-        """Get first player's hand (backward compat)."""
-        return self.player_hands[0] if self.player_hands else None
-    
-    @hand1.setter
-    def hand1(self, value):
-        if len(self.player_hands) > 0:
-            self.player_hands[0] = value
-    
-    @property
-    def hand2(self):
-        """Get second player's hand (backward compat)."""
-        return self.player_hands[1] if len(self.player_hands) > 1 else None
-    
-    @hand2.setter
-    def hand2(self, value):
-        if len(self.player_hands) > 1:
-            self.player_hands[1] = value
-    
-    @classmethod
-    def get_ready_players(cls, fish_list):
-        """Return fish eligible to play poker (backward compat)."""
-        return get_ready_players(fish_list, min_energy=cls.MIN_ENERGY_TO_PLAY)
-    
-    @staticmethod
-    def calculate_house_cut(winner_size: float, net_gain: float) -> float:
-        """Calculate house cut (backward compat static method)."""
-        from core.constants import (
-            POKER_BET_MIN_SIZE,
-            POKER_HOUSE_CUT_MIN_PERCENTAGE,
-            POKER_HOUSE_CUT_SIZE_MULTIPLIER,
-        )
-        house_cut_percentage = POKER_HOUSE_CUT_MIN_PERCENTAGE + max(
-            0, (winner_size - POKER_BET_MIN_SIZE) * POKER_HOUSE_CUT_SIZE_MULTIPLIER
-        )
-        house_cut_percentage = min(house_cut_percentage, 0.25)
-        return min(net_gain * house_cut_percentage, net_gain)
-
-# Reproduction helpers (moved from fish_poker.py)
+# Reproduction helpers
 from core.constants import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
 
 
 def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     """Check if reproduction should be triggered after poker.
     
-    Unified reproduction check for any PokerPlayer entities.
     Both players must:
     - Have energy >= POST_POKER_REPRODUCTION_ENERGY_THRESHOLD of max
     - Be off cooldown (reproduction_cooldown <= 0)
@@ -151,6 +78,38 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     return True
 
 
+def should_offer_post_poker_reproduction(
+    fish, opponent, is_winner: bool, energy_gained: float = 0.0
+) -> bool:
+    """Check if fish should reproduce after poker (legacy signature).
+    
+    Args:
+        fish: The fish to check
+        opponent: The opponent fish
+        is_winner: Whether fish won (unused, kept for compatibility)
+        energy_gained: Energy gained (unused, kept for compatibility)
+        
+    Returns:
+        True if reproduction conditions are met
+    """
+    from core.entities.base import LifeStage
+    
+    min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+    if fish.energy < min_energy_for_reproduction:
+        return False
+
+    if fish.reproduction_cooldown > 0:
+        return False
+
+    if fish.life_stage.value < LifeStage.ADULT.value:
+        return False
+
+    if fish.species != opponent.species:
+        return False
+
+    return True
+
+
 def calculate_house_cut(winner_size: float, net_gain: float) -> float:
     """Calculate house cut based on winner's size.
 
@@ -176,35 +135,6 @@ def calculate_house_cut(winner_size: float, net_gain: float) -> float:
     house_cut_percentage = min(house_cut_percentage, 0.25)
     # Never exceed the winner's profit
     return min(net_gain * house_cut_percentage, net_gain)
-
-
-def should_offer_post_poker_reproduction(
-    fish, opponent, is_winner: bool, energy_gained: float = 0.0
-) -> bool:
-    """Legacy alias for should_trigger_reproduction for fish.
-    
-    DEPRECATED: Prefer using should_trigger_reproduction() for new code.
-    
-    This performs the same check as should_trigger_reproduction but with
-    the original signature for backward compatibility.
-    """
-    from core.entities.base import LifeStage
-    
-    # Original logic from fish_poker.py
-    min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
-    if fish.energy < min_energy_for_reproduction:
-        return False
-
-    if fish.reproduction_cooldown > 0:
-        return False
-
-    if fish.life_stage.value < LifeStage.ADULT.value:
-        return False
-
-    if fish.species != opponent.species:
-        return False
-
-    return True
 
 
 def check_poker_proximity(
@@ -236,16 +166,6 @@ def check_poker_proximity(
     return min_distance * min_distance < distance_sq <= max_distance * max_distance
 
 
-def check_fish_plant_poker_proximity(
-    fish, plant, min_distance: float = 40.0, max_distance: float = 80.0
-) -> bool:
-    """Check if a fish and plant are close enough for poker.
-    
-    Legacy alias for check_poker_proximity for backward compatibility.
-    """
-    return check_poker_proximity(fish, plant, min_distance, max_distance)
-
-
 __all__ = [
     "PokerInteraction",
     "PokerResult", 
@@ -253,9 +173,13 @@ __all__ = [
     "GameState",
     "PlayerContext",
     "Player",
+    "MIN_ENERGY_TO_PLAY",
+    "DEFAULT_BET_AMOUNT",
+    "POKER_COOLDOWN",
+    "MAX_PLAYERS",
+    "get_ready_players",
     "should_trigger_reproduction",
     "should_offer_post_poker_reproduction",
     "calculate_house_cut",
     "check_poker_proximity",
-    "check_fish_plant_poker_proximity",
 ]
