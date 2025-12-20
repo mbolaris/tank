@@ -299,16 +299,16 @@ class BaseSimulator(ABC):
                 if (
                     hasattr(self, "add_plant_poker_event")
                     and result is not None
-                    and len(result.player_hands) >= 2
-                    and result.player_hands[0] is not None
-                    and result.player_hands[1] is not None
                 ):
                     # Determine fish won based on winner matching fish ID
                     fish_id = fish.get_poker_id()
                     plant_id = plant.get_poker_id()
                     fish_won = result.winner_id == fish_id
-                    fish_hand = result.player_hands[0].description
-                    plant_hand = result.player_hands[1].description
+                    fish_hand = result.winner_hand.description if result.winner_hand else "Unknown"
+                    plant_hand = result.loser_hands[0].description if result.loser_hands and result.loser_hands[0] else "Unknown"
+                    # Swap hands if plant won
+                    if not fish_won:
+                        fish_hand, plant_hand = plant_hand, fish_hand
                     self.add_plant_poker_event(
                         fish_id=fish_id,
                         plant_id=plant_id,

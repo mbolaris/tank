@@ -68,19 +68,14 @@ class PokerSystem(BaseSystem):
         return SystemResult.empty()
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
-        """Handle poker outcomes, including reproduction and event logging.
+        """Handle poker outcomes, including event logging.
 
         Args:
             poker: The completed poker interaction
         """
         self.add_poker_event(poker)
-
-        if (
-            poker.result is not None
-            and poker.result.reproduction_occurred
-            and poker.result.offspring is not None
-        ):
-            self._engine.add_entity(poker.result.offspring)
+        # Note: Reproduction is now handled separately by the simulator,
+        # not via poker result fields
 
     def _add_poker_event_to_history(
         self,
@@ -124,45 +119,44 @@ class PokerSystem(BaseSystem):
             return
 
         result = poker.result
-        num_players = len(result.player_ids)
+        # Get player count from poker.players (MixedPokerInteraction stores players list)
+        num_players = len(poker.players) if hasattr(poker, 'players') else 2
 
-        if result.winner_id == -1:
-            hand1_desc = result.hand1.description if result.hand1 is not None else "Unknown"
+        if result.winner_id == -1 or result.is_tie:
+            # Tie - use winner_hand or first loser_hand for description
+            hand_desc = result.winner_hand.description if result.winner_hand else "Unknown"
             if num_players == 2:
-                message = f"Fish #{poker.fish1.fish_id} vs Fish #{poker.fish2.fish_id} - TIE! ({hand1_desc})"
+                p1_id = poker.players[0].get_poker_id() if hasattr(poker.players[0], 'get_poker_id') else 0
+                p2_id = poker.players[1].get_poker_id() if hasattr(poker.players[1], 'get_poker_id') else 0
+                message = f"Fish #{p1_id} vs Fish #{p2_id} - TIE! ({hand_desc})"
             else:
-                player_list = ", ".join(f"#{pid}" for pid in result.player_ids)
-                message = f"Fish {player_list} - TIE! ({hand1_desc})"
+                player_list = ", ".join(f"#{p.get_poker_id()}" for p in poker.players)
+                message = f"Fish {player_list} - TIE! ({hand_desc})"
             self._ties += 1
         else:
-            winner_hand_obj = None
-            for i, pid in enumerate(result.player_ids):
-                if pid == result.winner_id:
-                    winner_hand_obj = result.player_hands[i]
-                    break
-            winner_desc = winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
+            # Use winner_hand from result
+            winner_desc = result.winner_hand.description if result.winner_hand else "Unknown"
 
             if num_players == 2:
                 message = (
-                    f"Fish #{result.winner_id} beats Fish #{result.loser_id} "
-                    f"with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+                    f"Fish #{result.winner_id} beats Fish #{result.loser_ids[0] if result.loser_ids else 0} "
+                    f"with {winner_desc}! (+{result.energy_transferred:.1f} energy)"
                 )
             else:
                 loser_list = ", ".join(f"#{lid}" for lid in result.loser_ids)
                 message = (
                     f"Fish #{result.winner_id} beats Fish {loser_list} "
-                    f"with {winner_desc}! (+{result.winner_actual_gain:.1f} energy)"
+                    f"with {winner_desc}! (+{result.energy_transferred:.1f} energy)"
                 )
             self._fish_wins += 1
 
-        winner_hand_obj = result.hand1 if result.winner_id == poker.fish1.fish_id else result.hand2
-        loser_hand_obj = result.hand2 if result.winner_id == poker.fish1.fish_id else result.hand1
-        winner_hand_desc = winner_hand_obj.description if winner_hand_obj is not None else "Unknown"
-        loser_hand_desc = loser_hand_obj.description if loser_hand_obj is not None else "Unknown"
+        # Get winner and loser hand descriptions
+        winner_hand_desc = result.winner_hand.description if result.winner_hand else "Unknown"
+        loser_hand_desc = result.loser_hands[0].description if result.loser_hands and result.loser_hands[0] else "Unknown"
 
         self._add_poker_event_to_history(
             result.winner_id,
-            result.loser_id,
+            result.loser_ids[0] if result.loser_ids else -1,
             winner_hand_desc,
             loser_hand_desc,
             result.energy_transferred,
