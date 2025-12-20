@@ -17,6 +17,8 @@ Usage:
             print(f"Winner: {poker.result.winner_id}")
 """
 
+from typing import Optional
+
 # Re-export the unified poker classes
 from core.mixed_poker import (
     MixedPokerInteraction,
@@ -43,7 +45,13 @@ MAX_PLAYERS = 6
 PokerInteraction = MixedPokerInteraction
 
 # Reproduction helpers
-from core.constants import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+import random
+
+from core.constants import (
+    POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
+    POST_POKER_REPRODUCTION_LOSER_PROB,
+    POST_POKER_REPRODUCTION_WINNER_PROB,
+)
 
 
 def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
@@ -68,7 +76,9 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
         return False
     
     # Check cooldown
-    if player.poker_cooldown > 0:
+    if getattr(player, "reproduction_cooldown", 0) > 0:
+        return False
+    if getattr(opponent, "reproduction_cooldown", 0) > 0:
         return False
         
     # Check same species (fish can only reproduce with fish, plants with plants)
@@ -78,22 +88,10 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     return True
 
 
-def should_offer_post_poker_reproduction(
-    fish, opponent, is_winner: bool, energy_gained: float = 0.0
-) -> bool:
-    """Check if fish should reproduce after poker (legacy signature).
-    
-    Args:
-        fish: The fish to check
-        opponent: The opponent fish
-        is_winner: Whether fish won (unused, kept for compatibility)
-        energy_gained: Energy gained (unused, kept for compatibility)
-        
-    Returns:
-        True if reproduction conditions are met
-    """
+def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
+    """Check whether a fish can participate in post-poker reproduction."""
     from core.entities.base import LifeStage
-    
+
     min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
     if fish.energy < min_energy_for_reproduction:
         return False
@@ -108,6 +106,36 @@ def should_offer_post_poker_reproduction(
         return False
 
     return True
+
+
+def should_offer_post_poker_reproduction(
+    fish,
+    opponent,
+    is_winner: bool,
+    energy_gained: float = 0.0,
+    rng: Optional[random.Random] = None,
+) -> bool:
+    """Check if fish should reproduce after poker (legacy signature).
+    
+    Args:
+        fish: The fish to check
+        opponent: The opponent fish
+        is_winner: Whether fish won (unused, kept for compatibility)
+        energy_gained: Energy gained (unused, kept for compatibility)
+        
+    Returns:
+        True if reproduction conditions are met
+    """
+    if not is_post_poker_reproduction_eligible(fish, opponent):
+        return False
+
+    offer_prob = (
+        POST_POKER_REPRODUCTION_WINNER_PROB
+        if is_winner
+        else POST_POKER_REPRODUCTION_LOSER_PROB
+    )
+    rng = rng or random
+    return rng.random() < offer_prob
 
 
 def calculate_house_cut(winner_size: float, net_gain: float) -> float:
@@ -179,6 +207,7 @@ __all__ = [
     "MAX_PLAYERS",
     "get_ready_players",
     "should_trigger_reproduction",
+    "is_post_poker_reproduction_eligible",
     "should_offer_post_poker_reproduction",
     "calculate_house_cut",
     "check_poker_proximity",

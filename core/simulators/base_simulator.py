@@ -1266,6 +1266,209 @@ class BaseSimulator(ABC):
         elif entity.pos.y + entity.height > screen_height:
             entity.pos.y = screen_height - entity.height
 
+    def _create_post_poker_offspring(
+        self, winner: "Fish", mate: "Fish", rng: random.Random
+    ) -> Optional["Fish"]:
+        from core.constants import (
+            ENERGY_MAX_DEFAULT,
+            FISH_BABY_SIZE,
+            FISH_BASE_SPEED,
+            POST_POKER_CROSSOVER_WINNER_WEIGHT,
+            POST_POKER_MUTATION_RATE,
+            POST_POKER_MUTATION_STRENGTH,
+            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
+            REPRODUCTION_COOLDOWN,
+        )
+        from core.genetics import Genome, ReproductionParams
+
+        if winner.environment is None:
+            return None
+
+        offspring_genome = Genome.from_parents_weighted_params(
+            parent1=winner.genome,
+            parent2=mate.genome,
+            parent1_weight=POST_POKER_CROSSOVER_WINNER_WEIGHT,
+            params=ReproductionParams(
+                mutation_rate=POST_POKER_MUTATION_RATE,
+                mutation_strength=POST_POKER_MUTATION_STRENGTH,
+            ),
+            rng=rng,
+        )
+
+        baby_max_energy = (
+            ENERGY_MAX_DEFAULT
+            * FISH_BABY_SIZE
+            * offspring_genome.physical.size_modifier.value
+        )
+        if baby_max_energy <= 0:
+            return None
+
+        winner_contrib = max(0.0, winner.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)
+        mate_contrib = max(0.0, mate.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)
+        total_contrib = winner_contrib + mate_contrib
+        if total_contrib <= 0:
+            return None
+
+        if total_contrib > baby_max_energy:
+            scale = baby_max_energy / total_contrib
+            winner_contrib *= scale
+            mate_contrib *= scale
+            total_contrib = baby_max_energy
+
+        winner.energy = max(0.0, winner.energy - winner_contrib)
+        mate.energy = max(0.0, mate.energy - mate_contrib)
+
+        if winner.ecosystem is not None:
+            winner.ecosystem.record_reproduction_energy(
+                winner_contrib + mate_contrib, total_contrib
+            )
+
+        winner.reproduction_cooldown = max(winner.reproduction_cooldown, REPRODUCTION_COOLDOWN)
+        mate.reproduction_cooldown = max(mate.reproduction_cooldown, REPRODUCTION_COOLDOWN)
+
+        (min_x, min_y), (max_x, max_y) = winner.environment.get_bounds()
+        mid_x = (winner.pos.x + mate.pos.x) * 0.5
+        mid_y = (winner.pos.y + mate.pos.y) * 0.5
+        baby_x = mid_x + rng.uniform(-30, 30)
+        baby_y = mid_y + rng.uniform(-30, 30)
+        baby_x = max(min_x, min(max_x - 50, baby_x))
+        baby_y = max(min_y, min(max_y - 50, baby_y))
+
+        from core.entities import Fish
+
+        baby = Fish(
+            environment=winner.environment,
+            movement_strategy=winner.movement_strategy.__class__(),
+            species=winner.species,
+            x=baby_x,
+            y=baby_y,
+            speed=FISH_BASE_SPEED,
+            genome=offspring_genome,
+            generation=max(winner.generation, mate.generation) + 1,
+            ecosystem=winner.ecosystem,
+            initial_energy=total_contrib,
+            parent_id=winner.fish_id,
+        )
+
+        if winner.ecosystem is not None:
+            composable = winner.genome.behavioral.behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                algorithm_id = hash(behavior_id) % 1000
+                winner.ecosystem.record_reproduction(algorithm_id, is_asexual=False)
+            winner.ecosystem.record_mating_attempt(True)
+
+        winner.birth_effect_timer = 60
+        mate.birth_effect_timer = 60
+
+        source_parent = (
+            winner
+            if rng.random() < POST_POKER_CROSSOVER_WINNER_WEIGHT
+            else mate
+        )
+        baby._skill_game_component.inherit_from_parent(
+            source_parent._skill_game_component,
+            mutation_rate=POST_POKER_MUTATION_RATE,
+        )
+
+        return baby
+
+    def _attempt_post_poker_reproduction(self, poker: PokerInteraction) -> Optional["Fish"]:
+        result = getattr(poker, "result", None)
+        if result is None or getattr(result, "is_tie", False):
+            return None
+
+        if getattr(result, "fish_count", 0) < 2:
+            return None
+
+        if getattr(result, "winner_type", "") != "fish":
+            return None
+
+        fish_players = getattr(poker, "fish_players", [])
+        winner = None
+        for player in fish_players:
+            if poker._get_player_id(player) == result.winner_id:
+                winner = player
+                break
+
+        if winner is None or getattr(winner, "environment", None) is None:
+            return None
+
+        from core.constants import POST_POKER_MATING_DISTANCE
+        from core.poker_interaction import (
+            is_post_poker_reproduction_eligible,
+            should_offer_post_poker_reproduction,
+        )
+
+        max_dist_sq = POST_POKER_MATING_DISTANCE * POST_POKER_MATING_DISTANCE
+        winner_cx = winner.pos.x + winner.width * 0.5
+        winner_cy = winner.pos.y + winner.height * 0.5
+
+        eligible_mates = []
+        for fish in fish_players:
+            if fish is winner:
+                continue
+            if fish.species != winner.species:
+                continue
+            if hasattr(fish, "is_dead") and fish.is_dead():
+                continue
+            dx = (fish.pos.x + fish.width * 0.5) - winner_cx
+            dy = (fish.pos.y + fish.height * 0.5) - winner_cy
+            if dx * dx + dy * dy > max_dist_sq:
+                continue
+            if not is_post_poker_reproduction_eligible(fish, winner):
+                continue
+            eligible_mates.append(fish)
+
+        if not eligible_mates:
+            return None
+
+        if not is_post_poker_reproduction_eligible(winner, eligible_mates[0]):
+            return None
+
+        energy_gained = getattr(result, "energy_transferred", 0.0)
+        rng = getattr(self, "rng", None) or random
+
+        winner_offers = should_offer_post_poker_reproduction(
+            winner,
+            eligible_mates[0],
+            is_winner=True,
+            energy_gained=energy_gained,
+            rng=rng,
+        )
+
+        if winner_offers:
+            mate = rng.choice(eligible_mates)
+        else:
+            willing_mates = [
+                fish
+                for fish in eligible_mates
+                if should_offer_post_poker_reproduction(
+                    fish,
+                    winner,
+                    is_winner=False,
+                    energy_gained=-energy_gained,
+                    rng=rng,
+                )
+            ]
+            if not willing_mates:
+                return None
+            mate = rng.choice(willing_mates)
+
+        if self.ecosystem is not None:
+            if not self.ecosystem.can_reproduce(len(self.get_fish_list())):
+                return None
+
+        baby = self._create_post_poker_offspring(winner, mate, rng)
+        if baby is None:
+            return None
+
+        self.add_entity(baby)
+        baby.register_birth()
+        if hasattr(self, "lifecycle_system"):
+            self.lifecycle_system.record_birth()
+        return baby
+
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Handle the result of a poker game.
 
@@ -1275,14 +1478,20 @@ class BaseSimulator(ABC):
         Args:
             poker: The poker interaction with result
         """
-        # Default implementation ensures offspring created from poker
-        # reproduction are added to the simulation so evolution can proceed.
+        baby = self._attempt_post_poker_reproduction(poker)
+        if baby is not None:
+            return
+
         if (
             poker.result is not None
-            and poker.result.reproduction_occurred
-            and poker.result.offspring is not None
+            and getattr(poker.result, "reproduction_occurred", False)
+            and getattr(poker.result, "offspring", None) is not None
         ):
             self.add_entity(poker.result.offspring)
+            if hasattr(poker.result.offspring, "register_birth"):
+                poker.result.offspring.register_birth()
+            if hasattr(self, "lifecycle_system"):
+                self.lifecycle_system.record_birth()
 
         # Subclasses can override to add notifications, logging, etc.
 

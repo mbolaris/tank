@@ -713,6 +713,7 @@ class SimulationEngine(BaseSimulator):
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Delegate poker result processing to the poker system."""
+        super().handle_poker_result(poker)
         self.poker_system.handle_poker_result(poker)
 
     def update(self) -> None:
