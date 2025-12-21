@@ -628,7 +628,7 @@ class BaseSimulator(ABC):
             try:
                 poker = MixedPokerInteraction(ready_players)
                 if poker.play_poker():
-                    self._handle_mixed_poker_result(poker)
+                    self._record_and_apply_mixed_poker_outcome(poker)
 
                     # Check for deaths
                     for player in ready_players:
@@ -764,8 +764,11 @@ class BaseSimulator(ABC):
 
         return ready
 
-    def _handle_mixed_poker_result(self, poker: MixedPokerInteraction) -> None:
-        """Handle the result of a mixed poker game.
+    def _record_and_apply_mixed_poker_outcome(self, poker: MixedPokerInteraction) -> None:
+        """Record and apply the outcome of a mixed poker game.
+
+        Records energy transfers and ecosystem statistics, applies house cut logic
+        based on winner type, and triggers asexual reproduction if applicable.
 
         Args:
             poker: The completed poker interaction
