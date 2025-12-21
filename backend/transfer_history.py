@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 HISTORY_FILE = Path("data/transfers.log")
 _transfer_history: Deque["TransferRecord"] = deque(maxlen=100)  # Keep last 100 in memory
 
-# Migration counters for summary stats (reset periodically)
-_migration_in_count: int = 0
-_migration_out_count: int = 0
+# Migration counters for summary stats (reset periodically, per tank)
+_migration_in_counts: Dict[str, int] = {}
+_migration_out_counts: Dict[str, int] = {}
 
 
 @dataclass
@@ -92,9 +92,9 @@ def log_transfer(
     _append_to_log(record)
 
     # Update migration counters (for summary stats)
-    global _migration_in_count, _migration_out_count
     if success:
-        _migration_out_count += 1  # From source perspective
+        _migration_out_counts[source_tank_id] = _migration_out_counts.get(source_tank_id, 0) + 1
+        _migration_in_counts[destination_tank_id] = _migration_in_counts.get(destination_tank_id, 0) + 1
 
     # Log at DEBUG level to reduce noise (summary appears in Simulation Status)
     status = "success" if success else f"failed: {error}"
@@ -254,23 +254,34 @@ def clear_history() -> None:
     logger.warning("Transfer history cleared")
 
 
-def record_migration_in() -> None:
-    """Record an incoming migration for summary stats."""
-    global _migration_in_count
-    _migration_in_count += 1
+def record_migration_in(tank_id: Optional[str] = None) -> None:
+    """Record an incoming migration for summary stats.
+
+    Prefer relying on log_transfer for counts; this is a fallback for paths that
+    don't record a TransferRecord.
+    """
+    if not tank_id:
+        return
+    _migration_in_counts[tank_id] = _migration_in_counts.get(tank_id, 0) + 1
 
 
-def get_and_reset_migration_counts() -> tuple:
+def get_and_reset_migration_counts(tank_id: Optional[str] = None) -> tuple:
     """Get migration counts since last reset and reset them.
     
     Returns:
         Tuple of (migrations_in, migrations_out)
     """
-    global _migration_in_count, _migration_out_count
-    in_count = _migration_in_count
-    out_count = _migration_out_count
-    _migration_in_count = 0
-    _migration_out_count = 0
+    if tank_id:
+        in_count = _migration_in_counts.get(tank_id, 0)
+        out_count = _migration_out_counts.get(tank_id, 0)
+        _migration_in_counts[tank_id] = 0
+        _migration_out_counts[tank_id] = 0
+        return (in_count, out_count)
+
+    in_count = sum(_migration_in_counts.values())
+    out_count = sum(_migration_out_counts.values())
+    _migration_in_counts.clear()
+    _migration_out_counts.clear()
     return (in_count, out_count)
 
 

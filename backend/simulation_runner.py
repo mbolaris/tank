@@ -327,7 +327,7 @@ class SimulationRunner:
                         
                         # Get migration counts since last report
                         from backend.transfer_history import get_and_reset_migration_counts
-                        migrations_in, migrations_out = get_and_reset_migration_counts()
+                        migrations_in, migrations_out = get_and_reset_migration_counts(self.tank_id)
                         migration_str = ""
                         if migrations_in > 0 or migrations_out > 0:
                             migration_str = f", Migrations=+{migrations_in}/-{migrations_out}"
