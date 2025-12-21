@@ -158,10 +158,10 @@ class SkillGameSystem:
             return False
         return True
 
-    def _ensure_fish_has_strategy(self, fish: "Fish", game: SkillGame) -> None:
-        """Ensure fish has a strategy for the current game.
+    def _initialize_fish_strategy(self, fish: "Fish", game: SkillGame) -> None:
+        """Initialize fish strategy for the current game.
 
-        Creates default strategy if needed.
+        Creates default strategy and component if needed.
 
         Args:
             fish: The fish
@@ -210,9 +210,9 @@ class SkillGameSystem:
             return None
 
         # Ensure fish have strategies
-        self._ensure_fish_has_strategy(fish1, game)
+        self._initialize_fish_strategy(fish1, game)
         if fish2 is not None:
-            self._ensure_fish_has_strategy(fish2, game)
+            self._initialize_fish_strategy(fish2, game)
 
         # Get strategies
         strategy1 = fish1._skill_game_component.get_strategy(game.game_type)
