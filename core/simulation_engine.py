@@ -890,6 +890,9 @@ class SimulationEngine(BaseSimulator):
                         self.spawn_emergency_fish()
                         self.last_emergency_spawn_frame = self.frame_count
                         fish_list = self.get_fish_list()
+                        if fish_count < CRITICAL_POPULATION_THRESHOLD:
+                            # Only log at INFO level when population is critically low
+                            logger.info(f"Emergency fish spawned! fish_count now: {len(fish_list)}")
 
             # Update population stats based on end-of-frame state (including emergency spawns)
             ecosystem.update_population_stats(fish_list)
