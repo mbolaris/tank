@@ -11,8 +11,10 @@ Architecture Notes:
 """
 
 import time
-from statistics import mean, median, stdev
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from statistics import median
+from typing import TYPE_CHECKING, Any, Dict, List
+
+from core.statistics_utils import compute_meta_stats, safe_mean_std
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
@@ -49,42 +51,15 @@ class StatsCalculator:
         Returns:
             Dictionary with mean and std dev for mutation rate, strength, and HGT
         """
-        stats: Dict[str, Any] = {}
-        
-        if not traits:
-            # Return defaults if no traits
-            for metric in ["mut_rate", "mut_strength", "hgt_prob"]:
-                stats[f"{prefix}_{metric}_mean"] = 0.0
-                stats[f"{prefix}_{metric}_std"] = 0.0
-            return stats
-
-        # Helper to safely calc mean/std
-        def calc_safe(values: List[float]) -> Tuple[float, float]:
-            if not values:
-                return 0.0, 0.0
-            mean_value = mean(values)
-            std_deviation = stdev(values) if len(values) > 1 else 0.0
-            return mean_value, std_deviation
-
-        # Mutation Rate
-        rates = [t.mutation_rate for t in traits]
-        r_mean, r_std = calc_safe(rates)
-        stats[f"{prefix}_mut_rate_mean"] = r_mean
-        stats[f"{prefix}_mut_rate_std"] = r_std
-
-        # Mutation Strength
-        strengths = [t.mutation_strength for t in traits]
-        s_mean, s_std = calc_safe(strengths)
-        stats[f"{prefix}_mut_strength_mean"] = s_mean
-        stats[f"{prefix}_mut_strength_std"] = s_std
-
-        # HGT Probability
-        hgts = [t.hgt_probability for t in traits]
-        h_mean, h_std = calc_safe(hgts)
-        stats[f"{prefix}_hgt_prob_mean"] = h_mean
-        stats[f"{prefix}_hgt_prob_std"] = h_std
-
-        return stats
+        meta = compute_meta_stats(traits)
+        return {
+            f"{prefix}_mut_rate_mean": meta.mut_rate_mean,
+            f"{prefix}_mut_rate_std": meta.mut_rate_std,
+            f"{prefix}_mut_strength_mean": meta.mut_strength_mean,
+            f"{prefix}_mut_strength_std": meta.mut_strength_std,
+            f"{prefix}_hgt_prob_mean": meta.hgt_prob_mean,
+            f"{prefix}_hgt_prob_std": meta.hgt_prob_std,
+        }
 
     def _humanize_gene_label(self, key: str) -> str:
         special = {
@@ -108,38 +83,8 @@ class StatsCalculator:
         fish_list = self._engine.get_fish_list()
 
         def meta_for_traits(traits: List[Any]) -> Dict[str, float]:
-            # Inline meta computation so the payload is self-contained.
-            if not traits:
-                return {
-                    "mut_rate_mean": 0.0,
-                    "mut_rate_std": 0.0,
-                    "mut_strength_mean": 0.0,
-                    "mut_strength_std": 0.0,
-                    "hgt_prob_mean": 0.0,
-                    "hgt_prob_std": 0.0,
-                }
-
-            def calc_safe(values: List[float]) -> Tuple[float, float]:
-                if not values:
-                    return 0.0, 0.0
-                mean_value = mean(values)
-                std_deviation = stdev(values) if len(values) > 1 else 0.0
-                return float(mean_value), float(std_deviation)
-
-            rates = [float(getattr(t, "mutation_rate", 1.0)) for t in traits]
-            strengths = [float(getattr(t, "mutation_strength", 1.0)) for t in traits]
-            hgts = [float(getattr(t, "hgt_probability", 0.1)) for t in traits]
-            r_mean, r_std = calc_safe(rates)
-            s_mean, s_std = calc_safe(strengths)
-            h_mean, h_std = calc_safe(hgts)
-            return {
-                "mut_rate_mean": r_mean,
-                "mut_rate_std": r_std,
-                "mut_strength_mean": s_mean,
-                "mut_strength_std": s_std,
-                "hgt_prob_mean": h_mean,
-                "hgt_prob_std": h_std,
-            }
+            # Use centralized meta computation from statistics_utils
+            return compute_meta_stats(traits).to_dict()
 
         def build_from_specs(*, category: str, traits_attr: str, specs: List[Any]) -> List[Dict[str, Any]]:
             out: List[Dict[str, Any]] = []
@@ -332,7 +277,6 @@ class StatsCalculator:
             ("social_mode", SocialMode, "Social Mode"),
             ("poker_engagement", PokerEngagement, "Poker Engagement"),
         ]
-
         # Shared metadata for all composable traits (since they are all packed in one GeneticTrait wrapper)
         # We calculate it once effectively.
         composable_traits = [
@@ -340,31 +284,8 @@ class StatsCalculator:
             for f in fish_list
             if f.genome.behavioral.behavior is not None
         ]
-        # Note: meta-stats computed via compute_meta_direct() below for self-contained payload
-        # which expects keys like "mut_rate_mean" directly.
-        
-        def compute_meta_direct(traits):
-            if not traits: 
-                return {k: 0.0 for k in ["mut_rate_mean", "mut_rate_std", "mut_strength_mean", "mut_strength_std", "hgt_prob_mean", "hgt_prob_std"]}
-            
-            rates = [t.mutation_rate for t in traits]
-            strengths = [t.mutation_strength for t in traits]
-            hgts = [t.hgt_probability for t in traits]
-            
-            def ms(vals):
-                if not vals: return 0.0, 0.0
-                return float(mean(vals)), float(stdev(vals)) if len(vals) > 1 else 0.0
-
-            rm, rs = ms(rates)
-            sm, ss = ms(strengths)
-            hm, hs = ms(hgts)
-            return {
-                "mut_rate_mean": rm, "mut_rate_std": rs,
-                "mut_strength_mean": sm, "mut_strength_std": ss,
-                "hgt_prob_mean": hm, "hgt_prob_std": hs
-            }
-
-        meta_dict = compute_meta_direct(composable_traits)
+        # Use centralized meta computation from statistics_utils
+        meta_dict = compute_meta_stats(composable_traits).to_dict()
 
         for key, enum_cls, label in discrete_traits:
             allowed_min = 0.0
