@@ -62,7 +62,7 @@ from core.constants import (
     URGENCY_BOOST_LOW,
 )
 from core.entities import Crab, Food
-from core.predictive_movement import predict_intercept_point
+from core.predictive_movement import predict_intercept_point, predict_falling_intercept
 from core.world import World
 
 
@@ -122,18 +122,42 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
             if distance < max_chase_distance:
                 # Use predictive interception for moving food
                 # Better prediction_skill = more accurate interception
-                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
-                    intercept_point, _ = predict_intercept_point(
-                        fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
-                    )
-                    if intercept_point and prediction_skill > 0.3:
-                        # Blend between direct pursuit and interception based on skill
-                        target_pos = Vector2(
-                            nearest_food.pos.x * (1 - prediction_skill) + intercept_point.x * prediction_skill,
-                            nearest_food.pos.y * (1 - prediction_skill) + intercept_point.y * prediction_skill,
+                target_pos = nearest_food.pos
+                
+                # Check for moving food (falling or swimming)
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
+                    is_accelerating = False
+                    acceleration = 0.0
+                    
+                    # Check for acceleration (falling food)
+                    if hasattr(nearest_food, "food_properties"):
+                        from core.constants import FOOD_SINK_ACCELERATION
+                        sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                        acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                        if acceleration > 0 and nearest_food.vel.y >= 0:
+                            is_accelerating = True
+                    
+                    # Calculate optimal intercept point
+                    intercept_point = None
+                    if is_accelerating:
+                        intercept_point, _ = predict_falling_intercept(
+                            fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
                         )
                     else:
-                        target_pos = nearest_food.pos
+                        intercept_point, _ = predict_intercept_point(
+                            fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
+                        )
+                    
+                    if intercept_point and prediction_skill > 0.3:
+                        # Blend toward optimal intercept based on skill
+                        # FIX: Changed blending logic to favor intercept more strongly
+                        # Even moderate skill should commit to the prediction
+                        skill_factor = 0.2 + (prediction_skill * 0.8) # 0.3 -> 0.44, 0.9 -> 0.92
+                        
+                        target_pos = Vector2(
+                            nearest_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
+                            nearest_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
+                        )
                 else:
                     target_pos = nearest_food.pos
 
@@ -456,14 +480,35 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
             prediction_skill = fish.genome.behavioral.prediction_skill.value
             target_pos = best_food.pos
 
-            if hasattr(best_food, "vel") and best_food.vel.length() > FOOD_VELOCITY_THRESHOLD:
-                intercept_point, _ = predict_intercept_point(
-                    fish.pos, fish.speed, best_food.pos, best_food.vel
-                )
+            target_pos = best_food.pos
+
+            if hasattr(best_food, "vel") and best_food.vel.length() > 0.01:
+                # Check for acceleration
+                is_accelerating = False
+                acceleration = 0.0
+                if hasattr(best_food, "food_properties"):
+                     from core.constants import FOOD_SINK_ACCELERATION
+                     sink_multiplier = best_food.food_properties.get("sink_multiplier", 1.0)
+                     acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                     if acceleration > 0 and best_food.vel.y >= 0:
+                         is_accelerating = True
+
+                intercept_point = None
+                if is_accelerating:
+                    intercept_point, _ = predict_falling_intercept(
+                        fish.pos, fish.speed, best_food.pos, best_food.vel, acceleration
+                    )
+                else:
+                    intercept_point, _ = predict_intercept_point(
+                        fish.pos, fish.speed, best_food.pos, best_food.vel
+                    )
+
                 if intercept_point and prediction_skill > 0.3:
+                     # Stronger commitment to prediction
+                     skill_factor = 0.2 + (prediction_skill * 0.8)
                      target_pos = Vector2(
-                        best_food.pos.x * (1 - prediction_skill) + intercept_point.x * prediction_skill,
-                        best_food.pos.y * (1 - prediction_skill) + intercept_point.y * prediction_skill,
+                        best_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
+                        best_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
                     )
 
             direction = self._safe_normalize(target_pos - fish.pos)
@@ -516,10 +561,32 @@ class AmbushFeeder(BehaviorAlgorithm):
                 prediction_skill = fish.genome.behavioral.prediction_skill.value
                 target_pos = nearest_food.pos
 
-                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
-                     # Simple lead based on skill
-                     lead_factor = prediction_skill * 15
-                     target_pos = nearest_food.pos + nearest_food.vel * lead_factor
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
+                     is_accelerating = False
+                     acceleration = 0.0
+                     if hasattr(nearest_food, "food_properties"):
+                         from core.constants import FOOD_SINK_ACCELERATION
+                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                         if acceleration > 0 and nearest_food.vel.y >= 0:
+                             is_accelerating = True
+
+                     if is_accelerating:
+                         target_pos, _ = predict_falling_intercept(
+                            fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
+                         )
+                     else:
+                         # Simple lead - now using intercept point properly
+                         intercept_point, _ = predict_intercept_point(
+                             fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
+                         )
+                         if intercept_point:
+                            # Blend based on skill - ambushers need good timing
+                            skill_factor = 0.4 + (prediction_skill * 0.6)
+                            target_pos = Vector2(
+                                nearest_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
+                                nearest_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
+                            )
 
                 direction = self._safe_normalize(target_pos - fish.pos)
 
@@ -646,7 +713,24 @@ class SurfaceSkimmer(BehaviorAlgorithm):
                 prediction_skill = fish.genome.behavioral.prediction_skill.value
                 target_pos = nearest_food.pos
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
-                     target_pos = nearest_food.pos + nearest_food.vel * (prediction_skill * 10)
+                     # Using acceleration-aware prediction for better diving
+                     is_accelerating = False
+                     acceleration = 0.0
+                     if hasattr(nearest_food, "food_properties"):
+                         from core.constants import FOOD_SINK_ACCELERATION
+                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                         if acceleration > 0 and nearest_food.vel.y >= 0:
+                             is_accelerating = True
+                     
+                     if is_accelerating:
+                         intercept_point, _ = predict_falling_intercept(
+                            fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
+                         )
+                         # High commitment to intercept for skimmers diving
+                         target_pos = intercept_point
+                     else:
+                         target_pos = nearest_food.pos + nearest_food.vel * (prediction_skill * 10)
 
                 direction = self._safe_normalize(target_pos - fish.pos)
                 speed = 1.2 if is_desperate else 1.0
@@ -820,9 +904,28 @@ class CircularHunter(BehaviorAlgorithm):
 
         # If food is moving (has velocity), predict its position
         food_future_pos = nearest_food.pos
-        if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
-            # Predict food position 10 frames ahead
-            food_future_pos = nearest_food.pos + nearest_food.vel * 10
+        if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
+             is_accelerating = False
+             acceleration = 0.0
+             if hasattr(nearest_food, "food_properties"):
+                 from core.constants import FOOD_SINK_ACCELERATION
+                 sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                 acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                 if acceleration > 0 and nearest_food.vel.y >= 0:
+                     is_accelerating = True
+
+             if is_accelerating:
+                 food_future_pos, _ = predict_falling_intercept(
+                    fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
+                 )
+             else:
+                 intercept_point, _ = predict_intercept_point(
+                     fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
+                 )
+                 if intercept_point:
+                     food_future_pos = intercept_point
+                 else:
+                     food_future_pos = nearest_food.pos + nearest_food.vel * 10
 
         # IMPROVEMENT: Skip circling when desperate or very hungry
         # Go straight for food when energy is low!
@@ -985,17 +1088,32 @@ class AggressiveHunter(BehaviorAlgorithm):
             # High-speed pursuit within detection range
             if distance < effective_detection:
                 # Predict food movement - skill affects prediction accuracy
-                target_pos = nearest_food.pos
-                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
-                    # Higher prediction_skill = better lead calculation
-                    lead_frames = 10 + int(prediction_skill * 20)  # 10-30 frames
-                    predicted_pos = nearest_food.pos + nearest_food.vel * lead_frames
-
-                    # Blend between direct and predicted based on skill
-                    target_pos = Vector2(
-                        nearest_food.pos.x * (1 - prediction_skill) + predicted_pos.x * prediction_skill,
-                        nearest_food.pos.y * (1 - prediction_skill) + predicted_pos.y * prediction_skill,
-                    )
+                target_pos = nearest_food.pos # Default to current food position
+                if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
+                    is_accelerating = False
+                    acceleration = 0.0
+                    if hasattr(nearest_food, "food_properties"):
+                        from core.constants import FOOD_SINK_ACCELERATION
+                        sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                        acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                        if acceleration > 0 and nearest_food.vel.y >= 0:
+                            is_accelerating = True
+                    
+                    if is_accelerating:
+                        target_pos, _ = predict_falling_intercept(
+                            fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
+                        )
+                    else:
+                        intercept_point, _ = predict_intercept_point(
+                            fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
+                        )
+                        if intercept_point:
+                            # Aggressive hunters commit to prediction based on skill
+                            skill_factor = 0.5 + (prediction_skill * 0.5)
+                            target_pos = Vector2(
+                                nearest_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
+                                nearest_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
+                            )
 
                 direction = self._safe_normalize(target_pos - fish.pos)
 

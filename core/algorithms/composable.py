@@ -30,9 +30,11 @@ from core.constants import (
     FLEE_THRESHOLD_CRITICAL,
     FLEE_THRESHOLD_LOW,
     FLEE_THRESHOLD_NORMAL,
+    FOOD_SINK_ACCELERATION,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
+from core.predictive_movement import predict_falling_intercept
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -339,65 +341,100 @@ class ComposableBehavior(BehaviorHelpersMixin):
             return 0.0, 0.0
 
         distance = (nearest_food.pos - fish.pos).length()
-        direction = self._safe_normalize(nearest_food.pos - fish.pos)
         base_speed = self.parameters.get("pursuit_speed", 0.8) * urgency
+        
+        # Calculate target position - use prediction for moving food
+        # This is the KEY FIX: predict where food will be, accounting for acceleration
+        target_pos = nearest_food.pos  # Default: current position
+        
+        if hasattr(nearest_food, "vel") and hasattr(nearest_food, "food_properties"):
+            # It's a Food entity - check if it's moving
+            food_vel = nearest_food.vel
+            if food_vel.length() > 0.01:  # Lower threshold: catch newly spawned food too
+                # Get the sink multiplier for this food type
+                sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                
+                # Use acceleration-aware prediction for sinking food
+                if acceleration > 0 and food_vel.y >= 0:  # Falling food
+                    target_pos, _ = predict_falling_intercept(
+                        fish.pos, fish.speed, nearest_food.pos, food_vel, acceleration
+                    )
+                else:
+                    # Non-sinking food (like live food) - simple linear prediction
+                    time_to_reach = distance / max(fish.speed, 0.1)
+                    time_to_reach = min(time_to_reach, 60.0)  # Cap at ~2 seconds
+                    target_pos = Vector2(
+                        nearest_food.pos.x + food_vel.x * time_to_reach,
+                        nearest_food.pos.y + food_vel.y * time_to_reach,
+                    )
+        elif hasattr(nearest_food, "vel"):
+            # Has velocity but not food_properties - use simple prediction
+            food_vel = nearest_food.vel
+            if food_vel.length() > 0.01:
+                time_to_reach = distance / max(fish.speed, 0.1)
+                time_to_reach = min(time_to_reach, 60.0)
+                target_pos = Vector2(
+                    nearest_food.pos.x + food_vel.x * time_to_reach,
+                    nearest_food.pos.y + food_vel.y * time_to_reach,
+                )
+        
+        # Now calculate direction to predicted target position
+        direction = self._safe_normalize(target_pos - fish.pos)
+        predicted_distance = (target_pos - fish.pos).length()
 
         if self.food_approach == FoodApproach.DIRECT_PURSUIT:
+            # Direct pursuit now uses predicted position
             return direction.x * base_speed, direction.y * base_speed
 
         elif self.food_approach == FoodApproach.PREDICTIVE_INTERCEPT:
+            # Already using predicted position above, just apply skill-based speed boost
             skill = self.parameters.get("intercept_skill", 0.5)
-            if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.1:
-                # Predict future position
-                time_to_reach = distance / (fish.speed + 0.1)
-                predicted = Vector2(
-                    nearest_food.pos.x + nearest_food.vel.x * time_to_reach * skill,
-                    nearest_food.pos.y + nearest_food.vel.y * time_to_reach * skill,
-                )
-                direction = self._safe_normalize(predicted - fish.pos)
-            return direction.x * base_speed, direction.y * base_speed
+            # Higher skill = faster pursuit (not position blending)
+            speed = base_speed * (1.0 + skill * 0.3)
+            return direction.x * speed, direction.y * speed
 
         elif self.food_approach == FoodApproach.CIRCLING_STRIKE:
             circle_radius = self.parameters.get("circle_radius", 50.0)
             circle_speed = self.parameters.get("circle_speed", 0.1)
             strike_distance = self.parameters.get("ambush_strike_distance", 30.0)
 
-            if distance < strike_distance:
-                # Close enough - strike directly
+            if predicted_distance < strike_distance:
+                # Close enough - strike directly at predicted position
                 return direction.x * base_speed * 1.3, direction.y * base_speed * 1.3
-            elif distance < circle_radius * 2:
-                # Circle around food
+            elif predicted_distance < circle_radius * 2:
+                # Circle around predicted food position
                 self._circle_angle += circle_speed
                 offset = Vector2(
                     math.cos(self._circle_angle) * circle_radius,
                     math.sin(self._circle_angle) * circle_radius,
                 )
-                target = Vector2(nearest_food.pos.x + offset.x, nearest_food.pos.y + offset.y)
-                circle_dir = self._safe_normalize(target - fish.pos)
+                circle_target = Vector2(target_pos.x + offset.x, target_pos.y + offset.y)
+                circle_dir = self._safe_normalize(circle_target - fish.pos)
                 return circle_dir.x * base_speed * 0.8, circle_dir.y * base_speed * 0.8
             else:
-                # Too far - approach first
+                # Too far - approach predicted position
                 return direction.x * base_speed, direction.y * base_speed
 
         elif self.food_approach == FoodApproach.AMBUSH_WAIT:
             patience = self.parameters.get("ambush_patience", 0.7)
             strike_dist = self.parameters.get("ambush_strike_distance", 40.0)
 
-            if distance < strike_dist:
-                # Strike!
+            if predicted_distance < strike_dist:
+                # Strike at predicted position
                 return direction.x * base_speed * 1.5, direction.y * base_speed * 1.5
-            elif distance < strike_dist * 3:
-                # Wait patiently (move very slowly toward)
+            elif predicted_distance < strike_dist * 3:
+                # Wait patiently (move very slowly toward predicted position)
                 return direction.x * 0.1 * patience, direction.y * 0.1 * patience
             else:
-                # Too far, reposition slowly
+                # Too far, reposition toward predicted position
                 return direction.x * 0.4, direction.y * 0.4
 
         elif self.food_approach == FoodApproach.ZIGZAG_SEARCH:
             amplitude = self.parameters.get("zigzag_amplitude", 0.6)
             frequency = self.parameters.get("zigzag_frequency", 0.05)
             self._zigzag_phase += frequency
-            # Perpendicular to direction
+            # Zigzag toward predicted position
             perp = Vector2(-direction.y, direction.x)
             zigzag = math.sin(self._zigzag_phase) * amplitude
             vx = direction.x * base_speed + perp.x * zigzag
@@ -408,11 +445,11 @@ class ComposableBehavior(BehaviorHelpersMixin):
             patrol_radius = self.parameters.get("patrol_radius", 100.0)
             food_priority = self.parameters.get("food_priority", 0.7)
 
-            # If food is close, divert from patrol
-            if distance < patrol_radius * 0.5:
+            # If food is close, divert from patrol toward predicted position
+            if predicted_distance < patrol_radius * 0.5:
                 return direction.x * base_speed, direction.y * base_speed
 
-            # Otherwise, blend patrol with food direction
+            # Otherwise, blend patrol with predicted food direction
             self._patrol_angle += 0.02
             patrol_dir = Vector2(math.cos(self._patrol_angle), math.sin(self._patrol_angle))
             blend = food_priority
