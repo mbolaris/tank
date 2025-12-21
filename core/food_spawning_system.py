@@ -182,7 +182,6 @@ class AutoFoodSpawner:
                 food_x,
                 food_y,
             )
-            )
         else:
             # Spawn regular food from top
             x = self.rng.randint(0, SCREEN_WIDTH)
@@ -344,7 +343,6 @@ class EmergencyFishSpawner:
             genome=genome,
             generation=0,
             ecosystem=ecosystem,
-        )
         )
         new_fish.register_birth()
 

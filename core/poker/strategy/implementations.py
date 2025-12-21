@@ -944,7 +944,7 @@ def crossover_poker_strategies(
         offspring = parent1.__class__()
         offspring.parameters = parent1.parameters.copy()
     else:
-        same_type = type(parent1) == type(parent2)
+        same_type = type(parent1) is type(parent2)
         if same_type:
             # Same strategy type: blend parameters with winner-biased weighting
             offspring = parent1.__class__()

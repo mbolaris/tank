@@ -16,7 +16,10 @@ creating selection pressure for poker skill without explicit fitness.
 
 import random
 from enum import Enum
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional
+
+if TYPE_CHECKING:
+    from core.genetics import Genome
 
 
 class CrossoverMode(Enum):

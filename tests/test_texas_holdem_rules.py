@@ -66,7 +66,6 @@ def test_minimum_raise_enforcement():
 
     print("  ✓ Ran 20 games, all raises were valid")
     print("PASSED: Minimum raise enforcement working\n")
-    return True
 
 
 def test_all_in_raise_downgrades_to_call_when_under_minimum():
@@ -145,7 +144,6 @@ def test_wheel_straight():
     print("  ✓ Broadway beats wheel")
 
     print("PASSED: Wheel straight handled correctly\n")
-    return True
 
 
 def test_wheel_straight_flush():
@@ -186,7 +184,6 @@ def test_wheel_straight_flush():
     print("  ✓ Royal flush beats wheel straight flush")
 
     print("PASSED: Wheel straight flush handled correctly\n")
-    return True
 
 
 def test_headsup_blinds_order():
@@ -221,7 +218,6 @@ def test_headsup_blinds_order():
     print("  ✓ Button acts first pre-flop (correct)")
 
     print("PASSED: Heads-up blinds order correct\n")
-    return True
 
 
 def test_kicker_comparison():
@@ -266,7 +262,6 @@ def test_kicker_comparison():
     print("  ✓ Identical hands correctly tie")
 
     print("PASSED: Kicker comparison working correctly\n")
-    return True
 
 
 def test_best_five_from_seven():
@@ -298,7 +293,6 @@ def test_best_five_from_seven():
     print("  ✓ Correctly plays the board (Broadway straight)")
 
     print("PASSED: Best 5 from 7 selection working\n")
-    return True
 
 
 def test_split_pot_ties():
@@ -337,7 +331,6 @@ def test_split_pot_ties():
     print("  ✓ resolve_bet returns (0, 0) for tie")
 
     print("PASSED: Split pot handling correct\n")
-    return True
 
 
 def test_table_stakes_all_in():
@@ -394,7 +387,6 @@ def test_table_stakes_all_in():
     print("  ✓ Player with sufficient funds plays normally")
 
     print("PASSED: Table Stakes (All-In) rule working correctly\n")
-    return True
 
 
 def test_unmatched_bets_refund():
@@ -433,7 +425,6 @@ def test_unmatched_bets_refund():
     print("  ✓ Bets are matched in showdown scenarios")
 
     print("PASSED: Unmatched bets handling correct\n")
-    return True
 
 
 def test_interleaved_dealing():
@@ -461,7 +452,6 @@ def test_interleaved_dealing():
     print("  ✓ Cards dealt alternating (P1, P2, P1, P2)")
 
     print("PASSED: Interleaved dealing working correctly\n")
-    return True
 
 
 def test_finalize_pot_distribution():
@@ -521,7 +511,6 @@ def test_finalize_pot_distribution():
     print("  ✓ Pot is split equally on tie (no money vanishes)")
 
     print("\nPASSED: Finalize pot distribution working correctly\n")
-    return True
 
 
 if __name__ == "__main__":

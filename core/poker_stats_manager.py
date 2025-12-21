@@ -8,6 +8,8 @@ from core.ecosystem_stats import EcosystemEvent, FishOpponentPokerStats, PokerSt
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.poker.core import PokerHand
+    from core.poker.table import PokerResult
 
 logger = logging.getLogger(__name__)
 

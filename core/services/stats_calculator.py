@@ -340,10 +340,7 @@ class StatsCalculator:
             for f in fish_list
             if f.genome.behavioral.behavior is not None
         ]
-        shared_meta = self._calculate_meta_stats(composable_traits, "composable")
-        # Rename keys to be generic so they fit the schema 'mut_rate_mean' etc without prefix
-        # actually _calculate_meta_stats adds prefix. Let's just use a helper to strip it or reuse logic.
-        # simpler: re-implement meta-calc for just these to fit the expected "meta" dict format 
+        # Note: meta-stats computed via compute_meta_direct() below for self-contained payload
         # which expects keys like "mut_rate_mean" directly.
         
         def compute_meta_direct(traits):

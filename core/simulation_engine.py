@@ -1004,9 +1004,6 @@ class SimulationEngine(BaseSimulator):
         if self.environment is None or self.ecosystem is None:
             return
 
-        # Get current fish to analyze diversity (use cached list)
-        fish_list = self.get_fish_list()
-
         # With composable behaviors (1,152+ combinations), random spawns are naturally diverse
         # No need for explicit diversity tracking - each random genome will have unique sub-behaviors
         genome = Genome.random(use_algorithm=True, rng=self.rng)
