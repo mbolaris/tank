@@ -288,6 +288,16 @@ from .config.server import (
     POKER_ACTIVITY_ENABLED,
 )
 
+# Simulation (domain-agnostic abstractions)
+from .config.simulation import (
+    SKILL_GAME_MIN_DISTANCE,
+    SKILL_GAME_MAX_DISTANCE,
+    SKILL_GAME_QUERY_RADIUS,
+    SKILL_GAME_THROTTLE_THRESHOLD_1,
+    SKILL_GAME_THROTTLE_THRESHOLD_2,
+    SKILL_GAMES_ENABLED,
+)
+
 # Re-export aggression constants for backward compatibility with old names
 # (These were commonly used in simulations)
 AGGRESSION_LOW = POKER_AGGRESSION_LOW
@@ -550,4 +560,11 @@ __all__ = [
     "DEFAULT_API_PORT",
     "POKER_ACTIVITY_ENABLED",
     "PLANTS_ENABLED",
+    # Simulation (domain-agnostic)
+    "SKILL_GAME_MIN_DISTANCE",
+    "SKILL_GAME_MAX_DISTANCE",
+    "SKILL_GAME_QUERY_RADIUS",
+    "SKILL_GAME_THROTTLE_THRESHOLD_1",
+    "SKILL_GAME_THROTTLE_THRESHOLD_2",
+    "SKILL_GAMES_ENABLED",
 ]

@@ -21,6 +21,7 @@ from core.constants import (
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     COLLISION_QUERY_RADIUS,
+    # Domain-specific skill game distances (used for entity-specific methods)
     FISH_POKER_MAX_DISTANCE,
     FISH_POKER_MIN_DISTANCE,
     PLANT_POKER_MAX_DISTANCE,
@@ -31,6 +32,12 @@ from core.constants import (
     POKER_MAX_PLAYERS,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
+    # Domain-agnostic simulation constants
+    SKILL_GAME_MIN_DISTANCE,
+    SKILL_GAME_MAX_DISTANCE,
+    SKILL_GAME_THROTTLE_THRESHOLD_1,
+    SKILL_GAME_THROTTLE_THRESHOLD_2,
+    SKILL_GAMES_ENABLED,
 )
 from core.poker_interaction import (
     PokerInteraction,
@@ -251,12 +258,12 @@ class BaseSimulator(ABC):
         self.handle_fish_collisions()
         self.handle_food_collisions()
 
-        # OPTIMIZATION: Throttle poker games at high populations
+        # OPTIMIZATION: Throttle skill games at high populations using configurable thresholds
         entity_count = len(self.get_all_entities())
         throttle_interval = 1  # Default: every frame
-        if entity_count >= 200:
+        if entity_count >= SKILL_GAME_THROTTLE_THRESHOLD_2:
             throttle_interval = 3
-        elif entity_count >= 100:
+        elif entity_count >= SKILL_GAME_THROTTLE_THRESHOLD_1:
             throttle_interval = 2
 
         self._poker_throttle_counter += 1
