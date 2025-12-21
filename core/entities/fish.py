@@ -475,7 +475,7 @@ class Fish(Agent):
             # We have overflow - route it productively
             overflow = new_energy - self.max_energy
             self._energy_component.energy = self.max_energy
-            self._handle_overflow_energy(overflow)
+            self._route_overflow_energy(overflow)
         else:
             self._energy_component.energy = new_energy
 
@@ -502,7 +502,7 @@ class Fish(Agent):
                 # We have overflow - try to use it productively
                 overflow = new_energy - self.max_energy
                 self._energy_component.energy = self.max_energy
-                self._handle_overflow_energy(overflow)
+                self._route_overflow_energy(overflow)
             else:
                 self._energy_component.energy = new_energy
         else:
@@ -517,7 +517,7 @@ class Fish(Agent):
 
         return self._energy_component.energy - old_energy
 
-    def _handle_overflow_energy(self, overflow: float) -> None:
+    def _route_overflow_energy(self, overflow: float) -> None:
         """Route overflow energy into reproduction bank.
 
         When a fish gains more energy than it can hold, this method banks
