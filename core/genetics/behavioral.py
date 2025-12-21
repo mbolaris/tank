@@ -16,6 +16,7 @@ from core.genetics.trait import (
     TraitSpec,
     inherit_traits_from_specs,
     inherit_traits_from_specs_recombination,
+    random_genetic_trait,
 )
 
 if TYPE_CHECKING:
@@ -219,10 +220,10 @@ class BehavioralTraits:
             behavior = ComposableBehavior.random(rng=rng)
             poker_strategy = get_random_poker_strategy(rng=rng)
 
-        traits["behavior"] = GeneticTrait(behavior)
-        traits["poker_strategy"] = GeneticTrait(poker_strategy)
+        traits["behavior"] = random_genetic_trait(behavior, rng)
+        traits["poker_strategy"] = random_genetic_trait(poker_strategy, rng)
         mate_preferences = normalize_mate_preferences({}, physical=physical, rng=rng)
-        traits["mate_preferences"] = GeneticTrait(mate_preferences)
+        traits["mate_preferences"] = random_genetic_trait(mate_preferences, rng)
 
         return cls(**traits)
 

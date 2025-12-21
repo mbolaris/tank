@@ -25,15 +25,42 @@ T = TypeVar("T")
 # parameters (mutation_rate, mutation_strength, hgt_probability) can change.
 # Keep these low to prevent runaway evolvability oscillations.
 
-META_MUTATION_CHANCE: float = 0.01  # 1% chance per trait per generation
-META_HGT_MUTATION_CHANCE: float = 0.02  # HGT mutates slightly more often
-META_MUTATION_SIGMA: float = 0.02  # Gaussian sigma for meta-changes
+META_MUTATION_CHANCE: float = 0.05  # 5% chance per trait per generation
+META_HGT_MUTATION_CHANCE: float = 0.08  # HGT mutates slightly more often
+META_MUTATION_SIGMA: float = 0.05  # Gaussian sigma for meta-changes
 
 # Bounds to prevent extreme evolvability values
 META_MUTATION_RATE_MIN: float = 0.5
 META_MUTATION_RATE_MAX: float = 2.0
 META_MUTATION_STRENGTH_MIN: float = 0.5
 META_MUTATION_STRENGTH_MAX: float = 2.0
+
+
+def random_genetic_trait(
+    value: Any,
+    rng: pyrandom.Random,
+    *,
+    hgt_max: float = 0.2,
+) -> "GeneticTrait":
+    """Create a GeneticTrait with randomized meta-genetic values.
+    
+    Use this factory when creating traits for the founding population
+    to ensure initial genetic diversity in evolvability parameters.
+    
+    Args:
+        value: The trait value
+        rng: Random number generator
+        hgt_max: Maximum initial HGT probability (default 0.2 = 20%)
+    
+    Returns:
+        GeneticTrait with randomized mutation_rate, mutation_strength, hgt_probability
+    """
+    return GeneticTrait(
+        value,
+        mutation_rate=rng.uniform(META_MUTATION_RATE_MIN, META_MUTATION_RATE_MAX),
+        mutation_strength=rng.uniform(META_MUTATION_STRENGTH_MIN, META_MUTATION_STRENGTH_MAX),
+        hgt_probability=rng.uniform(0.0, hgt_max),
+    )
 
 
 @dataclass
@@ -96,14 +123,26 @@ class TraitSpec:
     default_factory: Optional[Callable[[pyrandom.Random], float]] = None
 
     def random_value(self, rng: pyrandom.Random) -> GeneticTrait:
-        """Generate a random trait value within bounds."""
+        """Generate a random trait value within bounds.
+        
+        Also randomizes meta-genetic values (mutation_rate, mutation_strength,
+        hgt_probability) to ensure the founding population has genetic diversity
+        that can drift over evolution.
+        """
         if self.default_factory:
             val = self.default_factory(rng)
         elif self.discrete:
             val = rng.randint(int(self.min_val), int(self.max_val))
         else:
             val = rng.uniform(self.min_val, self.max_val)
-        return GeneticTrait(val)
+        
+        # Randomize meta-genetic values to seed initial diversity
+        return GeneticTrait(
+            val,
+            mutation_rate=rng.uniform(META_MUTATION_RATE_MIN, META_MUTATION_RATE_MAX),
+            mutation_strength=rng.uniform(META_MUTATION_STRENGTH_MIN, META_MUTATION_STRENGTH_MAX),
+            hgt_probability=rng.uniform(0.0, 0.2),  # 0-20% initial HGT range
+        )
 
     def inherit(
         self,
