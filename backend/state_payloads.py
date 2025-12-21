@@ -70,6 +70,8 @@ class EntitySnapshot:
     poker_effect_state: Optional[Dict[str, Any]] = None
     # Birth effects
     birth_effect_timer: Optional[int] = None
+    # Death effects
+    death_effect_state: Optional[Dict[str, Any]] = None
     # Crab hunt state
     can_hunt: Optional[bool] = None
 
@@ -133,6 +135,8 @@ class EntitySnapshot:
             data["poker_effect_state"] = self.poker_effect_state
         if self.birth_effect_timer is not None:
             data["birth_effect_timer"] = self.birth_effect_timer
+        if self.death_effect_state is not None:
+            data["death_effect_state"] = self.death_effect_state
         if self.can_hunt is not None:
             data["can_hunt"] = self.can_hunt
 
@@ -149,6 +153,7 @@ class EntitySnapshot:
             "vel_y": self.vel_y,
             "poker_effect_state": self.poker_effect_state,
             "birth_effect_timer": self.birth_effect_timer,
+            "death_effect_state": self.death_effect_state,
         }
 
 
@@ -336,6 +341,8 @@ class StatsPayload:
         best_hand_rank=0,
         best_hand_name="",
     ))
+    poker_score: Optional[float] = None
+    poker_score_history: List[float] = field(default_factory=list)
     meta_stats: Dict[str, float] = field(default_factory=dict)
     total_sexual_births: int = 0
     total_asexual_births: int = 0
@@ -472,6 +479,10 @@ class StatsPayload:
         }
 
         data["poker_stats"] = self.poker_stats.to_dict()
+        if self.poker_score is not None:
+            data["poker_score"] = self.poker_score
+        if self.poker_score_history:
+            data["poker_score_history"] = self.poker_score_history
         if self.meta_stats:
             data.update(self.meta_stats)
         return data

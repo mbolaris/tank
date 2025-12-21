@@ -762,6 +762,99 @@ export class Renderer {
         ctx.restore();
     }
 
+    private renderDeathEffect(x: number, y: number, cause: string) {
+        const { ctx } = this;
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 16px Arial';
+
+        // Draw a semi-transparent background circle
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.beginPath();
+        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw icon based on death cause
+        switch (cause) {
+            case 'starvation':
+                // Empty stomach icon (circle with line through)
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x - 4, y + 4);
+                ctx.lineTo(x + 4, y - 4);
+                ctx.stroke();
+                break;
+
+            case 'old_age':
+                // Hourglass-like icon
+                ctx.fillStyle = '#a0a0a0';
+                ctx.beginPath();
+                // Top triangle
+                ctx.moveTo(x - 5, y - 6);
+                ctx.lineTo(x + 5, y - 6);
+                ctx.lineTo(x, y);
+                ctx.closePath();
+                ctx.fill();
+                // Bottom triangle
+                ctx.beginPath();
+                ctx.moveTo(x - 5, y + 6);
+                ctx.lineTo(x + 5, y + 6);
+                ctx.lineTo(x, y);
+                ctx.closePath();
+                ctx.fill();
+                break;
+
+            case 'predation':
+                // Claw marks icon
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                // Three diagonal claw marks
+                ctx.beginPath();
+                ctx.moveTo(x - 5, y - 5);
+                ctx.lineTo(x - 1, y + 5);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y - 5);
+                ctx.lineTo(x, y + 5);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x + 5, y - 5);
+                ctx.lineTo(x + 1, y + 5);
+                ctx.stroke();
+                break;
+
+            case 'migration':
+                // Arrow icon (leaving)
+                ctx.fillStyle = '#4da6ff';
+                ctx.beginPath();
+                ctx.moveTo(x + 6, y);
+                ctx.lineTo(x - 2, y - 5);
+                ctx.lineTo(x - 2, y - 2);
+                ctx.lineTo(x - 6, y - 2);
+                ctx.lineTo(x - 6, y + 2);
+                ctx.lineTo(x - 2, y + 2);
+                ctx.lineTo(x - 2, y + 5);
+                ctx.closePath();
+                ctx.fill();
+                break;
+
+            default:
+                // Question mark for unknown
+                ctx.fillStyle = '#888888';
+                ctx.fillText('?', x, y);
+                break;
+        }
+
+        ctx.restore();
+    }
+
     private renderSVGFish(fish: EntityData, allEntities?: EntityData[], showEffects: boolean = true) {
         const { ctx } = this;
         const { x, y, width, height, vel_x = 1, genome_data } = fish;
@@ -872,6 +965,11 @@ export class Renderer {
         // Birth effect (hearts + particle burst)
         if (fish.birth_effect_timer && fish.birth_effect_timer > 0) {
             this.renderBirthEffect(x + scaledSize / 2, y, fish.birth_effect_timer);
+        }
+
+        // Death effect (cause indicator icon)
+        if (fish.death_effect_state) {
+            this.renderDeathEffect(x + scaledSize / 2, y - 10, fish.death_effect_state.cause);
         }
     }
 

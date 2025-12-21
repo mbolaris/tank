@@ -164,12 +164,25 @@ class BaseSimulator(ABC):
         )
 
     def record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
-        """Record a fish death in the ecosystem and remove it from the simulation.
+        """Record a fish death in the ecosystem and mark for delayed removal.
+
+        The fish remains in the simulation briefly so its death effect icon
+        can be rendered before removal. The actual removal happens in
+        cleanup_dying_fish() once death_effect_timer expires.
 
         Args:
             fish: The fish that died
             cause: Optional death cause override (defaults to fish.get_death_cause())
         """
+        # Skip if already recorded as dying (prevent double-recording)
+        if fish.death_effect_state is not None:
+            return
+
+        death_cause = cause if cause is not None else fish.get_death_cause()
+
+        # Set death effect for visual indicator on frontend (45 frames = 1.5s at 30fps)
+        fish.set_death_effect(death_cause, duration=45)
+
         if self.ecosystem is not None:
             algorithm_id = None
             composable = fish.genome.behavioral.behavior
@@ -177,7 +190,6 @@ class BaseSimulator(ABC):
                 behavior_id = composable.value.behavior_id
                 algorithm_id = hash(behavior_id) % 1000
 
-            death_cause = cause if cause is not None else fish.get_death_cause()
             self.ecosystem.record_death(
                 fish.fish_id,
                 fish.generation,
@@ -187,7 +199,41 @@ class BaseSimulator(ABC):
                 algorithm_id=algorithm_id,
                 remaining_energy=fish.energy,  # Track energy lost when fish dies
             )
-        self.remove_entity(fish)
+
+        # Don't remove fish yet - stay in simulation for death effect to render
+        # Cleanup happens in cleanup_dying_fish() when death_effect_timer expires
+
+    def cleanup_dying_fish(self) -> None:
+        """Remove fish whose death effect timer has expired.
+
+        Called each frame to clean up fish that have finished showing
+        their death animation.
+        """
+        from core.entities import Fish
+
+        to_remove = []
+        for entity in self.get_all_entities():
+            if isinstance(entity, Fish) and entity.death_effect_state is not None:
+                # If timer expired, mark for removal
+                if entity.death_effect_timer <= 0:
+                    to_remove.append(entity)
+
+        for fish in to_remove:
+            self.remove_entity(fish)
+
+    def is_fish_dying(self, fish: "Fish") -> bool:
+        """Check if a fish is in the dying state (showing death effect).
+
+        Dying fish should be skipped for most gameplay interactions
+        (collisions, movement, etc.) but still rendered.
+
+        Args:
+            fish: The fish to check
+
+        Returns:
+            True if fish has a death effect active
+        """
+        return fish.death_effect_state is not None
 
     def update_spatial_grid(self) -> None:
         """Update the spatial grid with current entity positions."""
@@ -1512,3 +1558,4 @@ class BaseSimulator(ABC):
             Number of fish entities
         """
         return len(self.get_fish_list())
+

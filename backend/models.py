@@ -186,6 +186,8 @@ class StatsData(BaseModel):
     poker_stats: PokerStatsData
     min_fish_energy: float = 0.0
     max_fish_energy: float = 0.0
+    poker_score: Optional[float] = None
+    poker_score_history: List[float] = []
 
 
 class SimulationUpdate(BaseModel):

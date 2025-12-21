@@ -289,6 +289,7 @@ class SimulationRunner:
 
         # Drift correction: Track when the next frame *should* start
         next_frame_start_time = time.time()
+        was_fast_forward = self.fast_forward
 
         try:
             while self.running:
@@ -347,6 +348,15 @@ class SimulationRunner:
                             f"Energy={stats.get('total_energy', 0.0):.1f}"
                             f"{migration_str}{poker_str}"
                         )
+
+                    # Check for mode switch that happened during update() or async
+                    # If we switched from Fast Forward -> Normal, we must reset the clock
+                    # to "now" to avoid sleeping for the accumulated drift.
+                    if was_fast_forward and not self.fast_forward:
+                        logger.info("Simulation loop: Fast forward disabled, resetting clock sync")
+                        next_frame_start_time = time.time()
+                    
+                    was_fast_forward = self.fast_forward
 
                     # Maintain frame rate with drift correction
                     if not self.fast_forward:
@@ -679,6 +689,23 @@ class SimulationRunner:
         # Extract individual stat groups to reduce cognitive load in the main constructor call
         # while preserving the flat structure required by the existing StatsPayload definition
         
+        # Get Poker Score from evolution benchmark tracker
+        poker_score = None
+        poker_score_history = []
+        
+        if self.evolution_benchmark_tracker is not None:
+            # Latest score
+            latest = self.evolution_benchmark_tracker.get_latest_snapshot()
+            if latest is not None and latest.confidence_vs_strong is not None:
+                poker_score = latest.confidence_vs_strong
+            
+            # History for sparkline (last 20 points)
+            history = self.evolution_benchmark_tracker.get_history()
+            if history:
+                # Filter for valid scores and take up to last 20
+                valid_scores = [s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None]
+                poker_score_history = valid_scores[-20:]
+        
         # Base simulation metrics
         base_stats = {
             "frame": frame,
@@ -736,6 +763,8 @@ class SimulationRunner:
             "fish_health_low": stats.get("fish_health_low", 0),
             "fish_health_healthy": stats.get("fish_health_healthy", 0),
             "fish_health_full": stats.get("fish_health_full", 0),
+            "poker_score": poker_score,
+            "poker_score_history": poker_score_history,
         }
         
         # Physical stats

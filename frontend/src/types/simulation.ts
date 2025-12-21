@@ -77,6 +77,9 @@ export interface EntityData {
         target_type?: 'fish' | 'plant';
     };
     birth_effect_timer?: number;  // Frames remaining for birth visual effect
+    death_effect_state?: {
+        cause: 'starvation' | 'old_age' | 'predation' | 'migration' | 'unknown';
+    };
 
     // Food-specific
     food_type?: string;
@@ -263,6 +266,8 @@ export interface StatsData {
     avg_fish_energy: number;
     min_fish_energy: number;
     max_fish_energy: number;
+    poker_score?: number;
+    poker_score_history?: number[];
     // Max Energy Capacity Stats (Genetic)
     min_max_energy_capacity: number;
     max_max_energy_capacity: number;

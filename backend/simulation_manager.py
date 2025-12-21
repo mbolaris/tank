@@ -467,6 +467,17 @@ class SimulationManager:
                     "plant_energy": world_stats.get("plant_energy", 0.0),
                     "poker_stats": world_stats.get("poker_stats", {}),
                 }
+            
+                # Add poker score from evolution benchmark tracker
+                tracker = getattr(self._runner, "evolution_benchmark_tracker", None)
+                if tracker is not None:
+                    latest = tracker.get_latest_snapshot()
+                    if latest is not None and latest.confidence_vs_strong is not None:
+                        stats["poker_score"] = latest.confidence_vs_strong
+                        history = tracker.get_history()
+                        if history:
+                            valid_scores = [s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None]
+                            stats["poker_score_history"] = valid_scores[-20:]
 
                 # Cache a copy of last-good stats for fallback
                 try:

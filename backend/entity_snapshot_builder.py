@@ -161,6 +161,9 @@ class EntitySnapshotBuilder:
                     birth_effect_timer=entity.birth_effect_timer
                     if hasattr(entity, "birth_effect_timer")
                     else 0,
+                    death_effect_state=entity.death_effect_state
+                    if hasattr(entity, "death_effect_state")
+                    else None,
                     max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100.0,
                     **base_data,
                 )

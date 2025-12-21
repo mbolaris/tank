@@ -575,6 +575,10 @@ class EvolutionBenchmarkTracker:
         """Get the most recent benchmark snapshot."""
         return self.history.snapshots[-1] if self.history.snapshots else None
 
+    def get_history(self) -> List[BenchmarkSnapshot]:
+        """Get the full history of benchmark snapshots."""
+        return self.history.snapshots
+
 
 # Global tracker instance
 _global_tracker: Optional[EvolutionBenchmarkTracker] = None

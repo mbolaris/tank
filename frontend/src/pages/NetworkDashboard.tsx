@@ -665,6 +665,92 @@ function MiniPerformanceChart({ history }: { history: PokerPerformanceSnapshot[]
     );
 }
 
+function PokerScoreDisplay({ score, history, isLoading }: { score?: number; history: number[]; isLoading?: boolean }) {
+    if (isLoading) {
+        return (
+            <div style={{
+                marginTop: '10px',
+                backgroundColor: '#1e293b',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                opacity: 0.7
+            }}>
+                <div>
+                    <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px' }}>Poker Score</div>
+                    <div style={{ fontSize: '10px', color: '#64748b', fontStyle: 'italic' }}>Analyzing...</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (score === undefined || score === null) return null;
+
+    const percentage = Math.round(score * 100);
+    const color = percentage >= 70 ? '#22c55e' :
+        percentage >= 55 ? '#84cc16' :
+            percentage >= 50 ? '#eab308' :
+                percentage >= 40 ? '#f97316' : '#ef4444';
+
+    const rating = percentage >= 90 ? 'Excellent' :
+        percentage >= 70 ? 'Very Good' :
+            percentage >= 55 ? 'Good' :
+                percentage >= 50 ? 'Average' :
+                    percentage >= 40 ? 'Below Avg' : 'Poor';
+
+    // Sparkline
+    const width = 120;
+    const height = 24;
+    const padding = 2;
+    const plotWidth = width - padding * 2;
+    const plotHeight = height - padding * 2;
+
+    const points = history && history.length > 0 ? history : [score];
+    const minVal = Math.min(...points, 0.4);
+    const maxVal = Math.max(...points, 0.6);
+    const range = maxVal - minVal || 1;
+
+    const scaleX = (i: number) => padding + (i / (points.length - 1 || 1)) * plotWidth;
+    const scaleY = (v: number) => height - padding - ((v - minVal) / range) * plotHeight;
+
+    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${scaleX(i)},${scaleY(p)}`).join(' ');
+
+    return (
+        <div style={{
+            marginTop: '10px',
+            backgroundColor: '#1e293b',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+        }}>
+            <div>
+                <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px' }}>Poker Score <span style={{ fontSize: '9px', opacity: 0.5 }}>?</span></div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontSize: '18px', fontWeight: 700, color, lineHeight: 1 }}>{percentage}%</span>
+                    <span style={{ fontSize: '10px', color, fontWeight: 600 }}>{rating}</span>
+                </div>
+            </div>
+
+            {points.length > 1 && (
+                <svg width={width} height={height}>
+                    {/* Baseline at 50% */}
+                    <line
+                        x1={0} y1={scaleY(0.5)}
+                        x2={width} y2={scaleY(0.5)}
+                        stroke="#334155" strokeWidth="1" strokeDasharray="2,2"
+                    />
+                    <path d={pathD} fill="none" stroke={color} strokeWidth="1.5" />
+                    <circle cx={scaleX(points.length - 1)} cy={scaleY(points[points.length - 1])} r={2} fill={color} />
+                </svg>
+            )}
+        </div>
+    );
+}
+
 function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     const { tank, running, frame, paused, fps, fast_forward } = tankStatus;
     const stats = tankStatus.stats ?? {
@@ -866,22 +952,29 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     )}
                 </div>
 
+                {/* Poker Score Row */}
+                <PokerScoreDisplay
+                    score={stats.poker_score}
+                    history={stats.poker_score_history || []}
+                    isLoading={stats.poker_score === undefined}
+                />
+
                 {/* Auto-Evaluation Summary */}
                 {fullState?.auto_evaluation && fullState.auto_evaluation.players && fullState.auto_evaluation.players.length > 0 && (() => {
                     const autoEval = fullState.auto_evaluation;
                     const history = autoEval.performance_history || [];
                     const latestSnapshot = history.length > 0 ? history[history.length - 1] : null;
                     const players = latestSnapshot?.players || autoEval.players;
-                    
+
                     const fishPlayers = players.filter((p) => !p.is_standard && p.species !== 'plant');
                     const plantPlayers = players.filter((p) => !p.is_standard && p.species === 'plant');
                     const standardPlayer = players.find((p) => p.is_standard);
-                    
+
                     if (!fishPlayers.length || !standardPlayer) return null;
-                    
+
                     const fishAvg = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0) / fishPlayers.length;
-                    const plantAvg = plantPlayers.length > 0 
-                        ? plantPlayers.reduce((sum, p) => sum + p.net_energy, 0) / plantPlayers.length 
+                    const plantAvg = plantPlayers.length > 0
+                        ? plantPlayers.reduce((sum, p) => sum + p.net_energy, 0) / plantPlayers.length
                         : null;
                     const baseline = standardPlayer.net_energy;
                     const hasPlants = plantAvg !== null;
@@ -903,24 +996,24 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                                 gap: '8px',
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{ 
-                                        fontSize: '12px', 
+                                    <span style={{
+                                        fontSize: '12px',
                                         fontWeight: 700,
                                         color: fishAvg >= 0 ? '#22c55e' : '#ef4444'
                                     }}>
                                         🐟 {formatProfit(fishAvg)}
                                     </span>
                                     {hasPlants && (
-                                        <span style={{ 
-                                            fontSize: '12px', 
+                                        <span style={{
+                                            fontSize: '12px',
                                             fontWeight: 700,
                                             color: plantAvg! >= 0 ? '#22c55e' : '#ef4444'
                                         }}>
                                             🌱 {formatProfit(plantAvg!)}
                                         </span>
                                     )}
-                                    <span style={{ 
-                                        fontSize: '12px', 
+                                    <span style={{
+                                        fontSize: '12px',
                                         fontWeight: 700,
                                         color: baseline >= 0 ? '#22c55e' : '#ef4444'
                                     }}>
@@ -931,7 +1024,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                                     {autoEval.hands_played}h
                                 </span>
                             </div>
-                            
+
                             {/* Mini Chart - more compact */}
                             {history.length > 1 && (
                                 <div style={{ marginTop: '6px' }}>

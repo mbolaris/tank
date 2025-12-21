@@ -215,6 +215,10 @@ class Fish(Agent):
 
         # Visual effects for births
         self.birth_effect_timer: int = 0  # Frames remaining for birth visual effect (hearts + particles)
+        
+        # Visual effects for deaths (shows death cause before removal)
+        self.death_effect_state: Optional[Dict[str, Any]] = None  # {"cause": "starvation"|"old_age"|"predation"}
+        self.death_effect_timer: int = 0  # Frames remaining for death visual effect
     
     # --- SkillfulAgent Protocol Implementation ---
     # The following methods implement the SkillfulAgent Protocol,
@@ -368,6 +372,16 @@ class Fish(Agent):
             "target_type": target_type,
         }
         self.poker_effect_timer = duration
+
+    def set_death_effect(self, cause: str, duration: int = 45) -> None:
+        """Set a visual effect for death cause.
+
+        Args:
+            cause: 'starvation', 'old_age', 'predation', 'migration', 'unknown'
+            duration: How long to show the effect in frames (default 1.5s at 30fps)
+        """
+        self.death_effect_state = {"cause": cause}
+        self.death_effect_timer = duration
 
     # Energy properties for backward compatibility
     @property
@@ -987,8 +1001,17 @@ class Fish(Agent):
         # Energy consumption
         self.consume_energy(time_modifier)
 
+        # Update death visual effects (countdown)
+        # We do this BEFORE the dead check so dying fish still countdown their removal timer
+        if self.death_effect_timer > 0:
+            self.death_effect_timer -= 1
+
         # Handle death
         if self.is_dead():
+            # Stop movement for dying fish so they don't drift while showing death icon
+            self.vel.x = 0
+            self.vel.y = 0
+            
             # Create update result with death event if desired, or just empty
             # For now, SimulationEngine handles death by checking is_dead() separately
             # but we could move that here.
@@ -1021,6 +1044,8 @@ class Fish(Agent):
         # Update birth visual effects
         if self.birth_effect_timer > 0:
             self.birth_effect_timer -= 1
+
+
 
         # Update poker cooldown
         if self.poker_cooldown > 0:

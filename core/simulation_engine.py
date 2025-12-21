@@ -842,6 +842,9 @@ class SimulationEngine(BaseSimulator):
         for entity in entities_to_remove:
             self.remove_entity(entity)
 
+        # Clean up dying fish whose death effect timer has expired
+        self.cleanup_dying_fish()
+
         for new_entity in new_entities:
             self.add_entity(new_entity)
 
