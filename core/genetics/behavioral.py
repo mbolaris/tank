@@ -22,7 +22,11 @@ from core.genetics.trait import (
 if TYPE_CHECKING:
     from core.algorithms import BehaviorAlgorithm, ComposableBehavior
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
+    from core.poker.strategy.composable_poker import ComposablePokerStrategy
     from core.genetics.physical import PhysicalTraits
+
+# Type alias for poker strategy (can be monolithic or composable)
+PokerStrategyType = "PokerStrategyAlgorithm | ComposablePokerStrategy"
 
 
 # Declarative specifications for behavioral traits (numeric only)
@@ -215,10 +219,11 @@ class BehavioralTraits:
 
         if use_algorithm:
             from core.algorithms import ComposableBehavior
-            from core.poker.strategy.implementations import get_random_poker_strategy
+            from core.poker.strategy.composable_poker import ComposablePokerStrategy
 
             behavior = ComposableBehavior.random(rng=rng)
-            poker_strategy = get_random_poker_strategy(rng=rng)
+            # Use ComposablePokerStrategy for new fish (576 strategy combinations)
+            poker_strategy = ComposablePokerStrategy.create_random(rng=rng)
 
         traits["behavior"] = random_genetic_trait(behavior, rng)
         traits["poker_strategy"] = random_genetic_trait(poker_strategy, rng)
@@ -467,9 +472,10 @@ def _inherit_poker_strategy(
             winner_weight=winner_weight,  # Pass winner bias to crossover
         )
     else:
-        from core.poker.strategy.implementations import get_random_poker_strategy
+        # Default to composable poker strategy for new offspring
+        from core.poker.strategy.composable_poker import ComposablePokerStrategy
 
-        return get_random_poker_strategy(rng=rng)
+        return ComposablePokerStrategy.create_random(rng=rng)
 
 
 def _inherit_mate_preference_value(

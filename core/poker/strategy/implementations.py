@@ -894,18 +894,20 @@ POKER_EVOLUTION_CONFIG = {
 
 
 def crossover_poker_strategies(
-    parent1: Optional[PokerStrategyAlgorithm],
-    parent2: Optional[PokerStrategyAlgorithm],
+    parent1: Optional["PokerStrategyAlgorithm"],
+    parent2: Optional["PokerStrategyAlgorithm"],
     mutation_rate: float = None,
     mutation_strength: float = None,
     winner_weight: float = None,
-) -> PokerStrategyAlgorithm:
+) -> "PokerStrategyAlgorithm":
     """Crossover two poker strategies with winner-biased inheritance.
 
     This function creates offspring poker strategies by combining two parent
     strategies. When winner_weight is provided (or winner_biased_inheritance
     is enabled), parent1 is assumed to be the winner and contributes more
     genetic material.
+
+    Supports both monolithic strategies (TAG, LAG, etc.) and ComposablePokerStrategy.
 
     Args:
         parent1: First parent strategy (winner in winner-biased mode)
@@ -917,6 +919,31 @@ def crossover_poker_strategies(
     Returns:
         New offspring poker strategy
     """
+    # Handle ComposablePokerStrategy crossover
+    from core.poker.strategy.composable_poker import ComposablePokerStrategy
+
+    if isinstance(parent1, ComposablePokerStrategy) and isinstance(parent2, ComposablePokerStrategy):
+        cfg = POKER_EVOLUTION_CONFIG
+        if mutation_rate is None:
+            mutation_rate = cfg["default_mutation_rate"]
+        if mutation_strength is None:
+            mutation_strength = cfg["default_mutation_strength"]
+        if winner_weight is None:
+            winner_weight = cfg["default_winner_weight"] if cfg["winner_biased_inheritance"] else 0.5
+        return ComposablePokerStrategy.from_parents(
+            parent1, parent2,
+            weight1=winner_weight,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+        )
+
+    # If one is composable and other is not, prefer composable offspring
+    if isinstance(parent1, ComposablePokerStrategy):
+        return parent1.clone_with_mutation(mutation_rate or 0.10, mutation_strength or 0.12)
+    if isinstance(parent2, ComposablePokerStrategy):
+        return parent2.clone_with_mutation(mutation_rate or 0.10, mutation_strength or 0.12)
+
+    # Legacy crossover for monolithic strategies
     cfg = POKER_EVOLUTION_CONFIG
 
     # Use config defaults if not provided

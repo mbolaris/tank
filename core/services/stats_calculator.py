@@ -380,7 +380,151 @@ class StatsCalculator:
 
         return out
 
+    def _get_poker_strategy_distributions(self, fish_list: List["Fish"]) -> List[Dict[str, Any]]:
+        """Build gene distributions for composable poker strategy traits.
+        
+        Similar to _get_composable_behavior_distributions but for poker strategy
+        sub-behaviors (HandSelection, BettingStyle, BluffingApproach, etc.).
+        """
+        try:
+            from core.poker.strategy.composable_poker import (
+                ComposablePokerStrategy,
+                POKER_SUB_BEHAVIOR_PARAMS,
+                HandSelection,
+                BettingStyle,
+                BluffingApproach,
+                PositionAwareness,
+                ShowdownTendency,
+            )
+        except ImportError:
+            return []
 
+        out: List[Dict[str, Any]] = []
+
+        # 1. Discrete Traits (Enums) - The poker sub-behaviors
+        discrete_traits = [
+            ("hand_selection", HandSelection, "Hand Selection"),
+            ("betting_style", BettingStyle, "Betting Style"),
+            ("bluffing_approach", BluffingApproach, "Bluffing Approach"),
+            ("position_awareness", PositionAwareness, "Position Awareness"),
+            ("showdown_tendency", ShowdownTendency, "Showdown Tendency"),
+        ]
+
+        # Get poker strategy traits for meta-stats
+        poker_traits = [
+            f.genome.behavioral.poker_strategy
+            for f in fish_list
+            if hasattr(f, "genome") 
+            and hasattr(f.genome, "behavioral")
+            and f.genome.behavioral.poker_strategy is not None
+        ]
+        meta_dict = compute_meta_stats(poker_traits).to_dict()
+
+        for key, enum_cls, label in discrete_traits:
+            allowed_min = 0.0
+            allowed_max = float(len(enum_cls) - 1)
+
+            values = []
+            for f in fish_list:
+                if not hasattr(f, "genome") or not hasattr(f.genome, "behavioral"):
+                    continue
+                ps = f.genome.behavioral.poker_strategy
+                if ps is None:
+                    continue
+                strat = ps.value
+                if strat is None or not isinstance(strat, ComposablePokerStrategy):
+                    continue
+                val = getattr(strat, key, 0)
+                values.append(float(val))
+
+            if not values:
+                out.append({
+                    "key": f"poker_{key}",
+                    "label": label,
+                    "category": "behavioral",
+                    "discrete": True,
+                    "allowed_min": allowed_min,
+                    "allowed_max": allowed_max,
+                    "min": 0.0, "max": 0.0, "median": 0.0,
+                    "bins": [], "bin_edges": [],
+                    "meta": meta_dict
+                })
+                continue
+
+            v_min = min(values)
+            v_max = max(values)
+            v_median = median(values)
+
+            # Histogram for discrete: one bin per option
+            bin_count = int(allowed_max - allowed_min + 1)
+            bins, edges = create_histogram(values, allowed_min - 0.5, allowed_max + 0.5, num_bins=bin_count)
+
+            out.append({
+                "key": f"poker_{key}",
+                "label": label,
+                "category": "behavioral",
+                "discrete": True,
+                "allowed_min": allowed_min,
+                "allowed_max": allowed_max,
+                "min": float(v_min),
+                "max": float(v_max),
+                "median": float(v_median),
+                "bins": bins,
+                "bin_edges": edges,
+                "meta": meta_dict
+            })
+
+        # 2. Continuous Parameters from ComposablePokerStrategy
+        for param_key, (p_min, p_max) in POKER_SUB_BEHAVIOR_PARAMS.items():
+            human_label = self._humanize_gene_label(param_key)
+            values = []
+            for f in fish_list:
+                if not hasattr(f, "genome") or not hasattr(f.genome, "behavioral"):
+                    continue
+                ps = f.genome.behavioral.poker_strategy
+                if ps is None:
+                    continue
+                strat = ps.value
+                if strat is None or not isinstance(strat, ComposablePokerStrategy):
+                    continue
+                if param_key in strat.parameters:
+                    values.append(strat.parameters[param_key])
+
+            if not values:
+                out.append({
+                    "key": f"poker_{param_key}",
+                    "label": f"Poker {human_label}",
+                    "category": "behavioral",
+                    "discrete": False,
+                    "allowed_min": p_min,
+                    "allowed_max": p_max,
+                    "min": 0.0, "max": 0.0, "median": 0.0,
+                    "bins": [], "bin_edges": [],
+                    "meta": meta_dict
+                })
+                continue
+
+            v_min = min(values)
+            v_max = max(values)
+            v_median = median(values)
+            bins, edges = create_histogram(values, p_min, p_max, num_bins=12)
+
+            out.append({
+                "key": f"poker_{param_key}",
+                "label": f"Poker {human_label}",
+                "category": "behavioral",
+                "discrete": False,
+                "allowed_min": p_min,
+                "allowed_max": p_max,
+                "min": float(v_min),
+                "max": float(v_max),
+                "median": float(v_median),
+                "bins": bins,
+                "bin_edges": edges,
+                "meta": meta_dict
+            })
+
+        return out
 
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive simulation statistics.
@@ -554,9 +698,13 @@ class StatsCalculator:
         # Dynamic gene distributions for the UI (physical + behavioral)
         built_dists = self._build_gene_distributions()
         
-        # Merge composable traits into behavioral list
+        # Merge composable behavior traits into behavioral list
         composable_dists = self._get_composable_behavior_distributions(self._engine.get_fish_list())
         built_dists["behavioral"].extend(composable_dists)
+        
+        # Merge composable poker strategy traits into behavioral list
+        poker_dists = self._get_poker_strategy_distributions(self._engine.get_fish_list())
+        built_dists["behavioral"].extend(poker_dists)
 
         stats["gene_distributions"] = built_dists
 
