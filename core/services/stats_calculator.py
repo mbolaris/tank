@@ -14,7 +14,7 @@ import time
 from statistics import median
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from core.statistics_utils import compute_meta_stats, safe_mean_std
+from core.statistics_utils import compute_meta_stats, create_histogram, safe_mean_std
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
@@ -153,14 +153,14 @@ class StatsCalculator:
                     if discrete:
                         # One bin per discrete value.
                         bin_count = int(round(allowed_max - allowed_min + 1))
-                        bins, edges = self._create_histogram(
+                        bins, edges = create_histogram(
                             values,
                             allowed_min - 0.5,
                             allowed_max + 0.5,
                             num_bins=max(1, bin_count),
                         )
                     else:
-                        bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+                        bins, edges = create_histogram(values, allowed_min, allowed_max, num_bins=12)
 
                     out.append(
                         {
@@ -223,7 +223,7 @@ class StatsCalculator:
                     a_median = float(median(adult_sizes))
                 except Exception:
                     a_median = 0.0
-                bins, edges = self._create_histogram(adult_sizes, allowed_min, allowed_max, num_bins=16)
+                bins, edges = create_histogram(adult_sizes, allowed_min, allowed_max, num_bins=16)
             else:
                 a_min = 0.0
                 a_max = 0.0
@@ -318,7 +318,7 @@ class StatsCalculator:
             
             # Histogram for discrete: one bin per option
             bin_count = int(allowed_max - allowed_min + 1)
-            bins, edges = self._create_histogram(values, allowed_min - 0.5, allowed_max + 0.5, num_bins=bin_count)
+            bins, edges = create_histogram(values, allowed_min - 0.5, allowed_max + 0.5, num_bins=bin_count)
             
             out.append({
                 "key": key,
@@ -361,7 +361,7 @@ class StatsCalculator:
             v_min = min(values)
             v_max = max(values)
             v_median = median(values)
-            bins, edges = self._create_histogram(values, p_min, p_max, num_bins=12)
+            bins, edges = create_histogram(values, p_min, p_max, num_bins=12)
 
             out.append({
                 "key": param_key,
@@ -620,7 +620,7 @@ class StatsCalculator:
             stats["adult_size_median"] = 0.0
 
         # Create histogram
-        bins, edges = self._create_histogram(
+        bins, edges = create_histogram(
             adult_sizes, allowed_min, allowed_max, num_bins=16
         )
         stats["adult_size_bins"] = bins
@@ -679,7 +679,7 @@ class StatsCalculator:
                 # Create histogram using observed range
                 es_min = min(eye_sizes)
                 es_max = max(eye_sizes)
-                bins, edges = self._create_histogram(
+                bins, edges = create_histogram(
                     eye_sizes, es_min, es_max, num_bins=12
                 )
                 stats["eye_size_bins"] = bins
@@ -747,7 +747,7 @@ class StatsCalculator:
                     stats["fin_size_median"] = 0.0
 
                 # Create histogram using allowed range
-                bins, edges = self._create_histogram(
+                bins, edges = create_histogram(
                     fin_sizes, allowed_min, allowed_max, num_bins=12
                 )
                 stats["fin_size_bins"] = bins
@@ -808,7 +808,7 @@ class StatsCalculator:
                     stats["tail_size_median"] = median(values)
                 except Exception:
                     stats["tail_size_median"] = 0.0
-                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+                bins, edges = create_histogram(values, allowed_min, allowed_max, num_bins=12)
                 stats["tail_size_bins"] = bins
                 stats["tail_size_bin_edges"] = edges
             else:
@@ -863,7 +863,7 @@ class StatsCalculator:
                     stats["body_aspect_median"] = median(values)
                 except Exception:
                     stats["body_aspect_median"] = 0.0
-                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+                bins, edges = create_histogram(values, allowed_min, allowed_max, num_bins=12)
                 stats["body_aspect_bins"] = bins
                 stats["body_aspect_bin_edges"] = edges
             else:
@@ -922,7 +922,7 @@ class StatsCalculator:
 
                 # For discrete variables like template_id, clear bins are nice
                 # Using FISH_TEMPLATE_COUNT bins guarantees one bin per ID
-                bins, edges = self._create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_TEMPLATE_COUNT)
+                bins, edges = create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_TEMPLATE_COUNT)
                 stats["template_id_bins"] = bins
                 stats["template_id_bin_edges"] = edges
             else:
@@ -980,7 +980,7 @@ class StatsCalculator:
                     stats["pattern_type_median"] = 0.0
 
                 # Discrete bins
-                bins, edges = self._create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_PATTERN_COUNT)
+                bins, edges = create_histogram(values, -0.5, allowed_max + 0.5, num_bins=FISH_PATTERN_COUNT)
                 stats["pattern_type_bins"] = bins
                 stats["pattern_type_bin_edges"] = edges
             else:
@@ -1035,7 +1035,7 @@ class StatsCalculator:
                     stats["pattern_intensity_median"] = median(values)
                 except Exception:
                     stats["pattern_intensity_median"] = 0.0
-                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=10)
+                bins, edges = create_histogram(values, allowed_min, allowed_max, num_bins=10)
                 stats["pattern_intensity_bins"] = bins
                 stats["pattern_intensity_bin_edges"] = edges
             else:
@@ -1093,7 +1093,7 @@ class StatsCalculator:
                     stats["lifespan_modifier_median"] = median(values)
                 except Exception:
                     stats["lifespan_modifier_median"] = 0.0
-                bins, edges = self._create_histogram(values, allowed_min, allowed_max, num_bins=12)
+                bins, edges = create_histogram(values, allowed_min, allowed_max, num_bins=12)
                 stats["lifespan_modifier_bins"] = bins
                 stats["lifespan_modifier_bin_edges"] = edges
             else:
@@ -1113,38 +1113,3 @@ class StatsCalculator:
                 "lifespan_modifier_bin_edges": [],
             })
         return stats
-
-    def _create_histogram(
-        self,
-        values: List[float],
-        range_min: float,
-        range_max: float,
-        num_bins: int = 12,
-    ) -> tuple:
-        """Create a histogram from values.
-
-        Args:
-            values: List of values to bin
-            range_min: Minimum edge of histogram
-            range_max: Maximum edge of histogram
-            num_bins: Number of bins
-
-        Returns:
-            Tuple of (bin_counts, bin_edges)
-        """
-        if not values:
-            return [], []
-
-        span = max(1e-6, range_max - range_min)
-        edges = [range_min + (span * i) / num_bins for i in range(num_bins + 1)]
-        counts = [0] * num_bins
-
-        for v in values:
-            idx = int((v - range_min) / span * num_bins)
-            if idx < 0:
-                idx = 0
-            elif idx >= num_bins:
-                idx = num_bins - 1
-            counts[idx] += 1
-
-        return counts, edges
