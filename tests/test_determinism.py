@@ -17,13 +17,32 @@ def remove_non_deterministic_fields(stats: dict) -> dict:
     return {k: v for k, v in stats.items() if k not in NON_DETERMINISTIC_FIELDS}
 
 
-@pytest.mark.xfail(reason="Simulation has non-deterministic behavior - see test_parity.py")
+@pytest.mark.xfail(
+    reason="Simulation has non-deterministic behavior - tracked for Phase 1 RNG cleanup"
+)
 def test_simulation_seed_determinism():
     """SimulationEngine should produce identical results with same seed.
 
-    Note: This test is currently expected to fail because the simulation
-    has sources of non-determinism (some code paths use global random
-    instead of the injected RNG). See test_parity.py for more details.
+    This test is currently expected to fail due to non-determinism sources.
+    
+    ROOT CAUSES (Phase 1 cleanup targets):
+    1. core/poker/strategy/implementations.py:
+       - Uses `rng = rng or random` treating module as Random instance
+       - `decide_action()` methods call `random.random()` directly
+       - `mutate_parameters()` uses global `random.random()` and `random.gauss()`
+    
+    2. core/algorithms/base.py:
+       - `BehaviorAlgorithm.mutate_parameters()` uses global `random.*`
+    
+    3. Various core modules import and use global `random`:
+       - core/skill_game_system.py
+       - core/skills/games/number_guessing.py
+       - core/skills/games/rock_paper_scissors.py
+       - core/systems/food_spawning.py
+       - core/tank_world.py
+    
+    FIX: Thread `world.rng` through all call paths and require explicit RNG.
+    See implementation_plan.md Phase 1 for details.
     """
     seed = 12345
     engine1 = SimulationEngine(seed=seed)

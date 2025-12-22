@@ -4,7 +4,8 @@ This module provides object pooling to reduce memory allocation overhead
 and garbage collection pressure for entities like Food.
 """
 
-from typing import List
+import random
+from typing import List, Optional
 
 from core.entities import Food
 
@@ -17,14 +18,16 @@ class FoodPool:
     reuses Food objects instead of creating new ones.
     """
 
-    def __init__(self, initial_size: int = 50):
+    def __init__(self, initial_size: int = 50, rng: Optional[random.Random] = None):
         """Initialize the food pool.
 
         Args:
             initial_size: Number of Food objects to pre-allocate
+            rng: Random number generator for deterministic food type selection
         """
         self._pool: List[Food] = []
         self._active: set = set()
+        self._rng = rng if rng is not None else random.Random()
 
     def acquire(
         self,
@@ -42,8 +45,6 @@ class FoodPool:
             y: Y position
             source_plant: Optional plant that created this food
             allow_stationary_types: Whether to allow stationary food types
-            screen_width: Screen width
-            screen_height: Screen height
 
         Returns:
             A Food object ready to use
@@ -57,8 +58,11 @@ class FoodPool:
             food.vel.x = 0
             food.vel.y = 0
             food.source_plant = source_plant
-            # Re-randomize food type
-            food_type = Food._select_random_food_type(include_stationary=allow_stationary_types)
+            # Re-randomize food type using seeded RNG
+            food_type = Food._select_random_food_type(
+                include_stationary=allow_stationary_types,
+                rng=self._rng,
+            )
             food.food_type = food_type
             food.food_properties = Food.FOOD_TYPES[food_type]
             food.is_stationary = food.food_properties.get("stationary", False)

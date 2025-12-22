@@ -13,9 +13,22 @@ from core import entities
 from core.simulation_engine import SimulationEngine
 
 
-@pytest.mark.xfail(reason="Simulation has non-deterministic behavior that needs investigation")
+@pytest.mark.xfail(
+    reason="Simulation has non-deterministic behavior - tracked for Phase 1 RNG cleanup"
+)
 def test_simulation_determinism():
-    """Verify two runs with the same seed produce identical results."""
+    """Verify two runs with the same seed produce identical results.
+    
+    ROOT CAUSES (Phase 1 cleanup targets):
+    1. Poker strategy implementations use `rng = rng or random` anti-pattern
+       where the `random` module is treated as a Random instance (it's not!)
+    2. `PokerStrategyAlgorithm.mutate_parameters()` uses `random.random()`
+    3. Various `decide_action()` methods call `random.random()` directly
+    4. `BehaviorAlgorithm.mutate_parameters()` uses global random
+    5. Multiple core modules (skill games, food spawning, tank world) use global random
+    
+    FIX: Add `rng` to World Protocol and thread through all randomness.
+    """
     print("=" * 80)
     print("TESTING: Simulation Determinism")
     print("=" * 80)

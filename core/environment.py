@@ -5,6 +5,7 @@ for agents in the simulation.
 """
 
 import math
+import random
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
 
@@ -448,7 +449,7 @@ class Environment:
     _subclass_cache: Dict[Tuple[Type, Type], bool] = {}
 
     def __init__(
-        self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600, time_system: Optional[Any] = None
+        self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600, time_system: Optional[Any] = None, rng: Optional[random.Random] = None
     ):
         """
         Initialize the environment.
@@ -463,6 +464,7 @@ class Environment:
         self.width = width
         self.height = height
         self.time_system = time_system
+        self._rng = rng if rng is not None else random.Random()
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled
@@ -788,3 +790,12 @@ class Environment:
         
         x, y = position
         return 0 <= x < self.width and 0 <= y < self.height
+
+    @property
+    def rng(self) -> random.Random:
+        """Get the shared RNG (implements World Protocol).
+        
+        Returns:
+            Random instance for deterministic simulation
+        """
+        return self._rng

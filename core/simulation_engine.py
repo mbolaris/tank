@@ -204,8 +204,8 @@ class SimulationEngine(BaseSimulator):
         # Systems are registered in setup() once all dependencies are ready
         self._systems: List[BaseSystem] = []
 
-        # Performance: Object pool for Food entities
-        self.food_pool = FoodPool()
+        # Performance: Object pool for Food entities (uses engine's rng for deterministic behavior)
+        self.food_pool = FoodPool(rng=self.rng)
 
         # Performance: Centralized cache management for entity type lists
         self._cache_manager = CacheManager(lambda: self.entities_list)

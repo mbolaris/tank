@@ -154,7 +154,8 @@ class SkillGameSystem:
         Returns:
             True if a game should be triggered
         """
-        if random.random() > self.config.encounter_rate:
+        # Use engine's RNG for determinism
+        if self.engine.rng.random() > self.config.encounter_rate:
             return False
         return True
 
@@ -395,7 +396,7 @@ class SkillGameSystem:
                                 processed_pairs.add(pair_key)
             else:
                 # Single-player game: play alone
-                if random.random() < self.config.encounter_rate:
+                if self.engine.rng.random() < self.config.encounter_rate:
                     event = self.play_game(fish1, None, current_frame)
                     if event:
                         events.append(event)
