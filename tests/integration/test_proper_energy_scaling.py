@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from core.algorithms.energy_management import EnergyConserver
 from core.entities import Fish, LifeStage
-from core.fish_poker import PokerInteraction
+from core.poker_interaction import PokerInteraction
 from core.genetics import Genome
 
 
