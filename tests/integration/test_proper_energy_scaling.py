@@ -25,7 +25,7 @@ class MockEcosystem:
         self.recent_death_rate = 0.0
         self._next_fish_id = 1
 
-    def get_next_fish_id(self):
+    def generate_new_fish_id(self):
         fish_id = self._next_fish_id
         self._next_fish_id += 1
         return fish_id

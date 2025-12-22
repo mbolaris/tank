@@ -218,8 +218,8 @@ class EcosystemManager:
 
         self._last_max_generation = current_max_gen
 
-    def get_next_fish_id(self) -> int:
-        """Get the next unique fish ID.
+    def generate_new_fish_id(self) -> int:
+        """Generate a new unique fish ID.
 
         Returns:
             Unique integer ID for a fish

@@ -34,8 +34,8 @@ class _EcosystemStub:
         """Stub method for recording reproduction energy."""
         pass
 
-    def get_next_fish_id(self) -> int:
-        """Return next available fish ID."""
+    def generate_new_fish_id(self) -> int:
+        """Generate a new fish ID."""
         fish_id = self._next_fish_id
         self._next_fish_id += 1
         return fish_id
