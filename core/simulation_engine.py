@@ -26,13 +26,9 @@ from core.constants import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
     FILES,
-    PLANT_CULL_INTERVAL,
-    PLANT_INITIAL_COUNT,
-    PLANT_MATURE_ENERGY,
     PLANTS_ENABLED,
     FRAME_RATE,
     LIVE_FOOD_SPAWN_CHANCE,
-    MAX_DIVERSITY_SPAWN_ATTEMPTS,
     MAX_POKER_EVENTS,
     MAX_POPULATION,
     POKER_EVENT_MAX_AGE_FRAMES,
@@ -47,15 +43,13 @@ from core.entities.plant import Plant, PlantNectar
 from core.entity_factory import create_initial_population
 from core.events import (
     EnergyChangedEvent,
-    EntityBornEvent,
-    EntityDiedEvent,
     EventBus,
-    PokerGameEvent,
 )
 from core.poker_interaction import PokerInteraction
 from core.genetics import Genome
 from core.object_pool import FoodPool
 from core.genetics import PlantGenome
+from core.plant_manager import PlantManager
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
 from core.poker_system import PokerSystem
@@ -220,20 +214,8 @@ class SimulationEngine(BaseSimulator):
         # Performance: Centralized cache management for entity type lists
         self._cache_manager = CacheManager(lambda: self.entities_list)
 
-        # Fractal plant system
-        self.root_spot_manager: Optional[RootSpotManager] = None
-
-        # LLM beauty contest variants (kept in deterministic order)
-        self._fractal_variants = [
-            "cosmic_fern",
-            "claude",
-            "antigravity",
-            "gpt",
-            "gpt_codex",
-            "sonnet",
-            "gemini",
-            "lsystem",
-        ]
+        # Fractal plant system (initialized in setup())
+        self.plant_manager: Optional[PlantManager] = None
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: Optional[PeriodicBenchmarkEvaluator] = None
@@ -251,8 +233,13 @@ class SimulationEngine(BaseSimulator):
         # Phase tracking for debugging and monitoring
         self._current_phase: Optional[UpdatePhase] = None
         self._phase_debug_enabled: bool = False
-        self._last_plant_reconcile_frame: int = -1
 
+    @property
+    def root_spot_manager(self) -> Optional[RootSpotManager]:
+        """Backward-compatible access to root spot manager via PlantManager."""
+        if self.plant_manager is None:
+            return None
+        return self.plant_manager.root_spot_manager
 
     def setup(self) -> None:
         """Setup the simulation."""
@@ -260,9 +247,14 @@ class SimulationEngine(BaseSimulator):
         self.environment = environment.Environment(self.entities_list, SCREEN_WIDTH, SCREEN_HEIGHT, self.time_system)
         self.ecosystem = EcosystemManager(max_population=MAX_POPULATION)
 
-        # Initialize fractal plant root spot manager
+        # Initialize plant management system
         if PLANTS_ENABLED:
-            self.root_spot_manager = RootSpotManager(SCREEN_WIDTH, SCREEN_HEIGHT)
+            self.plant_manager = PlantManager(
+                environment=self.environment,
+                ecosystem=self.ecosystem,
+                entity_adder=self,
+                rng=self.rng,
+            )
 
         # Register systems in execution order
         # Order matters: lifecycle first for per-frame reset, time affects behavior,
@@ -281,9 +273,9 @@ class SimulationEngine(BaseSimulator):
         self.create_initial_entities()
 
         # Create initial fractal plants
-        if PLANTS_ENABLED and self.root_spot_manager is not None:
+        if self.plant_manager is not None:
             self._block_root_spots_with_obstacles()
-            self.create_initial_plants()
+            self.plant_manager.create_initial_plants(self.entities_list)
 
     # =========================================================================
     # System Registry Methods
@@ -376,15 +368,6 @@ class SimulationEngine(BaseSimulator):
         # Energy tracking - forward to ecosystem
         self.event_bus.subscribe(EnergyChangedEvent, self._on_energy_changed)
 
-        # Death events - could be used for logging/stats
-        self.event_bus.subscribe(EntityDiedEvent, self._on_entity_died)
-
-        # Birth events - could be used for logging/stats
-        self.event_bus.subscribe(EntityBornEvent, self._on_entity_born)
-
-        # Poker events - forward to poker stats
-        self.event_bus.subscribe(PokerGameEvent, self._on_poker_game)
-
     def _on_energy_changed(self, event: EnergyChangedEvent) -> None:
         """Handle energy change events.
 
@@ -394,38 +377,6 @@ class SimulationEngine(BaseSimulator):
         if self.ecosystem is not None and event.amount < 0:
             # Record energy burns to ecosystem
             self.ecosystem.record_energy_burn(event.source, abs(event.amount))
-
-    def _on_entity_died(self, event: EntityDiedEvent) -> None:
-        """Handle entity death events.
-
-        Args:
-            event: The entity death event
-        """
-        # Currently handled via direct calls, but this enables future
-        # decoupling where entities emit events instead of calling
-        # ecosystem methods directly
-        pass
-
-    def _on_entity_born(self, event: EntityBornEvent) -> None:
-        """Handle entity birth events.
-
-        Args:
-            event: The entity birth event
-        """
-        # Currently handled via direct calls, but this enables future
-        # decoupling where entities emit events instead of calling
-        # ecosystem methods directly
-        pass
-
-    def _on_poker_game(self, event: PokerGameEvent) -> None:
-        """Handle poker game completion events.
-
-        Args:
-            event: The poker game event
-        """
-        # Could be used to forward to poker stats manager
-        # Currently poker system handles this directly
-        pass
 
     def emit_event(self, event) -> None:
         """Emit an event to the engine's event bus.
@@ -463,145 +414,17 @@ class SimulationEngine(BaseSimulator):
 
     def _block_root_spots_with_obstacles(self) -> None:
         """Prevent plants from spawning where static obstacles live."""
-
-        if self.root_spot_manager is None:
+        if self.plant_manager is None:
             return
-
         for entity in self.entities_list:
-            self.root_spot_manager.block_spots_for_entity(entity, padding=10.0)
+            self.plant_manager.block_spots_for_entity(entity)
 
-    def _get_fractal_variant_counts(self) -> Dict[str, int]:
-        """Count how many plants of each LLM variant are present."""
-
-        counts = dict.fromkeys(self._fractal_variants, 0)
-        for entity in self.entities_list:
-            if isinstance(entity, Plant):
-                variant = getattr(entity.genome, "type", "lsystem")
-                if variant not in counts:
-                    counts[variant] = 0
-                counts[variant] += 1
-        return counts
-
-    def _pick_balanced_variant(self, preferred_type: Optional[str] = None) -> str:
-        """Pick a fractal variant that keeps the beauty contest balanced.
-
-        The selection prefers underrepresented variants so every LLM gets
-        spotlight time, while also making sure the requesting variant
-        remains in the candidate pool to stay represented.
-
-        Green lsystem plants get a 50% bias to maintain a verdant tank.
-        """
-
-        # 50% chance to pick green lsystem for a more natural look
-        if self.rng.random() < 0.5:
-            return "lsystem"
-
-        counts = self._get_fractal_variant_counts()
-        min_count = min(counts.values()) if counts else 0
-        underrepresented = [v for v, c in counts.items() if c == min_count]
-
-        candidates = underrepresented.copy()
-        if preferred_type:
-            # Ensure the caller's variant is never excluded from contention
-            if preferred_type not in candidates:
-                candidates.append(preferred_type)
-
-        # Deterministic order for testing but still randomized selection
-        return self.rng.choice(candidates)
-
-    def _create_variant_genome(
-        self, variant: str, parent_genome: Optional[PlantGenome] = None
-    ) -> PlantGenome:
-        """Create a genome for the selected variant, honoring lineage when possible."""
-
-        variant_factories = {
-            "cosmic_fern": PlantGenome.create_cosmic_fern_variant,
-            "claude": PlantGenome.create_claude_variant,
-            "antigravity": PlantGenome.create_antigravity_variant,
-            "gpt": PlantGenome.create_gpt_variant,
-            "gpt_codex": PlantGenome.create_gpt_codex_variant,
-            "sonnet": PlantGenome.create_sonnet_variant,
-            "gemini": PlantGenome.create_gemini_variant,
-            "lsystem": PlantGenome.create_random,
-        }
-
-        if parent_genome and variant == parent_genome.type:
-            return PlantGenome.from_parent(
-                parent_genome,
-                mutation_rate=0.15,
-                mutation_strength=0.15,
-                rng=self.rng,
-            )
-
-        factory = variant_factories.get(variant, PlantGenome.create_random)
-        return factory(rng=self.rng)
-
-    def _reconcile_plants_with_root_spots(self) -> None:
-        """Remove any Plant not recorded as its RootSpot occupant.
-
-        Only one plant can own a RootSpot. Under concurrent migrations and
-        sprouting, historical code paths could create duplicate plants that
-        pointed at the same spot without successfully claiming it.
-        """
-        if self.root_spot_manager is None:
-            return
-
-        plants_to_remove: List[Plant] = []
-        for entity in self.entities_list:
-            if not isinstance(entity, Plant):
-                continue
-            spot = getattr(entity, "root_spot", None)
-            if spot is None:
-                plants_to_remove.append(entity)
-                continue
-            if getattr(spot, "occupant", None) is entity:
-                # Repair stale occupied flag if needed.
-                if not getattr(spot, "occupied", False):
-                    spot.occupied = True
-                continue
-            plants_to_remove.append(entity)
-
-        for plant in plants_to_remove:
-            self.remove_entity(plant)
-
-    def create_initial_plants(self) -> None:
-        """Create initial fractal plants at random root spots."""
-        if self.root_spot_manager is None or self.environment is None:
-            return
-
-        for _ in range(PLANT_INITIAL_COUNT):
-            # Get a random empty root spot
-            spot = self.root_spot_manager.get_random_empty_spot()
-            if spot is None:
-                break  # No more empty spots
-
-            # LLM Battle: spawn diverse variants for the beauty contest
-            # Prefer underrepresented variants so everyone gets spotlight
-            variant = self._pick_balanced_variant()
-            genome = self._create_variant_genome(variant)
-
-            # Create the plant with full energy (mature)
-            plant = Plant(
-                environment=self.environment,
-                genome=genome,
-                root_spot=spot,
-                initial_energy=PLANT_MATURE_ENERGY,
-                ecosystem=self.ecosystem,
-            )
-
-            # Claim the root spot
-            if not spot.claim(plant):
-                continue
-
-            # Add to simulation
-            self.add_entity(plant)
-
-        logger.info(f"Created {self.root_spot_manager.get_occupied_count()} initial fractal plants")
-
-    def sprout_new_plant(self, parent_genome: PlantGenome, parent_x: float, parent_y: float) -> bool:
+    def sprout_new_plant(
+        self, parent_genome: PlantGenome, parent_x: float, parent_y: float
+    ) -> bool:
         """Sprout a new fractal plant from a parent genome.
 
-        Called when fish consumes plant nectar.
+        Delegates to PlantManager for actual implementation.
 
         Args:
             parent_genome: The genome to inherit from (with mutations)
@@ -611,38 +434,11 @@ class SimulationEngine(BaseSimulator):
         Returns:
             True if successfully sprouted, False if no space
         """
-        if self.root_spot_manager is None or self.environment is None:
+        if self.plant_manager is None:
             return False
-
-        # Find a suitable spot near the parent
-        spot = self.root_spot_manager.find_spot_for_sprouting(parent_x, parent_y)
-        if spot is None:
-            return False  # No available spots
-
-        # Create offspring genome with mutations
-        variant = self._pick_balanced_variant(preferred_type=parent_genome.type)
-        offspring_genome = self._create_variant_genome(
-            variant, parent_genome=parent_genome
+        return self.plant_manager.sprout_new_plant(
+            parent_genome, parent_x, parent_y, self.entities_list
         )
-
-        # Create the new plant
-        plant = Plant(
-            environment=self.environment,
-            genome=offspring_genome,
-            root_spot=spot,
-            initial_energy=30.0,  # Start with enough energy to mature in reasonable time
-            ecosystem=self.ecosystem,
-        )
-
-        # Claim the root spot
-        if not spot.claim(plant):
-            return False
-
-        # Add to simulation
-        self.add_entity(plant)
-
-        logger.debug(f"Sprouted new fractal plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f})")
-        return True
 
     # Implement abstract methods from BaseSimulator
     def get_all_entities(self) -> List[entities.Agent]:
@@ -758,16 +554,9 @@ class SimulationEngine(BaseSimulator):
         self.lifecycle_system.update(self.frame_count)
 
         # Enforce the invariant: at most one Plant per RootSpot.
-        # This is a defensive guard against concurrent migrations/sprouting.
-        if (
-            PLANTS_ENABLED
-            and self.root_spot_manager is not None
-            and PLANT_CULL_INTERVAL > 0
-            and self.frame_count - self._last_plant_reconcile_frame
-            >= PLANT_CULL_INTERVAL
-        ):
-            self._reconcile_plants_with_root_spots()
-            self._last_plant_reconcile_frame = self.frame_count
+        # Delegates to PlantManager which tracks its own interval.
+        if self.plant_manager is not None:
+            self.plant_manager.reconcile_plants(self.entities_list, self.frame_count)
 
         # ===== PHASE: TIME_UPDATE =====
         self._current_phase = UpdatePhase.TIME_UPDATE

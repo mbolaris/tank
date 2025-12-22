@@ -77,6 +77,8 @@ __all__ = [
     "FoodSpawner",
     "CollisionHandler",
     "PokerCoordinator",
+    "MigrationHandler",
+    "MigrationCapable",
 ]
 
 if TYPE_CHECKING:
@@ -551,8 +553,68 @@ class SkillfulAgent(Protocol):
     @property
     def can_play_skill_games(self) -> bool:
         """Whether this agent is currently able to play skill games.
-        
+
         Returns:
             True if agent has sufficient energy, isn't on cooldown, etc.
         """
+        ...
+
+
+@runtime_checkable
+class MigrationHandler(Protocol):
+    """Handles entity migration between connected tanks.
+
+    This protocol abstracts the migration system, allowing entities to
+    migrate without depending on backend implementation details.
+
+    Design Note:
+        Using a Protocol instead of getattr() provides:
+        - Type safety and IDE support
+        - Clear documentation of the interface
+        - Easier testing (mock implementations)
+        - Explicit dependency injection
+
+    Example:
+        # In entity code:
+        if isinstance(self.environment, MigrationCapable):
+            handler = self.environment.migration_handler
+            if handler is not None:
+                handler.attempt_entity_migration(self, "left", tank_id)
+    """
+
+    def attempt_entity_migration(
+        self,
+        entity: Any,
+        direction: str,
+        source_tank_id: str,
+    ) -> bool:
+        """Attempt to migrate an entity to a connected tank.
+
+        Args:
+            entity: The entity attempting to migrate
+            direction: "left" or "right" - which boundary was hit
+            source_tank_id: ID of the tank the entity is leaving
+
+        Returns:
+            True if migration successful, False otherwise
+        """
+        ...
+
+
+@runtime_checkable
+class MigrationCapable(Protocol):
+    """An environment that supports entity migration.
+
+    Environments implementing this protocol can have entities migrate
+    to connected tanks when they hit boundaries.
+    """
+
+    @property
+    def migration_handler(self) -> Optional[MigrationHandler]:
+        """Get the migration handler if available."""
+        ...
+
+    @property
+    def tank_id(self) -> Optional[str]:
+        """Get the tank identifier for migration tracking."""
         ...

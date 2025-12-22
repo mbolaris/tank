@@ -696,23 +696,27 @@ class Fish(Agent):
     def _attempt_migration(self, direction: str) -> bool:
         """Attempt to migrate to a connected tank when hitting a boundary.
 
-        Uses dependency injection pattern - delegates to environment's migration
-        handler if available. This keeps core entities decoupled from backend.
+        Uses the MigrationCapable protocol to check if migration is supported.
+        This keeps core entities decoupled from backend implementation.
 
         Args:
             direction: "left" or "right" - which boundary was hit
 
         Returns:
-            True if migration successful, False if no migration handler or migration failed
+            True if migration successful, False if not supported or failed
         """
-        migration_handler = getattr(self.environment, "migration_handler", None)
-        if migration_handler is None:
-            logger.debug(f"Fish #{self.fish_id}: No migration_handler available")
+        from core.interfaces import MigrationCapable
+
+        # Check if environment supports migration using Protocol
+        if not isinstance(self.environment, MigrationCapable):
             return False
 
-        tank_id = getattr(self.environment, "tank_id", None)
+        migration_handler = self.environment.migration_handler
+        if migration_handler is None:
+            return False
+
+        tank_id = self.environment.tank_id
         if tank_id is None:
-            logger.debug(f"Fish #{self.fish_id}: No tank_id available")
             return False
 
         # Delegate migration logic to the handler (backend implementation)
