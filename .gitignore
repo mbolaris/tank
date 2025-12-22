@@ -66,6 +66,10 @@ logs/
 data/
 CODEBASE_ANALYSIS.md
 meta_mutation_result.txt
+tmp_meta_test.py
+
+# Large generated data files
+scripts/lineage_snapshot*.json
 
 # Frontend build artifacts
 frontend/node_modules/
