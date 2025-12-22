@@ -46,9 +46,7 @@ def create_initial_population(
         List of Entity objects representing the initial population
     """
     population = []
-    rng = rng or random
-
-    # Create algorithmic fish with parametrizable behavior algorithms
+    rng = rng if rng is not None else random.Random()
     # These fish use the algorithmic evolution system with diverse genomes
     for _i in range(
         NUM_SCHOOLING_FISH

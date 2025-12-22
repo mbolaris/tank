@@ -114,7 +114,7 @@ class PlantGenome:
         return rules
 
     def apply_production(self, input_str: str, rng: Optional[random.Random] = None) -> str:
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         rules = self.get_production_rules()
         out = []
         for ch in input_str:
@@ -143,9 +143,7 @@ class PlantGenome:
     @classmethod
     def create_random(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a random L-system plant genome."""
-        rng = rng or random
-
-        # Strong bias toward verdant hues so most new plants start green, while
+        rng = rng if rng is not None else random.Random()
         # still leaving room for occasional surprise palettes in the initial
         # population.
         if rng.random() < 0.95:
@@ -196,7 +194,7 @@ class PlantGenome:
     @classmethod
     def create_cosmic_fern_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a Cosmic Fern plant - deep space colors with complex fern structure."""
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         g = cls(
             axiom="X",
             angle=rng.uniform(20.0, 30.0),
@@ -226,7 +224,7 @@ class PlantGenome:
     @classmethod
     def create_claude_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a Claude variant - Radiant helix with sunburst whorls."""
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         g = cls(
             axiom="X",
             angle=rng.uniform(18.0, 24.0),
@@ -256,7 +254,7 @@ class PlantGenome:
     @classmethod
     def create_antigravity_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create an Antigravity variant - Floating vines with aerial roots."""
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         g = cls(
             axiom="RX",
             angle=rng.uniform(28.0, 38.0),
@@ -286,7 +284,7 @@ class PlantGenome:
     @classmethod
     def create_gpt_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a GPT variant - Lattice bush with mirrored logic branches."""
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         g = cls(
             axiom="X",
             angle=rng.uniform(22.0, 32.0),
@@ -316,7 +314,7 @@ class PlantGenome:
     @classmethod
     def create_gpt_codex_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
         """Create a GPT-5.1 Codex banyan with aerial roots and jade bark."""
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         g = cls(
             axiom="X",
             angle=rng.uniform(26.0, 32.0),
@@ -352,7 +350,7 @@ class PlantGenome:
         represent the model's ability to process diverse information types.
         The aesthetic is "Deep Space" - dark, rich colors with high saturation.
         """
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         g = cls(
             axiom="X",
             angle=rng.uniform(20.0, 30.0),
@@ -389,7 +387,7 @@ class PlantGenome:
         The aesthetic emphasizes organic beauty, natural branching patterns, and
         graceful asymmetry - representing the thoughtful, balanced nature of Sonnet.
         """
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         g = cls(
             axiom="X",  # Use X axiom for fern-like growth
             angle=rng.uniform(22.0, 28.0),  # Tighter angles for elegant fronds
@@ -434,8 +432,7 @@ class PlantGenome:
 
         Uses core.evolution module for mutation operations.
         """
-        rng = rng or random
-
+        rng = rng if rng is not None else random.Random()
         def mutate_float(val: float, min_val: float, max_val: float) -> float:
             """Mutate a continuous trait using evolution module."""
             return mutate_continuous_trait(

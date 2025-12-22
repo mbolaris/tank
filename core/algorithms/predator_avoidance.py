@@ -32,7 +32,7 @@ class PanicFlee(BehaviorAlgorithm):
     """Flee directly away from predators at maximum speed."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="panic_flee",
             parameters={
@@ -71,7 +71,7 @@ class StealthyAvoider(BehaviorAlgorithm):
     """Move slowly and carefully away from predators."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="stealthy_avoider",
             parameters={
@@ -112,7 +112,7 @@ class FreezeResponse(BehaviorAlgorithm):
     """Freeze when predator is near, but prioritize survival over safety when starving."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="freeze_response",
             parameters={
@@ -193,7 +193,7 @@ class ErraticEvader(BehaviorAlgorithm):
     """Make unpredictable movements when threatened."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="erratic_evader",
             parameters={
@@ -266,7 +266,7 @@ class VerticalEscaper(BehaviorAlgorithm):
     """Escape vertically when threatened."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="vertical_escaper",
             parameters={
@@ -300,7 +300,7 @@ class GroupDefender(BehaviorAlgorithm):
     """Stay close to group for safety."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="group_defender",
             parameters={
@@ -342,7 +342,7 @@ class SpiralEscape(BehaviorAlgorithm):
     """Spiral away from predators."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="spiral_escape",
             parameters={
@@ -386,7 +386,7 @@ class BorderHugger(BehaviorAlgorithm):
     """Move to tank edges when threatened."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="border_hugger",
             parameters={
@@ -427,7 +427,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
     """Escape perpendicular to predator's approach."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="perpendicular_escape",
             parameters={
@@ -473,7 +473,7 @@ class DistanceKeeper(BehaviorAlgorithm):
     """Maintain safe distance from predators."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="distance_keeper",
             parameters={

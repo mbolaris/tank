@@ -235,4 +235,11 @@ See Also
 from core.systems.base import BaseSystem, System, SystemResult
 from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
 
-__all__ = ["BaseSystem", "System", "SystemResult", "FoodSpawningSystem", "SpawnRateConfig"]
+__all__ = [
+    "BaseSystem",
+    "System",
+    "SystemResult",
+    "FoodSpawningSystem",
+    "SpawnRateConfig",
+]
+

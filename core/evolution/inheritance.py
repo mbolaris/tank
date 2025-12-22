@@ -51,7 +51,7 @@ def inherit_trait(
     Returns:
         Inherited value with possible mutation
     """
-    rng = rng or random
+    rng = rng if rng is not None else random.Random()
     weight2 = 1.0 - weight1
 
     # Weighted blend
@@ -91,9 +91,7 @@ def inherit_discrete_trait(
     Returns:
         Inherited value with possible mutation
     """
-    rng = rng or random
-
-    # Probabilistic selection
+    rng = rng if rng is not None else random.Random()
     inherited = val1 if rng.random() < weight1 else val2
 
     # Apply mutation
@@ -133,9 +131,7 @@ def inherit_algorithm(
     Returns:
         Inherited algorithm with mutated parameters
     """
-    rng = rng or random
-
-    # Import here to avoid circular dependency
+    rng = rng if rng is not None else random.Random()
     from core.algorithms.registry import (
         crossover_algorithms_weighted,
         get_random_algorithm,

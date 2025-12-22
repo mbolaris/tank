@@ -25,24 +25,17 @@ def test_simulation_seed_determinism():
 
     This test is currently expected to fail due to non-determinism sources.
     
-    ROOT CAUSES (Phase 1 cleanup targets):
-    1. core/poker/strategy/implementations.py:
-       - Uses `rng = rng or random` treating module as Random instance
-       - `decide_action()` methods call `random.random()` directly
-       - `mutate_parameters()` uses global `random.random()` and `random.gauss()`
+    ROOT CAUSES (Remaining cleanup targets):
+    1. Remaining global `random.*` calls in core modules (approx 70 calls remaining).
     
-    2. core/algorithms/base.py:
-       - `BehaviorAlgorithm.mutate_parameters()` uses global `random.*`
+    2. Some components still initialize with default RNG if not explicitly passed:
+       - `core/poker/betting/decision.py` (Fixed but requires caller updates)
+       - `core/entities/fish.py` (Fixed random offsets)
     
-    3. Various core modules import and use global `random`:
-       - core/skill_game_system.py
-       - core/skills/games/number_guessing.py
-       - core/skills/games/rock_paper_scissors.py
-       - core/systems/food_spawning.py
-       - core/tank_world.py
+    3. `core/algorithms/food_seeking.py`:
+       - Uses `random.uniform()` for exploration angle
     
-    FIX: Thread `world.rng` through all call paths and require explicit RNG.
-    See implementation_plan.md Phase 1 for details.
+    FIX: Continue threading `world.rng` through all call paths.
     """
     seed = 12345
     engine1 = SimulationEngine(seed=seed)

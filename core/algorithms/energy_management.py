@@ -27,7 +27,7 @@ class EnergyConserver(BehaviorAlgorithm):
     """Minimize movement to conserve energy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="energy_conserver",
             parameters={
@@ -104,7 +104,7 @@ class BurstSwimmer(BehaviorAlgorithm):
     """Alternate between bursts of activity and rest."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="burst_swimmer",
             parameters={
@@ -193,7 +193,7 @@ class OpportunisticRester(BehaviorAlgorithm):
     """Rest when no food or threats nearby."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="opportunistic_rester",
             parameters={
@@ -249,7 +249,7 @@ class EnergyBalancer(BehaviorAlgorithm):
     """Balance energy expenditure with reserves."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="energy_balancer",
             parameters={
@@ -321,7 +321,7 @@ class SustainableCruiser(BehaviorAlgorithm):
     """Maintain steady, sustainable pace."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="sustainable_cruiser",
             parameters={
@@ -351,7 +351,7 @@ class StarvationPreventer(BehaviorAlgorithm):
     """Prioritize food when energy gets low."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="starvation_preventer",
             parameters={
@@ -426,7 +426,7 @@ class MetabolicOptimizer(BehaviorAlgorithm):
     """Adjust activity based on metabolic efficiency."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="metabolic_optimizer",
             parameters={
@@ -464,7 +464,7 @@ class AdaptivePacer(BehaviorAlgorithm):
     """Adapt speed based on current energy and environment."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="adaptive_pacer",
             parameters={

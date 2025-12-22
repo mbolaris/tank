@@ -97,10 +97,13 @@ class Fish(Agent):
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
         if self.genome.behavioral.poker_strategy is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            self.genome.behavioral.poker_strategy = GeneticTrait(get_random_poker_strategy())
+            # Use environment RNG if available
+            rng = getattr(environment, "rng", None)
+            self.genome.behavioral.poker_strategy = GeneticTrait(get_random_poker_strategy(rng=rng))
         elif self.genome.behavioral.poker_strategy.value is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            self.genome.behavioral.poker_strategy.value = get_random_poker_strategy()
+            rng = getattr(environment, "rng", None)
+            self.genome.behavioral.poker_strategy.value = get_random_poker_strategy(rng=rng)
         
         self.generation: int = generation
         self.species: str = species
@@ -527,10 +530,12 @@ class Fish(Agent):
             from core.entities.resources import Food
 
             # Create food near the fish
+            # Use environment RNG if available, or fallback to seeded random if world provided none
+            rng = getattr(self.environment, "rng", random)
             food = Food(
                 environment=self.environment,
-                x=self.pos.x + random.uniform(-20, 20),
-                y=self.pos.y + random.uniform(-20, 20),
+                x=self.pos.x + rng.uniform(-20, 20),
+                y=self.pos.y + rng.uniform(-20, 20),
                 food_type="energy",  # Use energy type for overflow
             )
             # Set food energy to match overflow

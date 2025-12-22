@@ -45,7 +45,7 @@ class TightSchooler(BehaviorAlgorithm):
     """Stay very close to school members."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="tight_schooler",
             parameters={
@@ -89,7 +89,7 @@ class LooseSchooler(BehaviorAlgorithm):
     """Maintain loose association with school."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="loose_schooler",
             parameters={
@@ -137,7 +137,7 @@ class LeaderFollower(BehaviorAlgorithm):
     """Follow the fastest/strongest fish."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="leader_follower",
             parameters={
@@ -177,7 +177,7 @@ class AlignmentMatcher(BehaviorAlgorithm):
     """Match velocity with nearby fish."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="alignment_matcher",
             parameters={
@@ -224,7 +224,7 @@ class SeparationSeeker(BehaviorAlgorithm):
     """Avoid crowding neighbors."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="separation_seeker",
             parameters={
@@ -262,7 +262,7 @@ class FrontRunner(BehaviorAlgorithm):
     """Lead the school from the front."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="front_runner",
             parameters={
@@ -312,7 +312,7 @@ class PerimeterGuard(BehaviorAlgorithm):
     """Stay on the outside of the school."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="perimeter_guard",
             parameters={
@@ -378,7 +378,7 @@ class MirrorMover(BehaviorAlgorithm):
     """Mirror the movements of nearby fish."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="mirror_mover",
             parameters={
@@ -413,7 +413,7 @@ class BoidsBehavior(BehaviorAlgorithm):
     """Classic boids algorithm (separation, alignment, cohesion)."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="boids_behavior",
             parameters={
@@ -563,7 +563,7 @@ class DynamicSchooler(BehaviorAlgorithm):
     """Switch between tight and loose schooling based on conditions."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="dynamic_schooler",
             parameters={
