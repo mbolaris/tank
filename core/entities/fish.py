@@ -41,6 +41,10 @@ from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent
 from core.fish_memory import FishMemorySystem
 from core.genetics import Genome
+from core.genetics.trait import GeneticTrait
+from core.fish.skill_game_component import SkillGameComponent
+from core.skills.base import SkillGameType, SkillStrategy, SkillGameResult
+from core.fish_memory import MemoryType
 
 class Fish(Agent):
     """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
@@ -97,7 +101,6 @@ class Fish(Agent):
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
         if self.genome.behavioral.poker_strategy is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            from core.genetics.trait import GeneticTrait
             self.genome.behavioral.poker_strategy = GeneticTrait(get_random_poker_strategy())
         elif self.genome.behavioral.poker_strategy.value is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
@@ -171,7 +174,6 @@ class Fish(Agent):
 
         
         # NEW: Skill game component (manages strategies and stats for skill games)
-        from core.fish.skill_game_component import SkillGameComponent
         self._skill_game_component = SkillGameComponent()
 
         # ID tracking
@@ -233,7 +235,6 @@ class Fish(Agent):
         Returns:
             The fish's strategy for that game, or None if not initialized
         """
-        from core.skills.base import SkillGameType, SkillStrategy
         return self._skill_game_component.get_strategy(game_type)
     
     def set_strategy(self, game_type: "SkillGameType", strategy: "SkillStrategy") -> None:
@@ -243,7 +244,6 @@ class Fish(Agent):
             game_type: The type of skill game
             strategy: The strategy to use for that game
         """
-        from core.skills.base import SkillGameType, SkillStrategy
         self._skill_game_component.set_strategy(game_type, strategy)
     
     def learn_from_game(self, game_type: "SkillGameType", result: "SkillGameResult") -> None:
@@ -256,7 +256,6 @@ class Fish(Agent):
             game_type: The type of skill game that was played
             result: The outcome of the game
         """
-        from core.skills.base import SkillGameType, SkillGameResult
         self._skill_game_component.record_game_result(game_type, result)
     
     @property
@@ -266,13 +265,11 @@ class Fish(Agent):
         Returns:
             True if fish is adult, has sufficient energy, and isn't on cooldown
         """
-        from core.entities.base import LifeStage
-        from core.poker_interaction import MIN_ENERGY_TO_PLAY
         
-        # Fish must be mature enough to play poker (no babies/juveniles)
         if self.life_stage not in (LifeStage.ADULT, LifeStage.ELDER):
             return False
             
+        from core.poker_interaction import MIN_ENERGY_TO_PLAY
         return (
             self.energy >= MIN_ENERGY_TO_PLAY
             and self.poker_cooldown <= 0
@@ -410,7 +407,6 @@ class Fish(Agent):
         A fish's max energy grows as they physically grow from baby to adult.
         Baby fish (size ~0.35-0.5) have less capacity than adults (adult size scales with genetic size_modifier which ranges 0.5-2.0).
         """
-        from core.constants import ENERGY_MAX_DEFAULT
         return ENERGY_MAX_DEFAULT * self.size
 
     # Reproduction properties for backward compatibility
@@ -740,8 +736,6 @@ class Fish(Agent):
         Returns:
             List of Vector2 positions where food was previously found
         """
-        from core.fish_memory import MemoryType
-
         memories = self.memory_system.get_all_memories(MemoryType.FOOD_LOCATION, min_strength=0.1)
         return [m.location for m in memories]
 
