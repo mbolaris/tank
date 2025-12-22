@@ -652,7 +652,6 @@ class Environment:
     def nearby_evolving_agents(self, agent: Agent, radius: int) -> List[Agent]:
         """Get nearby evolving agents (entities that can reproduce).
         
-        Generic name for nearby_fish(). Prefer this for domain-agnostic code.
         In the fish tank domain, returns Fish entities.
         """
         return self.spatial_grid.query_fish(agent, radius)
@@ -660,19 +659,9 @@ class Environment:
     def nearby_resources(self, agent: Agent, radius: int) -> List[Agent]:
         """Get nearby consumable resources.
         
-        Generic name for nearby_food(). Prefer this for domain-agnostic code.
         In the fish tank domain, returns Food entities.
         """
         return self.spatial_grid.query_food(agent, radius)
-
-    # Backward compatibility aliases (domain-specific names)
-    def nearby_fish(self, agent: Agent, radius: int) -> List[Agent]:
-        """Alias for nearby_evolving_agents(). Prefer generic name for new code."""
-        return self.nearby_evolving_agents(agent, radius)
-
-    def nearby_food(self, agent: Agent, radius: int) -> List[Agent]:
-        """Alias for nearby_resources(). Prefer generic name for new code."""
-        return self.nearby_resources(agent, radius)
 
     def nearby_interaction_candidates(self, agent: Agent, radius: int, crab_type: Type[Agent]) -> List[Agent]:
         """

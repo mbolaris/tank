@@ -45,7 +45,7 @@ processes one complete frame in this order:
 │  └── Environment modifiers (future: temperature, currents)                  │
 │                                                                             │
 │  After this phase:                                                          │
-│    - Spatial queries (nearby_fish, nearby_food) are accurate               │
+│    - Spatial queries (nearby_evolving_agents, nearby_resources) are accurate               │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼

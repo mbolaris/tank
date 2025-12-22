@@ -422,8 +422,8 @@ class BaseSimulator(ABC):
             search_radius = PLANT_POKER_MAX_DISTANCE + max(plant.width, plant.height) / 2
             if environment is not None:
                 # Optimize: Only look for fish
-                if hasattr(environment, "nearby_fish"):
-                    nearby_entities = environment.nearby_fish(plant, radius=search_radius)
+                if hasattr(environment, "nearby_evolving_agents"):
+                    nearby_entities = environment.nearby_evolving_agents(plant, radius=search_radius)
                 else:
                     nearby_entities = environment.nearby_agents_by_type(plant, radius=search_radius, agent_class=Fish)
             else:
@@ -532,8 +532,8 @@ class BaseSimulator(ABC):
                         nearby = [e for e in nearby_all if e in poker_entity_set]
                     else:
                         # Fallback to separate queries
-                        if hasattr(environment, "nearby_fish"):
-                            nearby.extend(environment.nearby_fish(entity, radius=search_radius))
+                        if hasattr(environment, "nearby_evolving_agents"):
+                            nearby.extend(environment.nearby_evolving_agents(entity, radius=search_radius))
                         if hasattr(environment, "nearby_agents_by_type"):
                             nearby_plants = environment.nearby_agents_by_type(entity, radius=search_radius, agent_class=Plant)
                             for plant in nearby_plants:
@@ -878,8 +878,8 @@ class BaseSimulator(ABC):
             nearby_entities = []
             if self.environment is not None:
                 # Optimize: Only look for fish - use max poker distance for query
-                if hasattr(self.environment, "nearby_fish"):
-                    nearby_entities = self.environment.nearby_fish(fish1, radius=FISH_POKER_MAX_DISTANCE)
+                if hasattr(self.environment, "nearby_evolving_agents"):
+                    nearby_entities = self.environment.nearby_evolving_agents(fish1, radius=FISH_POKER_MAX_DISTANCE)
                 else:
                     nearby_entities = self.environment.nearby_agents_by_type(
                         fish1, radius=FISH_POKER_MAX_DISTANCE, agent_class=Fish
@@ -979,11 +979,11 @@ class BaseSimulator(ABC):
                 # Optimize: Get all interaction candidates (Fish, Food, Crabs) in a single pass
                 if hasattr(environment, "nearby_interaction_candidates"):
                     nearby_entities = environment.nearby_interaction_candidates(fish, radius=COLLISION_QUERY_RADIUS, crab_type=Crab)
-                elif hasattr(environment, "nearby_fish"):
+                elif hasattr(environment, "nearby_evolving_agents"):
                     # Fallback to multi-pass if combined query not available (shouldn't happen with new code)
                     nearby_entities = []
-                    nearby_entities.extend(environment.nearby_fish(fish, radius=COLLISION_QUERY_RADIUS))
-                    nearby_entities.extend(environment.nearby_food(fish, radius=COLLISION_QUERY_RADIUS))
+                    nearby_entities.extend(environment.nearby_evolving_agents(fish, radius=COLLISION_QUERY_RADIUS))
+                    nearby_entities.extend(environment.nearby_resources(fish, radius=COLLISION_QUERY_RADIUS))
                     nearby_entities.extend(environment.nearby_agents_by_type(fish, radius=COLLISION_QUERY_RADIUS, agent_class=Crab))
                 else:
                     nearby_entities = environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
@@ -1214,8 +1214,8 @@ class BaseSimulator(ABC):
 
             # Use spatial grid to find nearby fish (mating typically happens at close range)
             if environment is not None:
-                if hasattr(environment, "nearby_fish"):
-                    nearby_fish = environment.nearby_fish(fish, radius=MATING_QUERY_RADIUS)
+                if hasattr(environment, "nearby_evolving_agents"):
+                    nearby_fish = environment.nearby_evolving_agents(fish, radius=MATING_QUERY_RADIUS)
                 else:
                     nearby_fish = environment.nearby_agents_by_type(
                         fish, radius=MATING_QUERY_RADIUS, agent_class=Fish

@@ -11,12 +11,12 @@ Why Result Types?
 -----------------
 Before (implicit failure):
     def find_food(self) -> Optional[Food]:
-        food = self.environment.nearby_food(self, 100)
+        food = self.environment.nearby_resources(self, 100)
         return food[0] if food else None  # Caller might forget to check!
 
 After (explicit failure):
     def find_food(self) -> Result[Food, str]:
-        food = self.environment.nearby_food(self, 100)
+        food = self.environment.nearby_resources(self, 100)
         if not food:
             return Err("No food within range")
         return Ok(food[0])

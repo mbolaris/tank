@@ -526,7 +526,7 @@ class BehaviorHelpersMixin:
     def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
         """Find nearest food within time-based detection range.
 
-        PERFORMANCE: Uses dedicated spatial food query (nearby_food) which is
+        PERFORMANCE: Uses dedicated spatial food query (nearby_resources) which is
         faster than generic nearby_agents_by_type.
 
         Fish have reduced ability to detect food at night due to lower visibility.
@@ -552,12 +552,10 @@ class BehaviorHelpersMixin:
         max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
         max_distance_sq = max_distance * max_distance
 
-        # OPTIMIZATION: Use dedicated nearby_food spatial query (or generic nearby_resources)
+        # OPTIMIZATION: Use dedicated nearby_resources spatial query
         # This uses the optimized food_grid in SpatialGrid
         if hasattr(env, "nearby_resources"):
             nearby = env.nearby_resources(fish, int(max_distance) + 1)
-        elif hasattr(env, "nearby_food"):
-            nearby = env.nearby_food(fish, int(max_distance) + 1)
         else:
             from core.entities import Food
 

@@ -620,8 +620,6 @@ class ComposableBehavior(BehaviorHelpersMixin):
 
         if hasattr(env, "nearby_evolving_agents"):
             nearby = env.nearby_evolving_agents(fish, radius)
-        elif hasattr(env, "nearby_fish"):
-            nearby = env.nearby_fish(fish, radius)
         else:
             nearby = env.nearby_agents_by_type(fish, int(radius), FishClass)
 

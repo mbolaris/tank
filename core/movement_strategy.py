@@ -47,9 +47,9 @@ class MovementStrategy:
 
         # Optimize: Use spatial query to only check nearby food
         # Radius of 50 is sufficient for collision detection (fish size + food size)
-        # Use optimized nearby_food query if available
-        if hasattr(sprite.environment, "nearby_food"):
-            nearby_food = sprite.environment.nearby_food(sprite_entity, 50)
+        # Use optimized nearby_resources query if available
+        if hasattr(sprite.environment, "nearby_resources"):
+            nearby_food = sprite.environment.nearby_resources(sprite_entity, 50)
         else:
             nearby_food = sprite.environment.nearby_agents_by_type(sprite_entity, 50, Food)
 

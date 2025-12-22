@@ -26,12 +26,12 @@ from core.entities import Fish as FishClass
 def _get_nearby_fish(fish: "FishClass", radius: float) -> List["FishClass"]:
     """Get nearby fish using the fastest available spatial query method.
 
-    OPTIMIZATION: Use dedicated nearby_fish method when available (faster).
+    OPTIMIZATION: Use dedicated nearby_evolving_agents method when available (faster).
     """
     env = fish.environment
     nearby = []
-    if hasattr(env, "nearby_fish"):
-        nearby = env.nearby_fish(fish, radius)
+    if hasattr(env, "nearby_evolving_agents"):
+        nearby = env.nearby_evolving_agents(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
 

@@ -11,7 +11,7 @@ This module contains algorithms focused on poker-based fish interactions:
 - PokerConservative: Risk-averse, plays only when highly favorable
 
 Performance optimizations:
-- Uses spatial queries (nearby_fish) instead of get_agents_of_type
+- Uses spatial queries (nearby_evolving_agents) instead of get_agents_of_type
 - Uses squared distances to avoid sqrt overhead
 - Caches fish position coordinates
 """
@@ -44,11 +44,9 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
     """
     env: World = fish.environment  # Type hint as World Protocol
     
-    # Use generic method if available, fall back to alias or type query
+    # Use generic method if available, fall back to type query
     if hasattr(env, "nearby_evolving_agents"):
         nearby = env.nearby_evolving_agents(fish, radius)
-    elif hasattr(env, "nearby_fish"):
-        nearby = env.nearby_fish(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
 
@@ -89,8 +87,6 @@ def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> List["Fish"]:
 
     if hasattr(env, "nearby_evolving_agents"):
         nearby = env.nearby_evolving_agents(fish, radius)
-    elif hasattr(env, "nearby_fish"):
-        nearby = env.nearby_fish(fish, radius)
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
 

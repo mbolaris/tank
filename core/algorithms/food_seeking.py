@@ -1326,8 +1326,8 @@ class CooperativeForager(BehaviorAlgorithm):
         best_score = 0
 
         # Only do social learning if nearby fish count is reasonable
-        if hasattr(env, "nearby_fish") and hasattr(env, "nearby_food"):
-            nearby_fish_list = env.nearby_fish(fish, SOCIAL_FOLLOW_MAX_DISTANCE)
+        if hasattr(env, "nearby_evolving_agents") and hasattr(env, "nearby_resources"):
+            nearby_fish_list = env.nearby_evolving_agents(fish, SOCIAL_FOLLOW_MAX_DISTANCE)
 
             # OPTIMIZATION: Skip if too many fish nearby to avoid O(n*k) queries
             if len(nearby_fish_list) <= 8:
@@ -1339,7 +1339,7 @@ class CooperativeForager(BehaviorAlgorithm):
                     fish_dist = (dx_fish * dx_fish + dy_fish * dy_fish) ** 0.5
 
                     # Check nearby food around this fish
-                    nearby_food = env.nearby_food(other_fish, SOCIAL_FOOD_PROXIMITY_THRESHOLD)
+                    nearby_food = env.nearby_resources(other_fish, SOCIAL_FOOD_PROXIMITY_THRESHOLD)
                     if nearby_food:
                         # Just use first food found
                         food = nearby_food[0]

@@ -385,9 +385,6 @@ class EntityManager(Protocol):
 class SpatialQuery(World, Protocol):
     """Interface for spatial queries in the environment.
     
-    Generic method names are preferred for new code. Domain-specific aliases
-    (nearby_fish, nearby_food) are maintained for backward compatibility.
-    
     This protocol is now a specialized view of the World interface.
     Use World protocol for new code.
     """

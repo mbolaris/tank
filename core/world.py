@@ -114,16 +114,6 @@ class World(Protocol):
         """
         ...
 
-    # --- Backward Compatibility Aliases (Domain-Specific) ---
-
-    def nearby_fish(self, agent: "Agent", radius: float) -> List["Agent"]:
-        """Alias for nearby_evolving_agents(). Prefer generic name for new code."""
-        ...
-
-    def nearby_food(self, agent: "Agent", radius: float) -> List["Agent"]:
-        """Alias for nearby_resources(). Prefer generic name for new code."""
-        ...
-    
     def get_agents_of_type(self, agent_type: Type["Agent"]) -> List["Agent"]:
         """Get all agents of a specific type in the environment.
         
