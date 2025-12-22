@@ -342,6 +342,13 @@ class ComposablePokerStrategy:
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
 
+        # Premium hands should always raise when facing a bet
+        # Check this BEFORE position adjustment to avoid missing premium hands OOP
+        premium_threshold = self.parameters.get("premium_threshold", 0.80)
+        if hand_strength >= premium_threshold and opponent_bet > current_bet:
+            sizing = self._calculate_bet_sizing(hand_strength, pot, player_energy, call_amount)
+            return (BettingAction.RAISE, sizing)
+
         # Get opponent adjustments if available
         opponent_adjustment = self._get_opponent_adjustment(opponent_id)
 
