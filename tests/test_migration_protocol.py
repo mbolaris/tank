@@ -24,7 +24,7 @@ def _make_fish(env: Environment) -> Fish:
     return Fish(
         environment=env,
         movement_strategy=AlgorithmicMovement(),
-        species=["george1.png"],
+        species="george1.png",
         x=100,
         y=100,
         speed=3,

@@ -7,7 +7,7 @@ Why Explicit Phases?
 --------------------
 Before (implicit ordering):
     def update(self):
-        self.time_system.update()
+        self.time_system.update(self.frame)
         self.handle_collisions()  # Wait, should this be before or after entities?
         for entity in entities:
             entity.update()

@@ -3,7 +3,7 @@ import sys
 
 modules = [
     'core.poker.betting.decision',
-    'core.poker.core.engine',
+    'core.poker.core.game_state',
     'core.poker.simulation.engine',
 ]
 

@@ -7,7 +7,11 @@ import logging
 from collections import defaultdict, deque
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
-from core.constants import ENERGY_STATS_WINDOW_FRAMES, MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
+from core.config.ecosystem import (
+    ENERGY_STATS_WINDOW_FRAMES,
+    MAX_ECOSYSTEM_EVENTS,
+    TOTAL_ALGORITHM_COUNT,
+)
 from core.ecosystem_stats import (
     AlgorithmStats,
     EcosystemEvent,
@@ -161,7 +165,7 @@ class EcosystemManager:
         """Initialize algorithm stats for all algorithms."""
         # Import here to avoid circular dependency
         try:
-            from core.algorithms import ALL_ALGORITHMS
+            from core.algorithms.registry import ALL_ALGORITHMS
 
             for i, algo_class in enumerate(ALL_ALGORITHMS):
                 # Get algorithm name from class

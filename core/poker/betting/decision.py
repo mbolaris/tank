@@ -8,7 +8,7 @@ hand strength-based action selection and betting amounts.
 import random
 from typing import List, Optional, Tuple
 
-from core.constants import (
+from core.config.poker import (
     POKER_AGGRESSION_HIGH,
     POKER_AGGRESSION_LOW,
     POKER_AGGRESSION_MEDIUM,

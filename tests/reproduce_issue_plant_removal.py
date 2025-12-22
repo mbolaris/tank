@@ -1,4 +1,4 @@
-from core.constants import SCREEN_HEIGHT
+from core.config.display import SCREEN_HEIGHT
 from core.entities import Plant
 from core.simulation_engine import SimulationEngine
 

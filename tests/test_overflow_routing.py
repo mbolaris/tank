@@ -62,7 +62,7 @@ def _make_fish(env, fish_id: int, ecosystem):
     from core.genetics import Genome
     from core.movement_strategy import AlgorithmicMovement
 
-    # use_algorithm=True creates a composable_behavior automatically
+    # use_algorithm=True creates a behavior automatically
     genome = Genome.random(use_algorithm=True)
 
     return Fish(
@@ -80,7 +80,7 @@ def _make_fish(env, fish_id: int, ecosystem):
 
 
 def _set_adult(fish) -> None:
-    from core.constants import LIFE_STAGE_JUVENILE_MAX
+    from core.config.fish import LIFE_STAGE_JUVENILE_MAX
 
     fish._lifecycle_component.age = LIFE_STAGE_JUVENILE_MAX
     fish._lifecycle_component.update_life_stage()
@@ -115,7 +115,7 @@ def test_overflow_spills_to_food_when_bank_is_full(simulation_env):
     _set_adult(fish)
     fish.energy = fish.max_energy
 
-    from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
+    from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
 
     max_bank = fish.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
     fish._reproduction_component.overflow_energy_bank = max_bank - 10.0

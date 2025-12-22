@@ -2,7 +2,7 @@ import logging
 import random
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
-from core.constants import (
+from core.config.fish import (
     DIRECTION_CHANGE_ENERGY_BASE,
     DIRECTION_CHANGE_SIZE_MULTIPLIER,
     ENERGY_MAX_DEFAULT,
@@ -15,11 +15,11 @@ from core.constants import (
     FISH_MEMORY_LEARNING_RATE,
     FISH_MEMORY_MAX_PER_TYPE,
     FISH_TOP_MARGIN,
-    FRAME_RATE,
     INITIAL_ENERGY_RATIO,
     LIFE_STAGE_MATURE_MAX,
     PREDATOR_ENCOUNTER_WINDOW,
 )
+from core.config.display import FRAME_RATE
 from core.entities.base import Agent, LifeStage, EntityState
 from core.entity_ids import FishId
 from core.math_utils import Vector2
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 # Runtime imports (moved from local scopes)
 
-from core.constants import OVERFLOW_ENERGY_BANK_MULTIPLIER
+from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.fish.energy_component import EnergyComponent
 from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent
@@ -875,7 +875,7 @@ class Fish(Agent):
         self._reproduction_component.update_cooldown()
 
         # Calculate energy needed for a baby (approximate - uses default size modifier)
-        from core.constants import FISH_BABY_SIZE
+        from core.config.fish import FISH_BABY_SIZE
         baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE  # ~75 energy
         
         bank = self._reproduction_component.overflow_energy_bank
@@ -907,7 +907,7 @@ class Fish(Agent):
         offspring_genome, _unused_fraction = self._reproduction_component.trigger_asexual_reproduction(self.genome)
 
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
-        from core.constants import FISH_BABY_SIZE
+        from core.config.fish import FISH_BABY_SIZE
         baby_max_energy = (
             ENERGY_MAX_DEFAULT
             * FISH_BABY_SIZE
@@ -979,7 +979,7 @@ class Fish(Agent):
 
         For connected tanks, attempts migration when hitting left/right boundaries.
         """
-        from core.constants import FISH_TOP_MARGIN
+        from core.config.fish import FISH_TOP_MARGIN
 
         # Get boundaries from environment (World protocol)
         bounds = self.environment.get_bounds()

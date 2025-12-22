@@ -12,7 +12,7 @@ from backend.connection_manager import ConnectionManager, TankConnection
 from backend.connection_persistence import load_connections, save_connections
 
 
-def test_connection_persistence():
+def _run_connection_persistence():
     """Test that connections can be saved and restored."""
     print("=" * 60)
     print("Testing Connection Persistence")
@@ -131,6 +131,10 @@ def test_connection_persistence():
     return all_match
 
 
+def test_connection_persistence():
+    assert _run_connection_persistence()
+
+
 if __name__ == "__main__":
-    success = test_connection_persistence()
+    success = _run_connection_persistence()
     sys.exit(0 if success else 1)

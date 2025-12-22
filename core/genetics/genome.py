@@ -84,8 +84,6 @@ class Genome:
 
     def to_dict(
         self,
-        *,
-        poker_strategy: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Serialize this genome into JSON-compatible primitives.
 
@@ -94,8 +92,6 @@ class Genome:
         return genome_to_dict(
             self,
             schema_version=GENOME_SCHEMA_VERSION,
-
-            poker_strategy=poker_strategy,
         )
 
     @classmethod

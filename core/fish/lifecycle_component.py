@@ -13,7 +13,7 @@ Architecture Notes:
 import logging
 from typing import TYPE_CHECKING, List
 
-from core.constants import (
+from core.config.fish import (
     FISH_ADULT_SIZE,
     FISH_BABY_SIZE,
     LIFE_STAGE_ADULT_MAX,
@@ -89,9 +89,9 @@ class LifecycleComponent:
             frame: Current simulation frame (used for transition history).
         """
         self.age += 1
-        self._update_life_stage(frame)
+        self.update_life_stage(frame)
 
-    def _update_life_stage(self, frame: int = 0) -> None:
+    def update_life_stage(self, frame: int = 0) -> None:
         """Update life stage and size based on current age and genetics.
 
         Uses StateMachine for validated transitions. Invalid transitions
@@ -158,33 +158,15 @@ class LifecycleComponent:
         # Apply genetic size modifier to get final size
         self.size = base_size * self.genetic_size_modifier
 
-    # Legacy method name for backward compatibility
-    def update_life_stage(self) -> None:
-        """Update life stage (legacy method, prefer _update_life_stage)."""
-        self._update_life_stage(frame=0)
-
     @property
     def life_stage(self) -> LifeStage:
         """Current life stage (from state machine)."""
         return self._state_machine.state
 
-    @life_stage.setter
-    def life_stage(self, value: LifeStage) -> None:
-        """Set life_stage (forces transition for backward compatibility)."""
+    def force_life_stage(self, value: LifeStage, *, reason: str = "direct assignment") -> None:
+        """Force the life stage for testing or debugging."""
         if value != self._state_machine.state:
-            self._state_machine.force_state(value, reason="direct assignment")
-
-    @property
-    def current_stage(self) -> LifeStage:
-        """Alias for life_stage for backward compatibility."""
-        return self._state_machine.state
-
-    @current_stage.setter
-    def current_stage(self, value: LifeStage) -> None:
-        """Set life_stage via current_stage alias (forces transition)."""
-        if value != self._state_machine.state:
-            # Force the state for backward compatibility
-            self._state_machine.force_state(value, reason="direct assignment")
+            self._state_machine.force_state(value, reason=reason)
 
     def is_baby(self) -> bool:
         """Check if fish is in baby stage.

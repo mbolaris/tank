@@ -19,7 +19,7 @@ making Fish satisfy EnergyHolder.
 
 from typing import TYPE_CHECKING, Dict
 
-from core.constants import (
+from core.config.fish import (
     BABY_METABOLISM_MULTIPLIER,
     CRITICAL_ENERGY_THRESHOLD_RATIO,
     ELDER_METABOLISM_MULTIPLIER,

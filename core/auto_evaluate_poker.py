@@ -24,7 +24,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.constants import POKER_MAX_HAND_RANK
+from core.config.poker import POKER_MAX_HAND_RANK
 
 # Import directly from source modules to avoid lazy import issues
 from core.poker.betting.actions import BettingAction, BettingRound

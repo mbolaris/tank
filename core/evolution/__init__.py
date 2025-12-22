@@ -14,9 +14,6 @@ naturally from the environment:
 - `Genome.from_parents_weighted()` - weighted crossover (e.g., poker winner)
 - `Genome.from_parents_weighted_params()` - weighted crossover with params object
 
-The functions `crossover_genomes()` and `crossover_genomes_weighted()` are
-deprecated wrappers kept for backward compatibility.
-
 Submodules:
 - mutation: Random variations in offspring (adaptive bounds, continuous/discrete)
 - crossover: Value blending utilities (internal/testing use)
@@ -29,11 +26,7 @@ Design Philosophy (ALife vs GA):
 - Selection emerges from survival and reproduction success
 """
 
-from core.evolution.crossover import (
-    CrossoverMode,
-    crossover_genomes,
-    crossover_genomes_weighted,
-)
+from core.evolution.crossover import CrossoverMode
 from core.evolution.inheritance import (
     inherit_algorithm,
     inherit_discrete_trait,
@@ -49,8 +42,6 @@ from core.evolution.mutation import (
 
 __all__ = [
     # Crossover
-    "crossover_genomes",
-    "crossover_genomes_weighted",
     "CrossoverMode",
     # Mutation
     "mutate_continuous_trait",

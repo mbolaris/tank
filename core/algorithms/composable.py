@@ -24,13 +24,15 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, BehaviorHelpersMixin, Vector2
-from core.constants import (
+from core.config.fish import (
     FLEE_SPEED_CRITICAL,
     FLEE_SPEED_NORMAL,
     FLEE_THRESHOLD_CRITICAL,
     FLEE_THRESHOLD_LOW,
     FLEE_THRESHOLD_NORMAL,
-    FOOD_SINK_ACCELERATION,
+)
+from core.config.food import FOOD_SINK_ACCELERATION
+from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
@@ -207,9 +209,6 @@ class ComposableBehavior(BehaviorHelpersMixin):
             poker_engagement=PokerEngagement(rng.randint(0, len(PokerEngagement) - 1)),
             parameters=_random_params(rng),
         )
-
-    # Alias for backward compatibility
-    random = create_random
 
     # -------------------------------------------------------------------------
     # Main Execute Method

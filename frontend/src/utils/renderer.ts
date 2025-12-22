@@ -135,15 +135,15 @@ export class Renderer {
             try {
                 this._tintCtx.canvas.width = 0;
                 this._tintCtx = null;
-            } catch (e) {
+            } catch {
                 this._tintCtx = null;
             }
         }
         if (this._tintCanvas) {
             try {
                 this._tintCanvas.width = 0;
-            } catch (e) {
-                // ignore
+            } catch {
+                /* ignore */
             }
             this._tintCanvas = null;
         }

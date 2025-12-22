@@ -69,7 +69,7 @@ class EntitySnapshotBuilder:
         """Convert a single entity to an `EntitySnapshot`."""
 
         try:
-            from core.constants import (
+            from core.config.entities import (
                 FISH_ID_OFFSET,
                 FOOD_ID_OFFSET,
                 NECTAR_ID_OFFSET,

@@ -4,6 +4,17 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
+from core.config.fish import (
+    ALIGNMENT_SPEED_CHANGE,
+    AVOIDANCE_SPEED_CHANGE,
+)
+from core.config.display import DEFAULT_AGENT_SIZE
+from core.math_utils import Vector2
+from core.world import World
+
+# Import LifeStage from state_machine for centralized definition with transition validation
+from core.state_machine import LifeStage, EntityState, create_entity_state_machine  # noqa: F401 - re-exported
+
 
 @dataclass
 class EntityUpdateResult:
@@ -15,13 +26,6 @@ class EntityUpdateResult:
     """
     spawned_entities: List["Agent"] = field(default_factory=list)
     events: List[Any] = field(default_factory=list)
-
-from core.constants import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE, DEFAULT_AGENT_SIZE
-from core.math_utils import Vector2
-from core.world import World
-
-# Import LifeStage from state_machine for centralized definition with transition validation
-from core.state_machine import LifeStage, EntityState, create_entity_state_machine  # noqa: F401 - re-exported
 
 
 class Rect:
@@ -71,28 +75,15 @@ class Rect:
 class Agent:
     """Base class for all entities in the simulation (pure logic, no rendering)."""
 
-    def __init__(
-        self, environment: World, *args
-    ) -> None:
+    def __init__(self, environment: World, x: float, y: float, speed: float) -> None:
         """Initialize an agent.
 
         Args:
             environment: The world the agent lives in
-            *args: Either (x, y, speed) or (images, x, y, speed) for backward compatibility
+            x: Initial x position
+            y: Initial y position
+            speed: Base movement speed
         """
-        # Handle backward compatibility with old API that included images parameter
-        if len(args) == 5:
-            # API with all positional: Agent(env, x, y, speed, screen_width, screen_height)
-            x, y, speed, _, _ = args
-        elif len(args) == 4:
-            # Old test API: Agent(env, images, x, y, speed)
-            _, x, y, speed = args
-        elif len(args) == 3:
-            # Standard API: Agent(env, x, y, speed)
-            x, y, speed = args
-        else:
-            raise ValueError(f"Expected 3, 4, or 5 positional args, got {len(args)}")
-
         self.speed: float = speed
         self.vel: Vector2 = Vector2(speed, 0)
         self.pos: Vector2 = Vector2(x, y)
@@ -109,9 +100,7 @@ class Agent:
         # Entity traits (overridden by subclasses)
         self.is_predator: bool = False
 
-        # Test compatibility attributes
         self.rect: Rect = Rect(x, y, self.width, self.height)
-        self.image: Optional[object] = None  # Placeholder for test compatibility
         self._groups: List = []  # Track sprite groups for kill() method
 
         # Lifecycle state machine (Active -> Dead/Removed)

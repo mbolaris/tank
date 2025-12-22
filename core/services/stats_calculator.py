@@ -204,7 +204,11 @@ class StatsCalculator:
 
         # Add derived adult size (based on size_modifier) as a first-class metric.
         try:
-            from core.constants import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
+            from core.config.fish import (
+                FISH_ADULT_SIZE,
+                FISH_SIZE_MODIFIER_MAX,
+                FISH_SIZE_MODIFIER_MIN,
+            )
 
             allowed_min = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN)
             allowed_max = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX)
@@ -565,7 +569,7 @@ class StatsCalculator:
         Returns:
             Dictionary with frame count, time, and speed stats
         """
-        from core.constants import FRAME_RATE
+        from core.config.display import FRAME_RATE
 
         elapsed = time.time() - self._engine.start_time
         return {
@@ -719,7 +723,7 @@ class StatsCalculator:
         Returns:
             Dictionary with adult size stats and histogram
         """
-        from core.constants import (
+        from core.config.fish import (
             FISH_ADULT_SIZE,
             FISH_SIZE_MODIFIER_MAX,
             FISH_SIZE_MODIFIER_MIN,
@@ -925,7 +929,10 @@ class StatsCalculator:
     def _get_tail_size_stats(self) -> Dict[str, Any]:
         """Calculate tail size distribution statistics."""
         fish_list = self._engine.get_fish_list()
-        from core.constants import BODY_ASPECT_MIN, BODY_ASPECT_MAX
+        from core.config.fish import (
+            BODY_ASPECT_MIN,
+            BODY_ASPECT_MAX,
+        )
 
         fish_list = self._engine.get_fish_list()
         allowed_min = BODY_ASPECT_MIN
@@ -1037,7 +1044,7 @@ class StatsCalculator:
 
     def _get_template_id_stats(self) -> Dict[str, Any]:
         """Calculate template_id distribution statistics (discrete)."""
-        from core.constants import FISH_TEMPLATE_COUNT
+        from core.config.fish import FISH_TEMPLATE_COUNT
         fish_list = self._engine.get_fish_list()
         allowed_min = 0.0
         allowed_max = float(FISH_TEMPLATE_COUNT - 1)
@@ -1096,7 +1103,7 @@ class StatsCalculator:
 
     def _get_pattern_type_stats(self) -> Dict[str, Any]:
         """Calculate pattern_type distribution statistics (discrete)."""
-        from core.constants import FISH_PATTERN_COUNT
+        from core.config.fish import FISH_PATTERN_COUNT
         fish_list = self._engine.get_fish_list()
         allowed_min = 0.0
         allowed_max = float(FISH_PATTERN_COUNT - 1)
@@ -1210,7 +1217,10 @@ class StatsCalculator:
     def _get_lifespan_modifier_stats(self) -> Dict[str, Any]:
         """Calculate lifespan modifier distribution statistics."""
         fish_list = self._engine.get_fish_list()
-        from core.constants import LIFESPAN_MODIFIER_MIN, LIFESPAN_MODIFIER_MAX
+        from core.config.fish import (
+            LIFESPAN_MODIFIER_MIN,
+            LIFESPAN_MODIFIER_MAX,
+        )
 
         # Allowed range matches core/genetics/physical.py
         allowed_min = LIFESPAN_MODIFIER_MIN

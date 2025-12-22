@@ -191,7 +191,7 @@ class World2D(World, Protocol):
         ...
 
 
-# Backward compatibility helpers for existing code
+# Helpers for world inspection
 def is_2d_world(world: World) -> bool:
     """Check if a World implementation is 2D.
     

@@ -8,7 +8,10 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
-from core.constants import POKER_MAX_ACTIONS_PER_ROUND, POKER_MAX_HAND_RANK
+from core.config.poker import (
+    POKER_MAX_ACTIONS_PER_ROUND,
+    POKER_MAX_HAND_RANK,
+)
 from core.poker.betting.actions import BettingAction, BettingRound
 from core.poker.betting.decision import AGGRESSION_MEDIUM, decide_action
 from core.poker.core.game_state import PokerGameState

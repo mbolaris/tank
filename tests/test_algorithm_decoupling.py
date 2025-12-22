@@ -40,7 +40,7 @@ class MockWorld:
     def nearby_resources(self, agent: "Agent", radius: float) -> List["Agent"]:
         return self.nearby_agents_by_type(agent, radius, Food)
 
-    # Note: explicit legacy methods like nearby_fish are NOT implemented 
+    # Note: domain-specific methods like nearby_fish are NOT implemented
     # to prove algorithms use the generic/protocol methods (or handle missing ones gracefully)
 
 def test_algorithm_works_with_mock_world():

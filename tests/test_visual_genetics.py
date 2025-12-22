@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Test script to verify visual genetics inheritance"""
 
-from core.constants import FISH_PATTERN_COUNT, FISH_TEMPLATE_COUNT
+from core.config.fish import (
+    FISH_PATTERN_COUNT,
+    FISH_TEMPLATE_COUNT,
+)
 from core.config.fish import (
     EYE_SIZE_MIN, EYE_SIZE_MAX,
     BODY_ASPECT_MIN, BODY_ASPECT_MAX,

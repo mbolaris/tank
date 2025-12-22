@@ -11,16 +11,15 @@ from pathlib import Path
 IMPORT_MAPPINGS = {
     # poker_interaction.py -> core.poker.core
     "from core.poker_interaction import": "from core.poker.core import",
-    "from core.poker_interaction import BettingAction": "from core.poker.core.engine import BettingAction",
-    "from core.poker_interaction import BettingRound": "from core.poker.core.engine import BettingRound",
+    "from core.poker_interaction import BettingAction": "from core.poker.betting.actions import BettingAction",
+    "from core.poker_interaction import BettingRound": "from core.poker.betting.actions import BettingRound",
     "from core.poker_interaction import Card": "from core.poker.core.cards import Card",
     "from core.poker_interaction import Deck": "from core.poker.core.cards import Deck",
     "from core.poker_interaction import Rank": "from core.poker.core.cards import Rank",
     "from core.poker_interaction import Suit": "from core.poker.core.cards import Suit",
     "from core.poker_interaction import HandRank": "from core.poker.core.hand import HandRank",
     "from core.poker_interaction import PokerHand": "from core.poker.core.hand import PokerHand",
-    "from core.poker_interaction import PokerEngine": "from core.poker.core.engine import PokerEngine",
-    "from core.poker_interaction import PokerGameState": "from core.poker.core.engine import PokerGameState",
+    "from core.poker_interaction import PokerGameState": "from core.poker.core.game_state import PokerGameState",
 
     # poker_hand_strength.py -> core.poker.evaluation.strength
     "from core.poker_hand_strength import": "from core.poker.evaluation.strength import",

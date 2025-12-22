@@ -32,7 +32,7 @@ class TestBehaviorStrategyProtocol:
 
     def test_all_algorithms_implement_execute(self):
         """All algorithms must implement execute() method."""
-        from core.algorithms import ALL_ALGORITHMS
+        from core.algorithms.registry import ALL_ALGORITHMS
 
         for algo_class in ALL_ALGORITHMS:
             instance = algo_class.random_instance()
@@ -41,7 +41,7 @@ class TestBehaviorStrategyProtocol:
 
     def test_all_algorithms_implement_mutate_parameters(self):
         """All algorithms must implement mutate_parameters() method."""
-        from core.algorithms import ALL_ALGORITHMS
+        from core.algorithms.registry import ALL_ALGORITHMS
 
         for algo_class in ALL_ALGORITHMS:
             instance = algo_class.random_instance()
@@ -54,7 +54,7 @@ class TestBehaviorStrategyProtocol:
 
     def test_all_algorithms_have_algorithm_id(self):
         """All algorithms must have an algorithm_id attribute."""
-        from core.algorithms import ALL_ALGORITHMS
+        from core.algorithms.registry import ALL_ALGORITHMS
 
         seen_ids = set()
         for algo_class in ALL_ALGORITHMS:
@@ -75,7 +75,7 @@ class TestBehaviorStrategyProtocol:
 
     def test_all_algorithms_have_parameters(self):
         """All algorithms must have a parameters dict."""
-        from core.algorithms import ALL_ALGORITHMS
+        from core.algorithms.registry import ALL_ALGORITHMS
 
         for algo_class in ALL_ALGORITHMS:
             instance = algo_class.random_instance()
@@ -86,7 +86,7 @@ class TestBehaviorStrategyProtocol:
 
     def test_execute_returns_tuple(self):
         """execute() should return a tuple of two floats."""
-        from core.algorithms import ALL_ALGORITHMS
+        from core.algorithms.registry import ALL_ALGORITHMS
         from core.entities.fish import Fish
         from core.movement_strategy import AlgorithmicMovement
 
@@ -122,7 +122,7 @@ class TestBehaviorStrategyProtocol:
 
     def test_behavior_helpers_mixin_methods_accessible(self):
         """All algorithms should have access to BehaviorHelpersMixin methods."""
-        from core.algorithms import ALL_ALGORITHMS
+        from core.algorithms.registry import ALL_ALGORITHMS
 
         mixin_methods = [
             "_find_nearest",
@@ -376,7 +376,7 @@ class TestProtocolEvolution:
 
     def test_algorithm_count_matches_registry(self):
         """Number of algorithms should match registry count."""
-        from core.algorithms import ALL_ALGORITHMS, ALGORITHM_REGISTRY
+        from core.algorithms.registry import ALL_ALGORITHMS, ALGORITHM_REGISTRY
 
         assert len(ALL_ALGORITHMS) == len(
             ALGORITHM_REGISTRY
@@ -384,7 +384,7 @@ class TestProtocolEvolution:
 
     def test_all_algorithms_can_be_serialized_and_deserialized(self):
         """All algorithms should support to_dict/from_dict round-trip."""
-        from core.algorithms import ALL_ALGORITHMS, behavior_from_dict
+        from core.algorithms.registry import ALL_ALGORITHMS, behavior_from_dict
 
         for algo_class in ALL_ALGORITHMS:
             instance = algo_class.random_instance()

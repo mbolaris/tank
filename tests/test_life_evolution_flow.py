@@ -108,7 +108,7 @@ def _make_adult_fish(env: MiniEnvironment, ecosystem: MiniEcosystem, *, generati
         initial_energy=None,
     )
     # Fast-forward to a reproducing adult with plenty of energy
-    fish._lifecycle_component.life_stage = LifeStage.ADULT
+    fish._lifecycle_component.force_life_stage(LifeStage.ADULT)
     fish._lifecycle_component.age = 200
     # Must also update size to adult size for proper max_energy
     fish._lifecycle_component.size = 1.0  # Adult size
@@ -177,7 +177,7 @@ def test_multi_generation_reproduction(monkeypatch):
     parent_a.energy = parent_a.max_energy * 0.1  # Keep first parent out of the next mating round
     parent_a.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
 
-    baby._lifecycle_component.life_stage = LifeStage.ADULT
+    baby._lifecycle_component.force_life_stage(LifeStage.ADULT)
     baby._lifecycle_component.age = 200
     baby.energy = baby.max_energy
     baby.reproduction_cooldown = 0

@@ -21,6 +21,16 @@ function normalizeBins(bins: number[] | undefined): number[] {
 
 function legacyPhysicalGeneDistributions(stats: Partial<StatsData>): GeneDistributionEntry[] {
     // Back-compat: build a small set of physical distributions from legacy flat fields
+    const getNum = (key: string): number => {
+        const val = (stats as StatsData)[key];
+        return typeof val === 'number' ? val : 0;
+    };
+
+    const getBins = (key: string): number[] => {
+        const val = (stats as StatsData)[key];
+        return Array.isArray(val) ? val : [];
+    };
+
     const mk = (
         key: string,
         label: string,
@@ -45,12 +55,12 @@ function legacyPhysicalGeneDistributions(stats: Partial<StatsData>): GeneDistrib
         bins: bins ?? [],
         bin_edges: bin_edges ?? [],
         meta: {
-            mut_rate_mean: (stats as any)[`${key}_mut_rate_mean`] ?? 0,
-            mut_rate_std: (stats as any)[`${key}_mut_rate_std`] ?? 0,
-            mut_strength_mean: (stats as any)[`${key}_mut_strength_mean`] ?? 0,
-            mut_strength_std: (stats as any)[`${key}_mut_strength_std`] ?? 0,
-            hgt_prob_mean: (stats as any)[`${key}_hgt_prob_mean`] ?? 0,
-            hgt_prob_std: (stats as any)[`${key}_hgt_prob_std`] ?? 0,
+            mut_rate_mean: getNum(`${key}_mut_rate_mean`),
+            mut_rate_std: getNum(`${key}_mut_rate_std`),
+            mut_strength_mean: getNum(`${key}_mut_strength_mean`),
+            mut_strength_std: getNum(`${key}_mut_strength_std`),
+            hgt_prob_mean: getNum(`${key}_hgt_prob_mean`),
+            hgt_prob_std: getNum(`${key}_hgt_prob_std`),
         }
     });
 
@@ -68,12 +78,12 @@ function legacyPhysicalGeneDistributions(stats: Partial<StatsData>): GeneDistrib
         ),
         mk('eye_size', 'Eye Size', stats.eye_size_bins, stats.eye_size_bin_edges, stats.eye_size_min, stats.eye_size_median, stats.eye_size_max, stats.allowed_eye_size_min, stats.allowed_eye_size_max),
         mk('fin_size', 'Fin Size', stats.fin_size_bins, stats.fin_size_bin_edges, stats.fin_size_min, stats.fin_size_median, stats.fin_size_max, stats.allowed_fin_size_min, stats.allowed_fin_size_max),
-        mk('tail_size', 'Tail Size', (stats as any).tail_size_bins, (stats as any).tail_size_bin_edges, (stats as any).tail_size_min, (stats as any).tail_size_median, (stats as any).tail_size_max, (stats as any).allowed_tail_size_min, (stats as any).allowed_tail_size_max),
-        mk('body_aspect', 'Body Aspect', (stats as any).body_aspect_bins, (stats as any).body_aspect_bin_edges, (stats as any).body_aspect_min, (stats as any).body_aspect_median, (stats as any).body_aspect_max, (stats as any).allowed_body_aspect_min, (stats as any).allowed_body_aspect_max),
-        mk('template_id', 'Template', (stats as any).template_id_bins, (stats as any).template_id_bin_edges, (stats as any).template_id_min, (stats as any).template_id_median, (stats as any).template_id_max, (stats as any).allowed_template_id_min, (stats as any).allowed_template_id_max, true),
-        mk('pattern_type', 'Pattern', (stats as any).pattern_type_bins, (stats as any).pattern_type_bin_edges, (stats as any).pattern_type_min, (stats as any).pattern_type_median, (stats as any).pattern_type_max, (stats as any).allowed_pattern_type_min, (stats as any).allowed_pattern_type_max, true),
-        mk('pattern_intensity', 'Pattern Intensity', (stats as any).pattern_intensity_bins, (stats as any).pattern_intensity_bin_edges, (stats as any).pattern_intensity_min, (stats as any).pattern_intensity_median, (stats as any).pattern_intensity_max, (stats as any).allowed_pattern_intensity_min, (stats as any).allowed_pattern_intensity_max),
-        mk('lifespan_modifier', 'Lifespan Mod', (stats as any).lifespan_modifier_bins, (stats as any).lifespan_modifier_bin_edges, (stats as any).lifespan_modifier_min, (stats as any).lifespan_modifier_median, (stats as any).lifespan_modifier_max, (stats as any).allowed_lifespan_modifier_min, (stats as any).allowed_lifespan_modifier_max),
+        mk('tail_size', 'Tail Size', getBins('tail_size_bins'), getBins('tail_size_bin_edges'), getNum('tail_size_min'), getNum('tail_size_median'), getNum('tail_size_max'), getNum('allowed_tail_size_min'), getNum('allowed_tail_size_max')),
+        mk('body_aspect', 'Body Aspect', getBins('body_aspect_bins'), getBins('body_aspect_bin_edges'), getNum('body_aspect_min'), getNum('body_aspect_median'), getNum('body_aspect_max'), getNum('allowed_body_aspect_min'), getNum('allowed_body_aspect_max')),
+        mk('template_id', 'Template', getBins('template_id_bins'), getBins('template_id_bin_edges'), getNum('template_id_min'), getNum('template_id_median'), getNum('template_id_max'), getNum('allowed_template_id_min'), getNum('allowed_template_id_max'), true),
+        mk('pattern_type', 'Pattern', getBins('pattern_type_bins'), getBins('pattern_type_bin_edges'), getNum('pattern_type_min'), getNum('pattern_type_median'), getNum('pattern_type_max'), getNum('allowed_pattern_type_min'), getNum('allowed_pattern_type_max'), true),
+        mk('pattern_intensity', 'Pattern Intensity', getBins('pattern_intensity_bins'), getBins('pattern_intensity_bin_edges'), getNum('pattern_intensity_min'), getNum('pattern_intensity_median'), getNum('pattern_intensity_max'), getNum('allowed_pattern_intensity_min'), getNum('allowed_pattern_intensity_max')),
+        mk('lifespan_modifier', 'Lifespan Mod', getBins('lifespan_modifier_bins'), getBins('lifespan_modifier_bin_edges'), getNum('lifespan_modifier_min'), getNum('lifespan_modifier_median'), getNum('lifespan_modifier_max'), getNum('allowed_lifespan_modifier_min'), getNum('allowed_lifespan_modifier_max')),
     ];
 }
 

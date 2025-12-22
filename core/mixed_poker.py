@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
-from core.constants import (
+from core.config.poker import (
     POKER_AGGRESSION_HIGH,
     POKER_AGGRESSION_LOW,
     POKER_MAX_ACTIONS_PER_ROUND,

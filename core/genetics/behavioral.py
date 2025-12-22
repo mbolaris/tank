@@ -20,7 +20,8 @@ from core.genetics.trait import (
 )
 
 if TYPE_CHECKING:
-    from core.algorithms import BehaviorAlgorithm, ComposableBehavior
+    from core.algorithms.base import BehaviorAlgorithm
+    from core.algorithms.composable import ComposableBehavior
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
     from core.poker.strategy.composable_poker import ComposablePokerStrategy
     from core.genetics.physical import PhysicalTraits
@@ -41,7 +42,6 @@ BEHAVIORAL_TRAIT_SPECS: List[TraitSpec] = [
 ]
 
 # Default mate preferences keep keys stable across versions and inheritance.
-# These legacy weights are retained for backward compatibility with saved genomes.
 DEFAULT_MATE_PREFERENCES: Dict[str, float] = {
     "prefer_similar_size": 0.5,
     "prefer_different_color": 0.5,
@@ -175,7 +175,7 @@ class BehavioralTraits:
 
     These traits affect decision-making, social behavior, and AI strategies.
 
-    The composable_behavior field replaces the old behavior_algorithm and
+    The behavior field replaces the old behavior_algorithm and
     poker_algorithm fields, providing a more evolvable system with 1,152+
     possible behavior combinations instead of 48 monolithic algorithms.
     """
@@ -191,7 +191,7 @@ class BehavioralTraits:
     # Composable behavior (replaces behavior_algorithm + poker_algorithm)
     # This single field encodes: threat response, food approach, energy style,
     # social mode, and poker engagement - each with tunable parameters.
-    # Optional for backward compatibility - None means no algorithm assigned.
+    # Optional; None means no algorithm assigned.
     behavior: Optional[GeneticTrait[Optional["ComposableBehavior"]]] = None
 
     # Poker strategy for in-game betting decisions (separate from movement)
@@ -218,10 +218,10 @@ class BehavioralTraits:
         poker_strategy = None
 
         if use_algorithm:
-            from core.algorithms import ComposableBehavior
+            from core.algorithms.composable import ComposableBehavior
             from core.poker.strategy.composable_poker import ComposablePokerStrategy
 
-            behavior = ComposableBehavior.random(rng=rng)
+            behavior = ComposableBehavior.create_random(rng=rng)
             # Use ComposablePokerStrategy for new fish (576 strategy combinations)
             poker_strategy = ComposablePokerStrategy.create_random(rng=rng)
 
@@ -254,7 +254,7 @@ class BehavioralTraits:
             mutation_strength: Mutation magnitude
             rng: Random number generator
         """
-        from core.algorithms import ComposableBehavior
+        from core.algorithms.composable import ComposableBehavior
 
         # Inherit numeric traits using specs
         inherited = inherit_traits_from_specs(
@@ -390,12 +390,6 @@ class BehavioralTraits:
 
         return cls(**inherited)
 
-    @property
-    def composable_behavior(self) -> Optional[GeneticTrait[Optional["ComposableBehavior"]]]:
-        """Alias for the behavior field for backward compatibility with tests."""
-        return self.behavior
-
-
 def _inherit_composable_behavior(
     behavior1: Optional["ComposableBehavior"],
     behavior2: Optional["ComposableBehavior"],
@@ -411,10 +405,10 @@ def _inherit_composable_behavior(
     - Weighted blending for continuous parameters
     - Mutation of both sub-behavior selections and parameters
     """
-    from core.algorithms import ComposableBehavior
+    from core.algorithms.composable import ComposableBehavior
 
     if behavior1 is None and behavior2 is None:
-        return ComposableBehavior.random(rng=rng)
+        return ComposableBehavior.create_random(rng=rng)
     elif behavior1 is None:
         return behavior2.clone_with_mutation(
             mutation_rate=mutation_rate,

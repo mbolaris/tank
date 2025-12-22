@@ -47,7 +47,7 @@ PokerInteraction = MixedPokerInteraction
 # Reproduction helpers
 import random
 
-from core.constants import (
+from core.config.fish import (
     POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
     POST_POKER_REPRODUCTION_LOSER_PROB,
     POST_POKER_REPRODUCTION_WINNER_PROB,
@@ -150,7 +150,7 @@ def calculate_house_cut(winner_size: float, net_gain: float) -> float:
     Returns:
         House cut amount (energy taken by the house)
     """
-    from core.constants import (
+    from core.config.poker import (
         POKER_BET_MIN_SIZE,
         POKER_HOUSE_CUT_MIN_PERCENTAGE,
         POKER_HOUSE_CUT_SIZE_MULTIPLIER,

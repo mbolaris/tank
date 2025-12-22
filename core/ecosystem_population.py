@@ -5,8 +5,8 @@ from collections import defaultdict
 from statistics import median
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from core.constants import (
-    ENERGY_STATS_WINDOW_FRAMES,
+from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES
+from core.config.fish import (
     FISH_ADULT_SIZE,
     FISH_SIZE_MODIFIER_MAX,
     FISH_SIZE_MODIFIER_MIN,
@@ -191,7 +191,7 @@ def update_genetic_diversity_stats(ecosystem: EcosystemManager, fish_list: List[
         return
 
     try:
-        from core.algorithms import get_algorithm_index
+        from core.algorithms.registry import get_algorithm_index
     except ImportError:
         get_algorithm_index = None
 

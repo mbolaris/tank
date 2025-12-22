@@ -541,7 +541,7 @@ class BehaviorHelpersMixin:
         Returns:
             Nearest food within detection range, or None if no food detected
         """
-        from core.constants import BASE_FOOD_DETECTION_RANGE
+        from core.config.food import BASE_FOOD_DETECTION_RANGE
         from core.world import World
 
         env: World = fish.environment
@@ -596,14 +596,14 @@ class BehaviorHelpersMixin:
             - velocity_x: X component of flee velocity (0 if not fleeing)
             - velocity_y: Y component of flee velocity (0 if not fleeing)
         """
-        from core.constants import (
+        from core.config.fish import (
             FLEE_SPEED_CRITICAL,
             FLEE_SPEED_NORMAL,
             FLEE_THRESHOLD_CRITICAL,
             FLEE_THRESHOLD_LOW,
             FLEE_THRESHOLD_NORMAL,
-            PREDATOR_DEFAULT_FAR_DISTANCE,
         )
+        from core.config.food import PREDATOR_DEFAULT_FAR_DISTANCE
         from core.entities import Crab
 
         # Check energy state

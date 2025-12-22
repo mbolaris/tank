@@ -66,9 +66,10 @@ export class ImageLoader {
         // Try to release underlying image bitmap data by clearing src
         for (const img of this.cache.values()) {
             try {
-                // @ts-ignore
                 img.src = '';
-            } catch (e) {}
+            } catch {
+                /* ignore errors when clearing src */
+            }
         }
         this.cache.clear();
         this.loadingPromises.clear();

@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, "/home/user/tank")
 
-from core.algorithms import crossover_algorithms, get_random_algorithm
+from core.algorithms.registry import crossover_algorithms, get_random_algorithm
 from core.genetics import Genome
 
 
@@ -59,8 +59,8 @@ def test_algorithm_crossover():
     genome1 = Genome.random(use_algorithm=True)
     genome2 = Genome.random(use_algorithm=True)
 
-    behavior1 = genome1.behavioral.composable_behavior.value
-    behavior2 = genome2.behavioral.composable_behavior.value
+    behavior1 = genome1.behavioral.behavior.value
+    behavior2 = genome2.behavioral.behavior.value
 
     print(f"Parent 1 threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}")
     print(f"Parent 1 food approach: {behavior1.food_approach.name if behavior1.food_approach else 'None'}")
@@ -72,7 +72,7 @@ def test_algorithm_crossover():
     offspring_behaviors = []
     for i in range(10):
         offspring = Genome.from_parents(genome1, genome2, mutation_rate=0.0)
-        behavior = offspring.behavioral.composable_behavior.value
+        behavior = offspring.behavioral.behavior.value
         threat_name = behavior.threat_response.name if behavior.threat_response else "None"
         offspring_behaviors.append(threat_name)
 
@@ -100,7 +100,7 @@ def test_same_algorithm_parameter_blending():
     print("=" * 60)
 
     # Create two parents with same algorithm type but different parameters
-    from core.algorithms import GreedyFoodSeeker
+    from core.algorithms.food_seeking import GreedyFoodSeeker
     
     algo1 = GreedyFoodSeeker()
     algo1.parameters = {"speed_multiplier": 0.8, "detection_range": 0.6}

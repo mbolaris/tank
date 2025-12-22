@@ -13,7 +13,7 @@ class TestMovementStrategy:
         """Test that base strategy checks for food collisions."""
         env, agents = simulation_env
         strategy = MovementStrategy()
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3)
         food = Food(env, 100, 100)
         agents.add(fish, food)
 
@@ -35,7 +35,7 @@ class TestAlgorithmicMovement:
         env, agents = simulation_env
         strategy = AlgorithmicMovement()
         genome = Genome.random(use_algorithm=True)
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
         agents.add(fish)
 
         # Should execute algorithm and move without crashing
@@ -53,7 +53,7 @@ class TestAlgorithmicMovement:
         env, agents = simulation_env
         strategy = AlgorithmicMovement()
         genome = Genome.random(use_algorithm=False)
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
         agents.add(fish)
 
         # Should fall back to random movement without crashing
@@ -75,7 +75,7 @@ class TestAlgorithmicMovement:
         fish_list = []
         for i in range(5):
             genome = Genome.random(use_algorithm=True)
-            fish = Fish(env, strategy, ["george1.png"], 100 + i * 30, 100, 3, genome=genome)
+            fish = Fish(env, strategy, "george1.png", 100 + i * 30, 100, 3, genome=genome)
             fish_list.append(fish)
             agents.add(fish)
 
@@ -95,7 +95,7 @@ class TestAlgorithmicMovement:
         env, agents = simulation_env
         strategy = AlgorithmicMovement()
         genome = Genome.random(use_algorithm=True)
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
         agents.add(fish)
 
         # Store initial velocity

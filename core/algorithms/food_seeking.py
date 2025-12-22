@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Optional
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.constants import (
+from core.config.food import (
     CHASE_DISTANCE_CRITICAL,
     CHASE_DISTANCE_LOW,
     CHASE_DISTANCE_SAFE_BASE,
@@ -54,13 +54,13 @@ from core.constants import (
     PREDATOR_PROXIMITY_THRESHOLD,
     PROXIMITY_BOOST_DIVISOR,
     PROXIMITY_BOOST_MULTIPLIER,
-    SCREEN_HEIGHT,
     SOCIAL_FOLLOW_MAX_DISTANCE,
     SOCIAL_FOOD_PROXIMITY_THRESHOLD,
     SOCIAL_SIGNAL_DETECTION_RANGE,
     URGENCY_BOOST_CRITICAL,
     URGENCY_BOOST_LOW,
 )
+from core.config.display import SCREEN_HEIGHT
 from core.entities import Crab, Food
 from core.predictive_movement import predict_intercept_point, predict_falling_intercept
 from core.world import World
@@ -131,7 +131,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                     
                     # Check for acceleration (falling food)
                     if hasattr(nearest_food, "food_properties"):
-                        from core.constants import FOOD_SINK_ACCELERATION
+                        from core.config.food import FOOD_SINK_ACCELERATION
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:
@@ -487,7 +487,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
                 is_accelerating = False
                 acceleration = 0.0
                 if hasattr(best_food, "food_properties"):
-                     from core.constants import FOOD_SINK_ACCELERATION
+                     from core.config.food import FOOD_SINK_ACCELERATION
                      sink_multiplier = best_food.food_properties.get("sink_multiplier", 1.0)
                      acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                      if acceleration > 0 and best_food.vel.y >= 0:
@@ -565,7 +565,7 @@ class AmbushFeeder(BehaviorAlgorithm):
                      is_accelerating = False
                      acceleration = 0.0
                      if hasattr(nearest_food, "food_properties"):
-                         from core.constants import FOOD_SINK_ACCELERATION
+                         from core.config.food import FOOD_SINK_ACCELERATION
                          sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                          acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                          if acceleration > 0 and nearest_food.vel.y >= 0:
@@ -717,7 +717,7 @@ class SurfaceSkimmer(BehaviorAlgorithm):
                      is_accelerating = False
                      acceleration = 0.0
                      if hasattr(nearest_food, "food_properties"):
-                         from core.constants import FOOD_SINK_ACCELERATION
+                         from core.config.food import FOOD_SINK_ACCELERATION
                          sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                          acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                          if acceleration > 0 and nearest_food.vel.y >= 0:
@@ -908,7 +908,7 @@ class CircularHunter(BehaviorAlgorithm):
              is_accelerating = False
              acceleration = 0.0
              if hasattr(nearest_food, "food_properties"):
-                 from core.constants import FOOD_SINK_ACCELERATION
+                 from core.config.food import FOOD_SINK_ACCELERATION
                  sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                  acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                  if acceleration > 0 and nearest_food.vel.y >= 0:
@@ -1093,7 +1093,7 @@ class AggressiveHunter(BehaviorAlgorithm):
                     is_accelerating = False
                     acceleration = 0.0
                     if hasattr(nearest_food, "food_properties"):
-                        from core.constants import FOOD_SINK_ACCELERATION
+                        from core.config.food import FOOD_SINK_ACCELERATION
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:

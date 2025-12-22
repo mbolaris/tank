@@ -8,7 +8,11 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
-from core.constants import PLANT_ROOT_SPOT_COUNT, SCREEN_HEIGHT, SCREEN_WIDTH
+from core.config.plants import PLANT_ROOT_SPOT_COUNT
+from core.config.display import (
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 
 if TYPE_CHECKING:
     from core.entities.base import Agent

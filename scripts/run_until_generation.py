@@ -9,7 +9,7 @@ import logging
 import random
 import time
 
-from core.constants import FRAME_RATE
+from core.config.display import FRAME_RATE
 from core.simulation_engine import SimulationEngine
 
 logger = logging.getLogger(__name__)

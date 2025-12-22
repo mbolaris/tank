@@ -207,7 +207,8 @@ class TestAlgorithmInheritance:
 
     def test_inherit_algorithm_from_parents(self):
         """Should inherit algorithm from one of the parents."""
-        from core.algorithms import EnergyConserver, GreedyFoodSeeker
+        from core.algorithms.energy_management import EnergyConserver
+        from core.algorithms.food_seeking import GreedyFoodSeeker
 
         alg1 = GreedyFoodSeeker.random_instance()
         alg2 = EnergyConserver.random_instance()
@@ -231,7 +232,7 @@ class TestAlgorithmInheritance:
 
     def test_inherit_algorithm_handles_none(self):
         """Should handle None parent algorithms."""
-        from core.algorithms import GreedyFoodSeeker
+        from core.algorithms.food_seeking import GreedyFoodSeeker
 
         alg1 = GreedyFoodSeeker.random_instance()
         rng = random.Random(42)

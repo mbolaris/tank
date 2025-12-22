@@ -2,7 +2,11 @@
 
 import random
 
-from core.algorithms import ALL_ALGORITHMS, get_random_algorithm, inherit_algorithm_with_mutation
+from core.algorithms.registry import (
+    ALL_ALGORITHMS,
+    get_random_algorithm,
+    inherit_algorithm_with_mutation,
+)
 from core.genetics import Genome
 
 
@@ -34,21 +38,21 @@ def test_genome_with_algorithm():
     """Test that genomes can include behavior algorithms."""
     print("\nTesting genome creation with algorithms...")
 
-    # Create genome with algorithm (now uses composable_behavior)
+    # Create genome with algorithm (now uses behavior)
     genome = Genome.random(use_algorithm=True)
 
-    # Check composable_behavior instead of behavior_algorithm
-    assert genome.behavioral.composable_behavior is not None, "Genome should have a composable_behavior trait"
-    assert genome.behavioral.composable_behavior.value is not None, "Genome should have a composable behavior"
+    # Check behavior instead of behavior_algorithm
+    assert genome.behavioral.behavior is not None, "Genome should have a behavior trait"
+    assert genome.behavioral.behavior.value is not None, "Genome should have a composable behavior"
 
-    behavior = genome.behavioral.composable_behavior.value
+    behavior = genome.behavioral.behavior.value
     print(f"✓ Genome created with composable behavior")
     print(f"  Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}")
     print(f"  Food approach: {behavior.food_approach.name if behavior.food_approach else 'None'}")
 
     # Create genome without algorithm
     genome_no_algo = Genome.random(use_algorithm=False)
-    assert genome_no_algo.behavioral.composable_behavior.value is None, "Genome should NOT have a composable behavior"
+    assert genome_no_algo.behavioral.behavior.value is None, "Genome should NOT have a composable behavior"
 
     print("✓ Genome created without algorithm")
 
@@ -61,8 +65,8 @@ def test_algorithm_inheritance():
     parent1 = Genome.random(use_algorithm=True)
     parent2 = Genome.random(use_algorithm=True)
 
-    behavior1 = parent1.behavioral.composable_behavior.value
-    behavior2 = parent2.behavioral.composable_behavior.value
+    behavior1 = parent1.behavioral.behavior.value
+    behavior2 = parent2.behavioral.behavior.value
     
     print(f"Parent 1 composable behavior:")
     print(f"  Threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}")
@@ -74,10 +78,10 @@ def test_algorithm_inheritance():
     # Create offspring
     offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.3, mutation_strength=0.2)
 
-    assert offspring.behavioral.composable_behavior is not None, "Offspring should have a composable_behavior trait"
-    assert offspring.behavioral.composable_behavior.value is not None, "Offspring should have a composable behavior"
+    assert offspring.behavioral.behavior is not None, "Offspring should have a behavior trait"
+    assert offspring.behavioral.behavior.value is not None, "Offspring should have a composable behavior"
 
-    offspring_behavior = offspring.behavioral.composable_behavior.value
+    offspring_behavior = offspring.behavioral.behavior.value
     print(f"\nOffspring composable behavior:")
     print(f"  Threat response: {offspring_behavior.threat_response.name if offspring_behavior.threat_response else 'None'}")
     print(f"  Food approach: {offspring_behavior.food_approach.name if offspring_behavior.food_approach else 'None'}")
@@ -146,11 +150,11 @@ def test_multiple_generations():
 
     print(f"Generation 0: {len(population)} fish")
     
-    # Track behavior distribution using composable_behavior
+    # Track behavior distribution using behavior
     behavior_distribution = {}
     for genome in population:
-        if genome.behavioral.composable_behavior and genome.behavioral.composable_behavior.value:
-            behavior = genome.behavioral.composable_behavior.value
+        if genome.behavioral.behavior and genome.behavioral.behavior.value:
+            behavior = genome.behavioral.behavior.value
             # Use threat response as a key indicator of behavior diversity
             threat_name = behavior.threat_response.name if behavior.threat_response else "None"
             behavior_distribution[threat_name] = behavior_distribution.get(threat_name, 0) + 1
@@ -173,8 +177,8 @@ def test_multiple_generations():
         # Check distribution
         behavior_distribution = {}
         for genome in population:
-            if genome.behavioral.composable_behavior and genome.behavioral.composable_behavior.value:
-                behavior = genome.behavioral.composable_behavior.value
+            if genome.behavioral.behavior and genome.behavioral.behavior.value:
+                behavior = genome.behavioral.behavior.value
                 threat_name = behavior.threat_response.name if behavior.threat_response else "None"
                 behavior_distribution[threat_name] = behavior_distribution.get(threat_name, 0) + 1
 

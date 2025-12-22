@@ -5,7 +5,10 @@ sys.path.insert(0, ".")
 
 from core.tank_world import TankWorld
 from core.entities import Fish
-from core.constants import CRITICAL_POPULATION_THRESHOLD, EMERGENCY_SPAWN_COOLDOWN
+from core.config.ecosystem import (
+    CRITICAL_POPULATION_THRESHOLD,
+    EMERGENCY_SPAWN_COOLDOWN,
+)
 
 
 def count_fish(world):
@@ -140,7 +143,7 @@ def diagnose_spawn_conditions():
     fish_list = engine.get_fish_list()
     fish_count = len(fish_list)
     
-    from core.constants import MAX_POPULATION
+    from core.config.ecosystem import MAX_POPULATION
     print(f"\nfish_count < MAX_POPULATION: {fish_count} < {MAX_POPULATION} = {fish_count < MAX_POPULATION}")
     print(f"fish_count < CRITICAL_POPULATION_THRESHOLD: {fish_count} < {CRITICAL_POPULATION_THRESHOLD} = {fish_count < CRITICAL_POPULATION_THRESHOLD}")
     

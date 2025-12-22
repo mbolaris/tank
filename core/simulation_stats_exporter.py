@@ -13,8 +13,8 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from core.algorithms import get_algorithm_name
-from core.constants import FRAME_RATE
+from core.algorithms.registry import get_algorithm_name
+from core.config.display import FRAME_RATE
 from core.registry import get_algorithm_metadata
 
 if TYPE_CHECKING:

@@ -22,12 +22,8 @@ for testing and internal use.
 """
 
 import random
-import warnings
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, Optional
-
-if TYPE_CHECKING:
-    from core.genetics import Genome
+from typing import Dict, Optional
 
 
 class CrossoverMode(Enum):
@@ -150,101 +146,3 @@ def crossover_dict_values(
             result[key] = dict2[key]
 
     return result
-
-
-def crossover_genomes(
-    parent1_genome: "Genome",
-    parent2_genome: "Genome",
-    mutation_rate: float = 0.1,
-    mutation_strength: float = 0.1,
-    mode: CrossoverMode = CrossoverMode.RECOMBINATION,
-) -> "Genome":
-    """Create offspring genome by crossing two parent genomes.
-
-    .. deprecated::
-        Use `Genome.from_parents()` directly instead. This wrapper adds
-        unnecessary indirection.
-
-    Args:
-        parent1_genome: First parent's genome
-        parent2_genome: Second parent's genome
-        mutation_rate: Base mutation rate
-        mutation_strength: Base mutation strength
-        mode: Crossover mode
-
-    Returns:
-        New offspring genome
-    """
-    warnings.warn(
-        "crossover_genomes() is deprecated. Use Genome.from_parents() directly.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    # Import here to avoid circular dependency
-    from core.genetics import GeneticCrossoverMode, Genome, ReproductionParams
-
-    # Map our mode to genetics module mode
-    genetics_mode = {
-        CrossoverMode.AVERAGING: GeneticCrossoverMode.AVERAGING,
-        CrossoverMode.RECOMBINATION: GeneticCrossoverMode.RECOMBINATION,
-        CrossoverMode.WEIGHTED: GeneticCrossoverMode.AVERAGING,  # Weighted uses from_parents_weighted
-    }.get(mode, GeneticCrossoverMode.RECOMBINATION)
-
-    params = ReproductionParams(
-        mutation_rate=mutation_rate,
-        mutation_strength=mutation_strength,
-    )
-
-    return Genome.from_parents(
-        parent1_genome,
-        parent2_genome,
-        mutation_rate=params.mutation_rate,
-        mutation_strength=params.mutation_strength,
-        crossover_mode=genetics_mode,
-    )
-
-
-def crossover_genomes_weighted(
-    parent1_genome: "Genome",
-    parent2_genome: "Genome",
-    parent1_weight: float = 0.5,
-    mutation_rate: float = 0.1,
-    mutation_strength: float = 0.1,
-) -> "Genome":
-    """Create offspring genome with weighted parent contributions.
-
-    .. deprecated::
-        Use `Genome.from_parents_weighted_params()` directly instead.
-        This wrapper adds unnecessary indirection.
-
-    Used for post-poker reproduction where the winner contributes
-    more genetic material.
-
-    Args:
-        parent1_genome: First parent's genome (e.g., poker winner)
-        parent2_genome: Second parent's genome (e.g., poker loser)
-        parent1_weight: How much parent1 contributes (0.0-1.0)
-        mutation_rate: Base mutation rate
-        mutation_strength: Base mutation strength
-
-    Returns:
-        New offspring genome with weighted inheritance
-    """
-    warnings.warn(
-        "crossover_genomes_weighted() is deprecated. "
-        "Use Genome.from_parents_weighted_params() directly.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    # Import here to avoid circular dependency
-    from core.genetics import Genome, ReproductionParams
-
-    return Genome.from_parents_weighted_params(
-        parent1_genome,
-        parent2_genome,
-        parent1_weight=parent1_weight,
-        params=ReproductionParams(
-            mutation_rate=mutation_rate,
-            mutation_strength=mutation_strength,
-        ),
-    )

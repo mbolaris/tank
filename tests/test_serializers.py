@@ -22,8 +22,8 @@ class TestSerializers(unittest.TestCase):
         self.mock_genome.physical.pattern_type.value = "striped"
 
         self.mock_genome.behavioral = MagicMock()
-        self.mock_genome.behavioral.composable_behavior = MagicMock()
-        self.mock_genome.behavioral.composable_behavior.value = MagicMock()
+        self.mock_genome.behavioral.behavior = MagicMock()
+        self.mock_genome.behavioral.behavior.value = MagicMock()
         self.mock_genome.behavioral.aggression.value = 0.7
 
         self.mock_fish = MagicMock(spec=Fish)

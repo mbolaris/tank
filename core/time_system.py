@@ -6,12 +6,11 @@ The system extends BaseSystem for consistent interface and lifecycle management.
 Architecture Notes:
 - Extends BaseSystem for uniform system management
 - Runs in UpdatePhase.TIME_UPDATE
-- Can operate independently (engine reference optional for backward compatibility)
 - Provides time-based modifiers for fish behavior and visibility
 """
 
 import math
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
@@ -35,26 +34,17 @@ class TimeSystem(BaseSystem):
 
     def __init__(
         self,
-        engine: Optional["SimulationEngine"] = None,
+        engine: "SimulationEngine",
         cycle_length: int = 1800,
     ) -> None:
         """Initialize the time system.
 
         Args:
-            engine: The simulation engine (optional for backward compatibility)
+            engine: The simulation engine
             cycle_length: Number of frames for a full day/night cycle
                          (default: 1800 = 1 min at 30fps)
         """
-        # Handle case where engine is not provided (backward compatibility)
-        # We'll use a sentinel object that satisfies BaseSystem's needs
-        if engine is None:
-            # Create minimal engine-like object for BaseSystem
-            class _DummyEngine:
-                pass
-            super().__init__(_DummyEngine(), "Time")  # type: ignore
-            self._engine = None  # type: ignore  # Override to None for safety
-        else:
-            super().__init__(engine, "Time")
+        super().__init__(engine, "Time")
 
         self.time: float = 0.0
         self.cycle_length: int = cycle_length
@@ -83,24 +73,6 @@ class TimeSystem(BaseSystem):
                 "day_transitioned": day_transitioned,
             },
         )
-
-    def update(self, frame: int = 0) -> SystemResult:
-        """Advance time by one frame.
-
-        Overrides BaseSystem.update() to support being called without frame arg
-        for backward compatibility.
-
-        Args:
-            frame: Current simulation frame number (optional)
-
-        Returns:
-            SystemResult with time update details
-        """
-        if not self._enabled:
-            return SystemResult.skipped_result()
-        result = self._do_update(frame)
-        self._update_count += 1
-        return result
 
     def get_time_of_day(self) -> float:
         """Get normalized time of day.

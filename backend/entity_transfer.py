@@ -215,11 +215,6 @@ class TransferRegistry:
                 )
             )
 
-        # Backward compatibility: old saves used "fractal_plant", remap to "plant"
-        if entity_type == "fractal_plant":
-            entity_type = "plant"
-            data["type"] = "plant"  # Update data dict for downstream logic
-
         codec = self.codecs_by_type.get(entity_type)
         if codec is None:
             return TransferOutcome(
@@ -326,12 +321,7 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     """Capture mutable state of a fish that must be read under lock."""
     # Capture genome parameters if they are mutable
     # We capture them as dicts here to ensure thread safety
-    # Capture poker strategy state
-    poker_strat_params = None
-    poker_strategy_trait = fish.genome.behavioral.poker_strategy
-    poker_strategy = poker_strategy_trait.value if poker_strategy_trait else None
-    if poker_strategy:
-        poker_strat_params = poker_strategy.to_dict()
+    genome_data = fish.genome.to_dict()
 
     return {
         "x": fish.pos.x,
@@ -343,16 +333,12 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
         "reproduction_cooldown": fish.reproduction_cooldown,
         "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
         "predator_last_seen": fish.memory.predator_last_seen if hasattr(fish, "memory") else 0,
-        # Capture algorithm states here as they might change
-        "poker_strat_params": poker_strat_params,
+        "genome_data": genome_data,
     }
 
 
 def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
     """Construct full fish serialization using captured mutable state."""
-    genome_data = fish.genome.to_dict(
-        poker_strategy=mutable_state["poker_strat_params"],
-    )
     return {
         "type": "fish",
         "id": fish.fish_id,
@@ -368,7 +354,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Ser
         "max_age": fish.max_age,
         "generation": fish.generation,
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
-        "genome_data": genome_data,
+        "genome_data": mutable_state["genome_data"],
         "memory": {
             "food_memories": mutable_state["food_memories"],
             "predator_last_seen": mutable_state["predator_last_seen"],

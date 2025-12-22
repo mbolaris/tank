@@ -104,23 +104,22 @@ export function prunePlantCaches(activePlantIds: Iterable<number>): void {
         for (const id of cache.keys()) {
             if (!activeIds.has(id)) {
                 // Best-effort release of native-backed resources
-                const entry = cache.get(id) as any;
+                const entry = cache.get(id) as unknown as Record<string, unknown>;
                 if (entry) {
-                    if (entry.texture && entry.texture instanceof HTMLCanvasElement) {
+                    const texture = entry.texture;
+                    if (texture && texture instanceof HTMLCanvasElement) {
                         try {
-                            // Resetting width releases pixel backing store in most browsers
-                            entry.texture.width = 0;
-                        } catch (e) {
-                            // ignore
+                            texture.width = 0;
+                        } catch {
+                            /* ignore */
                         }
                     }
-                    // Plant geometry can be large; clear arrays before dropping references
                     try {
                         if (Array.isArray(entry.segments)) entry.segments.length = 0;
                         if (Array.isArray(entry.sortedSegments)) entry.sortedSegments.length = 0;
                         if (Array.isArray(entry.leaves)) entry.leaves.length = 0;
-                    } catch (e) {
-                        // ignore
+                    } catch {
+                        /* ignore */
                     }
                 }
                 cache.delete(id);
@@ -161,23 +160,22 @@ export function clearAllPlantCaches(): void {
     ];
 
     for (const cache of caches) {
-        for (const [_id, entry] of cache.entries()) {
-            const typedEntry = entry as any;
-            // Release HTMLCanvasElement texture memory
-            if (typedEntry.texture && typedEntry.texture instanceof HTMLCanvasElement) {
+        for (const entry of cache.values()) {
+            const typedEntry = entry as unknown as Record<string, unknown>;
+            const texture = typedEntry.texture;
+            if (texture && texture instanceof HTMLCanvasElement) {
                 try {
-                    typedEntry.texture.width = 0;
-                } catch (e) {
-                    // ignore
+                    texture.width = 0;
+                } catch {
+                    /* ignore */
                 }
             }
-            // Clear geometry arrays
             try {
                 if (Array.isArray(typedEntry.segments)) typedEntry.segments.length = 0;
                 if (Array.isArray(typedEntry.sortedSegments)) typedEntry.sortedSegments.length = 0;
                 if (Array.isArray(typedEntry.leaves)) typedEntry.leaves.length = 0;
-            } catch (e) {
-                // ignore
+            } catch {
+                /* ignore */
             }
         }
         cache.clear();

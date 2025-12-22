@@ -102,14 +102,6 @@ class ReproductionSystem(BaseSystem):
                         baby.register_birth()
                     self._asexual_triggered += 1
 
-    def handle_reproduction(self) -> None:
-        """Legacy method for backward compatibility.
-
-        This method is called directly by SimulationEngine for now.
-        Will be removed once full system registry integration is complete.
-        """
-        self._handle_asexual_reproduction()
-
     def get_debug_info(self) -> Dict[str, Any]:
         """Return reproduction statistics for debugging.
 

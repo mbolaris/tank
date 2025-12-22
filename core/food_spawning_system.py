@@ -7,7 +7,7 @@ based on population size and total energy in the ecosystem.
 import random
 from typing import TYPE_CHECKING, List, Optional
 
-from core.constants import (
+from core.config.food import (
     AUTO_FOOD_ENABLED,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
@@ -17,6 +17,8 @@ from core.constants import (
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     LIVE_FOOD_SPAWN_CHANCE,
+)
+from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
@@ -310,9 +312,9 @@ class EmergencyFishSpawner:
             New fish if spawned, None otherwise
         """
         from core import entities, movement_strategy
-        from core.algorithms import get_algorithm_index
-        from core.constants import (
-            FILES,
+        from core.algorithms.registry import get_algorithm_index
+        from core.config.display import FILES
+        from core.config.ecosystem import (
             MAX_DIVERSITY_SPAWN_ATTEMPTS,
             SPAWN_MARGIN_PIXELS,
         )

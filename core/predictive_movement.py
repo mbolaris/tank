@@ -7,7 +7,7 @@ will be and intercept them more effectively.
 import math
 from typing import Optional, Tuple
 
-from core.constants import (
+from core.config.fish import (
     MOVEMENT_DISTANCE_EPSILON,
     MOVEMENT_ESCAPE_DIRECT_WEIGHT,
     MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT,

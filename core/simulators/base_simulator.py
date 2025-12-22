@@ -10,8 +10,8 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Union
 
 from core import entities
-from core.algorithms import get_algorithm_index
-from core.constants import (
+from core.algorithms.registry import get_algorithm_index
+from core.config.food import (
     AUTO_FOOD_ENABLED,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
@@ -20,24 +20,31 @@ from core.constants import (
     AUTO_FOOD_LOW_ENERGY_THRESHOLD,
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
-    COLLISION_QUERY_RADIUS,
-    # Domain-specific skill game distances (used for entity-specific methods)
+    LIVE_FOOD_SPAWN_CHANCE,
+)
+from core.config.ecosystem import (
     FISH_POKER_MAX_DISTANCE,
     FISH_POKER_MIN_DISTANCE,
-    PLANT_POKER_MAX_DISTANCE,
-    PLANT_POKER_MIN_DISTANCE,
-    LIVE_FOOD_SPAWN_CHANCE,
     MATING_QUERY_RADIUS,
-    POKER_ACTIVITY_ENABLED,
-    POKER_MAX_PLAYERS,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-    # Domain-agnostic simulation constants
-    SKILL_GAME_MIN_DISTANCE,
+)
+from core.config.simulation import (
+    COLLISION_QUERY_RADIUS,
     SKILL_GAME_MAX_DISTANCE,
+    SKILL_GAME_MIN_DISTANCE,
     SKILL_GAME_THROTTLE_THRESHOLD_1,
     SKILL_GAME_THROTTLE_THRESHOLD_2,
     SKILL_GAMES_ENABLED,
+)
+from core.config.display import (
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
+from core.config.plants import (
+    PLANT_POKER_MAX_DISTANCE,
+    PLANT_POKER_MIN_DISTANCE,
+)
+from core.config.server import (
+    POKER_ACTIVITY_ENABLED,
 )
 from core.poker_interaction import (
     PokerInteraction,
@@ -1330,7 +1337,7 @@ class BaseSimulator(ABC):
     def _create_post_poker_offspring(
         self, winner: "Fish", mate: "Fish", rng: random.Random
     ) -> Optional["Fish"]:
-        from core.constants import (
+        from core.config.fish import (
             ENERGY_MAX_DEFAULT,
             FISH_BABY_SIZE,
             FISH_BASE_SPEED,
@@ -1455,7 +1462,7 @@ class BaseSimulator(ABC):
         if winner is None or getattr(winner, "environment", None) is None:
             return None
 
-        from core.constants import POST_POKER_MATING_DISTANCE
+        from core.config.fish import POST_POKER_MATING_DISTANCE
         from core.poker_interaction import (
             is_post_poker_reproduction_eligible,
             should_offer_post_poker_reproduction,

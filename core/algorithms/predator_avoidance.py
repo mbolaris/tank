@@ -19,7 +19,10 @@ from dataclasses import dataclass
 from typing import Tuple, Optional
 
 from core.algorithms.base import BehaviorAlgorithm
-from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.config.display import (
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 from core.entities import Crab
 from core.entities import Fish as FishClass
 

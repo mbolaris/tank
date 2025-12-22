@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from core.genetics.genome import Genome
 from core.genetics.physical import PhysicalTraits
 from core.entities.fish import Fish
-from core.constants import LIFE_STAGE_MATURE_MAX
+from core.config.fish import LIFE_STAGE_MATURE_MAX
 
 def verify_genetic_age():
     print("Verifying Genetic Age Implementation...")

@@ -136,7 +136,7 @@ def inherit_algorithm(
     rng = rng or random
 
     # Import here to avoid circular dependency
-    from core.algorithms import (
+    from core.algorithms.registry import (
         crossover_algorithms_weighted,
         get_random_algorithm,
     )

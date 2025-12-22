@@ -8,7 +8,7 @@
  * - Strategy distribution and improvement metrics
  */
 
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
 import { colors } from '../styles/theme';
 import type { BenchmarkSnapshot, BenchmarkImprovementMetrics, EvolutionBenchmarkData } from '../types/simulation';
 
@@ -701,7 +701,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
     }, [tankId]);
 
     const latest = data?.latest ?? null;
-    const history = data?.history ?? [];
+    const history = useMemo(() => data?.history ?? [], [data?.history]);
     const improvementValue = data?.improvement ?? {};
     const improvement: BenchmarkImprovementMetrics = isImprovementMetrics(improvementValue)
         ? (improvementValue as BenchmarkImprovementMetrics)
@@ -710,7 +710,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
     useEffect(() => {
         if (longitudinalMetric !== 'confidence') return;
         if (!history.length) return;
-        const hasConfidence = history.some(h => typeof h.conf_strong === 'number' || typeof h.conf_weak === 'number');
+        const hasConfidence = history.some((h: BenchmarkSnapshot) => typeof h.conf_strong === 'number' || typeof h.conf_weak === 'number');
         if (!hasConfidence) setLongitudinalMetric('bb100');
     }, [history, longitudinalMetric]);
 

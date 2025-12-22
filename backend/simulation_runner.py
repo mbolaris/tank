@@ -24,7 +24,13 @@ from backend.state_payloads import (
 from backend.entity_snapshot_builder import EntitySnapshotBuilder
 from core import entities, movement_strategy
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
-from core.constants import FILES, FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH, SPAWN_MARGIN_PIXELS
+from core.config.display import (
+    FILES,
+    FRAME_RATE,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
+from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.entities import Fish
 from core.entities.plant import Plant
 from core.genetics import Genome

@@ -3,7 +3,7 @@
 import random
 from typing import TYPE_CHECKING, Optional
 
-from core.constants import (
+from core.config.food import (
     FOOD_SINK_ACCELERATION,
     FOOD_TYPES,
 )

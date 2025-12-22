@@ -2,7 +2,7 @@
 
 import pytest
 
-from core.constants import SCREEN_HEIGHT
+from core.config.display import SCREEN_HEIGHT
 from core.entities import Crab, Fish, Food
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement
@@ -15,7 +15,7 @@ class TestCollisionDetection:
         """Test that fish is removed when it collides with a crab."""
         simulator = simulation_engine
 
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
+        fish = Fish(simulator.environment, AlgorithmicMovement(), "george1.png", 100, 100, 3)
         crab = Crab(simulator.environment)
         crab.pos = Vector2(100, 100)  # Same position as fish
         crab.rect.topleft = crab.pos
@@ -30,7 +30,7 @@ class TestCollisionDetection:
         """Test that food is removed when a fish eats it."""
         simulator = simulation_engine
 
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
+        fish = Fish(simulator.environment, AlgorithmicMovement(), "george1.png", 100, 100, 3)
         food = Food(simulator.environment, 100, 100)
 
         simulator.agents.add(fish, food)
@@ -44,8 +44,8 @@ class TestCollisionDetection:
         simulator = simulation_engine
 
         # Create multiple fish and crabs
-        fish1 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
-        fish2 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 200, 200, 3)
+        fish1 = Fish(simulator.environment, AlgorithmicMovement(), "george1.png", 100, 100, 3)
+        fish2 = Fish(simulator.environment, AlgorithmicMovement(), "george1.png", 200, 200, 3)
         crab1 = Crab(simulator.environment)
         crab1.pos = Vector2(100, 100)
         crab1.rect.topleft = crab1.pos
@@ -65,8 +65,8 @@ class TestCollisionDetection:
         """Test that multiple simultaneous collisions are all handled."""
         simulator = simulation_engine
 
-        fish1 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
-        fish2 = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 200, 200, 3)
+        fish1 = Fish(simulator.environment, AlgorithmicMovement(), "george1.png", 100, 100, 3)
+        fish2 = Fish(simulator.environment, AlgorithmicMovement(), "george1.png", 200, 200, 3)
         food1 = Food(simulator.environment, 100, 100)
         food2 = Food(simulator.environment, 200, 200)
 
@@ -99,7 +99,7 @@ class TestCollisionDetection:
         simulator = simulation_engine
 
         # Add various sprites
-        fish = Fish(simulator.environment, AlgorithmicMovement(), ["george1.png"], 100, 100, 3)
+        fish = Fish(simulator.environment, AlgorithmicMovement(), "george1.png", 100, 100, 3)
         crab = Crab(simulator.environment)
         food = Food(simulator.environment, 150, 150)
 

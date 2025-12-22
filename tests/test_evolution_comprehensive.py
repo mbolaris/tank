@@ -25,8 +25,6 @@ from core.evolution.crossover import (
     blend_values,
     blend_discrete,
     crossover_dict_values,
-    crossover_genomes,
-    crossover_genomes_weighted,
 )
 from core.evolution.inheritance import (
     inherit_trait,
@@ -35,12 +33,12 @@ from core.evolution.inheritance import (
 )
 from core.genetics import Genome, GeneticTrait, PhysicalTraits, BehavioralTraits
 from core.genetics import PlantGenome
-from core.algorithms import (
-    BehaviorAlgorithm,
+from core.algorithms.base import BehaviorAlgorithm
+from core.algorithms.food_seeking import GreedyFoodSeeker
+from core.algorithms.poker import PokerChallenger
+from core.algorithms.registry import (
     crossover_algorithms,
     crossover_algorithms_weighted,
-    GreedyFoodSeeker,
-    PokerChallenger,
 )
 from core.poker.strategy.implementations import (
     crossover_poker_strategies,

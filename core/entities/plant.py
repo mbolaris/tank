@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 # Plant lifecycle constants (can be moved to constants.py later)
-from core.constants import (
+from core.config.plants import (
     PLANT_BASE_HEIGHT,
     PLANT_BASE_WIDTH,
     PLANT_DEATH_ENERGY,

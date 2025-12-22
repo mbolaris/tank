@@ -1,6 +1,6 @@
 """Tests for agent behaviors in the fish tank simulation."""
 
-from core.constants import FOOD_SINK_ACCELERATION
+from core.config.food import FOOD_SINK_ACCELERATION
 from core.entities import Agent, Castle, Crab, Fish, Food, Plant
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement
@@ -12,7 +12,7 @@ class TestAgent:
     def test_agent_initialization(self, simulation_env):
         """Test that an agent initializes with correct properties."""
         env, _ = simulation_env
-        agent = Agent(env, ["george1.png"], 100, 200, 3)
+        agent = Agent(env, 100, 200, 3)
         assert agent.speed == 3
         assert agent.pos == Vector2(100, 200)
         assert agent.vel.length() == 3
@@ -21,8 +21,8 @@ class TestAgent:
     def test_agent_avoid_single_sprite(self, simulation_env):
         """Test that avoidance works with a single nearby sprite."""
         env, _ = simulation_env
-        agent1 = Agent(env, ["george1.png"], 100, 100, 3)
-        agent2 = Agent(env, ["crab1.png"], 110, 100, 2)
+        agent1 = Agent(env, 100, 100, 3)
+        agent2 = Agent(env, 110, 100, 2)
 
         initial_avoidance = agent1.avoidance_velocity.copy()
         agent1.avoid([agent2], min_distance=50)
@@ -33,8 +33,8 @@ class TestAgent:
     def test_agent_avoid_resets_when_far(self, simulation_env):
         """Test that avoidance resets when all sprites are far away."""
         env, _ = simulation_env
-        agent1 = Agent(env, ["george1.png"], 100, 100, 3)
-        agent2 = Agent(env, ["crab1.png"], 500, 500, 2)
+        agent1 = Agent(env, 100, 100, 3)
+        agent2 = Agent(env, 500, 500, 2)
 
         # Set some initial avoidance
         agent1.avoidance_velocity = Vector2(5, 5)
@@ -46,9 +46,9 @@ class TestAgent:
     def test_agent_avoid_multiple_close_sprites(self, simulation_env):
         """Test that avoidance accumulates for multiple close sprites."""
         env, _ = simulation_env
-        agent1 = Agent(env, ["george1.png"], 100, 100, 3)
-        agent2 = Agent(env, ["crab1.png"], 110, 100, 2)
-        agent3 = Agent(env, ["crab2.png"], 100, 110, 2)
+        agent1 = Agent(env, 100, 100, 3)
+        agent2 = Agent(env, 110, 100, 2)
+        agent3 = Agent(env, 100, 110, 2)
 
         agent1.avoid([agent2, agent3], min_distance=50)
 
@@ -58,8 +58,8 @@ class TestAgent:
     def test_agent_avoid_zero_distance_safe(self, simulation_env):
         """Test that avoidance handles zero-length vectors safely."""
         env, _ = simulation_env
-        agent1 = Agent(env, ["george1.png"], 100, 100, 3)
-        agent2 = Agent(env, ["crab1.png"], 100, 100, 2)  # Same position
+        agent1 = Agent(env, 100, 100, 3)
+        agent2 = Agent(env, 100, 100, 2)  # Same position
 
         # Should not crash (this was a bug we fixed)
         try:
@@ -73,7 +73,7 @@ class TestAgent:
     def test_agent_update_position(self, simulation_env):
         """Test that agent position updates correctly."""
         env, _ = simulation_env
-        agent = Agent(env, ["george1.png"], 100, 100, 3)
+        agent = Agent(env, 100, 100, 3)
         initial_pos = agent.pos.copy()
 
         agent.update_position()
@@ -84,7 +84,7 @@ class TestAgent:
     def test_agent_screen_edge_bounce(self, simulation_env):
         """Test that agents bounce off screen edges."""
         env, _ = simulation_env
-        agent = Agent(env, ["george1.png"], -10, 100, 3)
+        agent = Agent(env, -10, 100, 3)
         initial_vel_x = agent.vel.x
 
         agent.handle_screen_edges()
@@ -95,8 +95,8 @@ class TestAgent:
     def test_agent_align_near(self, simulation_env):
         """Test that agents align with nearby sprites."""
         env, _ = simulation_env
-        agent1 = Agent(env, ["george1.png"], 100, 100, 3)
-        agent2 = Agent(env, ["george2.png"], 120, 100, 3)
+        agent1 = Agent(env, 100, 100, 3)
+        agent2 = Agent(env, 120, 100, 3)
 
         agent1.vel.copy()
         agent1.align_near([agent2], min_distance=50)
@@ -117,7 +117,7 @@ class TestFish:
 
         genome = Genome.random(use_algorithm=False)
         genome.physical.size_modifier.value = 1.0
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3, genome=genome)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
 
         # Fish start as babies with size 0.5 (when genetic size_modifier is 1.0)
         assert fish.size == 0.5
@@ -127,7 +127,7 @@ class TestFish:
         """Test that fish gains energy when it eats food."""
         env, _ = simulation_env
         strategy = AlgorithmicMovement()
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3)
         food = Food(env, 110, 110)
 
         initial_energy = fish.energy
@@ -140,7 +140,7 @@ class TestFish:
         """Test that fish calls its movement strategy on update."""
         env, agents = simulation_env
         strategy = AlgorithmicMovement()
-        fish = Fish(env, strategy, ["george1.png"], 100, 100, 3)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3)
         agents.add(fish)
 
         # Movement strategy should move the fish without crashing

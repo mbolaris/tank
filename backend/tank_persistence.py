@@ -8,10 +8,8 @@ Schema Versioning:
     - Version 2.0: Removed genome.max_energy (now computed from size)
                    Fish max_energy is dynamically computed from fish.size
 
-Backwards Compatibility:
-    - All genome fields use .get() with sensible defaults
+Compatibility:
     - Old saves with max_energy are loaded successfully (max_energy ignored)
-    - New fields added to Genome will have defaults in Genome dataclass
 """
 
 import json
@@ -197,15 +195,8 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         for entity_data in snapshot["entities"]:
             entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
             
-            # Backward compatibility: old saves used "fractal_plant", remap to "plant"
-            if entity_type == "fractal_plant":
-                entity_type = "plant"
-                
             if entity_type and "type" not in entity_data:
                 entity_data["type"] = entity_type
-            elif entity_type and entity_data.get("type") == "fractal_plant":
-                # Update the data dict as well for downstream deserialization
-                entity_data["type"] = "plant"
 
             if entity_type == "plant_nectar":
                 nectar_data_list.append(entity_data)

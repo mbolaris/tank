@@ -8,7 +8,7 @@ import random as pyrandom
 from dataclasses import dataclass
 from typing import List
 
-from core.constants import (
+from core.config.fish import (
     FISH_PATTERN_COUNT,
     FISH_SIZE_MODIFIER_MAX,
     FISH_SIZE_MODIFIER_MIN,

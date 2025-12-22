@@ -12,7 +12,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 @pytest.fixture
 def simulation_env():
     """Provide a clean simulation environment for each test."""
-    from core.constants import SCREEN_HEIGHT, SCREEN_WIDTH
+    from core.config.display import (
+        SCREEN_HEIGHT,
+        SCREEN_WIDTH,
+    )
     from core.environment import Environment
     from core.simulation_engine import AgentsWrapper
 

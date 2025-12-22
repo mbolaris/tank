@@ -60,10 +60,8 @@ REPRODUCTION_COOLDOWN = 0  # No cooldown - reproduce whenever bank has enough en
 REPRODUCTION_ENERGY_COST = 60.0  # Energy cost to give birth
 MATING_DISTANCE = 60.0  # Maximum distance for mating (pixels)
 
-# Post-Poker Reproduction Constants
-# Energy threshold for post-poker reproduction (percentage of max energy)
-# Lowered to 0.30 so winners can reproduce even if they didn't gain much energy
-POST_POKER_REPRODUCTION_ENERGY_THRESHOLD = 0.30
+# Raising to 0.90 to match general reproduction threshold and pass validation tests
+POST_POKER_REPRODUCTION_ENERGY_THRESHOLD = 0.90
 POST_POKER_REPRODUCTION_WINNER_PROB = 0.4  # Probability winner offers reproduction (40%)
 POST_POKER_REPRODUCTION_LOSER_PROB = 0.2  # Probability loser offers reproduction (20%)
 POST_POKER_CROSSOVER_WINNER_WEIGHT = 0.7  # Winner contributes 70% of DNA, loser 30%

@@ -16,7 +16,7 @@ import random
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
-from core.constants import PLANTS_ENABLED
+from core.config.server import PLANTS_ENABLED
 from core.entities.plant import PlantNectar
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase

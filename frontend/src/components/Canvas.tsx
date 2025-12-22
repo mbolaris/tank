@@ -116,7 +116,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             if (rendererRef.current) {
                 try {
                     rendererRef.current.dispose();
-                } catch (e) {
+                } catch {
                     // swallow
                 }
                 rendererRef.current = null;
@@ -201,10 +201,9 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                 }
 
                 if (import.meta.env.DEV) {
-                    // eslint-disable-next-line no-console
                     console.debug('[Memory Cleanup] Cleared plant caches and path cache');
                 }
-            } catch (e) {
+            } catch {
                 // Ignore cleanup errors
             }
         }, CLEANUP_INTERVAL_MS);

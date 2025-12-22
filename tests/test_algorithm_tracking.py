@@ -1,6 +1,6 @@
 """Test script to verify algorithm performance tracking system."""
 
-from core.algorithms import ALL_ALGORITHMS
+from core.algorithms.registry import ALL_ALGORITHMS
 from core.ecosystem import EcosystemManager
 
 

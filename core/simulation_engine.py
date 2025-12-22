@@ -11,10 +11,10 @@ import time
 from typing import Any, Dict, List, Optional
 
 from core import entities, environment, movement_strategy
-from core.algorithms import get_algorithm_index
+from core.algorithms.registry import get_algorithm_index
 from core.cache_manager import CacheManager
 from core.collision_system import CollisionSystem
-from core.constants import (
+from core.config.food import (
     AUTO_FOOD_ENABLED,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
@@ -23,20 +23,26 @@ from core.constants import (
     AUTO_FOOD_LOW_ENERGY_THRESHOLD,
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
+    LIVE_FOOD_SPAWN_CHANCE,
+)
+from core.config.ecosystem import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
-    FILES,
-    PLANTS_ENABLED,
-    FRAME_RATE,
-    LIVE_FOOD_SPAWN_CHANCE,
-    MAX_POKER_EVENTS,
     MAX_POPULATION,
-    POKER_EVENT_MAX_AGE_FRAMES,
+    SPAWN_MARGIN_PIXELS,
+    TOTAL_ALGORITHM_COUNT,
+)
+from core.config.display import (
+    FILES,
+    FRAME_RATE,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
     SEPARATOR_WIDTH,
-    SPAWN_MARGIN_PIXELS,
-    TOTAL_ALGORITHM_COUNT,
+)
+from core.config.server import PLANTS_ENABLED
+from core.config.poker import (
+    MAX_POKER_EVENTS,
+    POKER_EVENT_MAX_AGE_FRAMES,
 )
 from core.ecosystem import EcosystemManager
 from core.entities.plant import Plant, PlantNectar
@@ -188,7 +194,7 @@ class SimulationEngine(BaseSimulator):
         self.entities_list: List[entities.Agent] = []
         self.agents = AgentsWrapper(self)
         self.environment: Optional[environment.Environment] = None
-        self.time_system: TimeSystem = TimeSystem()
+        self.time_system: TimeSystem = TimeSystem(self)
         self.start_time: float = time.time()
         self.last_emergency_spawn_frame: int = (
             -EMERGENCY_SPAWN_COOLDOWN
@@ -518,7 +524,7 @@ class SimulationEngine(BaseSimulator):
 
     def handle_reproduction(self) -> None:
         """Delegate reproduction handling to the reproduction system."""
-        self.reproduction_system.handle_reproduction()
+        self.reproduction_system.update(self.frame_count)
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Delegate poker result processing to the poker system."""
@@ -561,7 +567,7 @@ class SimulationEngine(BaseSimulator):
 
         # ===== PHASE: TIME_UPDATE =====
         self._current_phase = UpdatePhase.TIME_UPDATE
-        self.time_system.update()
+        self.time_system.update(self.frame_count)
         time_modifier = self.time_system.get_activity_modifier()
         time_of_day = self.time_system.get_time_of_day()
 

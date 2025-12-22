@@ -368,7 +368,7 @@ export interface StatsData {
     fast_forward?: boolean;
 
     // Allow dynamic keys for meta-trait statistics (e.g. adult_size_mut_rate_mean)
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface SimulationUpdate {

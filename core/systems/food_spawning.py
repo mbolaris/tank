@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from core import entities
-from core.constants import (
+from core.config.food import (
     AUTO_FOOD_ENABLED,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
     AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
@@ -22,6 +22,8 @@ from core.constants import (
     AUTO_FOOD_SPAWN_RATE,
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     LIVE_FOOD_SPAWN_CHANCE,
+)
+from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )

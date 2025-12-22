@@ -38,6 +38,36 @@ interface EnergyEconomyPanelProps {
     className?: string;
 }
 
+const formatVal = (val: number) => Math.round(val).toLocaleString();
+
+// Helper for flow bars
+const FlowBar = ({ label, value, color, icon, total, isOut = false }: { label: string, value: number, color: string, icon: string, total: number, isOut?: boolean }) => {
+    const width = value > 0 ? Math.min(100, (value / (total || 1)) * 100) : 0;
+
+    return (
+        <div style={{ marginBottom: '8px', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '2px', color: 'var(--color-text-dim)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>{icon}</span> {label}
+                </span>
+                <span style={{ color: isOut ? 'var(--color-danger)' : color, fontWeight: 600, fontSize: '11px' }}>
+                    {isOut ? '-' : '+'}{formatVal(value)}⚡
+                </span>
+            </div>
+            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{
+                    width: `${width}%`,
+                    height: '100%',
+                    background: color,
+                    borderRadius: '3px',
+                    transition: 'width 0.5s ease-out',
+                    boxShadow: `0 0 8px ${color}40`
+                }} />
+            </div>
+        </div>
+    );
+};
+
 export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps) {
 
     // Calculate Totals - only TRUE external flows
@@ -56,35 +86,6 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
 
     // Note: discrepancy between trueDelta and netBalance indicates untracked energy flows
 
-    const formatVal = (val: number) => Math.round(val).toLocaleString();
-
-    // Helper for flow bars
-    const FlowBar = ({ label, value, color, icon, total, isOut = false }: { label: string, value: number, color: string, icon: string, total: number, isOut?: boolean }) => {
-        const width = value > 0 ? Math.min(100, (value / (total || 1)) * 100) : 0;
-
-        return (
-            <div style={{ marginBottom: '8px', position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '2px', color: 'var(--color-text-dim)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span>{icon}</span> {label}
-                    </span>
-                    <span style={{ color: isOut ? 'var(--color-danger)' : color, fontWeight: 600, fontSize: '11px' }}>
-                        {isOut ? '-' : '+'}{formatVal(value)}⚡
-                    </span>
-                </div>
-                <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{
-                        width: `${width}%`,
-                        height: '100%',
-                        background: color,
-                        borderRadius: '3px',
-                        transition: 'width 0.5s ease-out',
-                        boxShadow: `0 0 8px ${color}40`
-                    }} />
-                </div>
-            </div>
-        );
-    };
 
     return (
         <div className={`glass-panel ${className}`} style={{ padding: '16px', position: 'relative', overflow: 'hidden' }}>

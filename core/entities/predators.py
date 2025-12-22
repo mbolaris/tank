@@ -3,7 +3,7 @@
 import random
 from typing import TYPE_CHECKING, Optional
 
-from core.constants import (
+from core.config.entities import (
     CRAB_ATTACK_COOLDOWN,
     CRAB_ATTACK_ENERGY_TRANSFER,
     CRAB_IDLE_CONSUMPTION,

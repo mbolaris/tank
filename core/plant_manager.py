@@ -20,11 +20,13 @@ import logging
 import random
 from typing import Callable, Dict, List, Optional, Protocol, TYPE_CHECKING
 
-from core.constants import (
+from core.config.plants import (
     PLANT_CULL_INTERVAL,
     PLANT_INITIAL_COUNT,
     PLANT_MATURE_ENERGY,
-    PLANTS_ENABLED,
+)
+from core.config.server import PLANTS_ENABLED
+from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )

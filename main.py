@@ -30,7 +30,8 @@ def _request_shutdown_best_effort() -> None:
 
 def run_web_server():
     """Run the web server with React UI backend."""
-    from core.constants import DEFAULT_API_PORT, SEPARATOR_WIDTH
+    from core.config.server import DEFAULT_API_PORT
+    from core.config.display import SEPARATOR_WIDTH
 
     try:
         import uvicorn

@@ -11,7 +11,7 @@ from core.entities.resources import Food, LiveFood
 from core.environment import Environment
 
 
-def test_live_food_persistence():
+def _run_live_food_persistence():
     """Test that LiveFood entities are correctly identified and saved."""
     print("=" * 60)
     print("Testing LiveFood Persistence")
@@ -105,6 +105,10 @@ def test_live_food_persistence():
     return success
 
 
+def test_live_food_persistence():
+    assert _run_live_food_persistence()
+
+
 if __name__ == "__main__":
-    success = test_live_food_persistence()
+    success = _run_live_food_persistence()
     sys.exit(0 if success else 1)

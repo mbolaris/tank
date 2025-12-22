@@ -12,7 +12,7 @@ from core.movement_strategy import AlgorithmicMovement
 
 def make_adult_fish(**kwargs):
     """Helper to create an adult fish for testing."""
-    from core.constants import LIFE_STAGE_YOUNG_ADULT_MAX
+    from core.config.fish import LIFE_STAGE_YOUNG_ADULT_MAX
     fish = Fish(**kwargs)
     # Age fish to ADULT stage (need age > 1800 frames)
     fish._lifecycle_component.age = LIFE_STAGE_YOUNG_ADULT_MAX + 100
@@ -20,7 +20,7 @@ def make_adult_fish(**kwargs):
     return fish
 
 
-def test_reproduction_threshold_logic():
+def _run_reproduction_threshold_logic():
     """Test the core reproduction threshold logic at different energy levels."""
     print("=" * 80)
     print("REPRODUCTION THRESHOLD LOGIC TEST")
@@ -45,7 +45,7 @@ def test_reproduction_threshold_logic():
     )
 
     # Age fish to ADULT stage (fish start as BABY)
-    fish._life_stage = LifeStage.ADULT
+    fish._lifecycle_component.force_life_stage(LifeStage.ADULT)
 
     print("\nFish created:")
     print(f"  Life stage: {fish.life_stage}")
@@ -91,7 +91,11 @@ def test_reproduction_threshold_logic():
     return all_passed
 
 
-def test_proximity_vs_poker_reproduction():
+def test_reproduction_threshold_logic():
+    assert _run_reproduction_threshold_logic()
+
+
+def _run_proximity_vs_poker_reproduction():
     """Test both proximity-based and poker-based reproduction with 90% threshold."""
     print("\n" + "=" * 80)
     print("PROXIMITY VS POKER REPRODUCTION TEST")
@@ -227,7 +231,11 @@ def test_proximity_vs_poker_reproduction():
     return test1_passed and test2_passed
 
 
-def test_energy_threshold_comparison():
+def test_proximity_vs_poker_reproduction():
+    assert _run_proximity_vs_poker_reproduction()
+
+
+def _run_energy_threshold_comparison():
     """Compare old (25 absolute) vs new (90% relative) thresholds."""
     print("\n" + "=" * 80)
     print("THRESHOLD COMPARISON: Old (25 absolute) vs New (90% relative)")
@@ -274,7 +282,11 @@ def test_energy_threshold_comparison():
     return True
 
 
-def test_realistic_scenario():
+def test_energy_threshold_comparison():
+    assert _run_energy_threshold_comparison()
+
+
+def _run_realistic_scenario():
     """Simulate a realistic scenario: fish eating food and trying to reproduce."""
     print("\n" + "=" * 80)
     print("REALISTIC SCENARIO: Fish eating and reproducing")
@@ -334,6 +346,10 @@ def test_realistic_scenario():
         return True  # Not a failure, just informational
 
 
+def test_realistic_scenario():
+    assert _run_realistic_scenario()
+
+
 if __name__ == "__main__":
     print("\n")
     print("╔" + "=" * 78 + "╗")
@@ -341,10 +357,10 @@ if __name__ == "__main__":
     print("╚" + "=" * 78 + "╝")
 
     try:
-        test1 = test_reproduction_threshold_logic()
-        test2 = test_proximity_vs_poker_reproduction()
-        test3 = test_energy_threshold_comparison()
-        test4 = test_realistic_scenario()
+        test1 = _run_reproduction_threshold_logic()
+        test2 = _run_proximity_vs_poker_reproduction()
+        test3 = _run_energy_threshold_comparison()
+        test4 = _run_realistic_scenario()
 
         print("\n" + "=" * 80)
         if test1 and test2:

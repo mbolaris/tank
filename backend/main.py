@@ -27,7 +27,8 @@ from backend.models import Command, ServerInfo
 from backend.server_client import ServerClient
 from backend.simulation_manager import SimulationManager
 from backend.tank_registry import TankRegistry
-from core.constants import DEFAULT_API_PORT, FRAME_RATE
+from core.config.server import DEFAULT_API_PORT
+from core.config.display import FRAME_RATE
 
 # Configure logging once for the backend stack (includes uvicorn)
 logger = configure_logging(extra_loggers=("backend",))
