@@ -327,7 +327,6 @@ class BaseSystem(ABC):
 `BaseSimulator` defines the simulation algorithm skeleton:
 - `handle_collisions()`: Collision detection and response
 - `handle_reproduction()`: Mating and offspring creation
-- `spawn_auto_food()`: Automatic food generation
 - Subclasses implement specific methods like `check_collision()`
 
 ### Strategy Pattern

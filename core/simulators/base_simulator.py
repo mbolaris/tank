@@ -79,7 +79,6 @@ class BaseSimulator(ABC):
     Attributes:
         frame_count: Total frames elapsed
         paused: Whether simulation is paused
-        auto_food_timer: Timer for automatic food spawning
         ecosystem: Ecosystem manager for population tracking
     """
 
@@ -87,7 +86,6 @@ class BaseSimulator(ABC):
         """Initialize base simulator state."""
         self.frame_count: int = 0
         self.paused: bool = False
-        self.auto_food_timer: int = 0
         self.ecosystem: Optional[EcosystemManager] = None
         self.environment: Optional[Environment] = None
         # OPTIMIZATION: Throttle poker games to run every N frames when population is high
@@ -1090,78 +1088,6 @@ class BaseSimulator(ABC):
                 # Attempt mating
                 if fish.try_mate(potential_mate):
                     break  # Found a mate, stop looking
-
-    def spawn_auto_food(self, environment: "Environment") -> None:
-        """Spawn automatic food if enabled.
-
-        Dynamically adjusts spawn rate based on population size and total energy:
-        - Faster spawning when fish are starving (total energy low)
-        - Slower spawning when population or total energy is high
-
-        Args:
-            environment: Environment instance for creating food
-        """
-        if not AUTO_FOOD_ENABLED:
-            return
-
-        # Calculate total energy and population
-        all_entities = self.get_all_entities()
-        fish_list = [e for e in all_entities if isinstance(e, entities.Fish)]
-        fish_count = len(fish_list)
-        total_energy = sum(fish.energy for fish in fish_list)
-
-        # Dynamic spawn rate based on population and energy levels
-        spawn_rate = AUTO_FOOD_SPAWN_RATE
-
-        # Priority 1: Emergency feeding when energy is critically low
-        if total_energy < AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD:
-            # Critical starvation: Quadruple spawn rate (every 0.75 sec)
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 4
-        elif total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
-            # Low energy: Triple spawn rate (every 1 sec)
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 3
-
-        # Priority 2: Reduce feeding when energy or population is high
-        elif (
-            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2
-            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2
-        ):
-            # Very high energy/population: Slow down significantly (every 8 sec)
-            spawn_rate = AUTO_FOOD_SPAWN_RATE * 3
-        elif (
-            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1
-            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1
-        ):
-            # High energy/population: Slow down moderately (every 5 sec)
-            spawn_rate = int(AUTO_FOOD_SPAWN_RATE * 1.67)
-        # else: use base rate (every 3 sec)
-
-        self.auto_food_timer += 1
-        if self.auto_food_timer >= spawn_rate:
-            self.auto_food_timer = 0
-            live_food_roll = random.random()
-            if live_food_roll < LIVE_FOOD_SPAWN_CHANCE:
-                food_x = random.randint(0, SCREEN_WIDTH)
-                food_y = random.randint(0, SCREEN_HEIGHT)
-                food = entities.LiveFood(
-                    environment,
-                    food_x,
-                    food_y,
-                )
-                    # Removed unmatched closing parenthesis
-            else:
-                # Spawn food from the top at random x position
-                x = random.randint(0, SCREEN_WIDTH)
-                food = entities.Food(
-                    environment,
-                    x,
-                    0,
-                    source_plant=None,
-                    allow_stationary_types=False,
-                )
-                # Ensure the food starts exactly at the top edge before falling
-                food.pos.y = 0
-            self.add_entity(food)
 
     def keep_entity_on_screen(
         self, entity: "Agent", screen_width: int = SCREEN_WIDTH, screen_height: int = SCREEN_HEIGHT
