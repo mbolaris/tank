@@ -14,7 +14,7 @@ Features:
 import logging
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from core.constants import (
     POKER_AGGRESSION_HIGH,
@@ -1095,7 +1095,7 @@ class MixedPokerInteraction:
         contexts: List[MultiplayerPlayerContext],
         winner_idx: int,
         actual_profit: float,
-    ) -> dict[str, float]:
+    ) -> Dict[str, float]:
         """Estimate what we would have won/lost with each action.
 
         This is a simplified estimate - true CFR would require re-playing the hand.
