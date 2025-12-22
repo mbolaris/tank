@@ -120,7 +120,7 @@ class TestFish:
         fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
 
         # Fish start as babies with size 0.5 (when genetic size_modifier is 1.0)
-        assert fish.size == 0.5
+        assert fish._lifecycle_component.size == 0.5
         assert fish.movement_strategy == strategy
 
     def test_fish_grows_when_eating(self, simulation_env):

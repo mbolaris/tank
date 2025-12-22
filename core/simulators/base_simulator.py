@@ -209,7 +209,7 @@ class BaseSimulator(ABC):
             self.ecosystem.record_death(
                 fish.fish_id,
                 fish.generation,
-                fish.age,
+                fish._lifecycle_component.age,
                 death_cause,
                 fish.genome,
                 algorithm_id=algorithm_id,
@@ -1391,8 +1391,14 @@ class BaseSimulator(ABC):
                 winner_contrib + mate_contrib, total_contrib
             )
 
-        winner.reproduction_cooldown = max(winner.reproduction_cooldown, REPRODUCTION_COOLDOWN)
-        mate.reproduction_cooldown = max(mate.reproduction_cooldown, REPRODUCTION_COOLDOWN)
+        winner._reproduction_component.reproduction_cooldown = max(
+            winner._reproduction_component.reproduction_cooldown,
+            REPRODUCTION_COOLDOWN,
+        )
+        mate._reproduction_component.reproduction_cooldown = max(
+            mate._reproduction_component.reproduction_cooldown,
+            REPRODUCTION_COOLDOWN,
+        )
 
         (min_x, min_y), (max_x, max_y) = winner.environment.get_bounds()
         mid_x = (winner.pos.x + mate.pos.x) * 0.5

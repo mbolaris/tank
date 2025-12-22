@@ -6,7 +6,7 @@ enabling durable simulations that can be resumed after restarts.
 Schema Versioning:
     - Version 1.0: Original schema with genome.max_energy
     - Version 2.0: Removed genome.max_energy (now computed from size)
-                   Fish max_energy is dynamically computed from fish.size
+                   Fish max_energy is dynamically computed from lifecycle size
 
 Compatibility:
     - Old saves with max_energy are loaded successfully (max_energy ignored)

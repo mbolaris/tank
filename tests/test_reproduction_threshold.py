@@ -48,7 +48,7 @@ def _run_reproduction_threshold_logic():
     fish._lifecycle_component.force_life_stage(LifeStage.ADULT)
 
     print("\nFish created:")
-    print(f"  Life stage: {fish.life_stage}")
+    print(f"  Life stage: {fish._lifecycle_component.life_stage}")
     print(f"  Max energy: {fish.max_energy:.1f}")
     print(f"  90% threshold: {fish.max_energy * 0.9:.1f}")
 
@@ -179,8 +179,8 @@ def _run_proximity_vs_poker_reproduction():
     # Reset fish
     fish1.energy = fish1.max_energy * 0.50
     fish2.energy = fish2.max_energy * 0.50
-    fish1.reproduction_cooldown = 0
-    fish2.reproduction_cooldown = 0
+    fish1._reproduction_component.reproduction_cooldown = 0
+    fish2._reproduction_component.reproduction_cooldown = 0
 
     # Test at 50% energy
     winner_wants = should_offer_post_poker_reproduction(fish1, fish2, is_winner=True, energy_gained=10.0)

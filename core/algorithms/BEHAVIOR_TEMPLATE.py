@@ -94,7 +94,7 @@ class BehaviorTemplate(BehaviorAlgorithm):
                     fish.genome                   - Genetic traits (speed, size, vision_range, etc.)
                     fish.visible_food (list)      - Food entities in vision range
                     fish.visible_fish (list)      - Other fish in vision range
-                    fish.life_stage (str)         - "baby", "juvenile", "adult", "mature"
+                    fish._lifecycle_component.life_stage (str) - "baby", "juvenile", "adult", "mature"
                     fish.environment              - Access to Environment object
 
                 Key methods available:

@@ -51,14 +51,10 @@ class Fish(Agent):
 
     Attributes:
         genome: Genetic traits
-        energy: Current energy level
-        max_energy: Maximum energy capacity
-        age: Age in frames
-        max_age: Maximum lifespan in frames
-        life_stage: Current life stage
+        energy: Current energy level (EnergyHolder protocol)
+        max_energy: Maximum energy capacity (EnergyHolder protocol)
         generation: Generation number
         fish_id: Unique identifier
-        reproduction_cooldown: Frames until can reproduce again
         species: Fish species identifier
     """
 
@@ -150,18 +146,12 @@ class Fish(Agent):
                 max_energy, base_metabolism, INITIAL_ENERGY_RATIO
             )
 
-        # Backward compatibility: expose energy and max_energy as properties
-        # This allows existing code to access fish.energy and fish.max_energy directly
-
         # Predator tracking (for death attribution)
         self.last_predator_encounter_age: int = FISH_LAST_EVENT_INITIAL_AGE
 
         # Reproduction - managed by ReproductionComponent for better code organization
 
         self._reproduction_component = ReproductionComponent()
-
-        # Backward compatibility: expose reproduction attributes as properties
-
 
         # NEW: Enhanced memory system
 
@@ -266,7 +256,7 @@ class Fish(Agent):
             True if fish is adult, has sufficient energy, and isn't on cooldown
         """
         
-        if self.life_stage not in (LifeStage.ADULT, LifeStage.ELDER):
+        if self._lifecycle_component.life_stage not in (LifeStage.ADULT, LifeStage.ELDER):
             return False
             
         from core.poker_interaction import MIN_ENERGY_TO_PLAY
@@ -384,7 +374,7 @@ class Fish(Agent):
         self.death_effect_state = {"cause": cause}
         self.death_effect_timer = duration
 
-    # Energy properties for backward compatibility
+    # Energy properties (EnergyHolder protocol)
     @property
     def energy(self) -> float:
         """Current energy level (read-only property delegating to EnergyComponent)."""
@@ -392,7 +382,7 @@ class Fish(Agent):
 
     @energy.setter
     def energy(self, value: float) -> None:
-        """Set energy level (setter for backward compatibility)."""
+        """Set energy level."""
         self._energy_component.energy = value
         # OPTIMIZATION: Update dead cache if energy drops to/below zero
         if value <= 0:
@@ -407,39 +397,7 @@ class Fish(Agent):
         A fish's max energy grows as they physically grow from baby to adult.
         Baby fish (size ~0.35-0.5) have less capacity than adults (adult size scales with genetic size_modifier which ranges 0.5-2.0).
         """
-        return ENERGY_MAX_DEFAULT * self.size
-
-    # Reproduction properties for backward compatibility
-    @property
-    def reproduction_cooldown(self) -> int:
-        """Frames until can reproduce again (delegating to ReproductionComponent)."""
-        return self._reproduction_component.reproduction_cooldown
-
-    @reproduction_cooldown.setter
-    def reproduction_cooldown(self, value: int) -> None:
-        """Set reproduction cooldown (setter for backward compatibility)."""
-        self._reproduction_component.reproduction_cooldown = value
-
-    # Lifecycle properties for backward compatibility
-    @property
-    def age(self) -> int:
-        """Current age in frames (read-only property delegating to LifecycleComponent)."""
-        return self._lifecycle_component.age
-
-    @property
-    def max_age(self) -> int:
-        """Maximum age/lifespan (read-only property delegating to LifecycleComponent)."""
-        return self._lifecycle_component.max_age
-
-    @property
-    def life_stage(self) -> LifeStage:
-        """Current life stage (read-only property delegating to LifecycleComponent)."""
-        return self._lifecycle_component.life_stage
-
-    @property
-    def size(self) -> float:
-        """Current size multiplier (read-only property delegating to LifecycleComponent)."""
-        return self._lifecycle_component.size
+        return ENERGY_MAX_DEFAULT * self._lifecycle_component.size
 
     @property
     def bite_size(self) -> float:
@@ -449,7 +407,7 @@ class Fish(Agent):
         """
         # Base bite size is 20.0 energy units
         # Scales with size (larger fish take bigger bites)
-        return 20.0 * self.size
+        return 20.0 * self._lifecycle_component.size
 
     def update_life_stage(self) -> None:
         """Update life stage based on age (delegates to LifecycleComponent)."""
@@ -601,7 +559,11 @@ class Fish(Agent):
             time_modifier: Modifier for time-based effects (e.g., day/night)
         """
         energy_breakdown = self._energy_component.consume_energy(
-            self.vel, self.speed, self.life_stage, time_modifier, self.size
+            self.vel,
+            self.speed,
+            self._lifecycle_component.life_stage,
+            time_modifier,
+            self._lifecycle_component.size,
         )
 
         # OPTIMIZATION: Update dead cache if energy drops to zero
@@ -768,7 +730,7 @@ class Fish(Agent):
             return True
             
         # 2. Old age
-        if self.age >= self.max_age:
+        if self._lifecycle_component.age >= self._lifecycle_component.max_age:
             self.state.transition(EntityState.DEAD, reason="old_age")
             self._cached_is_dead = True
             return True
@@ -795,7 +757,10 @@ class Fish(Agent):
                 if "migration" in reason: return "migration"
                 if "starvation" in reason:
                     # Check for predation overlap even if recorded as starvation
-                    if self.age - self.last_predator_encounter_age <= PREDATOR_ENCOUNTER_WINDOW:
+                    if (
+                        self._lifecycle_component.age - self.last_predator_encounter_age
+                        <= PREDATOR_ENCOUNTER_WINDOW
+                    ):
                         return "predation"
                     return "starvation"
                 if "old_age" in reason: return "old_age"
@@ -808,11 +773,14 @@ class Fish(Agent):
         # Logic for determining death cause based on state
         if self.energy <= 0:
             # Check if there was a recent predator encounter
-            if self.age - self.last_predator_encounter_age <= PREDATOR_ENCOUNTER_WINDOW:
+            if (
+                self._lifecycle_component.age - self.last_predator_encounter_age
+                <= PREDATOR_ENCOUNTER_WINDOW
+            ):
                 return "predation"  # Death after conflict
             else:
                 return "starvation"  # Death without recent conflict
-        elif self.age >= self.max_age:
+        elif self._lifecycle_component.age >= self._lifecycle_component.max_age:
             return "old_age"
             
         # Debugging "Unknown" causes
@@ -836,7 +804,7 @@ class Fish(Agent):
             escaped: Whether the fish successfully escaped
             damage_taken: Amount of damage/energy lost
         """
-        self.last_predator_encounter_age = self.age
+        self.last_predator_encounter_age = self._lifecycle_component.age
 
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce.
@@ -846,7 +814,11 @@ class Fish(Agent):
         Returns:
             bool: True if fish can reproduce
         """
-        return self._reproduction_component.can_reproduce(self.life_stage, self.energy, self.max_energy)
+        return self._reproduction_component.can_reproduce(
+            self._lifecycle_component.life_stage,
+            self.energy,
+            self.max_energy,
+        )
 
     def try_mate(self, other: "Fish") -> bool:
         """Attempt to mate with another fish.
@@ -887,7 +859,7 @@ class Fish(Agent):
         # This prevents bank overflow spilling as food drops
         if (
             self._reproduction_component.reproduction_cooldown <= 0
-            and self.life_stage == LifeStage.ADULT
+            and self._lifecycle_component.life_stage == LifeStage.ADULT
             and bank >= baby_energy_needed
         ):
             return self._create_asexual_offspring()
@@ -1174,7 +1146,7 @@ class Fish(Agent):
             if turn_intensity > 0.1:  # Threshold to ignore tiny wobbles
                 # Base energy cost scaled by turn intensity and fish size
                 # Larger fish (size > 1.0) pay more, smaller fish (size < 1.0) pay less
-                size_factor = self.size ** DIRECTION_CHANGE_SIZE_MULTIPLIER
+                size_factor = self._lifecycle_component.size ** DIRECTION_CHANGE_SIZE_MULTIPLIER
                 energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
 
                 self.energy = max(0, self.energy - energy_cost)

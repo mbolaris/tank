@@ -1197,11 +1197,11 @@ def should_trigger_plant_poker_asexual_reproduction(fish: "Fish") -> bool:
         return False
 
     # Check off cooldown
-    if fish.reproduction_cooldown > 0:
+    if fish._reproduction_component.reproduction_cooldown > 0:
         return False
 
     # Check adult life stage (only adults can reproduce)
-    if fish.life_stage != LifeStage.ADULT:
+    if fish._lifecycle_component.life_stage != LifeStage.ADULT:
         return False
 
     return True

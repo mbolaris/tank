@@ -54,6 +54,13 @@ from core.config.fish import (
 )
 
 
+def _get_reproduction_cooldown(player: Player) -> int:
+    component = getattr(player, "_reproduction_component", None)
+    if component is not None:
+        return component.reproduction_cooldown
+    return getattr(player, "reproduction_cooldown", 0)
+
+
 def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     """Check if reproduction should be triggered after poker.
     
@@ -76,9 +83,9 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
         return False
     
     # Check cooldown
-    if getattr(player, "reproduction_cooldown", 0) > 0:
+    if _get_reproduction_cooldown(player) > 0:
         return False
-    if getattr(opponent, "reproduction_cooldown", 0) > 0:
+    if _get_reproduction_cooldown(opponent) > 0:
         return False
         
     # Check same species (fish can only reproduce with fish, plants with plants)
@@ -96,10 +103,10 @@ def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
     if fish.energy < min_energy_for_reproduction:
         return False
 
-    if fish.reproduction_cooldown > 0:
+    if fish._reproduction_component.reproduction_cooldown > 0:
         return False
 
-    if fish.life_stage.value < LifeStage.ADULT.value:
+    if fish._lifecycle_component.life_stage.value < LifeStage.ADULT.value:
         return False
 
     if fish.species != opponent.species:

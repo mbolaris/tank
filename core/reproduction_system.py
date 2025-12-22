@@ -83,7 +83,7 @@ class ReproductionSystem(BaseSystem):
 
         for fish in fish_list:
             if not fish._reproduction_component.can_asexually_reproduce(
-                fish.life_stage, fish.energy, fish.max_energy
+                fish._lifecycle_component.life_stage, fish.energy, fish.max_energy
             ):
                 continue
 

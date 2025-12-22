@@ -31,6 +31,8 @@ from core.config.fish import (
     MOVEMENT_ENERGY_COST,
     MOVEMENT_SIZE_MULTIPLIER,
     SAFE_ENERGY_THRESHOLD_RATIO,
+    SMALL_FISH_METABOLISM_MIN_MULTIPLIER,
+    SMALL_FISH_METABOLISM_THRESHOLD,
     STARVATION_THRESHOLD_RATIO,
 )
 from core.math_utils import Vector2
@@ -143,6 +145,18 @@ class EnergyComponent:
 
         movement_cost *= stage_multiplier
         metabolism *= stage_multiplier
+
+        # Apply size-based discount for small adult fish
+        # Small fish (below threshold) get a metabolism reduction
+        # Linearly interpolates from 1.0 at threshold to MIN_MULTIPLIER at size 0.5
+        if size < SMALL_FISH_METABOLISM_THRESHOLD and life_stage != LifeStage.BABY:
+            # Calculate how far below threshold (0 at threshold, 1 at size 0.5)
+            size_below = (SMALL_FISH_METABOLISM_THRESHOLD - size) / (SMALL_FISH_METABOLISM_THRESHOLD - 0.5)
+            size_below = min(1.0, max(0.0, size_below))  # Clamp to [0, 1]
+            # Interpolate multiplier from 1.0 down to MIN_MULTIPLIER
+            size_multiplier = 1.0 - (1.0 - SMALL_FISH_METABOLISM_MIN_MULTIPLIER) * size_below
+            metabolism *= size_multiplier
+            movement_cost *= size_multiplier
 
         # Total energy consumption
         total_cost = existence_cost + metabolism
