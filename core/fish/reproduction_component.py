@@ -32,7 +32,7 @@ class ReproductionComponent:
 
     # Reproduction constants
     REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Require ~90% energy before any reproduction path
-    REPRODUCTION_COOLDOWN = 180  # 6 seconds (reduced for better breeding and faster generations)
+    REPRODUCTION_COOLDOWN = 300  # 10 seconds at 30fps - prevents constant reproduction
     MATING_DISTANCE = 60.0  # Maximum distance for mating
     REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for initiating mating
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby

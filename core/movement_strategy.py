@@ -19,7 +19,10 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 # Movement smoothing constants (lower = smoother, higher = more responsive)
-ALGORITHMIC_MOVEMENT_SMOOTHING = 0.02  # Slightly more responsive for algorithms
+# INCREASED from 0.02 to 0.10 - fish were too sluggish to catch food
+# At 2% per frame, it took ~150 frames (5s) to reach target velocity
+# At 10% per frame, it takes ~30 frames (1s) - much better for food pursuit
+ALGORITHMIC_MOVEMENT_SMOOTHING = 0.10
 ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.0  # Cap at base speed (was 0.6)
 ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
 

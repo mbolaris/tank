@@ -287,7 +287,11 @@ def get_summary_stats(
         from core.entities import Fish
 
         fish_list = [e for e in entities if isinstance(e, Fish)]
-        total_energy = sum(e.energy for e in fish_list)
+        # Include overflow bank as it's still fish energy (used for reproduction)
+        total_energy = sum(
+            e.energy + e._reproduction_component.overflow_energy_bank
+            for e in fish_list
+        )
 
     alive_generations = [
         g for g, stats in ecosystem.generation_stats.items() if stats.population > 0

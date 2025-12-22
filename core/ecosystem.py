@@ -597,7 +597,7 @@ class EcosystemManager:
 
     def record_energy_burn(self, source: str, amount: float) -> None:
         """Accumulate energy spent so we can prove metabolism/movement costs are applied."""
-        if amount == 0:
+        if amount <= 0:  # Only record positive burns
             return
         self.energy_burn[source] += amount
         self._current_frame_burns[source] += amount
@@ -828,18 +828,18 @@ class EcosystemManager:
     def record_reproduction_energy(self, parent_cost: float, baby_initial_energy: float) -> None:
         """Track energy transfer during reproduction.
 
-        This records reproduction as a visible energy flow so users can see
-        where energy goes during births. While it's an internal transfer
-        (parent→baby), showing it helps users understand population dynamics.
-
-        Args:
-            parent_cost: Energy the parent spent on reproduction
-            baby_initial_energy: Energy the baby started with
+        NOTE: This method now does nothing. Reproduction is an internal transfer:
+        - Parent's energy goes to baby
+        - Bank energy (from previous overflow) goes to baby
+        - No energy enters or leaves the fish population
+        
+        The bank was never recorded as an outflow (it stays within the fish).
+        The parent→baby transfer is just moving energy around internally.
+        
+        This method is kept for API compatibility but does not record anything.
         """
-        # Record as both a burn (from parent) and a gain (to baby)
-        # This keeps the net flow zero (internal transfer) but makes it visible
-        self.record_energy_burn("reproduction_cost", parent_cost)
-        self.record_energy_gain("birth", baby_initial_energy)
+        # Reproduction is internal - no external flows to track
+        pass
 
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         from core import algorithm_reporter

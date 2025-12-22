@@ -264,11 +264,15 @@ class Fish(Agent):
         """Whether this fish is currently able to play skill games (implements SkillfulAgent Protocol).
         
         Returns:
-            True if fish has sufficient energy and isn't on cooldown
+            True if fish is adult, has sufficient energy, and isn't on cooldown
         """
-        # Fish can play skill games if they have enough energy and aren't on cooldown
-        # Use same minimum energy as poker system for consistency
+        from core.entities.base import LifeStage
         from core.poker_interaction import MIN_ENERGY_TO_PLAY
+        
+        # Fish must be mature enough to play poker (no babies/juveniles)
+        if self.life_stage not in (LifeStage.ADULT, LifeStage.ELDER):
+            return False
+            
         return (
             self.energy >= MIN_ENERGY_TO_PLAY
             and self.poker_cooldown <= 0
@@ -479,6 +483,11 @@ class Fish(Agent):
         else:
             self._energy_component.energy = new_energy
 
+        # FIX: Ensure fish is marked alive if it has energy and state is active
+        # This prevents "zombie" fish where cache says dead but energy > 0
+        if self._energy_component.energy > 0 and self.state.state == EntityState.ACTIVE:
+            self._cached_is_dead = False
+
         return self._energy_component.energy - old_energy
 
     def modify_energy(self, amount: float) -> float:
@@ -514,6 +523,9 @@ class Fish(Agent):
                 if self.state.state == EntityState.ACTIVE:
                     self.state.transition(EntityState.DEAD, reason="starvation")
                 self._cached_is_dead = True
+            elif self.state.state == EntityState.ACTIVE:
+                # If energy is positive and state is active, ensure we aren't cached as dead
+                self._cached_is_dead = False
 
         return self._energy_component.energy - old_energy
 
@@ -539,8 +551,9 @@ class Fish(Agent):
         banked = self._reproduction_component.bank_overflow_energy(overflow, max_bank=max_bank)
         remainder = overflow - banked
 
-        if banked > 0 and self.ecosystem is not None:
-            self.ecosystem.record_energy_burn("overflow_reproduction", banked)
+        # Note: We do NOT record banked energy as an outflow.
+        # The energy stays within the fish population (in an internal bank).
+        # Only overflow_food (energy dropped as food) is a true external outflow.
 
         # If the bank is full, spill the remainder as food to maintain energy conservation.
         if remainder > 0:
@@ -765,11 +778,15 @@ class Fish(Agent):
         return False
 
     def get_death_cause(self) -> str:
-        """Get the cause of death.
+        """Determine the cause of death.
 
-        Checks state machine history first, then falls back to condition checks.
+        Checks state history first for explicit causes recorded during transition.
+        If history is unavailable/unclear, infers cause from current state.
+
+        Returns:
+            str: Cause of death ('starvation', 'old_age', 'predation', 'migration')
         """
-        # Try to get explicit reason from state machine history
+        # Check explicit history first
         history = self.state.history
         if history:
             last_transition = history[-1]
@@ -784,10 +801,13 @@ class Fish(Agent):
                         return "predation"
                     return "starvation"
                 if "old_age" in reason: return "old_age"
+                if "predation" in reason: return "predation"
 
         # Fallback to inference if history unavailable/unclear
         if self.state.state == EntityState.REMOVED:
-            return "migration"
+            return "migration"  # Assume removal implies migration if not death
+
+        # Logic for determining death cause based on state
         if self.energy <= 0:
             # Check if there was a recent predator encounter
             if self.age - self.last_predator_encounter_age <= PREDATOR_ENCOUNTER_WINDOW:
@@ -796,7 +816,17 @@ class Fish(Agent):
                 return "starvation"  # Death without recent conflict
         elif self.age >= self.max_age:
             return "old_age"
-        return "unknown"
+            
+        # Debugging "Unknown" causes
+        # Capture state to identify why we reached here
+        parts = []
+        if self.state.state == EntityState.ACTIVE: parts.append("active")
+        if self.state.state == EntityState.DEAD: parts.append("dead")
+        if self.energy > 0: parts.append("pos_energy")
+        if not history: parts.append("no_hist")
+        else: parts.append(f"last_rsn_{history[-1].reason}")
+        
+        return f"unknown_{'_'.join(parts)}"
 
     def mark_predator_encounter(self, escaped: bool = False, damage_taken: float = 0.0) -> None:
         """Mark that this fish has encountered a predator.
@@ -846,12 +876,21 @@ class Fish(Agent):
         # Update reproduction cooldown
         self._reproduction_component.update_cooldown()
 
-        # If we've banked overflow energy and are eligible, reproduce instantly.
+        # Calculate energy needed for a baby (approximate - uses default size modifier)
+        from core.constants import FISH_BABY_SIZE
+        baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE  # ~75 energy
+        
+        bank = self._reproduction_component.overflow_energy_bank
+        
+        # Allow reproduction if:
+        # 1. Off cooldown
+        # 2. Adult (mature enough to reproduce)
+        # 3. Bank has enough energy to fully fund a baby (no parent sacrifice needed)
+        # This prevents bank overflow spilling as food drops
         if (
             self._reproduction_component.reproduction_cooldown <= 0
             and self.life_stage == LifeStage.ADULT
-            and self.energy >= self.max_energy
-            and self._reproduction_component.overflow_energy_bank > 0
+            and bank >= baby_energy_needed
         ):
             return self._create_asexual_offspring()
 
@@ -1089,13 +1128,18 @@ class Fish(Agent):
 
         # Record food consumption for behavior performance tracking
         ecosystem = self.ecosystem
-        composable = self.genome.behavioral.behavior
-        if ecosystem is not None and composable is not None and composable.value is not None:
+        if ecosystem is not None:
             from core.entities.plant import PlantNectar
             from core.entities.resources import LiveFood
+            
+            # Get algorithm ID for tracking (0 if no composable behavior)
+            composable = self.genome.behavioral.behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                algorithm_id = hash(behavior_id) % 1000
+            else:
+                algorithm_id = 0  # Default algorithm for fish without composable behavior
 
-            behavior_id = composable.value.behavior_id
-            algorithm_id = hash(behavior_id) % 1000
             # Determine food type and call appropriate tracking method
             # Use actual_energy to prevent "phantom" stats
             if isinstance(food, PlantNectar):

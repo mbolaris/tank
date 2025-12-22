@@ -40,17 +40,21 @@ interface EnergyEconomyPanelProps {
 
 export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps) {
 
-    // Calculate Totals
-    // Treated as Net Flows
+    // Calculate Totals - only TRUE external flows
+    // Reproduction (birthEnergy/reproductionCost) is internal transfer, excluded from main balance
     const plantGain = Math.max(0, data.plantPokerNet);
     const plantLoss = Math.max(0, -data.plantPokerNet);
 
+    // External inflows only (food, poker wins, immigration, spawns)
     const totalIn = data.fallingFood + data.liveFood + data.plantNectar + plantGain + data.soupSpawn + data.migrationIn + data.autoEval;
+    // External outflows only (metabolism, deaths, emigration, overflow)
     const totalOut = data.baseMetabolism + data.traitMaintenance + data.movementCost + data.turningCost + data.fishDeaths + data.migrationOut + data.pokerHouseCut + data.overflowFood + plantLoss;
-    const netExternalFlow = totalIn - totalOut;
+    const netBalance = totalIn - totalOut;
 
     // True energy delta - what actually happened to fish population energy
     const trueDelta = data.energyDelta;
+
+    // Note: discrepancy between trueDelta and netBalance indicates untracked energy flows
 
     const formatVal = (val: number) => Math.round(val).toLocaleString();
 
@@ -100,22 +104,21 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                             padding: '2px 8px',
                             borderRadius: '4px',
                         }}
-                        title="Actual change in total fish energy over the last 60 seconds"
+                        title="Actual measured change in total fish energy"
                     >
-                        {trueDelta > 0 ? '+' : ''}{formatVal(trueDelta)}⚡ Net
+                        {trueDelta > 0 ? '+' : ''}{formatVal(trueDelta)}⚡
                     </div>
                     <div
                         style={{
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            color: netExternalFlow >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
-                            background: netExternalFlow >= 0 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
+                            fontSize: '10px',
+                            color: 'var(--color-text-dim)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
                         }}
-                        title="Net external flow (inflows - outflows) over the last 60 seconds"
+                        title={`Balance sheet: +${formatVal(totalIn)} inflows - ${formatVal(totalOut)} outflows = ${netBalance > 0 ? '+' : ''}${formatVal(netBalance)}`}
                     >
-                        {netExternalFlow > 0 ? '+' : ''}{formatVal(netExternalFlow)}⚡ Ext
+                        {Math.abs(trueDelta - netBalance) < 100 ? '✓' : '≈'}
                     </div>
                 </div>
             </div>
@@ -161,24 +164,6 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                 </div>
             </div>
 
-            {/* Reproduction Section - Internal transfers */}
-            {(data.reproductionCost > 0 || data.birthEnergy > 0) && (
-                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                        Reproduction (Internal Transfer)
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-dim)' }}>
-                        <span>👶 Parent→Baby Transfer</span>
-                        <span style={{ color: '#a78bfa' }}>{formatVal(data.birthEnergy)}⚡</span>
-                    </div>
-                    {data.overflowReproduction > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-dim)', marginTop: '6px' }}>
-                            <span>🧬 Overflow Used for Reproduction</span>
-                            <span style={{ color: '#a78bfa' }}>{formatVal(data.overflowReproduction)}⚡</span>
-                        </div>
-                    )}
-                </div>
-            )}
 
             {/* Poker Economy Highlight */}
             {(data.pokerTotalPot > 0) && (

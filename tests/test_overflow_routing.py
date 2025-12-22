@@ -100,7 +100,8 @@ def test_overflow_prefers_reproduction_bank_over_food(simulation_env):
     entities_after = len(env.added)
 
     assert math.isclose(fish._reproduction_component.overflow_energy_bank, 50.0, rel_tol=0, abs_tol=1e-9)
-    assert any(k == "overflow_reproduction" and math.isclose(v, 50.0, rel_tol=0, abs_tol=1e-9) for k, v in eco.burns)
+    # Note: overflow_reproduction is NOT tracked as a burn because the energy stays in the fish population (in the bank)
+    # Only overflow_food (dropped as food) is a true external outflow
     assert not any(k == "overflow_food" for k, _v in eco.burns)
     assert entities_after == entities_before
 
@@ -124,6 +125,6 @@ def test_overflow_spills_to_food_when_bank_is_full(simulation_env):
     entities_after = len(env.added)
 
     assert math.isclose(fish._reproduction_component.overflow_energy_bank, max_bank, rel_tol=0, abs_tol=1e-9)
-    assert any(k == "overflow_reproduction" and math.isclose(v, 10.0, rel_tol=0, abs_tol=1e-9) for k, v in eco.burns)
+    # Note: overflow_reproduction is NOT tracked (internal), only overflow_food is tracked
     assert any(k == "overflow_food" and math.isclose(v, 40.0, rel_tol=0, abs_tol=1e-6) for k, v in eco.burns)
     assert entities_after == entities_before + 1

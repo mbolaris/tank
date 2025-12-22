@@ -197,6 +197,8 @@ class BaseSimulator(ABC):
                 behavior_id = composable.value.behavior_id
                 algorithm_id = hash(behavior_id) % 1000
 
+            # Track ALL energy lost when fish dies (including banked overflow)
+            total_energy_lost = fish.energy + fish._reproduction_component.overflow_energy_bank
             self.ecosystem.record_death(
                 fish.fish_id,
                 fish.generation,
@@ -204,7 +206,7 @@ class BaseSimulator(ABC):
                 death_cause,
                 fish.genome,
                 algorithm_id=algorithm_id,
-                remaining_energy=fish.energy,  # Track energy lost when fish dies
+                remaining_energy=total_energy_lost,
             )
 
         # Don't remove fish yet - stay in simulation for death effect to render
@@ -550,7 +552,10 @@ class BaseSimulator(ABC):
                 if other in entity_contact_set:
                     continue
 
-                # OPTIMIZATION: Direct dict access (we know all poker entities are in the dict)
+                # Safety check: entity may have been removed/died during iteration
+                if other not in entity_centers:
+                    continue
+                    
                 e2_cx, e2_cy = entity_centers[other]
                 dx = e1_cx - e2_cx
                 dy = e1_cy - e2_cy
@@ -1482,34 +1487,13 @@ class BaseSimulator(ABC):
         if not is_post_poker_reproduction_eligible(winner, eligible_mates[0]):
             return None
 
-        energy_gained = getattr(result, "energy_transferred", 0.0)
+        # Winner-driven reproduction: if winner is eligible, they pick a mate
+        # No separate "loser offers" logic - winner decides
         rng = getattr(self, "rng", None) or random
-
-        winner_offers = should_offer_post_poker_reproduction(
-            winner,
-            eligible_mates[0],
-            is_winner=True,
-            energy_gained=energy_gained,
-            rng=rng,
-        )
-
-        if winner_offers:
-            mate = rng.choice(eligible_mates)
-        else:
-            willing_mates = [
-                fish
-                for fish in eligible_mates
-                if should_offer_post_poker_reproduction(
-                    fish,
-                    winner,
-                    is_winner=False,
-                    energy_gained=-energy_gained,
-                    rng=rng,
-                )
-            ]
-            if not willing_mates:
-                return None
-            mate = rng.choice(willing_mates)
+        
+        # Winner always picks a mate if they're eligible (no probability gate)
+        # The eligibility check already ensures winner has enough energy, is adult, off cooldown
+        mate = rng.choice(eligible_mates)
 
         if self.ecosystem is not None:
             if not self.ecosystem.can_reproduce(len(self.get_fish_list())):

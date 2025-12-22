@@ -75,6 +75,11 @@ class ReproductionSystem(BaseSystem):
 
         if len(fish_list) < 1:
             return
+        
+        # Skip reproduction if at max population - don't waste energy on rejected babies
+        ecosystem = self._engine.ecosystem
+        if ecosystem is not None and len(fish_list) >= ecosystem.max_population:
+            return
 
         for fish in fish_list:
             if not fish._reproduction_component.can_asexually_reproduce(

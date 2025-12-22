@@ -606,7 +606,10 @@ class StatsCalculator:
 
         return {
             "fish_count": len(fish_list),
-            "fish_energy": sum(fish.energy for fish in fish_list),
+            "fish_energy": sum(
+                fish.energy + fish._reproduction_component.overflow_energy_bank
+                for fish in fish_list
+            ),
             "food_count": len(regular_food_list),
             "food_energy": sum(food.energy for food in regular_food_list),
             "live_food_count": len(live_food_list),

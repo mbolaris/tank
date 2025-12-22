@@ -110,10 +110,12 @@ def _make_adult_fish(env: MiniEnvironment, ecosystem: MiniEcosystem, *, generati
     # Fast-forward to a reproducing adult with plenty of energy
     fish._lifecycle_component.life_stage = LifeStage.ADULT
     fish._lifecycle_component.age = 200
+    # Must also update size to adult size for proper max_energy
+    fish._lifecycle_component.size = 1.0  # Adult size
     fish.energy = fish.max_energy
     fish.reproduction_cooldown = 0
-    # Bank some overflow energy so reproduction can trigger
-    fish._reproduction_component.bank_overflow_energy(fish.max_energy * 0.5, max_bank=fish.max_energy)
+    # Bank enough overflow energy for reproduction (requires 75+ energy for a baby)
+    fish._reproduction_component.bank_overflow_energy(80.0, max_bank=fish.max_energy)
     return fish
 
 

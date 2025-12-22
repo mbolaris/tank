@@ -650,7 +650,19 @@ class SimulationEngine(BaseSimulator):
         return self.entities_list
 
     def add_entity(self, entity: entities.Agent) -> None:
-        """Add an entity to the simulation."""
+        """Add an entity to the simulation.
+        
+        For Fish entities, this respects population limits (max_population).
+        Babies are not added if the tank is at carrying capacity.
+        """
+        # Check population limit for fish
+        if isinstance(entity, entities.Fish):
+            fish_count = sum(1 for e in self.entities_list if isinstance(e, entities.Fish))
+            if self.ecosystem and fish_count >= self.ecosystem.max_population:
+                # At max population - reject this fish
+                # The energy invested in this baby is lost (population pressure)
+                return
+                
         if hasattr(entity, "add_internal"):
             entity.add_internal(self.agents)
         self.entities_list.append(entity)
@@ -903,7 +915,11 @@ class SimulationEngine(BaseSimulator):
                 ecosystem.cleanup_dead_fish(alive_ids)
 
             # Record energy snapshot for delta calculations (end-of-frame fish energy)
-            total_fish_energy = sum(f.energy for f in fish_list)
+            # Include overflow_energy_bank since it's still fish energy, just stored differently
+            total_fish_energy = sum(
+                f.energy + f._reproduction_component.overflow_energy_bank
+                for f in fish_list
+            )
             ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
 
         # ===== PHASE: FRAME_END =====

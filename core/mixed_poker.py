@@ -587,6 +587,8 @@ class MixedPokerInteraction:
                 game_state.player_bet(current_pos, call_amount)
                 contexts[current_pos].remaining_energy -= call_amount
                 contexts[current_pos].current_bet += call_amount
+                # CRITICAL: Actually deduct energy from the player!
+                self._modify_player_energy(self.players[current_pos], -call_amount)
                 game_state.betting_history.append((current_pos, action, call_amount))
                 players_acted.add(current_pos)
 
@@ -606,6 +608,8 @@ class MixedPokerInteraction:
                     game_state.player_bet(current_pos, total_amount)
                     contexts[current_pos].remaining_energy -= total_amount
                     contexts[current_pos].current_bet += total_amount
+                    # CRITICAL: Actually deduct energy from the player!
+                    self._modify_player_energy(self.players[current_pos], -total_amount)
                     game_state.betting_history.append((current_pos, action, raise_portion))
                     players_acted = {current_pos}  # Reset - others need to act again
 
@@ -617,6 +621,8 @@ class MixedPokerInteraction:
                     game_state.player_bet(current_pos, call_amount)
                     contexts[current_pos].remaining_energy -= call_amount
                     contexts[current_pos].current_bet += call_amount
+                    # CRITICAL: Actually deduct energy from the player!
+                    self._modify_player_energy(self.players[current_pos], -call_amount)
                     game_state.betting_history.append((current_pos, BettingAction.CALL, call_amount))
                     players_acted.add(current_pos)
 
