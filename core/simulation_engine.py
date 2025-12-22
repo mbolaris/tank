@@ -14,17 +14,6 @@ from core import entities, environment, movement_strategy
 from core.algorithms.registry import get_algorithm_index
 from core.cache_manager import CacheManager
 from core.collision_system import CollisionSystem
-from core.config.food import (
-    AUTO_FOOD_ENABLED,
-    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
-    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
-    AUTO_FOOD_HIGH_POP_THRESHOLD_1,
-    AUTO_FOOD_HIGH_POP_THRESHOLD_2,
-    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
-    AUTO_FOOD_SPAWN_RATE,
-    AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
-    LIVE_FOOD_SPAWN_CHANCE,
-)
 from core.config.ecosystem import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
@@ -66,6 +55,7 @@ from core.simulation_stats_exporter import SimulationStatsExporter
 from core.simulators.base_simulator import BaseSimulator
 from core.systems.base import BaseSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
+from core.systems.food_spawning import FoodSpawningSystem
 from core.time_system import TimeSystem
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 
@@ -262,12 +252,16 @@ class SimulationEngine(BaseSimulator):
                 rng=self.rng,
             )
 
+        # Initialize food spawning system (uses engine's rng for deterministic behavior)
+        self.food_spawning_system = FoodSpawningSystem(self, rng=self.rng)
+
         # Register systems in execution order
         # Order matters: lifecycle first for per-frame reset, time affects behavior,
         # collisions before reproduction
         self._systems = [
             self.lifecycle_system,
             self.time_system,
+            self.food_spawning_system,
             self.collision_system,
             self.reproduction_system,
             self.poker_system,
@@ -658,8 +652,8 @@ class SimulationEngine(BaseSimulator):
 
         # ===== PHASE: SPAWN =====
         self._current_phase = UpdatePhase.SPAWN
-        if self.environment is not None:
-            self.spawn_auto_food(self.environment, time_of_day)
+        # Delegate to food spawning system (respects AUTO_FOOD_ENABLED internally)
+        self.food_spawning_system.update(self.frame_count)
 
         # Performance: Update spatial grid incrementally for entities that moved
         # This is O(k) where k = moved entities, not O(n)
@@ -733,82 +727,6 @@ class SimulationEngine(BaseSimulator):
         # Clear phase tracking at end of frame
         self._current_phase = None
 
-    def spawn_auto_food(self, environment: "environment.Environment", time_of_day: Optional[float] = None) -> None:
-        """Spawn automatic food using object pooling for better performance.
-
-        Override base implementation to use food pool.
-        """
-        if not AUTO_FOOD_ENABLED:
-            return
-
-        # Calculate total energy and population (use cached list)
-        fish_list = self.get_fish_list()
-        fish_count = len(fish_list)
-        total_energy = sum(fish.energy for fish in fish_list)
-
-        # Dynamic spawn rate based on population and energy levels
-        spawn_rate = AUTO_FOOD_SPAWN_RATE
-
-        # Priority 1: Emergency feeding when energy is critically low
-        if total_energy < AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD:
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 4
-        elif total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 3
-        # Priority 2: Reduce feeding when energy or population is high
-        elif (
-            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2
-            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2
-        ):
-            spawn_rate = AUTO_FOOD_SPAWN_RATE * 3
-        elif (
-            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1
-            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1
-        ):
-            spawn_rate = int(AUTO_FOOD_SPAWN_RATE * 1.67)
-
-        self.auto_food_timer += 1
-        if self.auto_food_timer >= spawn_rate:
-            self.auto_food_timer = 0
-
-            # Decide whether to spawn live food or regular food
-            live_food_roll = self.rng.random()
-            live_food_chance = LIVE_FOOD_SPAWN_CHANCE
-
-            # Time-of-day effects: twilight peaks, darker nights slightly boost live food
-            if time_of_day is None:
-                time_of_day = self.time_system.get_time_of_day()
-
-            is_dawn = 0.15 <= time_of_day < 0.35
-            is_day = 0.35 <= time_of_day < 0.65
-            is_dusk = 0.65 <= time_of_day < 0.85
-
-            if is_dawn or is_dusk:
-                live_food_chance = min(0.95, LIVE_FOOD_SPAWN_CHANCE * 2.2)
-            elif self.time_system.is_night():
-                live_food_chance = min(0.85, LIVE_FOOD_SPAWN_CHANCE * 1.6)
-            elif is_day:
-                live_food_chance = max(0.25, LIVE_FOOD_SPAWN_CHANCE * 0.9)
-
-            if live_food_roll < live_food_chance:
-                # Spawn live food at random position (not from pool - LiveFood is special)
-                food_x = self.rng.randint(0, SCREEN_WIDTH)
-                food_y = self.rng.randint(0, SCREEN_HEIGHT)
-                food = entities.LiveFood(
-                    environment,
-                    food_x,
-                    food_y,
-                )
-            else:
-                # Use food pool for regular food (performance optimization)
-                x = self.rng.randint(0, SCREEN_WIDTH)
-                food = self.food_pool.acquire(
-                    environment=environment,
-                    x=x,
-                    y=0,
-                    source_plant=None,
-                    allow_stationary_types=False,
-                )
-            self.add_entity(food)
 
     def spawn_emergency_fish(self) -> None:
         """Spawn a new fish when population drops below critical threshold.
