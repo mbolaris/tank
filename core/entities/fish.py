@@ -179,7 +179,7 @@ class Fish(Agent):
         # ID tracking
         self.ecosystem: Optional[EcosystemManager] = ecosystem
         if fish_id is None and ecosystem is not None:
-            self.fish_id: int = ecosystem.get_next_fish_id()
+            self.fish_id: int = ecosystem.generate_new_fish_id()
         else:
             self.fish_id: int = fish_id if fish_id is not None else 0
 
