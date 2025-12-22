@@ -436,9 +436,10 @@ class SimulationEngine(BaseSimulator):
         """
         if self.plant_manager is None:
             return False
-        return self.plant_manager.sprout_new_plant(
+        result = self.plant_manager.sprout_new_plant(
             parent_genome, parent_x, parent_y, self.entities_list
         )
+        return result.is_ok()
 
     # Implement abstract methods from BaseSimulator
     def get_all_entities(self) -> List[entities.Agent]:

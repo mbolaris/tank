@@ -30,6 +30,7 @@ from core.constants import (
 )
 from core.entities.plant import Plant
 from core.genetics import PlantGenome
+from core.result import Err, Ok, Result
 from core.root_spots import RootSpotManager
 
 if TYPE_CHECKING:
@@ -251,7 +252,7 @@ class PlantManager:
         parent_x: float,
         parent_y: float,
         entities: List["Agent"],
-    ) -> bool:
+    ) -> Result[Plant, str]:
         """Sprout a new plant from a parent.
 
         Called when fish consumes plant nectar.
@@ -263,14 +264,14 @@ class PlantManager:
             entities: Current entities for variant balancing
 
         Returns:
-            True if successfully sprouted
+            Ok(plant) if successfully sprouted, Err(reason) otherwise
         """
         if not self.enabled:
-            return False
+            return Err("Plants are disabled")
 
         spot = self.root_spot_manager.find_spot_for_sprouting(parent_x, parent_y)
         if spot is None:
-            return False
+            return Err(f"No available root spot near ({parent_x:.0f}, {parent_y:.0f})")
 
         variant = self.pick_balanced_variant(
             entities, preferred_type=parent_genome.type
@@ -286,13 +287,13 @@ class PlantManager:
         )
 
         if not spot.claim(plant):
-            return False
+            return Err(f"Failed to claim root spot at ({spot.x:.0f}, {spot.y:.0f})")
 
         self._entity_adder.add_entity(plant)
         logger.debug(
             f"Sprouted new fractal plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f})"
         )
-        return True
+        return Ok(plant)
 
     def reconcile_plants(
         self,

@@ -37,6 +37,38 @@ This document tracks safe, incremental architectural improvements to move the co
 
 **Solution**: Changed to `core.poker_interaction`.
 
+### 5. ✅ Expanded Result Type Usage (PlantManager)
+
+**Problem**: `PlantManager.sprout_new_plant()` returned `bool`, but there were multiple distinct failure reasons (disabled, no spot, claim failed). Callers couldn't tell *why* sprouting failed.
+
+**Solution**: Changed return type from `bool` to `Result[Plant, str]`.
+
+```python
+# Before - caller doesn't know why it failed
+def sprout_new_plant(...) -> bool:
+    if not self.enabled:
+        return False  # Why? Disabled? No space? Claim failed?
+
+# After - failure reason is explicit
+def sprout_new_plant(...) -> Result[Plant, str]:
+    if not self.enabled:
+        return Err("Plants are disabled")
+    if spot is None:
+        return Err(f"No available root spot near ({parent_x:.0f}, {parent_y:.0f})")
+    ...
+    return Ok(plant)
+```
+
+**Impact**:
+- Failures are now explicit and debuggable
+- Callers can use `result.is_ok()` for backward-compatible bool checks
+- Error messages provide context for debugging
+- Demonstrates the Result pattern for future adoption
+
+**Files changed**:
+- `core/plant_manager.py` - Added Result import, changed return type
+- `core/simulation_engine.py` - Updated wrapper to use `result.is_ok()`
+
 ---
 
 ## Recommended Future Improvements
