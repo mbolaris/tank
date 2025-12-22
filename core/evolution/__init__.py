@@ -9,10 +9,18 @@ naturally from the environment:
 - Fish with good genes pass them to offspring
 - Poor performers die and their genes leave the population
 
-The module consolidates:
-- Crossover: Combining genes from two parents
-- Mutation: Random variations in offspring
-- Inheritance: How traits pass between generations
+**Canonical API** (use these in production code):
+- `Genome.from_parents()` - standard crossover between two parents
+- `Genome.from_parents_weighted()` - weighted crossover (e.g., poker winner)
+- `Genome.from_parents_weighted_params()` - weighted crossover with params object
+
+The functions `crossover_genomes()` and `crossover_genomes_weighted()` are
+deprecated wrappers kept for backward compatibility.
+
+Submodules:
+- mutation: Random variations in offspring (adaptive bounds, continuous/discrete)
+- crossover: Value blending utilities (internal/testing use)
+- inheritance: Trait passing between generations
 
 Design Philosophy (ALife vs GA):
 - NO fitness function evaluation

@@ -97,7 +97,7 @@ def test_with_scaled_energy():
     print(f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)")
 
     # Play poker
-    poker = PokerInteraction(fish1, fish2)
+    poker = PokerInteraction([fish1, fish2])
     _success = poker.play_poker()
 
     print("\nAFTER POKER:")
@@ -107,7 +107,9 @@ def test_with_scaled_energy():
     if poker.result:
         print("\nPOKER RESULT:")
         print(f"  Winner: Fish #{poker.result.winner_id}")
-        print(f"  Reproduction occurred: {poker.result.reproduction_occurred}")
+        print(f"  Energy transferred: {poker.result.energy_transferred:.1f}")
+        print(f"  Total pot: {poker.result.total_pot:.1f}")
+        print(f"  House cut: {poker.result.house_cut:.1f}")
 
         winner_fish = fish1 if poker.result.winner_id == fish1.fish_id else fish2
         loser_fish = fish2 if poker.result.winner_id == fish1.fish_id else fish1
@@ -118,11 +120,14 @@ def test_with_scaled_energy():
         print(f"  Winner above 90%: {winner_fish.energy >= winner_fish.max_energy * 0.9}")
         print(f"  Loser above 90%: {loser_fish.energy >= loser_fish.max_energy * 0.9}")
 
-        if poker.result.reproduction_occurred:
-            print("\n✓✓✓ SUCCESS! REPRODUCTION OCCURRED!")
-            print(f"  Offspring: Fish #{poker.result.offspring.fish_id}")
+        # Check if reproduction would be triggered using the new API
+        from core.poker_interaction import should_trigger_reproduction
+        can_reproduce = should_trigger_reproduction(winner_fish, loser_fish)
+        
+        if can_reproduce:
+            print("\n✓✓✓ SUCCESS! REPRODUCTION CONDITIONS MET!")
         else:
-            print("\n❌ REPRODUCTION STILL FAILED")
+            print("\n❌ REPRODUCTION CONDITIONS NOT MET")
 
             # Analyze why
             if loser_fish.energy < loser_fish.max_energy * 0.9:

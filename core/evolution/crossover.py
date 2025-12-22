@@ -12,9 +12,17 @@ Crossover Modes:
 The weighted mode is particularly important for poker evolution:
 when fish reproduce after poker, the winner contributes more DNA,
 creating selection pressure for poker skill without explicit fitness.
+
+**API Note**: For production code, prefer the canonical API:
+- `Genome.from_parents()` - standard crossover
+- `Genome.from_parents_weighted()` - weighted crossover (e.g., poker winner)
+
+The helper functions in this module (blend_values, etc.) are primarily
+for testing and internal use.
 """
 
 import random
+import warnings
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, Optional
 
@@ -153,7 +161,9 @@ def crossover_genomes(
 ) -> "Genome":
     """Create offspring genome by crossing two parent genomes.
 
-    This is a convenience wrapper that delegates to Genome.from_parents().
+    .. deprecated::
+        Use `Genome.from_parents()` directly instead. This wrapper adds
+        unnecessary indirection.
 
     Args:
         parent1_genome: First parent's genome
@@ -165,6 +175,11 @@ def crossover_genomes(
     Returns:
         New offspring genome
     """
+    warnings.warn(
+        "crossover_genomes() is deprecated. Use Genome.from_parents() directly.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     # Import here to avoid circular dependency
     from core.genetics import GeneticCrossoverMode, Genome, ReproductionParams
 
@@ -198,6 +213,10 @@ def crossover_genomes_weighted(
 ) -> "Genome":
     """Create offspring genome with weighted parent contributions.
 
+    .. deprecated::
+        Use `Genome.from_parents_weighted_params()` directly instead.
+        This wrapper adds unnecessary indirection.
+
     Used for post-poker reproduction where the winner contributes
     more genetic material.
 
@@ -211,6 +230,12 @@ def crossover_genomes_weighted(
     Returns:
         New offspring genome with weighted inheritance
     """
+    warnings.warn(
+        "crossover_genomes_weighted() is deprecated. "
+        "Use Genome.from_parents_weighted_params() directly.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     # Import here to avoid circular dependency
     from core.genetics import Genome, ReproductionParams
 
