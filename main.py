@@ -60,7 +60,7 @@ def run_web_server():
         sys.exit(1)
 
 
-def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=None):
+def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=None, trace_output=None):
     """Run the simulation in headless mode (no visualization).
 
     Args:
@@ -68,17 +68,25 @@ def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=N
         stats_interval: Print stats every N frames
         seed: Optional random seed for deterministic behavior
         export_stats: Optional filename to export JSON stats for LLM analysis
+        trace_output: Optional filename to export debug trace data
     """
     from core.tank_world import TankWorld, TankWorldConfig
 
     # Create configuration for headless mode
-    config = TankWorldConfig(headless=True)
+    config = TankWorldConfig(
+        headless=True,
+        trace_mode=bool(trace_output),
+        trace_output=trace_output,
+    )
 
     # Create TankWorld with optional seed
     world = TankWorld(config=config, seed=seed)
     # Note: run_headless() calls setup() internally
     world.run_headless(
-        max_frames=max_frames, stats_interval=stats_interval, export_json=export_stats
+        max_frames=max_frames,
+        stats_interval=stats_interval,
+        export_json=export_stats,
+        trace_output=trace_output,
     )
 
 
@@ -136,6 +144,14 @@ Examples:
         help="Export comprehensive stats to JSON file for LLM analysis (e.g., results.json)",
     )
 
+    parser.add_argument(
+        "--trace-json",
+        type=str,
+        default=None,
+        metavar="TRACEFILE",
+        help="Dump debug traces to JSON for offline analysis",
+    )
+
     args = parser.parse_args()
 
     if args.headless:
@@ -145,9 +161,15 @@ Examples:
         )
         if args.export_stats:
             logger.info("Stats will be exported to: %s", args.export_stats)
+        if args.trace_json:
+            logger.info("Trace output will be saved to: %s", args.trace_json)
         logger.info("")
         run_headless(
-            args.max_frames, args.stats_interval, seed=args.seed, export_stats=args.export_stats
+            args.max_frames,
+            args.stats_interval,
+            seed=args.seed,
+            export_stats=args.export_stats,
+            trace_output=args.trace_json,
         )
     else:
         run_web_server()

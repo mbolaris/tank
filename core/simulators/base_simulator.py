@@ -45,6 +45,7 @@ from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
+from core.events import EntityDiedEvent
 from core.config.server import (
     POKER_ACTIVITY_ENABLED,
 )
@@ -204,6 +205,19 @@ class BaseSimulator(ABC):
                 fish.genome,
                 algorithm_id=algorithm_id,
                 remaining_energy=total_energy_lost,
+            )
+
+        event_bus = getattr(self, "event_bus", None)
+        if event_bus is not None:
+            event_bus.emit(
+                EntityDiedEvent(
+                    frame=getattr(self, "frame_count", 0),
+                    entity_id=fish.fish_id,
+                    entity_type="fish",
+                    cause=death_cause,
+                    age=fish._lifecycle_component.age,
+                    generation=fish.generation,
+                )
             )
 
         # Don't remove fish yet - stay in simulation for death effect to render
@@ -972,4 +986,3 @@ class BaseSimulator(ABC):
             Number of fish entities
         """
         return len(self.get_fish_list())
-
