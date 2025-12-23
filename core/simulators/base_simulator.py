@@ -227,20 +227,6 @@ class BaseSimulator(ABC):
         for fish in to_remove:
             self.remove_entity(fish)
 
-    def is_fish_dying(self, fish: "Fish") -> bool:
-        """Check if a fish is in the dying state (showing death effect).
-
-        Dying fish should be skipped for most gameplay interactions
-        (collisions, movement, etc.) but still rendered.
-
-        Args:
-            fish: The fish to check
-
-        Returns:
-            True if fish has a death effect active
-        """
-        return fish.death_effect_state is not None
-
     def update_spatial_grid(self) -> None:
         """Update the spatial grid with current entity positions."""
         if self.environment is not None:
