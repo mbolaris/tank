@@ -355,9 +355,10 @@ class OpportunisticFeeder(BehaviorAlgorithm):
                     speed *= 1.2
                 return direction.x * speed, direction.y * speed
 
-        # IMPROVEMENT: Don't just idle - explore!
+        # IMPROVEMENT: Don't just idle - explore! (use environment RNG for determinism)
         if is_critical or is_low:
-            self.exploration_angle += random.uniform(-0.4, 0.4)
+            rng = getattr(fish.environment, "rng", random)
+            self.exploration_angle += rng.uniform(-0.4, 0.4)
             ex_speed = self.parameters["exploration_speed"] * (1.5 if is_critical else 1.0)
             return (
                 math.cos(self.exploration_angle) * ex_speed,

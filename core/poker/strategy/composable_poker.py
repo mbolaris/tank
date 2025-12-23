@@ -321,6 +321,7 @@ class ComposablePokerStrategy:
         player_energy: float,
         position_on_button: bool = False,
         opponent_id: Optional[str] = None,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
         """Make betting decision based on composed sub-behaviors.
 
@@ -332,10 +333,13 @@ class ComposablePokerStrategy:
             player_energy: Our available energy for betting
             position_on_button: Whether we're in position (on button)
             opponent_id: Optional opponent ID for model lookup
+            rng: Optional random number generator for deterministic decisions
 
         Returns:
             Tuple of (action, amount)
         """
+        # Use provided RNG or create a fallback for backward compatibility
+        _rng = rng if rng is not None else random.Random()
         call_amount = max(0, opponent_bet - current_bet)
 
         # Can't call if insufficient energy
@@ -365,13 +369,13 @@ class ComposablePokerStrategy:
 
         # Step 2: Should we bet/raise?
         if self._should_bet_or_raise(
-            adjusted_strength, pot, player_energy, call_amount, is_desperate, opponent_adjustment
+            adjusted_strength, pot, player_energy, call_amount, is_desperate, opponent_adjustment, _rng
         ):
             sizing = self._calculate_bet_sizing(adjusted_strength, pot, player_energy, call_amount)
             return (BettingAction.RAISE, sizing)
 
         # Step 3: Call or fold based on showdown tendency
-        return self._call_or_fold(adjusted_strength, call_amount, pot, player_energy, opponent_adjustment)
+        return self._call_or_fold(adjusted_strength, call_amount, pot, player_energy, opponent_adjustment, _rng)
 
     # -------------------------------------------------------------------------
     # Sub-behavior Execution Methods
@@ -427,6 +431,7 @@ class ComposablePokerStrategy:
         call_amount: float,
         is_desperate: bool,
         opponent_adj: float,
+        rng: random.Random,
     ) -> bool:
         """Decide whether to bet or raise."""
         premium_threshold = self.parameters.get("premium_threshold", 0.80)
@@ -436,18 +441,18 @@ class ComposablePokerStrategy:
         if strength >= premium_threshold:
             return True
 
-        # Check bluffing approach
+        # Check bluffing approach (use provided RNG for determinism)
         should_bluff = False
         if self.bluffing_approach == BluffingApproach.NEVER_BLUFF:
             should_bluff = False
         elif self.bluffing_approach == BluffingApproach.OCCASIONAL:
-            should_bluff = random.random() < bluff_freq * 0.5
+            should_bluff = rng.random() < bluff_freq * 0.5
         elif self.bluffing_approach == BluffingApproach.BALANCED:
             # Bluff more when opponent folds often
             adjusted_freq = bluff_freq + opponent_adj * 0.1
-            should_bluff = random.random() < adjusted_freq
+            should_bluff = rng.random() < adjusted_freq
         else:  # AGGRESSIVE
-            should_bluff = random.random() < bluff_freq * 1.5
+            should_bluff = rng.random() < bluff_freq * 1.5
 
         # Semi-bluff with draws
         semibluff_threshold = self.parameters.get("semibluff_threshold", 0.25)
@@ -457,12 +462,12 @@ class ComposablePokerStrategy:
         # Strong but not premium - sometimes raise for value
         if strength >= 0.55:
             if self.betting_style == BettingStyle.VALUE_HEAVY:
-                return random.random() < 0.7
+                return rng.random() < 0.7
             elif self.betting_style == BettingStyle.POLARIZED:
                 # Polarized: raise strong, check medium
                 return strength >= 0.70
             else:
-                return random.random() < 0.4
+                return rng.random() < 0.4
 
         return should_bluff
 
@@ -515,6 +520,7 @@ class ComposablePokerStrategy:
         pot: float,
         energy: float,
         opponent_adj: float,
+        rng: random.Random,
     ) -> Tuple[BettingAction, float]:
         """Decide whether to call or fold based on showdown_tendency."""
         if call_amount <= 0:
@@ -539,8 +545,8 @@ class ComposablePokerStrategy:
             required_equity *= 0.7
             if strength >= required_equity:
                 return (BettingAction.CALL, call_amount)
-            # Even below threshold, sometimes call
-            if random.random() < 0.25:
+            # Even below threshold, sometimes call (use provided RNG)
+            if rng.random() < 0.25:
                 return (BettingAction.CALL, call_amount)
             return (BettingAction.FOLD, 0.0)
 

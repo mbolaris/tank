@@ -251,7 +251,8 @@ class ComposableBehavior(BehaviorHelpersMixin):
 
         # 3. POKER ENGAGEMENT - Check if we should engage/avoid poker
         poker_vx, poker_vy, poker_active = self._execute_poker_engagement(fish, energy_ratio)
-        if poker_active and poker_priority > random.random():
+        rng = getattr(fish.environment, "rng", random)
+        if poker_active and poker_priority > rng.random():
             return poker_vx, poker_vy
 
         # 4. BLENDED BEHAVIOR - Combine food seeking and social
@@ -317,9 +318,10 @@ class ComposableBehavior(BehaviorHelpersMixin):
         elif self.threat_response == ThreatResponse.ERRATIC_EVADE:
             speed = self.parameters.get("flee_speed", 1.0)
             amplitude = self.parameters.get("erratic_amplitude", 0.5)
-            # Add random perpendicular component
+            # Add random perpendicular component (use environment RNG for determinism)
             perp = Vector2(-escape_dir.y, escape_dir.x)
-            erratic = (random.random() - 0.5) * 2 * amplitude
+            rng = getattr(fish.environment, "rng", random)
+            erratic = (rng.random() - 0.5) * 2 * amplitude
             vx = escape_dir.x * speed + perp.x * erratic
             vy = escape_dir.y * speed + perp.y * erratic
             return vx, vy, True
@@ -539,7 +541,8 @@ class ComposableBehavior(BehaviorHelpersMixin):
                 return 0.0, 0.0, False
             seek_radius = self.parameters.get("poker_seek_radius", 120.0)
             nearby = self._find_nearby_fish(fish, seek_radius)
-            if nearby and random.random() < 0.3:  # 30% chance to engage
+            rng = getattr(fish.environment, "rng", random)
+            if nearby and rng.random() < 0.3:  # 30% chance to engage
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
                 direction = self._safe_normalize(nearest.pos - fish.pos)
                 return direction.x * 0.6, direction.y * 0.6, True
@@ -600,8 +603,9 @@ class ComposableBehavior(BehaviorHelpersMixin):
 
     def _default_exploration(self, fish: "Fish") -> Tuple[float, float]:
         """Default wandering behavior when nothing else applies."""
-        # Gentle random walk
-        self._patrol_angle += (random.random() - 0.5) * 0.2
+        # Gentle random walk (use environment RNG for determinism)
+        rng = getattr(fish.environment, "rng", random)
+        self._patrol_angle += (rng.random() - 0.5) * 0.2
         vx = math.cos(self._patrol_angle) * 0.3
         vy = math.sin(self._patrol_angle) * 0.3
         return vx, vy

@@ -140,19 +140,24 @@ def decide_action(
     hole_cards: Optional[List[Card]] = None,
     community_cards: Optional[List[Card]] = None,
     position_on_button: bool = False,
-    rng: Optional[random.Random] = None,
+    rng: random.Random = None,  # type: ignore[assignment]  # Required at runtime
 ) -> Tuple[BettingAction, float]:
     """
     Decide what action to take based on hand strength and game state.
 
     Enhanced with realistic pre-flop hand evaluation and position awareness.
+    
+    Args:
+        rng: Required seeded Random instance for deterministic behavior.
+             Callers must provide this to ensure reproducible simulations.
     """
+    if rng is None:
+        raise ValueError("rng parameter is required for deterministic behavior")
+    
     if aggression is None:
         aggression = AGGRESSION_MEDIUM
     
-    # Use provided RNG or fallback to global random (but wrapped for consistency) works if needed
-    # Ideally should always be provided.
-    _rng = rng if rng is not None else random.Random()
+    _rng = rng
 
     # Calculate how much needs to be called
     call_amount = opponent_bet - current_bet

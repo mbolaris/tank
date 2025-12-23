@@ -189,7 +189,7 @@ class SkillStrategy(ABC, Generic[ActionType]):
         """
         pass
 
-    def mutate(self, mutation_rate: float = 0.1) -> None:
+    def mutate(self, mutation_rate: float = 0.1, rng: Optional["random.Random"] = None) -> None:
         """Apply random mutation to strategy parameters.
 
         Default implementation mutates all parameters slightly.
@@ -197,14 +197,16 @@ class SkillStrategy(ABC, Generic[ActionType]):
 
         Args:
             mutation_rate: Probability and magnitude of mutations
+            rng: Optional random number generator for deterministic mutations
         """
         import random
+        _rng = rng if rng is not None else random.Random()
         params = self.get_parameters()
         mutated = {}
         for key, value in params.items():
-            if random.random() < mutation_rate:
+            if _rng.random() < mutation_rate:
                 # Add Gaussian noise
-                mutated[key] = value + random.gauss(0, mutation_rate)
+                mutated[key] = value + _rng.gauss(0, mutation_rate)
             else:
                 mutated[key] = value
         self.set_parameters(mutated)

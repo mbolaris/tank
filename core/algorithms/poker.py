@@ -791,8 +791,9 @@ class PokerConservative(BehaviorAlgorithm):
                         best_advantage = energy_advantage
                         best_target = other
 
-        # Only engage if we found a favorable matchup
-        if best_target and random.random() > self.parameters["max_risk_tolerance"]:
+        # Only engage if we found a favorable matchup (use environment RNG for determinism)
+        rng = getattr(fish.environment, "rng", random)
+        if best_target and rng.random() > self.parameters["max_risk_tolerance"]:
             direction = self._safe_normalize(best_target.pos - fish.pos)
             speed = self.parameters["challenge_speed"]
             return direction.x * speed, direction.y * speed

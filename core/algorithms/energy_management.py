@@ -228,8 +228,9 @@ class OpportunisticRester(BehaviorAlgorithm):
             if vel_len_sq > 0.01:
                 vel_len = math.sqrt(vel_len_sq)
                 return fish.vel.x / vel_len * self.parameters["active_speed"], fish.vel.y / vel_len * self.parameters["active_speed"]
-            # If stationary, pick a random direction
-            angle = random.random() * 6.283185307
+            # If stationary, pick a random direction (use environment RNG for determinism)
+            rng = getattr(fish.environment, "rng", random)
+            angle = rng.random() * 6.283185307
             return self.parameters["active_speed"] * math.cos(angle), self.parameters["active_speed"] * math.sin(angle)
 
         # Idle wandering when no stimuli detected
@@ -290,8 +291,9 @@ class EnergyBalancer(BehaviorAlgorithm):
             if vel_len_sq > 0.01:
                 vel_len = math.sqrt(vel_len_sq)
                 return fish.vel.x / vel_len * 0.1, fish.vel.y / vel_len * 0.1
-            # If stationary, pick a random direction to explore
-            angle = random.random() * 6.283185307
+            # If stationary, pick a random direction to explore (use environment RNG)
+            rng = getattr(fish.environment, "rng", random)
+            angle = rng.random() * 6.283185307
             return 0.1 * math.cos(angle), 0.1 * math.sin(angle)
 
         # Safe energy: normal activity based on ratio
@@ -311,8 +313,9 @@ class EnergyBalancer(BehaviorAlgorithm):
         if vel_len_sq > 0.01:
             vel_len = math.sqrt(vel_len_sq)
             return fish.vel.x / vel_len * activity, fish.vel.y / vel_len * activity
-        # If stationary, pick random direction
-        angle = random.random() * 6.283185307
+        # If stationary, pick random direction (use environment RNG for determinism)
+        rng = getattr(fish.environment, "rng", random)
+        angle = rng.random() * 6.283185307
         return activity * math.cos(angle), activity * math.sin(angle)
 
 
@@ -341,8 +344,9 @@ class SustainableCruiser(BehaviorAlgorithm):
         if vel_len_sq > 0.01:
             vel_len = math.sqrt(vel_len_sq)
             return fish.vel.x / vel_len * cruise, fish.vel.y / vel_len * cruise
-        # If stationary, pick random direction
-        angle = random.random() * 6.283185307
+        # If stationary, pick random direction (use environment RNG for determinism)
+        rng = getattr(fish.environment, "rng", random)
+        angle = rng.random() * 6.283185307
         return cruise * math.cos(angle), cruise * math.sin(angle)
 
 
@@ -454,8 +458,9 @@ class MetabolicOptimizer(BehaviorAlgorithm):
         if vel_len_sq > 0.01:
             vel_len = math.sqrt(vel_len_sq)
             return fish.vel.x / vel_len * speed, fish.vel.y / vel_len * speed
-        # If stationary, pick random direction
-        angle = random.random() * 6.283185307
+        # If stationary, pick random direction (use environment RNG for determinism)
+        rng = getattr(fish.environment, "rng", random)
+        angle = rng.random() * 6.283185307
         return speed * math.cos(angle), speed * math.sin(angle)
 
 

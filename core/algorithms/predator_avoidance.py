@@ -221,10 +221,11 @@ class ErraticEvader(BehaviorAlgorithm):
                 perp_x = -away_dir.y
                 perp_y = away_dir.x
 
-                # Mix escape direction with random perpendicular movement
+                # Mix escape direction with random perpendicular movement (use environment RNG)
                 randomness = self.parameters["randomness"]
-                vx = away_dir.x * 0.6 + perp_x * random.uniform(-randomness, randomness)
-                vy = away_dir.y * 0.6 + perp_y * random.uniform(-randomness, randomness)
+                rng = getattr(fish.environment, "rng", random)
+                vx = away_dir.x * 0.6 + perp_x * rng.uniform(-randomness, randomness)
+                vy = away_dir.y * 0.6 + perp_y * rng.uniform(-randomness, randomness)
 
                 # Adjust speed based on proximity - panic more when closer
                 proximity_multiplier = (
@@ -242,8 +243,9 @@ class ErraticEvader(BehaviorAlgorithm):
                 elif fish.pos.y > SCREEN_HEIGHT - edge_margin:
                     vy -= 0.3
 
-                # Sometimes join nearby fish for group defense
-                if random.random() < 0.2:
+                # Sometimes join nearby fish for group defense (use environment RNG)
+                rng = getattr(fish.environment, "rng", random)
+                if rng.random() < 0.2:
                     allies = [
                         f for f in fish.environment.get_agents_of_type(FishClass) if f != fish
                     ]
@@ -512,9 +514,10 @@ class DistanceKeeper(BehaviorAlgorithm):
 
             elif distance < effective_safe_distance:
                 # In the danger zone, maintain distance
-                # Strafe perpendicular while keeping distance
+                # Strafe perpendicular while keeping distance (use environment RNG)
                 perp_x, perp_y = -direction.y, direction.x
-                if random.random() > 0.5:
+                rng = getattr(fish.environment, "rng", random)
+                if rng.random() > 0.5:
                     perp_x, perp_y = -perp_x, -perp_y
                 return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], (
                     direction.y * 0.4 + perp_y * 0.6

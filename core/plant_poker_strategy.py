@@ -54,7 +54,11 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: random.Random = None,
     ) -> Tuple[BettingAction, float]:
+        # Use provided RNG or create a fallback for backward compatibility
+        _rng = rng if rng is not None else random.Random()
+        
         call_amount = max(0.0, opponent_bet - current_bet)
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
@@ -78,7 +82,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
 
         if adjusted_strength < fold_threshold:
             # Allow occasional bluffs that leverage bluff_frequency and aggression
-            if random.random() < bluff_frequency * (0.8 + aggression * 0.4):
+            if _rng.random() < bluff_frequency * (0.8 + aggression * 0.4):
                 raise_amt = pot * (0.3 + aggression * 0.6)
                 raise_amt = min(raise_amt, player_energy * 0.2)
                 if raise_amt > 0:
@@ -95,7 +99,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         if adjusted_strength >= call_threshold:
             if call_amount == 0:
                 # Semi-bluff when we have initiative and aggression is high
-                if random.random() < aggression * 0.3:
+                if _rng.random() < aggression * 0.3:
                     raise_amt = min(pot * 0.35, player_energy * 0.15)
                     if raise_amt > 0:
                         return (BettingAction.RAISE, raise_amt)

@@ -91,7 +91,9 @@ class ReproductionSystem(BaseSystem):
 
             # Access the trait correctly: genome.behavioral.asexual_reproduction_chance.value
             asexual_trait = fish.genome.behavioral.asexual_reproduction_chance.value
-            if random.random() < asexual_trait:
+            # Use environment RNG for determinism
+            rng = getattr(fish.environment, "rng", random)
+            if rng.random() < asexual_trait:
                 # Trigger instant asexual reproduction
                 baby = fish._create_asexual_offspring()
                 if baby is not None:

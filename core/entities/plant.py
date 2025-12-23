@@ -108,9 +108,10 @@ class Plant(Agent):
         self.nectar_cooldown = PLANT_NECTAR_COOLDOWN // 2  # Start partially ready
 
         # Migration timer - check for migration every 300 frames (5 seconds at 60fps)
-        # Add random offset to prevent synchronized migrations
+        # Add random offset to prevent synchronized migrations (use environment RNG)
         self.migration_check_interval = 300
-        self.migration_timer = random.randint(0, self.migration_check_interval)
+        rng = getattr(environment, "rng", random)
+        self.migration_timer = rng.randint(0, self.migration_check_interval)
 
         # Statistics
         self.age = 0
@@ -307,7 +308,9 @@ class Plant(Agent):
 
         # Use a fixed offset from the TOP of the bounding box (where branches are)
         # Random position in top 15% of the visual tree (which is upper portion of bbox)
-        top_offset_pct = random.uniform(0.02, 0.15)  # 2-15% down from top of bbox
+        # Use environment RNG for determinism
+        rng = getattr(self.environment, "rng", random)
+        top_offset_pct = rng.uniform(0.02, 0.15)  # 2-15% down from top of bbox
 
         nectar_x = self.pos.x + self.width / 2
         nectar_y = self.pos.y + self.height * top_offset_pct
@@ -516,8 +519,9 @@ class Plant(Agent):
 
         if direction is not None:
             # Attempt migration with a probability (20% per check)
-            # This makes migration less aggressive than guaranteed
-            if random.random() < 0.20:
+            # This makes migration less aggressive than guaranteed (use environment RNG)
+            rng = getattr(self.environment, "rng", random)
+            if rng.random() < 0.20:
                 self._attempt_migration(direction)
 
     def _attempt_migration(self, direction: str) -> bool:

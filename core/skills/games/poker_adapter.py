@@ -265,7 +265,7 @@ class PokerSkillGame(SkillGame):
         Args:
             player_strategy: Player's poker strategy
             opponent_strategy: Opponent's strategy (default: optimal)
-            game_state: Optional state including hand_strength, pot, etc.
+            game_state: Optional state including hand_strength, pot, rng, etc.
             
         Returns:
             Game result with score change
@@ -277,9 +277,12 @@ class PokerSkillGame(SkillGame):
         
         state = game_state or {}
         
-        # Generate random hand strengths if not provided
-        player_strength = state.get("hand_strength", random.random())
-        opponent_strength = state.get("opponent_strength", random.random())
+        # Use provided RNG or create fallback for determinism
+        _rng = state.get("rng") or random.Random()
+        
+        # Generate random hand strengths if not provided (using RNG)
+        player_strength = state.get("hand_strength", _rng.random())
+        opponent_strength = state.get("opponent_strength", _rng.random())
         
         pot = self.small_blind + self.big_blind
         

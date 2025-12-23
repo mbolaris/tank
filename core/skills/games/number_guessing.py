@@ -465,9 +465,14 @@ class NumberGuessingGame(SkillGame):
             "predictor has perfect pattern recognition."
         )
 
-    def create_default_strategy(self) -> NumberGuessingStrategy:
-        """Create a new strategy with random initial weights."""
-        weights = [random.random() for _ in range(4)]
+    def create_default_strategy(self, rng: Optional[random.Random] = None) -> NumberGuessingStrategy:
+        """Create a new strategy with random initial weights.
+        
+        Args:
+            rng: Optional random number generator for determinism
+        """
+        _rng = rng if rng is not None else random.Random()
+        weights = [_rng.random() for _ in range(4)]
         total = sum(weights)
         weights = [w / total for w in weights]
 
@@ -476,7 +481,7 @@ class NumberGuessingGame(SkillGame):
             weight_trend=weights[1],
             weight_mean=weights[2],
             weight_alternating=weights[3],
-            learning_rate=random.uniform(0.05, 0.2),
+            learning_rate=_rng.uniform(0.05, 0.2),
         )
 
     def create_optimal_strategy(self) -> OptimalNumberGuessingStrategy:

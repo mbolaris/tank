@@ -93,16 +93,18 @@ class RPSStrategy(SkillStrategy[RPSAction]):
             # Reset to uniform if all zero
             self.prob_rock = self.prob_paper = self.prob_scissors = 1.0 / 3.0
 
-    def choose_action(self, game_state: Dict[str, Any]) -> RPSAction:
+    def choose_action(self, game_state: Dict[str, Any], rng: Optional[random.Random] = None) -> RPSAction:
         """Choose an action based on current probabilities.
 
         Args:
             game_state: Optional state (not used in basic RPS)
+            rng: Optional random number generator for determinism
 
         Returns:
             The chosen action
         """
-        r = random.random()
+        _rng = rng if rng is not None else random.Random()
+        r = _rng.random()
         if r < self.prob_rock:
             action = RPSAction.ROCK
         elif r < self.prob_rock + self.prob_paper:
@@ -335,22 +337,26 @@ class RockPaperScissorsGame(SkillGame):
             "can achieve better than 0 expected value against it."
         )
 
-    def create_default_strategy(self) -> RPSStrategy:
+    def create_default_strategy(self, rng: Optional[random.Random] = None) -> RPSStrategy:
         """Create a new strategy with slight random bias.
 
         Fish start with slightly non-optimal strategies so evolution
         can improve them toward the Nash equilibrium.
+        
+        Args:
+            rng: Optional random number generator for determinism
         """
+        _rng = rng if rng is not None else random.Random()
         # Add some randomness to starting probabilities
-        r = random.random() * 0.3 + 0.2  # 0.2 to 0.5
-        p = random.random() * 0.3 + 0.2
+        r = _rng.random() * 0.3 + 0.2  # 0.2 to 0.5
+        p = _rng.random() * 0.3 + 0.2
         s = 1.0 - r - p
 
         return RPSStrategy(
             prob_rock=max(0.1, r),
             prob_paper=max(0.1, p),
             prob_scissors=max(0.1, s),
-            learning_rate=random.uniform(0.05, 0.2),
+            learning_rate=_rng.uniform(0.05, 0.2),
         )
 
     def create_optimal_strategy(self) -> OptimalRPSStrategy:

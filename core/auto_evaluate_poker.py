@@ -20,6 +20,7 @@ For fair evaluation with minimal positional variance:
 """
 
 import logging
+import random
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -196,6 +197,9 @@ class AutoEvaluatePokerGame:
         self.winner: Optional[str] = None
         self.last_hand_message = ""
         self.performance_history: List[Dict[str, Any]] = []
+        
+        # Decision RNG for deterministic standard algorithm decisions
+        self._decision_rng = random.Random(rng_seed)
 
     def get_players(self) -> List[EvalPlayerState]:
         """Get list of players."""
@@ -407,6 +411,7 @@ class AutoEvaluatePokerGame:
                 hole_cards=player.hole_cards,
                 community_cards=self.community_cards if self.community_cards else None,
                 position_on_button=(player_index == self.button_position),
+                rng=self._decision_rng,
             )
 
         else:  # Fish player

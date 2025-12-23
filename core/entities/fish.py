@@ -908,9 +908,10 @@ class Fish(Agent):
         bounds = self.environment.get_bounds()
         (min_x, min_y), (max_x, max_y) = bounds
 
-        # Create offspring near parent
-        offset_x = random.uniform(-30, 30)
-        offset_y = random.uniform(-30, 30)
+        # Create offspring near parent (use environment RNG for determinism)
+        rng = getattr(self.environment, "rng", random)
+        offset_x = rng.uniform(-30, 30)
+        offset_y = rng.uniform(-30, 30)
         baby_x = self.pos.x + offset_x
         baby_y = self.pos.y + offset_y
 

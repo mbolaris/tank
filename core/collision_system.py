@@ -212,8 +212,9 @@ class CollisionSystem(BaseSystem):
                 parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
 
                 # TODO: Move this to PlantPropagationSystem
-                # Check sprouting chance
-                if random.random() < PLANT_SPROUTING_CHANCE:
+                # Check sprouting chance (use engine RNG for determinism)
+                rng = getattr(self._engine.ecosystem, "rng", random) if hasattr(self._engine, "ecosystem") and self._engine.ecosystem else random
+                if rng.random() < PLANT_SPROUTING_CHANCE:
                     self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
 
                 self.engine.remove_entity(food)
