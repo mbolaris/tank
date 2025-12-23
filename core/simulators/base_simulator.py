@@ -168,15 +168,6 @@ class BaseSimulator(ABC):
         # Must be within max distance but farther than min distance (not touching)
         return min_dist_sq < distance_sq <= max_dist_sq
 
-    def check_fish_poker_proximity(self, fish1: "Agent", fish2: "Agent") -> bool:
-        """Check if two fish are in poker proximity (close but not touching).
-
-        Legacy method - calls check_poker_proximity with fish defaults.
-        """
-        return self.check_poker_proximity(
-            fish1, fish2, FISH_POKER_MIN_DISTANCE, FISH_POKER_MAX_DISTANCE
-        )
-
     def record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
         """Record a fish death in the ecosystem and mark for delayed removal.
 
@@ -389,72 +380,6 @@ class BaseSimulator(ABC):
                     self.record_fish_death(fish)
                     return True
         return False
-
-    def handle_plant_collisions(self) -> None:
-        """Handle collisions involving plants.
-
-        Fish can play poker against plants to consume their energy.
-        Uses spatial partitioning for efficient collision detection.
-        """
-        from core.entities import Fish
-        from core.entities.plant import Plant
-
-        all_entities = self.get_all_entities()
-        all_entities_set = set(all_entities)
-
-        # Find all plants
-        plant_list = [e for e in all_entities if isinstance(e, Plant)]
-
-        if not plant_list:
-            return
-
-        # Find all fish
-        fish_list = [e for e in all_entities if isinstance(e, Fish)]
-
-        if not fish_list:
-            return
-
-        # Performance: Cache references
-        environment = self.environment
-
-        for plant in plant_list:
-            if plant not in all_entities_set:
-                continue
-
-            if plant.is_dead():
-                continue
-
-            # Use spatial grid for nearby entity lookup
-            # Add buffer for entity sizes since query uses position but proximity uses center
-            search_radius = PLANT_POKER_MAX_DISTANCE + max(plant.width, plant.height) / 2
-            if environment is not None:
-                # Optimize: Only look for fish
-                if hasattr(environment, "nearby_evolving_agents"):
-                    nearby_entities = environment.nearby_evolving_agents(plant, radius=search_radius)
-                else:
-                    nearby_entities = environment.nearby_agents_by_type(plant, radius=search_radius, agent_class=Fish)
-            else:
-                nearby_entities = fish_list
-
-            for fish in nearby_entities:
-                if not isinstance(fish, Fish):
-                    continue
-
-                # Check if fish is in poker proximity zone (close but not touching)
-                if check_poker_proximity(
-                    fish, plant,
-                    min_distance=PLANT_POKER_MIN_DISTANCE,
-                    max_distance=PLANT_POKER_MAX_DISTANCE
-                ):
-                    # Try to play poker
-                    self.handle_fish_plant_collision(fish, plant)
-
-                    # Check if plant died from poker
-                    if plant.is_dead():
-                        plant.die()  # Release root spot
-                        self.remove_entity(plant)
-                        all_entities_set.discard(plant)
-                        break
 
     def handle_mixed_poker_games(self) -> None:
         """Handle poker games between any mix of fish and plants.
@@ -858,81 +783,6 @@ class BaseSimulator(ABC):
                 if baby is not None:
                     self.add_entity(baby)
                     baby.register_birth()
-
-    def find_fish_groups_in_contact(self) -> List[List["Fish"]]:
-        """Find groups of fish that are in poker proximity (close but not touching).
-
-        Uses a union-find approach to group fish that are within poker proximity
-        of each other. Returns groups where poker games should be played.
-
-        Returns:
-            List of fish groups, where each group is a list of Fish in proximity
-        """
-        from core.entities import Fish
-
-        # Get all fish entities
-        all_entities = self.get_all_entities()
-        fish_list = [e for e in all_entities if isinstance(e, Fish)]
-
-        if len(fish_list) < 2:
-            return []
-
-        # Build adjacency list of fish that are in poker proximity range
-        fish_contacts = {fish: set() for fish in fish_list}
-
-        for i, fish1 in enumerate(fish_list):
-            # Use spatial grid to find nearby fish
-            nearby_entities = []
-            if self.environment is not None:
-                # Optimize: Only look for fish - use max poker distance for query
-                if hasattr(self.environment, "nearby_evolving_agents"):
-                    nearby_entities = self.environment.nearby_evolving_agents(fish1, radius=FISH_POKER_MAX_DISTANCE)
-                else:
-                    nearby_entities = self.environment.nearby_agents_by_type(
-                        fish1, radius=FISH_POKER_MAX_DISTANCE, agent_class=Fish
-                    )
-            else:
-                nearby_entities = fish_list
-
-            for fish2 in nearby_entities:
-                if fish2 == fish1 or not isinstance(fish2, Fish):
-                    continue
-
-                # Check if they're in poker proximity (close but not touching)
-                if self.check_fish_poker_proximity(fish1, fish2):
-                    fish_contacts[fish1].add(fish2)
-                    fish_contacts[fish2].add(fish1)
-
-        # Find connected components using DFS
-        visited = set()
-        groups = []
-
-        for fish in fish_list:
-            if fish in visited:
-                continue
-
-            # Start a new group with DFS
-            group = []
-            stack = [fish]
-
-            while stack:
-                current = stack.pop()
-                if current in visited:
-                    continue
-
-                visited.add(current)
-                group.append(current)
-
-                # Add all connected fish to the stack
-                for neighbor in fish_contacts[current]:
-                    if neighbor not in visited:
-                        stack.append(neighbor)
-
-            # Only add groups with 2 or more fish
-            if len(group) >= 2:
-                groups.append(group)
-
-        return groups
 
     def handle_fish_collisions(self) -> None:
         """Handle collisions involving fish.

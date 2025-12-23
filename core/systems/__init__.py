@@ -148,7 +148,6 @@ processes one complete frame in this order:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           SPAWN                                              │
 │  Create new entities to maintain ecosystem health                           │
-│  └── FoodSpawningSystem: Spawn food based on ecosystem energy levels       │
 │  └── EmergencySpawnSystem: Spawn fish if population critically low         │
 │  └── PlantSystem: Handle plant growth and nectar production                │
 │                                                                             │
@@ -199,7 +198,6 @@ Why This Order Matters
 
 Available Systems
 -----------------
-- `FoodSpawningSystem`: Handles automatic food spawning based on ecosystem needs
 - `CollisionSystem`: (in collision_system.py) Handles collision detection and response
 - `PokerSystem`: (in poker_system.py) Manages poker game initiation and resolution
 - `ReproductionSystem`: (in reproduction_system.py) Handles mating and offspring creation
@@ -233,6 +231,5 @@ See Also
 """
 
 from core.systems.base import BaseSystem, System, SystemResult
-from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
 
-__all__ = ["BaseSystem", "System", "SystemResult", "FoodSpawningSystem", "SpawnRateConfig"]
+__all__ = ["BaseSystem", "System", "SystemResult"]
