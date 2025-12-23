@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
-from core.migration_protocol import MigrationHandler
+from core.interfaces import MigrationHandler
 from core.world import World, World2D  # Import World protocols
 
 
