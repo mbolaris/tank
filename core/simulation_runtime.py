@@ -9,7 +9,7 @@ registries.
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 from core.cache_manager import CacheManager
@@ -120,11 +120,30 @@ class SimulationRuntime:
     ) -> None:
         self.config = config or SimulationRuntimeConfig()
         self._registry_factory = registry_factory
+        self._resolved_rng: Optional[random.Random] = None
+        self._resolved_seed: Optional[int] = None
+
+    def resolve_rng(self, override: Optional[random.Random] = None) -> tuple[random.Random, Optional[int]]:
+        """Resolve and cache the RNG/seed for consistent reuse.
+
+        Args:
+            override: Optional RNG to force as the shared instance.
+
+        Returns:
+            Tuple of (rng, seed_used)
+        """
+        if override is not None:
+            self._resolved_rng = override
+            self._resolved_seed = None
+            return override, None
+
+        if self._resolved_rng is None:
+            self._resolved_rng, self._resolved_seed = self.config.resolve_rng()
+
+        return self._resolved_rng, self._resolved_seed
 
     def build_context(self, entity_provider, rng: Optional[random.Random] = None) -> SimulationContext:
-        resolved_rng = rng
-        if resolved_rng is None:
-            resolved_rng, _ = self.config.resolve_rng()
+        resolved_rng, _ = self.resolve_rng(override=rng)
         cache_manager = CacheManager(entity_provider)
         return SimulationContext(
             rng=resolved_rng,

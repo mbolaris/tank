@@ -166,15 +166,19 @@ class SimulationEngine(BaseSimulator):
             enable_poker_benchmarks: If True, enable periodic benchmark evaluations
         """
         super().__init__()
-        runtime_config = SimulationRuntimeConfig(
-            headless=headless,
-            rng=rng,
-            seed=seed,
-            enable_poker_benchmarks=enable_poker_benchmarks,
-        )
-        self.runtime = runtime or SimulationRuntime(runtime_config)
+        if runtime is None:
+            runtime_config = SimulationRuntimeConfig(
+                headless=headless,
+                rng=rng,
+                seed=seed,
+                enable_poker_benchmarks=enable_poker_benchmarks,
+            )
+            self.runtime = SimulationRuntime(runtime_config)
+        else:
+            self.runtime = runtime
+
         # Resolve RNG once so the context and engine share the same deterministic source.
-        resolved_rng, resolved_seed = self.runtime.config.resolve_rng()
+        resolved_rng, resolved_seed = self.runtime.resolve_rng()
         self.seed = resolved_seed
         self.headless = self.runtime.config.headless
         self.entities_list: List[entities.Agent] = []

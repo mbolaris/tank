@@ -58,3 +58,12 @@ def test_registered_systems_run_in_order():
         (2, "beta"),
         (2, "gamma"),
     ]
+
+
+def test_runtime_reuses_rng_for_context_and_engine():
+    rng = random.Random(99)
+    runtime = SimulationRuntime(SimulationRuntimeConfig(rng=rng))
+    engine = SimulationEngine(runtime=runtime)
+
+    assert engine.rng is rng
+    assert engine.context.rng is rng
