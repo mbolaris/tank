@@ -969,6 +969,58 @@ class SimulationEngine(BaseSimulator):
             energy_transferred,
         )
 
+    def _record_and_apply_mixed_poker_outcome(self, poker) -> None:
+        """Expose mixed poker accounting for tests and simulators.
+
+        Delegates to the poker system for full handling (events, reproduction,
+        ecosystem accounting). Falls back to direct ecosystem accounting if the
+        delegation fails for any reason.
+        """
+        try:
+            if hasattr(self, "poker_system") and hasattr(
+                self.poker_system, "_record_and_apply_mixed_poker_outcome"
+            ):
+                self.poker_system._record_and_apply_mixed_poker_outcome(poker)
+                return
+        except Exception:
+            logger.exception("Delegating mixed poker outcome to PokerSystem failed")
+
+        # Minimal fallback: record the mixed poker energy deltas directly.
+        if poker is None or getattr(poker, "result", None) is None:
+            return
+
+        ecosystem = getattr(self, "ecosystem", None)
+        if ecosystem is None:
+            return
+
+        result = poker.result
+        initial = getattr(poker, "_initial_player_energies", None)
+
+        fish_delta = 0.0
+        plant_delta = 0.0
+
+        try:
+            from core.entities import Fish
+            from core.entities.plant import Plant
+
+            if initial is not None and len(initial) == len(getattr(poker, "players", [])):
+                for idx, player in enumerate(poker.players):
+                    delta = float(getattr(player, "energy", 0.0)) - float(initial[idx])
+                    if isinstance(player, Fish):
+                        fish_delta += delta
+                    elif isinstance(player, Plant):
+                        plant_delta += delta
+        except Exception:
+            logger.exception("Failed to compute mixed poker deltas; skipping accounting")
+            return
+
+        ecosystem.record_mixed_poker_outcome(
+            fish_delta=fish_delta,
+            plant_delta=plant_delta,
+            house_cut=float(getattr(result, "house_cut", 0.0) or 0.0),
+            winner_type=str(getattr(result, "winner_type", "")),
+        )
+
 
 class HeadlessSimulator(SimulationEngine):
     """Wrapper class for CI/testing with simplified interface.
