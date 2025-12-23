@@ -8,14 +8,8 @@ import random
 from typing import List, Optional
 
 from core import entities, environment, movement_strategy
-from core.config.display import (
-    FILES,
-    INIT_POS,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-)
+from core.config.simulation_config import DisplayConfig, EcosystemConfig
 from core.config.fish import FISH_BASE_SPEED
-from core.config.ecosystem import NUM_SCHOOLING_FISH
 from core.ecosystem import EcosystemManager
 from core.genetics import Genome
 
@@ -23,8 +17,8 @@ from core.genetics import Genome
 def create_initial_population(
     env: environment.Environment,
     ecosystem: EcosystemManager,
-    screen_width: int = SCREEN_WIDTH,
-    screen_height: int = SCREEN_HEIGHT,
+    display_config: Optional[DisplayConfig] = None,
+    ecosystem_config: Optional[EcosystemConfig] = None,
     rng: Optional[random.Random] = None,
 ) -> List[entities.Agent]:
     """Create initial population for simulation.
@@ -39,26 +33,28 @@ def create_initial_population(
     Args:
         env: Environment instance for spatial queries
         ecosystem: EcosystemManager for population tracking
-        screen_width: Screen width for boundary constraints
-        screen_height: Screen height for boundary constraints
+        display_config: Display configuration for asset selection and bounds
+        ecosystem_config: Ecosystem configuration controlling initial population size
 
     Returns:
         List of Entity objects representing the initial population
     """
+    display_config = display_config or DisplayConfig()
+    ecosystem_config = ecosystem_config or EcosystemConfig()
     population = []
     rng = rng if rng is not None else random.Random()
     # These fish use the algorithmic evolution system with diverse genomes
     for _i in range(
-        NUM_SCHOOLING_FISH
-    ):  # Start with NUM_SCHOOLING_FISH algorithmic fish for better evolution and sustainability
-        x = INIT_POS["school"][0] + rng.randint(-100, 100)
-        y = INIT_POS["school"][1] + rng.randint(-60, 60)
+        ecosystem_config.num_schooling_fish
+    ):  # Start with configured algorithmic fish for better evolution and sustainability
+        x = display_config.init_pos["school"][0] + rng.randint(-100, 100)
+        y = display_config.init_pos["school"][1] + rng.randint(-60, 60)
         # Create genome with behavior algorithm
         genome = Genome.random(use_algorithm=True, rng=rng)
         fish = entities.Fish(
             env,
             movement_strategy.AlgorithmicMovement(),
-            FILES["schooling_fish"][0],
+            display_config.files["schooling_fish"][0],
             x,
             y,
             FISH_BASE_SPEED,
@@ -75,14 +71,14 @@ def create_initial_population(
     # Spawn 8 food items at various locations so fish have immediate targets
     initial_food = []
     food_positions = [
-        (screen_width * 0.25, screen_height * 0.3),  # Upper left area
-        (screen_width * 0.5, screen_height * 0.25),  # Upper middle
-        (screen_width * 0.75, screen_height * 0.35),  # Upper right area
-        (screen_width * 0.2, screen_height * 0.5),  # Middle left
-        (screen_width * 0.6, screen_height * 0.45),  # Middle right
-        (screen_width * 0.3, screen_height * 0.65),  # Lower left
-        (screen_width * 0.7, screen_height * 0.6),  # Lower right
-        (screen_width * 0.5, screen_height * 0.55),  # Lower middle
+        (display_config.screen_width * 0.25, display_config.screen_height * 0.3),  # Upper left area
+        (display_config.screen_width * 0.5, display_config.screen_height * 0.25),  # Upper middle
+        (display_config.screen_width * 0.75, display_config.screen_height * 0.35),  # Upper right area
+        (display_config.screen_width * 0.2, display_config.screen_height * 0.5),  # Middle left
+        (display_config.screen_width * 0.6, display_config.screen_height * 0.45),  # Middle right
+        (display_config.screen_width * 0.3, display_config.screen_height * 0.65),  # Lower left
+        (display_config.screen_width * 0.7, display_config.screen_height * 0.6),  # Lower right
+        (display_config.screen_width * 0.5, display_config.screen_height * 0.55),  # Lower middle
     ]
     for x, y in food_positions:
         food = entities.Food(
@@ -96,8 +92,8 @@ def create_initial_population(
         initial_food.append(food)
 
     # Create crab and castle
-    crab = entities.Crab(env, None, *INIT_POS["crab"])
-    castle = entities.Castle(env, *INIT_POS["castle"])
+    crab = entities.Crab(env, None, *display_config.init_pos["crab"])
+    castle = entities.Castle(env, *display_config.init_pos["castle"])
 
     # Add all non-fish entities
     population.extend(initial_food + [crab, castle])
