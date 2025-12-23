@@ -117,12 +117,23 @@ class PokerGameEvent(Event):
     """Emitted when a poker game completes."""
 
     winner_id: int = 0
-    loser_id: int = 0
+    loser_ids: List[int] = None  # type: ignore[assignment]
     winner_type: str = "fish"  # "fish" or "plant"
-    loser_type: str = "fish"
+    loser_types: List[str] = None  # type: ignore[assignment]
     energy_transferred: float = 0.0
     winner_hand: str = ""
-    loser_hand: str = ""
+    loser_hands: List[str] = None  # type: ignore[assignment]
+    is_tie: bool = False
+    house_cut: float = 0.0
+
+    def __post_init__(self) -> None:
+        # Normalize list defaults
+        if self.loser_ids is None:
+            self.loser_ids = []
+        if self.loser_types is None:
+            self.loser_types = []
+        if self.loser_hands is None:
+            self.loser_hands = []
 
 
 @dataclass
@@ -143,6 +154,14 @@ class SystemStateEvent(Event):
     system: str = ""  # "time", "weather", etc.
     state: str = ""  # "day", "night", etc.
     value: float = 0.0  # Optional numeric value
+
+
+@dataclass
+class PhaseTransitionEvent(Event):
+    """Emitted at the start and end of each simulation phase."""
+
+    phase: str = ""
+    status: str = "start"  # "start" or "end"
 
 
 # ============================================================================
