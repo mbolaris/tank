@@ -900,10 +900,6 @@ class Fish(Agent):
         self.energy -= parent_transfer
         baby_initial_energy = bank_used + parent_transfer
 
-        # Record reproduction energy for visibility in stats
-        if self.ecosystem is not None:
-            self.ecosystem.record_reproduction_energy(parent_transfer, baby_initial_energy)
-
         # Get boundaries from environment (World protocol)
         bounds = self.environment.get_bounds()
         (min_x, min_y), (max_x, max_y) = bounds

@@ -275,6 +275,7 @@ class BehaviorStrategy(Protocol):
         ...
 
 
+@runtime_checkable
 class SimulationStats(Protocol):
     """Interface for simulation statistics collection.
 
@@ -365,6 +366,7 @@ class SimulationStats(Protocol):
         ...
 
 
+@runtime_checkable
 class EntityManager(Protocol):
     """Interface for managing entities in the simulation."""
 
@@ -391,6 +393,7 @@ class SpatialQuery(World, Protocol):
     ...
 
 
+@runtime_checkable
 class FoodSpawner(Protocol):
     """Interface for food spawning systems."""
 
@@ -413,6 +416,7 @@ class FoodSpawner(Protocol):
         ...
 
 
+@runtime_checkable
 class CollisionHandler(Protocol):
     """Interface for collision detection and handling."""
 
@@ -425,6 +429,7 @@ class CollisionHandler(Protocol):
         ...
 
 
+@runtime_checkable
 class PokerCoordinator(Protocol):
     """Interface for poker game coordination."""
 

@@ -1151,11 +1151,6 @@ class BaseSimulator(ABC):
         winner.energy = max(0.0, winner.energy - winner_contrib)
         mate.energy = max(0.0, mate.energy - mate_contrib)
 
-        if winner.ecosystem is not None:
-            winner.ecosystem.record_reproduction_energy(
-                winner_contrib + mate_contrib, total_contrib
-            )
-
         winner._reproduction_component.reproduction_cooldown = max(
             winner._reproduction_component.reproduction_cooldown,
             REPRODUCTION_COOLDOWN,

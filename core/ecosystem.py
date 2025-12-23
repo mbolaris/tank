@@ -829,22 +829,6 @@ class EcosystemManager:
             "avg_energy_delta": avg_delta,
         }
 
-    def record_reproduction_energy(self, parent_cost: float, baby_initial_energy: float) -> None:
-        """Track energy transfer during reproduction.
-
-        NOTE: This method now does nothing. Reproduction is an internal transfer:
-        - Parent's energy goes to baby
-        - Bank energy (from previous overflow) goes to baby
-        - No energy enters or leaves the fish population
-        
-        The bank was never recorded as an outflow (it stays within the fish).
-        The parent→baby transfer is just moving energy around internally.
-        
-        This method is kept for API compatibility but does not record anything.
-        """
-        # Reproduction is internal - no external flows to track
-        pass
-
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
         from core import algorithm_reporter
 
