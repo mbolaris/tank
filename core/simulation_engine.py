@@ -531,6 +531,10 @@ class SimulationEngine(BaseSimulator):
         super().handle_poker_result(poker)
         self.poker_system.handle_poker_result(poker)
 
+    def handle_mixed_poker_games(self) -> None:
+        """Delegate mixed poker games to the poker system."""
+        self.poker_system.handle_mixed_poker_games()
+
     def update(self) -> None:
         """Update the state of the simulation.
 
