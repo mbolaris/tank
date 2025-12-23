@@ -92,7 +92,9 @@ class Fish(Agent):
         if genome is not None:
             self.genome = genome
         else:
-            self.genome = Genome.random()
+            # Use environment RNG for deterministic genome creation
+            rng = getattr(environment, "rng", None)
+            self.genome = Genome.random(rng=rng)
 
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
         if self.genome.behavioral.poker_strategy is None:

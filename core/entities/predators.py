@@ -31,7 +31,12 @@ class Crab(Agent):
     ) -> None:
         """Initialize a crab."""
         # Crabs are slower and less aggressive now
-        self.genome: Genome = genome if genome is not None else Genome.random()
+        # Use environment RNG for deterministic genome creation
+        if genome is not None:
+            self.genome: Genome = genome
+        else:
+            rng = getattr(environment, "rng", None)
+            self.genome = Genome.random(rng=rng)
         base_speed = 1.5  # Much slower than before (was 2)
         speed = base_speed * self.genome.speed_modifier
 
