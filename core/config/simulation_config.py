@@ -1,4 +1,4 @@
-"""Simulation configuration for headless and tracing options."""
+"""Lightweight simulation configuration helpers."""
 
 from dataclasses import dataclass
 from typing import Optional

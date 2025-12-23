@@ -25,7 +25,7 @@ from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from core.simulation_config import SimulationConfig
+from core.config.simulation_config import SimulationConfig
 
 logger = logging.getLogger(__name__)
 

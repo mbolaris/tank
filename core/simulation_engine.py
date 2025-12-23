@@ -34,6 +34,7 @@ from core.config.poker import (
     MAX_POKER_EVENTS,
     POKER_EVENT_MAX_AGE_FRAMES,
 )
+from core.config.simulation_config import SimulationConfig
 from core.ecosystem import EcosystemManager
 from core.entities.plant import Plant, PlantNectar
 from core.entity_factory import create_initial_population
@@ -45,7 +46,6 @@ from core.events import (
     PhaseTransitionEvent,
     PokerGameEvent,
 )
-from core.simulation_config import SimulationConfig
 from core.poker_interaction import PokerInteraction
 from core.genetics import Genome
 from core.object_pool import FoodPool
@@ -164,7 +164,7 @@ class SimulationEngine(BaseSimulator):
 
     def __init__(
         self,
-        headless: bool = True,
+        headless: Optional[bool] = None,
         rng: Optional[random.Random] = None,
         seed: Optional[int] = None,
         enable_poker_benchmarks: bool = False,
@@ -179,7 +179,14 @@ class SimulationEngine(BaseSimulator):
             simulation_config: Optional SimulationConfig to control tracing/headless modes
         """
         super().__init__()
-        self.simulation_config = simulation_config or SimulationConfig(headless=headless)
+        headless_value = (
+            headless
+            if headless is not None
+            else (simulation_config.headless if simulation_config is not None else True)
+        )
+        self.simulation_config = simulation_config or SimulationConfig(headless=headless_value)
+        # Ensure headless matches any explicit override
+        self.simulation_config.headless = headless_value
         self.headless = self.simulation_config.headless
         # Backwards-compatible RNG handling: prefer explicit rng, then seed, then fresh RNG
         if rng is not None:
