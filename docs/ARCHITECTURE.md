@@ -9,71 +9,46 @@ Tank is an advanced artificial life (ALife) ecosystem simulation featuring param
 - **Frontend**: React 19 + TypeScript + Vite
 - **Simulation**: Pure Python core with no UI dependencies
 
-**Code Statistics:**
-- ~6,400 lines of Python simulation logic
-- 100% pure simulation code (no visualization dependencies in core)
-- 12+ behavior algorithms across multiple files
+**Architecture highlights:**
+- 58 registered behavior strategies across food seeking, predator avoidance, schooling, energy, territory, and poker interaction (see `core/algorithms/registry.py`)
+- BaseSystem-driven simulation loop with a registered execution order for lifecycle, time, spawning, collisions, reproduction, and poker
 - Dual execution modes: web UI and headless
 
-## Project Structure
+## Living Architecture Sources
+
+- **Authoritative layout:** [README – Project Structure](../README.md#project-structure) is the canonical tree and should be kept in sync with this document.
+- **Diagrams:** Add links here if new diagrams are published; no standalone architecture diagrams are currently tracked in the repo.
+
+## Project Structure (overview)
 
 ```
 tank/
 ├── core/                          # Pure Python simulation (no UI dependencies)
-│   ├── entities/                 # Entity classes (Fish, Plant, Food, etc.)
-│   ├── systems/                  # Simulation systems (BaseSystem pattern)
-│   │   ├── base.py              # BaseSystem abstract class and Protocol
-│   │   └── ...                  # Future system implementations
-│   ├── ecosystem.py              # Population tracking & statistics
-│   ├── genetics/                 # Genome, mutation, crossover
-│   ├── behavior_algorithms.py   # Algorithm registry
-│   ├── algorithms/               # 12+ behavior implementations
-│   │   ├── base.py
-│   │   ├── food_seeking.py
-│   │   ├── predator_avoidance.py
-│   │   ├── schooling.py
-│   │   ├── energy_management.py
-│   │   └── territory.py
-│   ├── world.py                  # World and World2D Protocols
-│   ├── interfaces.py             # SkillfulAgent and other Protocols
-│   ├── environment.py            # Spatial queries (implements World Protocol)
-│   ├── skills/                   # Skill game framework
-│   │   ├── base.py              # SkillGame, SkillStrategy abstractions
-│   │   ├── config.py            # Game configuration and registry
-│   │   └── games/               # Game implementations
-│   │       ├── rock_paper_scissors.py
-│   │       ├── number_guessing.py
-│   │       └── poker_adapter.py # Poker as SkillGame
-│   ├── time_system.py            # Day/night cycles (extends BaseSystem)
-│   ├── collision_system.py       # Collision detection (extends BaseSystem)
-│   ├── reproduction_system.py    # Reproduction logic (extends BaseSystem)
-│   ├── poker_system.py           # Poker events (extends BaseSystem)
-│   ├── events.py                 # Event bus for decoupled communication
-│   ├── simulators/               # Base simulator classes
-│   │   └── base_simulator.py    # BaseSimulator abstract class
-│   ├── simulation_engine.py      # Main engine with System Registry
-│   └── constants.py              # Configuration
-│
+│   ├── algorithms/                # Behavior strategy library + registry
+│   ├── entities/                  # Fish, plant, predator, and resource models
+│   ├── fish/                      # Componentized fish systems (energy, lifecycle, reproduction, poker stats)
+│   ├── genetics/                  # Genomes, mutation, crossover
+│   ├── poker/                     # Poker engine (core, betting, evaluation, strategy)
+│   ├── systems/                   # BaseSystem, entity lifecycle, deterministic food spawning
+│   ├── collision_system.py        # Collision detection (BaseSystem)
+│   ├── reproduction_system.py     # Reproduction logic (BaseSystem)
+│   ├── poker_system.py            # Poker events + history (BaseSystem)
+│   ├── time_system.py             # Day/night cycles (BaseSystem)
+│   ├── skill_game_system.py       # Skill game orchestration (BaseSystem)
+│   ├── environment.py             # Spatial queries (implements World Protocol)
+│   ├── simulation_engine.py       # Main engine and system registry
+│   └── tank_world.py              # Simulation wrapper with config + RNG
 ├── backend/                       # FastAPI WebSocket server
-│   ├── main.py                   # FastAPI app with Tank World Net API
-│   ├── tank_registry.py         # Multi-tank management (Tank World Net)
-│   ├── simulation_manager.py    # Per-tank lifecycle management
-│   ├── simulation_runner.py     # Background simulation thread
-│   ├── state_payloads.py        # Serialization DTOs
-│   └── models.py                 # Data models
-│
+│   ├── main.py                    # FastAPI app with Tank World Net API
+│   ├── tank_registry.py           # Multi-tank management (Tank World Net)
+│   ├── simulation_manager.py      # Per-tank lifecycle management
+│   ├── simulation_runner.py       # Background simulation thread
+│   ├── state_payloads.py          # Serialization DTOs
+│   └── models.py                  # Data models
 ├── frontend/                      # React + TypeScript UI
-│   ├── src/
-│   │   ├── components/           # TankView, Canvas, ControlPanel, etc.
-│   │   ├── pages/                # NetworkDashboard
-│   │   ├── hooks/                # useWebSocket.ts
-│   │   ├── types/                # TypeScript definitions
-│   │   ├── utils/                # renderer.ts, fractalPlant.ts
-│   │   ├── App.tsx               # Router setup
-│   │   └── config.ts             # Server configuration
+│   ├── src/                       # Components, hooks, rendering utilities
 │   └── package.json
-│
-├── simulation_engine.py          # Headless simulation runner
+├── simulation_engine.py           # Headless simulation runner
 └── main.py                        # Main entry point
 ```
 
@@ -83,40 +58,45 @@ tank/
 
 **Design Goal:** Zero UI dependencies, fully testable
 
-- **entities.py**: Fish, Plant, Food classes
-  - Life cycle management
-  - Energy consumption
-  - Reproduction logic
-  - Age progression
+- **entities/**: Fish, Plant, predator, and resource classes with deterministic IDs
+- **fish/**: Componentized fish systems (energy, lifecycle, reproduction, poker stats)
+- **genetics/**: Genome definitions, mutation, crossover, adaptive inheritance helpers
+- **algorithms/**: Behavior strategy library with registry + adaptive mutation
+  - 58 strategies registered in `core/algorithms/registry.py`
+  - Categories: 14 food seeking, 10 predator avoidance, 10 schooling, 8 energy, 8 territory, 8 poker interaction
+  - Composable behaviors (`composable.py`) expose sub-behavior knobs for hybrids
+- **environment.py**: Spatial grid for efficient proximity queries
+- **ecosystem.py / ecosystem_population.py / ecosystem_stats.py**: Population tracking, death cause tallies, and reproduction stats
+- **fish_communication.py / fish_memory.py**: Shared memory and communication helpers for strategies
+- **tank_world.py**: Entry wrapper that wires config, RNG, and engine setup
+- **simulation_engine.py**: Central loop with system registry, event bus, plant management, and deterministic RNG plumbing
 
-- **genetics.py**: Genetic system
-  - Genome with traits (speed, size, vision, metabolism, color, lifespan)
-  - Mutation with configurable rates
-  - Sexual reproduction via crossover
-  - Algorithm inheritance
+### Behavior Algorithms & Registry
 
-- **behavior_algorithms.py** + **algorithms/**:
-  - 12+ parametrizable behavior algorithms
-  - Categories: Food Seeking, Predator Avoidance, Schooling, Energy Management, Territory
-  - Each algorithm has tunable parameters that can mutate
-  - Performance tracking per algorithm
+`core/algorithms/registry.py` is the authoritative source for behavior strategies:
+- Deterministic list (`ALL_ALGORITHMS`) for serialization and indexing
+- Adaptive mutation utilities (`inherit_algorithm_with_mutation`, `calculate_adaptive_mutation_factor`)
+- Sub-behavior controls in `composable.py` for hybrid behaviors (threat response, food approach, energy style, social mode, poker engagement)
 
-- **ecosystem.py**: Population tracking
-  - Per-algorithm statistics
-  - Generation statistics
-  - Death cause tracking
-  - Poker interaction stats
-  - Event logging
+### Poker Systems
 
-- **environment.py**: Spatial queries
-  - Spatial grid for efficient proximity queries
-  - Neighbor finding
-  - Food/mate detection
+- **core/poker/**: Engine, betting, strategy, and evaluation packages used by simulation and mixed poker.
+- **core/poker_system.py**: BaseSystem that tracks poker events, throttles mixed games, and exposes UI-facing history.
+- **core/mixed_poker/** + **core/plant_poker.py**: Plant vs. fish poker integration, including plant-triggered reproduction rules.
+- **skill_game_system.py** + **skills/games/**: Skill game orchestration with adapters (e.g., poker adapter in `skills/games/poker_adapter.py`).
 
-- **collision_system.py**: Collision detection
-  - Bounding box (AABB) collision detection
-  - Pure Python implementation
-  - Deterministic results
+### Systems & Registry
+
+`BaseSystem` lives in `core/systems/base.py`. The simulation engine registers systems in deterministic order:
+
+1. `EntityLifecycleSystem` (`core/systems/entity_lifecycle.py`) – per-frame lifecycle coordination
+2. `TimeSystem` (`core/time_system.py`) – day/night cycle management
+3. `FoodSpawningSystem` (`core/systems/food_spawning.py`) – deterministic food spawning using engine RNG
+4. `CollisionSystem` (`core/collision_system.py`) – proximity detection and interaction hooks
+5. `ReproductionSystem` (`core/reproduction_system.py`) – mating, offspring creation, and trait inheritance
+6. `PokerSystem` (`core/poker_system.py`) – poker history, throttling, and stats
+
+All systems expose `update(frame)`, `get_debug_info()`, and runtime enable/disable controls via the engine registry.
 
 ### 2. Web Backend (backend/)
 
@@ -185,7 +165,7 @@ SimulationEngine
       ├─ Update all entities
       ├─ Handle collisions
       ├─ Handle reproduction
-      ├─ Update ecosystem stats
+      ├─ Update ecosystem stats and telemetry
       └─ Send state via WebSocket
             ↓
 React Frontend (Canvas)
@@ -212,35 +192,14 @@ python main.py --headless --max-frames 10000
 
 ### Behavior Algorithms
 
-**Food Seeking:**
-1. GreedyFoodSeeker - Always move toward nearest food
-2. EnergyAwareFoodSeeker - Seek food only when energy is low
-3. OpportunisticFeeder - Balance exploration and exploitation
-4. And more...
-
-**Predator Avoidance:**
-- PanicEscape - Flee from threats
-- StealthAvoidance - Subtle evasion
-- FreezeResponse - Stop when threatened
-- And more...
-
-**Schooling/Social:**
-- Boid-based flocking behaviors
-- Alignment, cohesion, separation
-- Leader following
-- And more...
-
-**Energy Management:**
-- Burst swimming
-- Resting strategies
-- Energy balancing
-- And more...
-
-**Territory/Exploration:**
-- Territorial behavior
-- Random wandering
-- Wall following
-- And more...
+Algorithms are defined in `core/algorithms/` and registered in `registry.py`:
+- **Food seeking (14)**: e.g., GreedyFoodSeeker, FoodQualityOptimizer, SpiralForager
+- **Predator avoidance (10)**: e.g., PanicFlee, StealthyAvoider, BorderHugger
+- **Schooling/social (10)**: e.g., BoidsBehavior, LeaderFollower, PerimeterGuard
+- **Energy management (8)**: e.g., EnergyConserver, MetabolicOptimizer, AdaptivePacer
+- **Territory/exploration (8)**: e.g., TerritorialDefender, RoutePatroller, NomadicWanderer
+- **Poker interaction (8)**: e.g., PokerStrategist, PokerOpportunist, PokerBluffer
+- **Composable hybrids**: Configure threat response, food approach, energy style, social mode, and poker engagement via `composable.py`
 
 ### Movement Strategies
 
@@ -289,10 +248,11 @@ The simulation uses a **System Registry** for consistent management of all simul
 SimulationEngine
     │
     ├─ _systems: List[BaseSystem]  (registered in execution order)
-    │   ├─ EntityLifecycleSystem - Birth/death tracking, emergency spawns
+    │   ├─ EntityLifecycleSystem - Per-frame lifecycle coordination
     │   ├─ TimeSystem            - Day/night cycle management
+    │   ├─ FoodSpawningSystem    - Deterministic food spawning
     │   ├─ CollisionSystem       - Collision detection and handling
-    │   ├─ ReproductionSystem    - Asexual reproduction logic
+    │   ├─ ReproductionSystem    - Reproduction logic and inheritance
     │   └─ PokerSystem           - Poker game events and history
     │
     ├─ get_systems()           - List all registered systems
@@ -345,7 +305,7 @@ Fish behavior is modular:
 ## Separation of Concerns
 
 ### ✓ Fully Separated
-- Pure entity logic in `core/entities.py`
+- Pure entity logic in `core/entities/`
 - Pure genetics in `core/genetics/`
 - Pure ecosystem tracking in `core/ecosystem.py`
 - All algorithms are pure Python
@@ -364,7 +324,7 @@ Fish behavior is modular:
 
 ### Genetic Evolution
 - Fish inherit traits from parents with mutation
-- 12+ behavior algorithms compete for survival
+- 58 registered behavior algorithms compete for survival across six categories
 - Natural selection based on survival and reproduction
 - Genetic diversity tracking
 
@@ -418,8 +378,12 @@ The simulation uses **Protocols** (PEP 544) for defining interfaces:
 
 ## References
 
-- Main README: See `../README.md`
+- Main README: See `../README.md` (Project Structure is canonical)
 - Deployment: See `DEPLOYMENT_GUIDE.md`
 - Algorithmic Evolution: See `ALGORITHMIC_EVOLUTION.md`
 - Headless Mode: See `HEADLESS_MODE.md`
 - Cleanup Analysis: See `CLEANUP_ANALYSIS.md` (historical)
+
+## Change Log
+
+- **2025-12-23**: Aligned architecture doc with current module layout (algorithm registry counts, system registry order, poker systems) and linked to README structure section for ongoing authority.
