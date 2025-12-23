@@ -17,6 +17,7 @@ from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+    from core.simulation_runtime import SimulationContext
 
 
 @runs_in_phase(UpdatePhase.TIME_UPDATE)
@@ -36,6 +37,7 @@ class TimeSystem(BaseSystem):
         self,
         engine: "SimulationEngine",
         cycle_length: int = 1800,
+        context: "SimulationContext | None" = None,
     ) -> None:
         """Initialize the time system.
 
@@ -44,7 +46,7 @@ class TimeSystem(BaseSystem):
             cycle_length: Number of frames for a full day/night cycle
                          (default: 1800 = 1 min at 30fps)
         """
-        super().__init__(engine, "Time")
+        super().__init__(engine, "Time", context=context)
 
         self.time: float = 0.0
         self.cycle_length: int = cycle_length

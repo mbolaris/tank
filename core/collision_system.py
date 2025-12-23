@@ -22,6 +22,7 @@ from core.update_phases import UpdatePhase, runs_in_phase
 if TYPE_CHECKING:
     from core.entities import Agent
     from core.simulation_engine import SimulationEngine
+    from core.simulation_runtime import SimulationContext
 
 
 class CollisionDetector:
@@ -119,13 +120,13 @@ class CollisionSystem(BaseSystem):
     handling logic.
     """
 
-    def __init__(self, engine: "SimulationEngine") -> None:
+    def __init__(self, engine: "SimulationEngine", context: Optional["SimulationContext"] = None) -> None:
         """Initialize the collision system.
 
         Args:
             engine: The simulation engine
         """
-        super().__init__(engine, "Collision")
+        super().__init__(engine, "Collision", context=context)
         # Cumulative stats (all-time)
         self._collisions_checked: int = 0
         self._collisions_detected: int = 0

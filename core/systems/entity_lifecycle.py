@@ -22,6 +22,7 @@ from core.update_phases import UpdatePhase, runs_in_phase
 if TYPE_CHECKING:
     from core.entities import Agent, Food
     from core.simulation_engine import SimulationEngine
+    from core.simulation_runtime import SimulationContext
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +49,13 @@ class EntityLifecycleSystem(BaseSystem):
         _emergency_spawns: Count of emergency fish spawns
     """
 
-    def __init__(self, engine: "SimulationEngine") -> None:
+    def __init__(self, engine: "SimulationEngine", context: "SimulationContext | None" = None) -> None:
         """Initialize the entity lifecycle system.
 
         Args:
             engine: The simulation engine
         """
-        super().__init__(engine, "EntityLifecycle")
+        super().__init__(engine, "EntityLifecycle", context=context)
         self._deaths_this_frame: int = 0
         self._births_this_frame: int = 0
         self._total_deaths: int = 0

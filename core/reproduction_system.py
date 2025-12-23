@@ -19,6 +19,7 @@ from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+    from core.simulation_runtime import SimulationContext
 
 
 @runs_in_phase(UpdatePhase.REPRODUCTION)
@@ -34,13 +35,17 @@ class ReproductionSystem(BaseSystem):
         _asexual_triggered: Number of asexual reproductions triggered
     """
 
-    def __init__(self, engine: "SimulationEngine") -> None:
+    def __init__(
+        self,
+        engine: "SimulationEngine",
+        context: "SimulationContext | None" = None,
+    ) -> None:
         """Initialize the reproduction system.
 
         Args:
             engine: The simulation engine
         """
-        super().__init__(engine, "Reproduction")
+        super().__init__(engine, "Reproduction", context=context)
         self._asexual_checks: int = 0
         self._asexual_triggered: int = 0
 

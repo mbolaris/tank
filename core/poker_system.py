@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from core.entities import Fish
     from core.entities.plant import Plant
     from core.simulation_engine import SimulationEngine
+    from core.simulation_runtime import SimulationContext
 
 logger = logging.getLogger(__name__)
 
@@ -65,14 +66,19 @@ class PokerSystem(BaseSystem):
         _total_energy_transferred: Total energy transferred via poker
     """
 
-    def __init__(self, engine: "SimulationEngine", max_events: int = 100) -> None:
+    def __init__(
+        self,
+        engine: "SimulationEngine",
+        max_events: int = 100,
+        context: "SimulationContext | None" = None,
+    ) -> None:
         """Initialize the poker system.
 
         Args:
             engine: The simulation engine
             max_events: Maximum number of poker events to keep in history
         """
-        super().__init__(engine, "Poker")
+        super().__init__(engine, "Poker", context=context)
         self.poker_events: deque = deque(maxlen=max_events)
         self._max_events = max_events
         self._games_played: int = 0

@@ -12,8 +12,6 @@ from typing import Any, Dict, List, Optional
 
 from core import entities, environment, movement_strategy
 from core.algorithms.registry import get_algorithm_index
-from core.cache_manager import CacheManager
-from core.collision_system import CollisionSystem
 from core.config.ecosystem import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
@@ -36,27 +34,24 @@ from core.config.poker import (
 from core.ecosystem import EcosystemManager
 from core.entities.plant import Plant, PlantNectar
 from core.entity_factory import create_initial_population
-from core.events import (
-    EnergyChangedEvent,
-    EventBus,
-)
+from core.events import EnergyChangedEvent
 from core.poker_interaction import PokerInteraction
 from core.genetics import Genome
-from core.object_pool import FoodPool
 from core.genetics import PlantGenome
 from core.plant_manager import PlantManager
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-from core.poker_system import PokerSystem
-from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
 from core.services.stats_calculator import StatsCalculator
 from core.simulation_stats_exporter import SimulationStatsExporter
 from core.simulators.base_simulator import BaseSimulator
 from core.systems.base import BaseSystem
-from core.systems.entity_lifecycle import EntityLifecycleSystem
-from core.systems.food_spawning import FoodSpawningSystem
-from core.time_system import TimeSystem
+from core.simulation_runtime import (
+    SimulationContext,
+    SimulationRuntime,
+    SimulationRuntimeConfig,
+    SystemRegistry,
+)
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 
 logger = logging.getLogger(__name__)
@@ -161,6 +156,7 @@ class SimulationEngine(BaseSimulator):
         rng: Optional[random.Random] = None,
         seed: Optional[int] = None,
         enable_poker_benchmarks: bool = False,
+        runtime: Optional[SimulationRuntime] = None,
     ) -> None:
         """Initialize the simulation engine.
 
@@ -170,52 +166,57 @@ class SimulationEngine(BaseSimulator):
             enable_poker_benchmarks: If True, enable periodic benchmark evaluations
         """
         super().__init__()
-        self.headless = headless
-        # Backwards-compatible RNG handling: prefer explicit rng, then seed, then fresh RNG
-        if rng is not None:
-            self.rng: random.Random = rng
-            self.seed = None
-        elif seed is not None:
-            self.rng = random.Random(seed)
-            self.seed = seed
-        else:
-            self.rng = random.Random()
-            self.seed = None
+        runtime_config = SimulationRuntimeConfig(
+            headless=headless,
+            rng=rng,
+            seed=seed,
+            enable_poker_benchmarks=enable_poker_benchmarks,
+        )
+        self.runtime = runtime or SimulationRuntime(runtime_config)
+        # Resolve RNG once so the context and engine share the same deterministic source.
+        resolved_rng, resolved_seed = self.runtime.config.resolve_rng()
+        self.seed = resolved_seed
+        self.headless = self.runtime.config.headless
         self.entities_list: List[entities.Agent] = []
         self.agents = AgentsWrapper(self)
+        self.context: SimulationContext = self.runtime.build_context(
+            lambda: self.entities_list, rng=resolved_rng
+        )
+        self.rng: random.Random = self.context.rng
         self.environment: Optional[environment.Environment] = None
-        self.time_system: TimeSystem = TimeSystem(self)
+        self.time_system = None
         self.start_time: float = time.time()
         self.last_emergency_spawn_frame: int = (
             -EMERGENCY_SPAWN_COOLDOWN
         )  # Allow immediate first spawn
 
         # Event bus for decoupled communication between components
-        self.event_bus = EventBus()
+        self.event_bus = self.context.event_bus
 
-        # Systems - all extend BaseSystem for consistent interface
-        self.collision_system = CollisionSystem(self)
-        self.reproduction_system = ReproductionSystem(self)
-        self.poker_system = PokerSystem(self, max_events=MAX_POKER_EVENTS)
-        self.poker_events = self.poker_system.poker_events
-        self.lifecycle_system = EntityLifecycleSystem(self)
+        # Systems - all extend BaseSystem for consistent interface (created in setup)
+        self.collision_system = None
+        self.reproduction_system = None
+        self.poker_system = None
+        self.poker_events = None
+        self.lifecycle_system = None
+        self._system_registry: Optional[SystemRegistry] = None
 
         # System Registry - maintains execution order and provides uniform management
         # Systems are registered in setup() once all dependencies are ready
         self._systems: List[BaseSystem] = []
 
         # Performance: Object pool for Food entities (uses engine's rng for deterministic behavior)
-        self.food_pool = FoodPool(rng=self.rng)
+        self.food_pool = self.context.food_pool
 
         # Performance: Centralized cache management for entity type lists
-        self._cache_manager = CacheManager(lambda: self.entities_list)
+        self._cache_manager = self.context.cache_manager
 
         # Fractal plant system (initialized in setup())
         self.plant_manager: Optional[PlantManager] = None
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: Optional[PeriodicBenchmarkEvaluator] = None
-        if enable_poker_benchmarks:
+        if self.runtime.config.enable_poker_benchmarks:
             self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
                 BenchmarkEvalConfig()
             )
@@ -239,8 +240,18 @@ class SimulationEngine(BaseSimulator):
 
     def setup(self) -> None:
         """Setup the simulation."""
+        # Initialize core systems through the runtime registry
+        self._system_registry = self.runtime.create_registry(self, self.context)
+        self._systems = self._system_registry.systems.copy()
+
         # Initialize managers
-        self.environment = environment.Environment(self.entities_list, SCREEN_WIDTH, SCREEN_HEIGHT, self.time_system)
+        self.environment = environment.Environment(
+            self.entities_list,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            self.time_system,
+            rng=self.context.rng,
+        )
         self.ecosystem = EcosystemManager(max_population=MAX_POPULATION)
 
         # Initialize plant management system
@@ -251,21 +262,6 @@ class SimulationEngine(BaseSimulator):
                 entity_adder=self,
                 rng=self.rng,
             )
-
-        # Initialize food spawning system (uses engine's rng for deterministic behavior)
-        self.food_spawning_system = FoodSpawningSystem(self, rng=self.rng)
-
-        # Register systems in execution order
-        # Order matters: lifecycle first for per-frame reset, time affects behavior,
-        # collisions before reproduction
-        self._systems = [
-            self.lifecycle_system,
-            self.time_system,
-            self.food_spawning_system,
-            self.collision_system,
-            self.reproduction_system,
-            self.poker_system,
-        ]
 
         # Wire up event bus subscriptions
         self._setup_event_subscriptions()
@@ -549,6 +545,13 @@ class SimulationEngine(BaseSimulator):
         - Pre-fetch entity type classes to avoid repeated attribute access
         """
         if self.paused:
+            return
+
+        if self._system_registry and self._system_registry.should_run_registered_systems:
+            self._current_phase = UpdatePhase.FRAME_START
+            self.frame_count += 1
+            self._system_registry.run_registered_systems(self.frame_count)
+            self._current_phase = None
             return
 
         # ===== PHASE: FRAME_START =====

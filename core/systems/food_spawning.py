@@ -32,6 +32,7 @@ from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+    from core.simulation_runtime import SimulationContext
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class FoodSpawningSystem(BaseSystem):
     def __init__(
         self,
         engine: "SimulationEngine",
+        context: "SimulationContext | None" = None,
         rng: Optional[random.Random] = None,
         config: Optional[SpawnRateConfig] = None,
     ) -> None:
@@ -92,8 +94,9 @@ class FoodSpawningSystem(BaseSystem):
             rng: Random number generator (uses engine's rng if not provided)
             config: Spawn rate configuration (uses defaults if not provided)
         """
-        super().__init__(engine, "FoodSpawning")
-        self._rng = rng if rng is not None else random.Random()
+        super().__init__(engine, "FoodSpawning", context=context)
+        resolved_rng = rng if rng is not None else context.rng if context is not None else None
+        self._rng = resolved_rng if resolved_rng is not None else random.Random()
         self.config = config if config is not None else SpawnRateConfig()
         self._total_spawned: int = 0
         self._frames_since_spawn: int = 0

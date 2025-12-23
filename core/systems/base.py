@@ -37,6 +37,7 @@ __all__ = [
 
 if TYPE_CHECKING:
     from core.simulation_engine import SimulationEngine
+    from core.simulation_runtime import SimulationContext
     from core.update_phases import UpdatePhase
 
 
@@ -164,7 +165,12 @@ class BaseSystem(ABC):
     # Class-level phase declaration (set by @runs_in_phase decorator)
     _phase: Optional["UpdatePhase"] = None
 
-    def __init__(self, engine: "SimulationEngine", name: str) -> None:
+    def __init__(
+        self,
+        engine: "SimulationEngine",
+        name: str,
+        context: Optional["SimulationContext"] = None,
+    ) -> None:
         """Initialize the system.
 
         Args:
@@ -175,6 +181,7 @@ class BaseSystem(ABC):
         self._name = name
         self._enabled = True
         self._update_count = 0
+        self._context = context
 
     @property
     def name(self) -> str:
@@ -195,6 +202,11 @@ class BaseSystem(ABC):
     def engine(self) -> "SimulationEngine":
         """Access to the simulation engine."""
         return self._engine
+
+    @property
+    def context(self) -> Optional["SimulationContext"]:
+        """Access to the deterministic simulation context."""
+        return self._context
 
     @property
     def update_count(self) -> int:
