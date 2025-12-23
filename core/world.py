@@ -25,6 +25,7 @@ Example Usage:
     targets = find_nearby_targets(my_fish, aquarium, 100.0)
 """
 
+import random
 from typing import TYPE_CHECKING, Any, List, Protocol, Tuple, Type, runtime_checkable
 
 if TYPE_CHECKING:
@@ -167,6 +168,18 @@ class World(Protocol):
         """
         ...
 
+    @property
+    def rng(self) -> random.Random:
+        """The shared random number generator for this world.
+        
+        All simulation code should use this RNG for deterministic behavior.
+        When a simulation is seeded, this RNG will be seeded accordingly,
+        ensuring reproducible results across runs.
+        
+        Returns:
+            The Random instance used for all stochastic decisions in this world
+        """
+        ...
 
 @runtime_checkable
 class World2D(World, Protocol):

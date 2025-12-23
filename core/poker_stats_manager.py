@@ -247,7 +247,7 @@ class PokerStatsManager:
                     "generation": fish.generation,
                     "algorithm": algo_name,
                     "energy": round(fish.energy, 1),
-                    "age": fish.age,
+                    "age": fish._lifecycle_component.age,
                     "total_games": stats.total_games,
                     "wins": stats.wins,
                     "losses": stats.losses,

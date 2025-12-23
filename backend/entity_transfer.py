@@ -329,8 +329,8 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
         "vel_x": fish.vel.x,
         "vel_y": fish.vel.y,
         "energy": fish.energy,
-        "age": fish.age,
-        "reproduction_cooldown": fish.reproduction_cooldown,
+        "age": fish._lifecycle_component.age,
+        "reproduction_cooldown": fish._reproduction_component.reproduction_cooldown,
         "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
         "predator_last_seen": fish.memory.predator_last_seen if hasattr(fish, "memory") else 0,
         "genome_data": genome_data,
@@ -351,7 +351,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Ser
         "energy": mutable_state["energy"],
         # max_energy is computed from size, not stored (removed in schema v2)
         "age": mutable_state["age"],
-        "max_age": fish.max_age,
+        "max_age": fish._lifecycle_component.max_age,
         "generation": fish.generation,
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
         "genome_data": mutable_state["genome_data"],
@@ -506,7 +506,7 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         # Old saves may have max_energy, but it's ignored
         fish.vel.x = data.get("vel_x", 0.0)
         fish.vel.y = data.get("vel_y", 0.0)
-        fish.reproduction_cooldown = data.get("reproduction_cooldown", 0)
+        fish._reproduction_component.reproduction_cooldown = data.get("reproduction_cooldown", 0)
 
         # Restore memory (if applicable)
         if hasattr(fish, "memory") and "memory" in data:

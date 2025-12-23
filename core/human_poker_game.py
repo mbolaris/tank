@@ -5,6 +5,7 @@ This module manages poker games between a human player and AI fish opponents.
 """
 
 import logging
+import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -137,6 +138,9 @@ class HumanPokerGame:
         self.big_blind_index = 0  # Track big blind position for BB option
         self.big_blind_has_option = False  # BB gets option to raise if no raises pre-flop
         self.last_move: Optional[Dict[str, str]] = None  # Track the single most recent move
+        
+        # Decision RNG for deterministic AI decisions (unseeded for human game variation)
+        self._decision_rng = random.Random()
 
         # Deal cards and post blinds
         self._start_hand()
@@ -684,6 +688,7 @@ class HumanPokerGame:
             hole_cards=player.hole_cards,
             community_cards=self.community_cards,
             position_on_button=(self.current_player_index == self.button_index),
+            rng=self._decision_rng,
         )
 
         # Process action directly without calling handle_action to avoid recursion

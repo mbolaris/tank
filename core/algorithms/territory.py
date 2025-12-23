@@ -30,7 +30,7 @@ class TerritorialDefender(BehaviorAlgorithm):
     """Defend a territory from other fish."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="territorial_defender",
             parameters={
@@ -99,7 +99,7 @@ class RandomExplorer(BehaviorAlgorithm):
     """Explore randomly, covering new ground."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="random_explorer",
             parameters={
@@ -187,7 +187,7 @@ class WallFollower(BehaviorAlgorithm):
     """Follow along tank walls."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="wall_follower",
             parameters={
@@ -224,7 +224,7 @@ class CornerSeeker(BehaviorAlgorithm):
     """Prefer staying in corners."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="corner_seeker",
             parameters={
@@ -262,7 +262,7 @@ class CenterHugger(BehaviorAlgorithm):
     """Stay near the center of the tank."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="center_hugger",
             parameters={
@@ -294,7 +294,7 @@ class RoutePatroller(BehaviorAlgorithm):
     """Patrol between specific waypoints."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="route_patroller",
             parameters={
@@ -403,7 +403,7 @@ class BoundaryExplorer(BehaviorAlgorithm):
     """Explore edges and boundaries."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="boundary_explorer",
             parameters={
@@ -432,7 +432,7 @@ class NomadicWanderer(BehaviorAlgorithm):
     """Wander continuously without a home base."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="nomadic_wanderer",
             parameters={

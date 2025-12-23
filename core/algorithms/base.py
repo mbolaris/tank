@@ -702,6 +702,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
         mutation_strength: float = 0.2,
         use_parameter_specific: bool = True,
         adaptive_factor: float = 1.0,
+        rng: Optional[random.Random] = None,
     ) -> None:
         """Mutate the algorithm's parameters with parameter-specific strategies.
 
@@ -710,7 +711,10 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
             mutation_strength: Base magnitude of mutations
             use_parameter_specific: Use parameter-specific mutation rates
             adaptive_factor: Multiplier for mutation rates (1.0 = normal, <1.0 = less mutation, >1.0 = more mutation)
+            rng: Random number generator for determinism. If None, creates a new Random instance.
         """
+        _rng = rng if rng is not None else random.Random()
+        
         for key, current_value in list(self.parameters.items()):
             # Skip non-numeric parameters (they shouldn't be mutated)
             if not isinstance(current_value, (int, float)):
@@ -729,7 +733,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
                 effective_strength = mutation_strength * adaptive_factor
 
             # Roll for mutation
-            if random.random() >= effective_rate:
+            if _rng.random() >= effective_rate:
                 continue
 
             # Apply mutation within bounds
@@ -739,11 +743,11 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
                 span = upper - lower
                 if span <= 0:
                     span = max(abs(current_value), 1.0)
-                mutated = current_value + random.gauss(0, effective_strength) * span
+                mutated = current_value + _rng.gauss(0, effective_strength) * span
                 mutated = max(lower, min(upper, mutated))
             else:
                 scale = max(abs(current_value), 1.0)
-                mutated = current_value + random.gauss(0, effective_strength) * scale
+                mutated = current_value + _rng.gauss(0, effective_strength) * scale
                 mutated = max(0.0, mutated)
 
             self.parameters[key] = mutated

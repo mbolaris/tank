@@ -120,7 +120,7 @@ class EntitySnapshotBuilder:
                 if hasattr(entity, "genome"):
                     genome_data = {
                         "speed": entity.genome.speed_modifier,
-                        "size": entity.size,  # Includes baby stage growth
+                        "size": entity._lifecycle_component.size,  # Includes baby stage growth
                         "color_hue": entity.genome.physical.color_hue.value,
                         "template_id": entity.genome.physical.template_id.value,
                         "fin_size": entity.genome.physical.fin_size.value,
@@ -152,7 +152,7 @@ class EntitySnapshotBuilder:
                     type="fish",
                     energy=entity.energy,
                     generation=entity.generation if hasattr(entity, "generation") else 0,
-                    age=entity.age if hasattr(entity, "age") else 0,
+                    age=entity._lifecycle_component.age,
                     species=species_label,
                     genome_data=genome_data,
                     poker_effect_state=entity.poker_effect_state

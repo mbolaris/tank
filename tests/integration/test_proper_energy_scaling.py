@@ -87,8 +87,8 @@ def test_with_scaled_energy():
     fish2._lifecycle_component.age = 100
     fish1._lifecycle_component.force_life_stage(LifeStage.ADULT)
     fish2._lifecycle_component.force_life_stage(LifeStage.ADULT)
-    fish1.reproduction_cooldown = 0
-    fish2.reproduction_cooldown = 0
+    fish1._reproduction_component.reproduction_cooldown = 0
+    fish2._reproduction_component.reproduction_cooldown = 0
 
     env.agents = [fish1, fish2]
 

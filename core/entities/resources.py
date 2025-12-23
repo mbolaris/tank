@@ -74,8 +74,22 @@ class Food(Agent):
         self.original_height: float = self.height
 
     @staticmethod
-    def _select_random_food_type(include_stationary: bool = True, include_live: bool = False) -> str:
-        """Select a random food type based on rarity weights."""
+    def _select_random_food_type(
+        include_stationary: bool = True,
+        include_live: bool = False,
+        rng: Optional[random.Random] = None,
+    ) -> str:
+        """Select a random food type based on rarity weights.
+
+        Args:
+            include_stationary: Whether to include stationary food types
+            include_live: Whether to include live food type
+            rng: Random number generator (uses new Random if None)
+
+        Returns:
+            Selected food type string
+        """
+        _rng = rng if rng is not None else random.Random()
         food_types = [
             ft
             for ft, props in Food.FOOD_TYPES.items()
@@ -83,7 +97,7 @@ class Food(Agent):
             and (include_live or ft != "live")
         ]
         weights = [Food.FOOD_TYPES[ft]["rarity"] for ft in food_types]
-        return random.choices(food_types, weights=weights)[0]
+        return _rng.choices(food_types, weights=weights)[0]
 
     def get_energy_value(self) -> float:
         """Get the current energy value this food provides."""
@@ -180,7 +194,9 @@ class LiveFood(Food):
         # Fish speed_modifier averages ~0.85, giving 2.2 * 0.85 = 1.87 base speed
         # LiveFood at 1.4 gives ~33% speed advantage to average fish
         self.max_speed = speed * 0.93  # 1.5 * 0.93 = 1.4
-        self.wander_timer = random.randint(20, 45)
+        # Use environment.rng if available, otherwise create new unseeded Random
+        self._rng = getattr(environment, 'rng', None) or random.Random()
+        self.wander_timer = self._rng.randint(20, 45)
         # BALANCE: Reduced avoid_radius from 180 to 80 so fish can get much closer
         # before triggering flee response - makes hunting more effective
         self.avoid_radius = 80
@@ -208,7 +224,7 @@ class LiveFood(Food):
         self.wander_timer -= 1
         if self.wander_timer <= 0:
             self.add_random_velocity_change([0.3, 0.4, 0.3], 4)
-            self.wander_timer = random.randint(20, 45)
+            self.wander_timer = self._rng.randint(20, 45)
 
     def _avoid_nearby_fish(self) -> None:
         nearby_fish = self.environment.nearby_agents_by_type(self, self.avoid_radius, Fish)

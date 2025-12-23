@@ -77,7 +77,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
     """
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="greedy_food_seeker",
             parameters={
@@ -210,7 +210,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
     """Seek food more aggressively when energy is low."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="energy_aware_food_seeker",
             parameters={
@@ -296,7 +296,7 @@ class OpportunisticFeeder(BehaviorAlgorithm):
     """Only pursue food if it's close enough - IMPROVED to avoid starvation."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="opportunistic_feeder",
             parameters={
@@ -355,9 +355,10 @@ class OpportunisticFeeder(BehaviorAlgorithm):
                     speed *= 1.2
                 return direction.x * speed, direction.y * speed
 
-        # IMPROVEMENT: Don't just idle - explore!
+        # IMPROVEMENT: Don't just idle - explore! (use environment RNG for determinism)
         if is_critical or is_low:
-            self.exploration_angle += random.uniform(-0.4, 0.4)
+            rng = getattr(fish.environment, "rng", random)
+            self.exploration_angle += rng.uniform(-0.4, 0.4)
             ex_speed = self.parameters["exploration_speed"] * (1.5 if is_critical else 1.0)
             return (
                 math.cos(self.exploration_angle) * ex_speed,
@@ -372,7 +373,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
     """Prefer high-value food types."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="food_quality_optimizer",
             parameters={
@@ -536,7 +537,7 @@ class AmbushFeeder(BehaviorAlgorithm):
     """Wait in one spot for food to come close."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="ambush_feeder",
             parameters={
@@ -606,7 +607,7 @@ class PatrolFeeder(BehaviorAlgorithm):
     """Patrol in a pattern looking for food - IMPROVED with better detection."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="patrol_feeder",
             parameters={
@@ -672,7 +673,7 @@ class SurfaceSkimmer(BehaviorAlgorithm):
     """Stay near surface to catch falling food - IMPROVED for better survival."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="surface_skimmer",
             parameters={
@@ -764,7 +765,7 @@ class BottomFeeder(BehaviorAlgorithm):
     """Stay near bottom to catch sinking food."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="bottom_feeder",
             parameters={
@@ -812,7 +813,7 @@ class ZigZagForager(BehaviorAlgorithm):
     """Move in zigzag pattern to maximize food discovery."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="zigzag_forager",
             parameters={
@@ -854,7 +855,7 @@ class CircularHunter(BehaviorAlgorithm):
     """Circle around food before striking - IMPROVED for better survival."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="circular_hunter",
             parameters={
@@ -981,7 +982,7 @@ class FoodMemorySeeker(BehaviorAlgorithm):
     """Remember where food was found before."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="food_memory_seeker",
             parameters={
@@ -1039,7 +1040,7 @@ class AggressiveHunter(BehaviorAlgorithm):
     """
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="aggressive_hunter",
             parameters={
@@ -1136,7 +1137,7 @@ class AggressiveHunter(BehaviorAlgorithm):
             return direction.x * 0.9, direction.y * 0.9
 
         # Active exploration - more aggressive fish explore faster
-        angle = fish.age * 0.1  # Use age for varied exploration
+        angle = fish._lifecycle_component.age * 0.1  # Use age for varied exploration
         explore_speed = 0.7 + pursuit_aggression * 0.3  # 0.7-1.0 based on aggression
         return math.cos(angle) * explore_speed, math.sin(angle) * explore_speed
 
@@ -1146,7 +1147,7 @@ class SpiralForager(BehaviorAlgorithm):
     """NEW: Spiral outward from center to systematically cover area - replaces weak algorithms."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="spiral_forager",
             parameters={
@@ -1207,7 +1208,7 @@ class CooperativeForager(BehaviorAlgorithm):
     """Follow other fish to food sources - HEAVILY IMPROVED."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="cooperative_forager",
             parameters={

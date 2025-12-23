@@ -52,7 +52,7 @@ The simulation has been optimized to reduce CPU usage and improve frame rates, p
 - `core/object_pool.py`: New `FoodPool` class
 
 **Files Modified:**
-- `simulation_engine.py`: Added food pool, override `spawn_auto_food()` to use pool, return food to pool in `remove_entity()`
+- `simulation_engine.py`: Added food pool, return food to pool in `remove_entity()`
 
 ### 4. Cached Entity Type Lists
 

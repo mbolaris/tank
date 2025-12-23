@@ -98,7 +98,7 @@ class PokerChallenger(BehaviorAlgorithm):
     """Actively seeks out other fish for poker games."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="poker_challenger",
             parameters={
@@ -159,7 +159,7 @@ class PokerDodger(BehaviorAlgorithm):
     """Avoids other fish to prevent poker games."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="poker_dodger",
             parameters={
@@ -264,7 +264,7 @@ class PokerGambler(BehaviorAlgorithm):
     """Seeks poker aggressively when high energy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="poker_gambler",
             parameters={
@@ -331,7 +331,7 @@ class SelectivePoker(BehaviorAlgorithm):
     """Only engages in poker when conditions are favorable."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="selective_poker",
             parameters={
@@ -392,7 +392,7 @@ class PokerOpportunist(BehaviorAlgorithm):
     """Balances food seeking with poker opportunities."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="poker_opportunist",
             parameters={
@@ -480,7 +480,7 @@ class PokerStrategist(BehaviorAlgorithm):
     """Uses opponent modeling and strategic positioning for poker."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="poker_strategist",
             parameters={
@@ -599,7 +599,7 @@ class PokerBluffer(BehaviorAlgorithm):
     """Varies behavior unpredictably to confuse opponents."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="poker_bluffer",
             parameters={
@@ -729,7 +729,7 @@ class PokerConservative(BehaviorAlgorithm):
     """Risk-averse poker player that only engages in highly favorable conditions."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="poker_conservative",
             parameters={
@@ -791,8 +791,9 @@ class PokerConservative(BehaviorAlgorithm):
                         best_advantage = energy_advantage
                         best_target = other
 
-        # Only engage if we found a favorable matchup
-        if best_target and random.random() > self.parameters["max_risk_tolerance"]:
+        # Only engage if we found a favorable matchup (use environment RNG for determinism)
+        rng = getattr(fish.environment, "rng", random)
+        if best_target and rng.random() > self.parameters["max_risk_tolerance"]:
             direction = self._safe_normalize(best_target.pos - fish.pos)
             speed = self.parameters["challenge_speed"]
             return direction.x * speed, direction.y * speed

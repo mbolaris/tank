@@ -27,6 +27,17 @@ from core.config.ecosystem import (
     FISH_POKER_MIN_DISTANCE,
     MATING_QUERY_RADIUS,
 )
+from core.config.fish import (
+    ENERGY_MAX_DEFAULT,
+    FISH_BABY_SIZE,
+    FISH_BASE_SPEED,
+    POST_POKER_CROSSOVER_WINNER_WEIGHT,
+    POST_POKER_MATING_DISTANCE,
+    POST_POKER_MUTATION_RATE,
+    POST_POKER_MUTATION_STRENGTH,
+    POST_POKER_PARENT_ENERGY_CONTRIBUTION,
+    REPRODUCTION_COOLDOWN,
+)
 from core.config.simulation import (
     COLLISION_QUERY_RADIUS,
 )
@@ -40,9 +51,17 @@ from core.config.server import (
 from core.poker_interaction import (
     PokerInteraction,
     MAX_PLAYERS as POKER_MAX_PLAYERS,
+    MIN_ENERGY_TO_PLAY as POKER_MIN_ENERGY,
+    check_poker_proximity,
     get_ready_players,
+    is_post_poker_reproduction_eligible,
+    should_offer_post_poker_reproduction,
 )
-from core.mixed_poker import MixedPokerInteraction
+from core.mixed_poker import (
+    MixedPokerInteraction,
+    should_trigger_plant_poker_asexual_reproduction,
+)
+from core.genetics import Genome, ReproductionParams
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +81,6 @@ class BaseSimulator(ABC):
     Attributes:
         frame_count: Total frames elapsed
         paused: Whether simulation is paused
-        auto_food_timer: Timer for automatic food spawning
         ecosystem: Ecosystem manager for population tracking
     """
 
@@ -70,7 +88,6 @@ class BaseSimulator(ABC):
         """Initialize base simulator state."""
         self.frame_count: int = 0
         self.paused: bool = False
-        self.auto_food_timer: int = 0
         self.ecosystem: Optional[EcosystemManager] = None
         self.environment: Optional[Environment] = None
 
@@ -149,6 +166,7 @@ class BaseSimulator(ABC):
         # Must be within max distance but farther than min distance (not touching)
         return min_dist_sq < distance_sq <= max_dist_sq
 
+
     def record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
         """Record a fish death in the ecosystem and mark for delayed removal.
 
@@ -181,7 +199,7 @@ class BaseSimulator(ABC):
             self.ecosystem.record_death(
                 fish.fish_id,
                 fish.generation,
-                fish.age,
+                fish._lifecycle_component.age,
                 death_cause,
                 fish.genome,
                 algorithm_id=algorithm_id,
@@ -208,20 +226,6 @@ class BaseSimulator(ABC):
 
         for fish in to_remove:
             self.remove_entity(fish)
-
-    def is_fish_dying(self, fish: "Fish") -> bool:
-        """Check if a fish is in the dying state (showing death effect).
-
-        Dying fish should be skipped for most gameplay interactions
-        (collisions, movement, etc.) but still rendered.
-
-        Args:
-            fish: The fish to check
-
-        Returns:
-            True if fish has a death effect active
-        """
-        return fish.death_effect_state is not None
 
     def update_spatial_grid(self) -> None:
         """Update the spatial grid with current entity positions."""
@@ -738,78 +742,6 @@ class BaseSimulator(ABC):
                 if fish.try_mate(potential_mate):
                     break  # Found a mate, stop looking
 
-    def spawn_auto_food(self, environment: "Environment") -> None:
-        """Spawn automatic food if enabled.
-
-        Dynamically adjusts spawn rate based on population size and total energy:
-        - Faster spawning when fish are starving (total energy low)
-        - Slower spawning when population or total energy is high
-
-        Args:
-            environment: Environment instance for creating food
-        """
-        if not AUTO_FOOD_ENABLED:
-            return
-
-        # Calculate total energy and population
-        all_entities = self.get_all_entities()
-        fish_list = [e for e in all_entities if isinstance(e, entities.Fish)]
-        fish_count = len(fish_list)
-        total_energy = sum(fish.energy for fish in fish_list)
-
-        # Dynamic spawn rate based on population and energy levels
-        spawn_rate = AUTO_FOOD_SPAWN_RATE
-
-        # Priority 1: Emergency feeding when energy is critically low
-        if total_energy < AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD:
-            # Critical starvation: Quadruple spawn rate (every 0.75 sec)
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 4
-        elif total_energy < AUTO_FOOD_LOW_ENERGY_THRESHOLD:
-            # Low energy: Triple spawn rate (every 1 sec)
-            spawn_rate = AUTO_FOOD_SPAWN_RATE // 3
-
-        # Priority 2: Reduce feeding when energy or population is high
-        elif (
-            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2
-            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_2
-        ):
-            # Very high energy/population: Slow down significantly (every 8 sec)
-            spawn_rate = AUTO_FOOD_SPAWN_RATE * 3
-        elif (
-            total_energy > AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1
-            or fish_count > AUTO_FOOD_HIGH_POP_THRESHOLD_1
-        ):
-            # High energy/population: Slow down moderately (every 5 sec)
-            spawn_rate = int(AUTO_FOOD_SPAWN_RATE * 1.67)
-        # else: use base rate (every 3 sec)
-
-        self.auto_food_timer += 1
-        if self.auto_food_timer >= spawn_rate:
-            self.auto_food_timer = 0
-            live_food_roll = random.random()
-            if live_food_roll < LIVE_FOOD_SPAWN_CHANCE:
-                food_x = random.randint(0, SCREEN_WIDTH)
-                food_y = random.randint(0, SCREEN_HEIGHT)
-                food = entities.LiveFood(
-                    environment,
-                    food_x,
-                    food_y,
-                )
-                    # Removed unmatched closing parenthesis
-            else:
-                # Spawn food from the top at random x position
-                x = random.randint(0, SCREEN_WIDTH)
-                food = entities.Food(
-                    environment,
-                    x,
-                    0,
-                    source_plant=None,
-                    allow_stationary_types=False,
-                )
-                # Ensure the food starts exactly at the top edge before falling
-                food.pos.y = 0
-            self.add_entity(food)
-
     def keep_entity_on_screen(
         self, entity: "Agent", screen_width: int = SCREEN_WIDTH, screen_height: int = SCREEN_HEIGHT
     ) -> None:
@@ -835,18 +767,6 @@ class BaseSimulator(ABC):
     def _create_post_poker_offspring(
         self, winner: "Fish", mate: "Fish", rng: random.Random
     ) -> Optional["Fish"]:
-        from core.config.fish import (
-            ENERGY_MAX_DEFAULT,
-            FISH_BABY_SIZE,
-            FISH_BASE_SPEED,
-            POST_POKER_CROSSOVER_WINNER_WEIGHT,
-            POST_POKER_MUTATION_RATE,
-            POST_POKER_MUTATION_STRENGTH,
-            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
-            REPRODUCTION_COOLDOWN,
-        )
-        from core.genetics import Genome, ReproductionParams
-
         if winner.environment is None:
             return None
 
@@ -884,13 +804,14 @@ class BaseSimulator(ABC):
         winner.energy = max(0.0, winner.energy - winner_contrib)
         mate.energy = max(0.0, mate.energy - mate_contrib)
 
-        if winner.ecosystem is not None:
-            winner.ecosystem.record_reproduction_energy(
-                winner_contrib + mate_contrib, total_contrib
-            )
-
-        winner.reproduction_cooldown = max(winner.reproduction_cooldown, REPRODUCTION_COOLDOWN)
-        mate.reproduction_cooldown = max(mate.reproduction_cooldown, REPRODUCTION_COOLDOWN)
+        winner._reproduction_component.reproduction_cooldown = max(
+            winner._reproduction_component.reproduction_cooldown,
+            REPRODUCTION_COOLDOWN,
+        )
+        mate._reproduction_component.reproduction_cooldown = max(
+            mate._reproduction_component.reproduction_cooldown,
+            REPRODUCTION_COOLDOWN,
+        )
 
         (min_x, min_y), (max_x, max_y) = winner.environment.get_bounds()
         mid_x = (winner.pos.x + mate.pos.x) * 0.5
@@ -959,12 +880,6 @@ class BaseSimulator(ABC):
 
         if winner is None or getattr(winner, "environment", None) is None:
             return None
-
-        from core.config.fish import POST_POKER_MATING_DISTANCE
-        from core.poker_interaction import (
-            is_post_poker_reproduction_eligible,
-            should_offer_post_poker_reproduction,
-        )
 
         max_dist_sq = POST_POKER_MATING_DISTANCE * POST_POKER_MATING_DISTANCE
         winner_cx = winner.pos.x + winner.width * 0.5

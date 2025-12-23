@@ -116,17 +116,6 @@ def __init__(self, ...):
     from core.fish.lifecycle_component import LifecycleComponent  # ← Local import
 ```
 
-**File: simulation_engine.py (Lines 314-323 in spawn_auto_food)**
-```python
-def spawn_auto_food(self, ...):
-    from core.constants import (  # ← Multiple local imports
-        AUTO_FOOD_ENABLED,
-        AUTO_FOOD_SPAWN_RATE,
-        # ... 10+ more imports
-    )
-    import random  # ← Local import
-```
-
 #### Issues
 1. **Performance Penalty**: Imports executed on every function call
    - Expected impact: 5-10% performance improvement when fixed

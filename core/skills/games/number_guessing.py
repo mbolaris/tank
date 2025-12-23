@@ -59,12 +59,17 @@ class PatternGenerator:
     pattern_type: PatternType = PatternType.ALTERNATING
     value_range: tuple = (0.0, 100.0)  # Min and max values
     noise_level: float = 0.1  # How much noise to add (0-1)
+    rng: Optional[random.Random] = field(default=None)  # RNG for determinism
 
     # Internal state
     _current_value: float = 50.0
     _step: int = 0
     _cycle: List[float] = field(default_factory=lambda: [25.0, 75.0, 50.0])
     _mean: float = 50.0
+    
+    def __post_init__(self):
+        if self.rng is None:
+            self.rng = random.Random()
 
     def reset(self, pattern_type: Optional[PatternType] = None) -> None:
         """Reset the generator, optionally with a new pattern."""
@@ -104,13 +109,13 @@ class PatternGenerator:
         elif self.pattern_type == PatternType.MEAN_REVERTING:
             # Move toward mean with some momentum
             diff = self._mean - self._current_value
-            self._current_value += diff * 0.3 + random.gauss(0, range_size * 0.1)
+            self._current_value += diff * 0.3 + self.rng.gauss(0, range_size * 0.1)
             base_value = self._current_value
 
         elif self.pattern_type == PatternType.RANDOM_WALK:
             # Random walk with drift back to center
             drift = (self._mean - self._current_value) * 0.05
-            self._current_value += drift + random.gauss(0, range_size * 0.1)
+            self._current_value += drift + self.rng.gauss(0, range_size * 0.1)
             base_value = self._current_value
 
         else:
@@ -118,7 +123,7 @@ class PatternGenerator:
 
         # Add noise
         if self.noise_level > 0:
-            noise = random.gauss(0, self.noise_level * range_size * 0.2)
+            noise = self.rng.gauss(0, self.noise_level * range_size * 0.2)
             base_value += noise
 
         # Clamp to range
@@ -465,9 +470,14 @@ class NumberGuessingGame(SkillGame):
             "predictor has perfect pattern recognition."
         )
 
-    def create_default_strategy(self) -> NumberGuessingStrategy:
-        """Create a new strategy with random initial weights."""
-        weights = [random.random() for _ in range(4)]
+    def create_default_strategy(self, rng: Optional[random.Random] = None) -> NumberGuessingStrategy:
+        """Create a new strategy with random initial weights.
+        
+        Args:
+            rng: Optional random number generator for determinism
+        """
+        _rng = rng if rng is not None else random.Random()
+        weights = [_rng.random() for _ in range(4)]
         total = sum(weights)
         weights = [w / total for w in weights]
 
@@ -476,7 +486,7 @@ class NumberGuessingGame(SkillGame):
             weight_trend=weights[1],
             weight_mean=weights[2],
             weight_alternating=weights[3],
-            learning_rate=random.uniform(0.05, 0.2),
+            learning_rate=_rng.uniform(0.05, 0.2),
         )
 
     def create_optimal_strategy(self) -> OptimalNumberGuessingStrategy:
@@ -485,14 +495,15 @@ class NumberGuessingGame(SkillGame):
         strategy.set_generator(self.generator)
         return strategy
 
-    def _maybe_change_pattern(self) -> None:
+    def _maybe_change_pattern(self, rng: Optional[random.Random] = None) -> None:
         """Possibly change the pattern to test adaptation."""
         if self.pattern_change_frequency <= 0:
             return
 
         if self._rounds_played > 0 and self._rounds_played % self.pattern_change_frequency == 0:
+            _rng = rng if rng is not None else self.generator.rng or random.Random()
             patterns = list(PatternType)
-            new_pattern = random.choice(patterns)
+            new_pattern = _rng.choice(patterns)
             self.generator.reset(new_pattern)
 
     def play_round(

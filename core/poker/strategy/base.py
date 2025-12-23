@@ -270,8 +270,12 @@ class PokerStrategyEngine:
         opponent_id: Optional[int] = None,
         pot_size: float = 0.0,
         hand_strength: float = 0.0,
+        rng: Optional[random.Random] = None,
     ) -> bool:
         """Decide whether to bluff in this situation."""
+        # Use provided RNG or create a fallback for backward compatibility
+        _rng = rng if rng is not None else random.Random()
+        
         # Base bluff frequency
         bluff_chance = self.bluff_frequency
 
@@ -297,7 +301,7 @@ class PokerStrategyEngine:
             bluff_chance *= 0.6
 
         # Random decision
-        return random.random() < bluff_chance
+        return _rng.random() < bluff_chance
 
     def learn_from_poker_outcome(
         self,

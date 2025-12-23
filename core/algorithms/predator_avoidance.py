@@ -32,7 +32,7 @@ class PanicFlee(BehaviorAlgorithm):
     """Flee directly away from predators at maximum speed."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="panic_flee",
             parameters={
@@ -71,7 +71,7 @@ class StealthyAvoider(BehaviorAlgorithm):
     """Move slowly and carefully away from predators."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="stealthy_avoider",
             parameters={
@@ -112,7 +112,7 @@ class FreezeResponse(BehaviorAlgorithm):
     """Freeze when predator is near, but prioritize survival over safety when starving."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="freeze_response",
             parameters={
@@ -193,7 +193,7 @@ class ErraticEvader(BehaviorAlgorithm):
     """Make unpredictable movements when threatened."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="erratic_evader",
             parameters={
@@ -221,10 +221,11 @@ class ErraticEvader(BehaviorAlgorithm):
                 perp_x = -away_dir.y
                 perp_y = away_dir.x
 
-                # Mix escape direction with random perpendicular movement
+                # Mix escape direction with random perpendicular movement (use environment RNG)
                 randomness = self.parameters["randomness"]
-                vx = away_dir.x * 0.6 + perp_x * random.uniform(-randomness, randomness)
-                vy = away_dir.y * 0.6 + perp_y * random.uniform(-randomness, randomness)
+                rng = getattr(fish.environment, "rng", random)
+                vx = away_dir.x * 0.6 + perp_x * rng.uniform(-randomness, randomness)
+                vy = away_dir.y * 0.6 + perp_y * rng.uniform(-randomness, randomness)
 
                 # Adjust speed based on proximity - panic more when closer
                 proximity_multiplier = (
@@ -242,8 +243,9 @@ class ErraticEvader(BehaviorAlgorithm):
                 elif fish.pos.y > SCREEN_HEIGHT - edge_margin:
                     vy -= 0.3
 
-                # Sometimes join nearby fish for group defense
-                if random.random() < 0.2:
+                # Sometimes join nearby fish for group defense (use environment RNG)
+                rng = getattr(fish.environment, "rng", random)
+                if rng.random() < 0.2:
                     allies = [
                         f for f in fish.environment.get_agents_of_type(FishClass) if f != fish
                     ]
@@ -266,7 +268,7 @@ class VerticalEscaper(BehaviorAlgorithm):
     """Escape vertically when threatened."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="vertical_escaper",
             parameters={
@@ -300,7 +302,7 @@ class GroupDefender(BehaviorAlgorithm):
     """Stay close to group for safety."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="group_defender",
             parameters={
@@ -342,7 +344,7 @@ class SpiralEscape(BehaviorAlgorithm):
     """Spiral away from predators."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="spiral_escape",
             parameters={
@@ -386,7 +388,7 @@ class BorderHugger(BehaviorAlgorithm):
     """Move to tank edges when threatened."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="border_hugger",
             parameters={
@@ -427,7 +429,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
     """Escape perpendicular to predator's approach."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="perpendicular_escape",
             parameters={
@@ -473,7 +475,7 @@ class DistanceKeeper(BehaviorAlgorithm):
     """Maintain safe distance from predators."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="distance_keeper",
             parameters={
@@ -512,9 +514,10 @@ class DistanceKeeper(BehaviorAlgorithm):
 
             elif distance < effective_safe_distance:
                 # In the danger zone, maintain distance
-                # Strafe perpendicular while keeping distance
+                # Strafe perpendicular while keeping distance (use environment RNG)
                 perp_x, perp_y = -direction.y, direction.x
-                if random.random() > 0.5:
+                rng = getattr(fish.environment, "rng", random)
+                if rng.random() > 0.5:
                     perp_x, perp_y = -perp_x, -perp_y
                 return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], (
                     direction.y * 0.4 + perp_y * 0.6

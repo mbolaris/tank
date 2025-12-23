@@ -28,6 +28,7 @@ class PokerStrategyAlgorithm:
 
     strategy_id: str
     parameters: Dict[str, float] = field(default_factory=dict)
+    _rng: random.Random = field(default_factory=random.Random, repr=False)
 
     def decide_action(
         self,
@@ -45,11 +46,19 @@ class PokerStrategyAlgorithm:
         self,
         mutation_rate: float = 0.15,
         mutation_strength: float = 0.2,
+        rng: Optional[random.Random] = None,
     ) -> None:
-        """Mutate parameters for evolution."""
+        """Mutate parameters for evolution.
+        
+        Args:
+            mutation_rate: Probability of mutating each parameter
+            mutation_strength: Standard deviation of Gaussian mutation
+            rng: Random number generator (uses self._rng if not provided)
+        """
+        rng = rng if rng is not None else self._rng
         for param_key in self.parameters:
-            if random.random() < mutation_rate:
-                mutation = random.gauss(0, mutation_strength)
+            if rng.random() < mutation_rate:
+                mutation = rng.gauss(0, mutation_strength)
                 self.parameters[param_key] += mutation
                 # Clamp to valid ranges
                 if "threshold" in param_key or "frequency" in param_key:
@@ -115,16 +124,17 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
     """TAG: Plays few hands aggressively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="tight_aggressive",
             parameters={
-                "weak_fold_threshold": rng.uniform(0.3, 0.5),
-                "strong_raise_threshold": rng.uniform(0.6, 0.8),
-                "value_raise_multiplier": rng.uniform(0.5, 1.0),
-                "bluff_frequency": rng.uniform(0.05, 0.15),
-                "position_bonus": rng.uniform(0.05, 0.15),
+                "weak_fold_threshold": _rng.uniform(0.3, 0.5),
+                "strong_raise_threshold": _rng.uniform(0.6, 0.8),
+                "value_raise_multiplier": _rng.uniform(0.5, 1.0),
+                "bluff_frequency": _rng.uniform(0.05, 0.15),
+                "position_bonus": _rng.uniform(0.05, 0.15),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -150,7 +160,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
             hand_strength = min(1.0, hand_strength)
 
         if hand_strength < self.parameters["weak_fold_threshold"]:
-            if random.random() < self.parameters["bluff_frequency"]:
+            if self._rng.random() < self.parameters["bluff_frequency"]:
                 bluff = min(pot * 0.5, player_energy * 0.2)
                 return (BettingAction.RAISE, bluff)
             return (BettingAction.FOLD, 0.0)
@@ -169,16 +179,17 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
     """LAG: Plays many hands aggressively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="loose_aggressive",
             parameters={
-                "weak_fold_threshold": rng.uniform(0.15, 0.30),
-                "raise_threshold": rng.uniform(0.4, 0.6),
-                "raise_multiplier": rng.uniform(0.7, 1.5),
-                "bluff_frequency": rng.uniform(0.25, 0.45),
-                "position_aggression": rng.uniform(0.1, 0.25),
+                "weak_fold_threshold": _rng.uniform(0.15, 0.30),
+                "raise_threshold": _rng.uniform(0.4, 0.6),
+                "raise_multiplier": _rng.uniform(0.7, 1.5),
+                "bluff_frequency": _rng.uniform(0.25, 0.45),
+                "position_aggression": _rng.uniform(0.1, 0.25),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -209,8 +220,8 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         if hand_strength < self.parameters["weak_fold_threshold"]:
             return (BettingAction.FOLD, 0.0)
 
-        if random.random() < self.parameters["bluff_frequency"]:
-            bluff = pot * random.uniform(0.5, 1.2)
+        if self._rng.random() < self.parameters["bluff_frequency"]:
+            bluff = pot * self._rng.uniform(0.5, 1.2)
             return (BettingAction.RAISE, min(bluff, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION))
 
         if hand_strength >= self.parameters["raise_threshold"]:
@@ -225,16 +236,17 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 class TightPassiveStrategy(PokerStrategyAlgorithm):
     """Rock: Plays few hands, rarely raises."""
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="tight_passive",
             parameters={
-                "weak_fold_threshold": rng.uniform(0.4, 0.6),
-                "raise_threshold": rng.uniform(0.75, 0.90),
-                "call_threshold": rng.uniform(0.35, 0.55),
-                "raise_multiplier": rng.uniform(0.3, 0.6),
-                "bluff_frequency": rng.uniform(0.01, 0.05),
+                "weak_fold_threshold": _rng.uniform(0.4, 0.6),
+                "raise_threshold": _rng.uniform(0.75, 0.90),
+                "call_threshold": _rng.uniform(0.35, 0.55),
+                "raise_multiplier": _rng.uniform(0.3, 0.6),
+                "bluff_frequency": _rng.uniform(0.01, 0.05),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -278,19 +290,20 @@ class BalancedStrategy(PokerStrategyAlgorithm):
     """Balanced/GTO-inspired strategy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="balanced",
             parameters={
-                "weak_fold_threshold": rng.uniform(0.25, 0.40),
-                "medium_threshold": rng.uniform(0.45, 0.60),
-                "strong_threshold": rng.uniform(0.70, 0.85),
-                "value_raise_multiplier": rng.uniform(0.5, 0.9),
-                "bluff_multiplier": rng.uniform(0.4, 0.8),
-                "bluff_frequency": rng.uniform(0.15, 0.30),
-                "position_bonus": rng.uniform(0.08, 0.18),
-                "pot_odds_factor": rng.uniform(1.2, 1.8),
+                "weak_fold_threshold": _rng.uniform(0.25, 0.40),
+                "medium_threshold": _rng.uniform(0.45, 0.60),
+                "strong_threshold": _rng.uniform(0.70, 0.85),
+                "value_raise_multiplier": _rng.uniform(0.5, 0.9),
+                "bluff_multiplier": _rng.uniform(0.4, 0.8),
+                "bluff_frequency": _rng.uniform(0.15, 0.30),
+                "position_bonus": _rng.uniform(0.08, 0.18),
+                "pot_odds_factor": _rng.uniform(1.2, 1.8),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -324,7 +337,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
                     if call_amount > 0
                     else (BettingAction.CHECK, 0.0)
                 )
-            if random.random() < self.parameters["bluff_frequency"] * 0.5:
+            if self._rng.random() < self.parameters["bluff_frequency"] * 0.5:
                 bluff = pot * self.parameters["bluff_multiplier"]
                 return (BettingAction.RAISE, min(bluff, player_energy * 0.25))
             return (BettingAction.FOLD, 0.0)
@@ -335,7 +348,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
             return (BettingAction.RAISE, max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER))
 
         if hand_strength >= self.parameters["medium_threshold"]:
-            if random.random() < 0.4:
+            if self._rng.random() < 0.4:
                 raise_amt = pot * self.parameters["value_raise_multiplier"] * 0.7
                 raise_amt = min(raise_amt, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION)
                 return (BettingAction.RAISE, max(raise_amt, call_amount * 1.3))
@@ -358,16 +371,17 @@ class ManiacStrategy(PokerStrategyAlgorithm):
     """Ultra-aggressive strategy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="maniac",
             parameters={
-                "min_hand_to_play": rng.uniform(0.05, 0.20),
-                "raise_frequency": rng.uniform(0.60, 0.85),
-                "raise_sizing": rng.uniform(1.0, 2.5),
-                "bluff_frequency": rng.uniform(0.40, 0.65),
-                "all_in_threshold": rng.uniform(0.75, 0.95),
+                "min_hand_to_play": _rng.uniform(0.05, 0.20),
+                "raise_frequency": _rng.uniform(0.60, 0.85),
+                "raise_sizing": _rng.uniform(1.0, 2.5),
+                "bluff_frequency": _rng.uniform(0.40, 0.65),
+                "all_in_threshold": _rng.uniform(0.75, 0.95),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -391,16 +405,16 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         if hand_strength < self.parameters["min_hand_to_play"]:
             return (BettingAction.FOLD, 0.0)
 
-        if hand_strength >= self.parameters["all_in_threshold"] and random.random() < 0.3:
+        if hand_strength >= self.parameters["all_in_threshold"] and self._rng.random() < 0.3:
             return (BettingAction.RAISE, player_energy * 0.9)
 
-        if random.random() < self.parameters["raise_frequency"]:
+        if self._rng.random() < self.parameters["raise_frequency"]:
             raise_amt = pot * self.parameters["raise_sizing"]
             raise_amt = min(raise_amt, player_energy * 0.5)
             return (BettingAction.RAISE, max(raise_amt, call_amount * 2.0))
 
         if call_amount == 0:
-            if random.random() < 0.5:
+            if self._rng.random() < 0.5:
                 return (BettingAction.RAISE, pot * 0.5)
             return (BettingAction.CHECK, 0.0)
         return (BettingAction.CALL, call_amount)
@@ -411,16 +425,17 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
     """Calling station: plays many hands passively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="loose_passive",
             parameters={
-                "weak_fold_threshold": rng.uniform(0.10, 0.25),
-                "raise_threshold": rng.uniform(0.80, 0.95),
-                "call_threshold": rng.uniform(0.15, 0.30),
-                "raise_multiplier": rng.uniform(0.25, 0.50),
-                "pot_odds_sensitivity": rng.uniform(0.5, 1.5),
+                "weak_fold_threshold": _rng.uniform(0.10, 0.25),
+                "raise_threshold": _rng.uniform(0.80, 0.95),
+                "call_threshold": _rng.uniform(0.15, 0.30),
+                "raise_multiplier": _rng.uniform(0.25, 0.50),
+                "pot_odds_sensitivity": _rng.uniform(0.5, 1.5),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -462,17 +477,18 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
     """Adapts play style based on pot size and stack depth."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="adaptive",
             parameters={
-                "aggression_base": rng.uniform(0.3, 0.6),
-                "pot_size_adjustment": rng.uniform(0.1, 0.3),  # More aggressive with bigger pots
-                "stack_depth_factor": rng.uniform(0.5, 1.5),
-                "fold_threshold_tight": rng.uniform(0.35, 0.50),
-                "fold_threshold_loose": rng.uniform(0.15, 0.30),
-                "position_bonus": rng.uniform(0.08, 0.18),
+                "aggression_base": _rng.uniform(0.3, 0.6),
+                "pot_size_adjustment": _rng.uniform(0.1, 0.3),  # More aggressive with bigger pots
+                "stack_depth_factor": _rng.uniform(0.5, 1.5),
+                "fold_threshold_tight": _rng.uniform(0.35, 0.50),
+                "fold_threshold_loose": _rng.uniform(0.15, 0.30),
+                "position_bonus": _rng.uniform(0.08, 0.18),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -512,8 +528,8 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
         if hand_strength < fold_threshold:
             return (BettingAction.FOLD, 0.0)
 
-        if hand_strength > 0.7 or (hand_strength > 0.5 and random.random() < adjusted_aggression):
-            raise_amt = pot * random.uniform(0.5, 1.0) * self.parameters["stack_depth_factor"]
+        if hand_strength > 0.7 or (hand_strength > 0.5 and self._rng.random() < adjusted_aggression):
+            raise_amt = pot * self._rng.uniform(0.5, 1.0) * self.parameters["stack_depth_factor"]
             raise_amt = min(raise_amt, player_energy * 0.4)
             return (BettingAction.RAISE, max(raise_amt, call_amount * 1.5))
 
@@ -525,16 +541,17 @@ class PositionalExploiter(PokerStrategyAlgorithm):
     """Heavily exploits positional advantage."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="positional_exploiter",
             parameters={
-                "ip_raise_threshold": rng.uniform(0.25, 0.40),  # Raise more in position
-                "oop_fold_threshold": rng.uniform(0.40, 0.55),  # Fold more out of position
-                "ip_aggression_boost": rng.uniform(0.20, 0.40),
-                "steal_frequency": rng.uniform(0.35, 0.55),
-                "value_sizing": rng.uniform(0.6, 1.2),
+                "ip_raise_threshold": _rng.uniform(0.25, 0.40),  # Raise more in position
+                "oop_fold_threshold": _rng.uniform(0.40, 0.55),  # Fold more out of position
+                "ip_aggression_boost": _rng.uniform(0.20, 0.40),
+                "steal_frequency": _rng.uniform(0.35, 0.55),
+                "value_sizing": _rng.uniform(0.6, 1.2),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -560,8 +577,8 @@ class PositionalExploiter(PokerStrategyAlgorithm):
             adjusted_strength = hand_strength + self.parameters["ip_aggression_boost"]
 
             # Steal attempt with weak-medium hands
-            if call_amount == 0 and random.random() < self.parameters["steal_frequency"]:
-                steal_amt = pot * random.uniform(0.6, 1.0)
+            if call_amount == 0 and self._rng.random() < self.parameters["steal_frequency"]:
+                steal_amt = pot * self._rng.uniform(0.6, 1.0)
                 return (BettingAction.RAISE, min(steal_amt, player_energy * 0.3))
 
             if adjusted_strength > self.parameters["ip_raise_threshold"]:
@@ -587,16 +604,17 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
     """Slowplays strong hands to trap opponents."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="trap_setter",
             parameters={
-                "trap_threshold": rng.uniform(0.70, 0.85),  # Slowplay above this strength
-                "trap_frequency": rng.uniform(0.50, 0.75),  # How often to trap vs value bet
-                "spring_trap_threshold": rng.uniform(0.80, 0.95),  # When to spring the trap
-                "weak_fold_threshold": rng.uniform(0.30, 0.45),
-                "check_raise_frequency": rng.uniform(0.25, 0.45),
+                "trap_threshold": _rng.uniform(0.70, 0.85),  # Slowplay above this strength
+                "trap_frequency": _rng.uniform(0.50, 0.75),  # How often to trap vs value bet
+                "spring_trap_threshold": _rng.uniform(0.80, 0.95),  # When to spring the trap
+                "weak_fold_threshold": _rng.uniform(0.30, 0.45),
+                "check_raise_frequency": _rng.uniform(0.25, 0.45),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -622,19 +640,19 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
 
         # Strong hand - consider trapping
         if hand_strength >= self.parameters["trap_threshold"]:
-            if random.random() < self.parameters["trap_frequency"]:
+            if self._rng.random() < self.parameters["trap_frequency"]:
                 # Slowplay: just call or check to disguise strength
                 if call_amount > 0:
                     return (BettingAction.CALL, call_amount)
                 else:
                     # Check-raise opportunity
-                    if random.random() < self.parameters["check_raise_frequency"]:
+                    if self._rng.random() < self.parameters["check_raise_frequency"]:
                         return (BettingAction.CHECK, 0.0)  # Will raise if opponent bets
                     return (BettingAction.CHECK, 0.0)
             else:
                 # Value bet the monster
                 if hand_strength >= self.parameters["spring_trap_threshold"]:
-                    raise_amt = pot * random.uniform(0.8, 1.5)
+                    raise_amt = pot * self._rng.uniform(0.8, 1.5)
                     raise_amt = min(raise_amt, player_energy * 0.5)
                     return (BettingAction.RAISE, raise_amt)
 
@@ -652,16 +670,17 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
     """Pure pot odds and equity-based decisions."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng or random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="mathematical",
             parameters={
-                "required_equity_multiplier": rng.uniform(1.0, 1.4),  # How much equity needed vs pot odds
-                "implied_odds_factor": rng.uniform(1.2, 2.0),
-                "value_bet_threshold": rng.uniform(0.55, 0.70),
-                "bet_sizing_pot_fraction": rng.uniform(0.5, 0.8),
-                "fold_equity_threshold": rng.uniform(0.25, 0.40),
+                "required_equity_multiplier": _rng.uniform(1.0, 1.4),  # How much equity needed vs pot odds
+                "implied_odds_factor": _rng.uniform(1.2, 2.0),
+                "value_bet_threshold": _rng.uniform(0.55, 0.70),
+                "bet_sizing_pot_fraction": _rng.uniform(0.5, 0.8),
+                "fold_equity_threshold": _rng.uniform(0.25, 0.40),
             },
+            _rng=_rng,
         )
 
     @classmethod
@@ -702,7 +721,7 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
                 return (BettingAction.CALL, call_amount)
             else:
                 # Consider fold equity (semi-bluff)
-                if hand_strength > self.parameters["fold_equity_threshold"] and random.random() < 0.25:
+                if hand_strength > self.parameters["fold_equity_threshold"] and self._rng.random() < 0.25:
                     bluff_amt = pot * self.parameters["bet_sizing_pot_fraction"]
                     return (BettingAction.RAISE, min(bluff_amt, player_energy * 0.3))
                 return (BettingAction.FOLD, 0.0)
@@ -802,7 +821,7 @@ class RandomStrategy(PokerStrategyAlgorithm):
         min_raise_frac = self.parameters.get("min_raise_fraction", 0.3)
         max_raise_frac = self.parameters.get("max_raise_fraction", 1.0)
 
-        roll = random.random()
+        roll = self._rng.random()
         call_amount = max(0, opponent_bet - current_bet)
 
         if roll < fold_prob:
@@ -822,7 +841,7 @@ class RandomStrategy(PokerStrategyAlgorithm):
 
         else:
             # Want to raise
-            raise_fraction = random.uniform(min_raise_frac, max_raise_frac)
+            raise_fraction = self._rng.uniform(min_raise_frac, max_raise_frac)
             raise_amount = pot * raise_fraction
             raise_amount = min(raise_amount, player_energy - call_amount)
 
@@ -866,11 +885,15 @@ BASELINE_STRATEGIES = [
 
 
 def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
-    """Get random poker strategy."""
-    rng = rng or random
-    cls = rng.choice(ALL_POKER_STRATEGIES)
+    """Get random poker strategy.
+    
+    Args:
+        rng: Random number generator. If None, creates a new Random() instance.
+    """
+    _rng = rng if rng is not None else random.Random()
+    cls = _rng.choice(ALL_POKER_STRATEGIES)
     try:
-        return cls.random_instance(rng=rng)
+        return cls.random_instance(rng=_rng)
     except TypeError:
         return cls.random_instance()
 
@@ -959,22 +982,27 @@ def crossover_poker_strategies(
 
     # Novelty injection: small chance of completely random strategy
     # This maintains diversity but at a lower rate to preserve adaptations
-    if random.random() < cfg["novelty_injection_rate"]:
-        return get_random_poker_strategy()
+    # Note: Use parent RNG if available, otherwise create new one
+    crossover_rng = parent1._rng if parent1 is not None else (
+        parent2._rng if parent2 is not None else random.Random()
+    )
+    
+    if crossover_rng.random() < cfg["novelty_injection_rate"]:
+        return get_random_poker_strategy(rng=crossover_rng)
 
     if parent1 is None and parent2 is None:
-        return get_random_poker_strategy()
+        return get_random_poker_strategy(rng=crossover_rng)
     elif parent1 is None:
-        offspring = parent2.__class__()
+        offspring = parent2.__class__(rng=parent2._rng)
         offspring.parameters = parent2.parameters.copy()
     elif parent2 is None:
-        offspring = parent1.__class__()
+        offspring = parent1.__class__(rng=parent1._rng)
         offspring.parameters = parent1.parameters.copy()
     else:
         same_type = type(parent1) is type(parent2)
         if same_type:
             # Same strategy type: blend parameters with winner-biased weighting
-            offspring = parent1.__class__()
+            offspring = parent1.__class__(rng=parent1._rng)
             for param_key in parent1.parameters:
                 if param_key in parent2.parameters:
                     # Use winner-biased weighted average
@@ -987,10 +1015,10 @@ def crossover_poker_strategies(
                     offspring.parameters[param_key] = parent1.parameters[param_key]
         else:
             # Different strategy types: prefer winner's type
-            if random.random() < cfg["different_type_novelty_rate"]:
+            if crossover_rng.random() < cfg["different_type_novelty_rate"]:
                 # Reduced novelty injection for different types
-                offspring = get_random_poker_strategy()
-            elif random.random() < winner_weight:
+                offspring = get_random_poker_strategy(rng=crossover_rng)
+            elif crossover_rng.random() < winner_weight:
                 # Winner-biased selection: prefer winner's (parent1) strategy type
                 offspring = parent1.__class__()
                 offspring.parameters = parent1.parameters.copy()

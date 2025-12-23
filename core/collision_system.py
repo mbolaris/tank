@@ -7,9 +7,7 @@ Architecture Notes:
   collision algorithms (AABB, circle-based, etc.)
 - CollisionSystem is a simulation system that handles collision logic
 - The system extends BaseSystem and declares UpdatePhase.COLLISION
-
-TODO: Extract plant sprouting logic from handle_fish_food_collision into
-      a separate PlantPropagationSystem for better separation of concerns.
+- Plant sprouting logic is included here for simplicity (triggered when nectar is consumed)
 """
 
 import random
@@ -197,8 +195,8 @@ class CollisionSystem(BaseSystem):
             fish: The fish entity
             food: The food entity being eaten
 
-        Note: This method currently contains plant sprouting logic which should
-        eventually be moved to a separate PlantPropagationSystem.
+        Note: Plant sprouting logic is included here (when nectar is consumed,
+        there's a chance to sprout a new plant nearby).
         """
         self._fish_food_collisions += 1
         self._frame_food_eaten += 1
@@ -211,9 +209,9 @@ class CollisionSystem(BaseSystem):
                 parent_x = food.source_plant.pos.x if food.source_plant else food.pos.x
                 parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
 
-                # TODO: Move this to PlantPropagationSystem
-                # Check sprouting chance
-                if random.random() < PLANT_SPROUTING_CHANCE:
+                # Check sprouting chance (use engine RNG for determinism)
+                rng = getattr(self._engine.ecosystem, "rng", random) if hasattr(self._engine, "ecosystem") and self._engine.ecosystem else random
+                if rng.random() < PLANT_SPROUTING_CHANCE:
                     self.engine.sprout_new_plant(parent_genome, parent_x, parent_y)
 
                 self.engine.remove_entity(food)

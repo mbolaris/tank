@@ -5,6 +5,7 @@ This module provides game simulation, pot resolution, and bet finalization logic
 """
 
 import logging
+import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
@@ -49,8 +50,17 @@ def simulate_multi_round_game(
     button_position: int = 1,
     player1_strategy: Optional["PokerStrategyAlgorithm"] = None,
     player2_strategy: Optional["PokerStrategyAlgorithm"] = None,
+    rng: Optional[random.Random] = None,
 ) -> PokerGameState:
-    """Simulate a complete multi-round Texas Hold'em poker game with blinds."""
+    """Simulate a complete multi-round Texas Hold'em poker game with blinds.
+    
+    Args:
+        rng: Optional seeded Random instance for deterministic behavior.
+             If not provided, creates a new unseeded Random (non-deterministic).
+    """
+    # Create RNG if not provided (for backward compatibility)
+    if rng is None:
+        rng = random.Random()
 
     contexts = _build_player_contexts(
         player1_energy=player1_energy,
@@ -62,7 +72,7 @@ def simulate_multi_round_game(
     )
 
     game_state = _create_game_state(initial_bet, button_position, contexts)
-    _play_betting_rounds(game_state, contexts, button_position)
+    _play_betting_rounds(game_state, contexts, button_position, rng)
     _evaluate_final_hands(game_state)
     return game_state
 
@@ -117,7 +127,10 @@ def _create_game_state(
 
 
 def _play_betting_rounds(
-    game_state: PokerGameState, contexts: Dict[int, PlayerContext], button_position: int
+    game_state: PokerGameState,
+    contexts: Dict[int, PlayerContext],
+    button_position: int,
+    rng: random.Random,
 ) -> None:
     hand_cache = _HandEvaluationCache(
         community_cards_seen=len(game_state.community_cards), hands={}
@@ -143,6 +156,7 @@ def _play_betting_rounds(
                 contexts=contexts,
                 button_position=button_position,
                 hand_cache=hand_cache,
+                rng=rng,
             )
 
             if _apply_action(
@@ -172,6 +186,7 @@ def _decide_player_action(
     contexts: Dict[int, PlayerContext],
     button_position: int,
     hand_cache: _HandEvaluationCache,
+    rng: random.Random,
 ):
     hand = _evaluate_hand_for_player(current_player, game_state, hand_cache)
 
@@ -221,6 +236,7 @@ def _decide_player_action(
         hole_cards=hole_cards,
         community_cards=game_state.community_cards,
         position_on_button=player_on_button,
+        rng=rng,
     )
 
 

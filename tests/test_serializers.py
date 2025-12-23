@@ -31,7 +31,8 @@ class TestSerializers(unittest.TestCase):
         self.mock_fish.generation = 5
         self.mock_fish.energy = 100.0
         self.mock_fish.genome = self.mock_genome
-        self.mock_fish.size = 1.0
+        self.mock_fish._lifecycle_component = MagicMock()
+        self.mock_fish._lifecycle_component.size = 1.0
 
         self.mock_plant = MagicMock(spec=Plant)
         self.mock_plant.plant_id = 456

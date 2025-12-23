@@ -92,7 +92,6 @@
 - **Shared (BaseSimulator)**:
   - `handle_collisions()`
   - `handle_reproduction()`
-  - `spawn_auto_food()`
   - `record_fish_death()`
   - All spatial grid operations
 

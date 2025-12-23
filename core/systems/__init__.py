@@ -232,4 +232,11 @@ See Also
 
 from core.systems.base import BaseSystem, System, SystemResult
 
-__all__ = ["BaseSystem", "System", "SystemResult"]
+__all__ = [
+    "BaseSystem",
+    "System",
+    "SystemResult",
+    "FoodSpawningSystem",
+    "SpawnRateConfig",
+]
+

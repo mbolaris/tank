@@ -258,20 +258,20 @@ def get_algorithm_name(algorithm_index: int) -> str:
 
 def get_random_algorithm(rng: Optional[random.Random] = None) -> BehaviorAlgorithm:
     """Get a random behavior algorithm instance."""
-    rng = rng or random
-    algorithm_class = rng.choice(ALL_ALGORITHMS)
+    _rng = rng if rng is not None else random.Random()
+    algorithm_class = _rng.choice(ALL_ALGORITHMS)
     try:
-        return algorithm_class.random_instance(rng=rng)
+        return algorithm_class.random_instance(rng=_rng)
     except TypeError:
         return algorithm_class.random_instance()
 
 
 def get_algorithm_by_id(algorithm_id: str, rng: Optional[random.Random] = None) -> Optional[BehaviorAlgorithm]:
     """Get algorithm instance by ID."""
-    rng = rng or random
+    _rng = rng if rng is not None else random.Random()
     for algo_class in ALL_ALGORITHMS:
         try:
-            instance = algo_class.random_instance(rng=rng)
+            instance = algo_class.random_instance(rng=_rng)
         except TypeError:
             instance = algo_class.random_instance()
         if instance.algorithm_id == algorithm_id:
@@ -342,9 +342,9 @@ def inherit_algorithm_with_mutation(
     """
     # Create new instance of same algorithm type
     # Create offspring via class random_instance when possible to honor RNG
-    rng = rng or random
+    _rng = rng if rng is not None else random.Random()
     try:
-        offspring = parent_algorithm.__class__.random_instance(rng=rng)
+        offspring = parent_algorithm.__class__.random_instance(rng=_rng)
     except Exception:
         offspring = parent_algorithm.__class__()
 
@@ -362,6 +362,7 @@ def inherit_algorithm_with_mutation(
         mutation_strength,
         use_parameter_specific=True,
         adaptive_factor=adaptive_factor,
+        rng=_rng,
     )
 
     return offspring
@@ -396,25 +397,25 @@ def _crossover_algorithms_base(
         New algorithm instance with blended parameters
     """
     # Handle edge cases
-    rng = rng or random
+    _rng = rng if rng is not None else random.Random()
     if parent1_algorithm is None and parent2_algorithm is None:
-        return get_random_algorithm(rng=rng)
+        return get_random_algorithm(rng=_rng)
     elif parent1_algorithm is None:
-        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength, rng=rng)
+        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength, rng=_rng)
     elif parent2_algorithm is None:
-        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength, rng=rng)
+        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength, rng=_rng)
 
     # Both parents have algorithms
     same_type = type(parent1_algorithm) == type(parent2_algorithm)
 
     # Decide whether to switch to random algorithm
-    if rng.random() < algorithm_switch_rate:
-        return get_random_algorithm(rng=rng)
+    if _rng.random() < algorithm_switch_rate:
+        return get_random_algorithm(rng=_rng)
 
     if same_type:
         # CASE 1: Both parents have same algorithm type - blend parameters
         try:
-            offspring = parent1_algorithm.__class__.random_instance(rng=rng)
+            offspring = parent1_algorithm.__class__.random_instance(rng=_rng)
         except Exception:
             offspring = parent1_algorithm.__class__()
 
@@ -426,7 +427,7 @@ def _crossover_algorithms_base(
                 # Handle non-numeric parameters
                 if not isinstance(val1, (int, float)) or not isinstance(val2, (int, float)):
                     offspring.parameters[param_key] = (
-                        val1 if rng.random() < parent1_weight else val2
+                        val1 if _rng.random() < parent1_weight else val2
                     )
                     continue
 
@@ -436,10 +437,10 @@ def _crossover_algorithms_base(
                     offspring_value = val1 * parent1_weight + val2 * parent2_weight
                 elif blend_strategy == "average_or_select":
                     # 50% average, 50% random selection
-                    if rng.random() < 0.5:
+                    if _rng.random() < 0.5:
                         offspring_value = (val1 + val2) / 2.0
                     else:
-                        offspring_value = val1 if rng.random() < 0.5 else val2
+                        offspring_value = val1 if _rng.random() < 0.5 else val2
                 else:
                     # Default to weighted
                     offspring_value = val1 * parent1_weight + val2 * parent2_weight
@@ -460,18 +461,18 @@ def _crossover_algorithms_base(
 
     else:
         # CASE 2: Different algorithm types - choose one parent
-        chosen_parent = parent1_algorithm if rng.random() < parent1_weight else parent2_algorithm
+        chosen_parent = parent1_algorithm if _rng.random() < parent1_weight else parent2_algorithm
         try:
-            offspring = chosen_parent.__class__.random_instance(rng=rng)
+            offspring = chosen_parent.__class__.random_instance(rng=_rng)
         except Exception:
             offspring = chosen_parent.__class__()
         offspring.parameters = chosen_parent.parameters.copy()
 
     # Apply mutations to offspring parameters
     if mutation_kwargs:
-        offspring.mutate_parameters(mutation_rate, mutation_strength, **mutation_kwargs)
+        offspring.mutate_parameters(mutation_rate, mutation_strength, rng=_rng, **mutation_kwargs)
     else:
-        offspring.mutate_parameters(mutation_rate, mutation_strength)
+        offspring.mutate_parameters(mutation_rate, mutation_strength, rng=_rng)
 
     return offspring
 

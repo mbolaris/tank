@@ -30,10 +30,6 @@ class _EcosystemStub:
     def record_energy_burn(self, category: str, amount: float) -> None:
         self.burns.append((category, float(amount)))
 
-    def record_reproduction_energy(self, *args, **kwargs) -> None:
-        """Stub method for recording reproduction energy."""
-        pass
-
     def generate_new_fish_id(self) -> int:
         """Generate a new fish ID."""
         fish_id = self._next_fish_id

@@ -47,13 +47,14 @@ AGGRESSION_MEDIUM = POKER_AGGRESSION_MEDIUM
 AGGRESSION_HIGH = POKER_AGGRESSION_HIGH
 
 
+
 def _decide_strong_hand_action(
-    call_amount: float, pot: float, player_energy: float, aggression: float
+    call_amount: float, pot: float, player_energy: float, aggression: float, rng: random.Random
 ) -> Tuple[BettingAction, float]:
     """Decide action for strong hands (flush or better)."""
     if call_amount == 0:
         # No bet to call - raise most of the time
-        if random.random() < POKER_STRONG_RAISE_PROBABILITY:
+        if rng.random() < POKER_STRONG_RAISE_PROBABILITY:
             raise_amount = min(
                 pot * POKER_STRONG_POT_MULTIPLIER, player_energy * POKER_STRONG_ENERGY_FRACTION
             )
@@ -62,7 +63,7 @@ def _decide_strong_hand_action(
             return (BettingAction.CHECK, 0.0)
     else:
         # There's a bet - call or raise
-        if random.random() < aggression:
+        if rng.random() < aggression:
             # Raise
             raise_amount = min(
                 call_amount * POKER_STRONG_CALL_MULTIPLIER,
@@ -75,12 +76,12 @@ def _decide_strong_hand_action(
 
 
 def _decide_medium_hand_action(
-    call_amount: float, pot: float, player_energy: float, aggression: float
+    call_amount: float, pot: float, player_energy: float, aggression: float, rng: random.Random
 ) -> Tuple[BettingAction, float]:
     """Decide action for medium hands (pair through straight)."""
     if call_amount == 0:
         # No bet - check or small raise
-        if random.random() < aggression * POKER_MEDIUM_AGGRESSION_MULTIPLIER:
+        if rng.random() < aggression * POKER_MEDIUM_AGGRESSION_MULTIPLIER:
             raise_amount = min(
                 pot * POKER_MEDIUM_POT_MULTIPLIER, player_energy * POKER_MEDIUM_ENERGY_FRACTION
             )
@@ -92,9 +93,9 @@ def _decide_medium_hand_action(
         pot_odds = call_amount / (pot + call_amount) if pot > 0 else 1.0
 
         # More likely to fold if bet is large relative to pot
-        if pot_odds > POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD and random.random() > aggression:
+        if pot_odds > POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD and rng.random() > aggression:
             return (BettingAction.FOLD, 0.0)
-        elif random.random() < aggression * POKER_MEDIUM_RAISE_PROBABILITY:
+        elif rng.random() < aggression * POKER_MEDIUM_RAISE_PROBABILITY:
             # Sometimes raise with medium hands
             raise_amount = min(
                 call_amount * POKER_MEDIUM_CALL_MULTIPLIER,
@@ -107,12 +108,12 @@ def _decide_medium_hand_action(
 
 
 def _decide_weak_hand_action(
-    call_amount: float, pot: float, player_energy: float, aggression: float
+    call_amount: float, pot: float, player_energy: float, aggression: float, rng: random.Random
 ) -> Tuple[BettingAction, float]:
     """Decide action for weak hands (high card)."""
     if call_amount == 0:
         # No bet - usually check, rarely bluff
-        if random.random() < aggression * POKER_WEAK_BLUFF_PROBABILITY:
+        if rng.random() < aggression * POKER_WEAK_BLUFF_PROBABILITY:
             # Bluff
             raise_amount = min(
                 pot * POKER_WEAK_POT_MULTIPLIER, player_energy * POKER_WEAK_ENERGY_FRACTION
@@ -122,7 +123,7 @@ def _decide_weak_hand_action(
             return (BettingAction.CHECK, 0.0)
     else:
         # There's a bet - usually fold, rarely bluff call
-        if random.random() < aggression * POKER_WEAK_CALL_PROBABILITY:
+        if rng.random() < aggression * POKER_WEAK_CALL_PROBABILITY:
             # Bluff call
             return (BettingAction.CALL, call_amount)
         else:
@@ -139,14 +140,24 @@ def decide_action(
     hole_cards: Optional[List[Card]] = None,
     community_cards: Optional[List[Card]] = None,
     position_on_button: bool = False,
+    rng: random.Random = None,  # type: ignore[assignment]  # Required at runtime
 ) -> Tuple[BettingAction, float]:
     """
     Decide what action to take based on hand strength and game state.
 
     Enhanced with realistic pre-flop hand evaluation and position awareness.
+    
+    Args:
+        rng: Required seeded Random instance for deterministic behavior.
+             Callers must provide this to ensure reproducible simulations.
     """
+    if rng is None:
+        raise ValueError("rng parameter is required for deterministic behavior")
+    
     if aggression is None:
         aggression = AGGRESSION_MEDIUM
+    
+    _rng = rng
 
     # Calculate how much needs to be called
     call_amount = opponent_bet - current_bet
@@ -204,13 +215,13 @@ def decide_action(
     # Strong hands (flush or better)
     if hand_strength >= HandRank.FLUSH:
         return _decide_strong_hand_action(
-            call_amount, pot, player_energy, aggression
+            call_amount, pot, player_energy, aggression, _rng
         )
     # Medium hands (pair through straight)
     elif hand_strength >= HandRank.PAIR:
         return _decide_medium_hand_action(
-            call_amount, pot, player_energy, aggression
+            call_amount, pot, player_energy, aggression, _rng
         )
     # Weak hands (high card)
     else:
-        return _decide_weak_hand_action(call_amount, pot, player_energy, aggression)
+        return _decide_weak_hand_action(call_amount, pot, player_energy, aggression, _rng)

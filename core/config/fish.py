@@ -9,8 +9,10 @@ FISH_GROWTH_RATE = 0.1
 
 # Fish Energy and Metabolism Constants
 INITIAL_ENERGY_RATIO = 0.5  # Start with 50% energy
-BABY_METABOLISM_MULTIPLIER = 0.7  # Babies need less energy
+BABY_METABOLISM_MULTIPLIER = 0.5  # Babies need less energy (reduced from 0.7)
 ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy (was 1.2) - older fish are larger
+SMALL_FISH_METABOLISM_THRESHOLD = 0.8  # Fish below this size get a metabolism discount
+SMALL_FISH_METABOLISM_MIN_MULTIPLIER = 0.7  # At smallest size (0.5), metabolism is 70% of normal
 
 # Energy Consumption Constants
 EXISTENCE_ENERGY_COST = 0.08  # Cost just for being alive per frame (increased from 0.035)
@@ -42,7 +44,7 @@ LIFE_STAGE_MATURE_MAX = 5400  # 180 seconds (3 minutes)
 # After MATURE_MAX = Elder
 
 # Fish Energy System Constants
-# Fish max energy scales as: ENERGY_MAX_DEFAULT * fish.size (size grows with age and genetic size_modifier).
+# Fish max energy scales as: ENERGY_MAX_DEFAULT * lifecycle size (size grows with age and genetic size_modifier).
 ENERGY_MAX_DEFAULT = 150.0  # Maximum energy for a baseline adult fish (was 100.0)
 # When fish would overflow above max_energy, bank that excess for future reproduction instead of dropping it as food.
 # The bank is capped to avoid unbounded accumulation on fish that can't reproduce immediately.

@@ -50,10 +50,6 @@ class MiniEcosystem:
         """Stub for energy gain tracking."""
         pass
 
-    def record_reproduction_energy(self, parent_cost: float, baby_energy: float) -> None:
-        """Stub for reproduction energy tracking."""
-        pass
-
 
 class MiniEnvironment:
     """Simple environment stub exposing only what Fish requires."""
@@ -113,7 +109,7 @@ def _make_adult_fish(env: MiniEnvironment, ecosystem: MiniEcosystem, *, generati
     # Must also update size to adult size for proper max_energy
     fish._lifecycle_component.size = 1.0  # Adult size
     fish.energy = fish.max_energy
-    fish.reproduction_cooldown = 0
+    fish._reproduction_component.reproduction_cooldown = 0
     # Bank enough overflow energy for reproduction (requires 75+ energy for a baby)
     fish._reproduction_component.bank_overflow_energy(80.0, max_bank=fish.max_energy)
     return fish
@@ -128,7 +124,7 @@ def _trigger_instant_reproductions(fish_list, env):
     newborns = []
     for fish in list(fish_list):
         # Ensure fish is eligible: adult, full energy, has banked overflow
-        if fish.life_stage != LifeStage.ADULT:
+        if fish._lifecycle_component.life_stage != LifeStage.ADULT:
             continue
         if fish.energy < fish.max_energy:
             continue
@@ -175,15 +171,15 @@ def test_multi_generation_reproduction(monkeypatch):
 
     # Prepare the baby for rapid reproduction with the second parent
     parent_a.energy = parent_a.max_energy * 0.1  # Keep first parent out of the next mating round
-    parent_a.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
+    parent_a._reproduction_component.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
 
     baby._lifecycle_component.force_life_stage(LifeStage.ADULT)
     baby._lifecycle_component.age = 200
     baby.energy = baby.max_energy
-    baby.reproduction_cooldown = 0
+    baby._reproduction_component.reproduction_cooldown = 0
     baby._reproduction_component.bank_overflow_energy(baby.max_energy * 0.5, max_bank=baby.max_energy)
 
-    parent_b.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
+    parent_b._reproduction_component.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
     parent_b.energy = parent_b.max_energy * 0.1
 
     helper = _make_adult_fish(env, ecosystem, generation=baby.generation)
