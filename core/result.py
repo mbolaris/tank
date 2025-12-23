@@ -84,6 +84,7 @@ class Ok(Generic[T]):
             return Ok(a / b)
     """
 
+    __slots__ = ("value",)
     value: T
 
     def is_ok(self) -> bool:
@@ -151,6 +152,7 @@ class Err(Generic[E]):
             return Ok(entities[id])
     """
 
+    __slots__ = ("error",)
     error: E
 
     def is_ok(self) -> bool:

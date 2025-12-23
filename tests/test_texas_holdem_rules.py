@@ -339,6 +339,9 @@ def test_table_stakes_all_in():
     print("TEST: Table Stakes (All-In Rule)")
     print("=" * 60)
 
+    import random
+    rng = random.Random(42)
+
     # Create a mock hand for testing
     hole = [Card(Rank.ACE, Suit.HEARTS), Card(Rank.KING, Suit.HEARTS)]
     community = [
@@ -358,6 +361,7 @@ def test_table_stakes_all_in():
         aggression=0.5,
         hole_cards=hole,
         community_cards=community,
+        rng=rng,
     )
 
     print("  Scenario: Player has $5, opponent bets $10")
@@ -377,6 +381,7 @@ def test_table_stakes_all_in():
         aggression=0.5,
         hole_cards=hole,
         community_cards=community,
+        rng=rng,
     )
 
     print("\n  Scenario: Player has $20, opponent bets $10")

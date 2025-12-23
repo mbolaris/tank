@@ -1036,14 +1036,7 @@ class Fish(Agent):
         previous_direction = self.last_direction
 
         # Movement (algorithms handle critical energy internally)
-        # Calculate acceleration for diagnostics
-        prev_vel = Vector2(self.vel.x, self.vel.y)
         self.movement_strategy.move(self)
-
-        # Diagnostic: Record velocity and acceleration
-        from core.diagnostics import VelocityTracker
-        acceleration = (self.vel - prev_vel).length()
-        VelocityTracker().record_movement(self.fish_id, self.vel, acceleration)
 
         self._apply_turn_energy_cost(previous_direction)
 

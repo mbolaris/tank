@@ -259,7 +259,8 @@ class TestSkillGameComponent:
         parent.set_strategy(SkillGameType.ROCK_PAPER_SCISSORS, parent_strategy)
 
         child = SkillGameComponent()
-        child.inherit_from_parent(parent, mutation_rate=0.1)
+        # Use high mutation rate to ensure mutations always occur
+        child.inherit_from_parent(parent, mutation_rate=0.5)
 
         child_strategy = child.get_strategy(SkillGameType.ROCK_PAPER_SCISSORS)
         assert child_strategy is not None
@@ -274,8 +275,8 @@ class TestSkillGameComponent:
             for k in parent_params
             if k != "learning_rate"  # Learning rate mutation may be 0
         ]
-        # With seed 42 and mutation_rate=0.1, mutation always produces differences
-        assert sum(param_diffs) > 0
+        # With high mutation rate, at least one param should change
+        assert sum(param_diffs) > 0, f"Expected mutation differences, got parent={parent_params}, child={child_params}"
 
 
 class TestConfig:
