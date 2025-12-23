@@ -27,6 +27,17 @@ from core.config.ecosystem import (
     FISH_POKER_MIN_DISTANCE,
     MATING_QUERY_RADIUS,
 )
+from core.config.fish import (
+    ENERGY_MAX_DEFAULT,
+    FISH_BABY_SIZE,
+    FISH_BASE_SPEED,
+    POST_POKER_CROSSOVER_WINNER_WEIGHT,
+    POST_POKER_MATING_DISTANCE,
+    POST_POKER_MUTATION_RATE,
+    POST_POKER_MUTATION_STRENGTH,
+    POST_POKER_PARENT_ENERGY_CONTRIBUTION,
+    REPRODUCTION_COOLDOWN,
+)
 from core.config.simulation import (
     COLLISION_QUERY_RADIUS,
     SKILL_GAME_MAX_DISTANCE,
@@ -51,12 +62,15 @@ from core.poker_interaction import (
     MAX_PLAYERS as POKER_MAX_PLAYERS,
     MIN_ENERGY_TO_PLAY as POKER_MIN_ENERGY,
     check_poker_proximity,
-    get_ready_players
+    get_ready_players,
+    is_post_poker_reproduction_eligible,
+    should_offer_post_poker_reproduction,
 )
 from core.mixed_poker import (
     MixedPokerInteraction,
     should_trigger_plant_poker_asexual_reproduction,
 )
+from core.genetics import Genome, ReproductionParams
 
 logger = logging.getLogger(__name__)
 
@@ -1100,18 +1114,6 @@ class BaseSimulator(ABC):
     def _create_post_poker_offspring(
         self, winner: "Fish", mate: "Fish", rng: random.Random
     ) -> Optional["Fish"]:
-        from core.config.fish import (
-            ENERGY_MAX_DEFAULT,
-            FISH_BABY_SIZE,
-            FISH_BASE_SPEED,
-            POST_POKER_CROSSOVER_WINNER_WEIGHT,
-            POST_POKER_MUTATION_RATE,
-            POST_POKER_MUTATION_STRENGTH,
-            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
-            REPRODUCTION_COOLDOWN,
-        )
-        from core.genetics import Genome, ReproductionParams
-
         if winner.environment is None:
             return None
 
@@ -1230,12 +1232,6 @@ class BaseSimulator(ABC):
 
         if winner is None or getattr(winner, "environment", None) is None:
             return None
-
-        from core.config.fish import POST_POKER_MATING_DISTANCE
-        from core.poker_interaction import (
-            is_post_poker_reproduction_eligible,
-            should_offer_post_poker_reproduction,
-        )
 
         max_dist_sq = POST_POKER_MATING_DISTANCE * POST_POKER_MATING_DISTANCE
         winner_cx = winner.pos.x + winner.width * 0.5
