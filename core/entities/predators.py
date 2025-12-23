@@ -85,9 +85,10 @@ class Crab(Agent):
         self.consume_energy()
 
         # Simple patrol: just keep walking in current direction
-        # If no horizontal velocity, pick a random direction
+        # If no horizontal velocity, pick a random direction (use environment RNG)
         if abs(self.vel.x) < 0.1:
-            direction = random.choice([-1, 1])
+            rng = getattr(self.environment, "rng", random)
+            direction = rng.choice([-1, 1])
             self.vel.x = direction * self.speed
 
         # Stay on bottom (no vertical movement)

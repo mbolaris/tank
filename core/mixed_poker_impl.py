@@ -496,8 +496,11 @@ class MixedPokerInteraction:
             )
 
         # Fallback: Simple aggression-based decision
+        # Use player's environment RNG if available for determinism
+        player = self.players[player_idx]
+        _rng = getattr(getattr(player, "environment", None), "rng", random)
         aggression = ctx.aggression
-        play_strength = hand_strength + (aggression - 0.5) * 0.2 + random.uniform(-0.1, 0.1)
+        play_strength = hand_strength + (aggression - 0.5) * 0.2 + _rng.uniform(-0.1, 0.1)
 
         if call_amount <= 0:
             # No bet to call - can check or raise

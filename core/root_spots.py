@@ -108,12 +108,14 @@ class RootSpotManager:
         self.spots: List[RootSpot] = []
         self._initialize_spots(spot_count)
 
-    def _initialize_spots(self, count: int) -> None:
+    def _initialize_spots(self, count: int, rng: Optional[random.Random] = None) -> None:
         """Create all root spots distributed along tank bottom.
 
         Args:
             count: Number of spots to create
+            rng: Optional random number generator for determinism
         """
+        _rng = rng if rng is not None else random.Random()
         # Calculate spacing to distribute spots evenly
         margin = 20  # Margin from tank edges
         available_width = self.screen_width - (2 * margin)
@@ -122,7 +124,7 @@ class RootSpotManager:
         for i in range(count):
             x = margin + (i * spacing)
             # Add slight random variation to y for natural look
-            y_offset = random.uniform(-ROOT_SPOT_Y_VARIANCE, ROOT_SPOT_Y_VARIANCE)
+            y_offset = _rng.uniform(-ROOT_SPOT_Y_VARIANCE, ROOT_SPOT_Y_VARIANCE)
             y = ROOT_SPOT_Y_BASE + y_offset
 
             spot = RootSpot(spot_id=i, x=x, y=y)
@@ -130,8 +132,11 @@ class RootSpotManager:
             spot.manager = self
             self.spots.append(spot)
 
-    def get_random_empty_spot(self) -> Optional[RootSpot]:
+    def get_random_empty_spot(self, rng: Optional[random.Random] = None) -> Optional[RootSpot]:
         """Get a random unoccupied spot.
+
+        Args:
+            rng: Optional random number generator for determinism
 
         Returns:
             Random empty RootSpot, or None if all spots are occupied
@@ -139,7 +144,8 @@ class RootSpotManager:
         empty_spots = [s for s in self.spots if not s.occupied and not s.blocked]
         if not empty_spots:
             return None
-        return random.choice(empty_spots)
+        _rng = rng if rng is not None else random.Random()
+        return _rng.choice(empty_spots)
 
     def get_nearest_empty_spot(self, x: float, y: float) -> Optional[RootSpot]:
         """Get the nearest unoccupied spot to a position.
@@ -324,7 +330,8 @@ class RootSpotManager:
         return result
 
     def find_spot_for_sprouting(
-        self, parent_x: float, parent_y: float, max_distance: float = 200.0
+        self, parent_x: float, parent_y: float, max_distance: float = 200.0,
+        rng: Optional[random.Random] = None,
     ) -> Optional[RootSpot]:
         """Find a suitable spot for a new plant to sprout.
 
@@ -334,10 +341,13 @@ class RootSpotManager:
             parent_x: Parent plant X position
             parent_y: Parent plant Y position
             max_distance: Maximum distance from parent
+            rng: Optional random number generator for determinism
 
         Returns:
             Suitable RootSpot for sprouting, or None
         """
+        _rng = rng if rng is not None else random.Random()
+        
         # First try to find spots within preferred range
         nearby_spots = self.get_spots_in_range(
             parent_x, parent_y, max_distance, only_empty=True
@@ -359,12 +369,12 @@ class RootSpotManager:
             # Sort by score and pick from top candidates with some randomness
             nearby_spots.sort(key=score_spot, reverse=True)
             top_candidates = nearby_spots[: min(5, len(nearby_spots))]
-            return random.choice(top_candidates)
+            return _rng.choice(top_candidates)
 
         # Fall back to any empty spot
-        return self.get_random_empty_spot()
+        return self.get_random_empty_spot(rng=_rng)
 
-    def get_edge_empty_spot(self, direction: str) -> Optional[RootSpot]:
+    def get_edge_empty_spot(self, direction: str, rng: Optional[random.Random] = None) -> Optional[RootSpot]:
         """Get an empty spot at the specified edge of the tank.
 
         Used for plant migration - plants migrating from the left should appear
@@ -372,10 +382,13 @@ class RootSpotManager:
 
         Args:
             direction: "left" or "right" - which edge to prefer
+            rng: Optional random number generator for determinism
 
         Returns:
             Empty RootSpot at the specified edge, or None if all spots are occupied
         """
+        _rng = rng if rng is not None else random.Random()
+        
         empty_spots = [s for s in self.spots if not s.occupied and not s.blocked]
         if not empty_spots:
             return None
@@ -393,7 +406,7 @@ class RootSpotManager:
 
         # If edge spots are available, prefer them
         if edge_spots:
-            return random.choice(edge_spots)
+            return _rng.choice(edge_spots)
 
         # Fall back to any empty spot if edge spots are full
-        return random.choice(empty_spots)
+        return _rng.choice(empty_spots)
