@@ -169,27 +169,21 @@ class EntitySnapshotBuilder:
                 )
 
             if isinstance(entity, entities.PlantNectar):
-                source_plant_id = None
-                source_plant_x = None
-                source_plant_y = None
-                floral_type = None
-                floral_petals = None
-                floral_layers = None
-                floral_spin = None
-                floral_hue = None
-                floral_saturation = None
-                if getattr(entity, "source_plant", None):
-                    source_plant = entity.source_plant
-                    source_plant_id = id(source_plant)
-                    source_plant_x = source_plant.pos.x + source_plant.width / 2
-                    source_plant_y = source_plant.pos.y + source_plant.height
-                    genome = source_plant.genome
-                    floral_type = genome.floral_type
-                    floral_petals = genome.floral_petals
-                    floral_layers = genome.floral_layers
-                    floral_spin = genome.floral_spin
-                    floral_hue = genome.floral_hue
-                    floral_saturation = genome.floral_saturation
+                # Skip orphaned nectar (no valid source plant)
+                if not getattr(entity, "source_plant", None):
+                    return None
+
+                source_plant = entity.source_plant
+                source_plant_id = id(source_plant)
+                source_plant_x = source_plant.pos.x + source_plant.width / 2
+                source_plant_y = source_plant.pos.y + source_plant.height
+                genome = source_plant.genome
+                floral_type = genome.floral_type
+                floral_petals = genome.floral_petals
+                floral_layers = genome.floral_layers
+                floral_spin = genome.floral_spin
+                floral_hue = genome.floral_hue
+                floral_saturation = genome.floral_saturation
 
                 return EntitySnapshot(
                     type="plant_nectar",
