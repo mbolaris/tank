@@ -77,11 +77,18 @@ class SystemRegistry:
         self.engine.lifecycle_system = EntityLifecycleSystem(self.engine, context=self.context)
         self.engine.time_system = TimeSystem(self.engine, context=self.context)
         self.engine.food_spawning_system = FoodSpawningSystem(
-            self.engine, context=self.context, rng=self.context.rng
+            self.engine,
+            context=self.context,
+            rng=self.context.rng,
+            config=getattr(self.engine, "food_spawn_config", None),
+            auto_food_enabled=getattr(self.engine, "auto_food_enabled", None),
+            screen_width=getattr(self.engine, "_display_width", None),
+            screen_height=getattr(self.engine, "_display_height", None),
         )
         self.engine.collision_system = CollisionSystem(self.engine, context=self.context)
         self.engine.reproduction_system = ReproductionSystem(self.engine, context=self.context)
-        self.engine.poker_system = PokerSystem(self.engine, max_events=MAX_POKER_EVENTS, context=self.context)
+        max_events = getattr(self.engine, "poker_max_events", MAX_POKER_EVENTS)
+        self.engine.poker_system = PokerSystem(self.engine, max_events=max_events, context=self.context)
         self.engine.poker_events = self.engine.poker_system.poker_events
 
         self.systems = [

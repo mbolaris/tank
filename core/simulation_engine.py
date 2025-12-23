@@ -18,6 +18,7 @@ from core.config.ecosystem import (
     MAX_POPULATION,
     SPAWN_MARGIN_PIXELS,
     TOTAL_ALGORITHM_COUNT,
+    TOTAL_SPECIES_COUNT,
 )
 from core.config.display import (
     FILES,
@@ -46,6 +47,7 @@ from core.services.stats_calculator import StatsCalculator
 from core.simulation_stats_exporter import SimulationStatsExporter
 from core.simulators.base_simulator import BaseSimulator
 from core.systems.base import BaseSystem
+from core.systems.food_spawning import SpawnRateConfig
 from core.simulation_runtime import (
     SimulationContext,
     SimulationRuntime,
@@ -152,11 +154,12 @@ class SimulationEngine(BaseSimulator):
 
     def __init__(
         self,
-        headless: bool = True,
+        headless: Optional[bool] = None,
         rng: Optional[random.Random] = None,
         seed: Optional[int] = None,
-        enable_poker_benchmarks: bool = False,
+        enable_poker_benchmarks: Optional[bool] = None,
         runtime: Optional[SimulationRuntime] = None,
+        config: Optional[Any] = None,
     ) -> None:
         """Initialize the simulation engine.
 
@@ -166,16 +169,65 @@ class SimulationEngine(BaseSimulator):
             enable_poker_benchmarks: If True, enable periodic benchmark evaluations
         """
         super().__init__()
+        # Prefer headless/benchmark toggles from provided config when explicit args are not given.
+        cfg_headless = headless
+        if cfg_headless is None and config is not None:
+            cfg_headless = getattr(config, "headless", None)
+
+        cfg_enable_benchmarks = enable_poker_benchmarks
+        if cfg_enable_benchmarks is None and config is not None:
+            cfg_enable_benchmarks = getattr(
+                getattr(config, "poker", None), "enable_periodic_benchmarks", None
+            )
+        if cfg_enable_benchmarks is None:
+            cfg_enable_benchmarks = False
+
         if runtime is None:
             runtime_config = SimulationRuntimeConfig(
-                headless=headless,
+                headless=cfg_headless if cfg_headless is not None else True,
                 rng=rng,
                 seed=seed,
-                enable_poker_benchmarks=enable_poker_benchmarks,
+                enable_poker_benchmarks=cfg_enable_benchmarks,
             )
             self.runtime = SimulationRuntime(runtime_config)
         else:
             self.runtime = runtime
+
+        def _cfg(path: List[str], default: Any) -> Any:
+            target = config
+            for part in path:
+                if target is None or not hasattr(target, part):
+                    return default
+                target = getattr(target, part)
+            return target
+
+        # Derived configuration values (fall back to module defaults if no config provided)
+        self._display_width = _cfg(["display", "screen_width"], SCREEN_WIDTH)
+        self._display_height = _cfg(["display", "screen_height"], SCREEN_HEIGHT)
+        self._separator_width = _cfg(["display", "separator_width"], SEPARATOR_WIDTH)
+        self._frame_rate = _cfg(["display", "frame_rate"], FRAME_RATE)
+        self._files = _cfg(["display", "files"], FILES)
+        self._plants_enabled = _cfg(["server", "plants_enabled"], PLANTS_ENABLED)
+        self._max_population = _cfg(["ecosystem", "max_population"], MAX_POPULATION)
+        self._critical_population_threshold = _cfg(
+            ["ecosystem", "critical_population_threshold"], CRITICAL_POPULATION_THRESHOLD
+        )
+        self._emergency_spawn_cooldown = _cfg(
+            ["ecosystem", "emergency_spawn_cooldown"], EMERGENCY_SPAWN_COOLDOWN
+        )
+        self._spawn_margin_pixels = _cfg(["ecosystem", "spawn_margin_pixels"], SPAWN_MARGIN_PIXELS)
+        self._total_algorithm_count = _cfg(["ecosystem", "total_algorithm_count"], TOTAL_ALGORITHM_COUNT)
+        self._total_species_count = _cfg(["ecosystem", "total_species_count"], TOTAL_SPECIES_COUNT)
+        self.poker_max_events = _cfg(["poker", "max_poker_events"], MAX_POKER_EVENTS)
+        self.poker_event_max_age_frames = _cfg(
+            ["poker", "poker_event_max_age_frames"], POKER_EVENT_MAX_AGE_FRAMES
+        )
+
+        food_cfg = _cfg(["food"], None)
+        self.food_spawn_config = _cfg(["food", "spawn_rate_config"], None)
+        if self.food_spawn_config is None:
+            self.food_spawn_config = SpawnRateConfig()
+        self.auto_food_enabled = getattr(food_cfg, "auto_food_enabled", None) if food_cfg else None
 
         # Resolve RNG once so the context and engine share the same deterministic source.
         resolved_rng, resolved_seed = self.runtime.resolve_rng()
@@ -191,7 +243,7 @@ class SimulationEngine(BaseSimulator):
         self.time_system = None
         self.start_time: float = time.time()
         self.last_emergency_spawn_frame: int = (
-            -EMERGENCY_SPAWN_COOLDOWN
+            -self._emergency_spawn_cooldown
         )  # Allow immediate first spawn
 
         # Event bus for decoupled communication between components
@@ -233,7 +285,7 @@ class SimulationEngine(BaseSimulator):
 
         # Phase tracking for debugging and monitoring
         self._current_phase: Optional[UpdatePhase] = None
-        self._phase_debug_enabled: bool = False
+        self._phase_debug_enabled: bool = bool(_cfg(["enable_phase_debug"], False))
 
     @property
     def root_spot_manager(self) -> Optional[RootSpotManager]:
@@ -251,15 +303,15 @@ class SimulationEngine(BaseSimulator):
         # Initialize managers
         self.environment = environment.Environment(
             self.entities_list,
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT,
+            self._display_width,
+            self._display_height,
             self.time_system,
             rng=self.context.rng,
         )
-        self.ecosystem = EcosystemManager(max_population=MAX_POPULATION)
+        self.ecosystem = EcosystemManager(max_population=self._max_population)
 
         # Initialize plant management system
-        if PLANTS_ENABLED:
+        if self._plants_enabled:
             self.plant_manager = PlantManager(
                 environment=self.environment,
                 ecosystem=self.ecosystem,
@@ -407,7 +459,7 @@ class SimulationEngine(BaseSimulator):
 
         # Use centralized factory function for initial population
         population = create_initial_population(
-            self.environment, self.ecosystem, SCREEN_WIDTH, SCREEN_HEIGHT, rng=self.rng
+            self.environment, self.ecosystem, self._display_width, self._display_height, rng=self.rng
         )
         for entity in population:
             self.agents.add(entity)
@@ -644,7 +696,10 @@ class SimulationEngine(BaseSimulator):
                          entities_to_remove.append(entity)
                  else:
                      # Standard food sinks
-                     if entity.pos.y >= SCREEN_HEIGHT - entity.height:
+                     env_height = (
+                         getattr(self.environment, "height", None) or self._display_height
+                     )
+                     if entity.pos.y >= env_height - entity.height:
                          entities_to_remove.append(entity)
 
             self.keep_entity_on_screen(entity)
@@ -688,14 +743,14 @@ class SimulationEngine(BaseSimulator):
             # Do this BEFORE taking the energy snapshot so the snapshot matches true end-of-frame state.
             fish_list = self.get_fish_list()
             fish_count = len(fish_list)
-            if fish_count < MAX_POPULATION:
+            if fish_count < self._max_population:
                 frames_since_last_spawn = self.frame_count - self.last_emergency_spawn_frame
-                if frames_since_last_spawn >= EMERGENCY_SPAWN_COOLDOWN:
-                    if fish_count < CRITICAL_POPULATION_THRESHOLD:
+                if frames_since_last_spawn >= self._emergency_spawn_cooldown:
+                    if fish_count < self._critical_population_threshold:
                         spawn_probability = 1.0
                     else:
-                        population_ratio = (fish_count - CRITICAL_POPULATION_THRESHOLD) / (
-                            MAX_POPULATION - CRITICAL_POPULATION_THRESHOLD
+                        population_ratio = (fish_count - self._critical_population_threshold) / (
+                            self._max_population - self._critical_population_threshold
                         )
                         spawn_probability = (1.0 - population_ratio) ** 2 * 0.3
 
@@ -755,14 +810,15 @@ class SimulationEngine(BaseSimulator):
         # Random spawn position (avoid edges)
         bounds = self.environment.get_bounds()
         (min_x, min_y), (max_x, max_y) = bounds
-        x = self.rng.randint(int(min_x) + SPAWN_MARGIN_PIXELS, int(max_x) - SPAWN_MARGIN_PIXELS)
-        y = self.rng.randint(int(min_y) + SPAWN_MARGIN_PIXELS, int(max_y) - SPAWN_MARGIN_PIXELS)
+        margin = self._spawn_margin_pixels
+        x = self.rng.randint(int(min_x) + margin, int(max_x) - margin)
+        y = self.rng.randint(int(min_y) + margin, int(max_y) - margin)
 
         # Create the new fish
         new_fish = entities.Fish(
             self.environment,
             movement_strategy.AlgorithmicMovement(),
-            FILES["schooling_fish"][0],
+            self._files["schooling_fish"][0],
             x,
             y,
             4,
@@ -801,10 +857,11 @@ class SimulationEngine(BaseSimulator):
         self.poker_system.add_poker_event(poker)
 
     def get_recent_poker_events(
-        self, max_age_frames: int = POKER_EVENT_MAX_AGE_FRAMES
+        self, max_age_frames: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
-        return self.poker_system.get_recent_poker_events(max_age_frames)
+        age = max_age_frames or self.poker_event_max_age_frames
+        return self.poker_system.get_recent_poker_events(age)
 
     def get_stats(self) -> Dict[str, Any]:
         """Get current simulation statistics.
@@ -826,19 +883,19 @@ class SimulationEngine(BaseSimulator):
         stats = self.get_stats()
 
         logger.info("")
-        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("=" * self._separator_width)
         logger.info(f"Frame: {stats.get('frame_count', 0)}")
         logger.info(f"Time: {stats.get('time_string', 'N/A')}")
         logger.info(f"Real Time: {stats.get('elapsed_real_time', 0):.1f}s")
         logger.info(f"Simulation Speed: {stats.get('simulation_speed', 0):.2f}x")
-        logger.info("-" * SEPARATOR_WIDTH)
+        logger.info("-" * self._separator_width)
         max_pop = self.ecosystem.max_population if self.ecosystem else "N/A"
         logger.info(f"Population: {stats.get('total_population', 0)}/{max_pop}")
         logger.info(f"Generation: {stats.get('current_generation', 0)}")
         logger.info(f"Total Births: {stats.get('total_births', 0)}")
         logger.info(f"Total Deaths: {stats.get('total_deaths', 0)}")
         logger.info(f"Capacity: {stats.get('capacity_usage', 'N/A')}")
-        logger.info("-" * SEPARATOR_WIDTH)
+        logger.info("-" * self._separator_width)
         logger.info(f"Fish: {stats.get('fish_count', 0)}")
         logger.info(f"Food: {stats.get('food_count', 0)}")
         logger.info(f"Plants: {stats.get('plant_count', 0)}")
@@ -846,7 +903,7 @@ class SimulationEngine(BaseSimulator):
         # Death causes
         death_causes = stats.get("death_causes", {})
         if death_causes:
-            logger.info("-" * SEPARATOR_WIDTH)
+            logger.info("-" * self._separator_width)
             logger.info("Death Causes:")
             for cause, count in death_causes.items():
                 logger.info(f"  {cause}: {count}")
@@ -854,7 +911,7 @@ class SimulationEngine(BaseSimulator):
         # Reproduction stats
         repro_stats = stats.get("reproduction_stats", {})
         if repro_stats:
-            logger.info("-" * SEPARATOR_WIDTH)
+            logger.info("-" * self._separator_width)
             logger.info("Reproduction Stats:")
             logger.info(f"  Total Reproductions: {repro_stats.get('total_reproductions', 0)}")
             logger.info(f"  Mating Attempts: {repro_stats.get('total_mating_attempts', 0)}")
@@ -866,19 +923,21 @@ class SimulationEngine(BaseSimulator):
         # Genetic diversity stats
         diversity_stats = stats.get("diversity_stats", {})
         if diversity_stats:
-            logger.info("-" * SEPARATOR_WIDTH)
+            logger.info("-" * self._separator_width)
             logger.info("Genetic Diversity:")
             logger.info(
-                f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/{TOTAL_ALGORITHM_COUNT}"
+                f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/{self._total_algorithm_count}"
             )
-            logger.info(f"  Unique Species: {diversity_stats.get('unique_species', 0)}/4")
+            logger.info(
+                f"  Unique Species: {diversity_stats.get('unique_species', 0)}/{self._total_species_count}"
+            )
             logger.info(f"  Diversity Score: {diversity_stats.get('diversity_score_pct', 'N/A')}")
             logger.info(f"  Color Variance: {diversity_stats.get('color_variance', 0):.4f}")
             logger.info(f"  Speed Variance: {diversity_stats.get('speed_variance', 0):.4f}")
             logger.info(f"  Size Variance: {diversity_stats.get('size_variance', 0):.4f}")
             logger.info(f"  Vision Variance: {diversity_stats.get('vision_variance', 0):.4f}")
 
-        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("=" * self._separator_width)
 
     def run_headless(
         self,
@@ -893,16 +952,16 @@ class SimulationEngine(BaseSimulator):
             stats_interval: Print stats every N frames
             export_json: Optional filename to export JSON stats for LLM analysis
         """
-        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("=" * self._separator_width)
         logger.info("HEADLESS FISH TANK SIMULATION")
-        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("=" * self._separator_width)
         logger.info(
-            f"Running for {max_frames} frames ({max_frames / FRAME_RATE:.1f} seconds of sim time)"
+            f"Running for {max_frames} frames ({max_frames / self._frame_rate:.1f} seconds of sim time)"
         )
         logger.info(f"Stats will be printed every {stats_interval} frames")
         if export_json:
             logger.info(f"Stats will be exported to: {export_json}")
-        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("=" * self._separator_width)
 
         self.setup()
 
@@ -915,17 +974,17 @@ class SimulationEngine(BaseSimulator):
 
         # Print final stats
         logger.info("")
-        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("=" * self._separator_width)
         logger.info("SIMULATION COMPLETE - Final Statistics")
-        logger.info("=" * SEPARATOR_WIDTH)
+        logger.info("=" * self._separator_width)
         self.print_stats()
 
         # Generate algorithm performance report if available
         if self.ecosystem is not None:
             logger.info("")
-            logger.info("=" * SEPARATOR_WIDTH)
+            logger.info("=" * self._separator_width)
             logger.info("GENERATING ALGORITHM PERFORMANCE REPORT...")
-            logger.info("=" * SEPARATOR_WIDTH)
+            logger.info("=" * self._separator_width)
             report = self.ecosystem.get_algorithm_performance_report()
             logger.info(f"{report}")
 
@@ -940,9 +999,9 @@ class SimulationEngine(BaseSimulator):
             # Export JSON stats if requested
             if export_json:
                 logger.info("")
-                logger.info("=" * SEPARATOR_WIDTH)
+                logger.info("=" * self._separator_width)
                 logger.info("EXPORTING JSON STATISTICS FOR LLM ANALYSIS...")
-                logger.info("=" * SEPARATOR_WIDTH)
+                logger.info("=" * self._separator_width)
                 self.export_stats_json(export_json)
 
     def run_collect_stats(self, max_frames: int = 100) -> Dict[str, Any]:

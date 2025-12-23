@@ -86,6 +86,10 @@ class FoodSpawningSystem(BaseSystem):
         context: "SimulationContext | None" = None,
         rng: Optional[random.Random] = None,
         config: Optional[SpawnRateConfig] = None,
+        spawn_rate_config: Optional[SpawnRateConfig] = None,
+        auto_food_enabled: Optional[bool] = None,
+        screen_width: Optional[int] = None,
+        screen_height: Optional[int] = None,
     ) -> None:
         """Initialize the food spawning system.
 
@@ -97,7 +101,10 @@ class FoodSpawningSystem(BaseSystem):
         super().__init__(engine, "FoodSpawning", context=context)
         resolved_rng = rng if rng is not None else context.rng if context is not None else None
         self._rng = resolved_rng if resolved_rng is not None else random.Random()
-        self.config = config if config is not None else SpawnRateConfig()
+        self.config = config or spawn_rate_config or SpawnRateConfig()
+        self._auto_food_enabled = AUTO_FOOD_ENABLED if auto_food_enabled is None else auto_food_enabled
+        self._screen_width = screen_width if screen_width is not None else SCREEN_WIDTH
+        self._screen_height = screen_height if screen_height is not None else SCREEN_HEIGHT
         self._total_spawned: int = 0
         self._frames_since_spawn: int = 0
         self._last_spawn_rate: int = self.config.base_rate
@@ -111,7 +118,7 @@ class FoodSpawningSystem(BaseSystem):
         Returns:
             SystemResult with spawn statistics
         """
-        if not AUTO_FOOD_ENABLED:
+        if not self._auto_food_enabled:
             return SystemResult.skipped_result()
 
         if self._engine.environment is None:
@@ -198,7 +205,7 @@ class FoodSpawningSystem(BaseSystem):
 
         # Random spawn position at top of screen
         margin = 50
-        x = self._rng.randint(margin, SCREEN_WIDTH - margin)
+        x = self._rng.randint(margin, self._screen_width - margin)
         y = self._rng.randint(10, 50)  # Near top of tank
 
         # Determine if live food
