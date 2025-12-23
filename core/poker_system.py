@@ -13,6 +13,7 @@ Architecture Notes:
 
 import logging
 from collections import deque
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Dict, List, Set, Union
 
 from core.config.ecosystem import (
@@ -194,6 +195,10 @@ class PokerSystem(BaseSystem):
             message,
         )
 
+        emitter = getattr(self._engine, "_emit_poker_outcome", None)
+        if emitter is not None:
+            emitter(result)
+
     def add_plant_poker_event(
         self,
         fish_id: int,
@@ -243,6 +248,22 @@ class PokerSystem(BaseSystem):
         self.poker_events.append(event)
         self._games_played += 1
         self._total_energy_transferred += energy_transferred
+
+        emitter = getattr(self._engine, "_emit_poker_outcome", None)
+        if emitter is not None:
+            emitter(
+                SimpleNamespace(
+                    winner_id=winner_id if winner_id != -3 else plant_id,
+                    loser_ids=[loser_id],
+                    winner_type="plant" if winner_id == -3 else "fish",
+                    loser_types=["fish" if winner_id == -3 else "plant"],
+                    energy_transferred=energy_transferred,
+                    winner_hand=winner_hand,
+                    loser_hands=[loser_hand],
+                    is_tie=False,
+                    house_cut=0.0,
+                )
+            )
 
     def get_recent_poker_events(self, max_age_frames: int) -> List[Dict[str, Any]]:
         """Get recent poker events within a frame window.
@@ -683,6 +704,11 @@ class PokerSystem(BaseSystem):
                 house_cut=float(getattr(result, "house_cut", 0.0) or 0.0),
                 winner_type=str(getattr(result, "winner_type", "")),
             )
+
+        if result.plant_count == 0:
+            emitter = getattr(self._engine, "_emit_poker_outcome", None)
+            if emitter is not None:
+                emitter(result)
 
         # Trigger asexual reproduction if fish won against only plants
         # (fish_count == 1 means only the winner was a fish, all opponents were plants)

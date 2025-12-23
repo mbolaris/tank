@@ -4,6 +4,7 @@ This module provides a headless simulation engine that can run the fish tank
 simulation without any visualization code.
 """
 
+import json
 import logging
 import os
 import random
@@ -14,6 +15,25 @@ from core import entities, environment, movement_strategy
 from core.algorithms.registry import get_algorithm_index
 from core.cache_manager import CacheManager
 from core.collision_system import CollisionSystem
+from core.config.ecosystem import (
+    CRITICAL_POPULATION_THRESHOLD,
+    EMERGENCY_SPAWN_COOLDOWN,
+    MAX_POPULATION,
+    SPAWN_MARGIN_PIXELS,
+    TOTAL_ALGORITHM_COUNT,
+)
+from core.config.display import (
+    FILES,
+    FRAME_RATE,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SEPARATOR_WIDTH,
+)
+from core.config.server import PLANTS_ENABLED
+from core.config.poker import (
+    MAX_POKER_EVENTS,
+    POKER_EVENT_MAX_AGE_FRAMES,
+)
 from core.config.simulation_config import SimulationConfig
 from core.ecosystem import EcosystemManager
 from core.entities.plant import Plant, PlantNectar
@@ -21,6 +41,10 @@ from core.entity_factory import create_initial_population
 from core.events import (
     EnergyChangedEvent,
     EventBus,
+    EntityBornEvent,
+    EntityDiedEvent,
+    PhaseTransitionEvent,
+    PokerGameEvent,
 )
 from core.poker_interaction import PokerInteraction
 from core.genetics import Genome
@@ -36,7 +60,8 @@ from core.simulation_stats_exporter import SimulationStatsExporter
 from core.simulators.base_simulator import BaseSimulator
 from core.systems.base import BaseSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
-from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
+from core.systems.food_spawning import FoodSpawningSystem
+from core.debug_trace import DebugTraceSink
 from core.time_system import TimeSystem
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 
@@ -138,12 +163,11 @@ class SimulationEngine(BaseSimulator):
 
     def __init__(
         self,
-        config: Optional[SimulationConfig] = None,
-        *,
         headless: Optional[bool] = None,
         rng: Optional[random.Random] = None,
         seed: Optional[int] = None,
-        enable_poker_benchmarks: Optional[bool] = None,
+        enable_poker_benchmarks: bool = False,
+        simulation_config: Optional[SimulationConfig] = None,
     ) -> None:
         """Initialize the simulation engine.
 
@@ -151,19 +175,19 @@ class SimulationEngine(BaseSimulator):
             config: Aggregate simulation configuration
             headless: Override headless mode (for backward compatibility)
             rng: Shared random number generator for deterministic runs
-            seed: Optional seed (used if rng is not provided)
-            enable_poker_benchmarks: Override poker benchmark toggle
+            enable_poker_benchmarks: If True, enable periodic benchmark evaluations
+            simulation_config: Optional SimulationConfig to control tracing/headless modes
         """
         super().__init__()
-        self.config = config or SimulationConfig.production(headless=True)
-        if headless is not None:
-            self.config = self.config.with_overrides(headless=headless)
-        if enable_poker_benchmarks is not None:
-            poker_config = self.config.poker
-            poker_config.enable_periodic_benchmarks = enable_poker_benchmarks
-            self.config.poker = poker_config
-        self.config.validate()
-        self.headless = self.config.headless
+        headless_value = (
+            headless
+            if headless is not None
+            else (simulation_config.headless if simulation_config is not None else True)
+        )
+        self.simulation_config = simulation_config or SimulationConfig(headless=headless_value)
+        # Ensure headless matches any explicit override
+        self.simulation_config.headless = headless_value
+        self.headless = self.simulation_config.headless
         # Backwards-compatible RNG handling: prefer explicit rng, then seed, then fresh RNG
         if rng is not None:
             self.rng: random.Random = rng
@@ -185,6 +209,9 @@ class SimulationEngine(BaseSimulator):
 
         # Event bus for decoupled communication between components
         self.event_bus = EventBus()
+        self.trace_sink: Optional[DebugTraceSink] = None
+        if self.simulation_config.trace_mode:
+            self._ensure_trace_sink()
 
         # Systems - all extend BaseSystem for consistent interface
         self.collision_system = CollisionSystem(self)
@@ -406,6 +433,91 @@ class SimulationEngine(BaseSimulator):
         """
         self.event_bus.emit(event)
 
+    def enable_tracing(self, output_path: Optional[str] = None) -> None:
+        """Enable trace mode and attach a DebugTraceSink."""
+        self.simulation_config.enable_tracing(output_path)
+        self._ensure_trace_sink()
+
+    def _ensure_trace_sink(self) -> None:
+        if self.trace_sink is None:
+            self.trace_sink = DebugTraceSink(self.event_bus)
+
+    def _emit_phase_transition(self, phase: UpdatePhase, status: str) -> None:
+        self.event_bus.emit(
+            PhaseTransitionEvent(frame=self.frame_count, phase=phase.name, status=status)
+        )
+
+    def _emit_entity_born(self, entity: entities.Agent) -> None:
+        entity_type = self._get_entity_type(entity)
+        entity_id = self._get_entity_id(entity)
+        parent_id = getattr(entity, "parent_id", None)
+        generation = getattr(entity, "generation", 0)
+        self.event_bus.emit(
+            EntityBornEvent(
+                frame=self.frame_count,
+                entity_id=entity_id,
+                entity_type=entity_type,
+                parent_id=parent_id,
+                generation=generation,
+                position=(getattr(entity.pos, "x", 0.0), getattr(entity.pos, "y", 0.0)),
+            )
+        )
+
+    def _emit_entity_death(self, entity: entities.Agent, cause: str = "unknown") -> None:
+        entity_type = self._get_entity_type(entity)
+        entity_id = self._get_entity_id(entity)
+        generation = getattr(entity, "generation", 0)
+        age = getattr(getattr(entity, "_lifecycle_component", None), "age", 0)
+        self.event_bus.emit(
+            EntityDiedEvent(
+                frame=self.frame_count,
+                entity_id=entity_id,
+                entity_type=entity_type,
+                cause=cause,
+                age=age,
+                generation=generation,
+            )
+        )
+
+    def _emit_poker_outcome(self, result) -> None:
+        if result is None:
+            return
+        loser_ids = getattr(result, "loser_ids", []) or []
+        loser_types = getattr(result, "loser_types", []) or []
+        loser_hands = getattr(result, "loser_hands", []) or []
+        self.event_bus.emit(
+            PokerGameEvent(
+                frame=self.frame_count,
+                winner_id=getattr(result, "winner_id", 0),
+                loser_ids=list(loser_ids) if loser_ids is not None else [],
+                winner_type=getattr(result, "winner_type", "fish"),
+                loser_types=list(loser_types) if loser_types is not None else [],
+                energy_transferred=getattr(result, "energy_transferred", 0.0),
+                winner_hand=str(getattr(result, "winner_hand", "")),
+                loser_hands=[str(hand) for hand in loser_hands],
+                is_tie=getattr(result, "is_tie", False),
+                house_cut=getattr(result, "house_cut", 0.0),
+            )
+        )
+
+    def _get_entity_type(self, entity: entities.Agent) -> str:
+        if isinstance(entity, entities.Fish):
+            return "fish"
+        if isinstance(entity, Plant):
+            return "plant"
+        if isinstance(entity, PlantNectar):
+            return "nectar"
+        if isinstance(entity, entities.Food):
+            return "food"
+        return entity.__class__.__name__.lower()
+
+    def _get_entity_id(self, entity: entities.Agent) -> int:
+        if hasattr(entity, "fish_id"):
+            return int(getattr(entity, "fish_id", 0))
+        if hasattr(entity, "plant_id"):
+            return int(getattr(entity, "plant_id", 0))
+        return int(getattr(entity, "id", 0) or 0)
+
     def get_event_bus_stats(self) -> Dict[str, Any]:
         """Get statistics about the event bus.
 
@@ -494,6 +606,7 @@ class SimulationEngine(BaseSimulator):
             self.root_spot_manager.block_spots_for_entity(entity, padding=10.0)
         # Invalidate cached lists
         self._cache_manager.invalidate_entity_caches("entity added")
+        self._emit_entity_born(entity)
 
     def remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation."""
@@ -547,6 +660,8 @@ class SimulationEngine(BaseSimulator):
         """Delegate poker result processing to the poker system."""
         super().handle_poker_result(poker)
         self.poker_system.handle_poker_result(poker)
+        if getattr(poker, "result", None) is not None:
+            self._emit_poker_outcome(poker.result)
 
     def handle_mixed_poker_games(self) -> None:
         """Delegate mixed poker games to the poker system."""
@@ -576,6 +691,7 @@ class SimulationEngine(BaseSimulator):
 
         # ===== PHASE: FRAME_START =====
         self._current_phase = UpdatePhase.FRAME_START
+        self._emit_phase_transition(self._current_phase, "start")
         self.frame_count += 1
 
         # Update lifecycle system first to reset per-frame counters
@@ -585,15 +701,19 @@ class SimulationEngine(BaseSimulator):
         # Delegates to PlantManager which tracks its own interval.
         if self.plant_manager is not None:
             self.plant_manager.reconcile_plants(self.entities_list, self.frame_count)
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: TIME_UPDATE =====
         self._current_phase = UpdatePhase.TIME_UPDATE
+        self._emit_phase_transition(self._current_phase, "start")
         self.time_system.update(self.frame_count)
         time_modifier = self.time_system.get_activity_modifier()
         time_of_day = self.time_system.get_time_of_day()
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: ENVIRONMENT =====
         self._current_phase = UpdatePhase.ENVIRONMENT
+        self._emit_phase_transition(self._current_phase, "start")
         # Advance ecosystem frame early so any energy/events recorded during this frame
         # are attributed to the correct frame number.
         ecosystem = self.ecosystem
@@ -603,9 +723,11 @@ class SimulationEngine(BaseSimulator):
         # Performance: Update cached detection modifier once per frame
         if self.environment is not None:
             self.environment.update_detection_modifier()
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: ENTITY_ACT =====
         self._current_phase = UpdatePhase.ENTITY_ACT
+        self._emit_phase_transition(self._current_phase, "start")
         new_entities: List[entities.Agent] = []
         entities_to_remove: List[entities.Agent] = []
 
@@ -649,24 +771,30 @@ class SimulationEngine(BaseSimulator):
                     entity.die()  # Release root spot
                     entities_to_remove.append(entity)
                     logger.debug(f"Plant #{entity.plant_id} died at age {entity.age}")
+                    self._emit_entity_death(entity, cause="natural")
                 elif isinstance(entity, PlantNectar):
                      # Nectar consumed or invalid
                      entities_to_remove.append(entity)
+                     self._emit_entity_death(entity, cause="consumed")
 
             # Handle removal conditions for Food
             elif isinstance(entity, Food):
                  if isinstance(entity, LiveFood):
                      if entity.is_expired():
                          entities_to_remove.append(entity)
+                         self._emit_entity_death(entity, cause="expired")
                  else:
                      # Standard food sinks
                      if entity.pos.y >= self.config.display.screen_height - entity.height:
                          entities_to_remove.append(entity)
+                         self._emit_entity_death(entity, cause="sunk")
 
             self.keep_entity_on_screen(entity)
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: LIFECYCLE =====
         self._current_phase = UpdatePhase.LIFECYCLE
+        self._emit_phase_transition(self._current_phase, "start")
         # Batch entity removals (more efficient than removing during iteration)
         for entity in entities_to_remove:
             self.remove_entity(entity)
@@ -676,9 +804,11 @@ class SimulationEngine(BaseSimulator):
 
         for new_entity in new_entities:
             self.add_entity(new_entity)
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: SPAWN =====
         self._current_phase = UpdatePhase.SPAWN
+        self._emit_phase_transition(self._current_phase, "start")
         # Delegate to food spawning system (respects AUTO_FOOD_ENABLED internally)
         self.food_spawning_system.update(self.frame_count)
 
@@ -688,14 +818,18 @@ class SimulationEngine(BaseSimulator):
             update_position = self.environment.update_agent_position
             for entity in self.entities_list:
                 update_position(entity)
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: COLLISION =====
         self._current_phase = UpdatePhase.COLLISION
+        self._emit_phase_transition(self._current_phase, "start")
         # Uses spatial grid for efficiency
         self.handle_collisions()
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: REPRODUCTION =====
         self._current_phase = UpdatePhase.REPRODUCTION
+        self._emit_phase_transition(self._current_phase, "start")
         # Mate finding (Legacy/Poker based reproduction handling)
         self.handle_reproduction()
 
@@ -739,9 +873,11 @@ class SimulationEngine(BaseSimulator):
                 for f in fish_list
             )
             ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
+        self._emit_phase_transition(self._current_phase, "end")
 
         # ===== PHASE: FRAME_END =====
         self._current_phase = UpdatePhase.FRAME_END
+        self._emit_phase_transition(self._current_phase, "start")
 
         # Periodic poker benchmark evaluation
         if self.benchmark_evaluator is not None:
@@ -753,6 +889,7 @@ class SimulationEngine(BaseSimulator):
             self._rebuild_caches()
 
         # Clear phase tracking at end of frame
+        self._emit_phase_transition(self._current_phase, "end")
         self._current_phase = None
 
 
@@ -907,6 +1044,7 @@ class SimulationEngine(BaseSimulator):
         max_frames: int = 10000,
         stats_interval: int = 300,
         export_json: Optional[str] = None,
+        trace_output: Optional[str] = None,
     ) -> None:
         """Run the simulation in headless mode without visualization.
 
@@ -914,6 +1052,7 @@ class SimulationEngine(BaseSimulator):
             max_frames: Maximum number of frames to simulate
             stats_interval: Print stats every N frames
             export_json: Optional filename to export JSON stats for LLM analysis
+            trace_output: Optional filename to export trace data
         """
         sep = self.config.display.separator_width
         logger.info("=" * sep)
@@ -925,7 +1064,11 @@ class SimulationEngine(BaseSimulator):
         logger.info(f"Stats will be printed every {stats_interval} frames")
         if export_json:
             logger.info(f"Stats will be exported to: {export_json}")
-        logger.info("=" * sep)
+        active_trace_output = trace_output or self.simulation_config.trace_output
+        if active_trace_output or self.simulation_config.trace_mode:
+            logger.info("Trace mode enabled%s", f" -> {active_trace_output}" if active_trace_output else "")
+            self.enable_tracing(active_trace_output)
+        logger.info("=" * SEPARATOR_WIDTH)
 
         self.setup()
 
@@ -967,6 +1110,18 @@ class SimulationEngine(BaseSimulator):
                 logger.info("EXPORTING JSON STATISTICS FOR LLM ANALYSIS...")
                 logger.info("=" * sep)
                 self.export_stats_json(export_json)
+
+        if active_trace_output:
+            self._write_trace(active_trace_output)
+
+    def _write_trace(self, output_path: str) -> None:
+        """Persist trace data collected by DebugTraceSink."""
+        if self.trace_sink is None:
+            return
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(self.trace_sink.to_dict(), f, indent=2)
+        logger.info("Trace data exported to %s", output_path)
 
     def run_collect_stats(self, max_frames: int = 100) -> Dict[str, Any]:
         """Run the engine for `max_frames` frames and return final stats.
