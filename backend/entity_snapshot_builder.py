@@ -169,21 +169,28 @@ class EntitySnapshotBuilder:
                 )
 
             if isinstance(entity, entities.PlantNectar):
-                # Skip orphaned nectar (no valid source plant)
-                if not getattr(entity, "source_plant", None):
-                    return None
+                source_plant = getattr(entity, "source_plant", None)
+                source_plant_id = id(source_plant) if source_plant is not None else None
 
-                source_plant = entity.source_plant
-                source_plant_id = id(source_plant)
-                source_plant_x = source_plant.pos.x + source_plant.width / 2
-                source_plant_y = source_plant.pos.y + source_plant.height
-                genome = source_plant.genome
-                floral_type = genome.floral_type
-                floral_petals = genome.floral_petals
-                floral_layers = genome.floral_layers
-                floral_spin = genome.floral_spin
-                floral_hue = genome.floral_hue
-                floral_saturation = genome.floral_saturation
+                # Default to nectar position if a source plant is unavailable.
+                source_plant_x = (
+                    source_plant.pos.x + source_plant.width / 2
+                    if source_plant is not None
+                    else entity.pos.x
+                )
+                source_plant_y = (
+                    source_plant.pos.y + source_plant.height
+                    if source_plant is not None
+                    else entity.pos.y
+                )
+
+                genome = getattr(source_plant, "genome", None)
+                floral_type = getattr(genome, "floral_type", 0)
+                floral_petals = getattr(genome, "floral_petals", 0)
+                floral_layers = getattr(genome, "floral_layers", 0)
+                floral_spin = getattr(genome, "floral_spin", 0)
+                floral_hue = getattr(genome, "floral_hue", 0)
+                floral_saturation = getattr(genome, "floral_saturation", 0)
 
                 return EntitySnapshot(
                     type="plant_nectar",

@@ -9,9 +9,10 @@ including configuration and random number generation, making it easy to:
 
 import logging
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Dict, List, Optional
 
+from core.config.simulation_config import SimulationConfig
 from core.config.food import (
     AUTO_FOOD_ENABLED,
     AUTO_FOOD_SPAWN_RATE,
@@ -75,6 +76,28 @@ class TankWorldConfig:
         """Create config from dictionary."""
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
+    def to_simulation_config(self) -> SimulationConfig:
+        """Convert legacy TankWorldConfig to SimulationConfig."""
+        sim_cfg = SimulationConfig.production(headless=self.headless)
+        sim_cfg.display = replace(
+            sim_cfg.display,
+            screen_width=self.screen_width,
+            screen_height=self.screen_height,
+            frame_rate=self.frame_rate,
+        )
+        sim_cfg.ecosystem = replace(
+            sim_cfg.ecosystem,
+            max_population=self.max_population,
+            critical_population_threshold=self.critical_population_threshold,
+        )
+        sim_cfg.food = replace(
+            sim_cfg.food,
+            spawn_rate=self.auto_food_spawn_rate,
+            auto_food_enabled=self.auto_food_enabled,
+        )
+        sim_cfg.validate()
+        return sim_cfg
+
 
 class TankWorld:
     """Main simulation wrapper that encapsulates all global state.
@@ -92,6 +115,7 @@ class TankWorld:
     def __init__(
         self,
         config: Optional[TankWorldConfig] = None,
+        simulation_config: Optional[SimulationConfig] = None,
         rng: Optional[random.Random] = None,
         seed: Optional[int] = None,
     ):
@@ -99,11 +123,13 @@ class TankWorld:
 
         Args:
             config: Simulation configuration (uses defaults if None)
+            simulation_config: New aggregate SimulationConfig (overrides config if provided)
             rng: Random number generator instance (creates new if None)
             seed: Random seed (only used if rng is None)
         """
         # Store configuration
         self.config = config if config is not None else TankWorldConfig()
+        self.simulation_config = simulation_config or self.config.to_simulation_config()
 
         # Setup RNG
         if rng is not None:
