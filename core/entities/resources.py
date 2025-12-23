@@ -43,6 +43,7 @@ class Food(Agent):
         food_type: Optional[str] = None,
         allow_stationary_types: bool = True,
         speed: float = 0.0,
+        rng: Optional[random.Random] = None,
     ) -> None:
         """Initialize a food item.
 
@@ -53,11 +54,14 @@ class Food(Agent):
             source_plant: Optional plant that produced this food
             food_type: Type of food (random if None)
             allow_stationary_types: Whether to allow stationary food types
+            rng: Random number generator for deterministic food type selection
         """
         # Select random food type based on rarity if not specified
         if food_type is None:
+            # Use provided rng, or fall back to environment._rng, or create new Random
+            _rng = rng or getattr(environment, '_rng', None) or random.Random()
             food_type = self._select_random_food_type(
-                include_stationary=allow_stationary_types, include_live=False
+                include_stationary=allow_stationary_types, include_live=False, rng=_rng
             )
 
         self.food_type = food_type
@@ -194,8 +198,8 @@ class LiveFood(Food):
         # Fish speed_modifier averages ~0.85, giving 2.2 * 0.85 = 1.87 base speed
         # LiveFood at 1.4 gives ~33% speed advantage to average fish
         self.max_speed = speed * 0.93  # 1.5 * 0.93 = 1.4
-        # Use environment.rng if available, otherwise create new unseeded Random
-        self._rng = getattr(environment, 'rng', None) or random.Random()
+        # Use environment._rng if available, otherwise create new unseeded Random
+        self._rng = getattr(environment, '_rng', None) or random.Random()
         self.wander_timer = self._rng.randint(20, 45)
         # BALANCE: Reduced avoid_radius from 180 to 80 so fish can get much closer
         # before triggering flee response - makes hunting more effective

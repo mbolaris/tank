@@ -8,10 +8,13 @@ class TestSimulationRunnerCommands:
     def runner(self):
         """Create a SimulationRunner with mocked world."""
         with patch('backend.simulation_runner.TankWorld') as MockWorld:
+            import random
             # Configure mock world
             mock_world_instance = MockWorld.return_value
             mock_world_instance.rng = MagicMock()
             mock_world_instance.environment = MagicMock()
+            # Add proper _rng for Food creation to work
+            mock_world_instance.environment._rng = random.Random(42)
             mock_world_instance.ecosystem = MagicMock()
             mock_world_instance.entities_list = []
             

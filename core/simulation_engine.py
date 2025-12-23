@@ -237,7 +237,8 @@ class SimulationEngine(BaseSimulator):
         display = self.config.display
         eco_config = self.config.ecosystem
         self.environment = environment.Environment(
-            self.entities_list, display.screen_width, display.screen_height, self.time_system
+            self.entities_list, display.screen_width, display.screen_height, self.time_system,
+            rng=self.rng,
         )
         self.ecosystem = EcosystemManager(max_population=eco_config.max_population)
 

@@ -13,7 +13,6 @@ This module contains 8 algorithms focused on managing energy expenditure:
 
 import math
 import random
-import time
 from dataclasses import dataclass
 from typing import Tuple, Optional
 
@@ -90,10 +89,14 @@ class EnergyConserver(BehaviorAlgorithm):
         # Rest mode - gentle exploration based on exploration_rate parameter
         exploration_rate = self.parameters["exploration_rate"]
         if exploration_rate > 0:
-            # Gentle wandering to explore for food when idle
-            t = time.time() * 0.2  # Slow time factor for gentle movement
-            vx = math.cos(t + id(fish) * 0.1) * exploration_rate
-            vy = math.sin(t * 0.7 + id(fish) * 0.1) * exploration_rate * 0.5
+        # Gentle wandering to explore for food when idle
+            # Use fish_id as stable phase offset and environment RNG for time variation
+            rng = getattr(fish.environment, "_rng", None) or random.Random(fish.fish_id)
+            # Generate a pseudo-time from the RNG seeded by fish_id for consistent per-fish behavior
+            phase = fish.fish_id * 0.1  # Stable phase offset per fish
+            wander_state = rng.random() * 6.283185307  # Random angle
+            vx = math.cos(wander_state + phase) * exploration_rate
+            vy = math.sin(wander_state * 0.7 + phase) * exploration_rate * 0.5
             return vx, vy
 
         return 0, 0
@@ -237,9 +240,12 @@ class OpportunisticRester(BehaviorAlgorithm):
         idle_speed = self.parameters["idle_wander_speed"]
         if idle_speed > 0:
             # Gentle random wandering to explore environment
-            t = time.time() * 0.15  # Very slow wandering
-            vx = math.cos(t + id(fish) * 0.05) * idle_speed
-            vy = math.sin(t * 0.6 + id(fish) * 0.05) * idle_speed * 0.4
+            # Use fish_id as stable phase offset and environment RNG for variation
+            rng = getattr(fish.environment, "_rng", None) or random.Random(fish.fish_id)
+            phase = fish.fish_id * 0.05  # Stable phase offset per fish
+            wander_state = rng.random() * 6.283185307  # Random angle
+            vx = math.cos(wander_state + phase) * idle_speed
+            vy = math.sin(wander_state * 0.6 + phase) * idle_speed * 0.4
             return vx, vy
 
         return 0, 0
@@ -545,9 +551,10 @@ class AdaptivePacer(BehaviorAlgorithm):
 
         # Default gentle cruising if nothing else to do
         if vx == 0 and vy == 0:
-            # Cruise in a gentle pattern
-            t = time.time() * 0.3
-            vx = math.cos(t) * base_speed * 0.6
-            vy = math.sin(t * 0.5) * base_speed * 0.3
+            # Cruise in a gentle pattern using environment RNG for determinism
+            rng = getattr(fish.environment, "_rng", None) or random.Random(fish.fish_id)
+            wander_angle = rng.random() * 6.283185307
+            vx = math.cos(wander_angle) * base_speed * 0.6
+            vy = math.sin(wander_angle * 0.5) * base_speed * 0.3
 
         return vx, vy
