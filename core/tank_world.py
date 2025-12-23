@@ -26,7 +26,6 @@ from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from core.config.simulation_config import SimulationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +52,6 @@ class TankWorldConfig:
 
     # Headless mode
     headless: bool = True
-    trace_mode: bool = False
-    trace_output: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
@@ -67,8 +64,6 @@ class TankWorldConfig:
             "auto_food_spawn_rate": self.auto_food_spawn_rate,
             "auto_food_enabled": self.auto_food_enabled,
             "headless": self.headless,
-            "trace_mode": self.trace_mode,
-            "trace_output": self.trace_output,
         }
 
     @classmethod
@@ -144,16 +139,7 @@ class TankWorld:
         from core.simulation_engine import SimulationEngine
 
         # Create the simulation engine
-        # For now, we pass headless flag to engine
-        # Later we can refactor engine to use config directly
-        self.simulation_config = SimulationConfig(
-            headless=self.config.headless,
-            trace_mode=self.config.trace_mode,
-            trace_output=self.config.trace_output,
-        )
-        self.engine = SimulationEngine(
-            headless=self.config.headless, rng=self.rng, simulation_config=self.simulation_config
-        )
+        self.engine = SimulationEngine(config=self.simulation_config, rng=self.rng)
 
     def setup(self) -> None:
         """Setup the simulation.
@@ -214,11 +200,7 @@ class TankWorld:
         self.engine.export_stats_json(filename)
 
     def run_headless(
-        self,
-        max_frames: int = 10000,
-        stats_interval: int = 300,
-        export_json: Optional[str] = None,
-        trace_output: Optional[str] = None,
+        self, max_frames: int = 10000, stats_interval: int = 300, export_json: Optional[str] = None
     ) -> None:
         """Run simulation in headless mode.
 
@@ -226,15 +208,9 @@ class TankWorld:
             max_frames: Maximum number of frames to simulate
             stats_interval: Print stats every N frames
             export_json: Optional filename to export JSON stats
-            trace_output: Optional filename to export trace data
         """
-        if trace_output:
-            self.simulation_config.trace_output = trace_output
         self.engine.run_headless(
-            max_frames=max_frames,
-            stats_interval=stats_interval,
-            export_json=export_json,
-            trace_output=trace_output,
+            max_frames=max_frames, stats_interval=stats_interval, export_json=export_json
         )
 
     # Expose commonly used properties

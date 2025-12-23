@@ -231,7 +231,7 @@ def test_mixed_poker_house_cut_only_hits_fish_when_fish_wins():
         plant_count=1,
     )
 
-    engine._record_and_apply_mixed_poker_outcome(poker)
+    engine.poker_system._record_and_apply_mixed_poker_outcome(poker)
 
     assert math.isclose(engine.ecosystem.energy_sources.get("poker_plant", 0.0), 10.0, rel_tol=0, abs_tol=1e-9)
     assert math.isclose(engine.ecosystem.energy_burn.get("poker_house_cut", 0.0), 2.0, rel_tol=0, abs_tol=1e-9)
@@ -274,7 +274,7 @@ def test_mixed_poker_house_cut_only_hits_plants_when_plant_wins():
         plant_count=1,
     )
 
-    engine._record_and_apply_mixed_poker_outcome(poker)
+    engine.poker_system._record_and_apply_mixed_poker_outcome(poker)
 
     assert math.isclose(engine.ecosystem.energy_burn.get("poker_plant_loss", 0.0), 10.0, rel_tol=0, abs_tol=1e-9)
     assert engine.ecosystem.energy_burn.get("poker_house_cut", 0.0) == 0.0
