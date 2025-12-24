@@ -203,15 +203,30 @@ class TestPlantPokerGames:
 
         pytest.fail("Should have recorded some poker results in 5 trials of 1200 frames")
 
-    def test_plant_energy_changes_after_poker(self, run_simulation):
+    def test_plant_energy_changes_after_poker(self, engine, monkeypatch):
         """Verify plant energy changes as a result of poker games."""
-        # Run 5 trials with 1200 frames each for better coverage
-        for trial in range(5):
-            result = run_simulation(frames=1200)
-            if plants_have_played_poker(result["plants"]):
-                return  # Test passes
+        all_entities = engine.get_all_entities()
+        fish = [e for e in all_entities if isinstance(e, Fish)]
+        plants = [e for e in all_entities if isinstance(e, Plant)]
 
-        pytest.fail("At least one plant should have energy changes from poker in 5 trials of 1200 frames")
+        if len(fish) < 1 or len(plants) < 1:
+            pytest.skip("Need at least 1 fish and 1 plant")
+
+        reset_cooldowns(fish[0], plants[0])
+        initial_energy = plants[0].energy
+
+        def force_fold(self, game_state, contexts, start_position):
+            game_state.player_folded[1] = True
+            contexts[1].folded = True
+            return False
+
+        monkeypatch.setattr(MixedPokerInteraction, "_play_betting_round", force_fold)
+
+        poker = MixedPokerInteraction([fish[0], plants[0]])
+        result = poker.play_poker(bet_amount=10.0)
+
+        assert result is True
+        assert plants[0].energy < initial_energy
 
     def test_plant_cooldown_applied_after_poker(self, engine):
         """Verify poker cooldown is applied to plants after games."""
