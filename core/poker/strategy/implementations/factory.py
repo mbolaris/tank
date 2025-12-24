@@ -56,7 +56,7 @@ def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrat
     Args:
         rng: Random number generator. If None, creates a new Random() instance.
     """
-    _rng = rng if rng is not None else random.Random()
+    _rng = rng if rng is not None else random
     cls = _rng.choice(ALL_POKER_STRATEGIES)
     try:
         return cls.random_instance(rng=_rng)
@@ -148,9 +148,9 @@ def crossover_poker_strategies(
 
     # Novelty injection: small chance of completely random strategy
     # This maintains diversity but at a lower rate to preserve adaptations
-    # Note: Use parent RNG if available, otherwise create new one
+    # Note: Use parent RNG if available, otherwise use global random
     crossover_rng = parent1._rng if parent1 is not None else (
-        parent2._rng if parent2 is not None else random.Random()
+        parent2._rng if parent2 is not None else random
     )
     
     if crossover_rng.random() < cfg["novelty_injection_rate"]:

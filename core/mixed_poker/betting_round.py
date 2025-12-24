@@ -33,6 +33,7 @@ def decide_player_action(
     game_state: "MultiplayerGameState",
     contexts: "List[MultiplayerPlayerContext]",
     players: List[Any],
+    rng: Optional[Any] = None,
 ) -> Tuple[BettingAction, float]:
     """Decide action for a player based on hand strength and aggression.
 
@@ -41,6 +42,7 @@ def decide_player_action(
         game_state: Current game state
         contexts: List of player contexts
         players: List of player objects (for RNG access)
+        rng: Optional RNG for deterministic behavior
 
     Returns:
         Tuple of (action, bet_amount)
@@ -82,9 +84,12 @@ def decide_player_action(
         )
 
     # Fallback: Simple aggression-based decision
-    # Use player's environment RNG if available for determinism
+    # Use provided RNG, or fallback to player environment, or generic random
     player = players[player_idx]
-    _rng = getattr(getattr(player, "environment", None), "rng", random)
+    _rng = rng
+    if _rng is None:
+        _rng = getattr(getattr(player, "environment", None), "rng", random)
+        
     aggression = ctx.aggression
     play_strength = hand_strength + (aggression - 0.5) * 0.2 + _rng.uniform(-0.1, 0.1)
 
@@ -127,6 +132,7 @@ def play_betting_round(
     num_players: int,
     players: List[Any],
     modify_player_energy: callable,
+    rng: Optional[Any] = None,
 ) -> bool:
     """Play a single betting round.
 
@@ -137,6 +143,7 @@ def play_betting_round(
         num_players: Total number of players
         players: List of player objects
         modify_player_energy: Function to modify a player's energy
+        rng: Optional RNG for deterministic behavior
 
     Returns:
         True if round completed normally, False if only one player remains
@@ -166,7 +173,7 @@ def play_betting_round(
             return False
 
         # Get player action
-        action, amount = decide_player_action(current_pos, game_state, contexts, players)
+        action, amount = decide_player_action(current_pos, game_state, contexts, players, rng=rng)
 
         # Apply action
         if action == BettingAction.FOLD:

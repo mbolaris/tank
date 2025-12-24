@@ -30,13 +30,14 @@ class TerritorialDefender(BehaviorAlgorithm):
     """Defend a territory from other fish."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="territorial_defender",
             parameters={
                 "territory_radius": rng.uniform(80, 150),
                 "aggression": rng.uniform(0.5, 1.0),
             },
+            rng=rng,
         )
         self.territory_center = None
 
@@ -99,13 +100,14 @@ class RandomExplorer(BehaviorAlgorithm):
     """Explore randomly, covering new ground."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="random_explorer",
             parameters={
                 "change_frequency": rng.uniform(0.02, 0.08),
                 "exploration_speed": rng.uniform(0.5, 0.9),
             },
+            rng=rng,
         )
         self.current_direction = Vector2(rng.uniform(-1, 1), rng.uniform(-1, 1)).normalize()
 
@@ -152,7 +154,7 @@ class RandomExplorer(BehaviorAlgorithm):
             avoid_y = -0.5
 
         # Change direction periodically or when hitting boundaries
-        rng = getattr(self, "rng", None) or random
+        rng = self.rng or getattr(fish.environment, "rng", random)
         if rng.random() < self.parameters["change_frequency"] or (avoid_x != 0 or avoid_y != 0):
             # Bias new direction away from edges
             new_x = rng.uniform(-1, 1) + avoid_x
@@ -187,13 +189,14 @@ class WallFollower(BehaviorAlgorithm):
     """Follow along tank walls."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="wall_follower",
             parameters={
                 "wall_distance": rng.uniform(20, 60),
                 "follow_speed": rng.uniform(0.5, 0.8),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -212,10 +215,10 @@ class WallFollower(BehaviorAlgorithm):
 
         # Move parallel to nearest wall
         if min_dist in (dist_to_left, dist_to_right):
-            rng = getattr(self, "rng", None) or random
+            rng = self.rng or getattr(fish.environment, "rng", random)
             return 0, rng.choice([-1, 1]) * self.parameters["follow_speed"]
         else:
-            rng = getattr(self, "rng", None) or random
+            rng = self.rng or getattr(fish.environment, "rng", random)
             return rng.choice([-1, 1]) * self.parameters["follow_speed"], 0
 
 
@@ -224,7 +227,7 @@ class CornerSeeker(BehaviorAlgorithm):
     """Prefer staying in corners."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="corner_seeker",
             parameters={
@@ -233,6 +236,7 @@ class CornerSeeker(BehaviorAlgorithm):
                 ),
                 "approach_speed": rng.uniform(0.4, 0.7),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -262,13 +266,14 @@ class CenterHugger(BehaviorAlgorithm):
     """Stay near the center of the tank."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="center_hugger",
             parameters={
                 "orbit_radius": rng.uniform(50, 120),
                 "return_strength": rng.uniform(0.5, 0.9),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -294,13 +299,14 @@ class RoutePatroller(BehaviorAlgorithm):
     """Patrol between specific waypoints."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="route_patroller",
             parameters={
                 "patrol_speed": rng.uniform(0.5, 0.8),
                 "waypoint_threshold": rng.uniform(30, 60),
             },
+            rng=rng,
         )
         self.waypoints: List[Vector2] = []
         self.current_waypoint_idx = 0
@@ -314,7 +320,7 @@ class RoutePatroller(BehaviorAlgorithm):
 
         if not self.initialized:
             # Create strategic waypoints - cover different areas of tank
-            rng = getattr(self, "rng", None) or random
+            rng = self.rng or getattr(fish.environment, "rng", random)
             num_waypoints = rng.randint(4, 7)
             for i in range(num_waypoints):
                 # Distribute waypoints in a pattern
@@ -403,13 +409,14 @@ class BoundaryExplorer(BehaviorAlgorithm):
     """Explore edges and boundaries."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="boundary_explorer",
             parameters={
                 "edge_preference": rng.uniform(0.6, 1.0),
                 "exploration_speed": rng.uniform(0.5, 0.8),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -432,13 +439,14 @@ class NomadicWanderer(BehaviorAlgorithm):
     """Wander continuously without a home base."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        rng = rng if rng is not None else random
         super().__init__(
             algorithm_id="nomadic_wanderer",
             parameters={
                 "wander_strength": rng.uniform(0.5, 0.9),
                 "direction_change_rate": rng.uniform(0.01, 0.05),
             },
+            rng=rng,
         )
         self.wander_angle = rng.uniform(0, 2 * math.pi)
 
@@ -463,7 +471,7 @@ class NomadicWanderer(BehaviorAlgorithm):
                 # Flee but maintain nomadic unpredictability
                 base_escape = self._safe_normalize(fish.pos - nearest_predator.pos)
                 perp_x, perp_y = -base_escape.y, base_escape.x
-                rng = getattr(self, "rng", None) or random
+                rng = self.rng or getattr(fish.environment, "rng", random)
                 randomness = rng.uniform(-0.4, 0.4)
                 vx = base_escape.x * 1.0 + perp_x * randomness
                 vy = base_escape.y * 1.0 + perp_y * randomness
@@ -492,11 +500,11 @@ class NomadicWanderer(BehaviorAlgorithm):
             to_center_x = center_x - fish_x
             to_center_y = center_y - fish_y
             # Blend turn toward center with random wandering
-            rng = getattr(self, "rng", None) or random
+            rng = self.rng or getattr(fish.environment, "rng", random)
             self.wander_angle = math.atan2(to_center_y, to_center_x) + rng.gauss(0, 0.3)
 
         # Gradually change direction with smooth random walk
-        rng = getattr(self, "rng", None) or random
+        rng = self.rng or getattr(fish.environment, "rng", random)
         angle_change = rng.gauss(0, self.parameters["direction_change_rate"])
         self.wander_angle += angle_change
 

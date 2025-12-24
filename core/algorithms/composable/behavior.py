@@ -181,8 +181,8 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         if rng.random() < sub_behavior_switch_rate:
             self.poker_engagement = PokerEngagement(rng.randint(0, len(PokerEngagement) - 1))
 
-        # Mutate continuous parameters
-        for key, value in list(self.parameters.items()):
+        # Mutate continuous parameters (sorted for determinism)
+        for key, value in sorted(self.parameters.items()):
             if rng.random() < mutation_rate:
                 bounds = SUB_BEHAVIOR_PARAMS.get(key, (0.0, 1.0))
                 span = bounds[1] - bounds[0]
@@ -255,7 +255,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         )
 
         # Blend parameters
-        all_keys = set(parent1.parameters.keys()) | set(parent2.parameters.keys())
+        all_keys = sorted(set(parent1.parameters.keys()) | set(parent2.parameters.keys()))
         blended_params = {}
         for key in all_keys:
             val1 = parent1.parameters.get(key)

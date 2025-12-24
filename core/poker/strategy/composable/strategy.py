@@ -53,10 +53,10 @@ def _blend_regret_tables(
         if visit_count2.get(k, 0) >= min_visits:
             all_info_sets.add(k)
 
-    for info_set in all_info_sets:
+    for info_set in sorted(all_info_sets):
         actions1 = table1.get(info_set, {})
         actions2 = table2.get(info_set, {})
-        all_actions = set(actions1.keys()) | set(actions2.keys())
+        all_actions = sorted(set(actions1.keys()) | set(actions2.keys()))
 
         blended[info_set] = {}
         for action in all_actions:
@@ -115,7 +115,7 @@ class ComposablePokerStrategy:
     @classmethod
     def create_random(cls, rng: Optional[random.Random] = None) -> "ComposablePokerStrategy":
         """Create a random composable poker strategy."""
-        rng = rng or random.Random()
+        rng = rng or random
         return cls(
             hand_selection=HandSelection(rng.randint(0, len(HandSelection) - 1)),
             betting_style=BettingStyle(rng.randint(0, len(BettingStyle) - 1)),
@@ -162,7 +162,7 @@ class ComposablePokerStrategy:
             Tuple of (action, amount)
         """
         # Use provided RNG or create a fallback for backward compatibility
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         call_amount = max(0, opponent_bet - current_bet)
 
         # Can't call if insufficient energy
@@ -436,7 +436,7 @@ class ComposablePokerStrategy:
             sub_behavior_switch_rate: Probability of switching each sub-behavior
             rng: Random number generator
         """
-        rng = rng or random.Random()
+        rng = rng or random
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
@@ -451,7 +451,7 @@ class ComposablePokerStrategy:
             self.showdown_tendency = ShowdownTendency(rng.randint(0, len(ShowdownTendency) - 1))
 
         # Mutate continuous parameters
-        for key, value in list(self.parameters.items()):
+        for key, value in sorted(self.parameters.items()):
             if rng.random() < mutation_rate:
                 bounds = POKER_SUB_BEHAVIOR_PARAMS.get(key, (0.0, 1.0))
                 span = bounds[1] - bounds[0]
@@ -528,7 +528,7 @@ class ComposablePokerStrategy:
         if strategy is None:
             return None
 
-        rng = rng or random.Random()
+        rng = rng or random
         roll = rng.random()
         cumulative = 0.0
         for action, prob in strategy.items():
@@ -688,7 +688,7 @@ class ComposablePokerStrategy:
         rng: Optional[random.Random] = None,
     ) -> "ComposablePokerStrategy":
         """Create offspring by crossing over two parent strategies."""
-        rng = rng or random.Random()
+        rng = rng or random
 
         # Mendelian inheritance for discrete sub-behaviors
         hand_selection = (
@@ -708,7 +708,7 @@ class ComposablePokerStrategy:
         )
 
         # Blend parameters
-        all_keys = set(parent1.parameters.keys()) | set(parent2.parameters.keys())
+        all_keys = sorted(set(parent1.parameters.keys()) | set(parent2.parameters.keys()))
         blended_params = {}
         for key in all_keys:
             default = POKER_SUB_BEHAVIOR_PARAMS.get(key, (0.5, 0.5))
@@ -770,7 +770,7 @@ class ComposablePokerStrategy:
         rng: Optional[random.Random] = None,
     ) -> "ComposablePokerStrategy":
         """Create a mutated clone (for asexual reproduction)."""
-        rng = rng or random.Random()
+        rng = rng or random
         clone = ComposablePokerStrategy(
             hand_selection=self.hand_selection,
             betting_style=self.betting_style,

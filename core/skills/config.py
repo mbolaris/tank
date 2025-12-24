@@ -105,8 +105,11 @@ def set_skill_game_config(config: SkillGameConfig) -> None:
     _global_config = config
 
 
-def get_active_skill_game() -> Optional[SkillGame]:
+def get_active_skill_game(rng: Optional["random.Random"] = None) -> Optional[SkillGame]:
     """Get an instance of the currently active skill game.
+
+    Args:
+        rng: Optional random number generator for determinism
 
     Returns:
         Instance of the active game, or None if not registered
@@ -127,7 +130,7 @@ def get_active_skill_game() -> Optional[SkillGame]:
     if game_type == SkillGameType.ROCK_PAPER_SCISSORS:
         game_config = config.rps_config
         stake = game_config.get("stake", 10.0) * config.stake_multiplier
-        return game_class(stake=stake)
+        return game_class(stake=stake, rng=rng)
 
     elif game_type == SkillGameType.NUMBER_GUESSING:
         game_config = config.number_prediction_config
@@ -136,6 +139,7 @@ def get_active_skill_game() -> Optional[SkillGame]:
             max_error_for_reward=game_config.get("max_error_for_reward", 20.0),
             history_length=game_config.get("history_length", 5),
             pattern_change_frequency=game_config.get("pattern_change_frequency", 50),
+            rng=rng,
         )
 
     elif game_type == SkillGameType.POKER:
@@ -144,6 +148,7 @@ def get_active_skill_game() -> Optional[SkillGame]:
         return game_class(
             small_blind=game_config.get("small_blind", 5.0) * config.stake_multiplier,
             big_blind=game_config.get("big_blind", 10.0) * config.stake_multiplier,
+            rng=rng,
         )
 
     else:

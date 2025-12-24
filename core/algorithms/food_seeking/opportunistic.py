@@ -56,17 +56,16 @@ class OpportunisticFeeder(BehaviorAlgorithm):
     """Only pursue food if it's close enough - IMPROVED to avoid starvation."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="opportunistic_feeder",
             parameters={
-                "max_pursuit_distance": rng.uniform(150, 300),  # INCREASED from 50-200
-                "speed": rng.uniform(0.9, 1.3),  # INCREASED from 0.6-1.0
-                "exploration_speed": rng.uniform(0.5, 0.8),  # NEW: explore when idle
+                "max_pursuit_distance": (rng or random).uniform(150, 300),  # INCREASED from 50-200
+                "speed": (rng or random).uniform(0.9, 1.3),  # INCREASED from 0.6-1.0
+                "exploration_speed": (rng or random).uniform(0.5, 0.8),  # NEW: explore when idle
             },
+            rng=rng,
         )
-        self.exploration_angle = rng.uniform(0, 2 * math.pi)
-        self.rng = rng
+        self.exploration_angle = (rng or random).uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

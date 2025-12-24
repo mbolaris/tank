@@ -63,17 +63,16 @@ class AggressiveHunter(BehaviorAlgorithm):
     """
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="aggressive_hunter",
             parameters={
-                "pursuit_speed": rng.uniform(1.3, 1.7),
-                "detection_range": rng.uniform(250, 400),
-                "strike_speed": rng.uniform(1.5, 2.0),
+                "pursuit_speed": (rng or random).uniform(1.3, 1.7),
+                "detection_range": (rng or random).uniform(250, 400),
+                "strike_speed": (rng or random).uniform(1.5, 2.0),
             },
+            rng=rng,
         )
         self.last_food_pos = None
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

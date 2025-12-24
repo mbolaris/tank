@@ -675,6 +675,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
     algorithm_id: str
     parameters: Dict[str, float] = field(default_factory=dict)
     parameter_bounds: Dict[str, Tuple[float, float]] = field(default_factory=dict)
+    rng: Optional[random.Random] = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not self.parameter_bounds:
@@ -713,7 +714,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
             adaptive_factor: Multiplier for mutation rates (1.0 = normal, <1.0 = less mutation, >1.0 = more mutation)
             rng: Random number generator for determinism. If None, creates a new Random instance.
         """
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         
         # Optimization: If mutation is disabled, return early
         if mutation_rate <= 1e-9 and mutation_strength <= 1e-9:

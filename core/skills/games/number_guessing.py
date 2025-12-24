@@ -69,7 +69,7 @@ class PatternGenerator:
     
     def __post_init__(self):
         if self.rng is None:
-            self.rng = random.Random()
+            self.rng = random
 
     def reset(self, pattern_type: Optional[PatternType] = None) -> None:
         """Reset the generator, optionally with a new pattern."""
@@ -418,6 +418,7 @@ class NumberGuessingGame(SkillGame):
         history_length: int = 5,
         pattern_type: PatternType = PatternType.ALTERNATING,
         pattern_change_frequency: int = 50,  # Change pattern every N rounds
+        rng: Optional[random.Random] = None,
     ):
         """Initialize the game.
 
@@ -427,13 +428,14 @@ class NumberGuessingGame(SkillGame):
             history_length: How many past values fish can observe
             pattern_type: Initial pattern type
             pattern_change_frequency: How often the pattern changes (0 = never)
+            rng: Optional random number generator for determinism
         """
         self.stake = stake
         self.max_error_for_reward = max_error_for_reward
         self.history_length = history_length
         self.pattern_change_frequency = pattern_change_frequency
 
-        self.generator = PatternGenerator(pattern_type=pattern_type)
+        self.generator = PatternGenerator(pattern_type=pattern_type, rng=rng)
         self._history: List[float] = []
         self._rounds_played = 0
 
@@ -476,7 +478,7 @@ class NumberGuessingGame(SkillGame):
         Args:
             rng: Optional random number generator for determinism
         """
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else self.generator.rng or random
         weights = [_rng.random() for _ in range(4)]
         total = sum(weights)
         weights = [w / total for w in weights]
@@ -501,7 +503,7 @@ class NumberGuessingGame(SkillGame):
             return
 
         if self._rounds_played > 0 and self._rounds_played % self.pattern_change_frequency == 0:
-            _rng = rng if rng is not None else self.generator.rng or random.Random()
+            _rng = rng if rng is not None else self.generator.rng or random
             patterns = list(PatternType)
             new_pattern = _rng.choice(patterns)
             self.generator.reset(new_pattern)

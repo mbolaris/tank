@@ -102,10 +102,10 @@ class PlantManager:
         self.environment = environment
         self.ecosystem = ecosystem
         self._entity_adder = entity_adder
-        self.rng = rng if rng is not None else random.Random()
+        self.rng = rng if rng is not None else random
 
         # Initialize root spot manager
-        self.root_spot_manager = RootSpotManager(screen_width, screen_height)
+        self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)
 
         # Track reconciliation for periodic cleanup
         self._last_reconcile_frame: int = -1

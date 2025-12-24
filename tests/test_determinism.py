@@ -18,24 +18,23 @@ def remove_non_deterministic_fields(stats: dict) -> dict:
 
 
 @pytest.mark.xfail(
-    reason="Simulation has non-deterministic behavior - tracked for Phase 1 RNG cleanup"
+    reason="Remaining non-determinism in collision processing order. "
+           "Fish-food collisions processed in order determined by spatial grid, "
+           "which may have subtle ordering differences despite deterministic RNG seeding."
 )
 def test_simulation_seed_determinism():
     """SimulationEngine should produce identical results with same seed.
 
-    This test is currently expected to fail due to non-determinism sources.
+    PROGRESS MADE:
+    - Fixed ~100+ instances of unseeded random.Random() in core modules
+    - Now using (rng or random) pattern to fall back to global random
+    - SimulationEngine now seeds global random module when seed is provided
+    - Initial entity positions and energies are now deterministic
     
-    ROOT CAUSES (Remaining cleanup targets):
-    1. Remaining global `random.*` calls in core modules (approx 70 calls remaining).
-    
-    2. Some components still initialize with default RNG if not explicitly passed:
-       - `core/poker/betting/decision.py` (Fixed but requires caller updates)
-       - `core/entities/fish.py` (Fixed random offsets)
-    
-    3. `core/algorithms/food_seeking.py`:
-       - Uses `random.uniform()` for exploration angle
-    
-    FIX: Continue threading `world.rng` through all call paths.
+    REMAINING ISSUE:
+    - Collision processing order causes divergence after first update frame
+    - Likely caused by spatial grid query order or entity processing order
+    - Investigation needed in handle_food_collisions and spatial grid iteration
     """
     seed = 12345
     engine1 = SimulationEngine(seed=seed)

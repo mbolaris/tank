@@ -207,7 +207,10 @@ class SpatialGrid:
             for row in range(min_row, max_row + 1):
                 cell_agents = grid.get((col, row))
                 if cell_agents:
-                    for type_list in cell_agents.values():
+                    # Sort keys to ensure deterministic iteration order
+                    sorted_types = sorted(cell_agents.keys(), key=lambda t: t.__name__)
+                    for type_key in sorted_types:
+                        type_list = cell_agents[type_key]
                         for other in type_list:
                             if other is not agent:
                                 other_pos = other.pos
@@ -464,7 +467,7 @@ class Environment:
         self.width = width
         self.height = height
         self.time_system = time_system
-        self._rng = rng if rng is not None else random.Random()
+        self._rng = rng if rng is not None else random
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled
@@ -628,8 +631,14 @@ class Environment:
                 if not cell_buckets:
                     continue
 
-                # Iterate over type buckets
-                for type_key, agents in cell_buckets.items():
+                # Sort keys to ensure deterministic iteration order
+                # Using type name as sort key
+                sorted_types = sorted(cell_buckets.keys(), key=lambda t: t.__name__)
+
+                # Iterate over sorted type buckets
+                for type_key in sorted_types:
+                    agents = cell_buckets[type_key]
+                    
                     # OPTIMIZATION: Use cached issubclass check
                     cache_key = (type_key, agent_class)
                     is_match = subclass_cache.get(cache_key)

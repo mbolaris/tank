@@ -57,7 +57,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         rng: random.Random = None,
     ) -> Tuple[BettingAction, float]:
         # Use provided RNG or create a fallback for backward compatibility
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         
         call_amount = max(0.0, opponent_bet - current_bet)
         if call_amount > player_energy:

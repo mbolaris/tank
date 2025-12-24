@@ -103,7 +103,7 @@ class RPSStrategy(SkillStrategy[RPSAction]):
         Returns:
             The chosen action
         """
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         r = _rng.random()
         if r < self.prob_rock:
             action = RPSAction.ROCK
@@ -297,13 +297,15 @@ class RockPaperScissorsGame(SkillGame):
     # Energy/score stakes for each game
     stake: float = 10.0
 
-    def __init__(self, stake: float = 10.0):
+    def __init__(self, stake: float = 10.0, rng: Optional[random.Random] = None):
         """Initialize the game with configurable stakes.
 
         Args:
             stake: Energy at stake per game (winner gets this much)
+            rng: Optional RNG for deterministic play (stored but not used in this simple game)
         """
         self.stake = stake
+        self._rng = rng  # Store for potential future use
 
     @property
     def game_type(self) -> SkillGameType:
@@ -346,7 +348,7 @@ class RockPaperScissorsGame(SkillGame):
         Args:
             rng: Optional random number generator for determinism
         """
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         # Add some randomness to starting probabilities
         r = _rng.random() * 0.3 + 0.2  # 0.2 to 0.5
         p = _rng.random() * 0.3 + 0.2

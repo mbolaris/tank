@@ -77,12 +77,13 @@ class MixedPokerInteraction:
 
         return hasattr(player, "plant_id") and hasattr(player, "gain_energy") and hasattr(player, "lose_energy")
 
-    def __init__(self, players: List[Player]):
+    def __init__(self, players: List[Player], rng: Optional[Any] = None):
         """Initialize a mixed poker interaction.
 
         Args:
             players: List of Fish and/or Plant objects (2-6 players)
-
+            rng: Optional RNG for deterministic shuffling
+        
         Raises:
             ValueError: If fewer than 2 players, more than max players,
                        or no fish players are present.
@@ -99,6 +100,7 @@ class MixedPokerInteraction:
             raise ValueError("MixedPokerInteraction: require at least 1 fish")
 
         self.players = players
+        self.rng = rng
         self.num_players = len(players)
         self.player_hands: List[Optional[PokerHand]] = [None] * self.num_players
         self.result: Optional[MixedPokerResult] = None
@@ -287,6 +289,7 @@ class MixedPokerInteraction:
             small_blind=small_blind,
             big_blind=big_blind,
             button_position=button_position,
+            rng=self.rng,
         )
 
         # Create player contexts
@@ -346,6 +349,7 @@ class MixedPokerInteraction:
                 num_players=self.num_players,
                 players=self.players,
                 modify_player_energy=self._modify_player_energy,
+                rng=self.rng,
             )
             if not round_active:
                 break  # Only one player remains

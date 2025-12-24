@@ -375,7 +375,10 @@ class BehaviorActionsMixin:
         else:
             nearby = env.nearby_agents_by_type(fish, int(radius), FishClass)
 
-        return [f for f in nearby if f.fish_id != fish_id]
+        return sorted(
+            [f for f in nearby if f.fish_id != fish_id],
+            key=lambda f: f.fish_id
+        )
 
     def _boids_behavior(
         self,

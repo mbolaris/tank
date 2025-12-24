@@ -526,8 +526,13 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         Returns:
             The newly created baby fish, or None if creation failed
         """
+        # Obtain RNG for determinism
+        rng = getattr(self.environment, "rng", random)
+
         # Generate offspring genome (also sets cooldown)
-        offspring_genome, _unused_fraction = self._reproduction_component.trigger_asexual_reproduction(self.genome)
+        offspring_genome, _unused_fraction = self._reproduction_component.trigger_asexual_reproduction(
+            self.genome, rng=rng
+        )
 
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
         from core.config.fish import FISH_BABY_SIZE
@@ -550,8 +555,7 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         bounds = self.environment.get_bounds()
         (min_x, min_y), (max_x, max_y) = bounds
 
-        # Create offspring near parent (use environment RNG for determinism)
-        rng = getattr(self.environment, "rng", random)
+        # Create offspring near parent
         offset_x = rng.uniform(-30, 30)
         offset_y = rng.uniform(-30, 30)
         baby_x = self.pos.x + offset_x
@@ -587,6 +591,7 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         baby._skill_game_component.inherit_from_parent(
             self._skill_game_component,
             mutation_rate=0.1,
+            rng=rng,
         )
 
         # Set visual birth effect timer (60 frames = 2 seconds at 30fps)

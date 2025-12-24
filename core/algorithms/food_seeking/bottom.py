@@ -56,13 +56,13 @@ class BottomFeeder(BehaviorAlgorithm):
     """Stay near bottom to catch sinking food."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="bottom_feeder",
             parameters={
-                "preferred_depth": rng.uniform(0.7, 0.9),  # 70-90% from top
-                "search_speed": rng.uniform(0.4, 0.8),
+                "preferred_depth": (rng or random).uniform(0.7, 0.9),  # 70-90% from top
+                "search_speed": (rng or random).uniform(0.4, 0.8),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -89,7 +89,7 @@ class BottomFeeder(BehaviorAlgorithm):
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
             vx *= (1.0 + pursuit_aggression * 0.5)
         else:
-            rng = getattr(self, "rng", None) or random
+            rng = self.rng or getattr(fish.environment, "rng", random)
             vx = (
                 self.parameters["search_speed"]
                 if rng.random() > 0.5

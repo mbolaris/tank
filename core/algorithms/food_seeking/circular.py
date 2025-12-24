@@ -56,19 +56,18 @@ class CircularHunter(BehaviorAlgorithm):
     """Circle around food before striking - IMPROVED for better survival."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="circular_hunter",
             parameters={
-                "circle_radius": rng.uniform(50, 80),
-                "approach_speed": rng.uniform(0.9, 1.2),
-                "strike_distance": rng.uniform(60, 100),
-                "exploration_speed": rng.uniform(0.6, 0.9),
+                "circle_radius": (rng or random).uniform(50, 80),
+                "approach_speed": (rng or random).uniform(0.9, 1.2),
+                "strike_distance": (rng or random).uniform(60, 100),
+                "exploration_speed": (rng or random).uniform(0.6, 0.9),
             },
+            rng=rng,
         )
         self.circle_angle = 0
-        self.exploration_direction = rng.uniform(0, 2 * math.pi)
-        self.rng = rng
+        self.exploration_direction = (rng or random).uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
@@ -94,7 +93,7 @@ class CircularHunter(BehaviorAlgorithm):
         if not nearest_food:
             # CRITICAL FIX: Actively explore instead of stopping!
             # Slowly change direction for more exploration coverage
-            rng = getattr(self, "rng", None) or random
+            rng = self.rng or getattr(fish.environment, "rng", random)
             self.exploration_direction += rng.uniform(-0.3, 0.3)
             exploration_vec = Vector2(
                 math.cos(self.exploration_direction), math.sin(self.exploration_direction)

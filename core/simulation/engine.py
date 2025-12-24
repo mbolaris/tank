@@ -123,12 +123,16 @@ class SimulationEngine(BaseSimulator):
         self.headless = self.config.headless
 
         # RNG handling: prefer explicit rng, then seed, then fresh RNG
+        # IMPORTANT: Also seed the global random module for determinism
+        # This ensures code that falls back to `random` (not rng) is still deterministic
         if rng is not None:
             self.rng: random.Random = rng
             self.seed = None
         elif seed is not None:
             self.rng = random.Random(seed)
             self.seed = seed
+            # Seed global random for code that falls back to global random
+            random.seed(seed)
         else:
             self.rng = random.Random()
             self.seed = None

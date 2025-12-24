@@ -13,7 +13,7 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
     """Baseline strategy: always folds to any bet, only checks if allowed."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        super().__init__(strategy_id="always_fold", parameters={}, _rng=rng or random.Random())
+        super().__init__(strategy_id="always_fold", parameters={}, _rng=rng or random)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None) -> "AlwaysFoldStrategy":

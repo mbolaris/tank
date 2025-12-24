@@ -56,16 +56,15 @@ class FoodMemorySeeker(BehaviorAlgorithm):
     """Remember where food was found before."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="food_memory_seeker",
             parameters={
-                "memory_strength": rng.uniform(0.5, 1.0),
-                "exploration_rate": rng.uniform(0.2, 0.5),
+                "memory_strength": (rng or random).uniform(0.5, 1.0),
+                "exploration_rate": (rng or random).uniform(0.2, 0.5),
             },
+            rng=rng,
         )
         self.food_memory_locations: List[Vector2] = []
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
@@ -84,7 +83,7 @@ class FoodMemorySeeker(BehaviorAlgorithm):
 
         # No food visible, check memory
         if self.food_memory_locations:
-            rng = getattr(self, "rng", None) or random
+            rng = self.rng or getattr(fish.environment, "rng", random)
             if rng.random() > self.parameters["exploration_rate"]:
                 target = rng.choice(self.food_memory_locations)
             else:

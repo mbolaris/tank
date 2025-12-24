@@ -277,8 +277,8 @@ class PokerSkillGame(SkillGame):
         
         state = game_state or {}
         
-        # Use provided RNG or create fallback for determinism
-        _rng = state.get("rng") or random.Random()
+        # Use provided RNG or use global random for determinism
+        _rng = state.get("rng") or random
         
         # Generate random hand strengths if not provided (using RNG)
         player_strength = state.get("hand_strength", _rng.random())

@@ -37,6 +37,7 @@ class MultiplayerGameState:
         small_blind: float = 2.5,
         big_blind: float = 5.0,
         button_position: int = 0,
+        rng: Optional[Any] = None,
     ):
         self.num_players = num_players
         self.small_blind = small_blind
@@ -45,7 +46,7 @@ class MultiplayerGameState:
 
         self.current_round = MultiplayerBettingRound.PRE_FLOP
         self.pot = 0.0
-        self.deck = Deck()
+        self.deck = Deck(rng=rng)
 
         # Per-player state
         self.player_hole_cards: List[List[Any]] = [[] for _ in range(num_players)]

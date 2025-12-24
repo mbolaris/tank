@@ -370,7 +370,7 @@ class BehavioralTraits:
             | set(prefs1)
             | set(prefs2)
         )
-        for pref_key in keys:
+        for pref_key in sorted(keys):
             pref_weight1 = 1.0 if rng.random() < parent1_probability else 0.0
             default_val = _default_preference_for_key(pref_key)
             p1_val = prefs1.get(pref_key, default_val)
@@ -534,7 +534,7 @@ def _inherit_mate_preferences(
 ) -> Dict[str, float]:
     """Inherit mate preferences from parents."""
     result = {}
-    keys = set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2)
+    keys = sorted(set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2))
     for pref_key in keys:
         default_val = _default_preference_for_key(pref_key)
         p1_val = prefs1.get(pref_key, default_val)

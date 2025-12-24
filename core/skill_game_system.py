@@ -112,7 +112,7 @@ class SkillGameSystem:
 
         # Check if we need to refresh the game instance
         if self._game_type != current_type or self._active_game is None:
-            self._active_game = get_active_skill_game()
+            self._active_game = get_active_skill_game(rng=self.engine.rng)
             self._game_type = current_type
 
         return self._active_game
@@ -177,7 +177,7 @@ class SkillGameSystem:
         # Ensure fish has strategy for this game
         component = fish._skill_game_component
         if component.get_strategy(game.game_type) is None:
-            strategy = game.create_default_strategy()
+            strategy = game.create_default_strategy(rng=self.engine.rng)
             component.set_strategy(game.game_type, strategy)
 
     def play_game(

@@ -18,7 +18,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
     """TAG: Plays few hands aggressively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         super().__init__(
             strategy_id="tight_aggressive",
             parameters={
@@ -73,7 +73,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
     """LAG: Plays many hands aggressively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         super().__init__(
             strategy_id="loose_aggressive",
             parameters={
@@ -130,7 +130,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 class TightPassiveStrategy(PokerStrategyAlgorithm):
     """Rock: Plays few hands, rarely raises."""
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         super().__init__(
             strategy_id="tight_passive",
             parameters={
@@ -184,7 +184,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
     """Balanced/GTO-inspired strategy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         super().__init__(
             strategy_id="balanced",
             parameters={
@@ -265,7 +265,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
     """Ultra-aggressive strategy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         super().__init__(
             strategy_id="maniac",
             parameters={
@@ -319,7 +319,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
     """Calling station: plays many hands passively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         super().__init__(
             strategy_id="loose_passive",
             parameters={

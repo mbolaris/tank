@@ -42,7 +42,11 @@ def create_initial_population(
     display_config = display_config or DisplayConfig()
     ecosystem_config = ecosystem_config or EcosystemConfig()
     population = []
-    rng = rng if rng is not None else random.Random()
+    rng = rng if rng is not None else random
+
+    # Reset fish ID counter for deterministic runs
+    entities.Fish._id_counter = 0
+
     # These fish use the algorithmic evolution system with diverse genomes
     for _i in range(
         ecosystem_config.num_schooling_fish
@@ -88,6 +92,7 @@ def create_initial_population(
             source_plant=None,
             food_type=None,  # Random type
             allow_stationary_types=False,  # No stationary food at startup
+            rng=rng,
         )
         initial_food.append(food)
 

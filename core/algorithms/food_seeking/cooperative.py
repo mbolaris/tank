@@ -56,16 +56,15 @@ class CooperativeForager(BehaviorAlgorithm):
     """Follow other fish to food sources - HEAVILY IMPROVED."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="cooperative_forager",
             parameters={
-                "follow_strength": rng.uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
-                "independence": rng.uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
-                "food_pursuit_speed": rng.uniform(1.1, 1.4),  # NEW
+                "follow_strength": (rng or random).uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
+                "independence": (rng or random).uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
+                "food_pursuit_speed": (rng or random).uniform(1.1, 1.4),  # NEW
             },
+            rng=rng,
         )
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
@@ -108,9 +107,8 @@ class CooperativeForager(BehaviorAlgorithm):
                     norm_x = -dx / pred_dist
                     norm_y = -dy / pred_dist
                 else:
-                    import math
-                    import random as rand_mod
-                    angle = rand_mod.random() * 6.283185  # 2*pi
+                    rng = self.rng or getattr(fish.environment, "rng", random)
+                    angle = rng.random() * 6.283185  # 2*pi
                     norm_x = math.cos(angle)
                     norm_y = math.sin(angle)
                 return norm_x * 1.3, norm_y * 1.3
@@ -221,7 +219,7 @@ class CooperativeForager(BehaviorAlgorithm):
             )
 
         # No one to follow, explore independently
-        rng = getattr(self, "rng", None) or random
+        rng = self.rng or getattr(fish.environment, "rng", random)
         if rng.random() < self.parameters["independence"]:
             return rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5)
 

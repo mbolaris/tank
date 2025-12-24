@@ -56,16 +56,15 @@ class AmbushFeeder(BehaviorAlgorithm):
     """Wait in one spot for food to come close."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="ambush_feeder",
             parameters={
-                "strike_distance": rng.uniform(30, 80),
-                "strike_speed": rng.uniform(1.0, 1.5),
-                "patience": rng.uniform(0.5, 1.0),
+                "strike_distance": (rng or random).uniform(30, 80),
+                "strike_speed": (rng or random).uniform(1.0, 1.5),
+                "patience": (rng or random).uniform(0.5, 1.0),
             },
+            rng=rng,
         )
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

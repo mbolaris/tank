@@ -59,7 +59,7 @@ class Food(Agent):
         # Select random food type based on rarity if not specified
         if food_type is None:
             # Use provided rng, or fall back to environment._rng, or create new Random
-            _rng = rng or getattr(environment, '_rng', None) or random.Random()
+            _rng = rng or getattr(environment, '_rng', None) or random
             food_type = self._select_random_food_type(
                 include_stationary=allow_stationary_types, include_live=False, rng=_rng
             )
@@ -93,7 +93,7 @@ class Food(Agent):
         Returns:
             Selected food type string
         """
-        _rng = rng if rng is not None else random.Random()
+        _rng = rng if rng is not None else random
         food_types = [
             ft
             for ft, props in Food.FOOD_TYPES.items()
@@ -198,8 +198,8 @@ class LiveFood(Food):
         # Fish speed_modifier averages ~0.85, giving 2.2 * 0.85 = 1.87 base speed
         # LiveFood at 1.4 gives ~33% speed advantage to average fish
         self.max_speed = speed * 0.93  # 1.5 * 0.93 = 1.4
-        # Use environment._rng if available, otherwise create new unseeded Random
-        self._rng = getattr(environment, '_rng', None) or random.Random()
+        # Use environment._rng if available, otherwise use global random
+        self._rng = getattr(environment, '_rng', None) or random
         self.wander_timer = self._rng.randint(20, 45)
         # BALANCE: Reduced avoid_radius from 180 to 80 so fish can get much closer
         # before triggering flee response - makes hunting more effective

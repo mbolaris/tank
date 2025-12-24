@@ -466,7 +466,17 @@ class PokerSystem(BaseSystem):
                     group.append(current)
 
                 # Direct access - all poker entities are in the dict
-                for neighbor in entity_contacts[current]:
+                # Sort neighbors to ensure deterministic DFS traversal
+                # Use a stable key (type name + id)
+                sorted_neighbors = sorted(
+                    entity_contacts[current],
+                    key=lambda e: (
+                        type(e).__name__,
+                        getattr(e, "fish_id", getattr(e, "plant_id", 0))
+                    )
+                )
+                
+                for neighbor in sorted_neighbors:
                     if neighbor not in visited:
                         stack.append(neighbor)
 
@@ -506,7 +516,7 @@ class PokerSystem(BaseSystem):
 
             # Play mixed poker game
             try:
-                poker = MixedPokerInteraction(ready_players)
+                poker = MixedPokerInteraction(ready_players, rng=self._engine.rng)
                 if poker.play_poker():
                     self._record_and_apply_mixed_poker_outcome(poker)
 

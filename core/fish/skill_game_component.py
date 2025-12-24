@@ -269,12 +269,14 @@ class SkillGameComponent:
         self,
         parent_component: "SkillGameComponent",
         mutation_rate: float = 0.1,
+        rng: Optional["random.Random"] = None,
     ) -> None:
         """Inherit strategies from parent with mutation.
 
         Args:
             parent_component: Parent's skill game component
             mutation_rate: Mutation rate for inherited strategies
+            rng: Optional RNG for deterministic mutation
         """
         for game_type, strategy in parent_component._strategies.items():
             # Copy parameters from parent
@@ -285,6 +287,6 @@ class SkillGameComponent:
             child_strategy.set_parameters(params)
 
             # Apply mutation
-            child_strategy.mutate(mutation_rate)
+            child_strategy.mutate(mutation_rate, rng=rng)
 
             self._strategies[game_type] = child_strategy

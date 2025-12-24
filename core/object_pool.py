@@ -27,7 +27,7 @@ class FoodPool:
         """
         self._pool: List[Food] = []
         self._active: set = set()
-        self._rng = rng if rng is not None else random.Random()
+        self._rng = rng if rng is not None else random
 
     def acquire(
         self,

@@ -169,7 +169,11 @@ class ReproductionComponent:
         # Standard mating is disabled; sexual reproduction now occurs only via poker.
         return False
 
-    def trigger_asexual_reproduction(self, own_genome: "Genome") -> Tuple["Genome", float]:
+    def trigger_asexual_reproduction(
+        self, 
+        own_genome: "Genome", 
+        rng: Optional["pyrandom.Random"] = None
+    ) -> Tuple["Genome", float]:
         """Trigger instant asexual reproduction and return offspring genome.
 
         This creates a mutated clone of the parent's genome. The reproduction
@@ -177,6 +181,7 @@ class ReproductionComponent:
 
         Args:
             own_genome: This fish's genome
+            rng: Random number generator for deterministic mutation
 
         Returns:
             Tuple of (offspring_genome, energy_transfer_fraction)
@@ -187,7 +192,7 @@ class ReproductionComponent:
         self.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
 
         # Create mutated clone
-        offspring_genome = Genome.clone_with_mutation(own_genome)
+        offspring_genome = Genome.clone_with_mutation(own_genome, rng=rng)
 
         return offspring_genome, self.ENERGY_TRANSFER_TO_BABY
 
