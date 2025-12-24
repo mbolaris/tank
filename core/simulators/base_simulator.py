@@ -255,78 +255,6 @@ class BaseSimulator(ABC):
             food.get_eaten()
             self.remove_entity(food)
 
-    def handle_fish_fish_collision(self, fish1: "Agent", fish2: "Agent") -> bool:
-        """Handle collision between two fish (poker interaction).
-
-        Args:
-            fish1: The first fish entity
-            fish2: The second fish entity
-
-        Returns:
-            bool: True if fish1 died from the collision, False otherwise
-        """
-        # Fish-to-fish poker interaction
-        if POKER_ACTIVITY_ENABLED:
-            poker = PokerInteraction(fish1, fish2)
-            if poker.play_poker():
-                # Handle poker result (can be overridden by subclasses)
-                self.handle_poker_result(poker)
-
-                # Check if either fish died from poker
-                fish1_died = False
-                if fish1.is_dead() and fish1 in self.get_all_entities():
-                    self.record_fish_death(fish1)
-                    fish1_died = True
-
-                if fish2.is_dead() and fish2 in self.get_all_entities():
-                    self.record_fish_death(fish2)
-
-                return fish1_died
-        return False
-
-    def handle_fish_plant_collision(self, fish: "Agent", plant: "Agent") -> bool:
-        """Handle collision between a fish and a plant (poker interaction).
-
-        Args:
-            fish: The fish entity
-            plant: The plant entity
-
-        Returns:
-            bool: True if fish died from the collision, False otherwise
-        """
-        # Fish-to-plant poker interaction
-        if POKER_ACTIVITY_ENABLED:
-            poker = MixedPokerInteraction([fish, plant])
-            if poker.play_poker():
-                # Add plant poker event if available
-                result = poker.result
-                if (
-                    hasattr(self, "add_plant_poker_event")
-                    and result is not None
-                ):
-                    # Determine fish won based on winner matching fish ID
-                    fish_id = fish.get_poker_id()
-                    plant_id = plant.get_poker_id()
-                    fish_won = result.winner_id == fish_id
-                    fish_hand = result.winner_hand.description if result.winner_hand else "Unknown"
-                    plant_hand = result.loser_hands[0].description if result.loser_hands and result.loser_hands[0] else "Unknown"
-                    # Swap hands if plant won
-                    if not fish_won:
-                        fish_hand, plant_hand = plant_hand, fish_hand
-                    self.add_plant_poker_event(
-                        fish_id=fish_id,
-                        plant_id=plant_id,
-                        fish_won=fish_won,
-                        fish_hand=fish_hand,
-                        plant_hand=plant_hand,
-                        energy_transferred=abs(result.energy_transferred),
-                    )
-                # Check if fish died from poker
-                if fish.is_dead() and fish in self.get_all_entities():
-                    self.record_fish_death(fish)
-                    return True
-        return False
-
     def handle_mixed_poker_games(self) -> None:
         """Handle poker games between any mix of fish and plants.
 
@@ -334,6 +262,7 @@ class BaseSimulator(ABC):
         to delegate to PokerSystem.handle_mixed_poker_games().
         """
         pass
+
 
     def _filter_mutually_proximate_players(
         self, players: List["Fish"], max_distance: float
