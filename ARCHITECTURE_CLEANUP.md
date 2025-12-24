@@ -330,6 +330,61 @@ Created detailed analysis identifying:
 
 ---
 
+## ✅ Completed: SimulationEngine Decomposition
+
+### Problem Identified
+- `core/simulation_engine.py` was 971 lines - the largest "gravity well" in the codebase
+- Mixed responsibilities: entity management, system wiring, update loop, stats, event handling
+- Difficult to understand which part of the code does what
+- Adding new features required understanding the entire 1000-line file
+
+### Solution Implemented
+
+**Split into focused `core/simulation/` package:**
+
+```
+core/simulation/
+├── __init__.py           # Clean public API (23 lines)
+├── engine.py             # Core orchestrator (707 lines)
+├── entity_manager.py     # Entity CRUD operations (162 lines)
+└── system_registry.py    # System lifecycle management (104 lines)
+
+core/simulation_engine.py # Backward-compat re-export (22 lines)
+```
+
+### Design Decisions
+
+1. **EntityManager** - Single responsibility for entity lifecycle:
+   - Add/remove entities with population limits
+   - Cache management (fish list, food list)
+   - Object pool for food reuse
+   - Spatial grid coordination
+
+2. **SystemRegistry** - Single responsibility for system management:
+   - Register systems in execution order
+   - Enable/disable systems at runtime
+   - Debug info aggregation
+
+3. **SimulationEngine** - Slim orchestrator that:
+   - Owns the game loop
+   - Delegates to managers and systems
+   - Coordinates setup and teardown
+
+4. **Backward Compatibility** - via re-exports:
+   - `from core.simulation_engine import SimulationEngine` still works
+   - `from core.simulation import SimulationEngine` is the new preferred path
+   - All 956 tests pass unchanged
+
+### Impact
+
+- ✅ **Clear responsibilities** - each module has ONE job
+- ✅ **Easier navigation** - find entity logic in entity_manager.py
+- ✅ **Future extensibility** - easy to add new managers without touching core loop
+- ✅ **Zero breaking changes** - 956/956 tests pass
+- ✅ **Better documentation** - design decisions documented in module docstrings
+
+---
+
 ## 🚀 Conclusion
 
 The poker system consolidation represents a **major architectural improvement** that addresses the highest-priority technical debt identified in the codebase analysis. The Tank simulation now has:
@@ -349,6 +404,7 @@ This demonstrates the importance of deep analysis before refactoring - not all m
 ---
 
 **Total Effort**: ~6-7 hours
-**Primary Achievement**: Poker system consolidation & Stats refactoring
+**Primary Achievement**: Poker system consolidation & Stats refactoring & SimulationEngine decomposition
 **Secondary Achievement**: Comprehensive codebase analysis and documentation
 **Status**: ✅ Ready for review and merge
+
