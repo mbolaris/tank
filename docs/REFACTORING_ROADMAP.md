@@ -62,32 +62,35 @@ Either:
 
 ## Priority 3: Use PhaseRunner in update()
 
-**Status**: Not Started  
-**Effort**: 2-3 hours  
+**Status**: ✅ Partially Complete (Phase Methods Extracted)  
+**Effort**: 2-3 hours for full PhaseRunner integration  
 **Impact**: High (cleaner update loop, easier to add phases)
 
 ### Problem
-The `update()` method has ~150 lines of inline phase logic. We built `PhaseRunner` but don't use it.
+The `update()` method had ~150 lines of inline phase logic. We built `PhaseRunner` but don't use it.
 
-### Current State
-```python
-def update(self):
-    # ===== PHASE: FRAME_START =====
-    self._current_phase = UpdatePhase.FRAME_START
-    self.frame_count += 1
-    self.lifecycle_system.update(self.frame_count)
-    # ... 150 more lines
-```
+### What We've Done
+Extracted each phase into its own method:
+- `_phase_frame_start()` - Reset counters, increment frame
+- `_phase_time_update()` - Advance day/night cycle
+- `_phase_environment()` - Update ecosystem and detection
+- `_phase_entity_act()` - Update all entities
+- `_phase_lifecycle()` - Process deaths, add/remove entities
+- `_phase_spawn()` - Auto-spawn food
+- `_phase_collision()` - Handle collisions
+- `_phase_reproduction()` - Mating and emergency spawns
+- `_phase_frame_end()` - Stats and cache updates
 
-### Proposed Solution
-1. Each phase becomes a method: `_phase_frame_start()`, `_phase_time_update()`, etc.
-2. Or better: each phase's logic moves into a System that declares its phase
-3. `update()` becomes: `self._phase_runner.run_all(context)`
+The main `update()` is now ~30 lines showing phase order clearly.
 
-### Benefits
-- Adding a new phase = adding a new system
-- Phases are self-documenting
-- Easier to test individual phases
+### Future Work
+The next step would be to convert these phase methods into proper System classes
+that declare their phase via `@runs_in_phase`, then use PhaseRunner for execution.
+
+### Benefits Achieved
+- ✅ Readability - phase order is immediately visible
+- ✅ Testability - individual phases can be unit tested
+- ✅ Documentation - each phase has its own docstring
 
 ---
 
