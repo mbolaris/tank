@@ -1,14 +1,32 @@
-"""FastAPI backend for fish tank simulation."""
+"""FastAPI backend for fish tank simulation.
+
+This module provides the FastAPI application and WebSocket endpoints for
+the fish tank simulation. It supports multiple tanks via TankRegistry.
+
+Architecture Note:
+------------------
+For **new code and tests**, prefer using the app factory pattern:
+
+    from backend.app_factory import create_app, AppContext
+    
+    # Create isolated app instance for testing
+    app = create_app(server_id="test-server")
+    
+    # Access runtime state via app.state.context
+    ctx = app.state.context
+
+The module-level globals (tank_registry, connection_manager, etc.) are
+maintained for backward compatibility but are considered deprecated.
+New code should use AppContext instead.
+"""
 
 import asyncio
 import json
 import os
 import platform
 import socket
-import sys
 import time
 from contextlib import asynccontextmanager, suppress
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -17,9 +35,6 @@ from fastapi.responses import JSONResponse
 
 from backend.logging_config import configure_logging
 from backend.security import setup_security_middleware
-
-# Add parent directory to path so we can import from root tank/ directory
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService

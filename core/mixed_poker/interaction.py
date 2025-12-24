@@ -2,23 +2,27 @@
 
 This module handles poker games between any combination of fish and plants.
 Supports 2-6 players with a mix of species.
+
+Refactoring Note:
+-----------------
+Core betting logic and learning logic have been moved to separate modules:
+- core.mixed_poker.betting_round
+- core.mixed_poker.cfr_learning
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from core.config.poker import (
     POKER_AGGRESSION_HIGH,
     POKER_AGGRESSION_LOW,
-    POKER_MAX_ACTIONS_PER_ROUND,
-    POKER_MAX_HAND_RANK,
     POKER_MAX_PLAYERS,
 )
-from core.poker.betting.actions import BettingAction
-from core.poker.core import PokerHand, evaluate_hand
-from core.poker.evaluation.strength import evaluate_starting_hand_strength
-from core.mixed_poker.types import MixedPokerResult, MultiplayerBettingRound, Player
-from core.mixed_poker.state import MultiplayerGameState, MultiplayerPlayerContext
+from core.mixed_poker.betting_round import play_betting_round
+from core.mixed_poker.cfr_learning import update_cfr_learning
+from core.mixed_poker.state import MultiplayerGameState, MultiplayerPlayerContext, MultiplayerBettingRound
+from core.mixed_poker.types import MixedPokerResult, Player
+from core.poker.core import PokerHand
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -113,7 +117,7 @@ class MixedPokerInteraction:
 
     def _get_player_id(self, player: Player) -> int:
         """Get the stable ID of a player (matching frontend entity IDs).
-        
+
         Uses the PokerPlayer protocol's get_poker_id() method.
         """
         return player.get_poker_id()
@@ -143,7 +147,7 @@ class MixedPokerInteraction:
 
     def _get_player_aggression(self, player: Player) -> float:
         """Get the poker aggression of a player.
-        
+
         Uses the PokerPlayer protocol's get_poker_aggression() method.
         Maps base aggression (0-1) to poker range.
         """
@@ -174,15 +178,7 @@ class MixedPokerInteraction:
         target_id: Optional[int] = None,
         target_type: Optional[str] = None
     ) -> None:
-        """Set visual poker effect on a player.
-
-        Args:
-            player: The player to set the effect on
-            won: True if player won, False if lost
-            amount: Energy amount won or lost
-            target_id: ID of the opponent (for drawing arrows)
-            target_type: Type of the opponent ('fish' or 'plant')
-        """
+        """Set visual poker effect on a player."""
         from core.entities import Fish
         from core.entities.plant import Plant
 
@@ -257,220 +253,6 @@ class MixedPokerInteraction:
         # Bet can't exceed what poorest player can afford
         max_bet = min_energy * 0.3  # Max 30% of poorest player's energy
         return min(base_bet, max_bet, 20.0)  # Also cap at 20
-
-    def _decide_player_action(
-        self,
-        player_idx: int,
-        game_state: MultiplayerGameState,
-        contexts: List[MultiplayerPlayerContext],
-    ) -> Tuple[BettingAction, float]:
-        """Decide action for a player based on hand strength and aggression.
-
-        Args:
-            player_idx: Index of the player making the decision
-            game_state: Current game state
-            contexts: List of player contexts
-
-        Returns:
-            Tuple of (action, bet_amount)
-        """
-        import random
-
-        ctx = contexts[player_idx]
-
-        # Can't act if folded or all-in
-        if ctx.folded or ctx.is_all_in:
-            return BettingAction.CHECK, 0.0
-
-        # Evaluate current hand strength
-        hole_cards = game_state.player_hole_cards[player_idx]
-        is_preflop = len(game_state.community_cards) == 0
-        position_on_button = (player_idx == game_state.button_position)
-
-        if is_preflop and hole_cards and len(hole_cards) == 2:
-            # Pre-flop: use proper starting hand evaluation
-            hand_strength = evaluate_starting_hand_strength(hole_cards, position_on_button)
-        elif game_state.community_cards:
-            hand = evaluate_hand(hole_cards, game_state.community_cards)
-            # Normalize hand rank (0-1 scale) using correct constant
-            hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
-        else:
-            hand_strength = 0.5
-
-        # Calculate amount needed to call
-        max_bet = game_state.get_max_current_bet()
-        call_amount = max_bet - ctx.current_bet
-
-        # Use evolved poker strategy if available (from fish or plant genome)
-        if ctx.strategy is not None:
-            return ctx.strategy.decide_action(
-                hand_strength=hand_strength,
-                current_bet=ctx.current_bet,
-                opponent_bet=max_bet,
-                pot=game_state.pot,
-                player_energy=ctx.remaining_energy,
-                position_on_button=position_on_button,
-            )
-
-        # Fallback: Simple aggression-based decision
-        # Use player's environment RNG if available for determinism
-        player = self.players[player_idx]
-        _rng = getattr(getattr(player, "environment", None), "rng", random)
-        aggression = ctx.aggression
-        play_strength = hand_strength + (aggression - 0.5) * 0.2 + _rng.uniform(-0.1, 0.1)
-
-        if call_amount <= 0:
-            # No bet to call - can check or raise
-            if play_strength > 0.6 and ctx.remaining_energy > game_state.big_blind * 2:
-                # Strong hand or aggressive - raise
-                raise_amount = game_state.big_blind * (1 + play_strength * 2)
-                raise_amount = min(raise_amount, ctx.remaining_energy)
-                return BettingAction.RAISE, raise_amount
-            else:
-                return BettingAction.CHECK, 0.0
-        else:
-            # Must call, raise, or fold
-            pot_odds = call_amount / (game_state.pot + call_amount) if game_state.pot > 0 else 0.5
-
-            if play_strength > pot_odds + 0.2:
-                # Strong hand - might raise
-                if play_strength > 0.7 and ctx.remaining_energy > call_amount + game_state.big_blind:
-                    raise_amount = call_amount + game_state.big_blind * (1 + play_strength)
-                    raise_amount = min(raise_amount, ctx.remaining_energy)
-                    return BettingAction.RAISE, raise_amount
-                else:
-                    return BettingAction.CALL, call_amount
-            elif play_strength > pot_odds - 0.1:
-                # Marginal hand - call
-                if call_amount <= ctx.remaining_energy:
-                    return BettingAction.CALL, call_amount
-                else:
-                    return BettingAction.FOLD, 0.0
-            else:
-                # Weak hand - fold
-                return BettingAction.FOLD, 0.0
-
-    def _play_betting_round(
-        self,
-        game_state: MultiplayerGameState,
-        contexts: List[MultiplayerPlayerContext],
-        start_position: int,
-    ) -> bool:
-        """Play a single betting round.
-
-        Args:
-            game_state: Current game state
-            contexts: Player contexts
-            start_position: Position to start betting from
-
-        Returns:
-            True if round completed normally, False if only one player remains
-        """
-        actions_this_round = 0
-        current_pos = start_position
-        players_acted = set()
-
-        while actions_this_round < POKER_MAX_ACTIONS_PER_ROUND * self.num_players:
-            # Safety check: if all active players are all-in, we're done
-            # This prevents infinite loop where we keep skipping all-in players
-            active_can_act = [
-                i for i in range(self.num_players)
-                if not contexts[i].folded and not contexts[i].is_all_in
-            ]
-            if not active_can_act:
-                return game_state.get_active_player_count() > 1
-
-            # Skip folded or all-in players
-            if contexts[current_pos].folded or contexts[current_pos].is_all_in:
-                current_pos = (current_pos + 1) % self.num_players
-                continue
-
-            # Check if only one player remains
-            if game_state.get_active_player_count() <= 1:
-                return False
-
-            # Get player action
-            action, amount = self._decide_player_action(current_pos, game_state, contexts)
-
-            # Apply action
-            if action == BettingAction.FOLD:
-                contexts[current_pos].folded = True
-                game_state.player_folded[current_pos] = True
-                game_state.betting_history.append((current_pos, action, 0.0))
-
-            elif action == BettingAction.CHECK:
-                game_state.betting_history.append((current_pos, action, 0.0))
-                players_acted.add(current_pos)
-
-            elif action == BettingAction.CALL:
-                call_amount = min(amount, contexts[current_pos].remaining_energy)
-                game_state.player_bet(current_pos, call_amount)
-                contexts[current_pos].remaining_energy -= call_amount
-                contexts[current_pos].current_bet += call_amount
-                # CRITICAL: Actually deduct energy from the player!
-                self._modify_player_energy(self.players[current_pos], -call_amount)
-                game_state.betting_history.append((current_pos, action, call_amount))
-                players_acted.add(current_pos)
-
-                if contexts[current_pos].remaining_energy <= 0:
-                    contexts[current_pos].is_all_in = True
-                    game_state.player_all_in[current_pos] = True
-
-            elif action == BettingAction.RAISE:
-                # First call, then raise
-                max_bet = game_state.get_max_current_bet()
-                call_amount = max_bet - contexts[current_pos].current_bet
-
-                total_amount = min(amount, contexts[current_pos].remaining_energy)
-                raise_portion = total_amount - call_amount
-
-                if raise_portion > 0:
-                    game_state.player_bet(current_pos, total_amount)
-                    contexts[current_pos].remaining_energy -= total_amount
-                    contexts[current_pos].current_bet += total_amount
-                    # CRITICAL: Actually deduct energy from the player!
-                    self._modify_player_energy(self.players[current_pos], -total_amount)
-                    game_state.betting_history.append((current_pos, action, raise_portion))
-                    players_acted = {current_pos}  # Reset - others need to act again
-
-                    if contexts[current_pos].remaining_energy <= 0:
-                        contexts[current_pos].is_all_in = True
-                        game_state.player_all_in[current_pos] = True
-                else:
-                    # Can't raise, just call
-                    game_state.player_bet(current_pos, call_amount)
-                    contexts[current_pos].remaining_energy -= call_amount
-                    contexts[current_pos].current_bet += call_amount
-                    # CRITICAL: Actually deduct energy from the player!
-                    self._modify_player_energy(self.players[current_pos], -call_amount)
-                    game_state.betting_history.append((current_pos, BettingAction.CALL, call_amount))
-                    players_acted.add(current_pos)
-
-            actions_this_round += 1
-
-            # Check if betting round is complete
-            active_players = [
-                i for i in range(self.num_players)
-                if not contexts[i].folded and not contexts[i].is_all_in
-            ]
-
-            if not active_players:
-                return game_state.get_active_player_count() > 1
-
-            # All active players have acted and bets are equal
-            max_bet = game_state.get_max_current_bet()
-            all_matched = all(
-                contexts[i].current_bet == max_bet or contexts[i].is_all_in
-                for i in active_players
-            )
-            all_acted = all(i in players_acted for i in active_players)
-
-            if all_matched and all_acted:
-                return game_state.get_active_player_count() > 1
-
-            current_pos = (current_pos + 1) % self.num_players
-
-        return game_state.get_active_player_count() > 1
 
     def play_poker(self, bet_amount: Optional[float] = None) -> bool:
         """Play a full Texas Hold'em poker game between all players.
@@ -556,8 +338,16 @@ class MixedPokerInteraction:
                 # Post-flop: action starts after button
                 start_pos = (button_position + 1) % self.num_players
 
-            # Play the betting round
-            if not self._play_betting_round(game_state, contexts, start_pos):
+            # Play the betting round (delegated to helper module)
+            round_active = play_betting_round(
+                game_state=game_state,
+                contexts=contexts,
+                start_position=start_pos,
+                num_players=self.num_players,
+                players=self.players,
+                modify_player_energy=self._modify_player_energy,
+            )
+            if not round_active:
                 break  # Only one player remains
 
         # Evaluate hands and determine winner
@@ -755,8 +545,16 @@ class MixedPokerInteraction:
         # Update poker stats
         self._update_poker_stats(best_hand_idx, tied_players, bet_amount)
 
-        # Update CFR learning for fish with composable strategies
-        self._update_cfr_learning(game_state, contexts, best_hand_idx, tied_players)
+        # Update CFR learning for fish with composable strategies (delegated)
+        update_cfr_learning(
+            game_state=game_state,
+            contexts=contexts,
+            winner_idx=best_hand_idx,
+            tied_players=tied_players,
+            players=self.players,
+            get_player_energy=self._get_player_energy,
+            initial_player_energies=self._initial_player_energies,
+        )
 
         # Log the game
         logger.debug(
@@ -798,162 +596,6 @@ class MixedPokerInteraction:
             is_tie = len(tied_players) > 1 and i in tied_players
 
             if is_winner and not is_tie:
-                player.poker_wins = getattr(player, "poker_wins", 0) + 1
-                # Note: update_fitness() removed - fitness_score deprecated
+                player.poker_wins += 1
             elif not is_winner:
-                player.poker_losses = getattr(player, "poker_losses", 0) + 1
-
-    def _update_cfr_learning(
-        self,
-        game_state: MultiplayerGameState,
-        contexts: List[MultiplayerPlayerContext],
-        winner_idx: int,
-        tied_players: List[int],
-    ) -> None:
-        """Update CFR (Counterfactual Regret) learning for fish with composable strategies.
-
-        After each hand, we update the regret tables so fish can learn from experience.
-        This implements Lamarckian learning - fish improve during their lifetime.
-
-        Args:
-            game_state: The completed game state
-            contexts: Player contexts with strategy info
-            winner_idx: Index of winning player
-            tied_players: Indices of tied players (if tie)
-        """
-        try:
-            from core.poker.strategy.composable import ComposablePokerStrategy
-        except ImportError:
-            return  # CFR not available
-
-        for i, ctx in enumerate(contexts):
-            if ctx.strategy is None:
-                continue
-            if not isinstance(ctx.strategy, ComposablePokerStrategy):
-                continue
-
-            # Skip if this fish hasn't learned an info set yet (no point updating)
-            # But we should still process even new fish - they'll create info sets
-
-            # Compute this player's actual outcome (net profit/loss)
-            initial_energy = self._initial_player_energies[i]
-            final_energy = self._get_player_energy(self.players[i])
-            actual_profit = final_energy - initial_energy
-
-            # Compute info set from the hand (using last known hand strength)
-            # We use the final board state for simplicity
-            hole_cards = game_state.player_hole_cards[i]
-            if not hole_cards or len(hole_cards) < 2:
-                continue
-
-            # Compute hand strength at showdown
-            if game_state.community_cards:
-                try:
-                    hand = evaluate_hand(hole_cards, game_state.community_cards)
-                    hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
-                except Exception:
-                    hand_strength = 0.5
-            else:
-                # Pre-flop fold - use starting hand strength
-                position_on_button = (i == game_state.button_position)
-                hand_strength = evaluate_starting_hand_strength(hole_cards, position_on_button)
-
-            # Pot ratio relative to initial energy
-            pot_ratio = game_state.pot / max(1.0, initial_energy)
-            position_on_button = (i == game_state.button_position)
-
-            # Get info set
-            info_set = ctx.strategy.get_info_set(
-                hand_strength, pot_ratio, position_on_button, street=0
-            )
-
-            # Determine what action we effectively took (simplified from betting history)
-            action_taken = self._infer_action_taken(i, game_state)
-
-            # Compute counterfactual values for each action
-            # These are estimates of what we would have won/lost with different actions
-            action_values = self._estimate_counterfactual_values(
-                i, game_state, contexts, winner_idx, actual_profit
-            )
-
-            # Update regret
-            ctx.strategy.update_regret(info_set, action_taken, action_values)
-
-    def _infer_action_taken(self, player_idx: int, game_state: MultiplayerGameState) -> str:
-        """Infer the primary action taken by a player from betting history.
-
-        Simplifies to one of: fold, call, raise_small, raise_big
-        """
-        # Look for this player's actions in history
-        player_actions = [
-            (action, amount) for (idx, action, amount) in game_state.betting_history
-            if idx == player_idx
-        ]
-
-        if not player_actions:
-            return "call"  # Default
-
-        # Find the most aggressive action
-        for action, amount in reversed(player_actions):
-            if action == BettingAction.FOLD:
-                return "fold"
-            elif action == BettingAction.RAISE:
-                # Determine if small or big raise based on pot
-                if amount > game_state.pot * 0.6:
-                    return "raise_big"
-                else:
-                    return "raise_small"
-            elif action == BettingAction.CALL:
-                continue  # Keep looking for raises
-
-        return "call"
-
-    def _estimate_counterfactual_values(
-        self,
-        player_idx: int,
-        game_state: MultiplayerGameState,
-        contexts: List[MultiplayerPlayerContext],
-        winner_idx: int,
-        actual_profit: float,
-    ) -> Dict[str, float]:
-        """Estimate what we would have won/lost with each action.
-
-        This is a simplified estimate - true CFR would require re-playing the hand.
-        We use heuristics based on the actual outcome.
-
-        Returns:
-            Dict mapping action -> estimated counterfactual value
-        """
-        pot = game_state.pot
-        my_bet = game_state.player_total_bets[player_idx]
-        i_won = (player_idx == winner_idx)
-        i_folded = contexts[player_idx].folded
-
-        # Base values - what we could have won/lost
-        if i_folded:
-            # We folded - regret not calling/raising if we would have won
-            fold_value = -my_bet  # Lost our bet
-            # Estimate call/raise values based on hand strength (we don't know outcome)
-            # Since we folded, assume call/raise would have been slightly better if we had good hand
-            call_value = fold_value * 0.8  # Slightly better than fold on average
-            raise_small_value = fold_value * 0.6
-            raise_big_value = fold_value * 0.4
-        elif i_won:
-            # We won - any action that kept us in was good
-            fold_value = -my_bet  # Would have lost our bet
-            call_value = actual_profit
-            raise_small_value = actual_profit * 1.1  # Raising might have won more
-            raise_big_value = actual_profit * 1.2  # Big raise might have won even more
-        else:
-            # We lost - folding would have saved money
-            fold_value = -my_bet * 0.3  # Would have lost less (early fold)
-            call_value = actual_profit  # What we actually got
-            raise_small_value = actual_profit * 0.9  # Raising lost more
-            raise_big_value = actual_profit * 0.8  # Big raise lost even more
-
-        return {
-            "fold": fold_value,
-            "call": call_value,
-            "raise_small": raise_small_value,
-            "raise_big": raise_big_value,
-        }
+                player.poker_losses += 1

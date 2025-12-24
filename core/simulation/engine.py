@@ -45,6 +45,8 @@ from core.collision_system import CollisionSystem
 from core.config.simulation_config import SimulationConfig
 from core.ecosystem import EcosystemManager
 from core.entities.plant import Plant, PlantNectar
+from core.simulation import diagnostics
+
 from core.entity_factory import create_initial_population
 from core.events import EnergyChangedEvent, EventBus
 from core.genetics import Genome, PlantGenome
@@ -57,7 +59,7 @@ from core.root_spots import RootSpotManager
 from core.services.stats_calculator import StatsCalculator
 from core.simulation.entity_manager import EntityManager
 from core.simulation.system_registry import SystemRegistry
-from core.simulation_stats_exporter import SimulationStatsExporter
+
 from core.simulators.base_simulator import BaseSimulator
 from core.systems.base import BaseSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
@@ -155,9 +157,7 @@ class SimulationEngine(BaseSimulator):
         self.ecosystem: Optional[EcosystemManager] = None
         self.time_system: TimeSystem = TimeSystem(self)
         self.start_time: float = time.time()
-        self.last_emergency_spawn_frame: int = (
-            -self.config.ecosystem.emergency_spawn_cooldown
-        )
+
 
         # Event bus for decoupled communication
         self.event_bus = EventBus()
@@ -185,7 +185,7 @@ class SimulationEngine(BaseSimulator):
 
         # Services
         self.stats_calculator = StatsCalculator(self)
-        self.stats_exporter = SimulationStatsExporter(self)
+
 
         # Phase tracking for debugging
         self._current_phase: Optional[UpdatePhase] = None
@@ -614,6 +614,7 @@ class SimulationEngine(BaseSimulator):
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns."""
         self._current_phase = UpdatePhase.REPRODUCTION
+        # ReproductionSystem now handles both mating and emergency spawns
         self.handle_reproduction()
 
         ecosystem = self.ecosystem
@@ -621,27 +622,6 @@ class SimulationEngine(BaseSimulator):
             return
 
         fish_list = self.get_fish_list()
-        fish_count = len(fish_list)
-        eco_cfg = self.config.ecosystem
-
-        # Emergency spawns when population is low
-        if fish_count < eco_cfg.max_population:
-            frames_since_last_spawn = self.frame_count - self.last_emergency_spawn_frame
-            if frames_since_last_spawn >= eco_cfg.emergency_spawn_cooldown:
-                if fish_count < eco_cfg.critical_population_threshold:
-                    spawn_probability = 1.0
-                else:
-                    population_ratio = (fish_count - eco_cfg.critical_population_threshold) / (
-                        eco_cfg.max_population - eco_cfg.critical_population_threshold
-                    )
-                    spawn_probability = (1.0 - population_ratio) ** 2 * 0.3
-
-                if self.rng.random() < spawn_probability:
-                    self.spawn_emergency_fish()
-                    self.last_emergency_spawn_frame = self.frame_count
-                    fish_list = self.get_fish_list()
-                    if fish_count < eco_cfg.critical_population_threshold:
-                        logger.info(f"Emergency fish spawned! fish_count now: {len(fish_list)}")
 
         # Update ecosystem stats
         ecosystem.update_population_stats(fish_list)
@@ -674,57 +654,13 @@ class SimulationEngine(BaseSimulator):
     # Emergency Spawning
     # =========================================================================
 
-    def spawn_emergency_fish(self) -> None:
-        """Spawn a new fish when population drops below critical threshold."""
-        if self.environment is None or self.ecosystem is None:
-            return
 
-        genome = Genome.random(use_algorithm=True, rng=self.rng)
-
-        bounds = self.environment.get_bounds()
-        (min_x, min_y), (max_x, max_y) = bounds
-        spawn_margin = self.config.ecosystem.spawn_margin_pixels
-        x = self.rng.randint(int(min_x) + spawn_margin, int(max_x) - spawn_margin)
-        y = self.rng.randint(int(min_y) + spawn_margin, int(max_y) - spawn_margin)
-
-        new_fish = entities.Fish(
-            self.environment,
-            movement_strategy.AlgorithmicMovement(),
-            self.config.display.files["schooling_fish"][0],
-            x,
-            y,
-            4,
-            genome=genome,
-            generation=0,
-            ecosystem=self.ecosystem,
-        )
-        new_fish.register_birth()
-        self.lifecycle_system.record_emergency_spawn()
-
-        self.add_entity(new_fish)
 
     # =========================================================================
     # Poker Events
     # =========================================================================
 
-    def _add_poker_event_to_history(
-        self,
-        winner_id: int,
-        loser_id: int,
-        winner_hand: str,
-        loser_hand: str,
-        energy_transferred: float,
-        message: str,
-    ) -> None:
-        """Helper method that delegates to the poker system."""
-        self.poker_system._add_poker_event_to_history(
-            winner_id,
-            loser_id,
-            winner_hand,
-            loser_hand,
-            energy_transferred,
-            message,
-        )
+
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Delegate event creation to the poker system."""
@@ -766,66 +702,11 @@ class SimulationEngine(BaseSimulator):
 
     def export_stats_json(self, filename: str) -> None:
         """Export comprehensive simulation statistics to JSON file."""
-        self.stats_exporter.export_stats_json(filename)
+        diagnostics.export_stats_json(self, filename, self.start_time)
 
     def print_stats(self) -> None:
         """Print current simulation statistics to console."""
-        stats = self.get_stats()
-        sep = self.config.display.separator_width
-
-        logger.info("")
-        logger.info("=" * sep)
-        logger.info(f"Frame: {stats.get('frame_count', 0)}")
-        logger.info(f"Time: {stats.get('time_string', 'N/A')}")
-        logger.info(f"Real Time: {stats.get('elapsed_real_time', 0):.1f}s")
-        logger.info(f"Simulation Speed: {stats.get('simulation_speed', 0):.2f}x")
-        logger.info("-" * sep)
-        max_pop = self.ecosystem.max_population if self.ecosystem else "N/A"
-        logger.info(f"Population: {stats.get('total_population', 0)}/{max_pop}")
-        logger.info(f"Generation: {stats.get('current_generation', 0)}")
-        logger.info(f"Total Births: {stats.get('total_births', 0)}")
-        logger.info(f"Total Deaths: {stats.get('total_deaths', 0)}")
-        logger.info(f"Capacity: {stats.get('capacity_usage', 'N/A')}")
-        logger.info("-" * sep)
-        logger.info(f"Fish: {stats.get('fish_count', 0)}")
-        logger.info(f"Food: {stats.get('food_count', 0)}")
-        logger.info(f"Plants: {stats.get('plant_count', 0)}")
-
-        death_causes = stats.get("death_causes", {})
-        if death_causes:
-            logger.info("-" * sep)
-            logger.info("Death Causes:")
-            for cause, count in death_causes.items():
-                logger.info(f"  {cause}: {count}")
-
-        repro_stats = stats.get("reproduction_stats", {})
-        if repro_stats:
-            logger.info("-" * sep)
-            logger.info("Reproduction Stats:")
-            logger.info(f"  Total Reproductions: {repro_stats.get('total_reproductions', 0)}")
-            logger.info(f"  Mating Attempts: {repro_stats.get('total_mating_attempts', 0)}")
-            logger.info(f"  Failed Attempts: {repro_stats.get('total_failed_attempts', 0)}")
-            logger.info(f"  Success Rate: {repro_stats.get('success_rate_pct', 'N/A')}")
-            logger.info(f"  Currently Pregnant: {repro_stats.get('current_pregnant_fish', 0)}")
-            logger.info(f"  Total Offspring: {repro_stats.get('total_offspring', 0)}")
-
-        diversity_stats = stats.get("diversity_stats", {})
-        if diversity_stats:
-            logger.info("-" * sep)
-            logger.info("Genetic Diversity:")
-            logger.info(
-                f"  Unique Algorithms: {diversity_stats.get('unique_algorithms', 0)}/{self.config.ecosystem.total_algorithm_count}"
-            )
-            logger.info(
-                f"  Unique Species: {diversity_stats.get('unique_species', 0)}/{self.config.ecosystem.total_species_count}"
-            )
-            logger.info(f"  Diversity Score: {diversity_stats.get('diversity_score_pct', 'N/A')}")
-            logger.info(f"  Color Variance: {diversity_stats.get('color_variance', 0):.4f}")
-            logger.info(f"  Speed Variance: {diversity_stats.get('speed_variance', 0):.4f}")
-            logger.info(f"  Size Variance: {diversity_stats.get('size_variance', 0):.4f}")
-            logger.info(f"  Vision Variance: {diversity_stats.get('vision_variance', 0):.4f}")
-
-        logger.info("=" * sep)
+        diagnostics.print_simulation_stats(self, self.start_time)
 
     # =========================================================================
     # Run Methods
