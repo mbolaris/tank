@@ -16,7 +16,7 @@ from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
-    from core.simulation_engine import SimulationEngine
+    from core.simulation import SimulationEngine
 
 
 @runs_in_phase(UpdatePhase.TIME_UPDATE)

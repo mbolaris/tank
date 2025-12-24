@@ -36,7 +36,7 @@ __all__ = [
 ]
 
 if TYPE_CHECKING:
-    from core.simulation_engine import SimulationEngine
+    from core.simulation import SimulationEngine
     from core.update_phases import UpdatePhase
 
 

@@ -44,7 +44,7 @@ from core.update_phases import UpdatePhase, runs_in_phase
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.entities.plant import Plant
-    from core.simulation_engine import SimulationEngine
+    from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
 

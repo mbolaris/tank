@@ -12,7 +12,7 @@ from core.services.stats import entity_stats
 from core.services.stats.utils import calculate_meta_stats, humanize_gene_label
 
 if TYPE_CHECKING:
-    from core.simulation_engine import SimulationEngine
+    from core.simulation import SimulationEngine
 
 
 class StatsCalculator:

@@ -12,7 +12,7 @@ from statistics import median
 from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
-    from core.simulation_engine import SimulationEngine
+    from core.simulation import SimulationEngine
 
 
 def get_simulation_state(engine: "SimulationEngine") -> Dict[str, Any]:

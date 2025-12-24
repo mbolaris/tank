@@ -19,7 +19,7 @@ from core.registry import get_algorithm_metadata
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
-    from core.simulation_engine import SimulationEngine
+    from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
 
