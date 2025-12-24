@@ -447,21 +447,41 @@ class SimulationEngine(BaseSimulator):
     def update(self) -> None:
         """Update the state of the simulation.
 
-        The update loop executes in well-defined phases (see UpdatePhase enum):
-        1. FRAME_START: Reset counters, increment frame
-        2. TIME_UPDATE: Advance day/night cycle
-        3. ENVIRONMENT: Update ecosystem and detection modifiers
-        4. ENTITY_ACT: Update all entities
-        5. LIFECYCLE: Process deaths, add/remove entities
-        6. SPAWN: Auto-spawn food
-        7. COLLISION: Handle collisions
-        8. REPRODUCTION: Handle mating
-        9. FRAME_END: Update stats, rebuild caches
+        The update loop executes in well-defined phases (see UpdatePhase enum).
+        Each phase is implemented as a separate method for readability and testability.
+
+        Phase Order:
+            1. FRAME_START: Reset counters, increment frame
+            2. TIME_UPDATE: Advance day/night cycle
+            3. ENVIRONMENT: Update ecosystem and detection modifiers
+            4. ENTITY_ACT: Update all entities, collect spawns/deaths
+            5. LIFECYCLE: Process deaths, add/remove entities
+            6. SPAWN: Auto-spawn food
+            7. COLLISION: Handle collisions
+            8. REPRODUCTION: Handle mating and emergency spawns
+            9. FRAME_END: Update stats, rebuild caches
         """
         if self.paused:
             return
 
-        # ===== PHASE: FRAME_START =====
+        # Execute each phase in order
+        # Time values are returned from TIME_UPDATE and passed to ENTITY_ACT
+        self._phase_frame_start()
+        time_modifier, time_of_day = self._phase_time_update()
+        self._phase_environment()
+        new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
+        self._phase_lifecycle(new_entities, entities_to_remove)
+        self._phase_spawn()
+        self._phase_collision()
+        self._phase_reproduction()
+        self._phase_frame_end()
+
+    # -------------------------------------------------------------------------
+    # Phase Implementations
+    # -------------------------------------------------------------------------
+
+    def _phase_frame_start(self) -> None:
+        """FRAME_START: Reset counters, increment frame."""
         self._current_phase = UpdatePhase.FRAME_START
         self.frame_count += 1
         self.lifecycle_system.update(self.frame_count)
@@ -472,35 +492,56 @@ class SimulationEngine(BaseSimulator):
                 self._entity_manager.entities_list, self.frame_count
             )
 
-        # ===== PHASE: TIME_UPDATE =====
+    def _phase_time_update(self) -> tuple:
+        """TIME_UPDATE: Advance day/night cycle.
+        
+        Returns:
+            Tuple of (time_modifier, time_of_day) for use by entity updates
+        """
         self._current_phase = UpdatePhase.TIME_UPDATE
         self.time_system.update(self.frame_count)
-        time_modifier = self.time_system.get_activity_modifier()
-        time_of_day = self.time_system.get_time_of_day()
+        return (
+            self.time_system.get_activity_modifier(),
+            self.time_system.get_time_of_day(),
+        )
 
-        # ===== PHASE: ENVIRONMENT =====
+    def _phase_environment(self) -> None:
+        """ENVIRONMENT: Update ecosystem and detection modifiers."""
         self._current_phase = UpdatePhase.ENVIRONMENT
-        ecosystem = self.ecosystem
-        if ecosystem is not None:
-            ecosystem.update(self.frame_count)
+        if self.ecosystem is not None:
+            self.ecosystem.update(self.frame_count)
 
         if self.environment is not None:
             self.environment.update_detection_modifier()
 
-        # ===== PHASE: ENTITY_ACT =====
+    def _phase_entity_act(
+        self, time_modifier: float, time_of_day: float
+    ) -> tuple:
+        """ENTITY_ACT: Update all entities, collect spawns/deaths.
+        
+        Args:
+            time_modifier: Activity modifier from day/night cycle
+            time_of_day: Current time of day (0-1)
+            
+        Returns:
+            Tuple of (new_entities, entities_to_remove)
+        """
         self._current_phase = UpdatePhase.ENTITY_ACT
         new_entities: List[entities.Agent] = []
         entities_to_remove: List[entities.Agent] = []
 
+        # Performance: Pre-fetch type references
         Fish = entities.Fish
         Food = entities.Food
         LiveFood = entities.LiveFood
 
+        ecosystem = self.ecosystem
         fish_count = len(self.get_fish_list()) if ecosystem is not None else 0
 
         for entity in list(self._entity_manager.entities_list):
             result = entity.update(self.frame_count, time_modifier, time_of_day)
 
+            # Handle spawned entities
             if result.spawned_entities:
                 for spawned in result.spawned_entities:
                     if isinstance(spawned, Fish):
@@ -512,6 +553,7 @@ class SimulationEngine(BaseSimulator):
                     else:
                         new_entities.append(spawned)
 
+            # Handle entity death
             if entity.is_dead():
                 if isinstance(entity, Fish):
                     self.record_fish_death(entity)
@@ -522,6 +564,7 @@ class SimulationEngine(BaseSimulator):
                 elif isinstance(entity, PlantNectar):
                     entities_to_remove.append(entity)
 
+            # Handle food removal conditions
             elif isinstance(entity, Food):
                 if isinstance(entity, LiveFood):
                     if entity.is_expired():
@@ -532,8 +575,16 @@ class SimulationEngine(BaseSimulator):
 
             self.keep_entity_on_screen(entity)
 
-        # ===== PHASE: LIFECYCLE =====
+        return new_entities, entities_to_remove
+
+    def _phase_lifecycle(
+        self,
+        new_entities: List[entities.Agent],
+        entities_to_remove: List[entities.Agent],
+    ) -> None:
+        """LIFECYCLE: Process deaths, add/remove entities."""
         self._current_phase = UpdatePhase.LIFECYCLE
+        
         for entity in entities_to_remove:
             self.remove_entity(entity)
 
@@ -542,60 +593,72 @@ class SimulationEngine(BaseSimulator):
         for new_entity in new_entities:
             self.add_entity(new_entity)
 
-        # ===== PHASE: SPAWN =====
+    def _phase_spawn(self) -> None:
+        """SPAWN: Auto-spawn food and update spatial positions."""
         self._current_phase = UpdatePhase.SPAWN
+        
         if self.food_spawning_system:
             self.food_spawning_system.update(self.frame_count)
 
+        # Update spatial grid for moved entities
         if self.environment is not None:
             update_position = self.environment.update_agent_position
             for entity in self._entity_manager.entities_list:
                 update_position(entity)
 
-        # ===== PHASE: COLLISION =====
+    def _phase_collision(self) -> None:
+        """COLLISION: Handle collisions between entities."""
         self._current_phase = UpdatePhase.COLLISION
         self.handle_collisions()
 
-        # ===== PHASE: REPRODUCTION =====
+    def _phase_reproduction(self) -> None:
+        """REPRODUCTION: Handle mating and emergency spawns."""
         self._current_phase = UpdatePhase.REPRODUCTION
         self.handle_reproduction()
 
-        if ecosystem is not None:
-            fish_list = self.get_fish_list()
-            fish_count = len(fish_list)
-            eco_cfg = self.config.ecosystem
+        ecosystem = self.ecosystem
+        if ecosystem is None:
+            return
 
-            if fish_count < eco_cfg.max_population:
-                frames_since_last_spawn = self.frame_count - self.last_emergency_spawn_frame
-                if frames_since_last_spawn >= eco_cfg.emergency_spawn_cooldown:
+        fish_list = self.get_fish_list()
+        fish_count = len(fish_list)
+        eco_cfg = self.config.ecosystem
+
+        # Emergency spawns when population is low
+        if fish_count < eco_cfg.max_population:
+            frames_since_last_spawn = self.frame_count - self.last_emergency_spawn_frame
+            if frames_since_last_spawn >= eco_cfg.emergency_spawn_cooldown:
+                if fish_count < eco_cfg.critical_population_threshold:
+                    spawn_probability = 1.0
+                else:
+                    population_ratio = (fish_count - eco_cfg.critical_population_threshold) / (
+                        eco_cfg.max_population - eco_cfg.critical_population_threshold
+                    )
+                    spawn_probability = (1.0 - population_ratio) ** 2 * 0.3
+
+                if self.rng.random() < spawn_probability:
+                    self.spawn_emergency_fish()
+                    self.last_emergency_spawn_frame = self.frame_count
+                    fish_list = self.get_fish_list()
                     if fish_count < eco_cfg.critical_population_threshold:
-                        spawn_probability = 1.0
-                    else:
-                        population_ratio = (fish_count - eco_cfg.critical_population_threshold) / (
-                            eco_cfg.max_population - eco_cfg.critical_population_threshold
-                        )
-                        spawn_probability = (1.0 - population_ratio) ** 2 * 0.3
+                        logger.info(f"Emergency fish spawned! fish_count now: {len(fish_list)}")
 
-                    if self.rng.random() < spawn_probability:
-                        self.spawn_emergency_fish()
-                        self.last_emergency_spawn_frame = self.frame_count
-                        fish_list = self.get_fish_list()
-                        if fish_count < eco_cfg.critical_population_threshold:
-                            logger.info(f"Emergency fish spawned! fish_count now: {len(fish_list)}")
+        # Update ecosystem stats
+        ecosystem.update_population_stats(fish_list)
 
-            ecosystem.update_population_stats(fish_list)
+        if self.frame_count % 1000 == 0:
+            alive_ids = {f.fish_id for f in fish_list}
+            ecosystem.cleanup_dead_fish(alive_ids)
 
-            if self.frame_count % 1000 == 0:
-                alive_ids = {f.fish_id for f in fish_list}
-                ecosystem.cleanup_dead_fish(alive_ids)
+        # Record energy snapshot
+        total_fish_energy = sum(
+            f.energy + f._reproduction_component.overflow_energy_bank
+            for f in fish_list
+        )
+        ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
 
-            total_fish_energy = sum(
-                f.energy + f._reproduction_component.overflow_energy_bank
-                for f in fish_list
-            )
-            ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
-
-        # ===== PHASE: FRAME_END =====
+    def _phase_frame_end(self) -> None:
+        """FRAME_END: Update stats, rebuild caches."""
         self._current_phase = UpdatePhase.FRAME_END
 
         if self.benchmark_evaluator is not None:
