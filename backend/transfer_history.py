@@ -8,7 +8,7 @@ import json
 import logging
 from collections import deque
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Deque, Dict, List, Optional
 from uuid import uuid4
@@ -72,7 +72,7 @@ def log_transfer(
     """
     record = TransferRecord(
         transfer_id=str(uuid4()),
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
         entity_type=entity_type,
         entity_old_id=entity_old_id,
         entity_new_id=entity_new_id,
