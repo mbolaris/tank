@@ -215,12 +215,12 @@ class TestPlantPokerGames:
         reset_cooldowns(fish[0], plants[0])
         initial_energy = plants[0].energy
 
-        def force_fold(self, game_state, contexts, start_position):
+        def force_fold(game_state, contexts, start_position, **kwargs):
             game_state.player_folded[1] = True
             contexts[1].folded = True
             return False
 
-        monkeypatch.setattr(MixedPokerInteraction, "_play_betting_round", force_fold)
+        monkeypatch.setattr("core.mixed_poker.interaction.play_betting_round", force_fold)
 
         poker = MixedPokerInteraction([fish[0], plants[0]])
         result = poker.play_poker(bet_amount=10.0)
