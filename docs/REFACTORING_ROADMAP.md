@@ -4,8 +4,8 @@ This document tracks remaining architectural improvements to be made to the simu
 
 ## Priority 1: Inline BaseSimulator into SimulationEngine
 
-**Status**: Not Started  
-**Effort**: 2-3 hours  
+**Status**: Documented (see design note in base_simulator.py)  
+**Effort**: 2-3 hours for full inline  
 **Impact**: High (removes unnecessary abstraction layer)
 
 ### Problem
@@ -96,19 +96,21 @@ that declare their phase via `@runs_in_phase`, then use PhaseRunner for executio
 
 ## Priority 4: Extract EnergyTracker from EcosystemManager
 
-**Status**: Not Started (mentioned in ARCHITECTURE_REVIEW.md)  
-**Effort**: 1-2 hours  
-**Impact**: Medium
+**Status**: ✅ Already Complete  
+**Impact**: N/A (was already done)
 
-### Problem
-`EcosystemManager` (650+ lines, 67 methods) has too many responsibilities including energy tracking.
+### What Was Done
+`EnergyTracker` already exists at `core/services/energy_tracker.py` (273 lines).
 
-### Proposed Solution
-Create `core/services/energy_tracker.py` with:
-- `record_energy_snapshot()`
-- `record_energy_burn()`
-- Energy delta calculations
-- Energy flow statistics
+Features include:
+- `record_energy_gain()` / `record_energy_burn()`
+- `record_energy_delta()` for signed deltas
+- `record_energy_snapshot()` for historical tracking
+- `get_energy_delta()` for time-window comparisons
+- Separate tracking for fish and plant energy pools
+- Per-frame buffering with automatic rollup
+
+`EcosystemManager` delegates to `EnergyTracker` for all energy accounting.
 
 ---
 
