@@ -109,14 +109,16 @@ default_collision_detector = RectCollisionDetector()
 class CollisionSystem(BaseSystem):
     """System for detecting and handling collisions between entities.
 
-    This system runs in the COLLISION phase and:
-    - Checks for collisions between fish and food
-    - Handles collision effects (eating, etc.)
-    - Tracks collision statistics for debugging
+    This system runs in the COLLISION phase and provides:
+    - Collision detection via check_collision()
+    - Food consumption logic via handle_fish_food_collision()
+    - Collision statistics for debugging
 
-    Note: The actual collision iteration is done in SimulationEngine.handle_collisions()
-    which uses the spatial grid for efficiency. This system provides the collision
-    handling logic.
+    Architecture Note:
+        The collision *iteration* (looping over entity pairs) is currently
+        in BaseSimulator.handle_fish_collisions() for historical reasons.
+        This system provides the actual collision *handling* logic.
+        See docs/REFACTORING_ROADMAP.md Priority 1 for future improvements.
     """
 
     def __init__(self, engine: "SimulationEngine") -> None:
