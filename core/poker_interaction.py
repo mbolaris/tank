@@ -201,6 +201,97 @@ def check_poker_proximity(
     return min_distance * min_distance < distance_sq <= max_distance * max_distance
 
 
+def filter_mutually_proximate(
+    entities: list,
+    max_distance: float,
+) -> list:
+    """Filter entities to only those where ALL are within max_distance of each other.
+
+    This prevents chain-connected entities (A near B, B near C, but A far from C)
+    from ending up in the same poker game.
+
+    The algorithm finds the largest subset of entities where every pair is within
+    max_distance of each other. Uses a greedy approach that works well for the
+    small group sizes typical in poker games.
+
+    PERFORMANCE OPTIMIZATIONS:
+    - Use squared distances throughout (avoid sqrt)
+    - Use 2D list instead of dict (no hash/get overhead)
+    - Pre-cache entity positions
+    - Early exit when best possible group is found
+    - Inline distance calculations
+
+    Args:
+        entities: List of entities with pos, width, and height attributes
+        max_distance: Maximum distance between any two entities
+
+    Returns:
+        Largest subset where all entities are mutually within max_distance
+    """
+    n = len(entities)
+    if n <= 2:
+        # For 2 or fewer, they were already verified as proximate
+        return list(entities)
+
+    # Pre-compute squared max distance (avoid sqrt entirely)
+    max_dist_sq = max_distance * max_distance
+
+    # Pre-cache entity center positions for faster access
+    positions = [
+        (e.pos.x + e.width * 0.5, e.pos.y + e.height * 0.5)
+        for e in entities
+    ]
+
+    # OPTIMIZATION: Use 2D list instead of dict for O(1) access without hash overhead
+    # Build adjacency matrix as boolean: True = within distance
+    adjacent = [[False] * n for _ in range(n)]
+
+    for i in range(n):
+        x1, y1 = positions[i]
+        for j in range(i + 1, n):
+            x2, y2 = positions[j]
+            dx = x1 - x2
+            dy = y1 - y2
+            if dx * dx + dy * dy <= max_dist_sq:
+                adjacent[i][j] = True
+                adjacent[j][i] = True  # Symmetric
+
+    # Simple greedy approach: start with each entity, build largest valid group
+    best_group: list = []
+    best_size = 0
+
+    for start_idx in range(n):
+        # Early exit: can't beat current best if remaining entities aren't enough
+        if n - start_idx <= best_size:
+            break
+
+        group = [start_idx]
+        adj_row = adjacent[start_idx]  # Cache row for start entity
+
+        for candidate_idx in range(start_idx + 1, n):
+            # Quick check: must be adjacent to start entity
+            if not adj_row[candidate_idx]:
+                continue
+
+            # Check if candidate is within distance of ALL current group members
+            can_add = True
+            for member_idx in group:
+                if not adjacent[member_idx][candidate_idx]:
+                    can_add = False
+                    break
+            if can_add:
+                group.append(candidate_idx)
+
+        if len(group) > best_size:
+            best_group = group
+            best_size = len(group)
+            # Early exit if we found a group with all remaining entities
+            if best_size == n - start_idx:
+                break
+
+    return [entities[i] for i in best_group]
+
+
 __all__ = [
     "PokerInteraction",
     "PokerResult", 
@@ -218,4 +309,5 @@ __all__ = [
     "should_offer_post_poker_reproduction",
     "calculate_house_cut",
     "check_poker_proximity",
+    "filter_mutually_proximate",
 ]

@@ -54,6 +54,7 @@ from core.poker_interaction import (
     MAX_PLAYERS as POKER_MAX_PLAYERS,
     MIN_ENERGY_TO_PLAY as POKER_MIN_ENERGY,
     check_poker_proximity,
+    filter_mutually_proximate,
     get_ready_players,
     is_post_poker_reproduction_eligible,
     should_offer_post_poker_reproduction,
@@ -381,8 +382,7 @@ class BaseSimulator(ABC):
     ) -> List["Fish"]:
         """Filter players to only those where ALL are within max_distance of each other.
 
-        This prevents chain-connected players (A near B, B near C, but A far from C)
-        from ending up in the same poker game.
+        Delegates to the shared filter_mutually_proximate utility function.
 
         Args:
             players: List of potential players
@@ -391,64 +391,7 @@ class BaseSimulator(ABC):
         Returns:
             Largest subset where all players are mutually within max_distance
         """
-        n = len(players)
-        if n <= 2:
-            # For 2 players, they were already verified as proximate
-            return players
-
-        # Pre-compute squared max distance (avoid sqrt entirely)
-        max_dist_sq = max_distance * max_distance
-
-        # Pre-cache player positions for faster access
-        positions = [(p.pos.x + p.width / 2, p.pos.y + p.height / 2) for p in players]
-
-        # Build adjacency matrix as boolean: True = within distance
-        adjacent = [[False] * n for _ in range(n)]
-
-        for i in range(n):
-            x1, y1 = positions[i]
-            for j in range(i + 1, n):
-                x2, y2 = positions[j]
-                dx = x1 - x2
-                dy = y1 - y2
-                if dx * dx + dy * dy <= max_dist_sq:
-                    adjacent[i][j] = True
-                    adjacent[j][i] = True  # Symmetric
-
-        # Simple greedy approach: start with each player, build largest valid group
-        best_group: List[int] = []
-        best_size = 0
-
-        for start_idx in range(n):
-            # Early exit: can't beat current best if remaining players aren't enough
-            if n - start_idx <= best_size:
-                break
-
-            group = [start_idx]
-            adj_row = adjacent[start_idx]  # Cache row for start player
-
-            for candidate_idx in range(start_idx + 1, n):
-                # Quick check: must be adjacent to start player
-                if not adj_row[candidate_idx]:
-                    continue
-
-                # Check if candidate is within distance of ALL current group members
-                can_add = True
-                for member_idx in group:
-                    if not adjacent[member_idx][candidate_idx]:
-                        can_add = False
-                        break
-                if can_add:
-                    group.append(candidate_idx)
-
-            if len(group) > best_size:
-                best_group = group
-                best_size = len(group)
-                # Early exit if we found a group with all remaining players
-                if best_size == n - start_idx:
-                    break
-
-        return [players[i] for i in best_group]
+        return filter_mutually_proximate(players, max_distance)
 
     def handle_fish_collisions(self) -> None:
         """Handle collisions involving fish.
