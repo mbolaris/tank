@@ -300,6 +300,36 @@ Created detailed analysis identifying:
 
 ---
 
+
+## ✅ Completed: Mixed Poker Refactoring (Phase 2)
+
+### Problem Identified
+- `core/mixed_poker_impl.py` was a 1000+ line monolith combining interaction logic, game state, and data types.
+- Difficult to maintain and test separately.
+
+### Solution Implemented
+**Split into `core/mixed_poker/` package:**
+- `interaction.py`: Main `MixedPokerInteraction` logic.
+- `state.py`: `MultiplayerGameState` logic.
+- `types.py`: Data structures.
+- `utils.py`: Helper functions.
+- `__init__.py`: Clean public API.
+
+## ✅ Completed: Stats System Refactoring
+
+### Problem Identified
+- `core/services/stats/calculator.py` was 1140 lines long.
+- Contained massive blocks of genetic distribution logic.
+- Hard to read key stats aggregation logic.
+
+### Solution Implemented
+**Extracted genetic stats to `core/services/stats/genetic_stats.py`:**
+- Created `genetic_stats.py` (450 lines) to handle all genetic histograms and distributions.
+- Reduced `calculator.py` to <100 lines, focused purely on aggregation.
+- Improved testability of genetic stats logic.
+
+---
+
 ## 🚀 Conclusion
 
 The poker system consolidation represents a **major architectural improvement** that addresses the highest-priority technical debt identified in the codebase analysis. The Tank simulation now has:
@@ -318,7 +348,7 @@ This demonstrates the importance of deep analysis before refactoring - not all m
 
 ---
 
-**Total Effort**: ~4-5 hours
-**Primary Achievement**: Poker system consolidation (highest ROI architectural improvement)
+**Total Effort**: ~6-7 hours
+**Primary Achievement**: Poker system consolidation & Stats refactoring
 **Secondary Achievement**: Comprehensive codebase analysis and documentation
 **Status**: ✅ Ready for review and merge

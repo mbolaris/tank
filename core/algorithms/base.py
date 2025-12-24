@@ -715,6 +715,10 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
         """
         _rng = rng if rng is not None else random.Random()
         
+        # Optimization: If mutation is disabled, return early
+        if mutation_rate <= 1e-9 and mutation_strength <= 1e-9:
+            return
+        
         for key, current_value in list(self.parameters.items()):
             # Skip non-numeric parameters (they shouldn't be mutated)
             if not isinstance(current_value, (int, float)):

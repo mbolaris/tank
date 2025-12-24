@@ -1,20 +1,11 @@
-"""
-Mixed Fish-Plant poker interaction system.
+"""Mixed Fish-Plant poker interaction system.
 
 This module handles poker games between any combination of fish and plants.
 Supports 2-6 players with a mix of species.
-
-Features:
-- Full Texas Hold'em with betting rounds for all game sizes (2-6 players)
-- Proper blind structure and position-based play
-- Multi-round betting: pre-flop, flop, turn, river
-- Folding, checking, calling, and raising
 """
 
 import logging
-from dataclasses import dataclass, field
-from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.config.poker import (
     POKER_AGGRESSION_HIGH,
@@ -24,190 +15,16 @@ from core.config.poker import (
     POKER_MAX_PLAYERS,
 )
 from core.poker.betting.actions import BettingAction
-from core.poker.core import Deck, PokerHand, evaluate_hand
+from core.poker.core import PokerHand, evaluate_hand
 from core.poker.evaluation.strength import evaluate_starting_hand_strength
+from core.mixed_poker.types import MixedPokerResult, MultiplayerBettingRound, Player
+from core.mixed_poker.state import MultiplayerGameState, MultiplayerPlayerContext
 
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.entities.plant import Plant
 
 logger = logging.getLogger(__name__)
-
-
-class MultiplayerBettingRound(IntEnum):
-    """Betting rounds in Texas Hold'em."""
-    PRE_FLOP = 0
-    FLOP = 1
-    TURN = 2
-    RIVER = 3
-    SHOWDOWN = 4
-
-# Type alias for players
-Player = Union["Fish", "Plant"]
-
-
-@dataclass
-class MixedPokerResult:
-    """Result of a mixed poker game."""
-
-    winner_id: int
-    winner_type: str  # "fish" or "plant"
-    winner_hand: Optional[PokerHand]
-    loser_ids: List[int]
-    loser_types: List[str]
-    loser_hands: List[Optional[PokerHand]]
-    energy_transferred: float
-    total_pot: float
-    house_cut: float
-    is_tie: bool
-    tied_player_ids: List[int]
-    player_count: int
-    fish_count: int
-    plant_count: int
-    # New fields for full Texas Hold'em
-    won_by_fold: bool = False
-    total_rounds: int = 4
-    players_folded: List[bool] = field(default_factory=list)
-    betting_history: List[Tuple[int, BettingAction, float]] = field(default_factory=list)
-
-
-@dataclass
-class MultiplayerPlayerContext:
-    """Runtime state for a player in multiplayer poker."""
-    player: Player
-    player_idx: int  # 0-indexed position at table
-    remaining_energy: float
-    aggression: float
-    current_bet: float = 0.0  # Bet in current betting round
-    total_bet: float = 0.0  # Total bet across all rounds
-    folded: bool = False
-    is_all_in: bool = False
-    strategy: Optional[Any] = None  # PokerStrategyAlgorithm if available
-
-
-class MultiplayerGameState:
-    """Tracks the state of a multiplayer Texas Hold'em poker game."""
-
-    def __init__(
-        self,
-        num_players: int,
-        small_blind: float = 2.5,
-        big_blind: float = 5.0,
-        button_position: int = 0,
-    ):
-        self.num_players = num_players
-        self.small_blind = small_blind
-        self.big_blind = big_blind
-        self.button_position = button_position  # 0-indexed
-
-        self.current_round = MultiplayerBettingRound.PRE_FLOP
-        self.pot = 0.0
-        self.deck = Deck()
-
-        # Per-player state
-        self.player_hole_cards: List[List[Any]] = [[] for _ in range(num_players)]
-        self.player_hands: List[Optional[PokerHand]] = [None] * num_players
-        self.player_current_bets: List[float] = [0.0] * num_players
-        self.player_total_bets: List[float] = [0.0] * num_players
-        self.player_folded: List[bool] = [False] * num_players
-        self.player_all_in: List[bool] = [False] * num_players
-
-        self.community_cards: List[Any] = []
-        self.betting_history: List[Tuple[int, BettingAction, float]] = []
-
-        # Raise tracking
-        self.min_raise = big_blind
-        self.last_raise_amount = big_blind
-        self.last_aggressor: Optional[int] = None  # Who made the last raise
-
-    def deal_hole_cards(self) -> None:
-        """Deal 2 hole cards to each player."""
-        for _ in range(2):
-            for player_idx in range(self.num_players):
-                if not self.player_folded[player_idx]:
-                    self.player_hole_cards[player_idx].append(self.deck.deal_one())
-
-    def deal_flop(self) -> None:
-        """Deal the flop (3 community cards)."""
-        self.deck.deal(1)  # Burn
-        self.community_cards.extend(self.deck.deal(3))
-
-    def deal_turn(self) -> None:
-        """Deal the turn (4th community card)."""
-        self.deck.deal(1)  # Burn
-        self.community_cards.append(self.deck.deal_one())
-
-    def deal_river(self) -> None:
-        """Deal the river (5th community card)."""
-        self.deck.deal(1)  # Burn
-        self.community_cards.append(self.deck.deal_one())
-
-    def advance_round(self) -> None:
-        """Move to the next betting round."""
-        if self.current_round < MultiplayerBettingRound.SHOWDOWN:
-            self.current_round = MultiplayerBettingRound(self.current_round + 1)
-
-            if self.current_round == MultiplayerBettingRound.FLOP:
-                self.deal_flop()
-            elif self.current_round == MultiplayerBettingRound.TURN:
-                self.deal_turn()
-            elif self.current_round == MultiplayerBettingRound.RIVER:
-                self.deal_river()
-
-            # Reset current round bets
-            self.player_current_bets = [0.0] * self.num_players
-            self.min_raise = self.big_blind
-            self.last_raise_amount = self.big_blind
-            self.last_aggressor = None
-
-    def player_bet(self, player_idx: int, amount: float) -> None:
-        """Record a player's bet."""
-        self.player_current_bets[player_idx] += amount
-        self.player_total_bets[player_idx] += amount
-        self.pot += amount
-
-    def get_active_player_count(self) -> int:
-        """Return number of players still in the hand."""
-        return sum(1 for folded in self.player_folded if not folded)
-
-    def get_winner_by_fold(self) -> Optional[int]:
-        """Return winner index if only one player remains, None otherwise."""
-        active_players = [i for i, folded in enumerate(self.player_folded) if not folded]
-        if len(active_players) == 1:
-            return active_players[0]
-        return None
-
-    def get_max_current_bet(self) -> float:
-        """Get the highest current bet among active players."""
-        return max(
-            bet for i, bet in enumerate(self.player_current_bets)
-            if not self.player_folded[i]
-        )
-
-    def is_betting_complete(self) -> bool:
-        """Check if betting round is complete."""
-        active_players = [
-            i for i in range(self.num_players)
-            if not self.player_folded[i] and not self.player_all_in[i]
-        ]
-
-        if not active_players:
-            return True
-
-        max_bet = self.get_max_current_bet()
-        return all(
-            self.player_current_bets[i] == max_bet
-            for i in active_players
-        )
-
-    def evaluate_hands(self) -> None:
-        """Evaluate hands for all active players."""
-        for i in range(self.num_players):
-            if not self.player_folded[i]:
-                self.player_hands[i] = evaluate_hand(
-                    self.player_hole_cards[i],
-                    self.community_cards
-                )
 
 
 class MixedPokerInteraction:
@@ -1140,71 +957,3 @@ class MixedPokerInteraction:
             "raise_small": raise_small_value,
             "raise_big": raise_big_value,
         }
-
-
-def check_poker_proximity(
-    entity1: Player, entity2: Player, min_distance: float, max_distance: float
-) -> bool:
-    """Check if two entities are in poker proximity (close but not touching).
-
-    Args:
-        entity1: First entity (Fish or Plant)
-        entity2: Second entity (Fish or Plant)
-        min_distance: Minimum center-to-center distance
-        max_distance: Maximum center-to-center distance
-
-    Returns:
-        True if entities are in the poker proximity zone
-    """
-    # Calculate centers
-    e1_cx = entity1.pos.x + entity1.width / 2
-    e1_cy = entity1.pos.y + entity1.height / 2
-    e2_cx = entity2.pos.x + entity2.width / 2
-    e2_cy = entity2.pos.y + entity2.height / 2
-
-    dx = e1_cx - e2_cx
-    dy = e1_cy - e2_cy
-    distance_sq = dx * dx + dy * dy
-
-    min_dist_sq = min_distance * min_distance
-    max_dist_sq = max_distance * max_distance
-
-    return min_dist_sq < distance_sq <= max_dist_sq
-
-
-def should_trigger_plant_poker_asexual_reproduction(fish: "Fish") -> bool:
-    """Check if a fish should trigger asexual reproduction after winning against plants.
-
-    When a fish wins a poker hand against only plant opponents (no other fish),
-    they get the opportunity to reproduce asexually. This rewards fish that
-    successfully "eat" plants through poker.
-
-    Conditions:
-    - Fish must have ≥40% of max energy (POST_POKER_REPRODUCTION_ENERGY_THRESHOLD)
-    - Fish must not be pregnant
-    - Fish must be off reproduction cooldown
-    - Fish must be adult life stage
-
-    Args:
-        fish: The fish that won the poker game
-
-    Returns:
-        True if asexual reproduction should be triggered
-    """
-    from core.config.fish import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
-    from core.entities.base import LifeStage
-
-    # Check energy threshold
-    min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
-    if fish.energy < min_energy_for_reproduction:
-        return False
-
-    # Check off cooldown
-    if fish._reproduction_component.reproduction_cooldown > 0:
-        return False
-
-    # Check adult life stage (only adults can reproduce)
-    if fish._lifecycle_component.life_stage != LifeStage.ADULT:
-        return False
-
-    return True

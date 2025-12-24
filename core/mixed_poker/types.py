@@ -5,11 +5,15 @@ This module contains the data structures used by the mixed poker system.
 
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import List, Optional, Tuple, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from core.poker_interaction import PokerHand
     from core.poker.betting.actions import BettingAction
+    from core.entities import Fish
+    from core.entities.plant import Plant
+
+Player = Union["Fish", "Plant"]
 
 
 class MultiplayerBettingRound(IntEnum):
@@ -31,12 +35,14 @@ class MixedPokerResult:
     loser_types: List[str]
     loser_hands: List[Optional["PokerHand"]]
     energy_transferred: float
-    message: str
+    total_pot: float
+    house_cut: float
     is_tie: bool
+    tied_player_ids: List[int]
+    player_count: int
     fish_count: int
     plant_count: int
     won_by_fold: bool = False
     total_rounds: int = 4
     players_folded: List[bool] = field(default_factory=list)
     betting_history: List[Tuple[int, "BettingAction", float]] = field(default_factory=list)
-    house_cut: float = 0.0
