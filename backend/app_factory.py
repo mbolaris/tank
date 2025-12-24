@@ -214,8 +214,8 @@ def create_app(
         ctx = app.state.context
         
         try:
-            # Import broadcast functions from main (they need the app reference)
-            from backend.main import start_broadcast_for_tank, stop_broadcast_for_tank
+            # Import broadcast functions from broadcast module
+            from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
             
             # Create and initialize startup manager
             ctx.startup_manager = StartupManager(
@@ -285,7 +285,7 @@ def create_app(
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
     from backend.routers import discovery, servers, tanks, transfers
-    from backend.main import start_broadcast_for_tank, stop_broadcast_for_tank
+    from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
     
     # Setup discovery router
     discovery_router = discovery.setup_router(ctx.discovery_service)
