@@ -305,7 +305,7 @@ def test_apply_action_raise_downgrades_to_call_when_under_minimum():
         contexts=contexts,
     )
 
-    assert result is False
+    assert result is True
     assert state.betting_history[-1] == (1, BettingAction.CALL, 5.0)
     assert state.player1_current_bet == 15.0
     assert contexts[1].remaining_energy == 0.0

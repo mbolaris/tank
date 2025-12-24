@@ -5,6 +5,7 @@ This module contains the PokerGameState class which tracks the complete
 state of a multi-round Texas Hold'em poker game.
 """
 
+import random
 from typing import List, Optional, Tuple
 
 from core.poker.betting.actions import BettingRound
@@ -36,7 +37,13 @@ class PokerGameState:
     min_raise: float  # Minimum raise amount (Texas Hold'em rule)
     last_raise_amount: float  # Size of the last raise (to calculate next min raise)
 
-    def __init__(self, small_blind: float = 2.5, big_blind: float = 5.0, button_position: int = 1):
+    def __init__(
+        self,
+        small_blind: float = 2.5,
+        big_blind: float = 5.0,
+        button_position: int = 1,
+        rng: Optional[random.Random] = None,
+    ):
 
         self.current_round = BettingRound.PRE_FLOP
         self.pot = 0.0
@@ -55,7 +62,7 @@ class PokerGameState:
         self.button_position = button_position
         self.small_blind = small_blind
         self.big_blind = big_blind
-        self.deck = Deck()
+        self.deck = Deck(rng=rng)
         # Min raise starts at big blind and updates with each raise
         self.min_raise = big_blind
         self.last_raise_amount = big_blind  # BB counts as the first "raise" pre-flop
