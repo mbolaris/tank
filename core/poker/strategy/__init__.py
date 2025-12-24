@@ -18,7 +18,8 @@ from core.poker.strategy.implementations import (
     crossover_poker_strategies,
     get_random_poker_strategy,
 )
-from core.poker.strategy.composable_poker import (
+# Re-export from new location but maintain backward compatibility
+from core.poker.strategy.composable import (
     ComposablePokerStrategy,
     HandSelection,
     BettingStyle,
@@ -52,4 +53,3 @@ __all__ = [
     "PositionAwareness",
     "ShowdownTendency",
 ]
-

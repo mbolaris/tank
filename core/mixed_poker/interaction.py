@@ -822,7 +822,7 @@ class MixedPokerInteraction:
             tied_players: Indices of tied players (if tie)
         """
         try:
-            from core.poker.strategy.composable_poker import ComposablePokerStrategy
+            from core.poker.strategy.composable import ComposablePokerStrategy
         except ImportError:
             return  # CFR not available
 

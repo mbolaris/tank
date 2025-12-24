@@ -943,7 +943,7 @@ def crossover_poker_strategies(
         New offspring poker strategy
     """
     # Handle ComposablePokerStrategy crossover
-    from core.poker.strategy.composable_poker import ComposablePokerStrategy
+    from core.poker.strategy.composable import ComposablePokerStrategy
 
     if isinstance(parent1, ComposablePokerStrategy) and isinstance(parent2, ComposablePokerStrategy):
         cfg = POKER_EVOLUTION_CONFIG

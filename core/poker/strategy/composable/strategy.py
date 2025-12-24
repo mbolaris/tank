@@ -1,146 +1,35 @@
-"""Composable poker strategy system.
+"""ComposablePokerStrategy class.
 
-This module provides a composable approach to poker strategies where the genome
-encodes selections from multiple sub-behavior categories plus continuous parameters.
-
-Instead of 10 monolithic strategies (TAG, LAG, etc.), behaviors are composed from:
-- HandSelection: How tight/loose to play (4 options)
-- BettingStyle: How to size bets (4 options)
-- BluffingApproach: When and how to bluff (4 options)
-- PositionAwareness: How position affects play (3 options)
-- ShowdownTendency: How to handle contested pots (3 options)
-
-This gives 4 × 4 × 4 × 3 × 3 = 576 strategy combinations, each with tunable
-continuous parameters - enabling much richer evolutionary exploration.
-
-The design mirrors ComposableBehavior for fish movement, using:
-- Mendelian inheritance for discrete sub-behavior choices
-- Blended inheritance for continuous parameters
+This module contains the ComposablePokerStrategy class which uses
+definitions from definitions.py and opponent models from opponent.py.
 """
 
 import random
 from dataclasses import dataclass, field
-from enum import IntEnum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Set
 
 from core.poker.betting.actions import BettingAction
-
-
-# =============================================================================
-# Sub-behavior Enums - Each category has discrete options
-# =============================================================================
-
-
-class HandSelection(IntEnum):
-    """How tight/loose to play pre-flop."""
-
-    ULTRA_TIGHT = 0   # Only premium hands (AA, KK, QQ, AK) - ~5% of hands
-    TIGHT = 1         # Strong hands - ~15% of hands
-    BALANCED = 2      # Standard range - ~25% of hands
-    LOOSE = 3         # Wide range - ~50% of hands
-
-
-class BettingStyle(IntEnum):
-    """How to size bets and raises."""
-
-    SMALL_BALL = 0     # Small bets, pot control, minimize risk
-    VALUE_HEAVY = 1    # Big bets with strong hands, extract value
-    POLARIZED = 2      # Either big or check, rarely medium (GTO-like)
-    POT_GEOMETRIC = 3  # Mathematical pot-ratio sizing for SPR
-
-
-class BluffingApproach(IntEnum):
-    """When and how to bluff."""
-
-    NEVER_BLUFF = 0      # Only bet with made hands (exploitable but safe)
-    OCCASIONAL = 1       # Low frequency, calculated bluffs
-    BALANCED = 2         # GTO-inspired bluff-to-value ratio
-    AGGRESSIVE = 3       # Frequent bluffs, apply maximum pressure
-
-
-class PositionAwareness(IntEnum):
-    """How much position affects strategic decisions."""
-
-    IGNORE = 0           # Same play regardless of position
-    SLIGHT_ADJUSTMENT = 1 # Minor adjustments (+5-10% range IP)
-    HEAVY_EXPLOIT = 2    # Major strategy shift by position (+20%+ range IP)
-
-
-class ShowdownTendency(IntEnum):
-    """How to handle contested pots at showdown."""
-
-    FOLD_EASILY = 0      # Give up with medium hands, avoid close spots
-    CALL_STATION = 1     # Call down liberally, catch bluffs
-    AGGRESSIVE_DENY = 2  # Raise or fold, rarely call (polarized response)
-
-
-# Category counts for inheritance bounds
-SUB_BEHAVIOR_COUNTS = {
-    "hand_selection": len(HandSelection),
-    "betting_style": len(BettingStyle),
-    "bluffing_approach": len(BluffingApproach),
-    "position_awareness": len(PositionAwareness),
-    "showdown_tendency": len(ShowdownTendency),
-}
-
-
-# =============================================================================
-# Sub-behavior Parameter Bounds
-# =============================================================================
-
-POKER_SUB_BEHAVIOR_PARAMS = {
-    # Hand selection thresholds
-    "premium_threshold": (0.75, 0.95),      # Minimum strength for premium play
-    "playable_threshold": (0.20, 0.55),     # Minimum strength to enter pot
-    "position_range_expand": (0.05, 0.20),  # How much position widens range
-
-    # Betting parameters
-    "value_bet_sizing": (0.4, 1.2),         # Pot fraction for value bets
-    "bluff_sizing": (0.3, 0.9),             # Pot fraction for bluffs
-    "continuation_bet_freq": (0.4, 0.85),   # C-bet frequency
-
-    # Bluffing parameters
-    "bluff_frequency": (0.05, 0.45),        # Base bluff rate
-    "semibluff_threshold": (0.15, 0.40),    # Hand strength for semibluffs
-
-    # Position parameters
-    "ip_aggression_boost": (0.05, 0.30),    # Extra aggression in position
-    "oop_tightening": (0.05, 0.25),         # How much tighter OOP
-
-    # Pot odds and risk
-    "pot_odds_sensitivity": (0.8, 1.6),     # How strictly to follow pot odds
-    "risk_tolerance": (0.15, 0.55),         # Energy fraction willing to risk
-    "desperation_threshold": (0.12, 0.35),  # Energy ratio triggering desperate play
-
-    # Opponent modeling weights
-    "opponent_model_weight": (0.0, 0.5),    # How much to adjust based on opponent history
-}
+from core.poker.strategy.composable.definitions import (
+    HandSelection,
+    BettingStyle,
+    BluffingApproach,
+    PositionAwareness,
+    ShowdownTendency,
+    SUB_BEHAVIOR_COUNTS,
+    POKER_SUB_BEHAVIOR_PARAMS,
+    CFR_ACTIONS,
+    CFR_INHERITANCE_DECAY,
+    CFR_MAX_INFO_SETS,
+    CFR_MIN_VISITS_FOR_INHERITANCE,
+    CFR_HAND_STRENGTH_BUCKETS,
+    CFR_POT_RATIO_BUCKETS,
+)
+from core.poker.strategy.composable.opponent import SimpleOpponentModel
 
 
 def _random_params(rng: random.Random) -> Dict[str, float]:
     """Generate random parameters within bounds."""
     return {key: rng.uniform(low, high) for key, (low, high) in POKER_SUB_BEHAVIOR_PARAMS.items()}
-
-
-# =============================================================================
-# CFR Learning Constants
-# =============================================================================
-
-# Action space for CFR learning (4 actions as approved)
-CFR_ACTIONS = ("fold", "call", "raise_small", "raise_big")
-
-# Inheritance decay for Lamarckian learning (80% as approved)
-CFR_INHERITANCE_DECAY = 0.80
-
-# Maximum number of info sets to track (memory cap)
-CFR_MAX_INFO_SETS = 100
-
-# Minimum visits before an info set is inheritable
-CFR_MIN_VISITS_FOR_INHERITANCE = 3
-
-# Info set discretization buckets
-CFR_HAND_STRENGTH_BUCKETS = 5  # 0-4: trash, weak, medium, strong, monster
-CFR_POT_RATIO_BUCKETS = 5      # 0-4: tiny, small, medium, large, huge
 
 
 def _blend_regret_tables(
@@ -152,27 +41,11 @@ def _blend_regret_tables(
     visit_count1: Dict[str, int],
     visit_count2: Dict[str, int],
 ) -> Dict[str, Dict[str, float]]:
-    """Blend two regret/strategy_sum tables with weighting and decay.
-
-    This implements Lamarckian inheritance for learned poker knowledge.
-    Only info sets with sufficient visits are inherited.
-
-    Args:
-        table1: First parent's regret table
-        table2: Second parent's regret table
-        weight1: Weight for parent1 (0.0-1.0)
-        decay: Decay factor (0.8 = offspring gets 80% of parent knowledge)
-        min_visits: Minimum visits for an info set to be inherited
-        visit_count1: Parent 1's visit counts
-        visit_count2: Parent 2's visit counts
-
-    Returns:
-        Blended and decayed regret table
-    """
+    """Blend two regret/strategy_sum tables with weighting and decay."""
     blended: Dict[str, Dict[str, float]] = {}
 
     # Collect all info sets from both parents that meet minimum visits
-    all_info_sets = set()
+    all_info_sets: Set[str] = set()
     for k in table1:
         if visit_count1.get(k, 0) >= min_visits:
             all_info_sets.add(k)
@@ -194,56 +67,6 @@ def _blend_regret_tables(
             blended[info_set][action] = blended_val
 
     return blended
-
-
-# =============================================================================
-# Opponent Model - Simple tracking of opponent tendencies
-# =============================================================================
-
-
-@dataclass
-class SimpleOpponentModel:
-    """Lightweight opponent tracking for composable strategy."""
-
-    opponent_id: str = ""
-    games_played: int = 0
-    times_folded: int = 0
-    times_raised: int = 0
-    times_called: int = 0
-    total_aggression: float = 0.0
-
-    def update(self, folded: bool, raised: bool, called: bool, aggression: float) -> None:
-        """Update model based on observed action."""
-        self.games_played += 1
-        if folded:
-            self.times_folded += 1
-        if raised:
-            self.times_raised += 1
-        if called:
-            self.times_called += 1
-        self.total_aggression += aggression
-
-    @property
-    def fold_rate(self) -> float:
-        """Estimated fold frequency."""
-        return self.times_folded / max(1, self.games_played)
-
-    @property
-    def aggression_factor(self) -> float:
-        """Average aggression (raise frequency relative to call)."""
-        if self.times_called == 0:
-            return 1.0
-        return self.times_raised / max(1, self.times_called)
-
-    @property
-    def avg_aggression(self) -> float:
-        """Average reported aggression level."""
-        return self.total_aggression / max(1, self.games_played)
-
-
-# =============================================================================
-# ComposablePokerStrategy Class
-# =============================================================================
 
 
 @dataclass
@@ -864,20 +687,7 @@ class ComposablePokerStrategy:
         sub_behavior_switch_rate: float = 0.03,
         rng: Optional[random.Random] = None,
     ) -> "ComposablePokerStrategy":
-        """Create offspring by crossing over two parent strategies.
-
-        Sub-behaviors are inherited Mendelian-style (pick one parent).
-        Parameters are blended with weighting.
-
-        Args:
-            parent1: First parent strategy (often the winner in poker)
-            parent2: Second parent strategy
-            weight1: Weight for parent1 (0.0-1.0), parent2 gets (1-weight1)
-            mutation_rate: Probability of each parameter mutating
-            mutation_strength: Magnitude of mutations
-            sub_behavior_switch_rate: Extra chance of random sub-behavior switch
-            rng: Random number generator
-        """
+        """Create offspring by crossing over two parent strategies."""
         rng = rng or random.Random()
 
         # Mendelian inheritance for discrete sub-behaviors

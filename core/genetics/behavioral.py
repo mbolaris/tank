@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from core.algorithms.base import BehaviorAlgorithm
     from core.algorithms.composable import ComposableBehavior
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
-    from core.poker.strategy.composable_poker import ComposablePokerStrategy
+    from core.poker.strategy.composable import ComposablePokerStrategy
     from core.genetics.physical import PhysicalTraits
 
 # Type alias for poker strategy (can be monolithic or composable)
@@ -219,7 +219,7 @@ class BehavioralTraits:
 
         if use_algorithm:
             from core.algorithms.composable import ComposableBehavior
-            from core.poker.strategy.composable_poker import ComposablePokerStrategy
+            from core.poker.strategy.composable import ComposablePokerStrategy
 
             behavior = ComposableBehavior.create_random(rng=rng)
             # Use ComposablePokerStrategy for new fish (576 strategy combinations)
@@ -467,7 +467,7 @@ def _inherit_poker_strategy(
         )
     else:
         # Default to composable poker strategy for new offspring
-        from core.poker.strategy.composable_poker import ComposablePokerStrategy
+        from core.poker.strategy.composable import ComposablePokerStrategy
 
         return ComposablePokerStrategy.create_random(rng=rng)
 

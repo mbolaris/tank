@@ -375,7 +375,7 @@ def _get_poker_strategy_distributions(fish_list: List["Fish"]) -> List[Dict[str,
         return []
 
     try:
-        from core.poker.strategy.composable_poker import ComposablePokerStrategy
+        from core.poker.strategy.composable import ComposablePokerStrategy
     except ImportError:
         return []
         
