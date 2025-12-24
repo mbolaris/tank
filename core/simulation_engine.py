@@ -8,9 +8,11 @@ import logging
 import os
 import random
 import time
+import uuid
 from typing import Any, Dict, List, Optional
 
 from core import entities, environment, movement_strategy
+from core.agents_wrapper import AgentsWrapper
 from core.algorithms.registry import get_algorithm_index
 from core.cache_manager import CacheManager
 from core.collision_system import CollisionSystem
@@ -57,67 +59,6 @@ SIMULATION_PHASES = {
     UpdatePhase.FRAME_END: "Update stats, rebuild caches",
 }
 
-
-class AgentsWrapper:
-    """Wrapper to provide a group-like API for managing entities.
-
-    The wrapper can be initialized with either a raw list of entities
-    (for simple, isolated tests) or a SimulationEngine instance to
-    ensure adds/removals stay in sync with spatial grids and caches.
-    """
-
-    def __init__(self, entities_or_engine: Any):
-        # Support both legacy list usage and engine-aware management
-        if hasattr(entities_or_engine, "add_entity") and hasattr(
-            entities_or_engine, "entities_list"
-        ):
-            self._engine = entities_or_engine
-            self._entities = entities_or_engine.entities_list
-        else:
-            self._engine = None
-            self._entities = entities_or_engine
-
-    def add(self, *entities):
-        """Add entities to the list or engine-aware collection."""
-        for entity in entities:
-            if entity in self._entities:
-                if hasattr(entity, "add_internal"):
-                    entity.add_internal(self)
-                continue
-
-            if self._engine is not None:
-                self._engine.add_entity(entity)
-            else:
-                self._entities.append(entity)
-            if hasattr(entity, "add_internal"):
-                entity.add_internal(self)
-
-    def remove(self, *entities):
-        """Remove entities from the list or engine-aware collection."""
-        for entity in entities:
-            if entity not in self._entities:
-                continue
-            if self._engine is not None:
-                self._engine.remove_entity(entity)
-            else:
-                self._entities.remove(entity)
-
-    def empty(self):
-        """Remove all entities from the collection."""
-        for entity in list(self._entities):
-            self.remove(entity)
-
-    def __contains__(self, entity):
-        """Check if entity is in the collection."""
-        return entity in self._entities
-
-    def __iter__(self):
-        """Iterate over entities."""
-        return iter(self._entities)
-
-    def __len__(self):
-        """Get number of entities."""
-        return len(self._entities)
 
 
 class SimulationEngine(BaseSimulator):
@@ -185,6 +126,11 @@ class SimulationEngine(BaseSimulator):
 
         # Event bus for decoupled communication between components
         self.event_bus = EventBus()
+
+        # Observability: Unique identifier for this simulation run
+        # Enables tracing, debugging, and correlating events across a run
+        self.run_id: str = str(uuid.uuid4())
+        logger.info(f"SimulationEngine initialized with run_id={self.run_id}")
 
         # Systems - all extend BaseSystem for consistent interface
         self.collision_system = CollisionSystem(self)
