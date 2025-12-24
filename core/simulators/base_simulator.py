@@ -316,6 +316,49 @@ class BaseSimulator(ABC):
         environment = self.environment
         check_collision = self.check_collision
 
+        entity_order = {entity: idx for idx, entity in enumerate(all_entities)}
+        grid = environment.spatial_grid if environment is not None else None
+        agent_cells = grid.agent_cells if grid is not None else None
+
+        def collision_sort_key(entity):
+            cell = agent_cells.get(entity) if agent_cells is not None else None
+            if cell is None:
+                cell = (0, 0)
+
+            if isinstance(entity, Fish):
+                type_rank = 0
+            elif isinstance(entity, Food):
+                type_rank = 1
+            elif isinstance(entity, Crab):
+                type_rank = 2
+            else:
+                type_rank = 3
+
+            entity_id = getattr(entity, "fish_id", None)
+            if entity_id is None:
+                entity_id = getattr(entity, "plant_id", None)
+            if entity_id is None:
+                pos = getattr(entity, "pos", None)
+                if pos is not None:
+                    entity_id = (
+                        1,
+                        float(pos.x),
+                        float(pos.y),
+                        float(getattr(entity, "width", 0.0)),
+                        float(getattr(entity, "height", 0.0)),
+                        float(getattr(entity, "energy", 0.0)),
+                        entity_order.get(entity, 0),
+                    )
+                else:
+                    entity_id = (2, entity_order.get(entity, 0))
+            else:
+                entity_id = (0, int(entity_id))
+
+            return (cell[0], cell[1], type_rank, entity_id)
+
+        def poker_neighbor_key(entity):
+            return getattr(entity, "fish_id", entity_order.get(entity, 0))
+
         # Pre-compute squared distance constants for inline proximity check
         poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE
         poker_max_sq = FISH_POKER_MAX_DISTANCE * FISH_POKER_MAX_DISTANCE
@@ -342,6 +385,8 @@ class BaseSimulator(ABC):
             else:
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in all_entities if e is not fish]
+
+            nearby_entities = sorted(nearby_entities, key=collision_sort_key)
 
             # Cache fish position for inner loop
             fish_cx = fish.pos.x + fish.width * 0.5
@@ -416,7 +461,7 @@ class BaseSimulator(ABC):
                 # Add all connected fish to the stack
                 contacts = fish_poker_contacts.get(current)
                 if contacts:
-                    for neighbor in contacts:
+                    for neighbor in sorted(contacts, key=poker_neighbor_key):
                         if neighbor not in visited:
                             stack.append(neighbor)
 
@@ -456,7 +501,10 @@ class BaseSimulator(ABC):
                             ready_visited.add(current)
                             ready_group.append(current)
 
-                            for neighbor in fish_poker_contacts.get(current, ()):  # type: ignore[arg-type]
+                            for neighbor in sorted(
+                                fish_poker_contacts.get(current, ()),  # type: ignore[arg-type]
+                                key=poker_neighbor_key,
+                            ):
                                 if neighbor in ready_set and neighbor not in ready_visited:
                                     stack.append(neighbor)
 
@@ -475,7 +523,8 @@ class BaseSimulator(ABC):
                         if len(ready_group) > POKER_MAX_PLAYERS:
                             ready_group = ready_group[:POKER_MAX_PLAYERS]
 
-                        poker = PokerInteraction(ready_group)
+                        rng = getattr(self, "rng", None)
+                        poker = PokerInteraction(ready_group, rng=rng)
                         if poker.play_poker():
                             self.handle_poker_result(poker)
 
@@ -512,6 +561,37 @@ class BaseSimulator(ABC):
         environment = self.environment
         check_collision = self.check_collision
 
+        entity_order = {entity: idx for idx, entity in enumerate(all_entities)}
+        grid = environment.spatial_grid if environment is not None else None
+        agent_cells = grid.agent_cells if grid is not None else None
+
+        def collision_sort_key(entity):
+            cell = agent_cells.get(entity) if agent_cells is not None else None
+            if cell is None:
+                cell = (0, 0)
+
+            entity_id = getattr(entity, "fish_id", None)
+            if entity_id is None:
+                entity_id = getattr(entity, "plant_id", None)
+            if entity_id is None:
+                pos = getattr(entity, "pos", None)
+                if pos is not None:
+                    entity_id = (
+                        1,
+                        float(pos.x),
+                        float(pos.y),
+                        float(getattr(entity, "width", 0.0)),
+                        float(getattr(entity, "height", 0.0)),
+                        float(getattr(entity, "energy", 0.0)),
+                        entity_order.get(entity, 0),
+                    )
+                else:
+                    entity_id = (2, entity_order.get(entity, 0))
+            else:
+                entity_id = (0, int(entity_id))
+
+            return (cell[0], cell[1], type(entity).__name__, entity_id)
+
         for food in food_list:
             # Check if food is still in simulation (may have been eaten)
             if food not in all_entities_set:
@@ -523,6 +603,8 @@ class BaseSimulator(ABC):
             else:
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in all_entities if e is not food]
+
+            nearby_entities = sorted(nearby_entities, key=collision_sort_key)
 
             for other in nearby_entities:
                 if other is food:
