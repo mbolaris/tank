@@ -9,7 +9,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set
 
 from fastapi import WebSocket
@@ -31,7 +31,7 @@ class TankInfo:
     tank_id: str
     name: str
     description: str = ""
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     owner: Optional[str] = None
     server_id: str = "local-server"  # Which server this tank is running on
     seed: Optional[int] = None  # Random seed for deterministic behavior
@@ -305,7 +305,7 @@ class SimulationManager:
                 # 1. Capture metadata
                 captured_data["version"] = "2.0"
                 captured_data["tank_id"] = self.tank_id
-                captured_data["saved_at"] = datetime.now(UTC).isoformat()
+                captured_data["saved_at"] = datetime.now(timezone.utc).isoformat()
                 captured_data["frame"] = world.frame_count
                 captured_data["metadata"] = {
                     "name": self.tank_info.name,

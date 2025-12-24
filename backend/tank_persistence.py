@@ -15,7 +15,7 @@ Compatibility:
 import json
 import logging
 import shutil
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -60,10 +60,10 @@ def save_snapshot_data(tank_id: str, snapshot: Dict[str, Any]) -> Optional[str]:
             try:
                 timestamp = datetime.fromisoformat(saved_at).strftime("%Y%m%d_%H%M%S")
             except ValueError:
-                timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         else:
-            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-            snapshot["saved_at"] = datetime.now(UTC).isoformat()
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            snapshot["saved_at"] = datetime.now(timezone.utc).isoformat()
 
         tank_dir = ensure_tank_directory(tank_id)
         snapshot_file = tank_dir / f"snapshot_{timestamp}.json"
