@@ -216,7 +216,8 @@ class FoodSpawningSystem(BaseSystem):
             food = entities.LiveFood(environment, x, y)
         else:
             # FoodPool.acquire requires: environment, x, y
-            food = food_pool.acquire(environment, x, y)
+            # Auto-spawned food should fall; exclude stationary types like nectar.
+            food = food_pool.acquire(environment, x, y, allow_stationary_types=False)
 
         # Add to simulation
         self._engine.add_entity(food)
