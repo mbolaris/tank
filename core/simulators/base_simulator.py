@@ -132,42 +132,6 @@ class BaseSimulator(ABC):
         """
         pass
 
-    def check_poker_proximity(
-        self, entity1: "Agent", entity2: "Agent",
-        min_distance: float = FISH_POKER_MIN_DISTANCE,
-        max_distance: float = FISH_POKER_MAX_DISTANCE
-    ) -> bool:
-        """Check if two entities are in poker proximity (close but not touching).
-
-        Poker triggers when entities are near each other but not overlapping.
-        Works for any combination of fish and plants.
-
-        Args:
-            entity1: First entity
-            entity2: Second entity
-            min_distance: Minimum center-to-center distance
-            max_distance: Maximum center-to-center distance
-
-        Returns:
-            True if entities are in the poker proximity zone
-        """
-        # Calculate centers
-        e1_cx = entity1.pos.x + entity1.width / 2
-        e1_cy = entity1.pos.y + entity1.height / 2
-        e2_cx = entity2.pos.x + entity2.width / 2
-        e2_cy = entity2.pos.y + entity2.height / 2
-
-        dx = e1_cx - e2_cx
-        dy = e1_cy - e2_cy
-        distance_sq = dx * dx + dy * dy
-
-        min_dist_sq = min_distance * min_distance
-        max_dist_sq = max_distance * max_distance
-
-        # Must be within max distance but farther than min distance (not touching)
-        return min_dist_sq < distance_sq <= max_dist_sq
-
-
     def record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
         """Record a fish death in the ecosystem and mark for delayed removal.
 
@@ -240,11 +204,6 @@ class BaseSimulator(ABC):
 
         for fish in to_remove:
             self.remove_entity(fish)
-
-    def update_spatial_grid(self) -> None:
-        """Update the spatial grid with current entity positions."""
-        if self.environment is not None:
-            self.environment.rebuild_spatial_grid()
 
     def handle_collisions(self) -> None:
         """Handle collisions between entities.
