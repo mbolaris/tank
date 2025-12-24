@@ -4,32 +4,36 @@ This document tracks remaining architectural improvements to be made to the simu
 
 ## Priority 1: Inline BaseSimulator into SimulationEngine
 
-**Status**: Documented (see design note in base_simulator.py)  
-**Effort**: 2-3 hours for full inline  
+**Status**: In Progress (dead code removal complete)  
+**Effort**: 1-2 hours remaining for full inline  
 **Impact**: High (removes unnecessary abstraction layer)
 
-### Problem
-`BaseSimulator` (932 lines) is an ABC with only ONE concrete implementation (`SimulationEngine`). The docstring says it's "shared between graphical and headless simulators" but the graphical simulator no longer exists.
+### Progress Made
+**Dead code removed: 309 lines (33% reduction)**
 
-### Current Issues
-- Unnecessary inheritance adds complexity
-- Logic split between two files
-- Abstract methods that only have one implementation
-- Hard to see the full picture of the engine
+| Method Removed | Lines | Reason |
+|----------------|-------|--------|
+| `check_poker_proximity()` | 35 | Duplicate in poker_interaction.py |
+| `update_spatial_grid()` | 5 | Replaced by update_agent_position |
+| `handle_fish_fish_collision()` | 28 | Poker via PokerSystem |
+| `handle_fish_plant_collision()` | 42 | Uses handle_mixed_poker_games |
+| `handle_reproduction()` | 49 | Overridden by SimulationEngine |
+| Unused imports | 15+ | Various |
 
-### Proposed Solution
-1. Move state (`frame_count`, `paused`) directly to `SimulationEngine`
-2. Move collision handling to a `CollisionHandler` module or `CollisionSystem`  
-3. Move post-poker reproduction logic to `ReproductionSystem`
-4. Delete `BaseSimulator` and `core/simulators/` folder
+**BaseSimulator**: 932 → 623 lines
 
-### Change Steps
-1. Create `core/simulation/collision_handler.py` with collision logic from `BaseSimulator`
-2. Move `_attempt_post_poker_reproduction` to `ReproductionSystem` or `PokerSystem`
+### What Remains
+- ~200 lines collision iteration (`handle_fish_collisions`, `handle_food_collisions`)
+- ~95 lines post-poker reproduction (`_create_post_poker_offspring`, `_attempt_post_poker_reproduction`)
+- ~50 lines fish death handling (`record_fish_death`, `cleanup_dying_fish`)
+- ~20 lines screen bounds (`keep_entity_on_screen`)
+
+### Next Steps
+1. Move collision iteration into `CollisionSystem._do_update()`
+2. Move post-poker reproduction into `PokerSystem`
 3. Inline remaining methods into `SimulationEngine`
 4. Remove inheritance from `SimulationEngine`
 5. Delete `core/simulators/` folder
-6. Update all imports
 
 ---
 
