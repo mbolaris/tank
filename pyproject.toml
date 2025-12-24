@@ -66,6 +66,10 @@ addopts = [
     "--strict-markers",
     "--tb=short",
 ]
+markers = [
+    "slow: long-running tests (excluded by default in quick runs with -m 'not slow')",
+    "integration: tests requiring external resources or multiple components",
+]
 
 [tool.black]
 line-length = 100

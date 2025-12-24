@@ -11,6 +11,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
 
+import pytest
+
 from core import entities
 from core.simulation_engine import SimulationEngine
 
@@ -48,6 +50,7 @@ def test_headless_mode_architecture():
     print("=" * 80)
 
 
+@pytest.mark.slow
 def test_statistical_equivalence():
     """Verify that multiple runs produce statistically similar results.
 

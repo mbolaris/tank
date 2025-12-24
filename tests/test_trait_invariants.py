@@ -102,6 +102,7 @@ class TestTraitBoundsInvariants:
             )
 
 
+@pytest.mark.slow
 class TestMetaMutationInvariants:
     """Tests that verify meta-mutation keeps parameters within valid ranges."""
 

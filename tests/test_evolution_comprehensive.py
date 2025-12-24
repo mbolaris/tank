@@ -488,6 +488,7 @@ class TestPlantGenetics:
             assert 0.6 <= child.nectar_threshold_ratio <= 0.9
 
 
+@pytest.mark.slow
 class TestStatisticalProperties:
     """Test statistical properties of evolution."""
 
