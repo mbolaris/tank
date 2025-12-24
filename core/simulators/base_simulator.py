@@ -30,7 +30,6 @@ from core import entities
 from core.config.ecosystem import (
     FISH_POKER_MAX_DISTANCE,
     FISH_POKER_MIN_DISTANCE,
-    MATING_QUERY_RADIUS,
 )
 from core.config.fish import (
     ENERGY_MAX_DEFAULT,
@@ -537,54 +536,6 @@ class BaseSimulator(ABC):
                         self.remove_entity(food)
                         all_entities_set.discard(food)
                         break
-
-    def handle_reproduction(self) -> None:
-        """Handle fish reproduction by finding mates.
-
-        Uses spatial queries to only check nearby fish for mating compatibility.
-
-        Performance optimizations:
-        - Cache method references
-        - Early termination on successful mating
-        """
-        from core.entities import Fish
-
-        all_entities = self.get_all_entities()
-
-        # Performance: Use type() check first
-        fish_list = [e for e in all_entities if type(e) is Fish or isinstance(e, Fish)]
-
-        if len(fish_list) < 2:
-            return  # Need at least 2 fish for reproduction
-
-        # Performance: Cache environment reference
-        environment = self.environment
-
-        # Try to mate fish that are ready
-        for fish in fish_list:
-            if not fish.can_reproduce():
-                continue
-
-            # Use spatial grid to find nearby fish (mating typically happens at close range)
-            if environment is not None:
-                if hasattr(environment, "nearby_evolving_agents"):
-                    nearby_fish = environment.nearby_evolving_agents(fish, radius=MATING_QUERY_RADIUS)
-                else:
-                    nearby_fish = environment.nearby_agents_by_type(
-                        fish, radius=MATING_QUERY_RADIUS, agent_class=Fish
-                    )
-            else:
-                # Fallback to checking all fish if no environment
-                nearby_fish = [f for f in fish_list if f is not fish]
-
-            # Look for nearby compatible mates
-            for potential_mate in nearby_fish:
-                if potential_mate is fish:
-                    continue
-
-                # Attempt mating
-                if fish.try_mate(potential_mate):
-                    break  # Found a mate, stop looking
 
     def keep_entity_on_screen(
         self, entity: "Agent", screen_width: int = SCREEN_WIDTH, screen_height: int = SCREEN_HEIGHT
