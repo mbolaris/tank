@@ -1,27 +1,32 @@
 """Base simulator class containing shared simulation logic.
 
-This module provides a base class for both graphical and headless simulators,
-eliminating code duplication and ensuring consistent simulation behavior.
+DESIGN NOTE (2024-12):
+----------------------
+This class was originally designed to share logic between graphical and
+headless simulators. Currently, only SimulationEngine inherits from it.
+
+Key responsibilities housed here:
+- Collision iteration (handle_fish_collisions, handle_food_collisions)
+- Post-poker reproduction (_attempt_post_poker_reproduction)
+- Fish death recording and cleanup
+- Basic screen bounds enforcement
+
+Future Refactoring (see docs/REFACTORING_ROADMAP.md):
+- Move collision iteration into CollisionSystem._do_update()
+- Move post-poker reproduction into PokerSystem
+- Inline remaining helpers into SimulationEngine
+- Remove this base class once above is done
+
+For now, this class remains to avoid a large, risky refactoring. The code
+works correctly; the issue is architectural (unnecessary abstraction layer).
 """
 
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from core import entities
-from core.algorithms.registry import get_algorithm_index
-from core.config.food import (
-    AUTO_FOOD_ENABLED,
-    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
-    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
-    AUTO_FOOD_HIGH_POP_THRESHOLD_1,
-    AUTO_FOOD_HIGH_POP_THRESHOLD_2,
-    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
-    AUTO_FOOD_SPAWN_RATE,
-    AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
-    LIVE_FOOD_SPAWN_CHANCE,
-)
 from core.config.ecosystem import (
     FISH_POKER_MAX_DISTANCE,
     FISH_POKER_MIN_DISTANCE,
@@ -52,17 +57,11 @@ from core.config.server import (
 from core.poker_interaction import (
     PokerInteraction,
     MAX_PLAYERS as POKER_MAX_PLAYERS,
-    MIN_ENERGY_TO_PLAY as POKER_MIN_ENERGY,
-    check_poker_proximity,
     filter_mutually_proximate,
     get_ready_players,
     is_post_poker_reproduction_eligible,
-    should_offer_post_poker_reproduction,
 )
-from core.mixed_poker import (
-    MixedPokerInteraction,
-    should_trigger_plant_poker_asexual_reproduction,
-)
+from core.mixed_poker import MixedPokerInteraction
 from core.genetics import Genome, ReproductionParams
 
 logger = logging.getLogger(__name__)
