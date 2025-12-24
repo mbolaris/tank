@@ -382,7 +382,9 @@ def _get_poker_strategy_distributions(fish_list: List["Fish"]) -> List[Dict[str,
     def meta_for_traits(traits: List[Any]) -> Dict[str, float]:
         return compute_meta_stats(traits).to_dict()
 
-    vals = []
+    betting_vals = []
+    hand_vals = []
+    bluff_vals = []
     traits = []
     
     for f in fish_list:
@@ -392,28 +394,41 @@ def _get_poker_strategy_distributions(fish_list: List["Fish"]) -> List[Dict[str,
         strategy = f.genome.behavioral.poker_strategy.value
         trait = f.genome.behavioral.poker_strategy
         
-        if isinstance(strategy, ComposablePokerStrategy) and strategy.style:
-            vals.append(strategy.style.value)
+        if isinstance(strategy, ComposablePokerStrategy):
+            betting_vals.append(strategy.betting_style.value)
+            hand_vals.append(strategy.hand_selection.value)
+            bluff_vals.append(strategy.bluffing_approach.value)
             traits.append(trait)
             
-    if not vals:
+    if not traits:
         return []
         
-    # Style (Conservative=0 to Aggressive=3)
-    min_val, max_val = 0, 3
-    bins, edges = create_histogram(vals, min_val, max_val, num_bins=4)
+    def build_dist(key: str, label: str, values: List[int]) -> Dict[str, Any]:
+        if not values:
+            return {}
+        min_val, max_val = 0, 3
+        bins, edges = create_histogram(values, min_val, max_val, num_bins=4)
+        return {
+            "key": key,
+            "label": label,
+            "category": "behavioral",
+            "discrete": True,
+            "allowed_min": min_val,
+            "allowed_max": max_val,
+            "min": min(values),
+            "max": max(values),
+            "median": statistics.median(values),
+            "bins": bins,
+            "bin_edges": edges,
+            "meta": meta_for_traits(traits),
+        }
     
-    return [{
-        "key": "poker_style",
-        "label": "Poker Style",
-        "category": "behavioral",
-        "discrete": True,
-        "allowed_min": min_val,
-        "allowed_max": max_val,
-        "min": min(vals),
-        "max": max(vals),
-        "median": statistics.median(vals),
-        "bins": bins,
-        "bin_edges": edges,
-        "meta": meta_for_traits(traits),
-    }]
+    dists = []
+    if hand_vals:
+        dists.append(build_dist("poker_hand_selection", "Poker Hand Selection", hand_vals))
+    if betting_vals:
+        dists.append(build_dist("poker_betting_style", "Poker Betting Style", betting_vals))
+    if bluff_vals:
+        dists.append(build_dist("poker_bluffing_approach", "Poker Bluffing Approach", bluff_vals))
+        
+    return dists
