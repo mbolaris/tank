@@ -22,6 +22,7 @@ from core.config.fish import (
 from core.config.display import FRAME_RATE
 from core.entities.base import Agent, LifeStage, EntityState
 from core.entity_ids import FishId
+from core.entities.visual_state import FishVisualState
 from core.math_utils import Vector2
 
 logger = logging.getLogger(__name__)
@@ -205,17 +206,9 @@ class Fish(Agent):
             self.vel.normalize() if self.vel.length_squared() > 0 else None
         )
 
-        # Visual effects for poker
-        self.poker_effect_state: Optional[Dict[str, Any]] = None
-        self.poker_effect_timer: int = 0
+        # Rendering-only state is stored separately to keep domain logic lean.
+        self.visual_state = FishVisualState()
         self.poker_cooldown: int = 0  # Cooldown between poker games
-
-        # Visual effects for births
-        self.birth_effect_timer: int = 0  # Frames remaining for birth visual effect (hearts + particles)
-        
-        # Visual effects for deaths (shows death cause before removal)
-        self.death_effect_state: Optional[Dict[str, Any]] = None  # {"cause": "starvation"|"old_age"|"predation"}
-        self.death_effect_timer: int = 0  # Frames remaining for death visual effect
     
     # --- SkillfulAgent Protocol Implementation ---
     # The following methods implement the SkillfulAgent Protocol,
@@ -361,13 +354,13 @@ class Fish(Agent):
             target_id: ID of the opponent/target entity (for drawing arrows)
             target_type: Type of the opponent/target entity ('fish', 'plant')
         """
-        self.poker_effect_state = {
+        self.visual_state.poker_effect_state = {
             "status": status,
             "amount": amount,
             "target_id": target_id,
             "target_type": target_type,
         }
-        self.poker_effect_timer = duration
+        self.visual_state.poker_effect_timer = duration
 
     def set_death_effect(self, cause: str, duration: int = 45) -> None:
         """Set a visual effect for death cause.
@@ -376,8 +369,8 @@ class Fish(Agent):
             cause: 'starvation', 'old_age', 'predation', 'migration', 'unknown'
             duration: How long to show the effect in frames (default 1.5s at 30fps)
         """
-        self.death_effect_state = {"cause": cause}
-        self.death_effect_timer = duration
+        self.visual_state.death_effect_state = {"cause": cause}
+        self.visual_state.death_effect_timer = duration
 
     # Energy properties (EnergyHolder protocol)
     @property
@@ -946,7 +939,7 @@ class Fish(Agent):
         )
 
         # Set visual birth effect timer (60 frames = 2 seconds at 30fps)
-        self.birth_effect_timer = 60
+        self.visual_state.birth_effect_timer = 60
 
         return baby
 
@@ -1016,8 +1009,8 @@ class Fish(Agent):
 
         # Update death visual effects (countdown)
         # We do this BEFORE the dead check so dying fish still countdown their removal timer
-        if self.death_effect_timer > 0:
-            self.death_effect_timer -= 1
+        if self.visual_state.death_effect_timer > 0:
+            self.visual_state.death_effect_timer -= 1
 
         # Handle death
         if self.is_dead():
@@ -1042,14 +1035,14 @@ class Fish(Agent):
         newborn = self.update_reproduction()
 
         # Update poker visual effects
-        if self.poker_effect_timer > 0:
-            self.poker_effect_timer -= 1
-            if self.poker_effect_timer <= 0:
-                self.poker_effect_state = None
+        if self.visual_state.poker_effect_timer > 0:
+            self.visual_state.poker_effect_timer -= 1
+            if self.visual_state.poker_effect_timer <= 0:
+                self.visual_state.poker_effect_state = None
 
         # Update birth visual effects
-        if self.birth_effect_timer > 0:
-            self.birth_effect_timer -= 1
+        if self.visual_state.birth_effect_timer > 0:
+            self.visual_state.birth_effect_timer -= 1
 
 
 

@@ -155,14 +155,14 @@ class EntitySnapshotBuilder:
                     age=entity._lifecycle_component.age,
                     species=species_label,
                     genome_data=genome_data,
-                    poker_effect_state=entity.poker_effect_state
-                    if hasattr(entity, "poker_effect_state")
+                    poker_effect_state=entity.visual_state.poker_effect_state
+                    if hasattr(entity, "visual_state")
                     else None,
-                    birth_effect_timer=entity.birth_effect_timer
-                    if hasattr(entity, "birth_effect_timer")
+                    birth_effect_timer=entity.visual_state.birth_effect_timer
+                    if hasattr(entity, "visual_state")
                     else 0,
-                    death_effect_state=entity.death_effect_state
-                    if hasattr(entity, "death_effect_state")
+                    death_effect_state=entity.visual_state.death_effect_state
+                    if hasattr(entity, "visual_state")
                     else None,
                     max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100.0,
                     **base_data,

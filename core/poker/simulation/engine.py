@@ -65,8 +65,8 @@ def simulate_multi_round_game(
     contexts = _build_player_contexts(
         player1_energy=player1_energy,
         player2_energy=player2_energy,
-        player1_aggression=player1_aggression or AGGRESSION_MEDIUM,
-        player2_aggression=player2_aggression or AGGRESSION_MEDIUM,
+        player1_aggression=_resolve_aggression(player1_aggression),
+        player2_aggression=_resolve_aggression(player2_aggression),
         player1_strategy=player1_strategy,
         player2_strategy=player2_strategy,
     )
@@ -98,6 +98,12 @@ def _build_player_contexts(
             strategy=player2_strategy,
         ),
     }
+
+
+def _resolve_aggression(value: Optional[float]) -> float:
+    if value is None:
+        return AGGRESSION_MEDIUM
+    return value
 
 
 def _create_game_state(
@@ -188,8 +194,6 @@ def _decide_player_action(
     hand_cache: _HandEvaluationCache,
     rng: random.Random,
 ):
-    hand = _evaluate_hand_for_player(current_player, game_state, hand_cache)
-
     current_bet = (
         game_state.player1_current_bet
         if current_player == 1
@@ -216,6 +220,7 @@ def _decide_player_action(
             hand_strength = evaluate_starting_hand_strength(hole_cards, player_on_button)
         else:
             # Post-flop: use evaluated hand rank
+            hand = _evaluate_hand_for_player(current_player, game_state, hand_cache)
             hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
         return player_strategy.decide_action(
             hand_strength=hand_strength,
@@ -226,6 +231,7 @@ def _decide_player_action(
             position_on_button=player_on_button,
         )
 
+    hand = _evaluate_hand_for_player(current_player, game_state, hand_cache)
     return decide_action(
         hand=hand,
         current_bet=current_bet,

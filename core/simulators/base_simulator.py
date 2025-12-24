@@ -180,7 +180,7 @@ class BaseSimulator(ABC):
             cause: Optional death cause override (defaults to fish.get_death_cause())
         """
         # Skip if already recorded as dying (prevent double-recording)
-        if fish.death_effect_state is not None:
+        if fish.visual_state.death_effect_state is not None:
             return
 
         death_cause = cause if cause is not None else fish.get_death_cause()
@@ -233,9 +233,9 @@ class BaseSimulator(ABC):
 
         to_remove = []
         for entity in self.get_all_entities():
-            if isinstance(entity, Fish) and entity.death_effect_state is not None:
+            if isinstance(entity, Fish) and entity.visual_state.death_effect_state is not None:
                 # If timer expired, mark for removal
-                if entity.death_effect_timer <= 0:
+                if entity.visual_state.death_effect_timer <= 0:
                     to_remove.append(entity)
 
         for fish in to_remove:
@@ -859,8 +859,8 @@ class BaseSimulator(ABC):
                 winner.ecosystem.record_reproduction(algorithm_id, is_asexual=False)
             winner.ecosystem.record_mating_attempt(True)
 
-        winner.birth_effect_timer = 60
-        mate.birth_effect_timer = 60
+        winner.visual_state.birth_effect_timer = 60
+        mate.visual_state.birth_effect_timer = 60
 
         source_parent = (
             winner

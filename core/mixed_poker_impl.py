@@ -376,14 +376,14 @@ class MixedPokerInteraction:
             if hasattr(player, "set_poker_effect"):
                 player.set_poker_effect(status, amount, target_id=target_id, target_type=target_type)
             else:
-                player.poker_effect_state = {
+                player.visual_state.poker_effect_state = {
                     "status": status,
                     "amount": amount,
                     "target_id": target_id,
                     "target_type": target_type,
                 }
-                if hasattr(player, "poker_effect_timer"):
-                    player.poker_effect_timer = 60
+                if hasattr(player, "visual_state"):
+                    player.visual_state.poker_effect_timer = 60
         elif isinstance(player, Plant):
             # Plants have similar structure
             player.poker_effect_state = {

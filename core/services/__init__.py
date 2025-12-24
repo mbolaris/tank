@@ -7,6 +7,7 @@ entity or system categories. They typically:
 - Handle operations that span multiple systems
 """
 
+from core.services.energy_tracker import EnergyTracker
 from core.services.stats_calculator import StatsCalculator
 
-__all__ = ["StatsCalculator"]
+__all__ = ["EnergyTracker", "StatsCalculator"]

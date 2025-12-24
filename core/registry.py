@@ -9,7 +9,6 @@ import inspect
 import os
 import pkgutil
 from importlib import import_module
-from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Type
 
 from core import algorithms
@@ -54,13 +53,11 @@ AlgorithmRegistry.load_algorithms()
 
 def _iter_algorithm_modules() -> Iterable[str]:
     """Yield fully qualified algorithm module paths within core.algorithms."""
-
-    algorithms_dir = Path(__file__).resolve().parent / "algorithms"
-    for module_path in sorted(algorithms_dir.glob("*.py")):
-        stem = module_path.stem
+    for module_info in pkgutil.walk_packages(algorithms.__path__, prefix="core.algorithms."):
+        stem = module_info.name.rsplit(".", 1)[-1]
         if stem.startswith("__") or stem in {"base", "BEHAVIOR_TEMPLATE"}:
             continue
-        yield f"core.algorithms.{stem}"
+        yield module_info.name
 
 
 def _discover_algorithms() -> List[Type[BehaviorStrategyBase]]:
@@ -203,6 +200,4 @@ def get_algorithm_metadata() -> Dict[str, Dict[str, str]]:
             continue
 
     return metadata
-
-
 
