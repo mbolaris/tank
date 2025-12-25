@@ -14,7 +14,7 @@ Architecture Notes:
 import logging
 from collections import deque
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Dict, List, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 from core.config.ecosystem import (
     FISH_POKER_MAX_DISTANCE,
@@ -695,7 +695,7 @@ class PokerSystem(BaseSystem):
     # Post-Poker Fish-Fish Reproduction (moved from BaseSimulator 2024-12)
     # =========================================================================
 
-    def _attempt_post_poker_reproduction(self, poker: PokerInteraction) -> "Fish | None":
+    def _attempt_post_poker_reproduction(self, poker: PokerInteraction) -> Optional["Fish"]:
         """Attempt to reproduce after a fish-fish poker game.
         
         The winner of a poker game may reproduce with a nearby fish of the same
@@ -778,7 +778,7 @@ class PokerSystem(BaseSystem):
 
     def _create_post_poker_offspring(
         self, winner: "Fish", mate: "Fish", rng
-    ) -> "Fish | None":
+    ) -> Optional["Fish"]:
         """Create an offspring from poker winner and mate.
         
         The offspring's genome is a weighted blend of both parents, with the
