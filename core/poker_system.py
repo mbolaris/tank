@@ -25,10 +25,6 @@ from core.config.plants import (
     PLANT_POKER_MIN_DISTANCE,
 )
 from core.config.server import POKER_ACTIVITY_ENABLED
-from core.config.simulation import (
-    SKILL_GAME_THROTTLE_THRESHOLD_1,
-    SKILL_GAME_THROTTLE_THRESHOLD_2,
-)
 from core.mixed_poker import (
     MixedPokerInteraction,
     should_trigger_plant_poker_asexual_reproduction,
@@ -36,7 +32,6 @@ from core.mixed_poker import (
 from core.poker_interaction import (
     PokerInteraction,
     MAX_PLAYERS as POKER_MAX_PLAYERS,
-    filter_mutually_proximate,
 )
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
@@ -82,8 +77,6 @@ class PokerSystem(BaseSystem):
         self._fish_wins: int = 0
         self._plant_wins: int = 0
         self._ties: int = 0
-        # Throttle counter for mixed poker games at high populations
-        self._throttle_counter: int = 0
 
     def _do_update(self, frame: int) -> SystemResult:
         """Poker system doesn't have per-frame logic.
@@ -325,282 +318,83 @@ class PokerSystem(BaseSystem):
     def handle_mixed_poker_games(self) -> None:
         """Handle poker games between any mix of fish and plants.
 
-        Finds groups of fish and plants that are in poker proximity
-        and initiates mixed poker games with up to POKER_MAX_PLAYERS players.
+        Orchestration-only method. Delegates to:
+        - MixedPokerTablePlanner: Forms tables via fish-initiated local queries
+        - MixedPokerInteraction: Plays the actual poker game
+        - _record_and_apply_mixed_poker_outcome: Records stats and handles reproduction
 
-        PERFORMANCE OPTIMIZATIONS:
-        - Single combined spatial query instead of separate fish+plant queries
-        - Inline proximity check to avoid method call overhead
-        - Pre-compute squared distances to avoid sqrt
-        - Use local variables for frequently accessed attributes
-        - Cache entity positions to avoid repeated attribute access
-        - Skip spatial query for entities with no nearby_poker_entities method
+        Design Philosophy:
+            Fish initiate poker (plants don't). For each eligible fish, we query
+            nearby entities and form a table. This replaces the complex global
+            graph + DFS approach with simple local queries.
 
-        THROTTLING:
-        - Under 100 entities: every frame
-        - 100-200 entities: every 2 frames
-        - 200+ entities: every 3 frames
+        Throttling:
+            Uses a per-tick budget (max_tables_per_tick) instead of population-based
+            frame skipping. This provides more stable behavior.
         """
         from core.entities import Fish
         from core.entities.plant import Plant
+        from core.poker_table_planner import MixedPokerTablePlanner
 
         if not POKER_ACTIVITY_ENABLED:
             return
 
-        # Throttle based on population size
+        # Get entity lists
         all_entities = self._engine.get_all_entities()
-        entity_count = len(all_entities)
-        throttle_interval = 1  # Default: every frame
-        if entity_count >= SKILL_GAME_THROTTLE_THRESHOLD_2:
-            throttle_interval = 3
-        elif entity_count >= SKILL_GAME_THROTTLE_THRESHOLD_1:
-            throttle_interval = 2
-
-        self._throttle_counter += 1
-        if self._throttle_counter < throttle_interval:
-            return
-        self._throttle_counter = 0
-
-        # Early exit if not enough entities
-        if entity_count < 2:
+        if len(all_entities) < 2:
             return
 
-        all_entities_set = set(all_entities)
-
-        # Performance: Use type() for exact match (faster than isinstance),
-        # but include a duck-typing fallback to avoid issues if modules are reloaded.
-        fish_list = [e for e in all_entities if type(e) is Fish or hasattr(e, "fish_id")]
-
-        # For plants, we need isinstance since we also check is_dead
+        fish_list = [e for e in all_entities if isinstance(e, Fish) and not e.is_dead()]
         plant_list = [e for e in all_entities if isinstance(e, Plant) and not e.is_dead()]
 
-        # Need at least 1 fish and 1 other entity for poker
-        n_fish = len(fish_list)
-        n_plants = len(plant_list)
-        if n_fish < 1 or (n_fish + n_plants) < 2:
+        if len(fish_list) < 1:
             return
 
-        # Combine into one list for proximity checking
-        all_poker_entities: List[PokerPlayer] = fish_list + plant_list  # type: ignore
+        # Get proximity config
+        max_distance = max(FISH_POKER_MAX_DISTANCE, PLANT_POKER_MAX_DISTANCE)
 
-        # Pre-compute squared proximity values
-        proximity_max = max(FISH_POKER_MAX_DISTANCE, PLANT_POKER_MAX_DISTANCE)
-        proximity_min = min(FISH_POKER_MIN_DISTANCE, PLANT_POKER_MIN_DISTANCE)
-        proximity_max_sq = proximity_max * proximity_max
-        proximity_min_sq = proximity_min * proximity_min
+        # Plan tables using fish-initiated local queries
+        planner = MixedPokerTablePlanner(
+            environment=self._engine.environment,
+            max_players=POKER_MAX_PLAYERS,
+            max_distance=max_distance,
+            min_energy=MixedPokerInteraction.MIN_ENERGY_TO_PLAY,
+            max_tables_per_tick=10,  # Budget: at most 10 games per tick
+            rng=self._engine.rng,
+        )
 
-        # Cache entity center positions for fast access
-        # Store as (center_x, center_y) tuples
-        entity_centers: Dict[PokerPlayer, tuple] = {}
-        for e in all_poker_entities:
-            entity_centers[e] = (e.pos.x + e.width * 0.5, e.pos.y + e.height * 0.5)
+        tables = planner.plan_tables(fish_list, plant_list)
 
-        # Build adjacency graph for entities in poker proximity
-        entity_contacts: Dict[PokerPlayer, Set[PokerPlayer]] = {e: set() for e in all_poker_entities}
+        if not tables:
+            return
 
-        environment = self._engine.environment
-        poker_entity_set = set(all_poker_entities)
+        # Track entities for death checking
+        all_entities_set = set(all_entities)
 
-        for entity in all_poker_entities:
-            if entity not in all_entities_set:
-                continue
-
-            e1_cx, e1_cy = entity_centers[entity]
-
-            # Get nearby entities - OPTIMIZATION: Single combined query
-            search_radius = proximity_max + max(entity.width, entity.height) * 0.5
-            nearby: List[PokerPlayer] = []
-
-            if environment is not None:
-                # OPTIMIZATION: Use nearby_poker_entities if available, else combined query
-                if hasattr(environment, "nearby_poker_entities"):
-                    nearby = environment.nearby_poker_entities(entity, radius=search_radius)
-                else:
-                    # Get nearby fish and plants in single pass through nearby_agents
-                    if hasattr(environment, "nearby_agents"):
-                        nearby_all = environment.nearby_agents(entity, radius=search_radius)
-                        nearby = [e for e in nearby_all if e in poker_entity_set]
-                    else:
-                        # Fallback to separate queries
-                        if hasattr(environment, "nearby_evolving_agents"):
-                            nearby.extend(environment.nearby_evolving_agents(entity, radius=search_radius))
-                        if hasattr(environment, "nearby_agents_by_type"):
-                            nearby_plants = environment.nearby_agents_by_type(entity, radius=search_radius, agent_class=Plant)
-                            for plant in nearby_plants:
-                                if plant not in nearby:
-                                    nearby.append(plant)
-            else:
-                nearby = [e for e in all_poker_entities if e is not entity]
-
-            for other in nearby:
-                if other is entity:
-                    continue
-                if other not in all_entities_set:
-                    continue
-                # Skip if already connected (avoid redundant checks)
-                entity_contact_set = entity_contacts[entity]
-                if other in entity_contact_set:
-                    continue
-
-                # Safety check: entity may have been removed/died during iteration
-                if other not in entity_centers:
-                    continue
-
-                e2_cx, e2_cy = entity_centers[other]
-                dx = e1_cx - e2_cx
-                dy = e1_cy - e2_cy
-                distance_sq = dx * dx + dy * dy
-
-                # Must be within max distance but farther than min distance
-                if proximity_min_sq < distance_sq <= proximity_max_sq:
-                    entity_contact_set.add(other)
-                    entity_contacts[other].add(entity)
-
-        # Find connected components using DFS
-        visited: Set[PokerPlayer] = set()
-        processed: Set[PokerPlayer] = set()
-        removed_entities: Set[PokerPlayer] = set()
-
-        for start_entity in all_poker_entities:
-            if start_entity in visited or start_entity in removed_entities:
-                continue
-            if start_entity not in all_entities_set:
-                continue
-
-            # Build connected group via DFS
-            group: List[PokerPlayer] = []
-            stack = [start_entity]
-
-            while stack:
-                current = stack.pop()
-                if current in visited:
-                    continue
-
-                visited.add(current)
-                if current not in removed_entities and current in all_entities_set:
-                    group.append(current)
-
-                # Direct access - all poker entities are in the dict
-                # Sort neighbors to ensure deterministic DFS traversal
-                # Use a stable key (type name + id)
-                sorted_neighbors = sorted(
-                    entity_contacts[current],
-                    key=lambda e: (
-                        type(e).__name__,
-                        getattr(e, "fish_id", getattr(e, "plant_id", 0))
-                    )
-                )
-                
-                for neighbor in sorted_neighbors:
-                    if neighbor not in visited:
-                        stack.append(neighbor)
-
-            # Need at least 2 players for poker
-            if len(group) < 2:
-                continue
-
-            # Filter to only unprocessed entities
-            valid_players = [p for p in group if p not in processed]
-            if len(valid_players) < 2:
-                continue
-
-            # Filter to only ready players (not on cooldown, not pregnant, etc.)
-            ready_players = self._get_ready_poker_players(valid_players)
-            if len(ready_players) < 2:
-                continue
-
-            # IMPORTANT: Ensure ALL players in the group are within max distance of each other
-            # The DFS can connect A-B-C where A and C are far apart (chain connection)
-            # We need to filter to only players that are ALL mutually within proximity
-            ready_players = self._filter_mutually_proximate_players(
-                ready_players, proximity_max
-            )
-            if len(ready_players) < 2:
-                continue
-
-            # Limit to max players FIRST, before checking fish count
-            # This prevents truncation from removing all fish after the check passed
-            if len(ready_players) > POKER_MAX_PLAYERS:
-                ready_players = ready_players[:POKER_MAX_PLAYERS]
-
-            # IMPORTANT: Require at least 1 fish in the game (after truncation)
-            # Plant-only poker games are not allowed
-            fish_in_group = [p for p in ready_players if isinstance(p, Fish) or hasattr(p, "fish_id")]
-            if len(fish_in_group) < 1:
-                continue
-
-            # Play mixed poker game
+        # Play games at each table
+        for table in tables:
             try:
-                poker = MixedPokerInteraction(ready_players, rng=self._engine.rng)
-                if poker.play_poker():
-                    self._record_and_apply_mixed_poker_outcome(poker)
+                poker = MixedPokerInteraction(table.players, rng=self._engine.rng)
+                if not poker.play_poker():
+                    continue
 
-                    # Check for deaths
-                    for player in ready_players:
-                        if (isinstance(player, Fish) or hasattr(player, "fish_id")) and player.is_dead():
-                            if player in all_entities_set:
-                                self._engine.record_fish_death(player)
-                                removed_entities.add(player)
-                                all_entities_set.discard(player)
-                        elif isinstance(player, Plant) and player.is_dead():
-                            if player in all_entities_set:
-                                player.die()
-                                self._engine.remove_entity(player)
-                                removed_entities.add(player)
-                                all_entities_set.discard(player)
+                # Record stats and handle reproduction
+                self._record_and_apply_mixed_poker_outcome(poker)
 
-                processed.update(ready_players)
+                # Check for deaths and let engine handle removal
+                for player in table.players:
+                    if isinstance(player, Fish) and player.is_dead():
+                        if player in all_entities_set:
+                            self._engine.record_fish_death(player)
+                            all_entities_set.discard(player)
+                    elif isinstance(player, Plant) and player.is_dead():
+                        if player in all_entities_set:
+                            player.die()
+                            self._engine.remove_entity(player)
+                            all_entities_set.discard(player)
 
             except Exception:
                 logger.exception("Mixed poker game error")
-
-    def _filter_mutually_proximate_players(
-        self, players: List[PokerPlayer], max_distance: float
-    ) -> List[PokerPlayer]:
-        """Filter players to only those where ALL are within max_distance of each other.
-
-        Delegates to the shared filter_mutually_proximate utility function.
-
-        Args:
-            players: List of potential players
-            max_distance: Maximum distance between any two players
-
-        Returns:
-            Largest subset where all players are mutually within max_distance
-        """
-        return filter_mutually_proximate(players, max_distance)
-
-    def _get_ready_poker_players(self, players: List[PokerPlayer]) -> List[PokerPlayer]:
-        """Filter players to those ready to play poker.
-
-        Args:
-            players: List of potential players (fish and plants)
-
-        Returns:
-            List of players ready to play (not on cooldown, not pregnant, etc.)
-        """
-        from core.entities import Fish
-        from core.entities.plant import Plant
-
-        ready = []
-        for player in players:
-            # Check cooldown
-            if getattr(player, "poker_cooldown", 0) > 0:
-                continue
-
-            # Fish-specific checks
-            if isinstance(player, Fish):
-                if player.energy < MixedPokerInteraction.MIN_ENERGY_TO_PLAY:
-                    continue
-
-            # Plant-specific checks
-            if isinstance(player, Plant):
-                if player.is_dead():
-                    continue
-
-            ready.append(player)
-
-        return ready
 
     def _record_and_apply_mixed_poker_outcome(self, poker: MixedPokerInteraction) -> None:
         """Record and apply the outcome of a mixed poker game.
@@ -707,7 +501,6 @@ class PokerSystem(BaseSystem):
         Returns:
             The offspring if reproduction occurred, None otherwise
         """
-        import random
         from core.entities import Fish
         from core.config.fish import POST_POKER_MATING_DISTANCE
         from core.poker_interaction import is_post_poker_reproduction_eligible
@@ -759,7 +552,8 @@ class PokerSystem(BaseSystem):
             return None
 
         # Winner-driven reproduction: if winner is eligible, they pick a mate
-        rng = getattr(self._engine, "rng", None) or random
+        # DETERMINISM: Always use engine RNG, never fall back to global random
+        rng = self._engine.rng
         mate = rng.choice(eligible_mates)
 
         if self._engine.ecosystem is not None:
