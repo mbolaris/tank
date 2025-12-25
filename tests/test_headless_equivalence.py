@@ -33,20 +33,16 @@ def test_headless_mode_architecture():
     # Both modes use the same engine
     engine = SimulationEngine(headless=True)
 
-    # Verify it's using BaseSimulator for core logic
-    from core.simulators.base_simulator import BaseSimulator
-
-    assert isinstance(engine, BaseSimulator), "Engine must inherit from BaseSimulator"
-
-    # Verify critical methods come from BaseSimulator
-    assert hasattr(engine, "handle_collisions"), "Missing collision handling"
-    assert hasattr(engine, "handle_reproduction"), "Missing reproduction handling"
-    assert hasattr(engine, "handle_food_collisions"), "Missing food collision handling"
+    # Verify it has the required systems
+    assert hasattr(engine, "collision_system"), "Missing collision system"
+    assert hasattr(engine, "reproduction_system"), "Missing reproduction system"
+    assert hasattr(engine, "lifecycle_system"), "Missing lifecycle system"
+    assert hasattr(engine, "poker_system"), "Missing poker system"
 
     print("\n✓ Architecture verified:")
     print("  - Both modes use SimulationEngine(headless=True)")
-    print("  - Inherits from BaseSimulator")
-    print("  - Shares collision, reproduction, and food collision logic")
+    print("  - Uses component-based architecture (CollisionSystem, etc.)")
+    print("  - Shares all core Systems logic")
     print("=" * 80)
 
 
@@ -154,7 +150,7 @@ if __name__ == "__main__":
     print("=" * 80)
     print("\nThis test suite verifies that:")
     print("1. Web mode and headless CLI mode use the same SimulationEngine")
-    print("2. Both inherit from BaseSimulator for core simulation logic")
+    print("2. It uses the standard Systems architecture")
     print("3. No visualization-specific code affects simulation outcomes")
     print("\n" + "=" * 80 + "\n")
 

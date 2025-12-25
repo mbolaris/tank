@@ -60,7 +60,7 @@ from core.services.stats_calculator import StatsCalculator
 from core.simulation.entity_manager import EntityManager
 from core.simulation.system_registry import SystemRegistry
 
-from core.simulators.base_simulator import BaseSimulator
+
 from core.systems.base import BaseSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
 from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
@@ -70,7 +70,7 @@ from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 logger = logging.getLogger(__name__)
 
 
-class SimulationEngine(BaseSimulator):
+class SimulationEngine:
     """A headless simulation engine for the fish tank ecosystem.
 
     This class orchestrates the simulation by coordinating managers and systems.
@@ -111,7 +111,8 @@ class SimulationEngine(BaseSimulator):
             seed: Optional seed (used if rng is not provided)
             enable_poker_benchmarks: Override poker benchmark toggle
         """
-        super().__init__()
+        self.frame_count: int = 0
+        self.paused: bool = False
         self.config = config or SimulationConfig.production(headless=True)
         if headless is not None:
             self.config = self.config.with_overrides(headless=headless)
@@ -378,6 +379,35 @@ class SimulationEngine(BaseSimulator):
         for entity in self._entity_manager.entities_list:
             self.plant_manager.block_spots_for_entity(entity)
 
+    # =========================================================================
+    # Utility Methods (moved from BaseSimulator 2024-12)
+    # =========================================================================
+
+    def keep_entity_on_screen(
+        self, entity: entities.Agent, screen_width: int | None = None, screen_height: int | None = None
+    ) -> None:
+        """Keep an entity fully within the bounds of the screen.
+
+        Args:
+            entity: Entity to constrain
+            screen_width: Optional override for screen width
+            screen_height: Optional override for screen height
+        """
+        w = screen_width if screen_width is not None else self.config.display.screen_width
+        h = screen_height if screen_height is not None else self.config.display.screen_height
+
+        # Clamp horizontally
+        if entity.pos.x < 0:
+            entity.pos.x = 0
+        elif entity.pos.x + entity.width > w:
+            entity.pos.x = w - entity.width
+
+        # Clamp vertically
+        if entity.pos.y < 0:
+            entity.pos.y = 0
+        elif entity.pos.y + entity.height > h:
+            entity.pos.y = h - entity.height
+
     def get_all_entities(self) -> List[entities.Agent]:
         """Get all entities in the simulation."""
         return self._entity_manager.entities_list
@@ -400,9 +430,25 @@ class SimulationEngine(BaseSimulator):
         """Get cached list of all food in the simulation."""
         return self._entity_manager.get_food()
 
+    def get_fish_count(self) -> int:
+        """Get the count of fish in the simulation."""
+        return len(self.get_fish_list())
+
     def _rebuild_caches(self) -> None:
         """Rebuild all cached entity lists if needed."""
         self._entity_manager.rebuild_caches_if_needed()
+
+    # =========================================================================
+    # Lifecycle Delegation (moved from BaseSimulator 2024-12)
+    # =========================================================================
+
+    def record_fish_death(self, fish: entities.Agent, cause: str | None = None) -> None:
+        """Delegate fish death recording to the lifecycle system."""
+        self.lifecycle_system.record_fish_death(fish, cause)
+
+    def cleanup_dying_fish(self) -> None:
+        """Delegate dying fish cleanup to the lifecycle system."""
+        self.lifecycle_system.cleanup_dying_fish()
 
     # =========================================================================
     # Collision/Reproduction/Poker Delegation
@@ -421,8 +467,10 @@ class SimulationEngine(BaseSimulator):
         self.reproduction_system.update(self.frame_count)
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
-        """Delegate poker result processing to the poker system."""
-        super().handle_poker_result(poker)
+        """Delegate poker result processing to the poker system.
+        
+        Note: PokerSystem now handles reproduction (moved from BaseSimulator 2024-12).
+        """
         self.poker_system.handle_poker_result(poker)
 
     def handle_mixed_poker_games(self) -> None:
@@ -611,9 +659,19 @@ class SimulationEngine(BaseSimulator):
                 update_position(entity)
 
     def _phase_collision(self) -> None:
-        """COLLISION: Handle collisions between entities."""
+        """COLLISION: Handle collisions between entities.
+        
+        CollisionSystem now owns ALL collision logic including:
+        - Fish-Food collisions (eating)
+        - Fish-Crab collisions (predation)
+        - Fish-Fish proximity for poker games
+        - Food-Crab collisions
+        """
         self._current_phase = UpdatePhase.COLLISION
-        self.handle_collisions()
+        # CollisionSystem._do_update() handles all collision iteration
+        self.collision_system.update(self.frame_count)
+        # Mixed poker (fish-plant, plant-plant) handled by PokerSystem
+        self.handle_mixed_poker_games()
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns."""

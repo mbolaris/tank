@@ -73,7 +73,7 @@ class TestFullSimulation:
         # Run simulation
         try:
             for _ in range(100):
-                simulator.handle_collisions()
+                simulator.collision_system.update(0)
                 for sprite in list(simulator.agents):
                     sprite.update(0)
         except Exception as e:
@@ -145,7 +145,7 @@ class TestFullSimulation:
         try:
             # This tests our fix for safe iteration when removing sprites
             for _ in range(20):
-                simulator.handle_collisions()
+                simulator.collision_system.update(0)
         except Exception as e:
             pytest.fail(f"Collision handling failed during sprite removal: {type(e).__name__}: {e}")
 

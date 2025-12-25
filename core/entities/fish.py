@@ -281,13 +281,8 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
             target_id: ID of the opponent/target entity (for drawing arrows)
             target_type: Type of the opponent/target entity ('fish', 'plant')
         """
-        self.visual_state.poker_effect_state = {
-            "status": status,
-            "amount": amount,
-            "target_id": target_id,
-            "target_type": target_type,
-        }
-        self.visual_state.poker_effect_timer = duration
+        """Set a visual effect for poker status (delegates to visual_state)."""
+        self.visual_state.set_poker_effect(status, amount, duration, target_id, target_type)
 
     def set_death_effect(self, cause: str, duration: int = 45) -> None:
         """Set a visual effect for death cause.
@@ -296,8 +291,8 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
             cause: 'starvation', 'old_age', 'predation', 'migration', 'unknown'
             duration: How long to show the effect in frames (default 1.5s at 30fps)
         """
-        self.visual_state.death_effect_state = {"cause": cause}
-        self.visual_state.death_effect_timer = duration
+        """Set a visual effect for death cause (delegates to visual_state)."""
+        self.visual_state.set_death_effect(cause, duration)
 
     # Energy properties and methods are provided by FishEnergyMixin
 
@@ -595,7 +590,7 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         )
 
         # Set visual birth effect timer (60 frames = 2 seconds at 30fps)
-        self.visual_state.birth_effect_timer = 60
+        self.visual_state.set_birth_effect(60)
 
         return baby
 
@@ -663,10 +658,8 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         # Energy consumption
         self.consume_energy(time_modifier)
 
-        # Update death visual effects (countdown)
-        # We do this BEFORE the dead check so dying fish still countdown their removal timer
-        if self.visual_state.death_effect_timer > 0:
-            self.visual_state.death_effect_timer -= 1
+        # Update visual effects (delegated to visual state)
+        self.visual_state.update()
 
         # Handle death
         if self.is_dead():
@@ -690,15 +683,7 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         # Reproduction
         newborn = self.update_reproduction()
 
-        # Update poker visual effects
-        if self.visual_state.poker_effect_timer > 0:
-            self.visual_state.poker_effect_timer -= 1
-            if self.visual_state.poker_effect_timer <= 0:
-                self.visual_state.poker_effect_state = None
 
-        # Update birth visual effects
-        if self.visual_state.birth_effect_timer > 0:
-            self.visual_state.birth_effect_timer -= 1
 
 
 

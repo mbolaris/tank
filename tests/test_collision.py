@@ -24,7 +24,7 @@ class TestCollisionDetection:
 
         assert fish in simulator.agents
 
-        simulator.handle_fish_collisions()
+        simulator.collision_system.update(0)
 
     def test_food_removed_when_eaten_by_fish(self, simulation_engine):
         """Test that food is removed when a fish eats it."""
@@ -37,7 +37,7 @@ class TestCollisionDetection:
 
         assert food in simulator.agents
 
-        simulator.handle_food_collisions()
+        simulator.collision_system.update(0)
 
     def test_iteration_safe_during_collision(self, simulation_engine):
         """Test that removing sprites during iteration doesn't cause issues."""
@@ -53,7 +53,7 @@ class TestCollisionDetection:
         simulator.agents.add(fish1, fish2, crab1)
 
         try:
-            simulator.handle_fish_collisions()
+            simulator.collision_system.update(0)
             success = True
         except Exception as e:
             success = False
@@ -73,7 +73,7 @@ class TestCollisionDetection:
         simulator.agents.add(fish1, fish2, food1, food2)
 
         try:
-            simulator.handle_food_collisions()
+            simulator.collision_system.update(0)
         except Exception as e:
             pytest.fail(f"Food collision handling failed: {type(e).__name__}: {e}")
 
@@ -107,6 +107,6 @@ class TestCollisionDetection:
 
         try:
             for _ in range(10):
-                simulator.handle_collisions()
+                simulator.collision_system.update(0)
         except Exception as e:
             pytest.fail(f"Main collision handler failed: {type(e).__name__}: {e}")

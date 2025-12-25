@@ -95,9 +95,8 @@ class EntityLifecycleSystem(BaseSystem):
         from core.entities.plant import Plant, PlantNectar
 
         if isinstance(entity, Fish):
-            self._engine.record_fish_death(entity)
-            self._deaths_this_frame += 1
-            self._total_deaths += 1
+            # record_fish_death handles all stats tracking internally
+            self.record_fish_death(entity)
             return True
 
         elif isinstance(entity, Plant):
@@ -164,6 +163,85 @@ class EntityLifecycleSystem(BaseSystem):
         self._emergency_spawns += 1
         self._births_this_frame += 1
         self._total_births += 1
+
+    def record_fish_death(self, fish: "Agent", cause: str | None = None) -> None:
+        """Record a fish death in the ecosystem and mark for delayed removal.
+
+        The fish remains in the simulation briefly so its death effect icon
+        can be rendered before removal. The actual removal happens in
+        cleanup_dying_fish() once death_effect_timer expires.
+
+        Args:
+            fish: The fish that died
+            cause: Optional death cause override (defaults to fish.get_death_cause())
+        """
+        from core.events import EntityDiedEvent
+
+        # Skip if already recorded as dying (prevent double-recording)
+        if fish.visual_state.death_effect_state is not None:
+            return
+
+        death_cause = cause if cause is not None else fish.get_death_cause()
+
+        # Set death effect for visual indicator on frontend (45 frames = 1.5s at 30fps)
+        fish.set_death_effect(death_cause, duration=45)
+
+        self._deaths_this_frame += 1
+        self._total_deaths += 1
+
+        ecosystem = self._engine.ecosystem
+        if ecosystem is not None:
+            algorithm_id = None
+            composable = fish.genome.behavioral.behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                algorithm_id = hash(behavior_id) % 1000
+
+            # Track ALL energy lost when fish dies (including banked overflow)
+            total_energy_lost = fish.energy + fish._reproduction_component.overflow_energy_bank
+            ecosystem.record_death(
+                fish.fish_id,
+                fish.generation,
+                fish._lifecycle_component.age,
+                death_cause,
+                fish.genome,
+                algorithm_id=algorithm_id,
+                remaining_energy=total_energy_lost,
+            )
+
+        event_bus = getattr(self._engine, "event_bus", None)
+        if event_bus is not None:
+            event_bus.emit(
+                EntityDiedEvent(
+                    frame=self._engine.frame_count,
+                    entity_id=fish.fish_id,
+                    entity_type="fish",
+                    cause=death_cause,
+                    age=fish._lifecycle_component.age,
+                    generation=fish.generation,
+                )
+            )
+
+        # Don't remove fish yet - stay in simulation for death effect to render
+        # Cleanup happens in cleanup_dying_fish() when death_effect_timer expires
+
+    def cleanup_dying_fish(self) -> None:
+        """Remove fish whose death effect timer has expired.
+
+        Called each frame to clean up fish that have finished showing
+        their death animation.
+        """
+        from core.entities import Fish
+
+        to_remove = []
+        for entity in self._engine.get_all_entities():
+            if isinstance(entity, Fish) and entity.visual_state.death_effect_state is not None:
+                # If timer expired, mark for removal
+                if entity.visual_state.death_effect_timer <= 0:
+                    to_remove.append(entity)
+
+        for fish in to_remove:
+            self._engine.remove_entity(fish)
 
     def get_debug_info(self) -> Dict[str, Any]:
         """Return lifecycle statistics for debugging.
