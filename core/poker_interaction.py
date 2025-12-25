@@ -37,7 +37,7 @@ from core.poker_participant_manager import get_ready_players
 # Constants for poker games
 MIN_ENERGY_TO_PLAY = 10.0
 DEFAULT_BET_AMOUNT = 5.0
-POKER_COOLDOWN = 60
+POKER_COOLDOWN = 30  # Reduced from 60 for faster poker turnaround
 MAX_PLAYERS = 6
 
 

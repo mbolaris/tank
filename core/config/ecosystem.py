@@ -90,5 +90,5 @@ MATING_QUERY_RADIUS = 150  # 150px allows reasonable mate search range
 # Trade-off: Tighter range = fewer games, more intentional poker-seeking.
 #            Wider range = more games, more incidental poker encounters.
 FISH_POKER_MIN_DISTANCE = 10   # Must be at least 10px apart (not overlapping)
-FISH_POKER_MAX_DISTANCE = 80   # Must be within 80px (close enough to "play")
+FISH_POKER_MAX_DISTANCE = 120   # Must be within 120px (widened to increase poker frequency)
 POKER_PROXIMITY_QUERY_RADIUS = 100  # Search radius for finding poker partners

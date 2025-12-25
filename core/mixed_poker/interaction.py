@@ -45,7 +45,7 @@ class MixedPokerInteraction:
     DEFAULT_BET_AMOUNT = 8.0
 
     # Cooldown between poker games (in frames)
-    POKER_COOLDOWN = 60
+    POKER_COOLDOWN = 30  # Reduced from 60 for faster poker turnaround
 
     @staticmethod
     def _is_fish_player(player: Any) -> bool:
@@ -547,7 +547,7 @@ class MixedPokerInteraction:
             self._set_player_cooldown(player)
 
         # Update poker stats
-        self._update_poker_stats(best_hand_idx, tied_players, bet_amount)
+        self._update_poker_stats(best_hand_idx, tied_players, game_state.player_total_bets)
 
         # Update CFR learning for fish with composable strategies (delegated)
         update_cfr_learning(
@@ -570,36 +570,97 @@ class MixedPokerInteraction:
         return True
 
     def _update_poker_stats(
-        self, winner_idx: int, tied_players: List[int], bet_amount: float
+        self, winner_idx: int, tied_players: List[int], player_bets: List[float]
     ) -> None:
         """Update poker statistics for fish players."""
         from core.entities import Fish
-
-        for i, player in enumerate(self.players):
-            if not isinstance(player, Fish):
-                continue
-
-            is_winner = i == winner_idx or i in tied_players
-            is_tie = len(tied_players) > 1 and i in tied_players
-
-            # Update fish poker wins/losses
-            if hasattr(player, "poker_wins") and hasattr(player, "poker_losses"):
-                if is_winner and not is_tie:
-                    player.poker_wins = getattr(player, "poker_wins", 0) + 1
-                elif not is_winner:
-                    player.poker_losses = getattr(player, "poker_losses", 0) + 1
-
-        # Update plant stats
         from core.entities.plant import Plant
+        from core.fish.poker_stats_component import FishPokerStats
+
+        # Get context from result if available, otherwise estimate
+        house_cut = 0.0
+        won_by_fold = False
+        players_folded = [False] * self.num_players
+        
+        if self.result:
+            house_cut = self.result.house_cut
+            won_by_fold = self.result.won_by_fold
+            players_folded = self.result.players_folded
+        
+        active_players_count = sum(1 for f in players_folded if not f)
+        reached_showdown = not won_by_fold and active_players_count >= 2
 
         for i, player in enumerate(self.players):
-            if not isinstance(player, Plant):
-                continue
+            # 1. Update Fish Stats
+            if isinstance(player, Fish):
+                # Ensure component exists
+                if not hasattr(player, "poker_stats") or player.poker_stats is None:
+                    player.poker_stats = FishPokerStats()
+                
+                stats = player.poker_stats
+                is_winner = i == winner_idx or i in tied_players
+                is_tie = len(tied_players) > 1 and i in tied_players
+                
+                # Determine hand rank
+                hand_rank = 0
+                if self.player_hands[i]:
+                    hand_rank = self.player_hands[i].rank_value
+                
+                # Button position is fixed at 0 in play_poker()
+                on_button = (i == 0)
+                
+                if is_winner and not is_tie:
+                    # Winner
+                    energy_won = 0.0
+                    if self.result:
+                        # If single winner, they got energy_transferred
+                        # Note: energy_transferred in result is net gain from other players (after cut)
+                        # But record_win expects gross or net? FishPokerStats uses it for total_energy_won
+                        # Let's use the net gain recorded in result
+                        energy_won = self.result.energy_transferred
+                    
+                    won_at_showdown = not won_by_fold
+                    
+                    stats.record_win(
+                        energy_won=energy_won,
+                        house_cut=house_cut,
+                        hand_rank=hand_rank,
+                        won_at_showdown=won_at_showdown,
+                        on_button=on_button
+                    )
+                    
+                    # Also update legacy/simple stats if they exist
+                    if hasattr(player, "poker_wins"):
+                        player.poker_wins = getattr(player, "poker_wins", 0) + 1
+                        
+                elif is_tie:
+                    # Tie
+                    stats.record_tie(
+                        hand_rank=hand_rank,
+                        on_button=on_button
+                    )
+                    
+                else:
+                    # Loser
+                    energy_lost = player_bets[i] if i < len(player_bets) else 0.0
+                    
+                    stats.record_loss(
+                        energy_lost=energy_lost,
+                        hand_rank=hand_rank,
+                        folded=players_folded[i],
+                        reached_showdown=reached_showdown,
+                        on_button=on_button
+                    )
+                    
+                    if hasattr(player, "poker_losses"):
+                         player.poker_losses = getattr(player, "poker_losses", 0) + 1
 
-            is_winner = i == winner_idx or i in tied_players
-            is_tie = len(tied_players) > 1 and i in tied_players
+            # 2. Update Plant Stats
+            elif isinstance(player, Plant):
+                is_winner = i == winner_idx or i in tied_players
+                is_tie = len(tied_players) > 1 and i in tied_players
 
-            if is_winner and not is_tie:
-                player.poker_wins += 1
-            elif not is_winner:
-                player.poker_losses += 1
+                if is_winner and not is_tie:
+                    player.poker_wins += 1
+                elif not is_winner:
+                    player.poker_losses += 1

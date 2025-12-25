@@ -14,6 +14,7 @@ import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
+import { CollapsibleSection } from './ui';
 
 import type { PokerGameState } from '../types/simulation';
 
@@ -26,8 +27,6 @@ export function TankView({ tankId }: TankViewProps) {
     const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
     const [showPokerGame, setShowPokerGame] = useState(false);
     const [pokerLoading, setPokerLoading] = useState(false);
-    const [showTree, setShowTree] = useState(false);
-    const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [showEffects, setShowEffects] = useState(true); // Toggle for energy bars and poker effects
 
     // Entity transfer state
@@ -202,8 +201,6 @@ export function TankView({ tankId }: TankViewProps) {
                     onCommand={sendCommand}
                     isConnected={isConnected}
                     onPlayPoker={handleStartPoker}
-                    showTree={showTree}
-                    onToggleTree={() => setShowTree(!showTree)}
                     fastForwardEnabled={state?.stats?.fast_forward}
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
@@ -300,42 +297,22 @@ export function TankView({ tankId }: TankViewProps) {
             </div>
 
             {/* Poker Dashboard - Leaderboard & Activity */}
-            {
-                state?.poker_leaderboard && state?.poker_events && (
-                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '12px'
-                        }}>
-                            <h3 style={{ color: '#3b82f6', fontSize: '18px', margin: 0 }}>
-                                Poker Dashboard
-                            </h3>
-                            {showLeaderboard && (
-                                <button
-                                    onClick={() => setShowLeaderboard(false)}
-                                    style={{
-                                        padding: '6px 12px',
-                                        backgroundColor: '#1e293b',
-                                        color: '#94a3b8',
-                                        border: '1px solid #475569',
-                                        borderRadius: '6px',
-                                        cursor: 'pointer',
-                                        fontSize: '12px'
-                                    }}
-                                >
-                                    Collapse
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Leaderboard & Activity Grid */}
-                        {showLeaderboard && state?.poker_leaderboard && state?.poker_events && (
+            {state?.poker_leaderboard && state?.poker_events && (
+                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                    <div className="glass-panel" style={{ padding: '16px' }}>
+                        <CollapsibleSection
+                            title={
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                                    <span style={{ fontSize: '16px', fontWeight: 600, color: '#3b82f6' }}>Poker Dashboard</span>
+                                </div>
+                            }
+                            defaultExpanded={false}
+                        >
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: '1fr 1fr',
-                                gap: '16px'
+                                gap: '16px',
+                                marginTop: '16px'
                             }}>
                                 <div style={{
                                     backgroundColor: '#0f172a',
@@ -354,56 +331,28 @@ export function TankView({ tankId }: TankViewProps) {
                                     <PokerEvents events={state.poker_events} currentFrame={state.frame} />
                                 </div>
                             </div>
-                        )}
-
-                        {/* Expand button when collapsed */}
-                        {!showLeaderboard && state?.poker_leaderboard && (
-                            <button
-                                onClick={() => setShowLeaderboard(true)}
-                                style={{
-                                    marginTop: '12px',
-                                    padding: '8px 16px',
-                                    backgroundColor: '#1e293b',
-                                    color: '#3b82f6',
-                                    border: '1px solid #475569',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    fontSize: '13px'
-                                }}
-                            >
-                                Show Leaderboard & Activity
-                            </button>
-                        )}
+                        </CollapsibleSection>
                     </div>
-                )
-            }
+                </div>
+            )}
 
-            {/* Phylogenetic Tree - Full Screen Overlay */}
-            {
-                showTree && (
-                    <div className="tree-overlay">
-                        <div className="tree-content">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h2 style={{ color: '#00ff00', fontSize: '24px', margin: 0 }}>Phylogenetic Tree</h2>
-                                <button
-                                    onClick={() => setShowTree(false)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#94a3b8',
-                                        fontSize: '24px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ✕
-                                </button>
+            {/* Phylogenetic Tree */}
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                <div className="glass-panel" style={{ padding: '16px' }}>
+                    <CollapsibleSection
+                        title={
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                                <span style={{ fontSize: '16px', fontWeight: 600, color: '#00ff00' }}>Phylogenetic Tree</span>
                             </div>
+                        }
+                        defaultExpanded={false}
+                    >
+                        <div style={{ marginTop: '16px', height: '600px', display: 'flex', flexDirection: 'column' }}>
                             <PhylogeneticTree tankId={tankId} />
                         </div>
-                    </div>
-                )
-            }
+                    </CollapsibleSection>
+                </div>
+            </div>
 
             {/* Transfer Dialog */}
             {
