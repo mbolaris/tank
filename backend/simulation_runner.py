@@ -115,15 +115,6 @@ class SimulationRunner(CommandHandlerMixin):
         # Static benchmark poker series management
         self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
 
-        # Ongoing auto-evaluation against static baseline
-        from backend.services.auto_eval_service import AutoEvalService
-        self.auto_eval_service = AutoEvalService(self.world, world_lock=self.lock)
-        self.auto_eval_running = False
-        self._last_auto_eval_stats_version = self.auto_eval_service.get_stats_version()
-        self.auto_eval_interval_seconds = 15.0  # Kept for compatibility if needed
-        self.last_auto_eval_time = 0.0          # Kept for compatibility if needed
-        self.auto_eval_lock = self.auto_eval_service.lock  # Alias lock if needed, or just rely on service
-
         # Evolution benchmark tracker for longitudinal skill measurement
         self.evolution_benchmark_tracker = None
         if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
@@ -136,12 +127,16 @@ class SimulationRunner(CommandHandlerMixin):
                 EvolutionBenchmarkTracker,
             )
             self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
-                eval_interval_frames=int(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "1800")),
+                eval_interval_frames=int(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "900")),
                 export_path=self._get_evolution_benchmark_export_path(),
                 use_quick_benchmark=True,
             )
             self._evolution_benchmark_guard = threading.Lock()
-            self._evolution_benchmark_last_completed_time = 0.0
+            # Initialize to (now - interval + 5 seconds) so first benchmark runs after ~5 seconds of startup
+            # This gives the simulation time to populate fish before the first evaluation
+            initial_delay = 5.0
+            interval = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "30"))
+            self._evolution_benchmark_last_completed_time = time.time() - interval + initial_delay
         else:
             self._evolution_benchmark_guard = None
             self._evolution_benchmark_last_completed_time = 0.0
@@ -350,13 +345,18 @@ class SimulationRunner(CommandHandlerMixin):
                         if migrations_in > 0 or migrations_out > 0:
                             migration_str = f", Migrations=+{migrations_in}/-{migrations_out}"
                         
-                        # Get poker score (confidence vs strong opponents), formatted as percentage
+                        # Get poker score (confidence vs strong and expert opponents), formatted as percentage
                         poker_str = ""
                         if self.evolution_benchmark_tracker is not None:
                             latest = self.evolution_benchmark_tracker.get_latest_snapshot()
                             if latest is not None:
-                                # conf_strong as percentage (e.g., 0.85 -> "85%")
-                                poker_str = f", Poker={latest.confidence_vs_strong:.0%}"
+                                # Prioritize expert confidence if available (new system), otherwise fallback to strong
+                                score = latest.confidence_vs_strong
+                                if hasattr(latest, "confidence_vs_expert") and latest.confidence_vs_expert > 0:
+                                    score = latest.confidence_vs_expert
+                                    poker_str = f", Poker(Exp)={score:.0%}"
+                                else:
+                                    poker_str = f", Poker(Str)={score:.0%}"
                         
                         logger.info(
                             f"{tank_label} Simulation Status "
@@ -364,7 +364,7 @@ class SimulationRunner(CommandHandlerMixin):
                             f"Fish={stats.get('fish_count', 0)}, "
                             f"Plants={stats.get('plant_count', 0)}, "
                             f"Gen={stats.get('max_generation', 0)}, "
-                            f"Energy={stats.get('total_energy', 0.0):.1f}"
+                            f"Energy={stats.get('total_energy', 0.0):.0f}"
                             f"{migration_str}{poker_str}"
                         )
 
@@ -406,17 +406,7 @@ class SimulationRunner(CommandHandlerMixin):
 
     def _start_auto_evaluation_if_needed(self) -> None:
         """Periodically benchmark top fish against the static evaluator."""
-        if hasattr(self, "auto_eval_service"):
-            self.auto_eval_service.update()
-            current_version = self.auto_eval_service.get_stats_version()
-            if current_version != self._last_auto_eval_stats_version:
-                self._last_auto_eval_stats_version = current_version
-                self._invalidate_state_cache()
-            if self.auto_eval_service.running != self.auto_eval_running:
-                # Sync running state if needed, or just rely on invalidating cache when done
-                if not self.auto_eval_service.running and self.auto_eval_running:
-                    self._invalidate_state_cache()
-                self.auto_eval_running = self.auto_eval_service.running
+        # AutoEvalService removed (legacy). Now using EvolutionBenchmarkTracker only.
 
         # Run evolution benchmark tracker (runs in background thread when due)
         self._run_evolution_benchmark_if_needed()
@@ -441,7 +431,7 @@ class SimulationRunner(CommandHandlerMixin):
         if paused_only and not getattr(self.world, "paused", False):
             return
 
-        interval_seconds = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "60"))
+        interval_seconds = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "30"))
         now = time.time()
         last_completed = float(getattr(self, "_evolution_benchmark_last_completed_time", 0.0) or 0.0)
         if now - last_completed < interval_seconds:
@@ -459,10 +449,22 @@ class SimulationRunner(CommandHandlerMixin):
                 try:
                     with self.lock:
                         fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+                    
+                    def apply_reward(fish: "Fish", amount: float) -> None:
+                        with self.lock:
+                            # Ensure fish is still valid/alive in the simulation
+                            if fish in self.world.entities_list:
+                                actual_gain = fish.modify_energy(amount)
+                                if actual_gain > 0 and fish.ecosystem is not None:
+                                    # We reuse the auto_eval metric for tracking
+                                    fish.ecosystem.record_auto_eval_energy_gain(actual_gain)
+                                logger.info(f"Benchmark Reward: Fish #{fish.fish_id} ({getattr(fish, 'generation', 0)}) gained {actual_gain:.1f} energy")
+
                     tracker.run_and_record(
                         fish_population=fish_list,
                         current_frame=current_frame,
                         force=True,
+                        reward_callback=apply_reward,
                     )
                 except Exception as e:
                     logger.error(f"Evolution benchmark failed: {e}", exc_info=True)
@@ -484,47 +486,6 @@ class SimulationRunner(CommandHandlerMixin):
     # as they are now handled by the AutoEvalService.
 
 
-    def _reward_auto_eval_winners(self, benchmark_players: List[Dict[str, Any]], final_stats) -> None:
-        """Reward Fish/Plants that won energy in auto-evaluation by adding it to their actual energy.
-
-        Args:
-            benchmark_players: List of players that participated in the evaluation
-            final_stats: Final statistics from the auto-evaluation game
-        """
-        with self.lock:
-            for player_stats in final_stats.players:
-                # Skip the standard algorithm player
-                if player_stats.get("is_standard", False):
-                    continue
-
-                net_energy = player_stats.get("net_energy", 0.0)
-                if net_energy <= 0:
-                    continue  # Only reward winners
-
-                # Find the actual entity
-                fish_id = player_stats.get("fish_id")
-                plant_id = player_stats.get("plant_id")
-
-                if fish_id is not None:
-                    fish = next((e for e in self.world.entities_list
-                               if isinstance(e, Fish) and e.fish_id == fish_id), None)
-                    if fish and net_energy > 0:
-                        # Use modify_energy to properly cap at max and route overflow to reproduction/food
-                        actual_gain = fish.modify_energy(net_energy)
-                        if actual_gain > 0 and fish.ecosystem is not None:
-                            fish.ecosystem.record_auto_eval_energy_gain(actual_gain)
-                        logger.info(f"Auto-eval reward: Fish #{fish_id} gained {actual_gain:.1f} energy")
-
-                elif plant_id is not None:
-                    plant = next((e for e in self.world.entities_list
-                                if isinstance(e, Plant) and e.plant_id == plant_id), None)
-                    if plant:
-                        reward = min(net_energy, plant.max_energy - plant.energy)
-                        if reward > 0:
-                            actual_gain = plant.gain_energy(reward, source="auto_eval")
-                            logger.info(
-                                f"Auto-eval reward: Plant #{plant_id} gained {actual_gain:.1f} energy"
-                            )
 
     def get_state(self, force_full: bool = False, allow_delta: bool = True):
         """Get current simulation state for WebSocket broadcast.
@@ -730,8 +691,6 @@ class SimulationRunner(CommandHandlerMixin):
 
     def get_full_evaluation_history(self) -> List[Dict[str, Any]]:
         """Return the full auto-evaluation history."""
-        if hasattr(self, "auto_eval_service"):
-             return self.auto_eval_service.get_history()
         return []
 
     def get_evolution_benchmark_data(self) -> Dict[str, Any]:
@@ -748,22 +707,7 @@ class SimulationRunner(CommandHandlerMixin):
         return tracker.get_api_data()
 
     def _collect_auto_eval(self) -> Optional[AutoEvaluateStatsPayload]:
-        if not hasattr(self, "auto_eval_service"):
-            return None
-
-        stats = self.auto_eval_service.get_stats()
-        if not stats:
-            return None
-
-        return AutoEvaluateStatsPayload(
-            hands_played=stats["hands_played"],
-            hands_remaining=stats["hands_remaining"],
-            game_over=stats["game_over"],
-            winner=stats["winner"],
-            reason=stats["reason"],
-            players=stats["players"],
-            performance_history=stats["performance_history"],
-        )
+        return None
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
         """Convert an entity to a lightweight snapshot for serialization.

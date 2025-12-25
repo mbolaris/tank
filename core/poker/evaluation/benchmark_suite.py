@@ -31,6 +31,7 @@ class BaselineDifficulty(Enum):
     WEAK = 2  # Should beat consistently (calling station, rock)
     MODERATE = 3  # Competitive games (TAG, LAG)
     STRONG = 4  # Challenging opponents (balanced, maniac)
+    EXPERT = 5  # Optimal opponents (GTO expert)
 
 
 @dataclass
@@ -111,6 +112,14 @@ BASELINE_OPPONENTS: List[BaselineOpponent] = [
         difficulty=BaselineDifficulty.STRONG,
         weight=1.0,
     ),
+    # Expert baselines (difficulty 5) - near optimal
+    BaselineOpponent(
+        name="GTO Expert",
+        strategy_id="gto_expert",
+        description="Uses optimal frequencies, polarized ranges, and equity-based sizing.",
+        difficulty=BaselineDifficulty.EXPERT,
+        weight=2.5,  # Highest difficulty ceiling
+    ),
 ]
 
 
@@ -136,10 +145,12 @@ def get_baseline_ids_by_tier(tier: str) -> List[str]:
         difficulties = [BaselineDifficulty.MODERATE]
     elif tier == "strong":
         difficulties = [BaselineDifficulty.STRONG]
+    elif tier == "expert":
+        difficulties = [BaselineDifficulty.EXPERT]
     elif tier == "all":
         return [b.strategy_id for b in BASELINE_OPPONENTS]
     else:
-        raise ValueError(f"Unknown tier: {tier}. Use weak, moderate, strong, or all")
+        raise ValueError(f"Unknown tier: {tier}. Use weak, moderate, strong, expert, or all")
 
     return [b.strategy_id for b in BASELINE_OPPONENTS if b.difficulty in difficulties]
 
@@ -238,6 +249,7 @@ QUICK_BENCHMARK_CONFIG = ComprehensiveBenchmarkConfig(
             "tight_aggressive",
             "loose_aggressive",
             "balanced",
+            "gto_expert",
         ],
     ),
     top_n_fish=5,
@@ -260,6 +272,7 @@ FULL_BENCHMARK_CONFIG = ComprehensiveBenchmarkConfig(
             "loose_aggressive",
             "balanced",
             "maniac",
+            "gto_expert",
         ],
     ),
     top_n_fish=15,

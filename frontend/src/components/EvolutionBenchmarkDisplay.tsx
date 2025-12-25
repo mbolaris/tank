@@ -51,13 +51,19 @@ function BbPer100Display({ value, label, showRating = true }: {
  * - 70%+ = very good
  * - 90%+ = excellent
  */
-function PokerScore({ confStrong, confStrongEma, trend }: {
+function PokerScore({ confStrong, confExpert, confStrongEma, trend }: {
     confStrong: number;
+    confExpert?: number;
     confStrongEma?: number;
     trend?: 'improving' | 'stable' | 'declining';
 }) {
+    // Prefer Expert score if available and non-zero
+    const useExpert = confExpert !== undefined && confExpert > 0;
+    const confValue = useExpert ? confExpert : confStrong;
+    const tierLabel = useExpert ? 'vs Expert Opponents' : 'vs Strong Opponents';
+
     // Color based on score
-    const score = confStrong * 100;
+    const score = confValue * 100;
     const color = score >= 70 ? '#22c55e' :  // Green - very good
         score >= 55 ? '#84cc16' :  // Lime - good (beating strong)
             score >= 50 ? '#eab308' :  // Yellow - average
@@ -80,7 +86,7 @@ function PokerScore({ confStrong, confStrongEma, trend }: {
 
     const [showTooltip, setShowTooltip] = useState(false);
 
-    const tooltipText = `Poker Score measures confidence that the population is PROFITABLE (not just winning hands) against strong AI opponents.
+    const tooltipText = `Poker Score measures confidence that the population is PROFITABLE (not just winning hands) against ${useExpert ? 'expert' : 'strong'} AI opponents.
 
 Based on bb/100 (big blinds won per 100 hands) — this accounts for amounts won/lost, not just hand count.
 
@@ -124,7 +130,7 @@ Based on bb/100 (big blinds won per 100 hands) — this accounts for amounts won
                     {rating}
                 </span>
                 <span style={{ color: colors.textSecondary, fontSize: '10px' }}>
-                    vs Strong Opponents
+                    {tierLabel}
                 </span>
                 {confStrongEma !== undefined && Math.abs(confStrongEma - confStrong) > 0.02 && (
                     <span style={{ color: colors.textSecondary, fontSize: '10px' }}>
@@ -639,6 +645,9 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
                 <span style={{ color: improvement.can_beat_strong ? '#22c55e' : '#ef4444' }}>
                     {improvement.can_beat_strong ? '✓' : '✗'} Strong
                 </span>
+                <span style={{ color: improvement.can_beat_expert ? '#22c55e' : '#ef4444' }}>
+                    {improvement.can_beat_expert ? '✓' : '✗'} Expert
+                </span>
             </div>
         </div>
     );
@@ -771,6 +780,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
                     {latest.conf_strong !== undefined && (
                         <PokerScore
                             confStrong={latest.conf_strong}
+                            confExpert={latest.conf_expert}
                             trend={improvement.status === 'tracked' ? improvement.trend_direction : undefined}
                         />
                     )}

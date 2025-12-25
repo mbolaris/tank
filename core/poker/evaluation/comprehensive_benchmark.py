@@ -61,6 +61,7 @@ class FishBenchmarkResult:
     avg_bb_per_100_vs_weak: float = 0.0  # vs calling station, rock
     avg_bb_per_100_vs_moderate: float = 0.0  # vs TAG, LAG
     avg_bb_per_100_vs_strong: float = 0.0  # vs balanced, maniac
+    avg_bb_per_100_vs_expert: float = 0.0  # vs gto_expert
     overall_bb_per_100: float = 0.0
     weighted_bb_per_100: float = 0.0  # Weighted by baseline difficulty
 
@@ -72,6 +73,7 @@ class FishBenchmarkResult:
     confidence_vs_weak: float = 0.0  # Probability of beating weak opponents
     confidence_vs_moderate: float = 0.0  # Probability of beating moderate opponents
     confidence_vs_strong: float = 0.0  # Probability of beating strong opponents
+    confidence_vs_expert: float = 0.0  # Probability of beating expert opponents
 
     # Fish-vs-fish results (if available)
     bb_per_100_vs_fish: Optional[float] = None
@@ -86,6 +88,7 @@ class FishBenchmarkResult:
         weak_ids = ["loose_passive", "tight_passive"]
         moderate_ids = ["tight_aggressive", "loose_aggressive"]
         strong_ids = ["balanced", "maniac"]
+        expert_ids = ["gto_expert"]
 
         def avg_bb(baseline_ids: List[str]) -> Tuple[float, int]:
             """Get average bb/100 and total hands for a set of baselines."""
@@ -104,8 +107,11 @@ class FishBenchmarkResult:
         self.avg_bb_per_100_vs_weak, hands_weak = avg_bb(weak_ids)
         self.avg_bb_per_100_vs_moderate, hands_moderate = avg_bb(moderate_ids)
         self.avg_bb_per_100_vs_strong, hands_strong = avg_bb(strong_ids)
+        self.avg_bb_per_100_vs_expert, hands_expert = avg_bb(expert_ids)
 
-        self.total_hands = hands_trivial + hands_weak + hands_moderate + hands_strong
+        self.total_hands = (
+            hands_trivial + hands_weak + hands_moderate + hands_strong + hands_expert
+        )
 
         # Overall unweighted average
         all_results = list(self.vs_baselines.values())
@@ -135,6 +141,7 @@ class FishBenchmarkResult:
         self.confidence_vs_weak = self._compute_win_confidence(weak_ids)
         self.confidence_vs_moderate = self._compute_win_confidence(moderate_ids)
         self.confidence_vs_strong = self._compute_win_confidence(strong_ids)
+        self.confidence_vs_expert = self._compute_win_confidence(expert_ids)
 
     def _compute_win_confidence(self, baseline_ids: List[str]) -> float:
         """Compute probability of winning against a tier based on CI.
@@ -203,6 +210,7 @@ class PopulationBenchmarkResult:
     pop_bb_vs_weak: float = 0.0
     pop_bb_vs_moderate: float = 0.0
     pop_bb_vs_strong: float = 0.0
+    pop_bb_vs_expert: float = 0.0
 
     # Per-baseline population averages
     pop_vs_baseline: Dict[str, float] = field(default_factory=dict)
@@ -217,6 +225,7 @@ class PopulationBenchmarkResult:
     pop_confidence_vs_weak: float = 0.5
     pop_confidence_vs_moderate: float = 0.5
     pop_confidence_vs_strong: float = 0.5
+    pop_confidence_vs_expert: float = 0.5
 
     # Strategy-type breakdown
     strategy_avg_bb_per_100: Dict[str, float] = field(default_factory=dict)
@@ -249,9 +258,11 @@ class PopulationBenchmarkResult:
             "vs_weak": round(self.pop_bb_vs_weak, 2),
             "vs_moderate": round(self.pop_bb_vs_moderate, 2),
             "vs_strong": round(self.pop_bb_vs_strong, 2),
+            "vs_expert": round(self.pop_bb_vs_expert, 2),
             "conf_vs_weak": round(self.pop_confidence_vs_weak, 2),
             "conf_vs_moderate": round(self.pop_confidence_vs_moderate, 2),
             "conf_vs_strong": round(self.pop_confidence_vs_strong, 2),
+            "conf_vs_expert": round(self.pop_confidence_vs_expert, 2),
             "best_fish_id": self.best_fish_id,
             "best_bb": round(self.best_bb_per_100, 2),
             "best_elo": round(self.best_elo, 1),
@@ -491,6 +502,9 @@ def run_comprehensive_benchmark(
         result.pop_bb_vs_strong = sum(
             r.avg_bb_per_100_vs_strong for r in fish_results
         ) / len(fish_results)
+        result.pop_bb_vs_expert = sum(
+            r.avg_bb_per_100_vs_expert for r in fish_results
+        ) / len(fish_results)
 
         # Per-baseline population averages
         for baseline_id in config.fish_vs_baselines.baseline_opponents:
@@ -544,17 +558,19 @@ def run_comprehensive_benchmark(
         all_conf_weak = [r.confidence_vs_weak for r in fish_results]
         all_conf_moderate = [r.confidence_vs_moderate for r in fish_results]
         all_conf_strong = [r.confidence_vs_strong for r in fish_results]
+        all_conf_expert = [r.confidence_vs_expert for r in fish_results]
         result.pop_confidence_vs_weak = sum(all_conf_weak) / len(all_conf_weak)
         result.pop_confidence_vs_moderate = sum(all_conf_moderate) / len(all_conf_moderate)
         result.pop_confidence_vs_strong = sum(all_conf_strong) / len(all_conf_strong)
+        result.pop_confidence_vs_expert = sum(all_conf_expert) / len(all_conf_expert)
 
     logger.info(
         f"Benchmark complete @ frame {frame}: "
         f"evaluated {len(fish_results)} fish, "
         f"pop_bb/100={result.pop_avg_bb_per_100:.1f}, "
         f"pop_elo={result.pop_mean_elo:.0f}, "
-        f"vs_strong={result.pop_bb_vs_strong:.1f}, "
-        f"conf_strong={result.pop_confidence_vs_strong:.0%}, "
+        f"vs_expert_bb={result.pop_bb_vs_expert:.1f}, "
+        f"conf_expert={result.pop_confidence_vs_expert:.0%}, "
         f"best={result.best_bb_per_100:.1f} ({result.best_strategy})"
     )
 

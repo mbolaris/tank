@@ -15,6 +15,7 @@ from core.poker.strategy.implementations.advanced import (
     TrapSetterStrategy,
     MathematicalStrategy,
 )
+from core.poker.strategy.implementations.expert import GTOExpertStrategy
 from core.poker.strategy.implementations.baseline import (
     AlwaysFoldStrategy,
     RandomStrategy,
@@ -40,6 +41,7 @@ __all__ = [
     "PositionalExploiter",
     "TrapSetterStrategy",
     "MathematicalStrategy",
+    "GTOExpertStrategy",
     "AlwaysFoldStrategy",
     "RandomStrategy",
     "get_all_poker_strategies",

@@ -526,6 +526,7 @@ export interface BenchmarkSnapshot {
     conf_weak?: number;
     conf_moderate?: number;
     conf_strong?: number;
+    conf_expert?: number;
     fish_evaluated?: number;
     total_hands?: number;
     pop_bb_per_100: number;
@@ -534,6 +535,7 @@ export interface BenchmarkSnapshot {
     vs_weak: number;
     vs_moderate: number;
     vs_strong: number;
+    vs_expert?: number;
     best_bb: number;
     best_strategy?: string;
     dominant_strategy: string;
@@ -574,6 +576,7 @@ export type BenchmarkImprovementMetrics =
         can_beat_weak?: boolean;
         can_beat_moderate?: boolean;
         can_beat_strong?: boolean;
+        can_beat_expert?: boolean;
     };
 
 export interface EvolutionBenchmarkData {

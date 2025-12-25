@@ -138,6 +138,7 @@ def create_standard_strategy(strategy_id: str) -> PokerStrategyAlgorithm:
         RandomStrategy,
         TightAggressiveStrategy,
         TightPassiveStrategy,
+        GTOExpertStrategy,
     )
 
     strategy_map = {
@@ -148,6 +149,7 @@ def create_standard_strategy(strategy_id: str) -> PokerStrategyAlgorithm:
         "tight_passive": TightPassiveStrategy,
         "loose_passive": LoosePassiveStrategy,
         "maniac": ManiacStrategy,
+        "gto_expert": GTOExpertStrategy,
         # Weak baselines for skill floor measurement
         "always_fold": AlwaysFoldStrategy,
         "random": RandomStrategy,

@@ -19,7 +19,7 @@ import statistics
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Callable
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -41,9 +41,8 @@ class BenchmarkSnapshot:
     pop_bb_vs_trivial: float
     pop_bb_vs_weak: float
     pop_bb_vs_moderate: float
-    pop_bb_vs_strong: float
-
-    # Elo rating metrics (more stable than raw bb/100)
+    pop_bb_vs_strong: float = 0.0
+    pop_bb_vs_expert: float = 0.0   # Elo rating metrics (more stable than raw bb/100)
     pop_mean_elo: float = 1200.0
     pop_median_elo: float = 1200.0
     elo_tier_distribution: Dict[str, int] = field(default_factory=dict)
@@ -52,6 +51,7 @@ class BenchmarkSnapshot:
     confidence_vs_weak: float = 0.5
     confidence_vs_moderate: float = 0.5
     confidence_vs_strong: float = 0.5
+    confidence_vs_expert: float = 0.5
 
     # Strategy distribution
     strategy_distribution: Dict[str, int] = field(default_factory=dict)
@@ -263,6 +263,7 @@ class EvolutionBenchmarkHistory:
             "can_beat_weak": last.confidence_vs_weak > 0.7,  # >70% confident
             "can_beat_moderate": last.confidence_vs_moderate > 0.6,  # >60% confident
             "can_beat_strong": last.confidence_vs_strong > 0.55,  # >55% confident
+            "can_beat_expert": last.confidence_vs_expert > 0.50,  # >50% = profitable vs GTO
             # Skill tier distribution (latest)
             "elo_tier_distribution": last.elo_tier_distribution,
         }
@@ -305,11 +306,58 @@ class EvolutionBenchmarkTracker:
         """Check if it's time for a benchmark run."""
         return current_frame - self._last_eval_frame >= self.eval_interval_frames
 
+        return snapshot
+
+    def _assign_rewards(
+        self,
+        results: "PopulationBenchmarkResult",
+        fish_population: List["Fish"],
+        reward_callback: Callable[[Fish, float], None],
+    ) -> None:
+        """Assign energy rewards to high-performing fish."""
+        import os
+        
+        if not results.individual_results:
+            return
+
+        enabled = os.getenv("TANK_BENCHMARK_REWARD_ENABLED", "1").strip().lower() in (
+            "1", "true", "yes", "on"
+        )
+        if not enabled:
+            return
+
+        # Reward scale: energy per 1 bb/100
+        # Example: 10 bb/100 * 0.1 = 1.0 energy
+        scale = float(os.getenv("TANK_BENCHMARK_REWARD_SCALE", "0.1"))
+        max_reward = float(os.getenv("TANK_BENCHMARK_REWARD_MAX", "20.0"))
+
+        for res in results.individual_results:
+            # Reward based on weighted performance (overall skill)
+            score = res.weighted_bb_per_100
+            
+            # Bonus for beating Expert
+            if res.avg_bb_per_100_vs_expert > 0:
+                score += res.avg_bb_per_100_vs_expert * 0.5
+
+            if score <= 0:
+                continue
+
+            energy_reward = min(score * scale, max_reward)
+            
+            # Find the live fish entity
+            fish = next((f for f in fish_population if f.fish_id == res.fish_id), None)
+            if fish:
+                try:
+                    reward_callback(fish, energy_reward)
+                except Exception as e:
+                    logger.error(f"Failed to apply reward to fish {fish.fish_id}: {e}")
+
     def run_and_record(
         self,
         fish_population: List["Fish"],
         current_frame: int,
         force: bool = False,
+        reward_callback: Optional[Callable[[Fish, float], None]] = None,
     ) -> Optional[BenchmarkSnapshot]:
         """Run benchmark and record results if it's time.
 
@@ -317,6 +365,7 @@ class EvolutionBenchmarkTracker:
             fish_population: All fish in the simulation
             current_frame: Current simulation frame
             force: Force run even if interval hasn't passed
+            reward_callback: Optional callback to apply energy rewards (fish, amount)
 
         Returns:
             BenchmarkSnapshot if run, None if skipped
@@ -328,13 +377,25 @@ class EvolutionBenchmarkTracker:
         from core.poker.evaluation.comprehensive_benchmark import (
             run_full_benchmark,
             run_quick_benchmark,
+            PopulationBenchmarkResult,  # Needed for type hint if we moved _assign_rewards out
         )
+        import time as time_module
 
-        # Run the appropriate benchmark
+        # Run the appropriate benchmark with timing
+        start_time = time_module.time()
+        logger.info(f"Starting {'quick' if self.use_quick_benchmark else 'full'} benchmark for {len(fish_population)} fish...")
+        
         if self.use_quick_benchmark:
             result = run_quick_benchmark(fish_population, current_frame)
         else:
             result = run_full_benchmark(fish_population, current_frame)
+        
+        elapsed = time_module.time() - start_time
+        logger.info(f"Benchmark completed in {elapsed:.1f}s ({result.total_hands:,} hands)")
+        
+        # Apply rewards if callback provided
+        if reward_callback:
+            self._assign_rewards(result, fish_population, reward_callback)
 
         # Calculate average generation
         avg_generation = 0
@@ -353,6 +414,7 @@ class EvolutionBenchmarkTracker:
             pop_bb_vs_weak=result.pop_bb_vs_weak,
             pop_bb_vs_moderate=result.pop_bb_vs_moderate,
             pop_bb_vs_strong=result.pop_bb_vs_strong,
+            pop_bb_vs_expert=result.pop_bb_vs_expert,
             # Elo rating metrics (more stable than raw bb/100)
             pop_mean_elo=result.pop_mean_elo,
             pop_median_elo=result.pop_median_elo,
@@ -361,6 +423,7 @@ class EvolutionBenchmarkTracker:
             confidence_vs_weak=result.pop_confidence_vs_weak,
             confidence_vs_moderate=result.pop_confidence_vs_moderate,
             confidence_vs_strong=result.pop_confidence_vs_strong,
+            confidence_vs_expert=result.pop_confidence_vs_expert,
             strategy_distribution=result.strategy_count.copy(),
             dominant_strategy=max(
                 result.strategy_count.items(), key=lambda x: x[1]
@@ -500,6 +563,7 @@ class EvolutionBenchmarkTracker:
                     "conf_weak": round(s.confidence_vs_weak, 3),
                     "conf_moderate": round(s.confidence_vs_moderate, 3),
                     "conf_strong": round(s.confidence_vs_strong, 3),
+                    "conf_expert": round(s.confidence_vs_expert, 3),
                     # Raw bb/100 metrics (for reference)
                     "pop_bb_per_100": round(s.pop_bb_per_100, 2),
                     "pop_weighted_bb": round(s.pop_weighted_bb, 2),
@@ -507,6 +571,7 @@ class EvolutionBenchmarkTracker:
                     "vs_weak": round(s.pop_bb_vs_weak, 2),
                     "vs_moderate": round(s.pop_bb_vs_moderate, 2),
                     "vs_strong": round(s.pop_bb_vs_strong, 2),
+                    "vs_expert": round(s.pop_bb_vs_expert, 2),
                     "best_bb": round(s.best_bb_per_100, 2),
                     "best_elo": round(s.best_elo, 1),
                     "dominant_strategy": s.dominant_strategy,
@@ -540,6 +605,7 @@ class EvolutionBenchmarkTracker:
                 "conf_weak": round(self.history.snapshots[-1].confidence_vs_weak, 3),
                 "conf_moderate": round(self.history.snapshots[-1].confidence_vs_moderate, 3),
                 "conf_strong": round(self.history.snapshots[-1].confidence_vs_strong, 3),
+                "conf_expert": round(self.history.snapshots[-1].confidence_vs_expert, 3),
                 "conf_strong_ema": round(
                     self.history.confidence_strong_ema[-1], 3
                 ) if self.history.confidence_strong_ema else 0.5,

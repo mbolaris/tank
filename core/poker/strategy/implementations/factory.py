@@ -18,6 +18,7 @@ from core.poker.strategy.implementations.advanced import (
     TrapSetterStrategy,
     MathematicalStrategy,
 )
+from core.poker.strategy.implementations.expert import GTOExpertStrategy
 from core.poker.strategy.implementations.baseline import (
     AlwaysFoldStrategy,
     RandomStrategy,
@@ -44,6 +45,7 @@ BASELINE_STRATEGIES: List[Type[PokerStrategyAlgorithm]] = [
     RandomStrategy,
     TightPassiveStrategy,  # "Rock" - also useful as baseline
     LoosePassiveStrategy,  # "Calling Station" - also useful as baseline
+    GTOExpertStrategy,     # Expert baseline
 ]
 
 def get_all_poker_strategies() -> List[Type[PokerStrategyAlgorithm]]:
