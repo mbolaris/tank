@@ -121,10 +121,10 @@ Based on bb/100 (big blinds won per 100 hands) — this accounts for amounts won
                 )}
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ color, fontSize: '42px', fontWeight: 700, lineHeight: 1 }}>
+                <span style={{ color, fontSize: '32px', fontWeight: 700, lineHeight: 1 }}>
                     {Math.round(score)}
                 </span>
-                <span style={{ color, fontSize: '20px', fontWeight: 600 }}>%</span>
+                <span style={{ color, fontSize: '16px', fontWeight: 600 }}>%</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                 <span style={{ color, fontSize: '12px', fontWeight: 600 }}>
@@ -657,6 +657,7 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
 export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
     const [data, setData] = useState<EvolutionBenchmarkData | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('overview');
+    const [expanded, setExpanded] = useState(true);
     const [loading, setLoading] = useState(true);
     const [longitudinalMetric, setLongitudinalMetric] = useState<LongitudinalMetric>('confidence');
 
@@ -773,32 +774,34 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
             <CollapsibleSection
                 title={
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '16px', fontWeight: 600, color: colors.primary }}>Poker Evolution Benchmark</span>
+                        <span style={{ fontSize: '16px', fontWeight: 600, color: '#818cf8' }}>Poker Evolution Benchmark</span>
+                        {expanded && (
+                            <div style={styles.tabs} onClick={(e) => e.stopPropagation()}>
+                                {(['overview', 'vs_baselines', 'longitudinal'] as ViewMode[]).map(mode => (
+                                    <button
+                                        key={mode}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setViewMode(mode);
+                                        }}
+                                        style={viewMode === mode ? styles.activeTab : styles.tab}
+                                    >
+                                        {mode === 'overview' ? 'Overview' :
+                                            mode === 'vs_baselines' ? 'vs Baselines' :
+                                                'Evolution'}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 }
-                defaultExpanded={true}
+                expanded={expanded}
+                onToggle={setExpanded}
             >
-                {/* Tabs - Moved to body */}
-                <div style={{ marginBottom: '16px' }}>
-                    <div style={styles.tabs}>
-                        {(['overview', 'vs_baselines', 'longitudinal'] as ViewMode[]).map(mode => (
-                            <button
-                                key={mode}
-                                onClick={() => setViewMode(mode)}
-                                style={viewMode === mode ? styles.activeTab : styles.tab}
-                            >
-                                {mode === 'overview' ? 'Overview' :
-                                    mode === 'vs_baselines' ? 'vs Baselines' :
-                                        'Evolution'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
                 <div style={{ marginTop: '0px' }}>
 
                     {viewMode === 'overview' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {/* Top Row: Score + Metrics */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 2fr', gap: '12px' }}>
                                 {/* Left: Prominent Poker Score */}
@@ -989,12 +992,12 @@ const styles = {
     pokerScoreContainer: {
         backgroundColor: colors.bgLight,
         borderRadius: '12px',
-        padding: '16px',
+        padding: '12px',
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '4px',
+        gap: '2px',
         height: '100%', // Fill height in grid
         boxSizing: 'border-box' as const,
         border: `2px solid rgba(59, 130, 246, 0.3)`,
@@ -1003,7 +1006,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        marginBottom: '8px',
+        marginBottom: '4px',
     },
     tooltipIcon: {
         display: 'inline-flex',
@@ -1040,16 +1043,16 @@ const styles = {
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '8px',
-        marginBottom: '12px',
+        marginBottom: '8px',
     },
     metricCard: {
         backgroundColor: colors.bgLight,
         borderRadius: '8px',
-        padding: '12px 8px',
+        padding: '8px 6px',
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'center',
-        gap: '4px',
+        gap: '2px',
     },
     metricLabel: {
         color: colors.textSecondary,
@@ -1061,10 +1064,10 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        padding: '8px 12px',
+        padding: '6px 12px',
         backgroundColor: colors.bgLight,
         borderRadius: '6px',
-        marginBottom: '8px',
+        marginBottom: '4px',
     },
     strategyTag: {
         backgroundColor: 'rgba(167, 139, 250, 0.2)',
@@ -1076,7 +1079,7 @@ const styles = {
     improvementBanner: {
         backgroundColor: colors.bgLight,
         borderRadius: '6px',
-        padding: '10px 12px',
+        padding: '6px 12px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',

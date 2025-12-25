@@ -288,7 +288,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
             <CollapsibleSection
                 title={
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
-                        <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-main)' }}>System Analytics</span>
+                        <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-main)' }}>Ecosystem Details</span>
                     </div>
                 }
                 defaultExpanded={true}

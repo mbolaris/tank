@@ -9,16 +9,27 @@ interface CollapsibleSectionProps {
     title: React.ReactNode;
     children: React.ReactNode;
     defaultExpanded?: boolean;
+    expanded?: boolean;
+    onToggle?: (expanded: boolean) => void;
 }
 
-export function CollapsibleSection({ title, children, defaultExpanded = true }: CollapsibleSectionProps) {
-    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+export function CollapsibleSection({ title, children, defaultExpanded = true, expanded, onToggle }: CollapsibleSectionProps) {
+    const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+
+    const isExpanded = expanded !== undefined ? expanded : internalExpanded;
+    const handleToggle = () => {
+        if (onToggle) {
+            onToggle(!isExpanded);
+        } else {
+            setInternalExpanded(!isExpanded);
+        }
+    };
 
     return (
         <div className={styles.section}>
             <h3
                 className={styles.title}
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={handleToggle}
             >
                 <span className={styles.icon}>
                     {isExpanded ? '▼' : '▶'}

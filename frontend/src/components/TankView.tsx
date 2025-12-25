@@ -359,7 +359,7 @@ export function TankView({ tankId }: TankViewProps) {
                         <CollapsibleSection
                             title={
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: 600, color: '#3b82f6' }}>Poker Dashboard</span>
+                                    <span style={{ fontSize: '16px', fontWeight: 600, color: '#93c5fd' }}>Poker Dashboard</span>
                                 </div>
                             }
                             defaultExpanded={false}
@@ -398,7 +398,7 @@ export function TankView({ tankId }: TankViewProps) {
                     <CollapsibleSection
                         title={
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
-                                <span style={{ fontSize: '16px', fontWeight: 600, color: '#00ff00' }}>Phylogenetic Tree</span>
+                                <span style={{ fontSize: '16px', fontWeight: 600, color: '#4ade80' }}>Phylogenetic Tree</span>
                             </div>
                         }
                         defaultExpanded={false}
