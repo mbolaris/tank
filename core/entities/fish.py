@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 
 from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.fish.energy_component import EnergyComponent
+from core.fish.energy_state import EnergyState
 from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent
 from core.fish_memory import FishMemorySystem
@@ -229,6 +230,13 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         if self._typed_id is None or self._typed_id.value != self.fish_id:
             self._typed_id = FishId(self.fish_id)
         return self._typed_id
+
+    def get_energy_state(self) -> EnergyState:
+        """Get immutable snapshot of current energy state."""
+        return EnergyState(
+            current_energy=self.energy,
+            max_energy=self._energy_component.max_energy,
+        )
 
     def register_birth(self) -> None:
         """Register birth stats with the ecosystem.
@@ -713,7 +721,7 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         available_capacity = self.max_energy - self.energy
 
         # Don't eat if we're already full (prevents wasting food)
-        if available_capacity <= 0.1:
+        if self.get_energy_state().is_saturated:
             return
 
         # Limit bite size to what we can actually use

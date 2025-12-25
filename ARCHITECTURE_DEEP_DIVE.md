@@ -631,7 +631,7 @@ FRAME_START → TIME_UPDATE → ENVIRONMENT → ENTITY_ACT → LIFECYCLE → SPA
 | Priority | Task | Effort | Impact | Risk |
 |----------|------|--------|--------|------|
 | ~~1~~ | ~~Extract FishVisualState~~ | ~~2h~~ | ~~High~~ | ~~Very Low~~ | ✅ **DONE (2024-12)** |
-| 2 | Create EnergyState class | 3h | Medium | Low |
+| ~~2~~ | ~~Create EnergyState class~~ | ~~3h~~ | ~~Medium~~ | ~~Low~~ | ✅ **DONE (2024-12)** |
 | 3 | Audit & remove unused EcosystemManager methods | 2h | Medium | Low |
 
 ### Short-Term (Next Month)
