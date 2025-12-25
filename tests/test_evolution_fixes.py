@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 """Test script to verify energy economy and algorithm evolution fixes."""
 
-import sys
-from pathlib import Path
-
 import pytest
-
-# Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.algorithms.registry import crossover_algorithms, get_random_algorithm
 from core.genetics import Genome

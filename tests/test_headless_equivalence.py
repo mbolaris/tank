@@ -4,11 +4,6 @@ This test demonstrates that web mode and headless CLI mode use the same
 simulation engine and produce equivalent results.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import random
 
 import pytest

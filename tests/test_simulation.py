@@ -1,10 +1,5 @@
 """Quick test to verify the simulation runs without errors."""
 
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from core import entities
 from core.simulation_engine import SimulationEngine
 
