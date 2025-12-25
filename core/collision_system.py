@@ -401,8 +401,6 @@ class CollisionSystem(BaseSystem):
         Returns:
             bool: True if the fish died from the collision, False otherwise
         """
-        from core.events import EntityDiedEvent
-
         self._fish_crab_collisions += 1
 
         # Mark the predator encounter for death attribution

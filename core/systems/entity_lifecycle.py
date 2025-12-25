@@ -191,8 +191,6 @@ class EntityLifecycleSystem(BaseSystem):
             fish: The fish that died
             cause: Optional death cause override (defaults to fish.get_death_cause())
         """
-        from core.events import EntityDiedEvent
-
         # Skip if already recorded as dying (prevent double-recording)
         if fish.visual_state.death_effect_state is not None:
             return
@@ -225,18 +223,8 @@ class EntityLifecycleSystem(BaseSystem):
                 remaining_energy=total_energy_lost,
             )
 
-        event_bus = getattr(self._engine, "event_bus", None)
-        if event_bus is not None:
-            event_bus.emit(
-                EntityDiedEvent(
-                    frame=self._engine.frame_count,
-                    entity_id=fish.fish_id,
-                    entity_type="fish",
-                    cause=death_cause,
-                    age=fish._lifecycle_component.age,
-                    generation=fish.generation,
-                )
-            )
+        # NOTE: EntityDiedEvent emission was removed - nothing subscribed to it.
+        # Re-add when we have actual consumers for death events.
 
         # Don't remove fish yet - stay in simulation for death effect to render
         # Cleanup happens in cleanup_dying_fish() when death_effect_timer expires

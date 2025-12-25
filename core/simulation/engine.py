@@ -48,7 +48,6 @@ from core.entities.plant import Plant, PlantNectar
 from core.simulation import diagnostics
 
 from core.entity_factory import create_initial_population
-from core.events import EnergyChangedEvent, EventBus
 from core.genetics import Genome, PlantGenome
 from core.plant_manager import PlantManager
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
@@ -164,8 +163,9 @@ class SimulationEngine:
         self.start_time: float = time.time()
 
 
-        # Event bus for decoupled communication
-        self.event_bus = EventBus()
+        # NOTE: EventBus was removed as dead code. It subscribed to events
+        # that were never emitted, and emitted events with no subscribers.
+        # If we need pub/sub in the future, re-add it with actual use cases.
 
         # Systems - initialized here, registered in setup()
         self.collision_system = CollisionSystem(self)
@@ -264,8 +264,6 @@ class SimulationEngine:
         self._system_registry.register(self.reproduction_system)
         self._system_registry.register(self.poker_system)
 
-        # Wire up event bus subscriptions
-        self._setup_event_subscriptions()
 
         # Create initial entities
         self.create_initial_entities()
@@ -289,14 +287,6 @@ class SimulationEngine:
             live_food_chance=food_cfg.live_food_chance,
         )
 
-    def _setup_event_subscriptions(self) -> None:
-        """Set up event bus subscriptions for the engine."""
-        self.event_bus.subscribe(EnergyChangedEvent, self._on_energy_changed)
-
-    def _on_energy_changed(self, event: EnergyChangedEvent) -> None:
-        """Handle energy change events."""
-        if self.ecosystem is not None and event.amount < 0:
-            self.ecosystem.record_energy_burn(event.source, abs(event.amount))
 
     # =========================================================================
     # System Registry Methods (delegate to SystemRegistry)
@@ -324,17 +314,6 @@ class SimulationEngine:
         """Enable or disable a system by name."""
         return self._system_registry.set_enabled(name, enabled)
 
-    # =========================================================================
-    # Event Bus Methods
-    # =========================================================================
-
-    def emit_event(self, event) -> None:
-        """Emit an event to the engine's event bus."""
-        self.event_bus.emit(event)
-
-    def get_event_bus_stats(self) -> Dict[str, Any]:
-        """Get statistics about the event bus."""
-        return self.event_bus.get_stats()
 
     # =========================================================================
     # Phase Tracking
