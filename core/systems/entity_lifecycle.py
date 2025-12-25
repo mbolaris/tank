@@ -1,16 +1,30 @@
 """Entity lifecycle management system.
 
 This module handles entity birth, death, and lifecycle transitions.
-It centralizes lifecycle logic that was previously scattered throughout
-the simulation engine.
+It is the SINGLE OWNER of entity removal logic in the simulation.
 
 Architecture Notes:
 - Extends BaseSystem for uniform system management
 - Runs in UpdatePhase.LIFECYCLE (but also resets counters at FRAME_START)
-- Manages entity death processing and cleanup
-- Handles food expiration and removal
-- Coordinates emergency fish spawning
-- Emits lifecycle events (when event bus is wired)
+- OWNS ALL entity removal decisions:
+  - Fish death processing (with death animation delay)
+  - Plant death and root spot release
+  - Food removal (expiry for LiveFood, off-screen for regular food)
+  - PlantNectar removal
+- Tracks lifecycle statistics (births, deaths, food removed)
+
+Design Decision: Single Owner of Removal Logic
+----------------------------------------------
+Previously, entity removal logic was duplicated between:
+1. SimulationEngine._phase_entity_act() - inline checks
+2. EntityLifecycleSystem.process_food_removal() - method
+
+This violated DRY and created heisenbug potential (double removals,
+stats miscounts, events not fired consistently). Now ALL removal rules
+live here, and the engine simply calls this system's methods.
+
+To add new removal rules: Add a method here, call from _phase_lifecycle.
+Do NOT add inline removal logic in SimulationEngine.
 """
 
 import logging
@@ -28,14 +42,16 @@ logger = logging.getLogger(__name__)
 
 @runs_in_phase(UpdatePhase.LIFECYCLE)
 class EntityLifecycleSystem(BaseSystem):
-    """Manages entity lifecycle events including births, deaths, and cleanup.
+    """Single owner of entity removal logic and lifecycle tracking.
 
-    This system runs in the LIFECYCLE phase and consolidates lifecycle
-    management logic:
-    - Processing entity deaths with proper cleanup
-    - Removing expired/consumed food
-    - Emergency fish spawning when population is critical
-    - Tracking lifecycle statistics
+    This system runs in the LIFECYCLE phase and is the authoritative source
+    for all entity removal decisions:
+    - Fish death (with animation delay before removal)
+    - Plant death (releases root spot)
+    - Food removal (LiveFood expiry, regular food off-screen)
+    - PlantNectar removal
+
+    Also tracks lifecycle statistics (births, deaths, food removed).
 
     Note: The system also resets per-frame counters at FRAME_START via
     _do_update(), which is called by the engine at the start of each frame.

@@ -581,8 +581,6 @@ class SimulationEngine:
 
         # Performance: Pre-fetch type references
         Fish = entities.Fish
-        Food = entities.Food
-        LiveFood = entities.LiveFood
 
         ecosystem = self.ecosystem
         fish_count = len(self.get_fish_list()) if ecosystem is not None else 0
@@ -613,14 +611,8 @@ class SimulationEngine:
                 elif isinstance(entity, PlantNectar):
                     entities_to_remove.append(entity)
 
-            # Handle food removal conditions
-            elif isinstance(entity, Food):
-                if isinstance(entity, LiveFood):
-                    if entity.is_expired():
-                        entities_to_remove.append(entity)
-                else:
-                    if entity.pos.y >= self.config.display.screen_height - entity.height:
-                        entities_to_remove.append(entity)
+            # Note: Food removal (expiry, off-screen) is handled by LifecycleSystem
+            # in _phase_lifecycle to keep removal logic in one place
 
             self.keep_entity_on_screen(entity)
 
@@ -631,14 +623,29 @@ class SimulationEngine:
         new_entities: List[entities.Agent],
         entities_to_remove: List[entities.Agent],
     ) -> None:
-        """LIFECYCLE: Process deaths, add/remove entities."""
+        """LIFECYCLE: Process deaths, add/remove entities.
+        
+        This phase is the SINGLE OWNER of entity removal logic:
+        - Entities marked for removal in entity_act phase
+        - Food expiry and off-screen removal
+        - Fish death effect cleanup
+        """
         self._current_phase = UpdatePhase.LIFECYCLE
         
+        # Remove entities collected during entity_act phase
         for entity in entities_to_remove:
             self.remove_entity(entity)
 
+        # Process food removal (expiry, off-screen) - LifecycleSystem owns this logic
+        screen_height = self.config.display.screen_height
+        for entity in list(self._entity_manager.entities_list):
+            if isinstance(entity, entities.Food):
+                self.lifecycle_system.process_food_removal(entity, screen_height)
+
+        # Cleanup fish that finished their death animation
         self.cleanup_dying_fish()
 
+        # Add new entities spawned during entity_act
         for new_entity in new_entities:
             self.add_entity(new_entity)
 
