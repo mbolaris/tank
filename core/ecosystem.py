@@ -1,6 +1,7 @@
 """Ecosystem management and statistics tracking.
 
 This module manages population dynamics, statistics, and ecosystem health.
+EcosystemManager is a facade that composes specialized trackers.
 """
 
 import logging
@@ -10,16 +11,15 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 from core.config.ecosystem import (
     ENERGY_STATS_WINDOW_FRAMES,
     MAX_ECOSYSTEM_EVENTS,
-    TOTAL_ALGORITHM_COUNT,
 )
 from core.ecosystem_stats import (
-    AlgorithmStats,
     EcosystemEvent,
-    GenerationStats,
     GeneticDiversityStats,
     PokerStats,
 )
+from core.lineage_tracker import LineageTracker
 from core.poker_stats_manager import PokerStatsManager
+from core.population_tracker import PopulationTracker
 from core.reproduction_stats_manager import ReproductionStatsManager
 from core.services.energy_tracker import EnergyTracker
 
@@ -32,18 +32,18 @@ logger = logging.getLogger(__name__)
 
 
 class EcosystemManager:
-    """Manages ecosystem dynamics and statistics.
+    """Facade for ecosystem subsystems.
 
-    This class tracks population, generations, births, deaths, and
-    provides ecosystem-level insights and constraints.
+    Composes specialized trackers for different concerns:
+    - PopulationTracker: births, deaths, generations, algorithm stats
+    - LineageTracker: phylogenetic tree data
+    - PokerStatsManager: poker game statistics
+    - ReproductionStatsManager: reproduction statistics
+    - EnergyTracker: energy flow tracking
+    - EnhancedStatisticsTracker: time series and correlations
 
     Attributes:
         max_population: Maximum number of fish allowed (carrying capacity)
-        current_generation: Current generation number
-        total_births: Total fish born since start
-        total_deaths: Total fish died since start
-        events: Log of ecosystem events
-        generation_stats: Statistics per generation
     """
 
     def __init__(self, max_population: int = 75):
@@ -52,61 +52,112 @@ class EcosystemManager:
         Args:
             max_population: Maximum number of fish (carrying capacity)
         """
-        self.max_population: int = max_population
-        self.current_generation: int = 0
-        self.total_births: int = 0
-        self.total_deaths: int = 0
         self.frame_count: int = 0
 
-        # Event logging
+        # Event logging (simple, kept inline)
         self.events: List[EcosystemEvent] = []
         self.max_events: int = MAX_ECOSYSTEM_EVENTS
 
-        # Statistics tracking
-        self.generation_stats: Dict[int, GenerationStats] = {0: GenerationStats(generation=0)}
+        # Population tracking (births, deaths, generations)
+        self.population = PopulationTracker(
+            max_population=max_population,
+            add_event_callback=self._add_event,
+            frame_provider=lambda: self.frame_count,
+        )
 
-        # Death cause tracking
-        self.death_causes: Dict[str, int] = defaultdict(int)
-
-        # Algorithm performance tracking
-        self.algorithm_stats: Dict[int, AlgorithmStats] = {}
-        self._init_algorithm_stats()
+        # Lineage tracking for phylogenetic tree
+        self.lineage = LineageTracker()
 
         # Poker statistics tracking
         self.poker_manager = PokerStatsManager(
             add_event=self._add_event, frame_provider=lambda: self.frame_count
         )
-        self.poker_stats: Dict[int, PokerStats] = self.poker_manager.poker_stats
 
         # Reproduction statistics tracking
-        self.reproduction_manager = ReproductionStatsManager(self.algorithm_stats)
+        self.reproduction_manager = ReproductionStatsManager(
+            self.population.algorithm_stats
+        )
 
         # Genetic diversity statistics tracking
         self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
 
-        # NEW: Enhanced statistics tracker (time series, correlations, extinctions, etc.)
+        # Enhanced statistics tracker (time series, correlations, extinctions)
         from core.enhanced_statistics import EnhancedStatisticsTracker
 
         self.enhanced_stats: EnhancedStatisticsTracker = EnhancedStatisticsTracker(
             max_history_length=1000
         )
 
-        # NEW: Lineage tracking for phylogenetic tree
-        self.lineage_log: List[Dict[str, Any]] = []
-
-        # Next available fish ID
-        self.next_fish_id: int = 0
-
-        # Extinction tracking
-        self.total_extinctions: int = 0  # Count of times population went to 0
-        self._last_max_generation: int = 0  # Track previous max generation to detect drops
-
+        # Energy tracking
         self.energy_tracker = EnergyTracker()
 
+    # =========================================================================
+    # Backward-compatible property aliases (delegate to PopulationTracker)
+    # =========================================================================
 
+    @property
+    def max_population(self) -> int:
+        return self.population.max_population
 
+    @max_population.setter
+    def max_population(self, value: int) -> None:
+        self.population.max_population = value
 
+    @property
+    def current_generation(self) -> int:
+        return self.population.current_generation
 
+    @current_generation.setter
+    def current_generation(self, value: int) -> None:
+        self.population.current_generation = value
+
+    @property
+    def total_births(self) -> int:
+        return self.population.total_births
+
+    @total_births.setter
+    def total_births(self, value: int) -> None:
+        self.population.total_births = value
+
+    @property
+    def total_deaths(self) -> int:
+        return self.population.total_deaths
+
+    @total_deaths.setter
+    def total_deaths(self, value: int) -> None:
+        self.population.total_deaths = value
+
+    @property
+    def generation_stats(self) -> Dict:
+        return self.population.generation_stats
+
+    @property
+    def death_causes(self) -> Dict[str, int]:
+        return self.population.death_causes
+
+    @property
+    def algorithm_stats(self) -> Dict:
+        return self.population.algorithm_stats
+
+    @property
+    def next_fish_id(self) -> int:
+        return self.population.next_fish_id
+
+    @next_fish_id.setter
+    def next_fish_id(self, value: int) -> None:
+        self.population.next_fish_id = value
+
+    @property
+    def total_extinctions(self) -> int:
+        return self.population.total_extinctions
+
+    @property
+    def lineage_log(self) -> List[Dict[str, Any]]:
+        return self.lineage.lineage_log
+
+    @property
+    def poker_stats(self) -> Dict[int, PokerStats]:
+        return self.poker_manager.poker_stats
 
     @property
     def reproduction_stats(self):
@@ -152,22 +203,9 @@ class EcosystemManager:
     def total_plant_poker_energy_transferred(self, value: float) -> None:
         self.poker_manager.total_plant_poker_energy_transferred = value
 
-    def _init_algorithm_stats(self) -> None:
-        """Initialize algorithm stats for all algorithms."""
-        # Import here to avoid circular dependency
-        try:
-            from core.algorithms.registry import ALL_ALGORITHMS
-
-            for i, algo_class in enumerate(ALL_ALGORITHMS):
-                # Get algorithm name from class
-                algo_name = algo_class.__name__
-                self.algorithm_stats[i] = AlgorithmStats(algorithm_id=i, algorithm_name=algo_name)
-        except ImportError:
-            # If behavior_algorithms not available, just initialize empty
-            for i in range(TOTAL_ALGORITHM_COUNT):
-                self.algorithm_stats[i] = AlgorithmStats(
-                    algorithm_id=i, algorithm_name=f"Algorithm_{i}"
-                )
+    # =========================================================================
+    # Core Methods
+    # =========================================================================
 
     def update(self, frame: int) -> None:
         """Update ecosystem state.
@@ -175,55 +213,44 @@ class EcosystemManager:
         Args:
             frame: Current frame number
         """
-        # Snapshot energy stats from the previous frame before moving to new frame.
         self.energy_tracker.advance_frame(frame)
         self.frame_count = frame
 
-        # NEW: Check for algorithm extinctions
+        # Check for algorithm extinctions
         self.enhanced_stats.check_for_extinctions(frame, self)
 
-        # Check for population extinction (max generation drops to 0)
-        alive_generations = [g for g, s in self.generation_stats.items() if s.population > 0]
-        current_max_gen = max(alive_generations) if alive_generations else 0
-
-        # If we had fish before but now have none, increment extinction counter
-        if self._last_max_generation > 0 and current_max_gen == 0:
-            self.total_extinctions += 1
-            logger.info(f"Population extinction #{self.total_extinctions} detected at frame {frame}")
-
-        self._last_max_generation = current_max_gen
+        # Check for population extinction
+        self.population.check_for_extinction(frame)
 
     def generate_new_fish_id(self) -> int:
-        """Generate a new unique fish ID.
-
-        Returns:
-            Unique integer ID for a fish
-        """
-        fish_id = self.next_fish_id
-        self.next_fish_id += 1
-        return fish_id
-
-    def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
-        """Cleanup stats for dead fish.
-
-        Args:
-            alive_fish_ids: Set of currently living fish IDs.
-
-        Returns:
-            Number of records removed.
-        """
-        return self.poker_manager.cleanup_dead_fish(alive_fish_ids)
+        """Generate a new unique fish ID."""
+        return self.population.generate_new_fish_id()
 
     def can_reproduce(self, current_population: int) -> bool:
-        """Check if reproduction is allowed based on carrying capacity.
+        """Check if reproduction is allowed based on carrying capacity."""
+        return self.population.can_reproduce(current_population)
 
-        Args:
-            current_population: Current number of fish
+    def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
+        """Cleanup stats for dead fish."""
+        return self.poker_manager.cleanup_dead_fish(alive_fish_ids)
 
-        Returns:
-            True if population is below carrying capacity
-        """
-        return current_population < self.max_population
+    # =========================================================================
+    # Event Logging
+    # =========================================================================
+
+    def _add_event(self, event: EcosystemEvent) -> None:
+        """Add an event to the log, maintaining max size."""
+        self.events.append(event)
+        if len(self.events) > self.max_events:
+            self.events = self.events[-self.max_events:]
+
+    def get_recent_events(self, count: int = 10) -> List[EcosystemEvent]:
+        """Get the most recent events."""
+        return self.events[-count:]
+
+    # =========================================================================
+    # Population Recording (delegate to PopulationTracker)
+    # =========================================================================
 
     def record_birth(
         self,
@@ -233,10 +260,32 @@ class EcosystemManager:
         algorithm_id: Optional[int] = None,
         color: Optional[str] = None,
     ) -> None:
-        from core import ecosystem_population
+        """Record a fish birth."""
+        # Get algorithm name for lineage
+        algorithm_name = "Unknown"
+        if algorithm_id is not None and algorithm_id in self.algorithm_stats:
+            algorithm_name = self.algorithm_stats[algorithm_id].algorithm_name
 
-        ecosystem_population.record_birth(
-            self, fish_id, generation, parent_ids, algorithm_id, color
+        # Record in population tracker
+        self.population.record_birth(
+            fish_id=fish_id,
+            generation=generation,
+            parent_ids=parent_ids,
+            algorithm_id=algorithm_id,
+            color=color,
+            lineage_log=None,  # We'll handle lineage separately
+            enhanced_stats=self.enhanced_stats,
+        )
+
+        # Record in lineage tracker
+        parent_id = parent_ids[0] if parent_ids else None
+        self.lineage.record_birth(
+            fish_id=fish_id,
+            parent_id=parent_id,
+            generation=generation,
+            algorithm_name=algorithm_name,
+            color=color or "#00ff00",
+            birth_frame=self.frame_count,
         )
 
     def record_death(
@@ -249,86 +298,246 @@ class EcosystemManager:
         algorithm_id: Optional[int] = None,
         remaining_energy: float = 0.0,
     ) -> None:
-        from core import ecosystem_population
-
-        ecosystem_population.record_death(
-            self,
-            fish_id,
-            generation,
-            age,
-            cause,
-            genome,
-            algorithm_id,
-            remaining_energy,
+        """Record a fish death."""
+        self.population.record_death(
+            fish_id=fish_id,
+            generation=generation,
+            age=age,
+            cause=cause,
+            genome=genome,
+            algorithm_id=algorithm_id,
+            remaining_energy=remaining_energy,
+            enhanced_stats=self.enhanced_stats,
+            record_energy_burn=self.record_energy_burn,
         )
 
     def update_population_stats(self, fish_list: List["Fish"]) -> None:
-        from core import ecosystem_population
+        """Update population statistics from current fish list."""
+        self.population.update_population_stats(
+            fish_list=fish_list,
+            enhanced_stats=self.enhanced_stats,
+        )
+        self._update_genetic_diversity_stats(fish_list)
+        self.update_pregnant_count(0)  # No pregnancy in current system
 
-        ecosystem_population.update_population_stats(self, fish_list)
+    def _update_genetic_diversity_stats(self, fish_list: List["Fish"]) -> None:
+        """Update genetic diversity statistics."""
+        if not fish_list:
+            self.genetic_diversity_stats = GeneticDiversityStats()
+            return
 
-    def update_genetic_diversity_stats(self, fish_list: List["Fish"]) -> None:
-        from core import ecosystem_population
+        algorithms = set()
+        species = set()
+        color_hues = []
+        speed_modifiers = []
+        size_modifiers = []
+        vision_ranges = []
 
-        ecosystem_population.update_genetic_diversity_stats(self, fish_list)
+        for fish in fish_list:
+            genome = fish.genome
 
-    def _add_event(self, event: EcosystemEvent) -> None:
-        """Add an event to the log, maintaining max size.
+            composable = genome.behavioral.behavior
+            if composable is not None and composable.value is not None:
+                behavior_id = composable.value.behavior_id
+                algorithms.add(hash(behavior_id) % 1000)
 
-        Args:
-            event: Event to log
-        """
-        self.events.append(event)
+            species.add(fish.species)
+            color_hues.append(genome.physical.color_hue.value)
+            speed_modifiers.append(genome.speed_modifier)
+            size_modifiers.append(genome.physical.size_modifier.value)
+            vision_ranges.append(genome.vision_range)
 
-        # Trim old events if we exceed max
-        if len(self.events) > self.max_events:
-            self.events = self.events[-self.max_events :]
+        n_fish = len(fish_list)
 
-    def get_recent_events(self, count: int = 10) -> List[EcosystemEvent]:
-        """Get the most recent events.
+        color_variance = 0.0
+        if n_fish > 1:
+            mean_color = sum(color_hues) / n_fish
+            color_variance = sum((h - mean_color) ** 2 for h in color_hues) / n_fish
 
-        Args:
-            count: Number of recent events to return
+        trait_variances: Dict[str, float] = {}
+        if n_fish > 1:
+            mean_speed = sum(speed_modifiers) / n_fish
+            trait_variances["speed"] = (
+                sum((s - mean_speed) ** 2 for s in speed_modifiers) / n_fish
+            )
 
-        Returns:
-            List of recent events
-        """
-        return self.events[-count:]
+            mean_size = sum(size_modifiers) / n_fish
+            trait_variances["size"] = (
+                sum((s - mean_size) ** 2 for s in size_modifiers) / n_fish
+            )
+
+            mean_vision = sum(vision_ranges) / n_fish
+            trait_variances["vision"] = (
+                sum((v - mean_vision) ** 2 for v in vision_ranges) / n_fish
+            )
+
+        self.genetic_diversity_stats.unique_algorithms = len(algorithms)
+        self.genetic_diversity_stats.unique_species = len(species)
+        self.genetic_diversity_stats.color_variance = color_variance
+        self.genetic_diversity_stats.trait_variances = trait_variances
+
+    # =========================================================================
+    # Query Methods (delegate to trackers)
+    # =========================================================================
 
     def get_population_by_generation(self) -> Dict[int, int]:
-        from core import ecosystem_population
-
-        return ecosystem_population.get_population_by_generation(self)
+        """Get current population counts by generation."""
+        return self.population.get_population_by_generation()
 
     def get_total_population(self) -> int:
-        from core import ecosystem_population
+        """Get total population across all generations."""
+        return self.population.get_total_population()
 
-        return ecosystem_population.get_total_population(self)
+    def get_lineage_data(
+        self, alive_fish_ids: Optional[Set[int]] = None
+    ) -> List[Dict[str, Any]]:
+        """Get complete lineage data for phylogenetic tree visualization."""
+        return self.lineage.get_lineage_data(alive_fish_ids)
 
     def get_summary_stats(self, entities: Optional[List] = None) -> Dict[str, Any]:
-        from core import ecosystem_population
+        """Get comprehensive ecosystem summary statistics."""
+        from statistics import median
 
-        return ecosystem_population.get_summary_stats(self, entities)
+        from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES
+        from core.config.fish import (
+            FISH_ADULT_SIZE,
+            FISH_SIZE_MODIFIER_MAX,
+            FISH_SIZE_MODIFIER_MIN,
+        )
+
+        total_pop = self.get_total_population()
+        poker_summary = self.get_poker_stats_summary()
+
+        energy_summary = self.get_energy_source_summary()
+        recent_energy = self.get_recent_energy_breakdown(
+            window_frames=ENERGY_STATS_WINDOW_FRAMES
+        )
+        recent_energy_burn = self.get_recent_energy_burn(
+            window_frames=ENERGY_STATS_WINDOW_FRAMES
+        )
+        energy_delta = self.get_energy_delta(window_frames=ENERGY_STATS_WINDOW_FRAMES)
+
+        recent_energy_total = sum(recent_energy.values())
+        recent_energy_burn_total = sum(recent_energy_burn.values())
+        recent_energy_net = recent_energy_total - recent_energy_burn_total
+        energy_accounting_discrepancy = recent_energy_net - energy_delta.get(
+            "energy_delta", 0.0
+        )
+
+        plant_energy_summary = self.get_plant_energy_source_summary()
+        recent_plant_energy = self.get_recent_plant_energy_breakdown(
+            window_frames=ENERGY_STATS_WINDOW_FRAMES
+        )
+        recent_plant_energy_burn = self.get_recent_plant_energy_burn(
+            window_frames=ENERGY_STATS_WINDOW_FRAMES
+        )
+
+        total_energy = 0.0
+        fish_list = []
+        if entities is not None:
+            from core.entities import Fish
+
+            fish_list = [e for e in entities if isinstance(e, Fish)]
+            total_energy = sum(
+                e.energy + e._reproduction_component.overflow_energy_bank
+                for e in fish_list
+            )
+
+        alive_generations = [
+            g for g, stats in self.generation_stats.items() if stats.population > 0
+        ]
+
+        # Calculate adult size stats if we have fish
+        adult_size_min = 0.0
+        adult_size_max = 0.0
+        adult_size_median = 0.0
+        adult_size_range = "0.0-0.0"
+        if fish_list:
+            adult_sizes = [
+                FISH_ADULT_SIZE
+                * (f.genome.physical.size_modifier.value if hasattr(f, "genome") else 1.0)
+                for f in fish_list
+            ]
+            adult_size_min = min(adult_sizes)
+            adult_size_max = max(adult_sizes)
+            try:
+                adult_size_median = median(adult_sizes)
+            except Exception:
+                adult_size_median = 0.0
+            adult_size_range = f"{adult_size_min:.2f}-{adult_size_max:.2f}"
+
+        return {
+            "total_population": total_pop,
+            "current_generation": self.current_generation,
+            "max_generation": max(alive_generations) if alive_generations else 0,
+            "total_births": self.total_births,
+            "total_deaths": self.total_deaths,
+            "total_extinctions": self.total_extinctions,
+            "carrying_capacity": self.max_population,
+            "capacity_usage": (
+                f"{int(100 * total_pop / self.max_population)}%"
+                if self.max_population > 0
+                else "0%"
+            ),
+            "death_causes": dict(self.death_causes),
+            "generations_alive": len(alive_generations),
+            "poker_stats": poker_summary,
+            "total_energy": total_energy,
+            "energy_sources": energy_summary,
+            "energy_from_nectar": recent_energy.get("nectar", 0.0),
+            "energy_from_live_food": recent_energy.get("live_food", 0.0),
+            "energy_from_falling_food": recent_energy.get("falling_food", 0.0),
+            "energy_from_poker": recent_energy.get("poker_fish", 0.0),
+            "energy_from_poker_plant": recent_energy.get("poker_plant", 0.0),
+            "energy_from_auto_eval": recent_energy.get("auto_eval", 0.0),
+            "energy_from_birth": recent_energy.get("birth", 0.0),
+            "energy_from_soup_spawn": recent_energy.get("soup_spawn", 0.0),
+            "energy_from_migration_in": recent_energy.get("migration_in", 0.0),
+            "energy_burn_recent": recent_energy_burn,
+            "energy_burn_total": recent_energy_burn_total,
+            "energy_sources_recent": recent_energy,
+            "energy_gains_recent_total": recent_energy_total,
+            "energy_net_recent": recent_energy_net,
+            "energy_accounting_discrepancy": energy_accounting_discrepancy,
+            "energy_delta": energy_delta,
+            "plant_energy_sources": plant_energy_summary,
+            "plant_energy_sources_recent": recent_plant_energy,
+            "plant_energy_from_photosynthesis": recent_plant_energy.get(
+                "photosynthesis", 0.0
+            ),
+            "plant_energy_burn_recent": recent_plant_energy_burn,
+            "plant_energy_burn_total": sum(recent_plant_energy_burn.values()),
+            "adult_size_min": adult_size_min,
+            "adult_size_max": adult_size_max,
+            "adult_size_median": adult_size_median,
+            "adult_size_range": adult_size_range,
+            "allowed_adult_size_min": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN,
+            "allowed_adult_size_max": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX,
+            "reproduction_stats": self.get_reproduction_summary(),
+            "diversity_stats": self.get_diversity_summary(),
+        }
 
     def get_poker_stats_summary(self) -> Dict[str, Any]:
+        """Get poker statistics summary."""
         return self.poker_manager.get_poker_stats_summary()
 
     def get_poker_leaderboard(
-        self, fish_list: Optional[List] = None, limit: int = 10, sort_by: str = "net_energy"
+        self,
+        fish_list: Optional[List] = None,
+        limit: int = 10,
+        sort_by: str = "net_energy",
     ) -> List[Dict[str, Any]]:
+        """Get poker leaderboard."""
         return self.poker_manager.get_poker_leaderboard(
             fish_list, sort_by=sort_by, limit=limit
         )
 
     def get_reproduction_summary(self) -> Dict[str, Any]:
+        """Get reproduction statistics summary."""
         return self.reproduction_manager.get_summary()
 
     def get_diversity_summary(self) -> Dict[str, Any]:
-        """Get summary genetic diversity statistics.
-
-        Returns:
-            Dictionary with diversity metrics
-        """
+        """Get summary genetic diversity statistics."""
         diversity_score = self.genetic_diversity_stats.get_diversity_score()
         trait_vars = self.genetic_diversity_stats.trait_variances
 
@@ -344,38 +553,35 @@ class EcosystemManager:
         }
 
     def get_enhanced_stats_summary(self) -> Dict[str, Any]:
-        """Get comprehensive enhanced statistics report.
-
-        Returns:
-            Dictionary with all enhanced statistics
-        """
+        """Get comprehensive enhanced statistics report."""
         return self.enhanced_stats.get_full_report()
 
+    # =========================================================================
+    # Reproduction Recording
+    # =========================================================================
+
     def record_reproduction(self, algorithm_id: int, is_asexual: bool = False) -> None:
-        """Record a successful reproduction by a fish with the given algorithm."""
+        """Record a successful reproduction."""
         self.reproduction_manager.record_reproduction(algorithm_id, is_asexual=is_asexual)
 
     def record_mating_attempt(self, success: bool) -> None:
-        """Record a mating attempt (successful or failed)."""
+        """Record a mating attempt."""
         self.reproduction_manager.record_mating_attempt(success)
 
     def update_pregnant_count(self, count: int) -> None:
         """Update the count of currently pregnant fish."""
         self.reproduction_manager.update_pregnant_count(count)
 
-    def record_nectar_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
-        """Record nectar consumption by a fish with the given algorithm.
+    # =========================================================================
+    # Food Recording
+    # =========================================================================
 
-        Args:
-            algorithm_id: Algorithm ID (0-47) of the fish that ate
-            energy_gained: Energy gained from nectar
-        """
+    def record_nectar_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
+        """Record nectar consumption."""
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
-
-        # NEW: Track energy from nectar for efficiency metrics
         self.enhanced_stats.record_energy_from_food(energy_gained)
-        self.record_energy_gain('nectar', energy_gained)
+        self.record_energy_gain("nectar", energy_gained)
 
     def record_live_food_eaten(
         self,
@@ -384,54 +590,34 @@ class EcosystemManager:
         genome: Optional["Genome"] = None,
         generation: Optional[int] = None,
     ) -> None:
-        """Record live food consumption by a fish with the given algorithm.
-
-        Args:
-            algorithm_id: Algorithm ID (0-47) of the fish that ate
-            energy_gained: Energy gained from live food
-            genome: Optional genome so we can attribute trait correlations
-        """
+        """Record live food consumption."""
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
-
-        # NEW: Track energy from live food for efficiency metrics
         self.enhanced_stats.record_energy_from_food(energy_gained)
         if genome is not None:
             self.enhanced_stats.record_live_food_capture(
                 algorithm_id, energy_gained, genome, generation
             )
+        self.record_energy_gain("live_food", energy_gained)
 
-        self.record_energy_gain('live_food', energy_gained)
-
-    def record_falling_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
-        """Record falling food consumption by a fish with the given algorithm.
-
-        Args:
-            algorithm_id: Algorithm ID (0-47) of the fish that ate
-            energy_gained: Energy gained from falling food
-        """
+    def record_falling_food_eaten(
+        self, algorithm_id: int, energy_gained: float = 10.0
+    ) -> None:
+        """Record falling food consumption."""
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
-
-        # NEW: Track energy from falling food for efficiency metrics
         self.enhanced_stats.record_energy_from_food(energy_gained)
-        self.record_energy_gain('falling_food', energy_gained)
+        self.record_energy_gain("falling_food", energy_gained)
 
     def record_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
-        """Record generic food consumption by a fish with the given algorithm.
-
-        This is a convenience method that increments the food eaten counter
-        without specifying the food type. For detailed tracking, use the
-        specific methods: record_nectar_eaten, record_live_food_eaten, or
-        record_falling_food_eaten.
-
-        Args:
-            algorithm_id: Algorithm ID (0-47) of the fish that ate
-            energy_gained: Energy gained from food (default 10.0)
-        """
+        """Record generic food consumption."""
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
         self.enhanced_stats.record_energy_from_food(energy_gained)
+
+    # =========================================================================
+    # Poker Recording
+    # =========================================================================
 
     def record_poker_outcome(
         self,
@@ -447,7 +633,7 @@ class EcosystemManager:
         player1_algo_id: Optional[int] = None,
         player2_algo_id: Optional[int] = None,
     ) -> None:
-        """Record a poker game outcome with detailed statistics."""
+        """Record a poker game outcome."""
         self.poker_manager.record_poker_outcome(
             winner_id,
             loser_id,
@@ -482,8 +668,6 @@ class EcosystemManager:
             plant_hand_rank,
             won_by_fold,
         )
-
-        # Record energy flow for stats window
         net_amount = energy_transferred if fish_won else -energy_transferred
         self.record_plant_poker_energy_gain(net_amount)
 
@@ -492,16 +676,8 @@ class EcosystemManager:
         energy_to_fish: float,
         is_plant_game: bool = True,
     ) -> None:
-        """Record energy transfer from a mixed poker game (fish + plants).
-
-        Args:
-            energy_to_fish: Net energy transferred to fish (positive = fish gained from plants,
-                           negative = plants gained from fish)
-            is_plant_game: Whether this game involved plants (for counting)
-        """
+        """Record energy transfer from a mixed poker game."""
         self.poker_manager.record_mixed_poker_energy_transfer(energy_to_fish, is_plant_game)
-
-        # Record energy flow for stats window
         self.record_plant_poker_energy_gain(energy_to_fish)
 
     def record_mixed_poker_outcome(
@@ -512,95 +688,79 @@ class EcosystemManager:
         house_cut: float,
         winner_type: str,
     ) -> None:
-        """Record mixed poker outcome with correct per-economy house cut attribution.
-
-        Mixed poker changes both fish and plant energies (internal transfer), and may
-        also remove energy from the winner via house cut (true external outflow).
-
-        Policy:
-        - If winner is a fish: show house cut in fish economy only.
-        - If winner is a plant: show house cut in plant economy only.
-        - Keep net accounting consistent by "grossing up" the winner-side poker transfer
-          by the house cut when we surface it as a separate burn.
-        """
+        """Record mixed poker outcome with correct per-economy house cut attribution."""
         self.poker_manager.record_mixed_poker_energy_transfer(fish_delta, is_plant_game=True)
 
         winner_is_fish = winner_type == "fish"
         house_cut = float(house_cut or 0.0)
 
-        # Fish economy: show house cut only when fish wins.
         if fish_delta > 0:
             gross = fish_delta + (house_cut if winner_is_fish else 0.0)
             self.record_energy_gain("poker_plant", gross)
             if winner_is_fish and house_cut > 0:
                 self.record_energy_burn("poker_house_cut", house_cut)
         elif fish_delta < 0:
-            # When plants win, the fish loss already includes the cut implicitly;
-            # do not surface it separately in the fish economy panel.
             self.record_energy_burn("poker_plant_loss", -fish_delta)
 
-        # Plant economy: show house cut only when plant wins.
         if (not winner_is_fish) and house_cut > 0:
-            # Plant deltas are already recorded on the plant itself under "poker"
-            # (net after house cut). Gross it up so we can show the cut without
-            # changing the net.
             self.record_plant_energy_gain("poker", house_cut)
             self.record_plant_energy_burn("poker_house_cut", house_cut)
 
     def record_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-fish poker."""
-        self.record_energy_gain('poker_fish', amount)
+        self.record_energy_gain("poker_fish", amount)
 
     def record_plant_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-plant poker."""
         if amount >= 0:
-            self.record_energy_gain('poker_plant', amount)
+            self.record_energy_gain("poker_plant", amount)
         else:
-            # Negative amount means fish lost to plant
-            self.record_energy_burn('poker_plant_loss', -amount)
+            self.record_energy_burn("poker_plant_loss", -amount)
 
     def record_auto_eval_energy_gain(self, amount: float) -> None:
         """Track energy awarded through auto-evaluation benchmarks."""
-        self.record_energy_gain('auto_eval', amount)
+        self.record_energy_gain("auto_eval", amount)
+
+    # =========================================================================
+    # Energy Recording (delegate to EnergyTracker)
+    # =========================================================================
 
     def record_energy_gain(self, source: str, amount: float) -> None:
-        """Accumulate energy gains by source for downstream stats."""
+        """Accumulate energy gains by source."""
         self.energy_tracker.record_energy_gain(source, amount)
 
     def record_energy_burn(self, source: str, amount: float) -> None:
-        """Accumulate energy spent so we can prove metabolism/movement costs are applied."""
+        """Accumulate energy spent."""
         self.energy_tracker.record_energy_burn(source, amount)
 
     def record_energy_delta(
         self, source: str, delta: float, *, negative_source: Optional[str] = None
     ) -> None:
-        """Record a signed energy delta as either a gain or a burn."""
-        self.energy_tracker.record_energy_delta(
-            source, delta, negative_source=negative_source
-        )
+        """Record a signed energy delta."""
+        self.energy_tracker.record_energy_delta(source, delta, negative_source=negative_source)
 
     def record_energy_transfer(self, source: str, amount: float) -> None:
-        """Record an internal transfer as both a gain and a burn (net zero)."""
+        """Record an internal transfer as both a gain and a burn."""
         self.energy_tracker.record_energy_transfer(source, amount)
 
     def record_plant_energy_gain(self, source: str, amount: float) -> None:
-        """Accumulate plant energy gains by source for downstream stats."""
+        """Accumulate plant energy gains."""
         self.energy_tracker.record_plant_energy_gain(source, amount)
 
     def record_plant_energy_burn(self, source: str, amount: float) -> None:
-        """Accumulate plant energy spent for downstream stats."""
+        """Accumulate plant energy spent."""
         self.energy_tracker.record_plant_energy_burn(source, amount)
 
     def record_plant_energy_delta(
         self, source: str, delta: float, *, negative_source: Optional[str] = None
     ) -> None:
-        """Record a signed plant energy delta as either a gain or a burn."""
+        """Record a signed plant energy delta."""
         self.energy_tracker.record_plant_energy_delta(
             source, delta, negative_source=negative_source
         )
 
     def record_plant_energy_transfer(self, source: str, amount: float) -> None:
-        """Record a plant internal transfer as both a gain and a burn (net zero)."""
+        """Record a plant internal transfer."""
         self.energy_tracker.record_plant_energy_transfer(source, amount)
 
     def get_energy_source_summary(self) -> Dict[str, float]:
@@ -611,15 +771,10 @@ class EcosystemManager:
         """Return a snapshot of accumulated plant energy gains."""
         return self.energy_tracker.get_plant_energy_source_summary()
 
-    def get_recent_energy_breakdown(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, float]:
-        """Get energy source breakdown over recent frames.
-
-        Args:
-            window_frames: Number of recent frames to include (default 1800 = 60 seconds at 30fps)
-
-        Returns:
-            Dictionary mapping source names to net energy gained in the window
-        """
+    def get_recent_energy_breakdown(
+        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
+    ) -> Dict[str, float]:
+        """Get energy source breakdown over recent frames."""
         return self.energy_tracker.get_recent_energy_breakdown(window_frames=window_frames)
 
     def get_recent_plant_energy_breakdown(
@@ -630,7 +785,9 @@ class EcosystemManager:
             window_frames=window_frames
         )
 
-    def get_recent_energy_burn(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, float]:
+    def get_recent_energy_burn(
+        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
+    ) -> Dict[str, float]:
         """Get energy consumption breakdown over recent frames."""
         return self.energy_tracker.get_recent_energy_burn(window_frames=window_frames)
 
@@ -638,62 +795,30 @@ class EcosystemManager:
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
     ) -> Dict[str, float]:
         """Get plant energy consumption breakdown over recent frames."""
-        return self.energy_tracker.get_recent_plant_energy_burn(
-            window_frames=window_frames
-        )
+        return self.energy_tracker.get_recent_plant_energy_burn(window_frames=window_frames)
 
     def record_energy_snapshot(self, total_fish_energy: float, fish_count: int) -> None:
-        """Record a snapshot of total fish energy for delta calculations.
-
-        Call this method periodically (e.g., every frame or every few frames)
-        with the current total energy of all fish in the tank.
-
-        Args:
-            total_fish_energy: Sum of energy across all living fish
-            fish_count: Number of fish currently alive
-        """
+        """Record a snapshot of total fish energy."""
         self.energy_tracker.record_energy_snapshot(total_fish_energy, fish_count)
 
-    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, Any]:
-        """Calculate the true change in fish population energy over a time window.
-
-        This returns the actual delta in total fish energy, which may differ
-        from the "net external flow" due to:
-        - Fish dying with remaining energy (energy lost)
-        - Fish reproducing (internal transfer)
-        - Energy capping (overflow wasted)
-
-        Args:
-            window_frames: Number of frames to look back (default 1800 = 60s at 30fps)
-
-        Returns:
-            Dict with:
-            - energy_delta: Change in total fish energy (current - past)
-            - energy_now: Current total fish energy
-            - energy_then: Total fish energy at window start
-            - fish_count_now: Current fish count
-            - fish_count_then: Fish count at window start
-            - avg_energy_delta: Change in average energy per fish
-        """
+    def get_energy_delta(
+        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
+    ) -> Dict[str, Any]:
+        """Calculate the true change in fish population energy over a time window."""
         return self.energy_tracker.get_energy_delta(window_frames=window_frames)
 
+    # =========================================================================
+    # Algorithm Performance
+    # =========================================================================
+
     def get_algorithm_performance_report(self, min_sample_size: int = 5) -> str:
+        """Get algorithm performance report."""
         from core import algorithm_reporter
 
         return algorithm_reporter.get_algorithm_performance_report(self, min_sample_size)
 
     def get_poker_strategy_distribution(self, fish_list: List["Fish"]) -> Dict[str, Any]:
-        """Get distribution of poker strategies in the population.
-
-        This method helps visualize poker evolution by showing which strategies
-        are currently dominant in the population.
-
-        Args:
-            fish_list: List of all fish in the simulation
-
-        Returns:
-            Dictionary with strategy counts, dominant strategy, and avg win rates
-        """
+        """Get distribution of poker strategies in the population."""
         from collections import Counter
 
         strategy_counts: Counter = Counter()
@@ -712,18 +837,18 @@ class EcosystemManager:
             strategy_counts[strat.strategy_id] += 1
             strategy_params[strat.strategy_id].append(strat.parameters.copy())
 
-            # Get win rate from fish poker stats if available
             if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
                 ps = fish.poker_stats
                 if ps.total_games > 0:
                     win_rate = ps.total_wins / ps.total_games
                     strategy_win_rates[strat.strategy_id].append(win_rate)
 
-        # Calculate averages
         result = {
             "total_fish": len(fish_list),
             "strategy_counts": dict(strategy_counts),
-            "dominant_strategy": strategy_counts.most_common(1)[0][0] if strategy_counts else None,
+            "dominant_strategy": (
+                strategy_counts.most_common(1)[0][0] if strategy_counts else None
+            ),
             "diversity": len(strategy_counts),
             "strategy_avg_win_rates": {},
         }
@@ -735,31 +860,20 @@ class EcosystemManager:
         return result
 
     def log_poker_evolution_status(self, fish_list: List["Fish"]) -> None:
-        """Log current poker evolution status to console.
-
-        Call this periodically (e.g., every 30 seconds) to see evolution happening.
-
-        Args:
-            fish_list: List of all fish in the simulation
-        """
+        """Log current poker evolution status to console."""
         dist = self.get_poker_strategy_distribution(fish_list)
 
         if not dist["strategy_counts"]:
             logger.info("Poker Evolution: No fish with poker strategies")
             return
 
-        # Format strategy distribution
         sorted_strats = sorted(
-            dist["strategy_counts"].items(),
-            key=lambda x: x[1],
-            reverse=True
+            dist["strategy_counts"].items(), key=lambda x: x[1], reverse=True
         )
 
         strat_str = ", ".join(f"{s}:{c}" for s, c in sorted_strats[:5])
         dominant = dist["dominant_strategy"]
         diversity = dist["diversity"]
-
-        # Get win rate for dominant strategy
         dom_win_rate = dist["strategy_avg_win_rates"].get(dominant, 0)
 
         logger.info(
@@ -767,56 +881,3 @@ class EcosystemManager:
             f"Dominant={dominant} ({dom_win_rate:.1%} win rate), "
             f"Diversity={diversity}, Distribution=[{strat_str}]"
         )
-
-    def get_lineage_data(self, alive_fish_ids: Optional[Set[int]] = None) -> List[Dict[str, Any]]:
-        """Get complete lineage data for phylogenetic tree visualization.
-
-        Args:
-            alive_fish_ids: Set of fish IDs that are currently alive
-
-        Returns:
-            List of lineage records with parent-child relationships and alive status
-        """
-        if alive_fish_ids is None:
-            alive_fish_ids = set()
-
-        # Build set of valid IDs (include explicit 'root')
-        valid_ids = {rec.get("id") for rec in self.lineage_log}
-        valid_ids.add("root")
-
-        enriched_lineage: List[Dict[str, Any]] = []
-        orphan_count = 0
-
-        for record in self.lineage_log:
-            # Normalize string ids and parent references
-            rec_id = record.get("id")
-            parent_id = record.get("parent_id", "root")
-
-            # If parent_id references a missing id, remap to root and record the orphan
-            if parent_id not in valid_ids:
-                orphan_count += 1
-                logger.warning(
-                    "Lineage: Orphaned record detected - id=%s parent_id=%s; remapping to root",
-                    rec_id,
-                    parent_id,
-                )
-                # Create a shallow copy and preserve original parent for audit
-                sanitized = dict(record)
-                sanitized["parent_id"] = "root"
-                sanitized["_original_parent_id"] = parent_id
-            else:
-                sanitized = dict(record)
-
-            # Determine alive status (root is not a living fish)
-            try:
-                fish_numeric_id = int(sanitized["id"]) if sanitized.get("id") != "root" else -1
-            except Exception:
-                fish_numeric_id = -1
-
-            sanitized["is_alive"] = fish_numeric_id in alive_fish_ids
-            enriched_lineage.append(sanitized)
-
-        if orphan_count > 0:
-            logger.info("Lineage: Fixed %d orphaned lineage record(s) by remapping parents to root", orphan_count)
-
-        return enriched_lineage
