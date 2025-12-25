@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import subprocess
 import os
+from pathlib import Path
 
-os.chdir('c:\\shared\\bolaris\\tank')
+os.chdir(str(Path(__file__).parent.parent))
 
 # Stage all changes
 print('Staging changes...')

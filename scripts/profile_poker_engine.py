@@ -11,9 +11,10 @@ import cProfile
 import io
 import pstats
 import sys
+from pathlib import Path
 from time import perf_counter
 
-sys.path.insert(0, r"c:\shared\bolaris\tank")
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.poker.core import simulate_multi_round_game
 
