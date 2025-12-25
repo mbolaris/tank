@@ -1,6 +1,6 @@
 """Tests for the filter_mutually_proximate utility function.
 
-This function is used by both BaseSimulator and PokerSystem to ensure
+This function is used by CollisionSystem and PokerSystem to ensure
 poker game participants are all within mutual proximity (no chain connections).
 """
 

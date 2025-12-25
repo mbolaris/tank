@@ -692,7 +692,7 @@ class PokerSystem(BaseSystem):
                     baby.register_birth()
 
     # =========================================================================
-    # Post-Poker Fish-Fish Reproduction (moved from BaseSimulator 2024-12)
+    # Post-Poker Fish-Fish Reproduction
     # =========================================================================
 
     def _attempt_post_poker_reproduction(self, poker: PokerInteraction) -> Optional["Fish"]:

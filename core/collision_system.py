@@ -8,11 +8,10 @@ Architecture Notes:
 - CollisionSystem is a simulation system that handles all collision logic
 - The system extends BaseSystem and declares UpdatePhase.COLLISION
 
-Design Decision (2024-12):
---------------------------
-This system now owns ALL collision iteration and handling, moved from
-BaseSimulator to create cleaner separation of concerns. The collision
-logic includes:
+Design Decision:
+--------------
+This system owns ALL collision iteration and handling, providing clean
+separation of concerns. The collision logic includes:
 - Fish-Food collisions (eating)
 - Fish-Crab collisions (predation)
 - Fish-Fish proximity detection for poker games
@@ -141,9 +140,9 @@ class CollisionSystem(BaseSystem):
     - Collision statistics for debugging
 
     Design Decision:
-        All collision iteration is handled here, not in BaseSimulator.
-        This creates clean separation of concerns - CollisionSystem owns
-        all collision-related logic.
+        All collision iteration is handled here, creating clean separation
+        of concerns - CollisionSystem owns all collision-related logic,
+        and the SimulationEngine only orchestrates system execution.
     """
 
     def __init__(self, engine: "SimulationEngine") -> None:

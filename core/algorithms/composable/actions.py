@@ -1,6 +1,6 @@
 import math
 import random
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 from core.math_utils import Vector2
 from core.config.food import FOOD_SINK_ACCELERATION

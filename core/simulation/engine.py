@@ -380,7 +380,7 @@ class SimulationEngine:
             self.plant_manager.block_spots_for_entity(entity)
 
     # =========================================================================
-    # Utility Methods (moved from BaseSimulator 2024-12)
+    # Utility Methods
     # =========================================================================
 
     def keep_entity_on_screen(
@@ -439,7 +439,7 @@ class SimulationEngine:
         self._entity_manager.rebuild_caches_if_needed()
 
     # =========================================================================
-    # Lifecycle Delegation (moved from BaseSimulator 2024-12)
+    # Lifecycle Delegation
     # =========================================================================
 
     def record_fish_death(self, fish: entities.Agent, cause: Optional[str] = None) -> None:
@@ -467,10 +467,7 @@ class SimulationEngine:
         self.reproduction_system.update(self.frame_count)
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
-        """Delegate poker result processing to the poker system.
-        
-        Note: PokerSystem now handles reproduction (moved from BaseSimulator 2024-12).
-        """
+        """Delegate poker result processing to the poker system."""
         self.poker_system.handle_poker_result(poker)
 
     def handle_mixed_poker_games(self) -> None:

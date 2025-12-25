@@ -1,55 +1,17 @@
 """SurfaceSkimmer food-seeking behavior."""
 
 
-import math
 import random
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import Tuple, Optional
 
-from core.algorithms.base import BehaviorAlgorithm, Vector2
+from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import (
-    CHASE_DISTANCE_CRITICAL,
-    CHASE_DISTANCE_LOW,
-    CHASE_DISTANCE_SAFE_BASE,
-    DANGER_WEIGHT_CRITICAL,
-    DANGER_WEIGHT_LOW,
-    DANGER_WEIGHT_NORMAL,
-    FOOD_CIRCLING_APPROACH_DISTANCE,
-    FOOD_MEMORY_RECORD_DISTANCE,
-    FOOD_PURSUIT_RANGE_CLOSE,
-    FOOD_PURSUIT_RANGE_DESPERATE,
-    FOOD_PURSUIT_RANGE_EXTENDED,
-    FOOD_PURSUIT_RANGE_NORMAL,
-    FOOD_SAFETY_BONUS,
-    FOOD_SAFETY_DISTANCE_RATIO,
-    FOOD_SCORE_THRESHOLD_CRITICAL,
-    FOOD_SCORE_THRESHOLD_LOW,
-    FOOD_SCORE_THRESHOLD_NORMAL,
-    FOOD_SPEED_BOOST_DISTANCE,
-    FOOD_STRIKE_DISTANCE,
-    FOOD_VELOCITY_THRESHOLD,
-    PREDATOR_DANGER_ZONE_DIVISOR,
-    PREDATOR_DANGER_ZONE_RADIUS,
-    PREDATOR_DEFAULT_FAR_DISTANCE,
-    PREDATOR_FLEE_DISTANCE_CAUTIOUS,
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
-    PREDATOR_FLEE_DISTANCE_DESPERATE,
-    PREDATOR_FLEE_DISTANCE_NORMAL,
-    PREDATOR_FLEE_DISTANCE_SAFE,
-    PREDATOR_GUARDING_FOOD_DISTANCE,
-    PREDATOR_PROXIMITY_THRESHOLD,
-    PROXIMITY_BOOST_DIVISOR,
-    PROXIMITY_BOOST_MULTIPLIER,
-    SOCIAL_FOLLOW_MAX_DISTANCE,
-    SOCIAL_FOOD_PROXIMITY_THRESHOLD,
-    SOCIAL_SIGNAL_DETECTION_RANGE,
-    URGENCY_BOOST_CRITICAL,
-    URGENCY_BOOST_LOW,
 )
 from core.config.display import SCREEN_HEIGHT
-from core.entities import Crab, Food
-from core.predictive_movement import predict_intercept_point, predict_falling_intercept
-from core.world import World
+from core.entities import Crab
+from core.predictive_movement import predict_falling_intercept
 
 @dataclass
 class SurfaceSkimmer(BehaviorAlgorithm):

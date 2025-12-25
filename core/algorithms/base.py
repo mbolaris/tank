@@ -24,8 +24,6 @@ from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.world import World
-    from core.interfaces import BehaviorStrategy
 
 
 ALGORITHM_PARAMETER_BOUNDS = {
