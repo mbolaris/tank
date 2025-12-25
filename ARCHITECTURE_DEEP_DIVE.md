@@ -647,9 +647,9 @@ FRAME_START → TIME_UPDATE → ENVIRONMENT → ENTITY_ACT → LIFECYCLE → SPA
 
 | Priority | Task | Effort | Impact | Risk |
 |----------|------|--------|--------|------|
-| 8 | Create Architecture Decision Records | 4h | Medium | Very Low |
-| 9 | Document system responsibilities | 2h | Medium | Very Low |
-| 10 | Audit and remove migration code (if unused) | 3h | Low | Low |
+| ~~8~~ | ~~Create Architecture Decision Records~~ | ~~4h~~ | ~~Medium~~ | ~~Very Low~~ | ✅ **DONE (2024-12)** - Created 5 ADRs in docs/adr/ |
+| ~~9~~ | ~~Document system responsibilities~~ | ~~2h~~ | ~~Medium~~ | ~~Very Low~~ | ✅ **DONE (2024-12)** - Created SYSTEM_RESPONSIBILITIES.md |
+| ~~10~~ | ~~Audit and remove migration code (if unused)~~ | ~~3h~~ | ~~Low~~ | ~~Low~~ | ✅ **DONE (2024-12)** - Audited; migration is actively used for multi-tank feature |
 
 ---
 
