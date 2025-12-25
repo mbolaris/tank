@@ -6,7 +6,7 @@ Tank World is an open-source platform where AI agents conduct Alife research aut
 
 The fish tank visualization is just the beginning. It makes the research **entertaining enough to watch**, which matters because entertaining simulations can drive distributed compute contributions. In future versions, the AI will evolve the visualizations themselves to maximize engagement.
 
-> **See [docs/VISION.md](docs/VISION.md) for the full project vision, [docs/PROJECT_PHILOSOPHY.md](docs/PROJECT_PHILOSOPHY.md) for core principles, and [ROADMAP.md](ROADMAP.md) for development phases.**
+> **See [docs/VISION.md](docs/VISION.md) for the full project vision and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for technical details.**
 
 ---
 
@@ -121,7 +121,7 @@ The simulation features **58 parametrizable behavior algorithms** that fish can 
 Fish can play poker against each other and against plants for energy rewards!
 
 - **Automatic**: Fish play when they collide and have >10 energy
-- **5-Card Draw**: Standard poker hand rankings
+- **Texas Hold'em**: Full poker rules with community cards and betting rounds
 - **Energy Stakes**: Winner takes energy from loser (house cut only for fish-vs-fish)
 - **Mixed Games**: Fish and plants can play together (requires at least 1 fish per game)
 - **Energy Flow Tracking**: Stats panel shows 🌱⚡→🐟 indicator for net plant-to-fish energy transfers
@@ -570,20 +570,16 @@ Built with:
 - **Uvicorn**: High-performance ASGI server
 - **Love for ALife**: Inspired by Conway's Life, Tierra, and evolutionary algorithms
 
-## Additional Resources
+## Documentation
 
-For more information:
-- **Vision**: See `docs/VISION.md` - Long-term goals and the two-layer evolution paradigm
-- **Roadmap**: See `ROADMAP.md` - Development phases and milestones
-- **AI Code Evolution**: See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` - Complete guide to automated algorithm improvement
-- **AI Improvement Proof**: See `docs/PROOF_OF_AI_IMPROVEMENT.md` - Real-world example (0% → 100% reproduction)
-- **Architecture details**: See `docs/ARCHITECTURE.md`
-- **Algorithmic evolution**: See `docs/ALGORITHMIC_EVOLUTION.md`
-- **Behavior development**: See `BEHAVIOR_DEVELOPMENT_GUIDE.md`
-- **Evolution examples**: See `EVOLUTION_EXAMPLE.md`
-- **Quick reference**: See `QUICK_REFERENCE.md`
-- **Deployment guide**: See `docs/DEPLOYMENT_GUIDE.md`
-- **Headless mode**: See `docs/HEADLESS_MODE.md`
+**Canonical docs** (these are maintained and up-to-date):
+- **[docs/VISION.md](docs/VISION.md)**: Long-term goals and the two-layer evolution paradigm
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Technical architecture and module layout
+- **[BEHAVIOR_DEVELOPMENT_GUIDE.md](BEHAVIOR_DEVELOPMENT_GUIDE.md)**: How to create and extend behavior algorithms
+- **[SETUP.md](SETUP.md)**: Development environment setup
+- **[docs/adr/](docs/adr/)**: Architecture Decision Records
+
+> **Note**: Historical analysis docs have been archived to `docs/archive/`.
 
 ---
 

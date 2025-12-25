@@ -382,11 +382,12 @@ The simulation uses **Protocols** (PEP 544) for defining interfaces:
 ## References
 
 - Main README: See `../README.md` (Project Structure is canonical)
-- Deployment: See `DEPLOYMENT_GUIDE.md`
-- Algorithmic Evolution: See `ALGORITHMIC_EVOLUTION.md`
-- Headless Mode: See `HEADLESS_MODE.md`
-- Cleanup Analysis: See `CLEANUP_ANALYSIS.md` (historical)
+- Vision & Philosophy: See `VISION.md`
+- Architecture Decisions: See `adr/` directory
+
+> Historical analysis docs have been archived to `archive/`.
 
 ## Change Log
 
+- **2025-12-25**: Pruned stale documentation, archived historical analysis docs.
 - **2025-12-23**: Aligned architecture doc with current module layout (algorithm registry counts, system registry order, poker systems) and linked to README structure section for ongoing authority.

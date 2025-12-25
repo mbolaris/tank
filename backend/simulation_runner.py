@@ -363,6 +363,7 @@ class SimulationRunner(CommandHandlerMixin):
                             f"FPS={self.current_actual_fps:.1f}, "
                             f"Fish={stats.get('fish_count', 0)}, "
                             f"Plants={stats.get('plant_count', 0)}, "
+                            f"Gen={stats.get('max_generation', 0)}, "
                             f"Energy={stats.get('total_energy', 0.0):.1f}"
                             f"{migration_str}{poker_str}"
                         )
