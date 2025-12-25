@@ -11,6 +11,7 @@
 import { useState, useEffect, useMemo, useId } from 'react';
 import { colors } from '../styles/theme';
 import type { BenchmarkSnapshot, BenchmarkImprovementMetrics, EvolutionBenchmarkData } from '../types/simulation';
+import { CollapsibleSection } from './ui';
 
 type ViewMode = 'overview' | 'vs_baselines' | 'longitudinal';
 type LongitudinalMetric = 'confidence' | 'bb100' | 'elo';
@@ -725,172 +726,192 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
 
     if (loading) {
         return (
-            <div style={styles.container}>
-                <div style={styles.header}>
-                    <h2 style={styles.title}>Poker Evolution Benchmark</h2>
-                </div>
-                <div style={styles.noData}>Loading benchmark data...</div>
+            <div className="glass-panel" style={{ padding: '16px' }}>
+                <CollapsibleSection
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                            <span style={{ fontSize: '16px', fontWeight: 600, color: colors.primary }}>Poker Evolution Benchmark</span>
+                        </div>
+                    }
+                    defaultExpanded={true}
+                >
+                    <div style={styles.noData}>Loading benchmark data...</div>
+                </CollapsibleSection>
             </div>
         );
     }
 
     if (!data || data.status === 'not_available' || !latest) {
         return (
-            <div style={styles.container}>
-                <div style={styles.header}>
-                    <h2 style={styles.title}>Poker Evolution Benchmark</h2>
-                </div>
-                <div style={styles.noData}>
-                    {data?.status === 'not_available'
-                        ? 'Benchmark is disabled on the server.'
-                        : 'No benchmark data available yet.'}
-                    <br />
-                    <span style={{ fontSize: '11px', color: colors.textSecondary }}>
+            <div className="glass-panel" style={{ padding: '16px' }}>
+                <CollapsibleSection
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                            <span style={{ fontSize: '16px', fontWeight: 600, color: colors.primary }}>Poker Evolution Benchmark</span>
+                        </div>
+                    }
+                    defaultExpanded={true}
+                >
+                    <div style={styles.noData}>
                         {data?.status === 'not_available'
-                            ? 'Set TANK_EVOLUTION_BENCHMARK_ENABLED=1 and restart the server.'
-                            : 'Benchmarks run periodically to measure poker skill evolution.'}
-                    </span>
-                </div>
+                            ? 'Benchmark is disabled on the server.'
+                            : 'No benchmark data available yet.'}
+                        <br />
+                        <span style={{ fontSize: '11px', color: colors.textSecondary }}>
+                            {data?.status === 'not_available'
+                                ? 'Set TANK_EVOLUTION_BENCHMARK_ENABLED=1 and restart the server.'
+                                : 'Benchmarks run periodically to measure poker skill evolution.'}
+                        </span>
+                    </div>
+                </CollapsibleSection>
             </div>
         );
     }
 
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h2 style={styles.title}>Poker Evolution Benchmark</h2>
-                <div style={styles.tabs}>
-                    {(['overview', 'vs_baselines', 'longitudinal'] as ViewMode[]).map(mode => (
-                        <button
-                            key={mode}
-                            onClick={() => setViewMode(mode)}
-                            style={viewMode === mode ? styles.activeTab : styles.tab}
-                        >
-                            {mode === 'overview' ? 'Overview' :
-                                mode === 'vs_baselines' ? 'vs Baselines' :
-                                    'Evolution'}
-                        </button>
-                    ))}
+        <div className="glass-panel" style={{ padding: '16px' }}>
+            <CollapsibleSection
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 600, color: colors.primary }}>Poker Evolution Benchmark</span>
+                    </div>
+                }
+                defaultExpanded={true}
+            >
+                {/* Tabs - Moved to body */}
+                <div style={{ marginBottom: '16px' }}>
+                    <div style={styles.tabs}>
+                        {(['overview', 'vs_baselines', 'longitudinal'] as ViewMode[]).map(mode => (
+                            <button
+                                key={mode}
+                                onClick={() => setViewMode(mode)}
+                                style={viewMode === mode ? styles.activeTab : styles.tab}
+                            >
+                                {mode === 'overview' ? 'Overview' :
+                                    mode === 'vs_baselines' ? 'vs Baselines' :
+                                        'Evolution'}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            {viewMode === 'overview' && (
-                <>
-                    {/* Prominent Poker Score - the single number to focus on */}
-                    {latest.conf_strong !== undefined && (
-                        <PokerScore
-                            confStrong={latest.conf_strong}
-                            confExpert={latest.conf_expert}
-                            trend={improvement.status === 'tracked' ? improvement.trend_direction : undefined}
-                        />
-                    )}
+                <div style={{ marginTop: '0px' }}>
 
-                    <div style={styles.overviewGrid}>
-                        <BbPer100Display
-                            value={latest.pop_bb_per_100}
-                            label="Population bb/100"
-                        />
-                        <BbPer100Display
-                            value={latest.vs_weak}
-                            label="vs Weak"
-                            showRating={false}
-                        />
-                        <BbPer100Display
-                            value={latest.vs_moderate}
-                            label="vs Moderate"
-                            showRating={false}
-                        />
-                        <BbPer100Display
-                            value={latest.vs_strong}
-                            label="vs Strong"
-                            showRating={false}
-                        />
-                    </div>
+                    {viewMode === 'overview' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {/* Top Row: Score + Metrics */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 2fr', gap: '12px' }}>
+                                {/* Left: Prominent Poker Score */}
+                                <div>
+                                    {latest.conf_strong !== undefined && (
+                                        <PokerScore
+                                            confStrong={latest.conf_strong}
+                                            confExpert={latest.conf_expert}
+                                            trend={improvement.status === 'tracked' ? improvement.trend_direction : undefined}
+                                        />
+                                    )}
+                                </div>
 
-                    <div style={styles.bestPerformer}>
-                        <span style={{ color: colors.textSecondary, fontSize: '11px' }}>Best Performer:</span>
-                        <span style={{ color: '#22c55e', fontWeight: 600 }}>
-                            +{latest.best_bb.toFixed(1)} bb/100
-                        </span>
-                        <span style={styles.strategyTag}>{latest.best_strategy ?? latest.dominant_strategy}</span>
-                    </div>
-
-                    <ImprovementBanner improvement={improvement} />
-                </>
-            )}
-
-            {viewMode === 'vs_baselines' && (
-                <BaselineBreakdown perBaseline={latest.per_baseline} />
-            )}
-
-            {viewMode === 'longitudinal' && (
-                <div style={styles.longitudinalView}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-                        <div style={styles.miniTabs}>
-                            {(['confidence', 'elo', 'bb100'] as LongitudinalMetric[]).map(m => (
-                                <button
-                                    key={m}
-                                    onClick={() => setLongitudinalMetric(m)}
-                                    style={longitudinalMetric === m ? styles.activeMiniTab : styles.miniTab}
-                                >
-                                    {m === 'confidence' ? 'Confidence' : m === 'elo' ? 'Elo' : 'bb/100'}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <LongitudinalChart history={history} metric={longitudinalMetric} />
-                    {improvement.status === 'tracked' && (
-                        <div style={styles.trendSummary}>
-                            <div>
-                                <span style={{ color: colors.textSecondary }}>Strategy: </span>
-                                {improvement.dominant_strategy_start} → {improvement.dominant_strategy_end}
+                                {/* Right: Metrics Grid (2x2) */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignContent: 'start' }}>
+                                    <BbPer100Display
+                                        value={latest.pop_bb_per_100}
+                                        label="Population bb/100"
+                                    />
+                                    <BbPer100Display
+                                        value={latest.vs_weak}
+                                        label="vs Weak"
+                                        showRating={false}
+                                    />
+                                    <BbPer100Display
+                                        value={latest.vs_moderate}
+                                        label="vs Moderate"
+                                        showRating={false}
+                                    />
+                                    <BbPer100Display
+                                        value={latest.vs_strong}
+                                        label="vs Strong"
+                                        showRating={false}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <span style={{ color: colors.textSecondary }}>Generations: </span>
-                                {improvement.generation_start} → {improvement.generation_end}
-                            </div>
-                            <div>
-                                <span style={{ color: colors.textSecondary }}>Snapshots: </span>
-                                {history.length}
+
+                            {/* Bottom Row: Best Performer + Improvement */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '12px', alignItems: 'center' }}>
+                                <div style={{ ...styles.bestPerformer, marginBottom: 0, padding: '6px 12px' }}>
+                                    <span style={{ color: colors.textSecondary, fontSize: '11px' }}>Best:</span>
+                                    <span style={{ color: '#22c55e', fontWeight: 600 }}>
+                                        +{latest.best_bb.toFixed(1)} bb/100
+                                    </span>
+                                    <span style={styles.strategyTag}>{latest.best_strategy ?? latest.dominant_strategy}</span>
+                                </div>
+
+                                <div>
+                                    <ImprovementBanner improvement={improvement} />
+                                </div>
                             </div>
                         </div>
                     )}
-                </div>
-            )}
 
-            <div style={styles.footer}>
-                <span style={{ color: colors.textSecondary, fontSize: '10px' }}>
-                    Gen {latest.generation} | bb/100 = big blinds won per 100 hands
-                </span>
-            </div>
+                    {viewMode === 'vs_baselines' && (
+                        <BaselineBreakdown perBaseline={latest.per_baseline} />
+                    )}
+
+                    {viewMode === 'longitudinal' && (
+                        <div style={styles.longitudinalView}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                                <div style={styles.miniTabs}>
+                                    {(['confidence', 'elo', 'bb100'] as LongitudinalMetric[]).map(m => (
+                                        <button
+                                            key={m}
+                                            onClick={() => setLongitudinalMetric(m)}
+                                            style={longitudinalMetric === m ? styles.activeMiniTab : styles.miniTab}
+                                        >
+                                            {m === 'confidence' ? 'Confidence' : m === 'elo' ? 'Elo' : 'bb/100'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <LongitudinalChart history={history} metric={longitudinalMetric} />
+                            {improvement.status === 'tracked' && (
+                                <div style={styles.trendSummary}>
+                                    <div>
+                                        <span style={{ color: colors.textSecondary }}>Strategy: </span>
+                                        {improvement.dominant_strategy_start} → {improvement.dominant_strategy_end}
+                                    </div>
+                                    <div>
+                                        <span style={{ color: colors.textSecondary }}>Generations: </span>
+                                        {improvement.generation_start} → {improvement.generation_end}
+                                    </div>
+                                    <div>
+                                        <span style={{ color: colors.textSecondary }}>Snapshots: </span>
+                                        {history.length}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                </div>
+
+                <div style={styles.footer}>
+                    <span style={{ color: colors.textSecondary, fontSize: '10px' }}>
+                        Gen {latest.generation} | bb/100 = big blinds won per 100 hands
+                    </span>
+                </div>
+            </CollapsibleSection>
         </div>
     );
 }
 
 const styles = {
-    container: {
-        backgroundColor: colors.bgDark,
-        borderRadius: '12px',
-        padding: '12px',
-        border: `1px solid ${colors.border}`,
-        maxWidth: '620px',
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '12px',
-        borderBottom: `1px solid ${colors.border}`,
-        paddingBottom: '8px',
-    },
-    title: {
-        margin: 0,
-        fontSize: '14px',
-        color: colors.primary,
-    },
+    // container removed - using glass-panel class
+    // header removed - integrated into CollapsibleSection title
+    // title removed - styled inline
     tabs: {
         display: 'flex',
         gap: '4px',
+        marginLeft: 'auto', // Push tabs to the right
     },
     miniTabs: {
         display: 'flex',
@@ -968,19 +989,21 @@ const styles = {
     pokerScoreContainer: {
         backgroundColor: colors.bgLight,
         borderRadius: '12px',
-        padding: '16px 20px',
+        padding: '16px',
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '4px',
-        marginBottom: '12px',
+        height: '100%', // Fill height in grid
+        boxSizing: 'border-box' as const,
         border: `2px solid rgba(59, 130, 246, 0.3)`,
     },
     pokerScoreHeader: {
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        marginBottom: '4px',
+        marginBottom: '8px',
     },
     tooltipIcon: {
         display: 'inline-flex',

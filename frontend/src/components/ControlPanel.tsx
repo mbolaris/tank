@@ -9,13 +9,12 @@ import { Button } from './ui';
 interface ControlPanelProps {
     onCommand: (command: Command) => void;
     isConnected: boolean;
-    onPlayPoker?: () => void;
     fastForwardEnabled?: boolean;
     showEffects?: boolean;
     onToggleEffects?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, onPlayPoker, fastForwardEnabled, showEffects, onToggleEffects }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects }: ControlPanelProps) {
     const [isPaused, setIsPaused] = useState(false);
     const [isFastForward, setIsFastForward] = useState(false);
 
@@ -59,10 +58,6 @@ export function ControlPanel({ onCommand, isConnected, onPlayPoker, fastForwardE
         }}>
             {/* Primary Actions */}
             <div style={{ display: 'flex', gap: '12px' }}>
-                <Button onClick={onPlayPoker} disabled={!isConnected} variant="poker">
-                    🃏 Play Poker
-                </Button>
-                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '0 8px' }} />
                 <Button onClick={handleAddFood} disabled={!isConnected} variant="primary">
                     🍔 Add Food
                 </Button>

@@ -14,7 +14,7 @@ import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
-import { CollapsibleSection } from './ui';
+import { CollapsibleSection, Button } from './ui';
 
 import type { PokerGameState } from '../types/simulation';
 
@@ -200,46 +200,14 @@ export function TankView({ tankId }: TankViewProps) {
                 <ControlPanel
                     onCommand={sendCommand}
                     isConnected={isConnected}
-                    onPlayPoker={handleStartPoker}
                     fastForwardEnabled={state?.stats?.fast_forward}
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
             </div>
 
-            {/* Tank simulation */}
-            <div className="top-section">
-                <div className="canvas-wrapper">
-                    <Canvas
-                        state={state}
-                        width={1088}
-                        height={612}
-                        onEntityClick={handleEntityClick}
-                        selectedEntityId={selectedEntityId}
-                        showEffects={showEffects}
-                    />
-                    <div className="canvas-glow" aria-hidden />
-                </div>
-            </div>
-
-            {/* Poker Game - Just below Tank */}
-            {
-                showPokerGame && (
-                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                        <PokerGame
-                            onClose={handleClosePoker}
-                            onAction={handlePokerAction}
-                            onNewRound={handleNewRound}
-                            onGetAutopilotAction={handleGetAutopilotAction}
-                            gameState={pokerGameState}
-                            loading={pokerLoading}
-                        />
-                    </div>
-                )
-            }
-
-            {/* Simulation Stats Panel */}
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+            {/* Simulation Stats Panel - Moved Above Tank */}
+            <div style={{ marginBottom: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
                 <div className="glass-panel" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '32px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className={`status-dot ${isConnected ? 'online' : 'offline'}`}
@@ -257,7 +225,7 @@ export function TankView({ tankId }: TankViewProps) {
                     <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>SIMULATION FRAME</span>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>FRAME</span>
                         <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
                             {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}
                         </span>
@@ -266,18 +234,110 @@ export function TankView({ tankId }: TankViewProps) {
                     <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
 
                     {state?.stats?.fps !== undefined && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>FPS</span>
-                            <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
-                                {state.stats.fps.toFixed(1)}
-                            </span>
-                        </div>
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>FPS</span>
+                                <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                                    {state.stats.fps.toFixed(1)}
+                                </span>
+                            </div>
+                            <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                        </>
                     )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>POPULATION</span>
+                        <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                            {state?.stats?.fish_count ? state.stats.fish_count.toLocaleString() : '0'}
+                        </span>
+                    </div>
+
+                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>MAX GEN</span>
+                        <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                            {state?.stats ? (state.stats.max_generation ?? state.stats.generation ?? 0) : '0'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
+            {/* Tank simulation */}
+            <div className="top-section">
+                <div className="canvas-wrapper">
+                    <Canvas
+                        state={state}
+                        width={1088}
+                        height={612}
+                        onEntityClick={handleEntityClick}
+                        selectedEntityId={selectedEntityId}
+                        showEffects={showEffects}
+                    />
+                    <div className="canvas-glow" aria-hidden />
+                </div>
+            </div>
+
+            {/* Poker Game - Collapsible Panel */}
+            <div className="glass-panel" style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto', padding: '16px', boxSizing: 'border-box' }}>
+                <CollapsibleSection
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                            <span style={{ fontSize: '16px', fontWeight: 600, color: '#a78bfa' }}>Poker Table</span>
+                            {showPokerGame && (
+                                <span style={{
+                                    fontSize: '11px',
+                                    backgroundColor: 'rgba(167, 139, 250, 0.2)',
+                                    color: '#a78bfa',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px'
+                                }}>
+                                    Active Game
+                                </span>
+                            )}
+                        </div>
+                    }
+                    defaultExpanded={showPokerGame}
+                >
+                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+                        {!showPokerGame ? (
+                            <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                <div style={{ fontSize: '48px' }}>🎰</div>
+                                <div style={{ color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+                                    Ready to play a hand against the population?
+                                </div>
+                                <Button
+                                    onClick={handleStartPoker}
+                                    disabled={!isConnected || pokerLoading}
+                                    variant="poker"
+                                    style={{ padding: '12px 32px', fontSize: '16px' }}
+                                >
+                                    {pokerLoading ? 'Loading...' : '🃏 Sit Down & Play'}
+                                </Button>
+                            </div>
+                        ) : (
+                            <PokerGame
+                                onClose={handleClosePoker}
+                                onAction={handlePokerAction}
+                                onNewRound={handleNewRound}
+                                onGetAutopilotAction={handleGetAutopilotAction}
+                                gameState={pokerGameState}
+                                loading={pokerLoading}
+                            />
+                        )}
+                    </div>
+                </CollapsibleSection>
+            </div>
+
+
+
+            {/* Poker Skill Benchmark (bb/100) */}
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
+                <EvolutionBenchmarkDisplay tankId={tankId} />
+            </div>
+
             {/* Ecosystem Stats */}
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
                 <EcosystemStats stats={state?.stats ?? null} />
 
             </div>
@@ -285,20 +345,16 @@ export function TankView({ tankId }: TankViewProps) {
             {/* Evolution Progress */}
             {
                 state?.auto_evaluation && (
-                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
                         <AutoEvaluateDisplay stats={state.auto_evaluation} loading={false} />
                     </div>
                 )
             }
 
-            {/* Poker Skill Benchmark (bb/100) */}
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                <EvolutionBenchmarkDisplay tankId={tankId} />
-            </div>
 
             {/* Poker Dashboard - Leaderboard & Activity */}
             {state?.poker_leaderboard && state?.poker_events && (
-                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
+                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
                     <div className="glass-panel" style={{ padding: '16px' }}>
                         <CollapsibleSection
                             title={

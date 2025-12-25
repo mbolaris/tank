@@ -284,242 +284,247 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
 
     // Energy source percentages
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-            {/* Fish Energy Status Card */}
-            <div className="glass-panel" style={{ padding: '12px' }}>
-                <h3 style={{
-                    margin: '0 0 10px 0',
-                    fontSize: '12px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                }}>
-                    <span>🐟</span> Fish Energy Status
-                </h3>
-
-                {/* Fish Health Distribution Bar */}
-                <div style={{ marginBottom: '10px' }}>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '6px'
-                    }}>
-                        <span style={{
-                            fontSize: '18px',
-                            fontWeight: '700',
-                            color: 'var(--color-text-main)',
-                            letterSpacing: '-0.02em'
+        <div className="glass-panel" style={{ padding: '16px' }}>
+            <CollapsibleSection
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-main)' }}>System Analytics</span>
+                    </div>
+                }
+                defaultExpanded={true}
+            >
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px', marginTop: '16px' }}>
+                    {/* Fish Energy Status Card */}
+                    <div className="glass-panel" style={{ padding: '12px' }}>
+                        <h3 style={{
+                            margin: '0 0 10px 0',
+                            fontSize: '12px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            color: 'var(--color-text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
                         }}>
-                            {stats.fish_count}
-                            <span style={{
-                                fontSize: '11px',
-                                fontWeight: '500',
-                                color: 'var(--color-text-muted)',
-                                marginLeft: '4px',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.05em'
-                            }}>Fish</span>
-                        </span>
-                        <span style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>Health Distribution</span>
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        height: '12px',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        background: 'rgba(0,0,0,0.3)'
-                    }}>
-                        {criticalPct > 0 && (
-                            <div style={{ width: `${criticalPct}%`, background: '#ef4444', transition: 'width 0.3s' }} title={`Critical: ${fishHealthCritical}`} />
-                        )}
-                        {lowPct > 0 && (
-                            <div style={{ width: `${lowPct}%`, background: '#f97316', transition: 'width 0.3s' }} title={`Low: ${fishHealthLow}`} />
-                        )}
-                        {healthyPct > 0 && (
-                            <div style={{ width: `${healthyPct}%`, background: '#22c55e', transition: 'width 0.3s' }} title={`Healthy: ${fishHealthHealthy}`} />
-                        )}
-                        {fullPct > 0 && (
-                            <div style={{ width: `${fullPct}%`, background: '#3b82f6', transition: 'width 0.3s' }} title={`Full: ${fishHealthFull}`} />
-                        )}
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontSize: '9px',
-                        marginTop: '4px',
-                        gap: '4px'
-                    }}>
-                        <HealthLegend color="#ef4444" label="Critical" count={fishHealthCritical} />
-                        <HealthLegend color="#f97316" label="Low" count={fishHealthLow} />
-                        <HealthLegend color="#22c55e" label="Healthy" count={fishHealthHealthy} />
-                        <HealthLegend color="#3b82f6" label="Full" count={fishHealthFull} />
-                    </div>
-                </div>
+                            <span>🐟</span> Fish Energy Status
+                        </h3>
 
-                {/* Energy Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <MiniStat label="Total Energy" value={`${Math.round(stats.fish_energy).toLocaleString()}⚡`} />
-                    <MiniStat label="Avg/Fish" value={`${Math.round(stats.avg_fish_energy ?? 0)}⚡`} />
-                    <MiniStat
-                        label="Energy Range"
-                        value={`${Math.round(stats.min_fish_energy ?? 0)}-${Math.round(stats.max_fish_energy ?? 0)}`}
-                    />
-                    <div style={{
-                        gridColumn: 'span 2',
-                        background: 'rgba(0,0,0,0.2)',
-                        padding: '6px 8px',
-                        borderRadius: '4px',
-                        textAlign: 'center'
-                    }}>
-                        <div style={{ fontSize: '9px', color: 'var(--color-text-dim)', marginBottom: '2px' }}>Max Energy Capacity (Genetics)</div>
-                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-main)' }}>
-                            Range: {Math.round(stats.min_max_energy_capacity ?? 0)}-{Math.round(stats.max_max_energy_capacity ?? 0)} <span style={{ color: 'var(--color-text-dim)', fontWeight: 400 }}>|</span> Median: {Math.round(stats.median_max_energy_capacity ?? 0)}
+                        {/* Fish Health Distribution Bar */}
+                        <div style={{ marginBottom: '10px' }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '6px'
+                            }}>
+                                <span style={{
+                                    fontSize: '18px',
+                                    fontWeight: '700',
+                                    color: 'var(--color-text-main)',
+                                    letterSpacing: '-0.02em'
+                                }}>
+                                    {stats.fish_count}
+                                    <span style={{
+                                        fontSize: '11px',
+                                        fontWeight: '500',
+                                        color: 'var(--color-text-muted)',
+                                        marginLeft: '4px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em'
+                                    }}>Fish</span>
+                                </span>
+                                <span style={{ fontSize: '10px', color: 'var(--color-text-dim)' }}>Health Distribution</span>
+                            </div>
+                            <div style={{
+                                display: 'flex',
+                                height: '12px',
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                                background: 'rgba(0,0,0,0.3)'
+                            }}>
+                                {criticalPct > 0 && (
+                                    <div style={{ width: `${criticalPct}%`, background: '#ef4444', transition: 'width 0.3s' }} title={`Critical: ${fishHealthCritical}`} />
+                                )}
+                                {lowPct > 0 && (
+                                    <div style={{ width: `${lowPct}%`, background: '#f97316', transition: 'width 0.3s' }} title={`Low: ${fishHealthLow}`} />
+                                )}
+                                {healthyPct > 0 && (
+                                    <div style={{ width: `${healthyPct}%`, background: '#22c55e', transition: 'width 0.3s' }} title={`Healthy: ${fishHealthHealthy}`} />
+                                )}
+                                {fullPct > 0 && (
+                                    <div style={{ width: `${fullPct}%`, background: '#3b82f6', transition: 'width 0.3s' }} title={`Full: ${fishHealthFull}`} />
+                                )}
+                            </div>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                fontSize: '9px',
+                                marginTop: '4px',
+                                gap: '4px'
+                            }}>
+                                <HealthLegend color="#ef4444" label="Critical" count={fishHealthCritical} />
+                                <HealthLegend color="#f97316" label="Low" count={fishHealthLow} />
+                                <HealthLegend color="#22c55e" label="Healthy" count={fishHealthHealthy} />
+                                <HealthLegend color="#3b82f6" label="Full" count={fishHealthFull} />
+                            </div>
+                        </div>
+
+                        {/* Energy Stats */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <MiniStat label="Total Energy" value={`${Math.round(stats.fish_energy).toLocaleString()}⚡`} />
+                            <MiniStat label="Avg/Fish" value={`${Math.round(stats.avg_fish_energy ?? 0)}⚡`} />
+                            <MiniStat
+                                label="Energy Range"
+                                value={`${Math.round(stats.min_fish_energy ?? 0)}-${Math.round(stats.max_fish_energy ?? 0)}`}
+                            />
+                            <div style={{
+                                gridColumn: 'span 2',
+                                background: 'rgba(0,0,0,0.2)',
+                                padding: '6px 8px',
+                                borderRadius: '4px',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '9px', color: 'var(--color-text-dim)', marginBottom: '2px' }}>Max Energy Capacity (Genetics)</div>
+                                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-main)' }}>
+                                    Range: {Math.round(stats.min_max_energy_capacity ?? 0)}-{Math.round(stats.max_max_energy_capacity ?? 0)} <span style={{ color: 'var(--color-text-dim)', fontWeight: 400 }}>|</span> Median: {Math.round(stats.median_max_energy_capacity ?? 0)}
+                                </div>
+                            </div>
+                            <div style={{
+                                background: 'rgba(0,0,0,0.2)',
+                                padding: '6px 8px',
+                                borderRadius: '4px',
+                                textAlign: 'center',
+                                display: 'none' // Hidden as moved to Economy Panel
+                            }}>
+                            </div>
                         </div>
                     </div>
-                    <div style={{
-                        background: 'rgba(0,0,0,0.2)',
-                        padding: '6px 8px',
-                        borderRadius: '4px',
-                        textAlign: 'center',
-                        display: 'none' // Hidden as moved to Economy Panel
-                    }}>
+
+                    {/* Energy Economy Panel (New) */}
+                    <div style={{ gridRow: 'span 2' }}>
+                        <EnergyEconomyPanel
+                            className=""
+                            data={{
+                                fallingFood: Math.max(0, energyFromFallingFood),
+                                liveFood: Math.max(0, energyFromLiveFood),
+                                plantNectar: Math.max(0, energyFromNectar),
+                                baseMetabolism: Math.max(0, baseLifeSupport),
+                                traitMaintenance: Math.max(0, burnTraits),
+                                movementCost: Math.max(0, burnMovement),
+                                turningCost: Math.max(0, burnTurning),
+                                fishDeaths: fishDeathEnergyLoss,
+                                migrationOut: Math.max(0, burnMigration),
+                                overflowFood: Math.max(0, burnOverflowFood),
+                                overflowReproduction: Math.max(0, burnOverflowReproduction),
+
+                                pokerTotalPot: Math.max(0, pokerLoopVolume),
+                                pokerHouseCut: Math.max(0, burnPokerHouseCut),
+                                plantPokerNet: plantPokerNetRecent,
+                                soupSpawn: Math.max(0, sourceSoupSpawn),
+                                migrationIn: Math.max(0, sourceMigrationIn),
+                                autoEval: Math.max(0, energyFromAutoEval),
+
+                                // Reproduction (internal transfer, but visible for understanding)
+                                reproductionCost: Math.max(0, burnReproduction),
+                                birthEnergy: Math.max(0, sourceBirth),
+
+                                // True energy delta
+                                energyDelta: energyDelta?.energy_delta ?? 0,
+                            }}
+                        />
                     </div>
-                </div>
-            </div>
 
-            {/* Energy Economy Panel (New) */}
-            <div style={{ gridRow: 'span 2' }}>
-                <EnergyEconomyPanel
-                    className=""
-                    data={{
-                        fallingFood: Math.max(0, energyFromFallingFood),
-                        liveFood: Math.max(0, energyFromLiveFood),
-                        plantNectar: Math.max(0, energyFromNectar),
-                        baseMetabolism: Math.max(0, baseLifeSupport),
-                        traitMaintenance: Math.max(0, burnTraits),
-                        movementCost: Math.max(0, burnMovement),
-                        turningCost: Math.max(0, burnTurning),
-                        fishDeaths: fishDeathEnergyLoss,
-                        migrationOut: Math.max(0, burnMigration),
-                        overflowFood: Math.max(0, burnOverflowFood),
-                        overflowReproduction: Math.max(0, burnOverflowReproduction),
+                    {/* Ecosystem Overview Card */}
+                    <div className="glass-panel" style={{ padding: '12px' }}>
+                        <h3 style={{
+                            margin: '0 0 10px 0',
+                            fontSize: '12px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            color: 'var(--color-text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}>
+                            <span>🌿</span> Ecosystem
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <StatItem label="PLANTS" value={stats.plant_count} subValue={`${Math.round(stats.plant_energy).toLocaleString()}⚡`} color="var(--color-success)" />
+                            <StatItem label="FOOD" value={stats.food_count} subValue={`${Math.round(stats.food_energy ?? 0)}⚡`} />
+                            <StatItem label="LIVE FOOD" value={stats.live_food_count} subValue={`${Math.round(stats.live_food_energy ?? 0)}⚡`} color="#fbbf24" />
+                        </div>
+                    </div>
 
-                        pokerTotalPot: Math.max(0, pokerLoopVolume),
-                        pokerHouseCut: Math.max(0, burnPokerHouseCut),
-                        plantPokerNet: plantPokerNetRecent,
-                        soupSpawn: Math.max(0, sourceSoupSpawn),
-                        migrationIn: Math.max(0, sourceMigrationIn),
-                        autoEval: Math.max(0, energyFromAutoEval),
+                    {/* Demographics Card (Merged Population & Mortality) */}
+                    <div className="glass-panel" style={{ padding: '12px' }}>
+                        <h3 style={{
+                            margin: '0 0 10px 0',
+                            fontSize: '12px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            color: 'var(--color-text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}>
+                            <span>👥</span> Demographics
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <RowItem
+                                label="Total Births"
+                                value={stats.births}
+                                valueColor="var(--color-success)"
+                                subValue={`S: ${stats.total_sexual_births ?? 0} / A: ${stats.total_asexual_births ?? 0} / Soup: ${Math.max(0, stats.births - (stats.total_sexual_births ?? 0) - (stats.total_asexual_births ?? 0))}`}
+                            />
+                            <RowItem label="Total Deaths" value={stats.deaths} valueColor="var(--color-danger)" />
+                        </div>
 
-                        // Reproduction (internal transfer, but visible for understanding)
-                        reproductionCost: Math.max(0, burnReproduction),
-                        birthEnergy: Math.max(0, sourceBirth),
-
-                        // True energy delta
-                        energyDelta: energyDelta?.energy_delta ?? 0,
-                    }}
-                />
-            </div>
-
-            {/* Ecosystem Overview Card */}
-            <div className="glass-panel" style={{ padding: '12px' }}>
-                <h3 style={{
-                    margin: '0 0 10px 0',
-                    fontSize: '12px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                }}>
-                    <span>🌿</span> Ecosystem
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <StatItem label="PLANTS" value={stats.plant_count} subValue={`${Math.round(stats.plant_energy).toLocaleString()}⚡`} color="var(--color-success)" />
-                    <StatItem label="FOOD" value={stats.food_count} subValue={`${Math.round(stats.food_energy ?? 0)}⚡`} />
-                    <StatItem label="LIVE FOOD" value={stats.live_food_count} subValue={`${Math.round(stats.live_food_energy ?? 0)}⚡`} color="#fbbf24" />
-                </div>
-            </div>
-
-            {/* Population Card */}
-            <div className="glass-panel" style={{ padding: '12px' }}>
-                <h3 style={{
-                    margin: '0 0 10px 0',
-                    fontSize: '12px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'var(--color-text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                }}>
-                    <span>👥</span> Population
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <RowItem label="Generation" value={stats.max_generation ?? stats.generation ?? 0} />
-                    <RowItem
-                        label="Total Births"
-                        value={stats.births}
-                        valueColor="var(--color-success)"
-                        subValue={`S: ${stats.total_sexual_births ?? 0} / A: ${stats.total_asexual_births ?? 0} / Soup: ${Math.max(0, stats.births - (stats.total_sexual_births ?? 0) - (stats.total_asexual_births ?? 0))}`}
-                    />
-                    <RowItem label="Total Deaths" value={stats.deaths} valueColor="var(--color-danger)" />
-                </div>
-            </div>
-
-            {/* Death Causes Card - next to Population */}
-            {deathCauseEntries.length > 0 && (
-                <div className="glass-panel" style={{ padding: '12px' }}>
-                    <h3 style={{
-                        margin: '0 0 10px 0',
-                        fontSize: '12px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        color: 'var(--color-text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}>
-                        <span>💀</span> Mortality
-                    </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {deathCauseEntries.map(([cause, count]) => (
-                            <div key={cause} style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: 'rgba(239, 68, 68, 0.15)',
-                                border: '1px solid rgba(239, 68, 68, 0.25)',
-                                padding: '4px 10px',
-                                borderRadius: 'var(--radius-full)',
-                                fontSize: '11px'
-                            }}>
-                                <span style={{ color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{cause.replace('_', ' ')}</span>
-                                <span style={{ color: '#fca5a5', fontWeight: 700 }}>{count.toLocaleString()}</span>
+                        {deathCauseEntries.length > 0 && (
+                            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{
+                                    fontSize: '10px',
+                                    color: 'var(--color-text-dim)',
+                                    marginBottom: '6px',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    Mortality Causes
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {deathCauseEntries.map(([cause, count]) => (
+                                        <div key={cause} style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                                            padding: '3px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '10px'
+                                        }}>
+                                            <span style={{ color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{cause.replace('_', ' ')}</span>
+                                            <span style={{ color: '#fca5a5', fontWeight: 600 }}>{count.toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        ))}
+                        )}
                     </div>
+
+                    <GeneDistributionPanel
+                        title="Physical Gene Distribution"
+                        items={physicalGenes}
+                        chartWidth={chartWidth}
+                        defaultExpanded={false}
+                    />
+
+                    <GeneDistributionPanel
+                        title="Behavioral Gene Distribution"
+                        items={behavioralGenes}
+                        chartWidth={chartWidth}
+                        defaultExpanded={false}
+                    />
                 </div>
-            )}
-
-            <GeneDistributionPanel
-                title="Physical Gene Distribution"
-                items={physicalGenes}
-                chartWidth={chartWidth}
-                defaultExpanded={false}
-            />
-
-            <GeneDistributionPanel
-                title="Behavioral Gene Distribution"
-                items={behavioralGenes}
-                chartWidth={chartWidth}
-                defaultExpanded={false}
-            />
+            </CollapsibleSection>
         </div>
     );
 }
