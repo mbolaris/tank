@@ -9,23 +9,36 @@ FISH_GROWTH_RATE = 0.1
 
 # Fish Energy and Metabolism Constants
 INITIAL_ENERGY_RATIO = 0.5  # Start with 50% energy
-BABY_METABOLISM_MULTIPLIER = 0.5  # Babies need less energy (reduced from 0.7)
-ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy (was 1.2) - older fish are larger
-SMALL_FISH_METABOLISM_THRESHOLD = 0.8  # Fish below this size get a metabolism discount
-SMALL_FISH_METABOLISM_MIN_MULTIPLIER = 0.7  # At smallest size (0.5), metabolism is 70% of normal
+BABY_METABOLISM_MULTIPLIER = 0.5  # Babies need less energy
+ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy
 
-# Energy Consumption Constants
-EXISTENCE_ENERGY_COST = 0.08  # Cost just for being alive per frame (increased from 0.035)
-MOVEMENT_ENERGY_COST = 0.15  # Movement-based energy consumption multiplier (increased from 0.07)
-HIGH_SPEED_ENERGY_COST = 0.35  # Progressive speed cost multiplier (increased from 0.18) - scales quadratically with speed
-HIGH_SPEED_THRESHOLD = 0.6  # Speed ratio above which burst penalty kicks in
-SHARP_TURN_ENERGY_COST = 0.12  # Additional cost for sharp turns (increased from 0.07)
-SHARP_TURN_DOT_THRESHOLD = -0.85  # Dot product threshold for detecting sharp turns
+# =============================================================================
+# SIMPLIFIED ENERGY CONSUMPTION SYSTEM
+# =============================================================================
+# There are 3 clear energy costs:
+# 1. EXISTENCE - just being alive (scales linearly with size)
+# 2. MOVEMENT - regular swimming (linear with speed, size^1.5)
+# 3. SPRINT - penalty for going above threshold (quadratic)
+#
+# This replaces the previous complex system with 6+ stacked multipliers.
+# =============================================================================
 
-# Direction Change Energy Constants
-DIRECTION_CHANGE_ENERGY_BASE = 0.15  # Base energy cost for direction changes (increased from 0.08)
-DIRECTION_CHANGE_SIZE_MULTIPLIER = 2.2  # Larger fish use more energy to turn (increased from 1.8)
-MOVEMENT_SIZE_MULTIPLIER = 2.0  # Additional size-based movement cost multiplier (increased from 1.5)
+# 1. Existence cost - just being alive each frame
+EXISTENCE_ENERGY_COST = 0.06  # Per-frame cost (tuned for balance)
+EXISTENCE_SIZE_EXPONENT = 1.0  # Linear with size (bigger fish pay more)
+
+# 2. Movement cost - swimming around
+MOVEMENT_ENERGY_COST = 0.10  # Base rate per frame when moving
+MOVEMENT_SIZE_EXPONENT = 1.5  # Size^1.5 scaling (moderate penalty for large fish)
+
+# 3. Sprint penalty - going above cruise threshold
+SPRINT_THRESHOLD = 0.70  # Above 70% speed incurs sprint penalty
+SPRINT_ENERGY_COST = 0.25  # Quadratic penalty rate above threshold
+# (uses same size exponent as movement)
+
+# 4. Direction change cost - turning uses energy (applied separately in fish.py)
+DIRECTION_CHANGE_ENERGY_BASE = 0.08  # Base cost for direction changes
+DIRECTION_CHANGE_SIZE_MULTIPLIER = 1.5  # Uses same exponent as movement
 
 # Energy Thresholds as RATIOS (0.0 to 1.0 of max_energy)
 # Using ratios ensures consistent behavior regardless of fish size.

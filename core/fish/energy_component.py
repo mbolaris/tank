@@ -24,15 +24,14 @@ from core.config.fish import (
     CRITICAL_ENERGY_THRESHOLD_RATIO,
     ELDER_METABOLISM_MULTIPLIER,
     EXISTENCE_ENERGY_COST,
-    HIGH_SPEED_ENERGY_COST,
-    HIGH_SPEED_THRESHOLD,
+    EXISTENCE_SIZE_EXPONENT,
     INITIAL_ENERGY_RATIO,
     LOW_ENERGY_THRESHOLD_RATIO,
     MOVEMENT_ENERGY_COST,
-    MOVEMENT_SIZE_MULTIPLIER,
+    MOVEMENT_SIZE_EXPONENT,
     SAFE_ENERGY_THRESHOLD_RATIO,
-    SMALL_FISH_METABOLISM_MIN_MULTIPLIER,
-    SMALL_FISH_METABOLISM_THRESHOLD,
+    SPRINT_ENERGY_COST,
+    SPRINT_THRESHOLD,
     STARVATION_THRESHOLD_RATIO,
 )
 from core.math_utils import Vector2
@@ -85,88 +84,86 @@ class EnergyComponent:
     ) -> Dict[str, float]:
         """Consume energy based on metabolism and activity.
 
-        Energy consumption includes:
-        - Existence cost: Fixed cost for being alive
-        - Metabolic cost: Base metabolism adjusted by genetics and life stage
-        - Movement cost: Based on current velocity and speed
-        - Size scaling: Larger fish consume more energy
+        SIMPLIFIED ENERGY SYSTEM with 3 clear costs:
+        1. EXISTENCE - just being alive (linear with size)
+        2. MOVEMENT - swimming (linear with speed, size^1.5)
+        3. SPRINT - penalty above 70% speed (quadratic)
 
         Args:
             velocity: Current velocity vector of the fish.
             speed: Maximum speed of the fish.
-            life_stage: Current life stage (affects metabolism).
+            life_stage: Current life stage (affects all costs).
             time_modifier: Time-based modifier (e.g., for day/night cycles).
-            size: Body size multiplier (0.5 for baby, 1.0 for adult).
+            size: Body size multiplier (0.5 for baby, 1.0+ for adult).
+
+        Returns:
+            Dict with breakdown: total, existence, metabolism, movement
         """
-        # Import LifeStage at runtime to avoid circular dependency
         from core.entities.base import LifeStage
 
-        # Existence cost - scales with body size squared (larger fish need much more energy to exist)
-        # Using size^1.3 makes existence more expensive for large fish while not punishing small ones too much
-        existence_size_factor = size ** 1.3
-        existence_cost = EXISTENCE_ENERGY_COST * time_modifier * existence_size_factor
-
-        # Base metabolism (affected by genes and life stage)
-        metabolism = self.base_metabolism * time_modifier
-        movement_cost = 0.0
-
-        # Additional cost for movement - scales with body size
-        # Size scaling is non-linear: larger fish use disproportionately more energy
-        vel_length = velocity.length()
-        if vel_length > 0:
-            size_factor = size ** MOVEMENT_SIZE_MULTIPLIER
-            speed_ratio = vel_length / speed if speed > 0 else 0
-
-            # Base movement cost (linear with speed)
-            movement_cost = MOVEMENT_ENERGY_COST * speed_ratio * size_factor
-
-            # Progressive speed cost - scales smoothly from 0 to max
-            # Uses quadratic scaling so going faster is increasingly expensive
-            # This replaces the threshold-based system with smooth progression
-            # At 50% speed: 0.25x multiplier, at 100% speed: 1.0x multiplier
-            progressive_speed_cost = HIGH_SPEED_ENERGY_COST * (speed_ratio ** 2) * size_factor
-            movement_cost += progressive_speed_cost
-
-            # Additional penalty above threshold for really fast movement (stacks with progressive)
-            if speed_ratio > HIGH_SPEED_THRESHOLD:
-                excess_speed = speed_ratio - HIGH_SPEED_THRESHOLD
-                # Cubic scaling above threshold - very expensive to go full speed
-                burst_speed_cost = HIGH_SPEED_ENERGY_COST * 2.0 * (excess_speed ** 3) * size_factor
-                movement_cost += burst_speed_cost
-
-            metabolism += movement_cost
-
-        # Apply life stage modifiers to metabolism (not existence cost)
+        # Life stage modifier (applied to all costs)
         stage_multiplier = 1.0
         if life_stage == LifeStage.BABY:
-            stage_multiplier = BABY_METABOLISM_MULTIPLIER  # Babies need less energy
+            stage_multiplier = BABY_METABOLISM_MULTIPLIER
         elif life_stage == LifeStage.ELDER:
-            stage_multiplier = ELDER_METABOLISM_MULTIPLIER  # Elders need more energy
+            stage_multiplier = ELDER_METABOLISM_MULTIPLIER
 
-        movement_cost *= stage_multiplier
-        metabolism *= stage_multiplier
+        # ---------------------------------------------------------------------
+        # 1. EXISTENCE COST - just being alive each frame
+        # Linear with size: bigger fish pay proportionally more
+        # ---------------------------------------------------------------------
+        existence_cost = (
+            EXISTENCE_ENERGY_COST
+            * time_modifier
+            * (size ** EXISTENCE_SIZE_EXPONENT)
+            * stage_multiplier
+        )
 
-        # Apply size-based discount for small adult fish
-        # Small fish (below threshold) get a metabolism reduction
-        # Linearly interpolates from 1.0 at threshold to MIN_MULTIPLIER at size 0.5
-        if size < SMALL_FISH_METABOLISM_THRESHOLD and life_stage != LifeStage.BABY:
-            # Calculate how far below threshold (0 at threshold, 1 at size 0.5)
-            size_below = (SMALL_FISH_METABOLISM_THRESHOLD - size) / (SMALL_FISH_METABOLISM_THRESHOLD - 0.5)
-            size_below = min(1.0, max(0.0, size_below))  # Clamp to [0, 1]
-            # Interpolate multiplier from 1.0 down to MIN_MULTIPLIER
-            size_multiplier = 1.0 - (1.0 - SMALL_FISH_METABOLISM_MIN_MULTIPLIER) * size_below
-            metabolism *= size_multiplier
-            movement_cost *= size_multiplier
+        # ---------------------------------------------------------------------
+        # 2. MOVEMENT COST - swimming around
+        # Linear with speed ratio, size^1.5 scaling
+        # ---------------------------------------------------------------------
+        movement_cost = 0.0
+        sprint_cost = 0.0
+        vel_length = velocity.length()
+
+        if vel_length > 0 and speed > 0:
+            speed_ratio = vel_length / speed
+            size_factor = size ** MOVEMENT_SIZE_EXPONENT
+
+            # Base movement cost (linear with speed)
+            movement_cost = (
+                MOVEMENT_ENERGY_COST
+                * speed_ratio
+                * size_factor
+                * stage_multiplier
+            )
+
+            # -----------------------------------------------------------------
+            # 3. SPRINT PENALTY - going above cruise threshold
+            # Quadratic penalty: (excess_speed)^2
+            # -----------------------------------------------------------------
+            if speed_ratio > SPRINT_THRESHOLD:
+                excess_speed = speed_ratio - SPRINT_THRESHOLD
+                sprint_cost = (
+                    SPRINT_ENERGY_COST
+                    * (excess_speed ** 2)
+                    * size_factor
+                    * stage_multiplier
+                )
+
+        # Base metabolism (from genome) - applied separately
+        metabolism = self.base_metabolism * time_modifier * stage_multiplier
 
         # Total energy consumption
-        total_cost = existence_cost + metabolism
+        total_cost = existence_cost + metabolism + movement_cost + sprint_cost
         self.energy = max(0.0, self.energy - total_cost)
 
         return {
             "total": total_cost,
             "existence": existence_cost,
-            "metabolism": metabolism - movement_cost,
-            "movement": movement_cost,
+            "metabolism": metabolism,
+            "movement": movement_cost + sprint_cost,  # Combined for logging
         }
 
     def gain_energy(self, amount: float) -> None:
