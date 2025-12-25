@@ -84,21 +84,23 @@ class BehaviorActionsMixin:
 
         return 0.0, 0.0, False
 
-    def _execute_food_approach(self, fish: "Fish", urgency: float = 1.0) -> Tuple[float, float]:
+    def _execute_food_approach(self, fish: "Fish") -> Tuple[float, float]:
         """Execute the selected food approach sub-behavior.
-
-        Args:
-            urgency: Speed multiplier based on energy state
 
         Returns:
             (vx, vy) velocity toward food, or (0, 0) if no food
+
+        Design Decision:
+            pursuit_speed is the SINGLE evolvable trait controlling chase speed.
+            No urgency multipliers - energy state affects pursuit priority in
+            the caller (execute()), not speed here.
         """
         nearest_food = self._find_nearest_food(fish)
         if not nearest_food:
             return 0.0, 0.0
 
         distance = (nearest_food.pos - fish.pos).length()
-        base_speed = self.parameters.get("pursuit_speed", 0.8) * urgency
+        base_speed = self.parameters.get("pursuit_speed", 0.9)
         
         # Calculate target position - use prediction for moving food
         target_pos = nearest_food.pos  # Default: current position

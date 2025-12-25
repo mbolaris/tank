@@ -40,6 +40,7 @@ class ReproductionComponent:
 
     # Reproduction constants
     REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Require ~90% energy before any reproduction path
+    ASEXUAL_REPRODUCTION_THRESHOLD = 0.95  # Asexual requires 95% (higher since no mate to help)
     REPRODUCTION_COOLDOWN = 300  # 10 seconds at 30fps - prevents constant reproduction
     MATING_DISTANCE = 60.0  # Maximum distance for poker-triggered reproduction
     REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for reproduction
@@ -109,13 +110,16 @@ class ReproductionComponent:
         energy: float,
         max_energy: float,
     ) -> bool:
-        """Check if the fish can trigger asexual reproduction."""
-
+        """Check if the fish can trigger asexual reproduction.
+        
+        Asexual reproduction requires higher energy than sexual reproduction,
+        as the parent must fund the entire offspring alone.
+        """
         if not self.can_reproduce(life_stage, energy, max_energy):
             return False
 
-        # Asexual reproduction only triggers when fully energized
-        return energy >= max_energy
+        # Asexual reproduction requires 95% energy (slightly less than 100%)
+        return energy >= max_energy * self.ASEXUAL_REPRODUCTION_THRESHOLD
 
     def trigger_asexual_reproduction(
         self, 

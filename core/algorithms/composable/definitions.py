@@ -76,7 +76,7 @@ SUB_BEHAVIOR_PARAMS = {
     "freeze_distance": (40.0, 100.0),
     "erratic_amplitude": (0.3, 0.8),
     # Food approach parameters
-    "pursuit_speed": (0.6, 1.2),
+    "pursuit_speed": (0.8, 1.2),
     "intercept_skill": (0.3, 0.9),
     "circle_radius": (30.0, 80.0),
     "circle_speed": (0.05, 0.15),

@@ -468,7 +468,7 @@ class TestPlantGenetics:
         parent = PlantGenome(
             base_energy_rate=0.03,  # Use value within valid range (0.01-0.05)
             growth_efficiency=0.8,
-            nectar_threshold_ratio=0.7,
+            nectar_threshold_ratio=0.94,  # Updated to new range (0.90-0.98)
         )
 
         offspring = [PlantGenome.from_parent(parent, mutation_rate=0.5) for _ in range(100)]
@@ -485,7 +485,7 @@ class TestPlantGenetics:
         for child in offspring:
             assert 0.01 <= child.base_energy_rate <= 0.05
             assert 0.5 <= child.growth_efficiency <= 1.5
-            assert 0.6 <= child.nectar_threshold_ratio <= 0.9
+            assert 0.90 <= child.nectar_threshold_ratio <= 0.98  # Updated range
 
 
 @pytest.mark.slow

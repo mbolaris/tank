@@ -96,7 +96,17 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
 
 
 def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
-    """Check whether a fish can participate in post-poker reproduction."""
+    """Check whether a fish can BE THE PARENT in post-poker reproduction.
+    
+    The parent (winner) must:
+    - Have enough energy to produce offspring
+    - Be off reproduction cooldown
+    - Be an adult
+    - Be same species as mate
+    
+    Note: This is for the fish that will actually produce the child and pay
+    the energy cost. Use is_valid_reproduction_mate() for the other fish.
+    """
     from core.entities.base import LifeStage
 
     min_energy_for_reproduction = fish.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
@@ -110,6 +120,28 @@ def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
         return False
 
     if fish.species != opponent.species:
+        return False
+
+    return True
+
+
+def is_valid_reproduction_mate(fish, parent) -> bool:
+    """Check whether a fish can be a MATE (DNA donor) in reproduction.
+    
+    The mate only needs to:
+    - Be an adult (capable of reproduction)
+    - Be same species as parent
+    
+    The mate does NOT need:
+    - High energy (they're just contributing DNA, not producing offspring)
+    - To be off cooldown (only the parent goes on cooldown)
+    """
+    from core.entities.base import LifeStage
+
+    if fish._lifecycle_component.life_stage.value < LifeStage.ADULT.value:
+        return False
+
+    if fish.species != parent.species:
         return False
 
     return True
@@ -306,6 +338,7 @@ __all__ = [
     "get_ready_players",
     "should_trigger_reproduction",
     "is_post_poker_reproduction_eligible",
+    "is_valid_reproduction_mate",
     "should_offer_post_poker_reproduction",
     "calculate_house_cut",
     "check_poker_proximity",

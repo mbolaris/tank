@@ -503,7 +503,10 @@ class PokerSystem(BaseSystem):
         """
         from core.entities import Fish
         from core.config.fish import POST_POKER_MATING_DISTANCE
-        from core.poker_interaction import is_post_poker_reproduction_eligible
+        from core.poker_interaction import (
+            is_post_poker_reproduction_eligible,
+            is_valid_reproduction_mate,
+        )
         
         result = getattr(poker, "result", None)
         if result is None or getattr(result, "is_tie", False):
@@ -541,7 +544,8 @@ class PokerSystem(BaseSystem):
             dy = (fish.pos.y + fish.height * 0.5) - winner_cy
             if dx * dx + dy * dy > max_dist_sq:
                 continue
-            if not is_post_poker_reproduction_eligible(fish, winner):
+            # Mate only needs to be adult + same species (no energy requirement)
+            if not is_valid_reproduction_mate(fish, winner):
                 continue
             eligible_mates.append(fish)
 

@@ -97,10 +97,15 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
 
         The execution priority is:
         1. Threat response (if predator detected)
-        2. Energy-critical food seeking (if starving)
+        2. Food pursuit (if food detected) - COMMITS FULLY to chase
         3. Poker engagement (if applicable)
-        4. Social behavior blended with food seeking
-        5. Default exploration
+        4. Social behavior / exploration
+
+        Design Decision:
+            When food is detected, fish commit fully to the chase without
+            blending with social behaviors or applying speed penalties.
+            This makes `pursuit_speed` the single evolvable trait for
+            food-seeking effectiveness, improving evolutionary selection.
 
         Returns:
             Tuple of (velocity_x, velocity_y)
@@ -108,49 +113,41 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         # Get energy state
         is_critical, is_low, energy_ratio = self._get_energy_state(fish)
 
-        # Get priority weights
-        threat_priority = self.parameters.get("threat_priority", 0.8)
-        food_priority = self.parameters.get("food_priority", 0.6)
-        social_priority = self.parameters.get("social_priority", 0.3)
-        poker_priority = self.parameters.get("poker_priority", 0.3)
-
         # 1. THREAT RESPONSE - Check for predators first
         threat_vx, threat_vy, threat_active = self._execute_threat_response(fish)
         if threat_active:
-            # Apply energy style modulation to escape
+            # Fleeing gets energy modifier - survival is paramount
             speed_mod = self._get_energy_speed_modifier(fish, is_critical, is_low)
             return threat_vx * speed_mod, threat_vy * speed_mod
 
-        # 2. CRITICAL ENERGY - Override everything for food
-        if is_critical:
-            food_vx, food_vy = self._execute_food_approach(fish, urgency=1.5)
-            if food_vx != 0 or food_vy != 0:
-                return food_vx, food_vy
+        # 2. FOOD PURSUIT - Commit fully when food is detected
+        # No blending, no urgency penalty - pursuit_speed is the single control
+        food_vx, food_vy = self._execute_food_approach(fish)
+        if food_vx != 0 or food_vy != 0:
+            # Food found - commit to the chase!
+            # Critical/low energy fish get a small boost (desperation)
+            if is_critical:
+                return food_vx * 1.3, food_vy * 1.3
+            elif is_low:
+                return food_vx * 1.1, food_vy * 1.1
+            return food_vx, food_vy
 
-        # 3. POKER ENGAGEMENT - Check if we should engage/avoid poker
+        # 3. POKER ENGAGEMENT - Only when no food detected
+        poker_priority = self.parameters.get("poker_priority", 0.3)
         poker_vx, poker_vy, poker_active = self._execute_poker_engagement(fish, energy_ratio)
         rng = getattr(fish.environment, "rng", random)
         if poker_active and poker_priority > rng.random():
             return poker_vx, poker_vy
 
-        # 4. BLENDED BEHAVIOR - Combine food seeking and social
-        food_vx, food_vy = self._execute_food_approach(fish, urgency=1.0 if is_low else 0.7)
+        # 4. SOCIAL/EXPLORATION - When nothing else to do
         social_vx, social_vy = self._execute_social_mode(fish)
+        if social_vx != 0 or social_vy != 0:
+            # Apply energy style modulation only during exploration
+            speed_mod = self._get_energy_speed_modifier(fish, is_critical, is_low)
+            return social_vx * speed_mod, social_vy * speed_mod
 
-        # Blend based on priorities and whether food was found
-        if food_vx != 0 or food_vy != 0:
-            # Food found - blend with social
-            blend_ratio = food_priority / (food_priority + social_priority + 0.01)
-            vx = food_vx * blend_ratio + social_vx * (1 - blend_ratio)
-            vy = food_vy * blend_ratio + social_vy * (1 - blend_ratio)
-        else:
-            # No food - rely more on social/exploration
-            vx, vy = social_vx, social_vy
-            if vx == 0 and vy == 0:
-                # Default exploration
-                vx, vy = self._default_exploration(fish)
-
-        # Apply energy style speed modulation
+        # Default exploration
+        vx, vy = self._default_exploration(fish)
         speed_mod = self._get_energy_speed_modifier(fish, is_critical, is_low)
         return vx * speed_mod, vy * speed_mod
 

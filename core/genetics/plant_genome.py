@@ -49,7 +49,7 @@ class PlantGenome:
     # Energy traits
     base_energy_rate: float = 0.02
     growth_efficiency: float = 1.0
-    nectar_threshold_ratio: float = 0.75
+    nectar_threshold_ratio: float = 0.95  # High threshold - only healthy plants produce nectar
 
     # Variant traits
     type: str = "lsystem"
@@ -166,7 +166,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.2, 0.8),
             base_energy_rate=rng.uniform(0.01, 0.04),
             growth_efficiency=rng.uniform(0.6, 1.4),
-            nectar_threshold_ratio=rng.uniform(0.6, 0.9),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="lsystem",
             # Random floral traits - favor psychedelic patterns over flowers
             floral_type=rng.choice([
@@ -210,7 +210,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.4, 0.7),
             base_energy_rate=rng.uniform(0.025, 0.045),
             growth_efficiency=rng.uniform(1.0, 1.4),
-            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="cosmic_fern",
         )
         # Complex 3D fern rules
@@ -240,7 +240,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.42, 0.66),
             base_energy_rate=rng.uniform(0.026, 0.05),
             growth_efficiency=rng.uniform(1.05, 1.5),
-            nectar_threshold_ratio=rng.uniform(0.56, 0.82),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="claude",
         )
         g._production_rules = [
@@ -270,7 +270,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.72, 0.86),
             base_energy_rate=rng.uniform(0.032, 0.042),
             growth_efficiency=rng.uniform(1.08, 1.32),
-            nectar_threshold_ratio=rng.uniform(0.66, 0.76),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="antigravity",
         )
         g._production_rules = [
@@ -300,7 +300,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.52, 0.76),
             base_energy_rate=rng.uniform(0.023, 0.043),
             growth_efficiency=rng.uniform(0.98, 1.36),
-            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="gpt",
         )
         g._production_rules = [
@@ -330,7 +330,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.38, 0.65),
             base_energy_rate=rng.uniform(0.022, 0.042),
             growth_efficiency=rng.uniform(1.05, 1.45),
-            nectar_threshold_ratio=rng.uniform(0.62, 0.82),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="gpt_codex",
         )
         g._production_rules = [
@@ -366,7 +366,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.4, 0.7),
             base_energy_rate=rng.uniform(0.025, 0.045),
             growth_efficiency=rng.uniform(1.0, 1.4),
-            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="gemini",
         )
         # Complex, multimodal branching rules
@@ -403,7 +403,7 @@ class PlantGenome:
             risk_tolerance=rng.uniform(0.35, 0.55),
             base_energy_rate=rng.uniform(0.025, 0.045),
             growth_efficiency=rng.uniform(1.0, 1.4),
-            nectar_threshold_ratio=rng.uniform(0.6, 0.8),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="sonnet",
         )
         # Classic botanical L-system rules that produce fern-like structures
@@ -505,7 +505,7 @@ class PlantGenome:
             risk_tolerance=mutate_float(parent.risk_tolerance, 0.2, 0.8),
             base_energy_rate=mutate_float(parent.base_energy_rate, 0.01, 0.05),
             growth_efficiency=mutate_float(parent.growth_efficiency, 0.5, 1.5),
-            nectar_threshold_ratio=mutate_float(parent.nectar_threshold_ratio, 0.6, 0.9),
+            nectar_threshold_ratio=mutate_float(parent.nectar_threshold_ratio, 0.90, 0.98),
             type=parent.type,  # Preserve variant type
             # Inherit and mutate floral traits
             floral_type=floral_type,
@@ -630,7 +630,7 @@ class PlantGenome:
             risk_tolerance=data.get("risk_tolerance", 0.5),
             base_energy_rate=data.get("base_energy_rate", 0.02),
             growth_efficiency=data.get("growth_efficiency", 1.0),
-            nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.75),
+            nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.95),
             type=data.get("type") or data.get("fractal_type", "lsystem"),
             # Floral traits
             floral_type=data.get("floral_type", "spiral"),
