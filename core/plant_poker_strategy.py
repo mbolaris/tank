@@ -106,5 +106,16 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
                 return (BettingAction.CHECK, 0.0)
             return (BettingAction.CALL, call_amount)
 
-        # Marginal hands: check when possible, otherwise fold
-        return (BettingAction.CHECK, 0.0) if call_amount == 0 else (BettingAction.FOLD, 0.0)
+        # Marginal hands: check when possible, otherwise consider pot odds before folding
+        if call_amount == 0:
+            return (BettingAction.CHECK, 0.0)
+        
+        # Calculate pot odds - call if the hand has enough equity
+        pot_odds = call_amount / (pot + call_amount) if pot > 0 else 0.5
+        # Marginal hands should call if pot odds are favorable (adjusted by risk tolerance)
+        # Higher risk tolerance = more willing to call with marginal hands
+        pot_odds_threshold = pot_odds - (risk_tolerance - 0.3) * 0.15
+        if adjusted_strength > pot_odds_threshold and call_amount <= player_energy:
+            return (BettingAction.CALL, call_amount)
+        
+        return (BettingAction.FOLD, 0.0)
