@@ -384,7 +384,7 @@ class SimulationEngine:
     # =========================================================================
 
     def keep_entity_on_screen(
-        self, entity: entities.Agent, screen_width: int | None = None, screen_height: int | None = None
+        self, entity: entities.Agent, screen_width: Optional[int] = None, screen_height: Optional[int] = None
     ) -> None:
         """Keep an entity fully within the bounds of the screen.
 
@@ -442,7 +442,7 @@ class SimulationEngine:
     # Lifecycle Delegation (moved from BaseSimulator 2024-12)
     # =========================================================================
 
-    def record_fish_death(self, fish: entities.Agent, cause: str | None = None) -> None:
+    def record_fish_death(self, fish: entities.Agent, cause: Optional[str] = None) -> None:
         """Delegate fish death recording to the lifecycle system."""
         self.lifecycle_system.record_fish_death(fish, cause)
 

@@ -14,7 +14,7 @@ Architecture Notes:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core.systems.base import BaseSystem
 from core.update_phases import UpdatePhase, runs_in_phase
@@ -164,7 +164,7 @@ class EntityLifecycleSystem(BaseSystem):
         self._births_this_frame += 1
         self._total_births += 1
 
-    def record_fish_death(self, fish: "Agent", cause: str | None = None) -> None:
+    def record_fish_death(self, fish: "Agent", cause: Optional[str] = None) -> None:
         """Record a fish death in the ecosystem and mark for delayed removal.
 
         The fish remains in the simulation briefly so its death effect icon
