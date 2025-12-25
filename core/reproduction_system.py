@@ -1,9 +1,11 @@
-"""Reproduction system for the simulation.
+"""Population recovery and asexual reproduction system.
 
-This module handles fish reproduction logic, including:
+This module handles population maintenance and asexual reproduction:
 1. Asexual reproduction triggered by genetic traits
-2. Emergency spawning when population is critical
-3. Sexual reproduction statistics (actual logic in poker system)
+2. Emergency spawning when population is critically low
+
+NOTE: Sexual reproduction (mating after poker games) is handled by PokerSystem.
+This system focuses on maintaining minimum population levels and asexual traits.
 
 The system extends BaseSystem for consistent interface and lifecycle management.
 
@@ -12,6 +14,13 @@ Architecture Notes:
 - Runs in UpdatePhase.REPRODUCTION
 - Manages population recovery (emergency spawns)
 - Tracks reproduction statistics for debugging
+
+Why "ReproductionSystem" and not "PopulationRecoverySystem"?
+------------------------------------------------------------
+The name is kept for backward compatibility with tests and documentation.
+The key thing to understand is the responsibility split:
+- This system: asexual reproduction + emergency spawning
+- PokerSystem: sexual reproduction (mating after poker wins)
 """
 
 import logging
@@ -31,11 +40,14 @@ logger = logging.getLogger(__name__)
 
 @runs_in_phase(UpdatePhase.REPRODUCTION)
 class ReproductionSystem(BaseSystem):
-    """Handle fish reproduction logic using the engine context.
+    """Handle asexual reproduction and emergency population recovery.
 
     This system runs in the REPRODUCTION phase and manages:
-    - Asexual reproduction checks
-    - Emergency population recovery
+    - Asexual reproduction checks (genetic trait-based)
+    - Emergency population recovery when fish count is critical
+
+    NOTE: Sexual reproduction (mating) is handled by PokerSystem after
+    poker game wins. This system only handles asexual + emergency spawns.
     """
 
     def __init__(self, engine: "SimulationEngine") -> None:

@@ -11,6 +11,25 @@ Design Decisions:
 2. Systems can be enabled/disabled at runtime without removal.
 
 3. Debug info is aggregated from all systems for observability.
+
+Hybrid Paradigm: Entity-Driven + Cross-Entity Systems
+------------------------------------------------------
+The simulation uses a HYBRID model (this is intentional, not accidental):
+
+- Entity-Driven: Entities update themselves via entity.update(). Entities
+  contain their own logic (movement, metabolism, aging, death conditions).
+
+- Cross-Entity Systems: Systems handle logic that spans multiple entities:
+  * CollisionSystem: Fish-food, fish-crab, fish-fish proximity
+  * PokerSystem: Multi-fish poker games + mixed poker
+  * ReproductionSystem: Population-level recovery decisions
+
+The SystemRegistry exists primarily for INTROSPECTION (debug info, enabling/
+disabling systems at runtime) rather than driving execution order. The engine's
+update() method explicitly calls each system in phase order for clarity.
+
+This is a conscious trade-off: explicit phase calls are easier to debug than
+automatic phase-based execution, at the cost of some flexibility.
 """
 
 import logging

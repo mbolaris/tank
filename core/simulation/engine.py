@@ -657,7 +657,12 @@ class SimulationEngine:
         self.handle_mixed_poker_games()
 
     def _phase_reproduction(self) -> None:
-        """REPRODUCTION: Handle mating and emergency spawns."""
+        """REPRODUCTION: Handle mating and emergency spawns.
+
+        Orchestration Note: The engine decides WHEN stats are recorded.
+        The business logic (HOW) lives in EcosystemManager methods.
+        This split is intentional - orchestration stays in engine.
+        """
         self._current_phase = UpdatePhase.REPRODUCTION
         # ReproductionSystem now handles both mating and emergency spawns
         self.handle_reproduction()
@@ -668,14 +673,14 @@ class SimulationEngine:
 
         fish_list = self.get_fish_list()
 
-        # Update ecosystem stats
+        # Delegate stats recording to EcosystemManager
         ecosystem.update_population_stats(fish_list)
 
         if self.frame_count % 1000 == 0:
             alive_ids = {f.fish_id for f in fish_list}
             ecosystem.cleanup_dead_fish(alive_ids)
 
-        # Record energy snapshot
+        # Record energy snapshot for delta calculations
         total_fish_energy = sum(
             f.energy + f._reproduction_component.overflow_energy_bank
             for f in fish_list
