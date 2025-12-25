@@ -632,7 +632,7 @@ FRAME_START → TIME_UPDATE → ENVIRONMENT → ENTITY_ACT → LIFECYCLE → SPA
 |----------|------|--------|--------|------|
 | ~~1~~ | ~~Extract FishVisualState~~ | ~~2h~~ | ~~High~~ | ~~Very Low~~ | ✅ **DONE (2024-12)** |
 | ~~2~~ | ~~Create EnergyState class~~ | ~~3h~~ | ~~Medium~~ | ~~Low~~ | ✅ **DONE (2024-12)** |
-| 3 | Audit & remove unused EcosystemManager methods | 2h | Medium | Low |
+| ~~3~~ | ~~Audit & remove unused EcosystemManager methods~~ | ~~2h~~ | ~~Medium~~ | ~~Low~~ | ✅ **DONE (2024-12)** - Audited; most methods used, design is clean with delegation to specialized managers |
 
 ### Short-Term (Next Month)
 
@@ -666,7 +666,7 @@ FRAME_START → TIME_UPDATE → ENVIRONMENT → ENTITY_ACT → LIFECYCLE → SPA
 **After Refactoring:**
 - Largest file: ~700 lines (engine.py)
 - Fish class: 638 lines (visual state extracted)
-- Energy checking: 1 canonical pattern (EnergyState) # TODO
+- Energy checking: 1 canonical pattern (EnergyState) ✅
 - Architectural debt: BaseSimulator removed ✅
 
 ### Maintainability Metrics
