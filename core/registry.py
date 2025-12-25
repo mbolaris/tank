@@ -1,54 +1,19 @@
-"""Algorithm registry utilities.
+"""Algorithm introspection utilities.
 
-This module discovers behavior algorithms dynamically and exposes helpers for
-introspecting where they live on disk. It now includes a registry class that
-automatically loads any new algorithms without manual imports.
+This module provides metadata and source file location utilities for algorithms.
+Used by AI tooling and stats exporters to introspect algorithm definitions.
+
+For runtime algorithm operations (crossover, mutation, instantiation), see:
+    core.algorithms.registry
 """
-import importlib
 import inspect
 import os
 import pkgutil
 from importlib import import_module
-from typing import Dict, Iterable, List, Optional, Set, Type
+from typing import Dict, Iterable, List, Set, Type
 
 from core import algorithms
 from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategyBase
-
-
-class AlgorithmRegistry:
-    """Dynamic registry for behavior strategies."""
-
-    _strategies: Dict[str, Type[BehaviorStrategyBase]] = {}
-
-    @classmethod
-    def load_algorithms(cls) -> None:
-        """Scan ``core.algorithms`` for strategies and register them by name."""
-
-        package_path = algorithms.__path__
-
-        for _, name, _ in pkgutil.iter_modules(package_path):
-            module = importlib.import_module(f"core.algorithms.{name}")
-
-            for attribute_name in dir(module):
-                attribute = getattr(module, attribute_name)
-
-                if (
-                    inspect.isclass(attribute)
-                    and issubclass(attribute, BehaviorStrategyBase)
-                    and attribute is not BehaviorStrategyBase
-                ):
-                    key = attribute.name() if hasattr(attribute, "name") else name
-                    cls._strategies[key] = attribute
-
-    @classmethod
-    def get(cls, name: str) -> Optional[Type[BehaviorStrategyBase]]:
-        """Retrieve a registered behavior strategy class by name."""
-
-        return cls._strategies.get(name)
-
-
-# Populate the registry on import so callers can immediately request strategies.
-AlgorithmRegistry.load_algorithms()
 
 
 def _iter_algorithm_modules() -> Iterable[str]:
