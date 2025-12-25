@@ -3,7 +3,6 @@
 from .definitions import (
     ThreatResponse,
     FoodApproach,
-    EnergyStyle,
     SocialMode,
     PokerEngagement,
     SUB_BEHAVIOR_PARAMS,
@@ -15,7 +14,6 @@ __all__ = [
     "ComposableBehavior",
     "ThreatResponse",
     "FoodApproach",
-    "EnergyStyle",
     "SocialMode",
     "PokerEngagement",
     "SUB_BEHAVIOR_PARAMS",

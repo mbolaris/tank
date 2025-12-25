@@ -8,7 +8,6 @@ from core.algorithms.base import (
 )
 from core.algorithms.composable import (
     ComposableBehavior,
-    EnergyStyle,
     FoodApproach,
     PokerEngagement,
     SocialMode,
@@ -37,7 +36,6 @@ __all__ = [
     "BehaviorHelpersMixin",
     "Vector2",
     "ComposableBehavior",
-    "EnergyStyle",
     "FoodApproach",
     "PokerEngagement",
     "SocialMode",

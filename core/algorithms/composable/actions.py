@@ -8,7 +8,6 @@ from core.predictive_movement import predict_falling_intercept
 from .definitions import (
     ThreatResponse,
     FoodApproach,
-    EnergyStyle,
     SocialMode,
     PokerEngagement,
 )
@@ -24,11 +23,8 @@ class BehaviorActionsMixin:
     - parameters: Dict[str, float]
     - threat_response: ThreatResponse
     - food_approach: FoodApproach
-    - energy_style: EnergyStyle
     - social_mode: SocialMode
     - poker_engagement: PokerEngagement
-    - _burst_timer: int
-    - _is_resting: bool
     - _circle_angle: float
     - _zigzag_phase: float
     - _patrol_angle: float
@@ -319,42 +315,22 @@ class BehaviorActionsMixin:
     def _get_energy_speed_modifier(
         self, fish: "Fish", is_critical: bool, is_low: bool
     ) -> float:
-        """Get speed modifier based on energy style and current energy state."""
+        """Get speed modifier based on current energy state.
+        
+        SIMPLIFIED: Removed EnergyStyle enum (CONSERVATIVE, BURST_REST, BALANCED).
+        Now uses a simple formula:
+        - Critical energy: 1.2x speed (desperation boost)
+        - Low energy: 1.0x speed (normal)
+        - Comfortable: 0.8x speed (conserve energy)
+        """
         base_mod = self.parameters.get("base_speed_multiplier", 0.8)
-
-        if self.energy_style == EnergyStyle.CONSERVATIVE:
-            # Always slow, slightly faster when critical (desperate)
-            return base_mod * (1.1 if is_critical else 0.7)
-
-        elif self.energy_style == EnergyStyle.BURST_REST:
-            burst_duration = int(self.parameters.get("burst_duration", 60))
-            rest_duration = int(self.parameters.get("rest_duration", 60))
-            burst_speed = self.parameters.get("burst_speed", 1.3)
-
-            self._burst_timer += 1
-            cycle_length = burst_duration + rest_duration
-
-            if self._burst_timer >= cycle_length:
-                self._burst_timer = 0
-                self._is_resting = False
-
-            if self._burst_timer < burst_duration:
-                self._is_resting = False
-                return base_mod * burst_speed
-            else:
-                self._is_resting = True
-                return base_mod * 0.3  # Resting
-
-        elif self.energy_style == EnergyStyle.BALANCED:
-            urgency_threshold = self.parameters.get("energy_urgency_threshold", 0.4)
-            if is_critical:
-                return base_mod * 1.2  # Speed up when desperate
-            elif is_low:
-                return base_mod * 1.0  # Normal
-            else:
-                return base_mod * 0.8  # Conserve when comfortable
-
-        return base_mod
+        
+        if is_critical:
+            return base_mod * 1.2  # Speed up when desperate
+        elif is_low:
+            return base_mod * 1.0  # Normal speed when hungry
+        else:
+            return base_mod * 0.8  # Conserve when comfortable
 
     def _default_exploration(self, fish: "Fish") -> Tuple[float, float]:
         """Default wandering behavior when nothing else applies."""

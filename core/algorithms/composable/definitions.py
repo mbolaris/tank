@@ -27,12 +27,10 @@ class FoodApproach(IntEnum):
     PATROL_ROUTE = 5  # Follow patrol pattern, divert for food
 
 
-class EnergyStyle(IntEnum):
-    """How to manage energy expenditure."""
-
-    CONSERVATIVE = 0  # Slow, steady, minimize energy use
-    BURST_REST = 1  # Alternate between bursts and resting
-    BALANCED = 2  # Moderate speed, energy-aware adjustments
+# NOTE: EnergyStyle was removed to simplify the behavior system.
+# The 3 energy styles (CONSERVATIVE, BURST_REST, BALANCED) added complexity
+# without meaningful evolutionary differentiation. Speed modulation is now
+# handled by a simple energy-based formula in _get_energy_speed_modifier().
 
 
 class SocialMode(IntEnum):
@@ -57,7 +55,6 @@ class PokerEngagement(IntEnum):
 SUB_BEHAVIOR_COUNTS = {
     "threat_response": len(ThreatResponse),
     "food_approach": len(FoodApproach),
-    "energy_style": len(EnergyStyle),
     "social_mode": len(SocialMode),
     "poker_engagement": len(PokerEngagement),
 }

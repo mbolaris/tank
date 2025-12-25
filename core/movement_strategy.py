@@ -71,11 +71,10 @@ class AlgorithmicMovement(MovementStrategy):
     Fish use a ComposableBehavior that combines multiple sub-behaviors:
     - ThreatResponse: How to react to predators
     - FoodApproach: How to approach and capture food
-    - EnergyStyle: How to manage energy expenditure
     - SocialMode: How to interact with other fish
     - PokerEngagement: How to engage with poker opportunities
 
-    This provides 1,152+ behavior combinations with tunable parameters,
+    This provides 384+ behavior combinations with tunable parameters,
     enabling much richer evolutionary exploration than the previous
     48 monolithic algorithms.
 

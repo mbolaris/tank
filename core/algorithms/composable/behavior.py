@@ -7,7 +7,6 @@ from .actions import BehaviorActionsMixin
 from .definitions import (
     ThreatResponse,
     FoodApproach,
-    EnergyStyle,
     SocialMode,
     PokerEngagement,
     SUB_BEHAVIOR_PARAMS,
@@ -28,22 +27,20 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     Attributes:
         threat_response: Which threat response sub-behavior to use
         food_approach: Which food approach sub-behavior to use
-        energy_style: Which energy management style to use
         social_mode: Which social interaction mode to use
         poker_engagement: Which poker engagement style to use
         parameters: Continuous parameters that tune sub-behavior execution
+    
+    NOTE: EnergyStyle was removed - speed modulation now uses a simple formula.
     """
 
     threat_response: ThreatResponse = ThreatResponse.PANIC_FLEE
     food_approach: FoodApproach = FoodApproach.DIRECT_PURSUIT
-    energy_style: EnergyStyle = EnergyStyle.BALANCED
     social_mode: SocialMode = SocialMode.SOLO
     poker_engagement: PokerEngagement = PokerEngagement.PASSIVE
     parameters: Dict[str, float] = field(default_factory=dict)
 
-    # Internal state for stateful behaviors
-    _burst_timer: int = field(default=0, repr=False)
-    _is_resting: bool = field(default=False, repr=False)
+    # Internal state for stateful behaviors (food approach patterns)
     _circle_angle: float = field(default=0.0, repr=False)
     _zigzag_phase: float = field(default=0.0, repr=False)
     _patrol_angle: float = field(default=0.0, repr=False)
@@ -54,7 +51,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         return "-".join([
             self.threat_response.name,
             self.food_approach.name,
-            self.energy_style.name,
             self.social_mode.name,
             self.poker_engagement.name,
         ]).lower()
@@ -62,10 +58,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     @property
     def short_description(self) -> str:
         """Get a human-readable short description of this behavior."""
-        return (
-            f"{self.food_approach.name.replace('_', ' ').title()} "
-            f"({self.energy_style.name.lower()})"
-        )
+        return f"{self.food_approach.name.replace('_', ' ').title()}"
 
     def __post_init__(self):
         """Initialize default parameters if not provided."""
@@ -82,7 +75,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         return cls(
             threat_response=ThreatResponse(rng.randint(0, len(ThreatResponse) - 1)),
             food_approach=FoodApproach(rng.randint(0, len(FoodApproach) - 1)),
-            energy_style=EnergyStyle(rng.randint(0, len(EnergyStyle) - 1)),
             social_mode=SocialMode(rng.randint(0, len(SocialMode) - 1)),
             poker_engagement=PokerEngagement(rng.randint(0, len(PokerEngagement) - 1)),
             parameters=_random_params(rng),
@@ -172,8 +164,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         if rng.random() < sub_behavior_switch_rate:
             self.food_approach = FoodApproach(rng.randint(0, len(FoodApproach) - 1))
         if rng.random() < sub_behavior_switch_rate:
-            self.energy_style = EnergyStyle(rng.randint(0, len(EnergyStyle) - 1))
-        if rng.random() < sub_behavior_switch_rate:
             self.social_mode = SocialMode(rng.randint(0, len(SocialMode) - 1))
         if rng.random() < sub_behavior_switch_rate:
             self.poker_engagement = PokerEngagement(rng.randint(0, len(PokerEngagement) - 1))
@@ -197,7 +187,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
             "type": "ComposableBehavior",
             "threat_response": int(self.threat_response),
             "food_approach": int(self.food_approach),
-            "energy_style": int(self.energy_style),
             "social_mode": int(self.social_mode),
             "poker_engagement": int(self.poker_engagement),
             "parameters": dict(self.parameters),
@@ -205,11 +194,13 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ComposableBehavior":
-        """Deserialize from dictionary."""
+        """Deserialize from dictionary.
+        
+        NOTE: energy_style is ignored if present in data (removed from behavior system).
+        """
         return cls(
             threat_response=ThreatResponse(data.get("threat_response", 0)),
             food_approach=FoodApproach(data.get("food_approach", 0)),
-            energy_style=EnergyStyle(data.get("energy_style", 2)),
             social_mode=SocialMode(data.get("social_mode", 0)),
             poker_engagement=PokerEngagement(data.get("poker_engagement", 1)),
             parameters=data.get("parameters", {}),
@@ -241,9 +232,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         food_approach = (
             parent1.food_approach if rng.random() < weight1 else parent2.food_approach
         )
-        energy_style = (
-            parent1.energy_style if rng.random() < weight1 else parent2.energy_style
-        )
         social_mode = (
             parent1.social_mode if rng.random() < weight1 else parent2.social_mode
         )
@@ -269,7 +257,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         child = cls(
             threat_response=threat_response,
             food_approach=food_approach,
-            energy_style=energy_style,
             social_mode=social_mode,
             poker_engagement=poker_engagement,
             parameters=blended_params,
