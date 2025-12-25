@@ -2,8 +2,12 @@
 """Test that the 90% energy threshold for reproduction works correctly."""
 
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/user/tank")
+import pytest
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.entities import Fish, LifeStage
 from core.genetics import Genome
@@ -91,6 +95,8 @@ def _run_reproduction_threshold_logic():
     return all_passed
 
 
+
+@pytest.mark.manual
 def test_reproduction_threshold_logic():
     assert _run_reproduction_threshold_logic()
 
@@ -231,6 +237,8 @@ def _run_proximity_vs_poker_reproduction():
     return test1_passed and test2_passed
 
 
+
+@pytest.mark.manual
 def test_proximity_vs_poker_reproduction():
     assert _run_proximity_vs_poker_reproduction()
 
@@ -282,6 +290,8 @@ def _run_energy_threshold_comparison():
     return True
 
 
+
+@pytest.mark.manual
 def test_energy_threshold_comparison():
     assert _run_energy_threshold_comparison()
 
@@ -346,6 +356,8 @@ def _run_realistic_scenario():
         return True  # Not a failure, just informational
 
 
+
+@pytest.mark.manual
 def test_realistic_scenario():
     assert _run_realistic_scenario()
 

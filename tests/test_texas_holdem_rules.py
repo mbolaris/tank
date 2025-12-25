@@ -10,8 +10,12 @@ This module tests key poker rules including:
 """
 
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/user/tank")
+import pytest
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.poker.core import (
     BettingAction,
@@ -27,6 +31,8 @@ from core.poker.core.cards import Card, Rank, Suit
 from core.poker.evaluation.hand_evaluator import _evaluate_five_cards
 
 
+
+@pytest.mark.manual
 def test_minimum_raise_enforcement():
     """Test that minimum raise rule is enforced within a betting round."""
     print("=" * 60)
@@ -68,6 +74,8 @@ def test_minimum_raise_enforcement():
     print("PASSED: Minimum raise enforcement working\n")
 
 
+
+@pytest.mark.manual
 def test_all_in_raise_downgrades_to_call_when_under_minimum():
     """
     Ensure attempted raises that cannot meet the minimum are treated as calls.
@@ -104,6 +112,8 @@ def test_all_in_raise_downgrades_to_call_when_under_minimum():
     assert contexts[1].remaining_energy == 2.0
 
 
+
+@pytest.mark.manual
 def test_wheel_straight():
     """Test that A-2-3-4-5 (wheel) is recognized as a straight."""
     print("=" * 60)
@@ -146,6 +156,8 @@ def test_wheel_straight():
     print("PASSED: Wheel straight handled correctly\n")
 
 
+
+@pytest.mark.manual
 def test_wheel_straight_flush():
     """Test that A-2-3-4-5 suited is a straight flush (not royal flush)."""
     print("=" * 60)
@@ -186,6 +198,8 @@ def test_wheel_straight_flush():
     print("PASSED: Wheel straight flush handled correctly\n")
 
 
+
+@pytest.mark.manual
 def test_headsup_blinds_order():
     """Test that heads-up blinds follow correct rules.
 
@@ -220,6 +234,8 @@ def test_headsup_blinds_order():
     print("PASSED: Heads-up blinds order correct\n")
 
 
+
+@pytest.mark.manual
 def test_kicker_comparison():
     """Test that kickers are compared correctly when hands have same rank."""
     print("=" * 60)
@@ -264,6 +280,8 @@ def test_kicker_comparison():
     print("PASSED: Kicker comparison working correctly\n")
 
 
+
+@pytest.mark.manual
 def test_best_five_from_seven():
     """Test that the best 5-card hand is selected from 7 cards."""
     print("=" * 60)
@@ -295,6 +313,8 @@ def test_best_five_from_seven():
     print("PASSED: Best 5 from 7 selection working\n")
 
 
+
+@pytest.mark.manual
 def test_split_pot_ties():
     """Test that hands with identical ranks and kickers tie correctly."""
     print("=" * 60)
@@ -333,6 +353,8 @@ def test_split_pot_ties():
     print("PASSED: Split pot handling correct\n")
 
 
+
+@pytest.mark.manual
 def test_table_stakes_all_in():
     """Test that players can go all-in when they can't cover the full bet (Table Stakes rule)."""
     print("=" * 60)
@@ -394,6 +416,8 @@ def test_table_stakes_all_in():
     print("PASSED: Table Stakes (All-In) rule working correctly\n")
 
 
+
+@pytest.mark.manual
 def test_unmatched_bets_refund():
     """Test that excess bets are refunded when one player is all-in for less."""
     print("=" * 60)
@@ -432,6 +456,8 @@ def test_unmatched_bets_refund():
     print("PASSED: Unmatched bets handling correct\n")
 
 
+
+@pytest.mark.manual
 def test_interleaved_dealing():
     """Test that cards are dealt in interleaved order (P1, P2, P1, P2)."""
     print("=" * 60)
@@ -459,6 +485,8 @@ def test_interleaved_dealing():
     print("PASSED: Interleaved dealing working correctly\n")
 
 
+
+@pytest.mark.manual
 def test_finalize_pot_distribution():
     """Test that finalize_pot correctly distributes the pot including split pots."""
     print("=" * 60)

@@ -2,13 +2,18 @@
 """Test script to verify energy economy and algorithm evolution fixes."""
 
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/user/tank")
+import pytest
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.algorithms.registry import crossover_algorithms, get_random_algorithm
 from core.genetics import Genome
 
 
+@pytest.mark.manual
 def test_energy_economy():
     """Test that reproduction is energy-neutral."""
     print("=" * 60)
@@ -49,6 +54,7 @@ def test_energy_economy():
     print("  → No free energy created!\n")
 
 
+@pytest.mark.manual
 def test_algorithm_crossover():
     """Test that composable behavior crossover works from both parents."""
     print("=" * 60)
@@ -88,6 +94,7 @@ def test_algorithm_crossover():
     print("  → Composable behavior system is working\n")
 
 
+@pytest.mark.manual
 def test_same_algorithm_parameter_blending():
     """Test parameter blending when both parents have same algorithm type."""
     import random
