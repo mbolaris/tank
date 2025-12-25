@@ -48,11 +48,8 @@ from core.fish.skill_game_component import SkillGameComponent
 from core.skills.base import SkillGameType, SkillStrategy, SkillGameResult
 from core.fish_memory import MemoryType
 
-from core.entities.fish_impl.energy_mixin import FishEnergyMixin
-from core.entities.fish_impl.skills_mixin import FishSkillsMixin
-from core.entities.fish_impl.poker_mixin import FishPokerMixin
 
-class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
+class Fish(Agent):
     """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
 
     Attributes:
@@ -214,8 +211,6 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         # Rendering-only state is stored separately to keep domain logic lean.
         self.visual_state = FishVisualState()
         self.poker_cooldown: int = 0  # Cooldown between poker games
-    
-    # SkillfullAgent & PokerPlayer Protocol implementations are provided by mixins
 
     @property
     def typed_id(self) -> FishId:
@@ -237,6 +232,296 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
             current_energy=self.energy,
             max_energy=self._energy_component.max_energy,
         )
+
+    # =========================================================================
+    # PokerPlayer Protocol Implementation
+    # =========================================================================
+
+    def get_poker_aggression(self) -> float:
+        """Get poker aggression level (implements PokerPlayer protocol).
+
+        Returns:
+            Aggression value for poker decisions (0.0-1.0)
+        """
+        if hasattr(self.genome.behavioral, "aggression"):
+            return self.genome.behavioral.aggression.value
+        return 0.5
+
+    def get_poker_strategy(self):
+        """Get poker strategy for this fish (implements PokerPlayer protocol).
+
+        Returns:
+            PokerStrategyAlgorithm from genome, or None for aggression-based play
+        """
+        trait = getattr(self.genome.behavioral, "poker_strategy", None)
+        return trait.value if trait else None
+
+    def get_poker_id(self) -> int:
+        """Get stable ID for poker tracking (implements PokerPlayer protocol).
+
+        Returns:
+            fish_id for consistent identification
+        """
+        return self.fish_id
+
+    # =========================================================================
+    # SkillfulAgent Protocol Implementation
+    # =========================================================================
+
+    def get_strategy(self, game_type: SkillGameType) -> Optional[SkillStrategy]:
+        """Get the fish's strategy for a specific skill game (implements SkillfulAgent Protocol).
+
+        Args:
+            game_type: The type of skill game
+
+        Returns:
+            The fish's strategy for that game, or None if not initialized
+        """
+        return self._skill_game_component.get_strategy(game_type)
+
+    def set_strategy(self, game_type: SkillGameType, strategy: SkillStrategy) -> None:
+        """Set the fish's strategy for a specific skill game (implements SkillfulAgent Protocol).
+
+        Args:
+            game_type: The type of skill game
+            strategy: The strategy to use for that game
+        """
+        self._skill_game_component.set_strategy(game_type, strategy)
+
+    def learn_from_game(self, game_type: SkillGameType, result: SkillGameResult) -> None:
+        """Update strategy based on game outcome (implements SkillfulAgent Protocol).
+
+        This is how fish learn within their lifetime. The strategy is updated
+        based on the result (win/loss/tie) and optimality of play.
+
+        Args:
+            game_type: The type of skill game that was played
+            result: The outcome of the game
+        """
+        self._skill_game_component.record_game_result(game_type, result)
+
+    @property
+    def can_play_skill_games(self) -> bool:
+        """Whether this fish is currently able to play skill games (implements SkillfulAgent Protocol).
+
+        Returns:
+            True if fish is adult, has sufficient energy, and isn't on cooldown
+        """
+        if self._lifecycle_component.life_stage not in (LifeStage.ADULT, LifeStage.ELDER):
+            return False
+
+        from core.poker_interaction import MIN_ENERGY_TO_PLAY
+
+        return (
+            self.energy >= MIN_ENERGY_TO_PLAY
+            and self.poker_cooldown <= 0
+            and not self.is_dead()
+        )
+
+    # =========================================================================
+    # EnergyHolder Protocol Implementation
+    # =========================================================================
+
+    @property
+    def energy(self) -> float:
+        """Current energy level (read-only property delegating to EnergyComponent)."""
+        return self._energy_component.energy
+
+    @energy.setter
+    def energy(self, value: float) -> None:
+        """Set energy level."""
+        self._energy_component.energy = value
+        # OPTIMIZATION: Update dead cache if energy drops to/below zero
+        if value <= 0:
+            if self.state.state == EntityState.ACTIVE:
+                self.state.transition(EntityState.DEAD, reason="starvation")
+            self._cached_is_dead = True
+
+    @property
+    def max_energy(self) -> float:
+        """Maximum energy capacity based on current size (age + genetics).
+
+        A fish's max energy grows as they physically grow from baby to adult.
+        Baby fish (size ~0.35-0.5) have less capacity than adults.
+        """
+        return ENERGY_MAX_DEFAULT * self._lifecycle_component.size
+
+    @property
+    def bite_size(self) -> float:
+        """Calculate the size of a bite this fish can take.
+
+        Bite size scales with fish size.
+        """
+        return 20.0 * self._lifecycle_component.size
+
+    def gain_energy(self, amount: float) -> float:
+        """Gain energy from consuming food, routing overflow productively.
+
+        Uses the fish's dynamic max_energy (based on current size) rather than
+        the static value in EnergyComponent. Any overflow is banked for
+        reproduction or dropped as food.
+
+        Args:
+            amount: Amount of energy to gain.
+
+        Returns:
+            float: Actual energy gained by the fish (capped by max_energy)
+        """
+        old_energy = self._energy_component.energy
+        new_energy = old_energy + amount
+
+        if new_energy > self.max_energy:
+            overflow = new_energy - self.max_energy
+            self._energy_component.energy = self.max_energy
+            self._route_overflow_energy(overflow)
+        else:
+            self._energy_component.energy = new_energy
+
+        # Ensure fish is marked alive if it has energy and state is active
+        if self._energy_component.energy > 0 and self.state.state == EntityState.ACTIVE:
+            self._cached_is_dead = False
+
+        return self._energy_component.energy - old_energy
+
+    def modify_energy(self, amount: float) -> float:
+        """Adjust energy by a specified amount, routing overflow productively.
+
+        Positive amounts are capped at max_energy with overflow handling.
+        Negative amounts won't go below zero.
+
+        Returns:
+            float: The actual energy change applied to the fish
+        """
+        old_energy = self._energy_component.energy
+        new_energy = old_energy + amount
+
+        if amount > 0:
+            if new_energy > self.max_energy:
+                overflow = new_energy - self.max_energy
+                self._energy_component.energy = self.max_energy
+                self._route_overflow_energy(overflow)
+            else:
+                self._energy_component.energy = new_energy
+        else:
+            final_energy = max(0.0, new_energy)
+            self._energy_component.energy = final_energy
+            if final_energy <= 0:
+                if self.state.state == EntityState.ACTIVE:
+                    self.state.transition(EntityState.DEAD, reason="starvation")
+                self._cached_is_dead = True
+            elif self.state.state == EntityState.ACTIVE:
+                self._cached_is_dead = False
+
+        return self._energy_component.energy - old_energy
+
+    def _route_overflow_energy(self, overflow: float) -> None:
+        """Route overflow energy into reproduction bank.
+
+        When a fish gains more energy than it can hold, this method banks
+        the overflow for future reproduction. If the bank is full, excess
+        is dropped as food.
+
+        Args:
+            overflow: Amount of energy exceeding max capacity
+        """
+        if overflow <= 0:
+            return
+
+        max_bank = self.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
+        banked = self._reproduction_component.bank_overflow_energy(overflow, max_bank=max_bank)
+        remainder = overflow - banked
+
+        if remainder > 0:
+            self._spawn_overflow_food(remainder)
+
+    def _spawn_overflow_food(self, overflow: float) -> None:
+        """Convert overflow energy into a food drop near the fish.
+
+        Args:
+            overflow: Amount of energy to convert to food
+        """
+        if overflow < 1.0:
+            return
+
+        try:
+            from core.entities.resources import Food
+
+            rng = getattr(self.environment, "rng", random)
+            food = Food(
+                environment=self.environment,
+                x=self.pos.x + rng.uniform(-20, 20),
+                y=self.pos.y + rng.uniform(-20, 20),
+                food_type="energy",
+            )
+            food.energy = min(overflow, food.max_energy)
+            food.max_energy = food.energy
+
+            if hasattr(self.environment, "add_entity"):
+                self.environment.add_entity(food)
+
+            if self.ecosystem is not None:
+                self.ecosystem.record_energy_burn("overflow_food", food.energy)
+        except Exception:
+            pass  # Energy lost on failure is acceptable
+
+    def consume_energy(self, time_modifier: float = 1.0) -> None:
+        """Consume energy based on metabolism and activity.
+
+        Delegates to EnergyComponent and reports breakdown to ecosystem.
+
+        Args:
+            time_modifier: Modifier for time-based effects (e.g., day/night)
+        """
+        energy_breakdown = self._energy_component.consume_energy(
+            self.vel,
+            self.speed,
+            self._lifecycle_component.life_stage,
+            time_modifier,
+            self._lifecycle_component.size,
+        )
+
+        if self._energy_component.energy <= 0:
+            if self.state.state == EntityState.ACTIVE:
+                self.state.transition(EntityState.DEAD, reason="starvation")
+            self._cached_is_dead = True
+
+        if self.ecosystem is not None:
+            self.ecosystem.record_energy_burn("existence", energy_breakdown["existence"])
+            self.ecosystem.record_energy_burn("movement", energy_breakdown["movement"])
+
+            metabolism_total = energy_breakdown["metabolism"]
+            rate = self.genome.metabolism_rate
+            if rate > 0:
+                trait_fraction = max(0.0, (rate - 1.0) / rate)
+                trait_cost = metabolism_total * trait_fraction
+                base_cost = metabolism_total - trait_cost
+            else:
+                trait_cost = 0.0
+                base_cost = metabolism_total
+
+            self.ecosystem.record_energy_burn("metabolism", base_cost)
+            self.ecosystem.record_energy_burn("trait_maintenance", trait_cost)
+
+    def is_starving(self) -> bool:
+        """Check if fish is starving (low energy)."""
+        return self._energy_component.is_starving()
+
+    def is_critical_energy(self) -> bool:
+        """Check if fish is in critical energy state (emergency survival mode)."""
+        return self._energy_component.is_critical_energy()
+
+    def is_low_energy(self) -> bool:
+        """Check if fish has low energy (should prioritize food)."""
+        return self._energy_component.is_low_energy()
+
+    def is_safe_energy(self) -> bool:
+        """Check if fish has safe energy level (can explore/breed)."""
+        return self._energy_component.is_safe_energy()
+
+    def get_energy_ratio(self) -> float:
+        """Get energy as a ratio of max energy (0.0-1.0)."""
+        max_e = self.max_energy
+        return self.energy / max_e if max_e > 0 else 0.0
 
     def register_birth(self) -> None:
         """Register birth stats with the ecosystem.
@@ -301,8 +586,6 @@ class Fish(FishEnergyMixin, FishSkillsMixin, FishPokerMixin, Agent):
         """
         """Set a visual effect for death cause (delegates to visual_state)."""
         self.visual_state.set_death_effect(cause, duration)
-
-    # Energy properties and methods are provided by FishEnergyMixin
 
     def can_attempt_migration(self) -> bool:
         """Fish can migrate when hitting horizontal tank boundaries."""
