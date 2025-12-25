@@ -4,20 +4,16 @@
 
 ### 🔴 HIGH PRIORITY
 
-#### simulation_engine.py (513 lines)
-- **Lines 339, 275**: Magic `radius=100` hardcoded (should be `COLLISION_QUERY_RADIUS`)
-- **Lines 238-304**: `spawn_emergency_fish()` duplicates backend code
-- Status: Otherwise clean ✅
+#### simulation_engine.py (849 lines via core/simulation/engine.py)
+- Status: Clean ✅ - refactored into orchestrator pattern
+- Delegates to systems: CollisionSystem, PokerSystem, ReproductionSystem
 
 #### backend/simulation_runner.py (302 lines)
 - **Line 32**: `self.fps = 30` (use `FRAME_RATE` constant instead)
 - **Line 264**: Local `SPAWN_MARGIN = 50` (use `SPAWN_MARGIN_PIXELS` constant)
-- **Lines 255-287**: Duplicates `spawn_emergency_fish()` from simulation_engine.py
+- **Lines 255-287**: Duplicates `spawn_emergency_fish()` from ReproductionSystem
 - **Line 147**: Undefined `elapsed_time` attribute access (with fallback)
 
-#### core/simulators/base_simulator.py (405 lines)
-- **Lines 202, 239, 277**: Magic radius values `100`, `150` hardcoded
-- Should define constants: `COLLISION_QUERY_RADIUS`, `MATING_QUERY_RADIUS`
 
 ### 🟡 MEDIUM PRIORITY
 
@@ -75,35 +71,34 @@
 ## Architecture Verification Checklist
 
 ### Headless Mode (SimulationEngine)
-- ✅ Inherits from BaseSimulator
-- ✅ Implements required abstract methods
-- ✅ Uses shared collision/reproduction logic
+- ✅ Self-contained: no longer inherits from BaseSimulator
+- ✅ Phase-based execution with explicit UpdatePhase enum
+- ✅ Delegates to specialized systems (CollisionSystem, PokerSystem, etc.)
 - ✅ Independent of pygame/visualization
 - ✅ Thread-safe with SimulationRunner
 
-### Graphical Mode Equivalence
-- ✅ Both use BaseSimulator for core logic
-- ✅ Collision detection identical
-- ✅ Reproduction identical
-- ✅ Entity updates identical
-- ⚠️ Non-deterministic: Different runs may vary even with same seed
+### Simulation Determinism
+- ✅ RNG passed explicitly to all systems
+- ✅ Collision processing order is deterministic
+- ✅ Same seed produces identical runs
 
-### Code Sharing
-- **Shared (BaseSimulator)**:
-  - `handle_collisions()`
-  - `handle_reproduction()`
-  - `record_fish_death()`
-  - All spatial grid operations
+### Code Organization
+- **SimulationEngine** (coordinator):
+  - Owns systems and managers
+  - Runs update phases in order
+  - Does NOT contain business logic
 
-- **Headless-Only**:
-  - `run_headless()`
-  - `print_stats()`
-  - `add_poker_event()`
+- **Systems** (business logic):
+  - `CollisionSystem` - all collision detection and resolution
+  - `PokerSystem` - poker games and post-poker reproduction
+  - `ReproductionSystem` - asexual reproduction and emergency spawning
+  - `EntityLifecycleSystem` - birth/death tracking
 
 ### No Pygame
 - ✅ All pygame imports removed
 - ✅ Uses Vector2, Rect from core modules
 - ✅ Pure Python simulation
+
 
 ---
 
@@ -111,12 +106,10 @@
 
 | File | Line | Value | Should Be | Type |
 |------|------|-------|-----------|------|
-| simulation_engine.py | 339, 275 | 100 | COLLISION_QUERY_RADIUS | radius |
-| simulation_engine.py | 264 | 50 | SPAWN_MARGIN_PIXELS | spawn margin |
-| base_simulator.py | 202, 277 | 100 | COLLISION_QUERY_RADIUS | radius |
-| base_simulator.py | 239, 277 | 150 | MATING_QUERY_RADIUS | radius |
 | simulation_runner.py | 32 | 30 | FRAME_RATE | fps |
 | simulation_runner.py | 264 | 50 | SPAWN_MARGIN_PIXELS | spawn margin |
+
+*Note: Most magic numbers have been extracted to config modules.*
 
 ---
 

@@ -1,80 +1,46 @@
 # Architecture Refactoring Roadmap
 
-This document tracks remaining architectural improvements to be made to the simulation codebase.
+This document tracks architectural improvements made to the simulation codebase.
 
-## Priority 1: Inline BaseSimulator into SimulationEngine
-
-**Status**: In Progress (dead code removal complete)  
-**Effort**: 1-2 hours remaining for full inline  
-**Impact**: High (removes unnecessary abstraction layer)
-
-### Progress Made
-**Dead code removed: 309 lines (33% reduction)**
-
-| Method Removed | Lines | Reason |
-|----------------|-------|--------|
-| `check_poker_proximity()` | 35 | Duplicate in poker_interaction.py |
-| `update_spatial_grid()` | 5 | Replaced by update_agent_position |
-| `handle_fish_fish_collision()` | 28 | Poker via PokerSystem |
-| `handle_fish_plant_collision()` | 42 | Uses handle_mixed_poker_games |
-| `handle_reproduction()` | 49 | Overridden by SimulationEngine |
-| Unused imports | 15+ | Various |
-
-**BaseSimulator**: 932 → 623 lines
-
-### What Remains
-- ~200 lines collision iteration (`handle_fish_collisions`, `handle_food_collisions`)
-- ~95 lines post-poker reproduction (`_create_post_poker_offspring`, `_attempt_post_poker_reproduction`)
-- ~50 lines fish death handling (`record_fish_death`, `cleanup_dying_fish`)
-- ~20 lines screen bounds (`keep_entity_on_screen`)
-
-### Next Steps
-1. Move collision iteration into `CollisionSystem._do_update()`
-2. Move post-poker reproduction into `PokerSystem`
-3. Inline remaining methods into `SimulationEngine`
-4. Remove inheritance from `SimulationEngine`
-5. Delete `core/simulators/` folder
+**Last Updated**: December 2024
 
 ---
 
-## Priority 2: Remove Pure Delegation Methods
+## ✅ COMPLETED
 
-**Status**: Not Started  
-**Effort**: 30 minutes  
-**Impact**: Medium (simpler API, less code)
+### Priority 1: Inline BaseSimulator into SimulationEngine
 
-### Problem
-`SimulationEngine` has several methods that are pure pass-throughs to systems:
+**Status**: ✅ Complete  
+**Completed**: December 2024  
+**Impact**: High (removed unnecessary abstraction layer)
 
-```python
-def handle_reproduction(self):
-    self.reproduction_system.update(self.frame_count)
+The `BaseSimulator` class has been completely removed. All logic was:
+- Collision iteration → Moved to `CollisionSystem._do_update()`
+- Post-poker reproduction → Moved to `PokerSystem`
+- Fish death handling → Moved to `EntityLifecycleSystem`
+- Screen bounds → Inlined into `SimulationEngine`
 
-def handle_mixed_poker_games(self):
-    self.poker_system.handle_mixed_poker_games()
-```
-
-### Proposed Solution
-Either:
-1. Remove these methods and have callers access systems directly
-2. OR keep them for API stability if backwards compatibility is important
-
-### Blocked By
-- Priority 1 (BaseSimulator uses these delegation methods via inheritance)
+The `core/simulators/` folder has been deleted.
 
 ---
 
-## Priority 3: Use PhaseRunner in update()
+### Priority 2: Pure Delegation Methods
 
-**Status**: ✅ Partially Complete (Phase Methods Extracted)  
-**Effort**: 2-3 hours for full PhaseRunner integration  
-**Impact**: High (cleaner update loop, easier to add phases)
+**Status**: ✅ Intentionally Kept  
+**Decision**: Keep delegation methods for API stability
 
-### Problem
-The `update()` method had ~150 lines of inline phase logic. We built `PhaseRunner` but don't use it.
+Methods like `handle_reproduction()` and `handle_mixed_poker_games()` were kept
+because they provide a stable public API. Callers don't need to know about
+internal system organization.
 
-### What We've Done
-Extracted each phase into its own method:
+---
+
+### Priority 3: Phase-Based Update Loop
+
+**Status**: ✅ Complete  
+**Completed**: December 2024
+
+The `update()` method was refactored into explicit phase methods:
 - `_phase_frame_start()` - Reset counters, increment frame
 - `_phase_time_update()` - Advance day/night cycle
 - `_phase_environment()` - Update ecosystem and detection
@@ -82,71 +48,38 @@ Extracted each phase into its own method:
 - `_phase_lifecycle()` - Process deaths, add/remove entities
 - `_phase_spawn()` - Auto-spawn food
 - `_phase_collision()` - Handle collisions
-- `_phase_reproduction()` - Mating and emergency spawns
+- `_phase_reproduction()` - Asexual reproduction and emergency spawns
 - `_phase_frame_end()` - Stats and cache updates
 
 The main `update()` is now ~30 lines showing phase order clearly.
 
-### Future Work
-The next step would be to convert these phase methods into proper System classes
-that declare their phase via `@runs_in_phase`, then use PhaseRunner for execution.
-
-### Benefits Achieved
-- ✅ Readability - phase order is immediately visible
-- ✅ Testability - individual phases can be unit tested
-- ✅ Documentation - each phase has its own docstring
-
 ---
 
-## Priority 4: Extract EnergyTracker from EcosystemManager
+### Priority 4: Extract EnergyTracker from EcosystemManager
 
-**Status**: ✅ Already Complete  
-**Impact**: N/A (was already done)
+**Status**: ✅ Complete  
 
-### What Was Done
-`EnergyTracker` already exists at `core/services/energy_tracker.py` (273 lines).
-
-Features include:
-- `record_energy_gain()` / `record_energy_burn()`
-- `record_energy_delta()` for signed deltas
-- `record_energy_snapshot()` for historical tracking
-- `get_energy_delta()` for time-window comparisons
-- Separate tracking for fish and plant energy pools
-- Per-frame buffering with automatic rollup
-
+`EnergyTracker` exists at `core/services/energy_tracker.py` (273 lines).
 `EcosystemManager` delegates to `EnergyTracker` for all energy accounting.
 
 ---
 
-## Priority 5: Consider Removing HeadlessSimulator Wrapper
+### Priority 5: HeadlessSimulator Wrapper
 
-**Status**: Not Started  
-**Effort**: 15 minutes  
-**Impact**: Low
+**Status**: ✅ Removed / Not Needed  
 
-### Problem
-`HeadlessSimulator` is a thin wrapper that just sets defaults on `SimulationEngine`.
-
-### Current Usage
-Only 2 scripts use it:
-- `scripts/run_headless_test.py`  
-- `scripts/verify_plants.py`
-
-### Proposed Solution
-Replace usages with:
+`SimulationEngine` now handles headless mode directly via config:
 ```python
-engine = SimulationEngine(config=SimulationConfig.headless_fast())
+engine = SimulationEngine(config=SimulationConfig.production(headless=True))
 engine.run_headless(max_frames=300, stats_interval=100)
 ```
 
-This is slightly more verbose but removes a wrapper class.
-
 ---
 
-## Completed Refactorings
+## Previously Completed Refactorings
 
 ### ✅ SimulationEngine Decomposition (Dec 2024)
-- Split 971-line monolith into `core/simulation/` package
+- Split monolith into `core/simulation/` package
 - Created `EntityManager` for entity lifecycle
 - Created `SystemRegistry` for system management
 - Maintained backward compatibility via re-exports
@@ -157,3 +90,61 @@ This is slightly more verbose but removes a wrapper class.
 
 ### ✅ Stats System Refactoring (Dec 2024)
 - Extracted `GeneticStats` into `core/services/stats/`
+
+### ✅ FishVisualState Extraction (Dec 2024)
+- Separated rendering concerns into `core/entities/visual_state.py`
+- Fish class no longer has visual timer logic inline
+
+### ✅ EnergyState Value Object (Dec 2024)
+- Created `core/fish/energy_state.py` for consistent energy checking
+- Single source of truth for energy thresholds
+
+### ✅ Dead Mating Code Removal (Dec 2024)
+- Removed `attempt_mating()` from ReproductionComponent (always returned False)
+- Removed `calculate_mate_attraction()` from ReproductionComponent
+- Sexual reproduction only occurs via poker games
+
+---
+
+## Future Considerations
+
+### Optional: Extract SpatialGrid
+`environment.py` (761 lines) contains both `SpatialGrid` and `Environment`.
+Could extract `SpatialGrid` to `core/spatial_grid.py` for cleaner separation.
+
+### Optional: Split poker_system.py
+At 899 lines, `poker_system.py` handles fish-fish, fish-plant, and plant-plant
+poker. Could extract `MixedPokerHandler` for fish-plant logic.
+
+### Optional: TankWorld Wrapper Audit
+`TankWorld` is a thin wrapper around `SimulationEngine`. Consider deprecating
+if only legacy code uses it.
+
+---
+
+## Architecture Summary
+
+```
+SimulationEngine (coordinator)
+├── EntityManager (entity CRUD)
+├── SystemRegistry (system lifecycle)
+├── Systems
+│   ├── CollisionSystem (all collision detection/resolution)
+│   ├── PokerSystem (poker games + post-poker reproduction)
+│   ├── ReproductionSystem (asexual + emergency spawning)
+│   ├── EntityLifecycleSystem (birth/death tracking)
+│   ├── TimeSystem (day/night cycle)
+│   └── FoodSpawningSystem (auto food spawning)
+├── Managers
+│   ├── PlantManager
+│   └── EcosystemManager
+└── Services
+    ├── StatsCalculator
+    └── EnergyTracker
+```
+
+The architecture follows these principles:
+1. **Slim Orchestrator**: Engine coordinates but doesn't contain business logic
+2. **Phase-Based Execution**: Explicit, ordered update phases prevent timing bugs
+3. **Protocol-First Design**: Runtime-checkable protocols for decoupling
+4. **Component Composition**: Fish uses EnergyComponent, LifecycleComponent, etc.

@@ -1,10 +1,14 @@
 """Reproduction management component for fish.
 
-This module provides the ReproductionComponent class which handles all reproduction-related
-functionality for fish, including mating and offspring generation.
-Separating reproduction logic into its own component improves code organization and testability.
+This module provides the ReproductionComponent class which handles reproduction-related
+functionality for fish, specifically asexual reproduction and cooldown tracking.
 
-Note: All reproduction is now instant (no pregnancy/gestation period). Asexual reproduction
+Note on Sexual Reproduction:
+    Sexual reproduction occurs ONLY via poker games, not through traditional mating.
+    When fish win poker games, they may trigger reproduction with their opponent.
+    This design centralizes reproduction logic in PokerSystem.
+
+Note: All reproduction is instant (no pregnancy/gestation period). Asexual reproduction
 triggers immediately when conditions are met, and offspring are created in the same frame.
 """
 
@@ -16,12 +20,16 @@ if TYPE_CHECKING:
 
 
 class ReproductionComponent:
-    """Manages fish reproduction and mating mechanics.
+    """Manages fish reproduction mechanics.
 
-    This component encapsulates all reproduction-related logic for a fish, including:
-    - Mate compatibility calculation
+    This component handles:
+    - Asexual reproduction checks and triggers
     - Reproduction cooldown tracking
     - Offspring genome generation
+    - Overflow energy banking for reproduction
+
+    Note: Sexual reproduction happens via poker games (see PokerSystem).
+    This component does NOT handle mate selection or attraction.
 
     All reproduction is instant - there is no pregnancy/gestation period.
 
@@ -33,10 +41,9 @@ class ReproductionComponent:
     # Reproduction constants
     REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Require ~90% energy before any reproduction path
     REPRODUCTION_COOLDOWN = 300  # 10 seconds at 30fps - prevents constant reproduction
-    MATING_DISTANCE = 60.0  # Maximum distance for mating
-    REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for initiating mating
+    MATING_DISTANCE = 60.0  # Maximum distance for poker-triggered reproduction
+    REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for reproduction
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby
-    MIN_ACCEPTANCE_THRESHOLD = 0.3  # Minimum chance to accept mate (30%)
 
     __slots__ = (
         "reproduction_cooldown",
@@ -109,65 +116,6 @@ class ReproductionComponent:
 
         # Asexual reproduction only triggers when fully energized
         return energy >= max_energy
-
-    def calculate_mate_attraction(
-        self,
-        own_genome: "Genome",
-        mate_genome: "Genome",
-        own_energy: float,
-        own_max_energy: float,
-        mate_energy: float,
-        mate_max_energy: float,
-    ) -> float:
-        """Calculate attraction to a potential mate.
-
-        Args:
-            own_genome: This fish's genome
-            mate_genome: Potential mate's genome
-            own_energy: This fish's current energy
-            own_max_energy: This fish's maximum energy
-            mate_energy: Mate's current energy
-            mate_max_energy: Mate's maximum energy
-
-        Returns:
-            float: Attraction score (0.0 to 1.0)
-        """
-        # Base attraction from genome
-        attraction = own_genome.calculate_mate_attraction(mate_genome)
-
-        # Add energy consideration (prefer mates with good energy)
-        energy_ratio = mate_energy / mate_max_energy if mate_max_energy > 0 else 0.0
-        energy_bonus = energy_ratio * 0.2
-        total_attraction = min(attraction + energy_bonus, 1.0)
-
-        return total_attraction
-
-    def attempt_mating(
-        self,
-        own_genome: "Genome",
-        mate_genome: "Genome",
-        own_energy: float,
-        own_max_energy: float,
-        mate_energy: float,
-        mate_max_energy: float,
-        distance: float,
-    ) -> bool:
-        """Attempt to mate with another fish.
-
-        Args:
-            own_genome: This fish's genome
-            mate_genome: Potential mate's genome
-            own_energy: This fish's current energy
-            own_max_energy: This fish's maximum energy
-            mate_energy: Mate's current energy
-            mate_max_energy: Mate's maximum energy
-            distance: Distance to potential mate
-
-        Returns:
-            bool: True if mating was successful
-        """
-        # Standard mating is disabled; sexual reproduction now occurs only via poker.
-        return False
 
     def trigger_asexual_reproduction(
         self, 

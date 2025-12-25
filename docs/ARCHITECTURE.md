@@ -283,11 +283,14 @@ class BaseSystem(ABC):
     def _do_update(self, frame: int): # Subclass implementation
 ```
 
-### Template Method Pattern
-`BaseSimulator` defines the simulation algorithm skeleton:
-- `handle_collisions()`: Collision detection and response
-- `handle_reproduction()`: Mating and offspring creation
-- Subclasses implement specific methods like `check_collision()`
+### Phase-Based Update Loop
+`SimulationEngine` uses explicit phase methods for the simulation loop:
+- `_phase_frame_start()`: Reset counters, increment frame
+- `_phase_time_update()`: Day/night cycle advancement
+- `_phase_entity_act()`: Update all entities
+- `_phase_lifecycle()`: Process deaths, add/remove entities
+- `_phase_collision()`: Handle all collisions via CollisionSystem
+- `_phase_reproduction()`: Handle reproduction via ReproductionSystem
 
 ### Strategy Pattern
 Different movement strategies for entities:
