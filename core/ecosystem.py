@@ -840,8 +840,7 @@ class EcosystemManager:
             if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
                 ps = fish.poker_stats
                 if ps.total_games > 0:
-                    win_rate = ps.total_wins / ps.total_games
-                    strategy_win_rates[strat.strategy_id].append(win_rate)
+                    strategy_win_rates[strat.strategy_id].append(ps.get_win_rate())
 
         result = {
             "total_fish": len(fish_list),
