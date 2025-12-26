@@ -22,10 +22,11 @@ from typing import Callable, Dict, List, Optional, Protocol, TYPE_CHECKING
 
 from core.config.plants import (
     PLANT_CULL_INTERVAL,
+    PLANT_CRITICAL_POPULATION,
+    PLANT_EMERGENCY_RESPAWN_COOLDOWN,
     PLANT_INITIAL_COUNT,
     PLANT_INITIAL_ENERGY,
     PLANT_MATURE_ENERGY,
-    PLANT_EXTINCTION_RESPAWN_INTERVAL,
 )
 from core.config.server import PLANTS_ENABLED
 from core.config.display import (
@@ -109,9 +110,9 @@ class PlantManager:
         # Initialize root spot manager
         self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)
 
-        # Track reconciliation for periodic cleanup
+        # Track reconciliation and respawns
         self._last_reconcile_frame: int = -1
-        self._extinction_frame: Optional[int] = None
+        self._last_emergency_respawn_frame: int = -PLANT_EMERGENCY_RESPAWN_COOLDOWN
 
     @property
     def enabled(self) -> bool:
@@ -251,12 +252,12 @@ class PlantManager:
         logger.info(f"Created {created} initial fractal plants")
         return created
 
-    def respawn_if_extinct(
+    def respawn_if_low(
         self,
         entities: List["Agent"],
         frame_count: int,
     ) -> bool:
-        """Respawn a plant if the population is extinct.
+        """Respawn a plant if the population is below minimum.
 
         Args:
             entities: All entities in simulation
@@ -268,21 +269,18 @@ class PlantManager:
         if not self.enabled:
             return False
 
-        has_plants = any(isinstance(entity, Plant) for entity in entities)
-        if has_plants:
-            self._extinction_frame = None
+        plant_count = sum(1 for entity in entities if isinstance(entity, Plant))
+
+        # Only respawn if below critical threshold
+        if plant_count >= PLANT_CRITICAL_POPULATION:
             return False
 
-        if self._extinction_frame is None:
-            self._extinction_frame = frame_count
-
-        if PLANT_EXTINCTION_RESPAWN_INTERVAL > 0:
-            if frame_count - self._extinction_frame < PLANT_EXTINCTION_RESPAWN_INTERVAL:
-                return False
+        # Respect cooldown
+        if frame_count - self._last_emergency_respawn_frame < PLANT_EMERGENCY_RESPAWN_COOLDOWN:
+            return False
 
         spot = self.root_spot_manager.get_random_empty_spot()
         if spot is None:
-            self._extinction_frame = frame_count
             return False
 
         variant = self.pick_balanced_variant(entities)
@@ -292,19 +290,16 @@ class PlantManager:
             environment=self.environment,
             genome=genome,
             root_spot=spot,
-            initial_energy=PLANT_INITIAL_ENERGY,
+            initial_energy=PLANT_MATURE_ENERGY,  # Start at full energy
             ecosystem=self.ecosystem,
         )
 
         if not spot.claim(plant):
-            self._extinction_frame = frame_count
             return False
 
         self._entity_adder.add_entity(plant)
-        self._extinction_frame = None
-        logger.info(
-            f"Respawned fractal plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f})"
-        )
+        self._last_emergency_respawn_frame = frame_count
+        logger.info(f"Plant respawned (pop={plant_count}): #{plant.plant_id}")
         return True
 
     def sprout_new_plant(

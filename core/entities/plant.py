@@ -284,18 +284,17 @@ class Plant(Agent):
         Returns:
             PlantNectar if produced, None otherwise
         """
-        # Check if plant is large enough
+        # Must be able to afford nectar
+        if self.energy < PLANT_NECTAR_ENERGY:
+            return None
+
+        # Must be at 90% energy to look "full grown" when producing
         energy_ratio = self.energy / self.max_energy
-        if energy_ratio < self.genome.nectar_threshold_ratio:
+        if energy_ratio < 0.90:
             return None
 
         # Check cooldown
         if self.nectar_cooldown > 0:
-            return None
-
-        # Nectar should be an energy transfer from the plant, not free energy.
-        # If a plant can't afford the full cost, skip production.
-        if self.energy < PLANT_NECTAR_ENERGY:
             return None
 
         # Produce nectar
@@ -581,9 +580,9 @@ class Plant(Agent):
             "iterations": self.get_fractal_iterations(),
             "genome": self.genome.to_dict(),
             "age": self.age,
-            "nectar_ready": self.nectar_cooldown == 0 and (
-                self.energy / self.max_energy >= self.genome.nectar_threshold_ratio
-            ),
+            "nectar_ready": self.nectar_cooldown == 0 
+                and self.energy >= PLANT_NECTAR_ENERGY 
+                and self.energy / self.max_energy >= 0.90,
             "poker_effect_state": self.poker_effect_state,
         }
 

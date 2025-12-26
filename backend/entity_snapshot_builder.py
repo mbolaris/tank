@@ -228,7 +228,8 @@ class EntitySnapshotBuilder:
                     if hasattr(entity, "get_fractal_iterations")
                     else 3,
                     nectar_ready=entity.nectar_cooldown == 0
-                    and (entity.energy / entity.max_energy >= entity.genome.nectar_threshold_ratio)
+                    and entity.energy >= 50.0
+                    and entity.energy / entity.max_energy >= 0.90
                     if hasattr(entity, "nectar_cooldown")
                     else False,
                     age=entity.age if hasattr(entity, "age") else 0,

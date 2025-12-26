@@ -22,15 +22,16 @@ PLANT_CULL_INTERVAL = 120
 
 # Plant Energy System
 PLANT_INITIAL_ENERGY = 20.0  # Starting energy for new sprouted plants
-PLANT_MATURE_ENERGY = 120.0  # Starting energy for initial mature plants (100% of max)
-PLANT_MAX_ENERGY = 120.0  # Maximum energy capacity - Reduced for smaller plants
+PLANT_MATURE_ENERGY = 200.0  # Starting energy for initial/respawned plants
+PLANT_MAX_ENERGY = 200.0  # Maximum energy capacity
 PLANT_MIN_SIZE = 0.3  # Minimum size multiplier
 PLANT_MAX_SIZE = 1.0  # Maximum size multiplier - Reduced from 1.2
 PLANT_DEATH_ENERGY = 5.0  # Energy threshold for death
-PLANT_ENERGY_GAIN_MULTIPLIER = 1.25  # Global boost to energy collection
+PLANT_ENERGY_GAIN_MULTIPLIER = 2.5  # Global boost to energy collection
 
-# Plant Extinction Recovery
-PLANT_EXTINCTION_RESPAWN_INTERVAL = 900  # Frames to wait before respawning a plant
+# Plant Emergency Respawn
+PLANT_CRITICAL_POPULATION = 2  # Respawn if below this count
+PLANT_EMERGENCY_RESPAWN_COOLDOWN = 300  # 5 seconds between respawns
 
 # Plant Dimensions
 PLANT_BASE_WIDTH = 60  # Base width in pixels

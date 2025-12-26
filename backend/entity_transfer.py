@@ -587,7 +587,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             risk_tolerance=genome_data.get("risk_tolerance", 0.5),
             base_energy_rate=genome_data.get("base_energy_rate", 0.02),
             growth_efficiency=genome_data.get("growth_efficiency", 1.0),
-            nectar_threshold_ratio=genome_data.get("nectar_threshold_ratio", 0.75),
+            nectar_threshold_ratio=genome_data.get("nectar_threshold_ratio", 0.95),
             type=genome_data.get("type") or genome_data.get("fractal_type", "lsystem"),
             # Floral traits
             floral_type=genome_data.get("floral_type", "spiral"),
