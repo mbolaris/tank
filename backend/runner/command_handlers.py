@@ -79,6 +79,7 @@ class CommandHandlerMixin:
                 ecosystem=self.world.ecosystem,
             )
             self.world.add_entity(new_fish)
+            new_fish.register_birth()  # Record in lineage tracker
             self._invalidate_state_cache()
         except Exception as e:
             logger.error(f"Error spawning fish: {e}")

@@ -495,7 +495,7 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             fish_id=None,  # Will get new ID in target tank
             ecosystem=target_world.engine.ecosystem,
             initial_energy=data["energy"],
-            parent_id=data.get("parent_id"),
+            parent_id=None,  # Clear parent_id: source tank parent doesn't exist here
             skip_birth_recording=True,  # Prevent phantom "soup_spawn" stats
         )
         fish._lifecycle_component.age = data.get("age", 0)
