@@ -305,7 +305,8 @@ git push -u origin <branch-name>
 
 **Example result**: FreezeResponse improved from 0% → 100% reproduction rate!
 
-See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for complete guide and `docs/PROOF_OF_AI_IMPROVEMENT.md` for real-world example.
+See `docs/archive/2025-12-cleanup/AI_CODE_EVOLUTION_WORKFLOW.md` for the archived guide and
+`docs/archive/2025-12-cleanup/PROOF_OF_AI_IMPROVEMENT.md` for the archived real-world example.
 
 ## Project Structure
 
@@ -416,7 +417,7 @@ MAX_FOOD_CAPACITY = 8  # per plant
 - **Energy redistribution**: Poker transfers energy between fish and plants
 - **Fitness signaling**: Better poker players accumulate more energy
 - **Risk/reward**: Fish must balance poker with survival needs
-- **Energy accounting details**: See `docs/ENERGY_ACCOUNTING.md` for reconciliation + house cut attribution rules
+- **Energy accounting details**: See `docs/archive/2025-12-cleanup/ENERGY_ACCOUNTING.md` for reconciliation + house cut attribution rules
 
 ### Plant Ecosystem
 - **Fractal growth**: Plants grow from root spots using L-system genetics
@@ -575,6 +576,7 @@ Built with:
 **Canonical docs** (these are maintained and up-to-date):
 - **[docs/VISION.md](docs/VISION.md)**: Long-term goals and the two-layer evolution paradigm
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Technical architecture and module layout
+- **[docs/POKER_EVOLUTION_EXPERIMENT.md](docs/POKER_EVOLUTION_EXPERIMENT.md)**: Run the poker evolution experiment and read results
 - **[BEHAVIOR_DEVELOPMENT_GUIDE.md](BEHAVIOR_DEVELOPMENT_GUIDE.md)**: How to create and extend behavior algorithms
 - **[SETUP.md](SETUP.md)**: Development environment setup
 - **[docs/adr/](docs/adr/)**: Architecture Decision Records

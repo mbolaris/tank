@@ -249,12 +249,17 @@ class MixedPokerInteraction:
         Returns:
             Calculated bet amount (limited by poorest player)
         """
+        from core.config import poker_evolution
+
         # Find the player with lowest energy
         min_energy = min(self._get_player_energy(p) for p in self.players)
 
+        stake_multiplier = poker_evolution.STAKE_MULTIPLIER
+        max_bet_cap = poker_evolution.MAX_BET_CAP
+
         # Bet can't exceed what poorest player can afford
-        max_bet = min_energy * 0.3  # Max 30% of poorest player's energy
-        return min(base_bet, max_bet, 20.0)  # Also cap at 20
+        max_bet = min_energy * 0.3 * stake_multiplier  # Max 30% of poorest player energy
+        return min(base_bet * stake_multiplier, max_bet, max_bet_cap)
 
     def play_poker(self, bet_amount: Optional[float] = None) -> bool:
         """Play a full Texas Hold'em poker game between all players.

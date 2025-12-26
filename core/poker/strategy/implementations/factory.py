@@ -3,6 +3,8 @@
 import random
 from typing import List, Optional, Type
 
+from core.config import poker_evolution
+
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.poker.strategy.implementations.standard import (
     TightAggressiveStrategy,
@@ -82,6 +84,22 @@ POKER_EVOLUTION_CONFIG = {
     # Default winner weight when winner_biased_inheritance is True
     "default_winner_weight": 0.85,  # INCREASED from 0.80 - winner contributes 85%
 }
+
+if poker_evolution.EXPERIMENT_ENABLED:
+    POKER_EVOLUTION_CONFIG["default_mutation_rate"] *= poker_evolution.MUTATION_RATE_MULTIPLIER
+    POKER_EVOLUTION_CONFIG["default_mutation_strength"] *= (
+        poker_evolution.MUTATION_STRENGTH_MULTIPLIER
+    )
+    POKER_EVOLUTION_CONFIG["default_winner_weight"] = (
+        poker_evolution.WINNER_WEIGHT or POKER_EVOLUTION_CONFIG["default_winner_weight"]
+    )
+    POKER_EVOLUTION_CONFIG["novelty_injection_rate"] = (
+        poker_evolution.NOVELTY_INJECTION_RATE or POKER_EVOLUTION_CONFIG["novelty_injection_rate"]
+    )
+    POKER_EVOLUTION_CONFIG["different_type_novelty_rate"] = max(
+        POKER_EVOLUTION_CONFIG["novelty_injection_rate"] * 2,
+        0.001,
+    )
 
 
 def crossover_poker_strategies(
