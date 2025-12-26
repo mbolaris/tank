@@ -6,6 +6,10 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate } from '../types/simulation';
 import { config } from '../config';
 
+// Reuse a single TextDecoder to avoid GC pressure from allocating one per frame.
+// At 30fps over long sessions, this prevents 100k+ short-lived allocations per hour.
+const sharedTextDecoder = new TextDecoder();
+
 export function useWebSocket(tankId?: string) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [isConnected, setIsConnected] = useState(false);
@@ -43,7 +47,7 @@ export function useWebSocket(tankId?: string) {
                     // Handle binary data (ArrayBuffer) from orjson
                     let jsonString: string;
                     if (event.data instanceof ArrayBuffer) {
-                        jsonString = new TextDecoder().decode(event.data);
+                        jsonString = sharedTextDecoder.decode(event.data);
                     } else {
                         jsonString = event.data;
                     }
