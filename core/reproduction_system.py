@@ -156,6 +156,14 @@ class ReproductionSystem(BaseSystem):
         fish_count = len(fish_list)
         eco_cfg = self._engine.config.ecosystem
 
+        # Always spawn if fish are extinct
+        if fish_count == 0:
+            logger.info("Fish extinct! Force spawning...")
+            self._spawn_emergency_fish()
+            self._last_emergency_spawn_frame = frame
+            self._emergency_spawns += 1
+            return
+
         # Check if population is low
         if fish_count >= eco_cfg.max_population:
             return

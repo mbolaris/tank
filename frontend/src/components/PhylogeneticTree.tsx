@@ -35,14 +35,18 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
     const [translate, setTranslate] = useState<{ x: number; y: number }>({ x: 400, y: 60 });
 
     const fetchLineage = async () => {
+        // Need a tankId to fetch lineage data
+        if (!tankId) {
+            setError('Waiting for tank connection...');
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
 
-            // Use tank-specific lineage endpoint if tankId provided
-            const lineageUrl = tankId
-                ? `${config.apiBaseUrl}/api/tanks/${tankId}/lineage`
-                : `${config.apiBaseUrl}/api/lineage`;
+            const lineageUrl = `${config.apiBaseUrl}/api/tanks/${tankId}/lineage`;
             const response = await fetch(lineageUrl);
 
             if (!response.ok) {
@@ -80,7 +84,7 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
         fetchLineage();
         const interval = setInterval(fetchLineage, 10000);
         return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tankId]);
 
     useEffect(() => {

@@ -404,7 +404,7 @@ export function TankView({ tankId }: TankViewProps) {
                         defaultExpanded={false}
                     >
                         <div style={{ marginTop: '16px', height: '600px', display: 'flex', flexDirection: 'column' }}>
-                            <PhylogeneticTree tankId={tankId} />
+                            <PhylogeneticTree tankId={tankId || state?.tank_id} />
                         </div>
                     </CollapsibleSection>
                 </div>
