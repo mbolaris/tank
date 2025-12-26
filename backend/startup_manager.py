@@ -372,7 +372,9 @@ class StartupManager:
 
             # Clean up invalid connections on startup
             valid_tank_ids = self.tank_registry.list_tank_ids()
-            removed_count = self.connection_manager.validate_connections(valid_tank_ids)
+            removed_count = self.connection_manager.validate_connections(
+                valid_tank_ids, local_server_id=self.server_id
+            )
             if removed_count > 0:
                 logger.info(f"Startup cleanup: Removed {removed_count} invalid connections")
 

@@ -260,7 +260,26 @@ class TankRegistry:
 
         # Remove associated connections if connection manager is available
         if self._connection_manager:
-            self._connection_manager.clear_connections_for_tank(tank_id)
+            cleared_count = self._connection_manager.clear_connections_for_tank(tank_id)
+            # Save connections to disk immediately to prevent orphaned connections
+            # from reappearing if server crashes before shutdown
+            if cleared_count > 0:
+                try:
+                    from backend.connection_persistence import save_connections
+
+                    if save_connections(self._connection_manager):
+                        logger.info(
+                            f"Saved connections after clearing {cleared_count} for tank {tank_id[:8]}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Failed to save connections after tank {tank_id[:8]} deletion"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"Error saving connections after tank {tank_id[:8]} deletion: {e}",
+                        exc_info=True,
+                    )
 
         if delete_persistent_data:
             try:
