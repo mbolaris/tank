@@ -602,18 +602,30 @@ class PokerSystem(BaseSystem):
             POST_POKER_PARENT_ENERGY_CONTRIBUTION,
             REPRODUCTION_COOLDOWN,
         )
+        from core.config import poker_evolution
         from core.genetics import Genome, ReproductionParams
         
         if winner.environment is None:
             return None
 
+        winner_weight = POST_POKER_CROSSOVER_WINNER_WEIGHT
+        mutation_rate = POST_POKER_MUTATION_RATE
+        mutation_strength = POST_POKER_MUTATION_STRENGTH
+
+        if poker_evolution.EXPERIMENT_ENABLED:
+            winner_weight = poker_evolution.WINNER_WEIGHT or winner_weight
+            mutation_rate *= poker_evolution.MUTATION_RATE_MULTIPLIER
+            mutation_strength *= poker_evolution.MUTATION_STRENGTH_MULTIPLIER
+
+        winner_weight = max(0.0, min(1.0, winner_weight))
+
         offspring_genome = Genome.from_parents_weighted_params(
             parent1=winner.genome,
             parent2=mate.genome,
-            parent1_weight=POST_POKER_CROSSOVER_WINNER_WEIGHT,
+            parent1_weight=winner_weight,
             params=ReproductionParams(
-                mutation_rate=POST_POKER_MUTATION_RATE,
-                mutation_strength=POST_POKER_MUTATION_STRENGTH,
+                mutation_rate=mutation_rate,
+                mutation_strength=mutation_strength,
             ),
             rng=rng,
         )

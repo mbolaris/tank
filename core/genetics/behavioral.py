@@ -455,6 +455,12 @@ def _inherit_poker_strategy(
     Returns:
         Inherited poker strategy algorithm
     """
+    from core.config import poker_evolution
+
+    if poker_evolution.EXPERIMENT_ENABLED:
+        mutation_rate *= poker_evolution.MUTATION_RATE_MULTIPLIER
+        mutation_strength *= poker_evolution.MUTATION_STRENGTH_MULTIPLIER
+
     if strat1 is not None or strat2 is not None:
         from core.poker.strategy.implementations import crossover_poker_strategies
 
