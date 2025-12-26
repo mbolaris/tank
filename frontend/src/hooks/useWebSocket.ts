@@ -191,7 +191,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         frame: delta.frame,
         elapsed_time: delta.elapsed_time,
         entities: Array.from(entityMap.values()),
-        poker_events: delta.poker_events?.length ? delta.poker_events.slice(-100) : state.poker_events,
+        poker_events: (delta.poker_events && delta.poker_events.length > 0) ? delta.poker_events.slice(-100) : state.poker_events,
         stats: delta.stats ?? state.stats,
     };
 }

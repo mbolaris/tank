@@ -78,9 +78,20 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         }
     };
 
-    useEffect(() => {
-        let isMounted = true;
+    // Refs to hold latest state for the animation loop
+    const stateRef = useRef(state);
+    const imagesLoadedRef = useRef(imagesLoaded);
+    const selectedEntityIdRef = useRef(selectedEntityId);
+    const showEffectsRef = useRef(showEffects);
 
+    useEffect(() => {
+        stateRef.current = state;
+        imagesLoadedRef.current = imagesLoaded;
+        selectedEntityIdRef.current = selectedEntityId;
+        showEffectsRef.current = showEffects;
+    }, [state, imagesLoaded, selectedEntityId, showEffects]);
+
+    useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -90,99 +101,96 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             return;
         }
 
-        // Initialize renderer immediately so we can draw background
-        rendererRef.current = new Renderer(ctx);
+        // Initialize renderer
+        if (import.meta.env.DEV) {
+            console.debug('[Canvas] Creating new Renderer instance');
+        }
+        const renderer = new Renderer(ctx);
+        rendererRef.current = renderer;
 
         // Preload images
         const loadImages = async () => {
             try {
                 await ImageLoader.preloadGameImages();
-                if (isMounted) {
-                    setImagesLoaded(true);
-                }
+                setImagesLoaded(true); // Triggers re-render to update safe ref
             } catch (err) {
-                // Log for debugging but don't break the app - images may load later
-                if (isMounted) {
-                    setErrorOnce(`Failed to load images: ${err instanceof Error ? err.message : String(err)}`);
-                }
+                const msg = `Failed to load images: ${err instanceof Error ? err.message : String(err)}`;
+                setErrorOnce(msg);
             }
         };
-
         loadImages();
 
-        return () => {
-            // Dispose renderer resources on unmount to avoid leaking canvas/context
-            isMounted = false;
-            if (rendererRef.current) {
+        let animationFrameId: number;
+
+        const renderLoop = () => {
+            const currentState = stateRef.current;
+            const currentImagesLoaded = imagesLoadedRef.current;
+            const currentSelectedEntityId = selectedEntityIdRef.current;
+            const currentShowEffects = showEffectsRef.current;
+
+            if (currentState && !error && rendererRef.current) {
+                const r = rendererRef.current;
+
+                // Calculate scale
+                const scaleX = width / WORLD_WIDTH;
+                const scaleY = height / WORLD_HEIGHT;
+
+                // Prune caches
+                r.pruneEntityFacingCache(currentState.entities.map(e => e.id));
+                r.prunePlantCaches(
+                    currentState.entities
+                        .filter(e => e.type === 'plant')
+                        .map(e => e.id)
+                );
+
+                r.ctx.save();
                 try {
-                    rendererRef.current.dispose();
-                } catch {
-                    // swallow
+                    r.ctx.scale(scaleX, scaleY);
+                    r.clear(WORLD_WIDTH, WORLD_HEIGHT, currentState.stats?.time);
+
+                    if (currentImagesLoaded) {
+                        currentState.entities.forEach(entity => {
+                            r.renderEntity(entity, currentState.elapsed_time || 0, currentState.entities, currentShowEffects);
+
+                            // Highlight selection
+                            if (currentSelectedEntityId === entity.id) {
+                                r.ctx.strokeStyle = '#3b82f6';
+                                r.ctx.lineWidth = 3;
+                                r.ctx.setLineDash([5, 5]);
+                                r.ctx.strokeRect(
+                                    entity.x - entity.width / 2 - 5,
+                                    entity.y - entity.height / 2 - 5,
+                                    entity.width + 10,
+                                    entity.height + 10
+                                );
+                                r.ctx.setLineDash([]);
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error("Render loop error:", err);
+                } finally {
+                    r.ctx.restore();
                 }
+            }
+            animationFrameId = requestAnimationFrame(renderLoop);
+        };
+
+        // Start loop
+        animationFrameId = requestAnimationFrame(renderLoop);
+
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+            if (rendererRef.current) {
+                if (import.meta.env.DEV) {
+                    console.debug('[Canvas] Disposing Renderer');
+                }
+                rendererRef.current.dispose();
                 rendererRef.current = null;
             }
         };
-    }, [setErrorOnce]);
+    }, [width, height, setErrorOnce, error]); // Stable dependencies only
 
-    useEffect(() => {
-        if (!state || !rendererRef.current || error) return;
-
-        const renderer = rendererRef.current;
-        const ctx = renderer.ctx;
-
-        // Calculate scale to fit the entire world into the canvas
-        const scaleX = width / WORLD_WIDTH;
-        const scaleY = height / WORLD_HEIGHT;
-
-        // Prevent orientation cache from growing without bound when entities churn
-        renderer.pruneEntityFacingCache(state.entities.map((entity) => entity.id));
-        // Keep fractal plant caches bounded as plants spawn and despawn
-        renderer.prunePlantCaches(
-            state.entities
-                .filter((entity) => entity.type === 'plant')
-                .map((entity) => entity.id)
-        );
-
-        // Save context state
-        ctx.save();
-
-        try {
-            // Apply scale transformation to fit world into canvas
-            ctx.scale(scaleX, scaleY);
-
-            // Clear canvas with time-of-day effects (using world dimensions)
-            // We can do this even if images aren't loaded yet
-            renderer.clear(WORLD_WIDTH, WORLD_HEIGHT, state.stats?.time);
-
-            // Render all entities only if images are loaded
-            if (imagesLoaded) {
-                state.entities.forEach((entity) => {
-                    renderer.renderEntity(entity, state.elapsed_time || 0, state.entities, showEffects);
-
-                    // Highlight selected entity
-                    if (selectedEntityId === entity.id) {
-                        ctx.strokeStyle = '#3b82f6';
-                        ctx.lineWidth = 3;
-                        ctx.setLineDash([5, 5]);
-                        ctx.strokeRect(
-                            entity.x - entity.width / 2 - 5,
-                            entity.y - entity.height / 2 - 5,
-                            entity.width + 10,
-                            entity.height + 10
-                        );
-                        ctx.setLineDash([]);
-                    }
-                });
-            }
-        } catch (err) {
-            // Only set error state for persistent issues, not transient rendering glitches
-            const message = err instanceof Error ? err.message : String(err);
-            setErrorOnce(`Rendering error: ${message}`);
-        } finally {
-            // Restore context state
-            ctx.restore();
-        }
-    }, [state, width, height, imagesLoaded, selectedEntityId, showEffects, error, setErrorOnce]);
 
     // Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
     // This clears plant texture caches and path caches every 30 seconds.
