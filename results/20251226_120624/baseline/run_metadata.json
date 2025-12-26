@@ -1,0 +1,24 @@
+{
+  "timestamp": "20251226_120624",
+  "variant": "baseline",
+  "command": "C:\\Users\\mbolaris\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\python.exe scripts/run_poker_evolution_experiment.py --variant baseline",
+  "seeds": "101,202,303",
+  "frames": 108000,
+  "stats_interval": 1000,
+  "top_n": 3,
+  "min_poker_games": 5,
+  "benchmark_hands": 1000,
+  "small_blind": 5.0,
+  "big_blind": 10.0,
+  "starting_stack": 50000.0,
+  "position_rotation": true,
+  "git_commit": "4666d3c8db554ea4db2f25f64b8eb99695c2e170",
+  "python": "3.13.9",
+  "env_overrides": {
+    "TANK_POKER_EVOLUTION_EXPERIMENT": null,
+    "TANK_POKER_WINNER_WEIGHT": null,
+    "TANK_POKER_MUTATION_RATE_MULTIPLIER": null,
+    "TANK_POKER_MUTATION_STRENGTH_MULTIPLIER": null,
+    "TANK_POKER_NOVELTY_INJECTION_RATE": null
+  }
+}

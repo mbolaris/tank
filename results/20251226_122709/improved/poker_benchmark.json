@@ -1,0 +1,2207 @@
+{
+  "metadata": {
+    "timestamp": "20251226_122709",
+    "variant": "improved",
+    "command": "C:\\Users\\mbolaris\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\python.exe scripts/run_poker_evolution_experiment.py --variant improved --enable-poker-evolution",
+    "seeds": "101,202,303",
+    "frames": 108000,
+    "stats_interval": 1000,
+    "top_n": 3,
+    "min_poker_games": 5,
+    "benchmark_hands": 1000,
+    "small_blind": 5.0,
+    "big_blind": 10.0,
+    "starting_stack": 50000.0,
+    "position_rotation": true,
+    "git_commit": "65ff49e81fc120e03d1cd7626bca2f94ff7fa5d4",
+    "python": "3.13.9",
+    "env_overrides": {
+      "TANK_POKER_EVOLUTION_EXPERIMENT": "1",
+      "TANK_POKER_WINNER_WEIGHT": null,
+      "TANK_POKER_MUTATION_RATE_MULTIPLIER": null,
+      "TANK_POKER_MUTATION_STRENGTH_MULTIPLIER": null,
+      "TANK_POKER_NOVELTY_INJECTION_RATE": null
+    }
+  },
+  "tanks": {
+    "A": {
+      "seed": 101,
+      "selection_basis": "poker_stats_net_energy",
+      "leaderboard": [
+        {
+          "rank": 1,
+          "fish_id": 2024,
+          "generation": 0,
+          "algorithm": "Direct Pursuit",
+          "energy": 159.7,
+          "age": 3782,
+          "total_games": 106,
+          "wins": 71,
+          "losses": 35,
+          "ties": 0,
+          "win_rate": 67.0,
+          "net_energy": 297.1,
+          "roi": 2.8,
+          "current_streak": 1,
+          "best_streak": 24,
+          "best_hand": "Flush",
+          "best_hand_rank": 5,
+          "showdown_win_rate": 42.9,
+          "fold_rate": 21.7,
+          "positional_advantage": 71.5,
+          "recent_win_rate": 70.0,
+          "skill_trend": "stable"
+        },
+        {
+          "rank": 2,
+          "fish_id": 2059,
+          "generation": 0,
+          "algorithm": "Circling Strike",
+          "energy": 56.3,
+          "age": 1933,
+          "total_games": 43,
+          "wins": 20,
+          "losses": 23,
+          "ties": 0,
+          "win_rate": 46.5,
+          "net_energy": 108.4,
+          "roi": 2.52,
+          "current_streak": -1,
+          "best_streak": 12,
+          "best_hand": "Three of a Kind",
+          "best_hand_rank": 3,
+          "showdown_win_rate": 66.7,
+          "fold_rate": 48.8,
+          "positional_advantage": 63.3,
+          "recent_win_rate": 70.0,
+          "skill_trend": "improving"
+        },
+        {
+          "rank": 3,
+          "fish_id": 2083,
+          "generation": 5,
+          "algorithm": "Predictive Intercept",
+          "energy": 34.5,
+          "age": 836,
+          "total_games": 27,
+          "wins": 11,
+          "losses": 16,
+          "ties": 0,
+          "win_rate": 40.7,
+          "net_energy": 16.5,
+          "roi": 0.61,
+          "current_streak": 1,
+          "best_streak": 4,
+          "best_hand": "High Card",
+          "best_hand_rank": 0,
+          "showdown_win_rate": 0.0,
+          "fold_rate": 59.3,
+          "positional_advantage": -40.7,
+          "recent_win_rate": 20.0,
+          "skill_trend": "declining"
+        }
+      ],
+      "strategy_distribution": {
+        "total_fish": 24,
+        "strategy_counts": {
+          "composable": 24
+        },
+        "dominant_strategy": "composable",
+        "diversity": 1,
+        "strategy_avg_win_rates": {
+          "composable": 0.3050077937338796
+        }
+      },
+      "energy_summary": {
+        "energy_from_poker": 0.0,
+        "energy_from_poker_plant": 674.9214020194128,
+        "energy_from_nectar": 549.155949432479,
+        "energy_from_live_food": 6263.212687473283,
+        "energy_from_falling_food": 0.0,
+        "energy_sources_recent": {
+          "nectar": 549.155949432479,
+          "live_food": 6263.212687473283,
+          "soup_spawn": 467.40253541924676,
+          "poker_plant": 674.9214020194128
+        },
+        "energy_burn_recent": {
+          "existence": 2099.9980616237067,
+          "movement": 1824.0177483860377,
+          "metabolism": 812.6243081317656,
+          "trait_maintenance": 240.7914511532676,
+          "turning": 302.7189509047638,
+          "poker_plant_loss": 1196.998957951404,
+          "death_starvation": 238.76564071020184,
+          "poker_house_cut": 144.52128420788827,
+          "death_predation": 368.3386215310472
+        },
+        "energy_net_recent": 725.9175497443393,
+        "poker_stats_summary": {
+          "total_games": 0,
+          "total_fish_games": 0,
+          "total_plant_games": 4672,
+          "total_plant_energy_transferred": -27007.95489127672,
+          "total_wins": 0,
+          "total_losses": 0,
+          "total_ties": 0,
+          "total_energy_won": 0.0,
+          "total_energy_lost": 0.0,
+          "net_energy": 0.0,
+          "best_hand_rank": 0,
+          "best_hand_name": "High Card",
+          "win_rate": 0.0,
+          "win_rate_pct": "0.0%",
+          "roi": 0.0,
+          "vpip": 0.0,
+          "vpip_pct": "0.0%",
+          "bluff_success_rate": 0.0,
+          "bluff_success_pct": "0.0%",
+          "button_win_rate": 0.0,
+          "button_win_rate_pct": "0.0%",
+          "non_button_win_rate": 0.0,
+          "non_button_win_rate_pct": "0.0%",
+          "positional_advantage": 0.0,
+          "positional_advantage_pct": "0.0%",
+          "aggression_factor": 0.0,
+          "avg_hand_rank": 0.0,
+          "total_folds": 0,
+          "preflop_folds": 0,
+          "postflop_folds": 0,
+          "showdown_win_rate": 0.0,
+          "showdown_win_rate_pct": "0.0%",
+          "avg_fold_rate": 0.0
+        },
+        "total_population": 43,
+        "fish_count": 24,
+        "total_births": 2096
+      },
+      "candidates": [
+        {
+          "fish_id": 2024,
+          "generation": 0,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 3,
+            "betting_style": 2,
+            "bluffing_approach": 3,
+            "position_awareness": 2,
+            "showdown_tendency": 1,
+            "parameters": {
+              "premium_threshold": 0.7950120753775562,
+              "playable_threshold": 0.5035921642337197,
+              "position_range_expand": 0.12708610647012686,
+              "value_bet_sizing": 0.7169790298491193,
+              "bluff_sizing": 0.8218537253899938,
+              "continuation_bet_freq": 0.5116785828080127,
+              "bluff_frequency": 0.21454381762029212,
+              "semibluff_threshold": 0.37075597776150915,
+              "ip_aggression_boost": 0.06967006592669857,
+              "oop_tightening": 0.2394861990611587,
+              "pot_odds_sensitivity": 1.3177792139147537,
+              "risk_tolerance": 0.4916577015657221,
+              "desperation_threshold": 0.25447683316981035,
+              "opponent_model_weight": 0.14542740097638773
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 11.999999999999993,
+                "raise_small": 24.0,
+                "raise_big": 36.00000000000001
+              },
+              "0:0:IP:0": {
+                "fold": -36.90989079406083,
+                "call": -0.4615094346694022,
+                "raise_small": 20.780375893279516,
+                "raise_big": 42.022261221228405
+              },
+              "4:0:IP:0": {
+                "fold": -66.89828818426776,
+                "call": -1.2820821490888026,
+                "raise_small": 0.9635999999999996,
+                "raise_big": 3.2092821490888
+              },
+              "2:0:IP:0": {
+                "fold": -543.9430767971837,
+                "call": -7.8515022332603515,
+                "raise_small": 11.751229658300888,
+                "raise_big": 31.3539615498621
+              },
+              "3:0:IP:0": {
+                "fold": -376.9759940985243,
+                "call": -8.639681552255947,
+                "raise_small": 4.645175675814096,
+                "raise_big": 17.93003290388412
+              },
+              "1:0:IP:0": {
+                "fold": -318.371648396267,
+                "call": -7.132526784664835,
+                "raise_small": 6.998878033578029,
+                "raise_big": 21.13028285182087
+              },
+              "1:1:IP:0": {
+                "fold": -177.3073060505801,
+                "call": -1.445400000000003,
+                "raise_small": 6.186525155774593,
+                "raise_big": 13.81845031154917
+              }
+            },
+            "strategy_sum": {
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 1.833333333333332,
+                "raise_small": 3.666666666666668,
+                "raise_big": 5.5
+              },
+              "0:0:IP:0": {
+                "fold": 0.16929584459877034,
+                "call": 1.2325589118259732,
+                "raise_small": 5.271767936998453,
+                "raise_big": 9.326377306576804
+              },
+              "4:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.7408993026943526,
+                "raise_big": 2.259100697305647
+              },
+              "2:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 9.425351907987316,
+                "raise_big": 19.57464809201267
+              },
+              "3:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 4.418709864440398,
+                "raise_big": 12.581290135559602
+              },
+              "1:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 4.220665734516199,
+                "raise_big": 12.7793342654838
+              },
+              "1:1:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.9759159914598767,
+                "raise_big": 2.024084008540123
+              }
+            },
+            "visit_count": {
+              "2:0:OOP:0": 11,
+              "0:0:IP:0": 16,
+              "4:0:IP:0": 3,
+              "2:0:IP:0": 29,
+              "3:0:IP:0": 17,
+              "1:0:IP:0": 17,
+              "1:1:IP:0": 3
+            }
+          },
+          "poker_stats": {
+            "total_games": 106,
+            "wins": 71,
+            "losses": 35,
+            "ties": 0,
+            "win_rate": 0.6698113207547169,
+            "total_energy_won": 798.0466921754949,
+            "total_energy_lost": 305.1945519023953,
+            "net_energy": 297.06733534337025,
+            "roi": 2.802522031541229,
+            "current_streak": 1,
+            "best_streak": 24,
+            "worst_streak": -8,
+            "showdown_win_rate": 0.42857142857142855,
+            "fold_rate": 0.2169811320754717,
+            "best_hand_rank": 5,
+            "avg_hand_rank": 0.44339622641509435,
+            "button_win_rate": 0.7777777777777778,
+            "non_button_win_rate": 0.0625,
+            "positional_advantage": 0.7152777777777778,
+            "recent_win_rate": 0.7,
+            "skill_trend": "stable"
+          },
+          "benchmark": {
+            "hands_played": 1000,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 500,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2024",
+              "is_standard": false,
+              "fish_id": 2024,
+              "fish_generation": 0,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 1507.2,
+              "hands_won": 433,
+              "hands_lost": 1343,
+              "total_energy_won": 25377.4,
+              "total_energy_lost": 127753.0,
+              "net_energy": -102375.6,
+              "win_rate": 24.4,
+              "bb_per_100": -1023.76,
+              "showdowns_played": 216,
+              "showdowns_won": 139,
+              "showdown_win_rate": 64.4
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 288439.7,
+              "hands_won": 1343,
+              "hands_lost": 433,
+              "total_energy_won": 379641.6,
+              "total_energy_lost": 14874.9,
+              "net_energy": 364766.8,
+              "win_rate": 75.6,
+              "bb_per_100": 3647.67,
+              "showdowns_played": 216,
+              "showdowns_won": 85,
+              "showdown_win_rate": 39.4
+            }
+          }
+        },
+        {
+          "fish_id": 2059,
+          "generation": 0,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 2,
+            "betting_style": 0,
+            "bluffing_approach": 3,
+            "position_awareness": 2,
+            "showdown_tendency": 2,
+            "parameters": {
+              "premium_threshold": 0.8407321595133497,
+              "playable_threshold": 0.5173960765328489,
+              "position_range_expand": 0.17818273306674082,
+              "value_bet_sizing": 0.5604002634119094,
+              "bluff_sizing": 0.690042722449488,
+              "continuation_bet_freq": 0.8368405168522008,
+              "bluff_frequency": 0.4252149914821017,
+              "semibluff_threshold": 0.33091427181656274,
+              "ip_aggression_boost": 0.12678969441546784,
+              "oop_tightening": 0.0631043063622247,
+              "pot_odds_sensitivity": 1.1611179905759539,
+              "risk_tolerance": 0.4585669501288344,
+              "desperation_threshold": 0.25954281782564426,
+              "opponent_model_weight": 0.1674920179493279
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 15.59999999999999,
+                "raise_small": 31.200000000000003,
+                "raise_big": 46.800000000000004
+              },
+              "1:0:OOP:0": {
+                "fold": -16.817999999999998,
+                "call": 1.1999999999999993,
+                "raise_small": 2.8818,
+                "raise_big": 4.563599999999999
+              },
+              "3:0:IP:0": {
+                "fold": -50.45400000000002,
+                "call": 0.0,
+                "raise_small": 1.445400000000003,
+                "raise_big": 2.890800000000004
+              },
+              "0:0:OOP:0": {
+                "fold": -36.20354070841382,
+                "call": 2.1513384444450163,
+                "raise_small": 6.313348782200917,
+                "raise_big": 10.47535911995681
+              },
+              "2:0:IP:0": {
+                "fold": -140.07035059091277,
+                "call": -5.017192273538214,
+                "raise_small": 0.48180000000000156,
+                "raise_big": 5.980792273538205
+              }
+            },
+            "strategy_sum": {
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 1.9999999999999984,
+                "raise_small": 4.000000000000001,
+                "raise_big": 6.0
+              },
+              "1:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.13880213755291826,
+                "raise_small": 1.0,
+                "raise_big": 1.8611978624470815
+              },
+              "3:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 1.0000000000000002,
+                "raise_big": 1.9999999999999996
+              },
+              "0:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.44692009046557746,
+                "raise_small": 1.0000000000000004,
+                "raise_big": 1.5530799095344223
+              },
+              "2:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.9707948307592082,
+                "raise_big": 5.029205169240791
+              }
+            },
+            "visit_count": {
+              "2:0:OOP:0": 12,
+              "1:0:OOP:0": 3,
+              "3:0:IP:0": 3,
+              "0:0:OOP:0": 3,
+              "2:0:IP:0": 6
+            }
+          },
+          "poker_stats": {
+            "total_games": 43,
+            "wins": 20,
+            "losses": 23,
+            "ties": 0,
+            "win_rate": 0.46511627906976744,
+            "total_energy_won": 358.7189023769598,
+            "total_energy_lost": 162.3566922222251,
+            "net_energy": 108.35769736736104,
+            "roi": 2.519946450403745,
+            "current_streak": -1,
+            "best_streak": 12,
+            "worst_streak": -9,
+            "showdown_win_rate": 0.6666666666666666,
+            "fold_rate": 0.4883720930232558,
+            "best_hand_rank": 3,
+            "avg_hand_rank": 0.32558139534883723,
+            "button_win_rate": 0.8333333333333334,
+            "non_button_win_rate": 0.2,
+            "positional_advantage": 0.6333333333333333,
+            "recent_win_rate": 0.7,
+            "skill_trend": "improving"
+          },
+          "benchmark": {
+            "hands_played": 64,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 32,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2059",
+              "is_standard": false,
+              "fish_id": 2059,
+              "fish_generation": 0,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 0.0,
+              "hands_won": 32,
+              "hands_lost": 81,
+              "total_energy_won": 2521.9,
+              "total_energy_lost": 51704.8,
+              "net_energy": -49183.0,
+              "win_rate": 28.3,
+              "bb_per_100": -7684.84,
+              "showdowns_played": 15,
+              "showdowns_won": 10,
+              "showdown_win_rate": 66.7
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 101242.2,
+              "hands_won": 81,
+              "hands_lost": 32,
+              "total_energy_won": 103508.5,
+              "total_energy_lost": 1205.9,
+              "net_energy": 102302.5,
+              "win_rate": 71.7,
+              "bb_per_100": 15984.77,
+              "showdowns_played": 15,
+              "showdowns_won": 5,
+              "showdown_win_rate": 33.3
+            }
+          }
+        },
+        {
+          "fish_id": 2083,
+          "generation": 5,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 1,
+            "betting_style": 3,
+            "bluffing_approach": 3,
+            "position_awareness": 2,
+            "showdown_tendency": 2,
+            "parameters": {
+              "bluff_frequency": 0.34809833533838586,
+              "bluff_sizing": 0.769342598471622,
+              "continuation_bet_freq": 0.6072185311589083,
+              "desperation_threshold": 0.32705291599290565,
+              "ip_aggression_boost": 0.06760755544511615,
+              "oop_tightening": 0.05730064005430134,
+              "opponent_model_weight": 0.24114827026208868,
+              "playable_threshold": 0.47579962352627,
+              "position_range_expand": 0.07367132347937043,
+              "pot_odds_sensitivity": 0.9970586712473007,
+              "premium_threshold": 0.812652617468965,
+              "risk_tolerance": 0.25975553761157544,
+              "semibluff_threshold": 0.19300222839448888,
+              "value_bet_sizing": 0.5271626472533898
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "2:1:OOP:0": {
+                "fold": -50.45400000000001,
+                "call": 0.0,
+                "raise_small": 1.4454000000000011,
+                "raise_big": 2.8908000000000005
+              },
+              "0:0:OOP:0": {
+                "fold": -16.817999999999998,
+                "call": 2.3999999999999986,
+                "raise_small": 5.2818000000000005,
+                "raise_big": 8.163599999999999
+              },
+              "2:0:OOP:0": {
+                "fold": -46.115473780952655,
+                "call": 7.199999999999996,
+                "raise_small": 15.721110433325189,
+                "raise_big": 24.24222086665037
+              },
+              "1:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 0.0
+              }
+            },
+            "strategy_sum": {
+              "2:1:OOP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 1.3333333333333337,
+                "raise_big": 2.666666666666666
+              },
+              "0:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.608395836670643,
+                "raise_small": 1.3333333333333337,
+                "raise_big": 2.0582708299960233
+              },
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 1.3143695473087482,
+                "raise_small": 3.333333333333335,
+                "raise_big": 5.3522971193579165
+              },
+              "1:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 0.0
+              }
+            },
+            "visit_count": {
+              "2:1:OOP:0": 4,
+              "0:0:OOP:0": 4,
+              "2:0:OOP:0": 10,
+              "1:0:OOP:0": 4
+            }
+          },
+          "poker_stats": {
+            "total_games": 27,
+            "wins": 11,
+            "losses": 16,
+            "ties": 0,
+            "win_rate": 0.4074074074074074,
+            "total_energy_won": 85.48110433325188,
+            "total_energy_lost": 48.0,
+            "net_energy": 16.51002394265335,
+            "roi": 0.6114823682464204,
+            "current_streak": 1,
+            "best_streak": 4,
+            "worst_streak": -6,
+            "showdown_win_rate": 0.0,
+            "fold_rate": 0.5925925925925926,
+            "best_hand_rank": 0,
+            "avg_hand_rank": 0.0,
+            "button_win_rate": 0.0,
+            "non_button_win_rate": 0.4074074074074074,
+            "positional_advantage": -0.4074074074074074,
+            "recent_win_rate": 0.2,
+            "skill_trend": "declining"
+          },
+          "benchmark": {
+            "hands_played": 896,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 448,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2083",
+              "is_standard": false,
+              "fish_id": 2083,
+              "fish_generation": 5,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 2.1,
+              "hands_won": 369,
+              "hands_lost": 1249,
+              "total_energy_won": 7630.6,
+              "total_energy_lost": 107602.1,
+              "net_energy": -99971.4,
+              "win_rate": 22.8,
+              "bb_per_100": -1115.75,
+              "showdowns_played": 170,
+              "showdowns_won": 93,
+              "showdown_win_rate": 54.7
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 237487.1,
+              "hands_won": 1249,
+              "hands_lost": 369,
+              "total_energy_won": 273537.2,
+              "total_energy_lost": 3070.3,
+              "net_energy": 270466.9,
+              "win_rate": 77.2,
+              "bb_per_100": 3018.6,
+              "showdowns_played": 170,
+              "showdowns_won": 81,
+              "showdown_win_rate": 47.6
+            }
+          }
+        }
+      ],
+      "aggregate": {
+        "count": 3,
+        "bb_per_100": {
+          "mean": -3274.783,
+          "median": -1115.75,
+          "min": -7684.84,
+          "max": -1023.76
+        },
+        "win_rate_pct": {
+          "mean": 25.17,
+          "median": 24.4,
+          "min": 22.8,
+          "max": 28.3
+        },
+        "net_energy": {
+          "mean": -83843.33,
+          "median": -99971.4,
+          "min": -102375.6,
+          "max": -49183.0
+        }
+      },
+      "wall_time_seconds": 383.4
+    },
+    "B": {
+      "seed": 202,
+      "selection_basis": "poker_stats_net_energy",
+      "leaderboard": [
+        {
+          "rank": 1,
+          "fish_id": 2077,
+          "generation": 12,
+          "algorithm": "Circling Strike",
+          "energy": 82.3,
+          "age": 5995,
+          "total_games": 180,
+          "wins": 121,
+          "losses": 58,
+          "ties": 1,
+          "win_rate": 67.2,
+          "net_energy": 1236.9,
+          "roi": 6.87,
+          "current_streak": 21,
+          "best_streak": 21,
+          "best_hand": "Straight",
+          "best_hand_rank": 4,
+          "showdown_win_rate": 50.0,
+          "fold_rate": 27.2,
+          "positional_advantage": 57.5,
+          "recent_win_rate": 100.0,
+          "skill_trend": "improving"
+        },
+        {
+          "rank": 2,
+          "fish_id": 2175,
+          "generation": 0,
+          "algorithm": "Zigzag Search",
+          "energy": 148.8,
+          "age": 267,
+          "total_games": 1,
+          "wins": 0,
+          "losses": 1,
+          "ties": 0,
+          "win_rate": 0.0,
+          "net_energy": -6.0,
+          "roi": -6.0,
+          "current_streak": -1,
+          "best_streak": 0,
+          "best_hand": "High Card",
+          "best_hand_rank": 0,
+          "showdown_win_rate": 0.0,
+          "fold_rate": 100.0,
+          "positional_advantage": 0.0,
+          "recent_win_rate": 0.0,
+          "skill_trend": "stable"
+        },
+        {
+          "rank": 3,
+          "fish_id": 2172,
+          "generation": 0,
+          "algorithm": "Predictive Intercept",
+          "energy": 104.0,
+          "age": 627,
+          "total_games": 4,
+          "wins": 0,
+          "losses": 4,
+          "ties": 0,
+          "win_rate": 0.0,
+          "net_energy": -24.0,
+          "roi": -6.0,
+          "current_streak": -4,
+          "best_streak": 0,
+          "best_hand": "High Card",
+          "best_hand_rank": 0,
+          "showdown_win_rate": 0.0,
+          "fold_rate": 100.0,
+          "positional_advantage": 0.0,
+          "recent_win_rate": 0.0,
+          "skill_trend": "stable"
+        }
+      ],
+      "strategy_distribution": {
+        "total_fish": 11,
+        "strategy_counts": {
+          "composable": 11
+        },
+        "dominant_strategy": "composable",
+        "diversity": 1,
+        "strategy_avg_win_rates": {
+          "composable": 0.24586720832814413
+        }
+      },
+      "energy_summary": {
+        "energy_from_poker": 0.0,
+        "energy_from_poker_plant": 550.5499598437976,
+        "energy_from_nectar": 449.6932005231779,
+        "energy_from_live_food": 3887.176732507582,
+        "energy_from_falling_food": 0.0,
+        "energy_sources_recent": {
+          "live_food": 3887.176732507582,
+          "soup_spawn": 619.2284214329944,
+          "nectar": 449.6932005231779,
+          "poker_plant": 550.5499598437976
+        },
+        "energy_burn_recent": {
+          "existence": 1148.8923804105157,
+          "movement": 1455.3032089965595,
+          "metabolism": 472.98016785694784,
+          "trait_maintenance": 197.13225585129504,
+          "turning": 27.008210319773386,
+          "death_starvation": 524.8576719915106,
+          "poker_plant_loss": 632.6762917492041,
+          "poker_house_cut": 186.22863135533635,
+          "death_predation": 813.2111062823304
+        },
+        "energy_net_recent": 48.35838949407935,
+        "poker_stats_summary": {
+          "total_games": 0,
+          "total_fish_games": 0,
+          "total_plant_games": 3134,
+          "total_plant_energy_transferred": -19504.221496125218,
+          "total_wins": 0,
+          "total_losses": 0,
+          "total_ties": 0,
+          "total_energy_won": 0.0,
+          "total_energy_lost": 0.0,
+          "net_energy": 0.0,
+          "best_hand_rank": 0,
+          "best_hand_name": "High Card",
+          "win_rate": 0.0,
+          "win_rate_pct": "0.0%",
+          "roi": 0.0,
+          "vpip": 0.0,
+          "vpip_pct": "0.0%",
+          "bluff_success_rate": 0.0,
+          "bluff_success_pct": "0.0%",
+          "button_win_rate": 0.0,
+          "button_win_rate_pct": "0.0%",
+          "non_button_win_rate": 0.0,
+          "non_button_win_rate_pct": "0.0%",
+          "positional_advantage": 0.0,
+          "positional_advantage_pct": "0.0%",
+          "aggression_factor": 0.0,
+          "avg_hand_rank": 0.0,
+          "total_folds": 0,
+          "preflop_folds": 0,
+          "postflop_folds": 0,
+          "showdown_win_rate": 0.0,
+          "showdown_win_rate_pct": "0.0%",
+          "avg_fold_rate": 0.0
+        },
+        "total_population": 46,
+        "fish_count": 11,
+        "total_births": 2178
+      },
+      "candidates": [
+        {
+          "fish_id": 2077,
+          "generation": 12,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 2,
+            "betting_style": 1,
+            "bluffing_approach": 2,
+            "position_awareness": 1,
+            "showdown_tendency": 2,
+            "parameters": {
+              "bluff_frequency": 0.27383563852382775,
+              "bluff_sizing": 0.5109634595155969,
+              "continuation_bet_freq": 0.7909509978362629,
+              "desperation_threshold": 0.23175892935840822,
+              "ip_aggression_boost": 0.1357823358447842,
+              "oop_tightening": 0.1492392987181198,
+              "opponent_model_weight": 0.2570179084163089,
+              "playable_threshold": 0.27304023840069774,
+              "position_range_expand": 0.16095415708157584,
+              "pot_odds_sensitivity": 1.341428280204934,
+              "premium_threshold": 0.9083795192951771,
+              "risk_tolerance": 0.2212972443449212,
+              "semibluff_threshold": 0.32472747867959795,
+              "value_bet_sizing": 1.0344959175403123
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "0:0:IP:0": {
+                "call": -14.030172653431476,
+                "fold": -248.32441832464596,
+                "raise_big": 16.95951665343147,
+                "raise_small": 1.4646720000000024
+              },
+              "0:2:OOP:0": {
+                "call": 5.588418501390024,
+                "fold": -102.46385989377215,
+                "raise_big": 49.258226584041765,
+                "raise_small": 27.4233225427159
+              },
+              "2:0:IP:0": {
+                "call": -49.97943912763547,
+                "fold": -2627.175081119775,
+                "raise_big": 112.49107736584655,
+                "raise_small": 31.255819119105603
+              },
+              "2:0:OOP:0": {
+                "call": 28.8577644717117,
+                "fold": -222.74389757126684,
+                "raise_big": 115.22583889699085,
+                "raise_small": 72.04180168435133
+              },
+              "3:0:IP:0": {
+                "call": -20.715045860065413,
+                "fold": -1036.6194288939569,
+                "raise_big": 46.14463665153989,
+                "raise_small": 12.714795395737292
+              },
+              "2:3:OOP:0": {
+                "fold": -94.60140812554029,
+                "call": 6.183504457468699,
+                "raise_small": 14.63327376627851,
+                "raise_big": 23.083043075088323
+              },
+              "0:1:OOP:0": {
+                "fold": -35.839135796811426,
+                "call": 2.7346558676344905,
+                "raise_small": 11.400000000000002,
+                "raise_big": 20.065344132365503
+              },
+              "2:1:OOP:0": {
+                "fold": -16.817999999999998,
+                "call": 1.1999999999999993,
+                "raise_small": 2.8818,
+                "raise_big": 4.563599999999999
+              },
+              "4:0:IP:0": {
+                "fold": -382.2187215425676,
+                "call": -8.0251179150633,
+                "raise_small": 3.1811706310657057,
+                "raise_big": 14.38745917719469
+              },
+              "2:1:IP:0": {
+                "fold": -169.23627459924018,
+                "call": -5.612083700195734,
+                "raise_small": 0.0,
+                "raise_big": 5.612083700195727
+              },
+              "1:0:IP:0": {
+                "fold": -147.37184131859442,
+                "call": -1.4357640000000025,
+                "raise_small": 2.890800000000003,
+                "raise_big": 7.217364000000002
+              },
+              "0:2:IP:0": {
+                "fold": -452.7799213071962,
+                "call": -16.122373981843783,
+                "raise_small": 0.0,
+                "raise_big": 16.12237398184375
+              },
+              "0:1:IP:0": {
+                "fold": -938.2634690863993,
+                "call": -40.25567022045723,
+                "raise_small": 0.0,
+                "raise_big": 40.25567022045718
+              },
+              "0:3:IP:0": {
+                "fold": -641.6816930156392,
+                "call": -17.81842639955336,
+                "raise_small": 0.0,
+                "raise_big": 17.818426399553317
+              }
+            },
+            "strategy_sum": {
+              "0:0:IP:0": {
+                "call": 0.0,
+                "fold": 0.0,
+                "raise_big": 12.350447704308893,
+                "raise_small": 2.049552295691108
+              },
+              "0:2:OOP:0": {
+                "call": 0.735924559912029,
+                "fold": 0.14379391046433238,
+                "raise_big": 4.739114166445083,
+                "raise_small": 2.737519363178557
+              },
+              "2:0:IP:0": {
+                "call": 0.0,
+                "fold": 0.0,
+                "raise_big": 91.84032283523278,
+                "raise_small": 24.403014303498132
+              },
+              "2:0:OOP:0": {
+                "call": 6.138677519182399,
+                "fold": 0.0,
+                "raise_big": 23.556222099483414,
+                "raise_small": 14.847449809332918
+              },
+              "3:0:IP:0": {
+                "call": 0.0,
+                "fold": 0.0,
+                "raise_big": 36.15891914527673,
+                "raise_small": 9.482936368117805
+              },
+              "2:3:OOP:0": {
+                "fold": 0.0,
+                "call": 0.2733390925708596,
+                "raise_small": 0.6666666666666666,
+                "raise_big": 2.0599942407624736
+              },
+              "0:1:OOP:0": {
+                "fold": 1.3581196581196582,
+                "call": 0.25659887452222596,
+                "raise_small": 0.8806267806267809,
+                "raise_big": 1.5046546867313353
+              },
+              "2:1:OOP:0": {
+                "fold": 0.0,
+                "call": 0.30546880421958483,
+                "raise_small": 0.6666666666666669,
+                "raise_big": 1.0278645291137485
+              },
+              "4:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 2.133762049652016,
+                "raise_big": 10.866237950347983
+              },
+              "2:1:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 3.0
+              },
+              "1:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 3.8411709978195328,
+                "raise_big": 11.158829002180466
+              },
+              "0:2:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 4.0
+              },
+              "0:1:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 12.0
+              },
+              "0:3:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 5.0
+              }
+            },
+            "visit_count": {
+              "2:0:OOP:0": 8,
+              "2:3:OOP:0": 3,
+              "0:2:OOP:0": 4,
+              "0:1:OOP:0": 4,
+              "2:1:OOP:0": 4,
+              "4:0:IP:0": 13,
+              "2:0:IP:0": 50,
+              "3:0:IP:0": 20,
+              "2:1:IP:0": 3,
+              "1:0:IP:0": 18,
+              "0:2:IP:0": 4,
+              "0:1:IP:0": 12,
+              "0:0:IP:0": 11,
+              "0:3:IP:0": 5
+            }
+          },
+          "poker_stats": {
+            "total_games": 180,
+            "wins": 121,
+            "losses": 58,
+            "ties": 1,
+            "win_rate": 0.6722222222222223,
+            "total_energy_won": 2613.251408469556,
+            "total_energy_lost": 735.2866794567726,
+            "net_energy": 1236.8557284293433,
+            "roi": 6.871420713496352,
+            "current_streak": 21,
+            "best_streak": 21,
+            "worst_streak": -11,
+            "showdown_win_rate": 0.5,
+            "fold_rate": 0.2722222222222222,
+            "best_hand_rank": 4,
+            "avg_hand_rank": 0.2388888888888889,
+            "button_win_rate": 0.7808219178082192,
+            "non_button_win_rate": 0.20588235294117646,
+            "positional_advantage": 0.5749395648670428,
+            "recent_win_rate": 1.0,
+            "skill_trend": "improving"
+          },
+          "benchmark": {
+            "hands_played": 324,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 162,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2077",
+              "is_standard": false,
+              "fish_id": 2077,
+              "fish_generation": 12,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 0.0,
+              "hands_won": 155,
+              "hands_lost": 400,
+              "total_energy_won": 5526.7,
+              "total_energy_lost": 64471.7,
+              "net_energy": -58945.0,
+              "win_rate": 27.9,
+              "bb_per_100": -1819.29,
+              "showdowns_played": 90,
+              "showdowns_won": 44,
+              "showdown_win_rate": 48.9
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 145175.6,
+              "hands_won": 400,
+              "hands_lost": 155,
+              "total_energy_won": 171872.2,
+              "total_energy_lost": 2000.6,
+              "net_energy": 169871.6,
+              "win_rate": 72.1,
+              "bb_per_100": 5242.95,
+              "showdowns_played": 90,
+              "showdowns_won": 49,
+              "showdown_win_rate": 54.4
+            }
+          }
+        },
+        {
+          "fish_id": 2147,
+          "generation": 0,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 3,
+            "betting_style": 2,
+            "bluffing_approach": 3,
+            "position_awareness": 0,
+            "showdown_tendency": 0,
+            "parameters": {
+              "premium_threshold": 0.9440114590810424,
+              "playable_threshold": 0.3878572425096385,
+              "position_range_expand": 0.07102108000202977,
+              "value_bet_sizing": 0.498424054301218,
+              "bluff_sizing": 0.6952893902476261,
+              "continuation_bet_freq": 0.5612671166025706,
+              "bluff_frequency": 0.34928597659605937,
+              "semibluff_threshold": 0.384236417258514,
+              "ip_aggression_boost": 0.29998511855028787,
+              "oop_tightening": 0.24407459710846396,
+              "pot_odds_sensitivity": 1.427890965447347,
+              "risk_tolerance": 0.5464751740515957,
+              "desperation_threshold": 0.2623011812881469,
+              "opponent_model_weight": 0.3917830818920914
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "2:0:IP:0": {
+                "fold": -524.2554000000002,
+                "call": -15.89940000000003,
+                "raise_small": 4.3362000000000105,
+                "raise_big": 24.57180000000001
+              },
+              "1:0:IP:0": {
+                "fold": -67.27200000000003,
+                "call": 0.0,
+                "raise_small": 1.9272000000000045,
+                "raise_big": 3.8544000000000063
+              },
+              "3:0:IP:0": {
+                "fold": -84.35340000000004,
+                "call": -1.445400000000003,
+                "raise_small": 1.445400000000003,
+                "raise_big": 4.336200000000003
+              },
+              "4:0:IP:0": {
+                "fold": -135.59760000000006,
+                "call": -5.781600000000012,
+                "raise_small": 0.0,
+                "raise_big": 5.781599999999997
+              },
+              "0:0:IP:0": {
+                "fold": -99.61735336252585,
+                "call": -5.905067772912357,
+                "raise_small": 0.48180000000000156,
+                "raise_big": 6.868667772912352
+              }
+            },
+            "strategy_sum": {
+              "2:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 6.361251728434398,
+                "raise_big": 21.638748271565596
+              },
+              "1:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 2.3333333333333344,
+                "raise_big": 4.666666666666666
+              },
+              "3:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 2.6111111111111134,
+                "raise_big": 7.3888888888888875
+              },
+              "4:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 4.0
+              },
+              "0:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.5945243313038997,
+                "raise_big": 3.4054756686961003
+              }
+            },
+            "visit_count": {
+              "2:0:IP:0": 28,
+              "1:0:IP:0": 7,
+              "3:0:IP:0": 10,
+              "4:0:IP:0": 4,
+              "0:0:IP:0": 4
+            }
+          },
+          "poker_stats": {
+            "total_games": 57,
+            "wins": 35,
+            "losses": 22,
+            "ties": 0,
+            "win_rate": 0.6140350877192983,
+            "total_energy_won": 359.4228,
+            "total_energy_lost": 304.23873348862736,
+            "net_energy": -32.99313348862741,
+            "roi": -0.5788269033092528,
+            "current_streak": -4,
+            "best_streak": 14,
+            "worst_streak": -6,
+            "showdown_win_rate": 0.3333333333333333,
+            "fold_rate": 0.3157894736842105,
+            "best_hand_rank": 0,
+            "avg_hand_rank": 0.05263157894736842,
+            "button_win_rate": 0.6140350877192983,
+            "non_button_win_rate": 0.0,
+            "positional_advantage": 0.6140350877192983,
+            "recent_win_rate": 0.5,
+            "skill_trend": "declining"
+          },
+          "benchmark": {
+            "hands_played": 267,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 133,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2147",
+              "is_standard": false,
+              "fish_id": 2147,
+              "fish_generation": 0,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 0.0,
+              "hands_won": 149,
+              "hands_lost": 298,
+              "total_energy_won": 23994.7,
+              "total_energy_lost": 121187.7,
+              "net_energy": -97193.0,
+              "win_rate": 33.3,
+              "bb_per_100": -3640.19,
+              "showdowns_played": 86,
+              "showdowns_won": 46,
+              "showdown_win_rate": 53.5
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 256690.5,
+              "hands_won": 298,
+              "hands_lost": 149,
+              "total_energy_won": 376944.4,
+              "total_energy_lost": 18175.4,
+              "net_energy": 358769.0,
+              "win_rate": 66.7,
+              "bb_per_100": 13437.04,
+              "showdowns_played": 86,
+              "showdowns_won": 41,
+              "showdown_win_rate": 47.7
+            }
+          }
+        },
+        {
+          "fish_id": 2173,
+          "generation": 0,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 1,
+            "betting_style": 0,
+            "bluffing_approach": 1,
+            "position_awareness": 2,
+            "showdown_tendency": 1,
+            "parameters": {
+              "premium_threshold": 0.9307118326949156,
+              "playable_threshold": 0.49481898569698657,
+              "position_range_expand": 0.13585677112871936,
+              "value_bet_sizing": 0.6632945559448574,
+              "bluff_sizing": 0.44626464985692027,
+              "continuation_bet_freq": 0.8381674540369803,
+              "bluff_frequency": 0.07229186209514023,
+              "semibluff_threshold": 0.3227474276428244,
+              "ip_aggression_boost": 0.23629196698602128,
+              "oop_tightening": 0.13257110926490162,
+              "pot_odds_sensitivity": 1.423345485557185,
+              "risk_tolerance": 0.4804023492100641,
+              "desperation_threshold": 0.18243319935618574,
+              "opponent_model_weight": 0.45879167869711573
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 9.599999999999994,
+                "raise_small": 19.200000000000003,
+                "raise_big": 28.800000000000004
+              }
+            },
+            "strategy_sum": {
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 1.3333333333333324,
+                "raise_small": 2.6666666666666674,
+                "raise_big": 4.0
+              }
+            },
+            "visit_count": {
+              "2:0:OOP:0": 8
+            }
+          },
+          "poker_stats": {
+            "total_games": 9,
+            "wins": 0,
+            "losses": 9,
+            "ties": 0,
+            "win_rate": 0.0,
+            "total_energy_won": 0.0,
+            "total_energy_lost": 54.0,
+            "net_energy": -54.0,
+            "roi": -6.0,
+            "current_streak": -9,
+            "best_streak": 0,
+            "worst_streak": -9,
+            "showdown_win_rate": 0.0,
+            "fold_rate": 1.0,
+            "best_hand_rank": 0,
+            "avg_hand_rank": 0.0,
+            "button_win_rate": 0.0,
+            "non_button_win_rate": 0.0,
+            "positional_advantage": 0.0,
+            "recent_win_rate": 0.0,
+            "skill_trend": "stable"
+          },
+          "benchmark": {
+            "hands_played": 375,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 187,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2173",
+              "is_standard": false,
+              "fish_id": 2173,
+              "fish_generation": 0,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 6.7,
+              "hands_won": 148,
+              "hands_lost": 524,
+              "total_energy_won": 2867.9,
+              "total_energy_lost": 102877.5,
+              "net_energy": -100009.6,
+              "win_rate": 22.0,
+              "bb_per_100": -2666.92,
+              "showdowns_played": 76,
+              "showdowns_won": 38,
+              "showdown_win_rate": 50.0
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 216351.5,
+              "hands_won": 524,
+              "hands_lost": 148,
+              "total_energy_won": 232076.4,
+              "total_energy_lost": 1137.0,
+              "net_energy": 230939.5,
+              "win_rate": 78.0,
+              "bb_per_100": 6158.39,
+              "showdowns_played": 76,
+              "showdowns_won": 40,
+              "showdown_win_rate": 52.6
+            }
+          }
+        }
+      ],
+      "aggregate": {
+        "count": 3,
+        "bb_per_100": {
+          "mean": -2708.8,
+          "median": -2666.92,
+          "min": -3640.19,
+          "max": -1819.29
+        },
+        "win_rate_pct": {
+          "mean": 27.73,
+          "median": 27.9,
+          "min": 22.0,
+          "max": 33.3
+        },
+        "net_energy": {
+          "mean": -85382.53,
+          "median": -97193.0,
+          "min": -100009.6,
+          "max": -58945.0
+        }
+      },
+      "wall_time_seconds": 358.4
+    },
+    "C": {
+      "seed": 303,
+      "selection_basis": "poker_stats_net_energy",
+      "leaderboard": [
+        {
+          "rank": 1,
+          "fish_id": 2275,
+          "generation": 0,
+          "algorithm": "Circling Strike",
+          "energy": 190.7,
+          "age": 2093,
+          "total_games": 32,
+          "wins": 9,
+          "losses": 23,
+          "ties": 0,
+          "win_rate": 28.1,
+          "net_energy": 104.6,
+          "roi": 3.27,
+          "current_streak": -3,
+          "best_streak": 3,
+          "best_hand": "Flush",
+          "best_hand_rank": 5,
+          "showdown_win_rate": 75.0,
+          "fold_rate": 68.8,
+          "positional_advantage": 47.5,
+          "recent_win_rate": 10.0,
+          "skill_trend": "declining"
+        },
+        {
+          "rank": 2,
+          "fish_id": 2302,
+          "generation": 4,
+          "algorithm": "Direct Pursuit",
+          "energy": 120.5,
+          "age": 365,
+          "total_games": 13,
+          "wins": 5,
+          "losses": 7,
+          "ties": 1,
+          "win_rate": 38.5,
+          "net_energy": 22.0,
+          "roi": 1.69,
+          "current_streak": 2,
+          "best_streak": 2,
+          "best_hand": "Two Pair",
+          "best_hand_rank": 2,
+          "showdown_win_rate": 66.7,
+          "fold_rate": 53.8,
+          "positional_advantage": 62.5,
+          "recent_win_rate": 50.0,
+          "skill_trend": "improving"
+        },
+        {
+          "rank": 3,
+          "fish_id": 2262,
+          "generation": 0,
+          "algorithm": "Direct Pursuit",
+          "energy": 143.5,
+          "age": 3212,
+          "total_games": 91,
+          "wins": 45,
+          "losses": 46,
+          "ties": 0,
+          "win_rate": 49.5,
+          "net_energy": 17.4,
+          "roi": 0.19,
+          "current_streak": -4,
+          "best_streak": 15,
+          "best_hand": "Full House",
+          "best_hand_rank": 6,
+          "showdown_win_rate": 47.1,
+          "fold_rate": 40.7,
+          "positional_advantage": 61.8,
+          "recent_win_rate": 50.0,
+          "skill_trend": "stable"
+        }
+      ],
+      "strategy_distribution": {
+        "total_fish": 26,
+        "strategy_counts": {
+          "composable": 26
+        },
+        "dominant_strategy": "composable",
+        "diversity": 1,
+        "strategy_avg_win_rates": {
+          "composable": 0.19851514278833285
+        }
+      },
+      "energy_summary": {
+        "energy_from_poker": 0.0,
+        "energy_from_poker_plant": 390.8902057409547,
+        "energy_from_nectar": 2049.986529430627,
+        "energy_from_live_food": 4523.82774074873,
+        "energy_from_falling_food": 0.0,
+        "energy_sources_recent": {
+          "live_food": 4523.82774074873,
+          "poker_plant": 390.8902057409547,
+          "nectar": 2049.986529430627,
+          "soup_spawn": 475.92834721084444
+        },
+        "energy_burn_recent": {
+          "existence": 1109.106203849146,
+          "movement": 1066.1551549060648,
+          "metabolism": 498.2519074762537,
+          "trait_maintenance": 141.23084377290328,
+          "turning": 94.78878244152064,
+          "poker_house_cut": 93.30858869090079,
+          "poker_plant_loss": 1116.3984788274252,
+          "death_starvation": 1485.6004067902352,
+          "death_predation": 241.98148027289648
+        },
+        "energy_net_recent": 1593.8109761038104,
+        "poker_stats_summary": {
+          "total_games": 0,
+          "total_fish_games": 0,
+          "total_plant_games": 3155,
+          "total_plant_energy_transferred": -20223.269993472288,
+          "total_wins": 0,
+          "total_losses": 0,
+          "total_ties": 0,
+          "total_energy_won": 0.0,
+          "total_energy_lost": 0.0,
+          "net_energy": 0.0,
+          "best_hand_rank": 0,
+          "best_hand_name": "High Card",
+          "win_rate": 0.0,
+          "win_rate_pct": "0.0%",
+          "roi": 0.0,
+          "vpip": 0.0,
+          "vpip_pct": "0.0%",
+          "bluff_success_rate": 0.0,
+          "bluff_success_pct": "0.0%",
+          "button_win_rate": 0.0,
+          "button_win_rate_pct": "0.0%",
+          "non_button_win_rate": 0.0,
+          "non_button_win_rate_pct": "0.0%",
+          "positional_advantage": 0.0,
+          "positional_advantage_pct": "0.0%",
+          "aggression_factor": 0.0,
+          "avg_hand_rank": 0.0,
+          "total_folds": 0,
+          "preflop_folds": 0,
+          "postflop_folds": 0,
+          "showdown_win_rate": 0.0,
+          "showdown_win_rate_pct": "0.0%",
+          "avg_fold_rate": 0.0
+        },
+        "total_population": 39,
+        "fish_count": 26,
+        "total_births": 2320
+      },
+      "candidates": [
+        {
+          "fish_id": 2275,
+          "generation": 0,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 0,
+            "betting_style": 0,
+            "bluffing_approach": 0,
+            "position_awareness": 1,
+            "showdown_tendency": 1,
+            "parameters": {
+              "premium_threshold": 0.7941093020208239,
+              "playable_threshold": 0.24037688500144383,
+              "position_range_expand": 0.12038123879771032,
+              "value_bet_sizing": 0.684592442823477,
+              "bluff_sizing": 0.7379106646028568,
+              "continuation_bet_freq": 0.7166335496978284,
+              "bluff_frequency": 0.05601251125209723,
+              "semibluff_threshold": 0.2034359149048943,
+              "ip_aggression_boost": 0.07868379519092704,
+              "oop_tightening": 0.24759225505757598,
+              "pot_odds_sensitivity": 1.2334107779423544,
+              "risk_tolerance": 0.5017960259970686,
+              "desperation_threshold": 0.18022279245326625,
+              "opponent_model_weight": 0.05601308428687307
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "1:0:OOP:0": {
+                "fold": 0.0,
+                "call": 2.3999999999999986,
+                "raise_small": 4.800000000000001,
+                "raise_big": 7.199999999999999
+              },
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 5.9999999999999964,
+                "raise_small": 12.000000000000002,
+                "raise_big": 18.0
+              },
+              "2:0:IP:0": {
+                "fold": -63.770905796881365,
+                "call": 1.6485832748768363,
+                "raise_small": 5.467842159988984,
+                "raise_big": 9.28710104510113
+              },
+              "0:0:IP:0": {
+                "fold": -32.471999999999994,
+                "call": -1.8000000000000007,
+                "raise_small": 1.9271999999999991,
+                "raise_big": 5.654399999999997
+              },
+              "3:0:OOP:0": {
+                "fold": 0.0,
+                "call": 5.9999999999999964,
+                "raise_small": 12.000000000000002,
+                "raise_big": 18.0
+              },
+              "0:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 0.0
+              }
+            },
+            "strategy_sum": {
+              "1:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.4999999999999997,
+                "raise_small": 1.0000000000000002,
+                "raise_big": 1.5
+              },
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.6666666666666663,
+                "raise_small": 1.3333333333333335,
+                "raise_big": 2.0
+              },
+              "2:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.20738447186637393,
+                "raise_small": 1.666666666666667,
+                "raise_big": 3.1259488614669593
+              },
+              "0:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 1.4292497625830958,
+                "raise_big": 3.570750237416904
+              },
+              "3:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.4999999999999997,
+                "raise_small": 1.0000000000000002,
+                "raise_big": 1.5
+              },
+              "0:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 0.0
+              }
+            },
+            "visit_count": {
+              "1:0:OOP:0": 3,
+              "2:0:OOP:0": 4,
+              "2:0:IP:0": 5,
+              "0:0:IP:0": 6,
+              "3:0:OOP:0": 3,
+              "0:0:OOP:0": 3
+            }
+          },
+          "poker_stats": {
+            "total_games": 32,
+            "wins": 9,
+            "losses": 23,
+            "ties": 0,
+            "win_rate": 0.28125,
+            "total_energy_won": 284.6985693775904,
+            "total_energy_lost": 110.24291637438418,
+            "net_energy": 104.61054943236522,
+            "roi": 3.269079669761413,
+            "current_streak": -3,
+            "best_streak": 3,
+            "worst_streak": -10,
+            "showdown_win_rate": 0.75,
+            "fold_rate": 0.6875,
+            "best_hand_rank": 5,
+            "avg_hand_rank": 0.21875,
+            "button_win_rate": 0.5333333333333333,
+            "non_button_win_rate": 0.058823529411764705,
+            "positional_advantage": 0.4745098039215686,
+            "recent_win_rate": 0.1,
+            "skill_trend": "declining"
+          },
+          "benchmark": {
+            "hands_played": 111,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 55,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2275",
+              "is_standard": false,
+              "fish_id": 2275,
+              "fish_generation": 0,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 101609.0,
+              "hands_won": 32,
+              "hands_lost": 167,
+              "total_energy_won": 102195.0,
+              "total_energy_lost": 1120.0,
+              "net_energy": 101075.0,
+              "win_rate": 16.1,
+              "bb_per_100": 9105.86,
+              "showdowns_played": 22,
+              "showdowns_won": 13,
+              "showdown_win_rate": 59.1
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 0.0,
+              "hands_won": 167,
+              "hands_lost": 32,
+              "total_energy_won": 3108.0,
+              "total_energy_lost": 52114.0,
+              "net_energy": -49006.0,
+              "win_rate": 83.9,
+              "bb_per_100": -4414.95,
+              "showdowns_played": 22,
+              "showdowns_won": 10,
+              "showdown_win_rate": 45.5
+            }
+          }
+        },
+        {
+          "fish_id": 2302,
+          "generation": 4,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 3,
+            "betting_style": 1,
+            "bluffing_approach": 0,
+            "position_awareness": 1,
+            "showdown_tendency": 2,
+            "parameters": {
+              "bluff_frequency": 0.1642171305598712,
+              "bluff_sizing": 0.512744079541724,
+              "continuation_bet_freq": 0.5825148579692592,
+              "desperation_threshold": 0.30204310867598594,
+              "ip_aggression_boost": 0.19090473680559103,
+              "oop_tightening": 0.1379648143596103,
+              "opponent_model_weight": 0.45512705748981075,
+              "playable_threshold": 0.3986263675344144,
+              "position_range_expand": 0.18592299284012917,
+              "pot_odds_sensitivity": 1.1554479543666347,
+              "premium_threshold": 0.8735389376274838,
+              "risk_tolerance": 0.19487487805101406,
+              "semibluff_threshold": 0.3036374710627624,
+              "value_bet_sizing": 0.8616958923532778
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "1:0:IP:0": {
+                "fold": -74.82063127483082,
+                "call": -0.30000000000000027,
+                "raise_small": 2.890800000000006,
+                "raise_big": 6.0816000000000034
+              }
+            },
+            "strategy_sum": {
+              "1:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.9561400312755859,
+                "raise_big": 3.043859968724414
+              }
+            },
+            "visit_count": {
+              "1:0:IP:0": 4
+            }
+          },
+          "poker_stats": {
+            "total_games": 13,
+            "wins": 5,
+            "losses": 7,
+            "ties": 1,
+            "win_rate": 0.38461538461538464,
+            "total_energy_won": 52.9393109016244,
+            "total_energy_lost": 18.0,
+            "net_energy": 21.95170909885976,
+            "roi": 1.6885930076045967,
+            "current_streak": 2,
+            "best_streak": 2,
+            "worst_streak": -6,
+            "showdown_win_rate": 0.6666666666666666,
+            "fold_rate": 0.5384615384615384,
+            "best_hand_rank": 2,
+            "avg_hand_rank": 0.46153846153846156,
+            "button_win_rate": 0.625,
+            "non_button_win_rate": 0.0,
+            "positional_advantage": 0.625,
+            "recent_win_rate": 0.5,
+            "skill_trend": "improving"
+          },
+          "benchmark": {
+            "hands_played": 110,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 55,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2302",
+              "is_standard": false,
+              "fish_id": 2302,
+              "fish_generation": 4,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 0.0,
+              "hands_won": 37,
+              "hands_lost": 151,
+              "total_energy_won": 696.0,
+              "total_energy_lost": 91433.9,
+              "net_energy": -90737.9,
+              "win_rate": 19.7,
+              "bb_per_100": -8248.9,
+              "showdowns_played": 30,
+              "showdowns_won": 19,
+              "showdown_win_rate": 63.3
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 193525.9,
+              "hands_won": 151,
+              "hands_lost": 37,
+              "total_energy_won": 227386.2,
+              "total_energy_lost": 288.0,
+              "net_energy": 227098.2,
+              "win_rate": 80.3,
+              "bb_per_100": 20645.29,
+              "showdowns_played": 30,
+              "showdowns_won": 13,
+              "showdown_win_rate": 43.3
+            }
+          }
+        },
+        {
+          "fish_id": 2262,
+          "generation": 0,
+          "strategy_id": "composable",
+          "strategy_snapshot": {
+            "type": "ComposablePokerStrategy",
+            "strategy_id": "composable",
+            "hand_selection": 1,
+            "betting_style": 1,
+            "bluffing_approach": 3,
+            "position_awareness": 1,
+            "showdown_tendency": 2,
+            "parameters": {
+              "premium_threshold": 0.80406016589182,
+              "playable_threshold": 0.42629233907364106,
+              "position_range_expand": 0.06888992329967107,
+              "value_bet_sizing": 0.5538209014654678,
+              "bluff_sizing": 0.8795791018831443,
+              "continuation_bet_freq": 0.45717316771718913,
+              "bluff_frequency": 0.059804497699489235,
+              "semibluff_threshold": 0.18761224609857782,
+              "ip_aggression_boost": 0.22764592094967856,
+              "oop_tightening": 0.19477506482850698,
+              "pot_odds_sensitivity": 1.1976230459606634,
+              "risk_tolerance": 0.41998527998709323,
+              "desperation_threshold": 0.22908603914113068,
+              "opponent_model_weight": 0.47995126286110934
+            },
+            "learning_rate": 1.0,
+            "regret": {
+              "0:0:OOP:0": {
+                "fold": -25.688168164282402,
+                "call": 2.3999999999999986,
+                "raise_small": 6.203556296388214,
+                "raise_big": 10.007112592776423
+              },
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 3.384817987975479,
+                "raise_small": 6.769635975950962,
+                "raise_big": 10.154453963926441
+              },
+              "1:0:OOP:0": {
+                "fold": 0.0,
+                "call": 2.3999999999999986,
+                "raise_small": 4.800000000000001,
+                "raise_big": 7.199999999999999
+              },
+              "2:2:OOP:0": {
+                "fold": 0.0,
+                "call": 4.799999999999997,
+                "raise_small": 9.600000000000001,
+                "raise_big": 14.399999999999999
+              },
+              "1:1:OOP:0": {
+                "fold": -72.95747104113235,
+                "call": -3.3665825543476515,
+                "raise_small": 0.0,
+                "raise_big": 3.3665825543476444
+              },
+              "3:0:IP:0": {
+                "fold": -135.52268217440877,
+                "call": -2.130243834037157,
+                "raise_small": 2.409000000000008,
+                "raise_big": 6.948243834037163
+              },
+              "2:0:IP:0": {
+                "fold": -318.47237001338067,
+                "call": -1.445400000000003,
+                "raise_small": 8.057297001338073,
+                "raise_big": 17.559994002676138
+              },
+              "1:0:IP:0": {
+                "fold": -194.8510659361989,
+                "call": -7.5816000000000034,
+                "raise_small": 3.049317365517867,
+                "raise_big": 13.680234731035721
+              },
+              "0:0:IP:0": {
+                "fold": -88.77476401834312,
+                "call": -13.382429277830699,
+                "raise_small": 2.8818,
+                "raise_big": 19.146029277830678
+              }
+            },
+            "strategy_sum": {
+              "0:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.7202081975781066,
+                "raise_small": 1.6666666666666674,
+                "raise_big": 2.613125135755226
+              },
+              "2:0:OOP:0": {
+                "fold": 0.0,
+                "call": 1.4999999999999991,
+                "raise_small": 3.000000000000001,
+                "raise_big": 4.5
+              },
+              "1:0:OOP:0": {
+                "fold": 0.0,
+                "call": 0.6666666666666663,
+                "raise_small": 1.3333333333333337,
+                "raise_big": 2.0
+              },
+              "2:2:OOP:0": {
+                "fold": 0.0,
+                "call": 0.4999999999999997,
+                "raise_small": 1.0000000000000002,
+                "raise_big": 1.5
+              },
+              "1:1:OOP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 0.0,
+                "raise_big": 3.0
+              },
+              "3:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 2.132396006021556,
+                "raise_big": 4.867603993978444
+              },
+              "2:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 5.981192390720609,
+                "raise_big": 12.018807609279387
+              },
+              "1:0:IP:0": {
+                "fold": 0.0,
+                "call": 0.0,
+                "raise_small": 2.348869473981836,
+                "raise_big": 9.651130526018164
+              },
+              "0:0:IP:0": {
+                "fold": 0.7000000000000002,
+                "call": 0.0,
+                "raise_small": 1.9264125404760857,
+                "raise_big": 8.373587459523915
+              }
+            },
+            "visit_count": {
+              "0:0:OOP:0": 8,
+              "2:0:OOP:0": 9,
+              "1:0:OOP:0": 4,
+              "2:2:OOP:0": 3,
+              "1:1:OOP:0": 3,
+              "3:0:IP:0": 7,
+              "2:0:IP:0": 18,
+              "1:0:IP:0": 12,
+              "0:0:IP:0": 11
+            }
+          },
+          "poker_stats": {
+            "total_games": 91,
+            "wins": 45,
+            "losses": 46,
+            "ties": 0,
+            "win_rate": 0.4945054945054945,
+            "total_energy_won": 736.9268200349518,
+            "total_energy_lost": 538.757413649305,
+            "net_energy": 17.379140449301218,
+            "roi": 0.19097956537693647,
+            "current_streak": -4,
+            "best_streak": 15,
+            "worst_streak": -8,
+            "showdown_win_rate": 0.47058823529411764,
+            "fold_rate": 0.4065934065934066,
+            "best_hand_rank": 6,
+            "avg_hand_rank": 0.5164835164835165,
+            "button_win_rate": 0.711864406779661,
+            "non_button_win_rate": 0.09375,
+            "positional_advantage": 0.618114406779661,
+            "recent_win_rate": 0.5,
+            "skill_trend": "stable"
+          },
+          "benchmark": {
+            "hands_played": 107,
+            "position_rotation": true,
+            "players_per_hand": 2,
+            "duplicate_deal_sets": 53,
+            "candidate": {
+              "player_id": "fish_0",
+              "name": "Fish #2262",
+              "is_standard": false,
+              "fish_id": 2262,
+              "fish_generation": 0,
+              "plant_id": null,
+              "species": "school.png",
+              "energy": 101603.0,
+              "hands_won": 32,
+              "hands_lost": 161,
+              "total_energy_won": 102167.0,
+              "total_energy_lost": 1080.0,
+              "net_energy": 101087.0,
+              "win_rate": 16.6,
+              "bb_per_100": 9447.38,
+              "showdowns_played": 19,
+              "showdowns_won": 14,
+              "showdown_win_rate": 73.7
+            },
+            "standard": {
+              "player_id": "standard",
+              "name": "Standard Algorithm",
+              "is_standard": true,
+              "fish_id": null,
+              "fish_generation": null,
+              "plant_id": null,
+              "species": "fish",
+              "energy": 0.0,
+              "hands_won": 161,
+              "hands_lost": 32,
+              "total_energy_won": 3026.0,
+              "total_energy_lost": 52068.0,
+              "net_energy": -49042.0,
+              "win_rate": 83.4,
+              "bb_per_100": -4583.36,
+              "showdowns_played": 19,
+              "showdowns_won": 7,
+              "showdown_win_rate": 36.8
+            }
+          }
+        }
+      ],
+      "aggregate": {
+        "count": 3,
+        "bb_per_100": {
+          "mean": 3434.78,
+          "median": 9105.86,
+          "min": -8248.9,
+          "max": 9447.38
+        },
+        "win_rate_pct": {
+          "mean": 17.47,
+          "median": 16.6,
+          "min": 16.1,
+          "max": 19.7
+        },
+        "net_energy": {
+          "mean": 37141.37,
+          "median": 101075.0,
+          "min": -90737.9,
+          "max": 101087.0
+        }
+      },
+      "wall_time_seconds": 365.9
+    }
+  },
+  "aggregate": {
+    "count": 9,
+    "bb_per_100": {
+      "mean": -849.601,
+      "median": -1819.29,
+      "min": -8248.9,
+      "max": 9447.38
+    },
+    "win_rate_pct": {
+      "mean": 23.46,
+      "median": 22.8,
+      "min": 16.1,
+      "max": 33.3
+    },
+    "net_energy": {
+      "mean": -44028.17,
+      "median": -90737.9,
+      "min": -102375.6,
+      "max": 101087.0
+    }
+  }
+}
