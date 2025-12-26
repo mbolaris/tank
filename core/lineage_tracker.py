@@ -54,9 +54,38 @@ class LineageTracker:
         }
         self.lineage_log.append(lineage_record)
 
-        # Cap lineage log size to prevent unbounded growth
-        if len(self.lineage_log) > MAX_LINEAGE_LOG_SIZE:
-            self.lineage_log.pop(0)
+        # Prune if over capacity, preserving ancestry chains
+        self._prune_if_needed()
+
+    def _prune_if_needed(self) -> None:
+        """Prune old records while preserving ancestry chains.
+
+        Only removes records that are NOT referenced as a parent by any
+        other record. This prevents orphaning descendants when the log
+        exceeds MAX_LINEAGE_LOG_SIZE.
+        """
+        if len(self.lineage_log) <= MAX_LINEAGE_LOG_SIZE:
+            return
+
+        # Build set of all parent_ids referenced by current records
+        referenced_parents: Set[str] = {
+            rec["parent_id"] for rec in self.lineage_log
+        }
+
+        # Find prunable record indices (not referenced as parent by anyone)
+        prunable_indices: List[int] = []
+        for i, rec in enumerate(self.lineage_log):
+            rec_id = rec["id"]
+            if rec_id not in referenced_parents:
+                prunable_indices.append(i)
+
+        # Calculate how many to prune
+        excess = len(self.lineage_log) - MAX_LINEAGE_LOG_SIZE
+        to_remove = prunable_indices[:excess]
+
+        # Remove in reverse order to preserve indices
+        for i in reversed(to_remove):
+            self.lineage_log.pop(i)
 
     def get_lineage_data(
         self, alive_fish_ids: Optional[Set[int]] = None
