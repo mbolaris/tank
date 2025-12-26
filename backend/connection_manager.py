@@ -53,11 +53,35 @@ class TankConnection:
 
     @staticmethod
     def from_dict(data: Dict) -> "TankConnection":
-        """Create from dictionary (supports both snake_case and camelCase)."""
+        """Create from dictionary (supports both snake_case and camelCase).
+
+        Args:
+            data: Dictionary containing connection data
+
+        Returns:
+            TankConnection instance
+
+        Raises:
+            ValueError: If required fields (sourceId/source_tank_id or
+                       destinationId/destination_tank_id) are missing
+        """
+        # Extract required fields with fallback to snake_case
+        source_tank_id = data.get("sourceId", data.get("source_tank_id"))
+        destination_tank_id = data.get("destinationId", data.get("destination_tank_id"))
+
+        # Validate required fields
+        if not source_tank_id:
+            raise ValueError("Missing required field: sourceId or source_tank_id")
+        if not destination_tank_id:
+            raise ValueError("Missing required field: destinationId or destination_tank_id")
+
+        # Generate ID if not provided
+        connection_id = data.get("id", f"{source_tank_id}->{destination_tank_id}")
+
         return TankConnection(
-            id=data.get("id", f"{data.get('sourceId', data.get('source_tank_id'))}->{data.get('destinationId', data.get('destination_tank_id'))}"),
-            source_tank_id=data.get("sourceId", data.get("source_tank_id")),
-            destination_tank_id=data.get("destinationId", data.get("destination_tank_id")),
+            id=connection_id,
+            source_tank_id=source_tank_id,
+            destination_tank_id=destination_tank_id,
             probability=data.get("probability", 25),
             direction=data.get("direction", "right"),
             source_server_id=data.get("sourceServerId", data.get("source_server_id")),
@@ -192,11 +216,15 @@ class ConnectionManager:
 
             return len(to_remove)
 
-    def validate_connections(self, valid_tank_ids: List[str]) -> int:
-        """Remove connections that reference non-existent tanks.
+    def validate_connections(self, valid_tank_ids: List[str], local_server_id: Optional[str] = None) -> int:
+        """Remove connections that reference non-existent local tanks.
+
+        Only validates connections where both ends are on the local server.
+        Remote connections are preserved since we can't validate tanks on other servers.
 
         Args:
-            valid_tank_ids: List of currently valid tank IDs
+            valid_tank_ids: List of currently valid local tank IDs
+            local_server_id: Optional local server ID for validation
 
         Returns:
             Number of invalid connections removed
@@ -207,23 +235,32 @@ class ConnectionManager:
         with self._lock:
             to_remove = []
             for conn_id, conn in self._connections.items():
-                # Only check local connections (where server IDs are None or match local)
-                # For now, we assume all connections are local or at least one end is local
-                # But strictly speaking, we only know about local tanks.
+                # Skip validation for remote connections - we can't verify tanks on other servers
+                # A connection is remote if either server_id is set and differs from local
+                is_source_local = conn.source_server_id is None or conn.source_server_id == local_server_id
+                is_dest_local = conn.destination_server_id is None or conn.destination_server_id == local_server_id
 
-                # If a connection refers to a tank ID that we don't know about,
-                # and it's supposed to be a local tank, we should remove it.
-                # However, distinguishing local vs remote tank IDs is tricky without server info.
-                # Based on current implementation, we'll assume all tank IDs in the registry are the only valid ones.
-
-                if conn.source_tank_id not in valid_ids_set or conn.destination_tank_id not in valid_ids_set:
-                    to_remove.append(conn_id)
+                # Only validate if both ends are supposed to be local tanks
+                if is_source_local and is_dest_local:
+                    if conn.source_tank_id not in valid_ids_set or conn.destination_tank_id not in valid_ids_set:
+                        to_remove.append(conn_id)
+                        logger.debug(
+                            f"Marking local connection for removal: {conn.source_tank_id[:8]} -> "
+                            f"{conn.destination_tank_id[:8]} (tank not in registry)"
+                        )
+                else:
+                    # Log that we're preserving a remote connection
+                    logger.debug(
+                        f"Preserving remote connection: {conn.source_tank_id[:8]} -> "
+                        f"{conn.destination_tank_id[:8]} "
+                        f"(source_server={conn.source_server_id}, dest_server={conn.destination_server_id})"
+                    )
 
             for conn_id in to_remove:
                 conn = self._connections.pop(conn_id)
                 logger.info(
-                    f"Removed invalid connection: {conn.source_tank_id[:8]} -> {conn.destination_tank_id[:8]} "
-                    f"(referenced missing tank)"
+                    f"Removed invalid local connection: {conn.source_tank_id[:8]} -> "
+                    f"{conn.destination_tank_id[:8]} (referenced missing tank)"
                 )
                 removed_count += 1
 

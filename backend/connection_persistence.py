@@ -81,8 +81,19 @@ def load_connections(connection_manager) -> int:
                 connection = TankConnection.from_dict(conn_data)
                 connection_manager.add_connection(connection)
                 restored_count += 1
+            except ValueError as e:
+                # Validation error - malformed connection data
+                logger.error(
+                    f"Invalid connection data in connections.json: {e}. "
+                    f"Connection data: {conn_data}"
+                )
+                continue
             except Exception as e:
-                logger.warning(f"Failed to restore connection {conn_data.get('id')}: {e}")
+                # Unexpected error
+                logger.error(
+                    f"Failed to restore connection {conn_data.get('id')}: {e}",
+                    exc_info=True
+                )
                 continue
 
         logger.info(f"Restored {restored_count} connection(s) from {CONNECTIONS_FILE}")
