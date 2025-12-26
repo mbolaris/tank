@@ -23,7 +23,9 @@ from typing import Callable, Dict, List, Optional, Protocol, TYPE_CHECKING
 from core.config.plants import (
     PLANT_CULL_INTERVAL,
     PLANT_INITIAL_COUNT,
+    PLANT_INITIAL_ENERGY,
     PLANT_MATURE_ENERGY,
+    PLANT_EXTINCTION_RESPAWN_INTERVAL,
 )
 from core.config.server import PLANTS_ENABLED
 from core.config.display import (
@@ -109,6 +111,7 @@ class PlantManager:
 
         # Track reconciliation for periodic cleanup
         self._last_reconcile_frame: int = -1
+        self._extinction_frame: Optional[int] = None
 
     @property
     def enabled(self) -> bool:
@@ -247,6 +250,62 @@ class PlantManager:
 
         logger.info(f"Created {created} initial fractal plants")
         return created
+
+    def respawn_if_extinct(
+        self,
+        entities: List["Agent"],
+        frame_count: int,
+    ) -> bool:
+        """Respawn a plant if the population is extinct.
+
+        Args:
+            entities: All entities in simulation
+            frame_count: Current frame for interval checking
+
+        Returns:
+            True if a plant was spawned, False otherwise
+        """
+        if not self.enabled:
+            return False
+
+        has_plants = any(isinstance(entity, Plant) for entity in entities)
+        if has_plants:
+            self._extinction_frame = None
+            return False
+
+        if self._extinction_frame is None:
+            self._extinction_frame = frame_count
+
+        if PLANT_EXTINCTION_RESPAWN_INTERVAL > 0:
+            if frame_count - self._extinction_frame < PLANT_EXTINCTION_RESPAWN_INTERVAL:
+                return False
+
+        spot = self.root_spot_manager.get_random_empty_spot()
+        if spot is None:
+            self._extinction_frame = frame_count
+            return False
+
+        variant = self.pick_balanced_variant(entities)
+        genome = self.create_variant_genome(variant)
+
+        plant = Plant(
+            environment=self.environment,
+            genome=genome,
+            root_spot=spot,
+            initial_energy=PLANT_INITIAL_ENERGY,
+            ecosystem=self.ecosystem,
+        )
+
+        if not spot.claim(plant):
+            self._extinction_frame = frame_count
+            return False
+
+        self._entity_adder.add_entity(plant)
+        self._extinction_frame = None
+        logger.info(
+            f"Respawned fractal plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f})"
+        )
+        return True
 
     def sprout_new_plant(
         self,

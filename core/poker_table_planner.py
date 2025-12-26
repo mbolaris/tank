@@ -206,6 +206,9 @@ class MixedPokerTablePlanner:
     
     def _is_eligible_plant(self, plant: "Plant") -> bool:
         """Check if plant can participate in poker."""
+        can_play = getattr(plant, "can_play_poker", None)
+        if callable(can_play):
+            return can_play()
         if getattr(plant, "poker_cooldown", 0) > 0:
             return False
         if hasattr(plant, "is_dead") and plant.is_dead():

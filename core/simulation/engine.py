@@ -519,6 +519,9 @@ class SimulationEngine:
             self.plant_manager.reconcile_plants(
                 self._entity_manager.entities_list, self.frame_count
             )
+            self.plant_manager.respawn_if_extinct(
+                self._entity_manager.entities_list, self.frame_count
+            )
 
     def _phase_time_update(self) -> tuple:
         """TIME_UPDATE: Advance day/night cycle.

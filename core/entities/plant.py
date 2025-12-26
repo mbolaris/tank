@@ -29,6 +29,7 @@ from core.config.plants import (
     PLANT_BASE_HEIGHT,
     PLANT_BASE_WIDTH,
     PLANT_DEATH_ENERGY,
+    PLANT_ENERGY_GAIN_MULTIPLIER,
     PLANT_INITIAL_ENERGY,
     PLANT_MAX_ENERGY,
     PLANT_MAX_SIZE,
@@ -241,6 +242,7 @@ class Plant(Agent):
         # Time of day affects photosynthesis
         # Day = 1.0, Dawn/Dusk = 0.7, Night = 0.3
         energy_gain = base_rate * growth_factor * time_modifier
+        energy_gain *= PLANT_ENERGY_GAIN_MULTIPLIER
 
         # Reduce energy production if neighboring root slots are occupied.
         # If both adjacent slots are full -> -50%, if one is full -> -25%.
