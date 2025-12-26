@@ -593,8 +593,8 @@ class DeltaStatePayload:
     updates: List[Dict[str, Any]]
     added: List[Dict[str, Any]]
     removed: List[int]
-    poker_events: List[PokerEventPayload]
-    stats: Optional[StatsPayload]
+    poker_events: Optional[List[PokerEventPayload]] = None
+    stats: Optional[StatsPayload] = None
     type: str = "delta"
     tank_id: Optional[str] = None  # Tank World Net identifier
 
@@ -606,8 +606,9 @@ class DeltaStatePayload:
             "updates": self.updates,
             "added": self.added,
             "removed": self.removed,
-            "poker_events": [e.to_dict() for e in self.poker_events],
         }
+        if self.poker_events is not None:
+             data["poker_events"] = [e.to_dict() for e in self.poker_events]
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
         if self.stats:
