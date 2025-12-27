@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, List, Optional
 from core.config.poker import (
     POKER_AGGRESSION_HIGH,
     POKER_AGGRESSION_LOW,
+    POKER_ANTE_AMOUNT,
     POKER_MAX_PLAYERS,
 )
 from core.mixed_poker.betting_round import play_betting_round
@@ -304,7 +305,17 @@ class MixedPokerInteraction:
             )
             contexts.append(ctx)
 
-        # Post blinds
+        # Collect antes from ALL players
+        # This prevents "always fold" strategies from dominating by ensuring
+        # every player has some skin in the game before cards are dealt
+        for i, (player, ctx) in enumerate(zip(self.players, contexts)):
+            ante_amount = min(POKER_ANTE_AMOUNT, ctx.remaining_energy)
+            if ante_amount > 0:
+                game_state.player_bet(i, ante_amount)
+                ctx.remaining_energy -= ante_amount
+                self._modify_player_energy(player, -ante_amount)
+
+        # Post blinds (in addition to antes)
         sb_pos = (button_position + 1) % self.num_players
         bb_pos = (button_position + 2) % self.num_players
 

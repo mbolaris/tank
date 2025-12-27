@@ -217,12 +217,17 @@ class PlantManager:
     def create_initial_plants(self, entities: List["Agent"]) -> int:
         """Create the initial plant population.
 
+        Creates plants with random baseline poker strategy types. Each plant
+        serves as a fixed "sparring partner" for fish to evolve against.
+
         Args:
             entities: Current entities (for variant balancing)
 
         Returns:
             Number of plants created
         """
+        from core.plants.plant_strategy_types import get_random_strategy_type
+        
         if not self.enabled:
             return 0
 
@@ -232,8 +237,11 @@ class PlantManager:
             if spot is None:
                 break
 
-            variant = self.pick_balanced_variant(entities)
-            genome = self.create_variant_genome(variant)
+            # Create plant with random baseline strategy type
+            strategy_type = get_random_strategy_type(rng=self.rng)
+            genome = PlantGenome.create_from_strategy_type(
+                strategy_type.value, rng=self.rng
+            )
 
             plant = Plant(
                 environment=self.environment,
@@ -249,7 +257,7 @@ class PlantManager:
             self._entity_adder.add_entity(plant)
             created += 1
 
-        logger.info(f"Created {created} initial fractal plants")
+        logger.info(f"Created {created} baseline strategy plants")
         return created
 
     def respawn_if_low(
@@ -259,6 +267,8 @@ class PlantManager:
     ) -> bool:
         """Respawn a plant if the population is below minimum.
 
+        Creates plants with random baseline poker strategy types.
+
         Args:
             entities: All entities in simulation
             frame_count: Current frame for interval checking
@@ -266,6 +276,8 @@ class PlantManager:
         Returns:
             True if a plant was spawned, False otherwise
         """
+        from core.plants.plant_strategy_types import get_random_strategy_type
+        
         if not self.enabled:
             return False
 
@@ -283,8 +295,11 @@ class PlantManager:
         if spot is None:
             return False
 
-        variant = self.pick_balanced_variant(entities)
-        genome = self.create_variant_genome(variant)
+        # Create plant with random baseline strategy type
+        strategy_type = get_random_strategy_type(rng=self.rng)
+        genome = PlantGenome.create_from_strategy_type(
+            strategy_type.value, rng=self.rng
+        )
 
         plant = Plant(
             environment=self.environment,
@@ -299,7 +314,7 @@ class PlantManager:
 
         self._entity_adder.add_entity(plant)
         self._last_emergency_respawn_frame = frame_count
-        logger.info(f"Plant respawned (pop={plant_count}): #{plant.plant_id}")
+        logger.info(f"Plant respawned (pop={plant_count}, strategy={strategy_type.value}): #{plant.plant_id}")
         return True
 
     def sprout_new_plant(
@@ -311,7 +326,8 @@ class PlantManager:
     ) -> Result[Plant, str]:
         """Sprout a new plant from a parent.
 
-        Called when fish consumes plant nectar.
+        Called when fish consumes plant nectar. For baseline strategy plants,
+        offspring is an exact clone of the parent's strategy type.
 
         Args:
             parent_genome: Parent plant's genome
@@ -329,10 +345,13 @@ class PlantManager:
         if spot is None:
             return Err(f"No available root spot near ({parent_x:.0f}, {parent_y:.0f})")
 
-        variant = self.pick_balanced_variant(
-            entities, preferred_type=parent_genome.type
+        # Create offspring genome - exact clone for baseline strategy plants
+        offspring_genome = PlantGenome.from_parent(
+            parent_genome,
+            mutation_rate=0.15,
+            mutation_strength=0.15,
+            rng=self.rng,
         )
-        offspring_genome = self.create_variant_genome(variant, parent_genome=parent_genome)
 
         plant = Plant(
             environment=self.environment,
@@ -346,8 +365,9 @@ class PlantManager:
             return Err(f"Failed to claim root spot at ({spot.x:.0f}, {spot.y:.0f})")
 
         self._entity_adder.add_entity(plant)
+        strategy_info = f", strategy={parent_genome.strategy_type}" if parent_genome.strategy_type else ""
         logger.debug(
-            f"Sprouted new fractal plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f})"
+            f"Sprouted new plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f}){strategy_info}"
         )
         return Ok(plant)
 
@@ -386,6 +406,7 @@ class PlantManager:
 
             spot = getattr(entity, "root_spot", None)
             if spot is None:
+                logger.warning(f"Reconcile: Removing plant #{entity.plant_id} - no root_spot!")
                 plants_to_remove.append(entity)
                 continue
 
@@ -395,10 +416,20 @@ class PlantManager:
                     spot.occupied = True
                 continue
 
+            # Occupant mismatch - log details
+            occupant = getattr(spot, "occupant", None)
+            occupant_id = getattr(occupant, "plant_id", "None") if occupant else "None"
+            logger.warning(
+                f"Reconcile: Removing plant #{entity.plant_id} - "
+                f"spot #{spot.spot_id} occupant is #{occupant_id}, not #{entity.plant_id}"
+            )
             plants_to_remove.append(entity)
 
         for plant in plants_to_remove:
             self._entity_adder.remove_entity(plant)
+
+        if plants_to_remove:
+            logger.info(f"Reconcile: Removed {len(plants_to_remove)} orphaned plants")
 
         return len(plants_to_remove)
 

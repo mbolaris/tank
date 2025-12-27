@@ -38,16 +38,15 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
 class RandomStrategy(PokerStrategyAlgorithm):
     """Baseline strategy: completely random legal moves."""
 
-    strategy_id: str = "random"
-    parameters: Dict[str, float] = field(
-        default_factory=lambda: {
+    def __init__(self, rng: Optional[random.Random] = None):
+        parameters = {
             "fold_prob": 0.33,
             "call_prob": 0.33,
             # Remaining probability = raise
             "min_raise_fraction": 0.3,
             "max_raise_fraction": 1.0,
         }
-    )
+        super().__init__(strategy_id="random", parameters=parameters, _rng=rng or random)
 
     def decide_action(
         self,

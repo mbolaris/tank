@@ -5,18 +5,17 @@ This module provides collision detection and handling for entities in the simula
 Architecture Notes:
 - CollisionDetector classes implement the Strategy pattern for different
   collision algorithms (AABB, circle-based, etc.)
-- CollisionSystem is a simulation system that handles all collision logic
+- CollisionSystem is a simulation system that handles physical collisions
 - The system extends BaseSystem and declares UpdatePhase.COLLISION
 
 Design Decision:
 --------------
-This system owns ALL collision iteration and handling, providing clean
-separation of concerns. The collision logic includes:
+This system handles PHYSICAL collision logic only:
 - Fish-Food collisions (eating)
 - Fish-Crab collisions (predation)
-- Fish-Fish proximity detection for poker games
 - Food-Crab collisions
 
+Fish-Fish poker proximity is handled by PokerProximitySystem in the INTERACTION phase.
 Plant sprouting logic is included here for simplicity (triggered when nectar is consumed).
 """
 
@@ -24,17 +23,10 @@ import logging
 import random
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
-from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
 from core.config.plants import PLANT_SPROUTING_CHANCE
-from core.config.server import PLANTS_ENABLED, POKER_ACTIVITY_ENABLED
+from core.config.server import PLANTS_ENABLED
 from core.config.simulation import COLLISION_QUERY_RADIUS
 from core.entities.plant import PlantNectar
-from core.poker_interaction import (
-    PokerInteraction,
-    MAX_PLAYERS as POKER_MAX_PLAYERS,
-    filter_mutually_proximate,
-    get_ready_players,
-)
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
@@ -130,19 +122,20 @@ default_collision_detector = RectCollisionDetector()
 
 @runs_in_phase(UpdatePhase.COLLISION)
 class CollisionSystem(BaseSystem):
-    """System for detecting and handling all collisions between entities.
+    """System for detecting and handling physical collisions between entities.
 
     This system runs in the COLLISION phase and handles:
     - Fish-Food collisions (eating)
     - Fish-Crab collisions (predation)
-    - Fish-Fish proximity for poker game triggering
     - Food-Crab collisions
     - Collision statistics for debugging
 
+    Note: Fish-Fish poker proximity is handled by PokerProximitySystem.
+
     Design Decision:
-        All collision iteration is handled here, creating clean separation
-        of concerns - CollisionSystem owns all collision-related logic,
-        and the SimulationEngine only orchestrates system execution.
+        Physical collision iteration is handled here, creating clean separation
+        of concerns - CollisionSystem owns physical collision logic,
+        PokerProximitySystem owns social game triggering.
     """
 
     def __init__(self, engine: "SimulationEngine") -> None:
@@ -253,9 +246,6 @@ class CollisionSystem(BaseSystem):
         if not fish_list:
             return
 
-        # Data structures for poker groups (proximity-based, not collision)
-        fish_poker_contacts: Dict["Fish", Set["Fish"]] = {fish: set() for fish in fish_list}
-
         # Track which fish have been removed (e.g. eaten) to avoid processing them further
         removed_fish: Set["Fish"] = set()
 
@@ -302,13 +292,6 @@ class CollisionSystem(BaseSystem):
                 entity_id = (0, int(entity_id))
 
             return (cell[0], cell[1], type_rank, entity_id)
-
-        def poker_neighbor_key(entity: "Agent") -> int:
-            return getattr(entity, "fish_id", entity_order.get(entity, 0))
-
-        # Pre-compute squared distance constants for inline proximity check
-        poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE
-        poker_max_sq = FISH_POKER_MAX_DISTANCE * FISH_POKER_MAX_DISTANCE
 
         # Single pass over all fish
         for fish in fish_list:
@@ -360,20 +343,7 @@ class CollisionSystem(BaseSystem):
                 # Performance: Use type() for exact match first
                 other_type = type(other)
 
-                if other_type is Fish:
-                    # OPTIMIZATION: Inline poker proximity check to avoid method call overhead
-                    # Calculate center-to-center distance squared
-                    o_cx = other.pos.x + other.width * 0.5
-                    o_cy = other.pos.y + other.height * 0.5
-                    dx = fish_cx - o_cx
-                    dy = fish_cy - o_cy
-                    dist_sq = dx * dx + dy * dy
-
-                    # Must be within max distance but farther than min distance
-                    if poker_min_sq < dist_sq <= poker_max_sq:
-                        fish_poker_contacts[fish].add(other)
-
-                elif other_type is Crab or isinstance(other, Crab):
+                if other_type is Crab or isinstance(other, Crab):
                     # For crabs: use actual collision check
                     if check_collision(fish, other):
                         if self._handle_fish_crab_collision(fish, other):
@@ -386,10 +356,7 @@ class CollisionSystem(BaseSystem):
                     if check_collision(fish, other):
                         self.handle_fish_food_collision(fish, other)
 
-        # After processing all collisions, handle poker groups
-        self._process_poker_groups(
-            fish_list, fish_poker_contacts, removed_fish, all_entities_set, poker_neighbor_key
-        )
+        # Note: Fish-fish poker proximity is now handled by PokerProximitySystem
 
     def _handle_fish_crab_collision(self, fish: "Fish", crab: "Crab") -> bool:
         """Handle collision between a fish and a crab (predator).
@@ -422,126 +389,6 @@ class CollisionSystem(BaseSystem):
         """
         self._frame_fish_deaths += 1
         self._engine.record_fish_death(fish, cause)
-
-    def _process_poker_groups(
-        self,
-        fish_list: List["Fish"],
-        fish_poker_contacts: Dict["Fish", Set["Fish"]],
-        removed_fish: Set["Fish"],
-        all_entities_set: Set["Agent"],
-        poker_neighbor_key,
-    ) -> None:
-        """Process fish proximity groups and trigger poker games.
-
-        Args:
-            fish_list: All fish in the simulation
-            fish_poker_contacts: Adjacency map of fish in poker proximity
-            removed_fish: Fish that have been removed this frame
-            all_entities_set: Set of all entities for membership testing
-            poker_neighbor_key: Sort key function for deterministic ordering
-        """
-        # Build full adjacency graph (make it symmetric)
-        for fish, contacts in fish_poker_contacts.items():
-            for contact in contacts:
-                if contact in fish_poker_contacts:
-                    fish_poker_contacts[contact].add(fish)
-
-        # Find connected components using DFS
-        visited: Set["Fish"] = set()
-        processed_fish: Set["Fish"] = set()  # For poker game tracking
-
-        for fish in fish_list:
-            if fish in visited or fish in removed_fish or fish not in all_entities_set:
-                continue
-
-            # Start a new group with DFS
-            group: List["Fish"] = []
-            stack = [fish]
-
-            # Valid group members must be alive and in simulation
-            while stack:
-                current = stack.pop()
-                if current in visited:
-                    continue
-
-                visited.add(current)
-                if current not in removed_fish and current in all_entities_set:
-                    group.append(current)
-
-                # Add all connected fish to the stack
-                contacts = fish_poker_contacts.get(current)
-                if contacts:
-                    for neighbor in sorted(contacts, key=poker_neighbor_key):
-                        if neighbor not in visited:
-                            stack.append(neighbor)
-
-            # Play poker if group has 2+ fish
-            if len(group) >= 2:
-                # Filter out fish that already played (just in case)
-                valid_fish = [f for f in group if f not in processed_fish]
-
-                if len(valid_fish) >= 2 and POKER_ACTIVITY_ENABLED:
-                    # Only allow currently eligible fish to queue for poker.
-                    ready_fish = get_ready_players(valid_fish)
-
-                    if len(ready_fish) < 2:
-                        continue
-
-                    # Build poker groups only from ready fish that are directly touching
-                    ready_set = set(ready_fish)
-                    ready_visited: Set["Fish"] = set()
-
-                    for start in ready_fish:
-                        if start in ready_visited:
-                            continue
-
-                        stack = [start]
-                        ready_group: List["Fish"] = []
-
-                        while stack:
-                            current = stack.pop()
-
-                            if current in ready_visited:
-                                continue
-
-                            ready_visited.add(current)
-                            ready_group.append(current)
-
-                            for neighbor in sorted(
-                                fish_poker_contacts.get(current, ()),
-                                key=poker_neighbor_key,
-                            ):
-                                if neighbor in ready_set and neighbor not in ready_visited:
-                                    stack.append(neighbor)
-
-                        if len(ready_group) < 2:
-                            continue
-
-                        # IMPORTANT: Ensure ALL fish in the group are within max distance of each other
-                        ready_group = filter_mutually_proximate(
-                            ready_group, FISH_POKER_MAX_DISTANCE
-                        )
-                        if len(ready_group) < 2:
-                            continue
-
-                        # Limit to max players to avoid deck exhaustion
-                        if len(ready_group) > POKER_MAX_PLAYERS:
-                            ready_group = ready_group[:POKER_MAX_PLAYERS]
-
-                        rng = getattr(self._engine, "rng", None)
-                        poker = PokerInteraction(ready_group, rng=rng)
-                        if poker.play_poker():
-                            self._engine.handle_poker_result(poker)
-                            self._poker_games_triggered += 1
-
-                            # Check deaths
-                            for f in ready_group:
-                                if f.is_dead() and f in all_entities_set:
-                                    self._record_fish_death(f)
-                                    removed_fish.add(f)
-                                    all_entities_set.discard(f)
-
-                        processed_fish.update(ready_group)
 
     def _handle_food_collisions(self) -> None:
         """Handle collisions involving food.

@@ -118,6 +118,82 @@ def evaluate_starting_hand_strength(hole_cards: List[Card], position_on_button: 
     return min(1.0, max(0.0, strength))
 
 
+def evaluate_hand_strength(hand: "PokerHand") -> float:
+    """Evaluate post-flop hand strength (0.0 to 1.0).
+
+    Maps categorical HandRank to a normalized strength scale that matches
+    the expectations of AI strategies (where 0.5 is a medium hand).
+
+    Scale:
+    - High Card:      0.00 - 0.20
+    - Pair:           0.20 - 0.40
+    - Two Pair:       0.40 - 0.60
+    - Three of Kind:  0.60 - 0.70
+    - Straight:       0.70 - 0.80
+    - Flush:          0.80 - 0.85
+    - Full House:     0.85 - 0.90
+    - Quads+:         0.90 - 1.00
+
+    Args:
+        hand: The PokerHand to evaluate
+
+    Returns:
+        Normalized strength score
+    """
+    from core.poker.core.hand import HandRank
+
+    # Base strength for each rank category
+    base_strengths = {
+        HandRank.HIGH_CARD: 0.0,
+        HandRank.PAIR: 0.2,
+        HandRank.TWO_PAIR: 0.4,
+        HandRank.THREE_OF_KIND: 0.6,
+        HandRank.STRAIGHT: 0.7,
+        HandRank.FLUSH: 0.8,
+        HandRank.FULL_HOUSE: 0.85,
+        HandRank.FOUR_OF_KIND: 0.9,
+        HandRank.STRAIGHT_FLUSH: 0.95,
+        HandRank.ROYAL_FLUSH: 1.0,
+    }
+
+    # Range width for each category (how much kickers matter)
+    widths = {
+        HandRank.HIGH_CARD: 0.2,
+        HandRank.PAIR: 0.2,
+        HandRank.TWO_PAIR: 0.2,
+        HandRank.THREE_OF_KIND: 0.1,
+        HandRank.STRAIGHT: 0.1,
+        HandRank.FLUSH: 0.05,
+        HandRank.FULL_HOUSE: 0.05,
+        HandRank.FOUR_OF_KIND: 0.05,
+        HandRank.STRAIGHT_FLUSH: 0.05,
+        HandRank.ROYAL_FLUSH: 0.0,
+    }
+
+    rank_val = hand.rank_value
+    base = base_strengths.get(rank_val, 0.0)
+    width = widths.get(rank_val, 0.0)
+
+    # Calculate intra-category strength based on primary ranks
+    # Normalized rank 2=0.0, 14=1.0
+    bonus = 0.0
+    
+    # Use primary ranks if available (Pair+), otherwise use kickers (High Card)
+    ranks_to_use = hand.primary_ranks if hand.primary_ranks else hand.kickers
+    
+    if ranks_to_use:
+        # Use highest rank
+        top_rank = ranks_to_use[0]
+        bonus = (top_rank - 2) / 12.0
+        
+        # Minor adjustment for secondary ranks/kickers if relevant
+        if len(ranks_to_use) > 1:
+            second_rank = ranks_to_use[1]
+            bonus = 0.7 * bonus + 0.3 * ((second_rank - 2) / 12.0)
+    
+    return base + (width * bonus)
+
+
 def calculate_pot_odds(call_amount: float, pot_size: float) -> float:
     """Calculate pot odds (required equity to call).
 

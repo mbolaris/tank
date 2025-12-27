@@ -324,12 +324,47 @@ class Plant(Agent):
         # Note: In the same file in the new structure
         # from core.entities.plant import PlantNectar
 
+        # Determine visuals based on strategy
+        floral_visuals = {}
+        if self.genome.strategy_type:
+            try:
+                from core.plants.plant_strategy_types import PlantStrategyType, get_strategy_visual_config
+                strategy_type = PlantStrategyType(self.genome.strategy_type)
+                config = get_strategy_visual_config(strategy_type)
+                
+                # Calculate average hue from range for consistent look
+                hue = (config.color_hue_range[0] + config.color_hue_range[1]) / 2
+                sat = (config.color_saturation_range[0] + config.color_saturation_range[1]) / 2
+                
+                floral_visuals = {
+                    "floral_type": config.floral_type,
+                    "floral_petals": config.floral_petals,
+                    "floral_layers": config.floral_layers,
+                    "floral_spin": config.floral_spin,
+                    "floral_hue": hue,
+                    "floral_saturation": sat,
+                }
+            except Exception:
+                pass
+        
+        # If no strategy specific visuals (e.g. evolved/legacy plant), use genome colors
+        if not floral_visuals:
+             floral_visuals = {
+                "floral_type": "vortex", # Default
+                "floral_hue": self.genome.color_hue,
+                "floral_saturation": self.genome.color_saturation,
+                "floral_petals": 5,
+                "floral_layers": 3,
+                "floral_spin": 1.0
+             }
+
         return PlantNectar(
             environment=self.environment,
             x=nectar_x,
             y=nectar_y,
             source_plant=self,
             relative_y_offset_pct=relative_y_offset_pct,
+            floral_visuals=floral_visuals,
         )
 
     def can_play_poker(self) -> bool:
@@ -356,10 +391,13 @@ class Plant(Agent):
             Actual amount lost
         """
         actual_loss = min(self.energy, amount)
+        before = self.energy
         self.energy -= actual_loss
         self._update_size()
-        if actual_loss > 0 and self.ecosystem is not None:
-            self.ecosystem.record_plant_energy_burn(source, actual_loss)
+        if actual_loss > 0:
+            logger.debug(f"Plant #{self.plant_id} lost {actual_loss:.1f} energy ({source}): {before:.1f} -> {self.energy:.1f}")
+            if self.ecosystem is not None:
+                self.ecosystem.record_plant_energy_burn(source, actual_loss)
         return actual_loss
 
     def gain_energy(self, amount: float, *, source: str = "poker") -> float:
@@ -367,16 +405,60 @@ class Plant(Agent):
 
         Args:
             amount: Energy to gain
+            source: Source of the energy gain (for tracking)
 
         Returns:
-            Actual amount gained
+            Actual amount gained (including overflow that was routed)
         """
-        actual_gain = min(self.max_energy - self.energy, amount)
-        self.energy += actual_gain
+        if amount <= 0:
+            return 0.0
+
+        new_energy = self.energy + amount
+
+        if new_energy > self.max_energy:
+            overflow = new_energy - self.max_energy
+            self.energy = self.max_energy
+            self._route_overflow_energy(overflow)
+        else:
+            self.energy = new_energy
+            overflow = 0.0
+
         self._update_size()
-        if actual_gain > 0 and self.ecosystem is not None:
-            self.ecosystem.record_plant_energy_gain(source, actual_gain)
-        return actual_gain
+        if amount > 0 and self.ecosystem is not None:
+            self.ecosystem.record_plant_energy_gain(source, amount)
+        return amount  # Return full amount since overflow was routed
+
+    def _route_overflow_energy(self, overflow: float) -> None:
+        """Route overflow energy into a food drop near the plant.
+
+        When a plant gains more energy than it can hold (e.g., from poker
+        winnings), this method converts the excess into food that drops
+        near the plant base, conserving energy in the ecosystem.
+
+        Args:
+            overflow: Amount of energy exceeding max capacity
+        """
+        if overflow < 1.0:
+            return
+
+        try:
+            rng = getattr(self.environment, "rng", random)
+            food = Food(
+                environment=self.environment,
+                x=self.pos.x + self.width / 2 + rng.uniform(-20, 20),
+                y=self.pos.y + self.height - 10,  # Near the base of the plant
+                food_type="energy",
+            )
+            food.energy = min(overflow, food.max_energy)
+            food.max_energy = food.energy
+
+            if hasattr(self.environment, "add_entity"):
+                self.environment.add_entity(food)
+
+            if self.ecosystem is not None:
+                self.ecosystem.record_energy_burn("plant_overflow_food", food.energy)
+        except Exception:
+            pass  # Energy lost on failure is acceptable
 
     def is_dead(self) -> bool:
         """Check if plant is dead (energy too low) or has migrated.
@@ -390,6 +472,7 @@ class Plant(Agent):
             
         # Check condition-based death (low energy)
         if self.energy < PLANT_DEATH_ENERGY:
+            logger.debug(f"Plant #{self.plant_id} died from low energy ({self.energy:.1f} < {PLANT_DEATH_ENERGY})")
             self.state.transition(EntityState.DEAD, reason="low_energy")
             return True
             
@@ -447,9 +530,28 @@ class Plant(Agent):
     def get_poker_strategy(self):
         """Get poker strategy for this plant.
 
+        If this plant has a strategy_type set (baseline strategy plant),
+        returns the corresponding baseline poker strategy implementation.
+        Otherwise falls back to the genome-based adapter.
+
         Returns:
-            PlantPokerStrategyAdapter wrapping this plant's genome
+            PokerStrategyAlgorithm: Either a baseline strategy or PlantPokerStrategyAdapter
         """
+        # Check if this is a baseline strategy plant
+        if self.genome.strategy_type is not None:
+            from core.plants.plant_strategy_types import (
+                PlantStrategyType,
+                get_poker_strategy_for_type,
+            )
+            try:
+                strategy_type = PlantStrategyType(self.genome.strategy_type)
+                # Use environment RNG if available for determinism
+                rng = getattr(self.environment, "rng", None)
+                return get_poker_strategy_for_type(strategy_type, rng=rng)
+            except ValueError:
+                pass  # Fall through to genome-based strategy
+        
+        # Fall back to genome-based strategy (legacy behavior)
         from core.plant_poker_strategy import PlantPokerStrategyAdapter
         return PlantPokerStrategyAdapter(self.genome)
 
@@ -608,6 +710,7 @@ class PlantNectar(Food):
         y: float,
         source_plant: Plant,
         relative_y_offset_pct: float = 0.20,
+        floral_visuals: Optional[dict] = None,
     ) -> None:
         """Initialize plant nectar.
 
@@ -617,6 +720,7 @@ class PlantNectar(Food):
             y: Y position
             source_plant: The plant that produced this
             relative_y_offset_pct: Vertical offset from top as percentage of height (0.0-1.0)
+            floral_visuals: Dictionary of visual properties (hue, saturation, type, etc.)
         """
         super().__init__(
             environment,
@@ -629,6 +733,7 @@ class PlantNectar(Food):
 
         self.source_plant = source_plant
         self.relative_y_offset_pct = relative_y_offset_pct
+        self.floral_visuals = floral_visuals or {}
         self.parent_genome = source_plant.genome  # Reference to parent genome
         # Override energy from Food init (which uses default 90.0 from constants)
         self.energy = self.NECTAR_ENERGY
@@ -709,6 +814,11 @@ class PlantNectar(Food):
             "energy": self.energy,
             "source_plant_id": self.source_plant.plant_id if self.source_plant else None,
         }
+        
+        # Add visual properties
+        if self.floral_visuals:
+            result.update(self.floral_visuals)
+            
         # Add source plant position for sway synchronization
         if self.source_plant:
             result["source_plant_x"] = self.source_plant.pos.x + self.source_plant.width / 2

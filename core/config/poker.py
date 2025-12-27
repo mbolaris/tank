@@ -3,6 +3,10 @@
 # Poker Game Limits
 POKER_MAX_PLAYERS = 6  # Maximum players (fish + plants) in a single poker game
 
+# Poker Ante - forces all players to contribute before cards are dealt
+# This prevents "always fold" strategies from dominating since folding still costs energy
+POKER_ANTE_AMOUNT = 1.0  # Each player must ante this amount before cards are dealt
+
 # Poker Aggression Factors
 POKER_AGGRESSION_LOW = 0.3  # Low aggression factor
 POKER_AGGRESSION_MEDIUM = 0.6  # Medium aggression factor
@@ -44,7 +48,7 @@ POKER_HOUSE_CUT_MIN_PERCENTAGE = 0.08  # Minimum house cut (8% at size 0.35)
 POKER_HOUSE_CUT_SIZE_MULTIPLIER = 0.18  # House cut increase per size unit (8-25% range)
 
 # Poker Hand Evaluation
-POKER_MAX_HAND_RANK = 9.0  # Maximum hand rank value for normalization
+
 POKER_WEAK_HAND_THRESHOLD = 0.3  # Threshold for considering a hand weak (for bluff detection)
 
 # Poker Preflop Decision Constants

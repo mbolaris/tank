@@ -53,6 +53,10 @@ class PlantGenome:
 
     # Variant traits
     type: str = "lsystem"
+    
+    # Poker strategy type (baseline algorithm) - None means use genome-based traits
+    # When set, this determines the poker strategy directly via PlantStrategyType
+    strategy_type: Optional[str] = None
 
     # Floral/nectar fractal traits - determines how nectar looks
     floral_type: str = "spiral"  # spiral, julia, vortex, starburst, hypno, rose, mandelbrot, dahlia, sunflower, chrysanthemum
@@ -189,6 +193,77 @@ class PlantGenome:
             floral_saturation=rng.uniform(0.7, 1.0),
         )
         g._production_rules = g._generate_default_rules()
+        return g
+
+    @classmethod
+    def create_from_strategy_type(
+        cls,
+        strategy_type_str: str,
+        rng: Optional[random.Random] = None,
+    ) -> "PlantGenome":
+        """Create a genome configured for a specific poker strategy type.
+        
+        Uses the PlantStrategyType visual configuration to determine
+        L-system parameters, colors, and production rules.
+        
+        Args:
+            strategy_type_str: String value of PlantStrategyType (e.g., "balanced")
+            rng: Random number generator for deterministic variation
+            
+        Returns:
+            PlantGenome configured for the specified strategy type
+        """
+        from core.plants.plant_strategy_types import (
+            PlantStrategyType,
+            get_strategy_visual_config,
+        )
+        
+        rng = rng if rng is not None else random
+        
+        # Get strategy type enum
+        try:
+            strategy_type = PlantStrategyType(strategy_type_str)
+        except ValueError:
+            # Fall back to random if invalid
+            strategy_type = PlantStrategyType.BALANCED
+        
+        config = get_strategy_visual_config(strategy_type)
+        
+        # Generate values within the ranges specified by the visual config
+        g = cls(
+            axiom=config.axiom,
+            angle=rng.uniform(*config.angle_range),
+            length_ratio=rng.uniform(*config.length_ratio_range),
+            branch_probability=rng.uniform(*config.branch_probability_range),
+            curve_factor=rng.uniform(*config.curve_factor_range),
+            color_hue=rng.uniform(*config.color_hue_range),
+            color_saturation=rng.uniform(*config.color_saturation_range),
+            stem_thickness=rng.uniform(*config.stem_thickness_range),
+            leaf_density=rng.uniform(*config.leaf_density_range),
+            # Poker traits - not used directly (strategy_type overrides)
+            aggression=0.5,
+            bluff_frequency=0.2,
+            risk_tolerance=0.5,
+            base_energy_rate=rng.uniform(0.02, 0.04),
+            growth_efficiency=rng.uniform(0.9, 1.2),
+            nectar_threshold_ratio=rng.uniform(0.90, 0.98),
+            type="baseline",  # Mark as baseline strategy plant
+            strategy_type=strategy_type_str,
+            # Floral traits
+            floral_type=rng.choice(["spiral", "julia", "vortex", "starburst"]),
+            floral_petals=rng.randint(4, 8),
+            floral_layers=rng.randint(2, 4),
+            floral_spin=rng.uniform(0.3, 0.8),
+            floral_hue=rng.uniform(*config.color_hue_range),
+            floral_saturation=rng.uniform(*config.color_saturation_range),
+        )
+        
+        # Use strategy-specific production rules if provided
+        if config.production_rules:
+            g._production_rules = list(config.production_rules)
+        else:
+            g._production_rules = g._generate_default_rules()
+        
         return g
 
     @classmethod
@@ -431,7 +506,13 @@ class PlantGenome:
         """Create offspring genome with mutations while preserving variant identity.
 
         Uses core.evolution module for mutation operations.
+        
+        For baseline strategy plants (strategy_type is set), reproduction creates
+        an exact clone with no mutations to preserve the fixed strategy behavior.
         """
+        # For baseline strategy plants, create exact clone (no mutations)
+        if parent.strategy_type is not None:
+            return cls.create_from_strategy_type(parent.strategy_type, rng=rng)
         rng = rng if rng is not None else random
         def mutate_float(val: float, min_val: float, max_val: float) -> float:
             """Mutate a continuous trait using evolution module."""
@@ -596,6 +677,7 @@ class PlantGenome:
             "growth_efficiency": self.growth_efficiency,
             "nectar_threshold_ratio": self.nectar_threshold_ratio,
             "type": self.type,
+            "strategy_type": self.strategy_type,
             # Floral traits
             "floral_type": self.floral_type,
             "floral_petals": self.floral_petals,
@@ -615,6 +697,14 @@ class PlantGenome:
             (r["input"], r["output"], r["prob"])
             for r in data.get("production_rules", [])
         ]
+        # Get strategy_type, assigning a random one for legacy plants without it
+        # Check for both missing key AND explicitly saved null values
+        strategy_type = data.get("strategy_type")
+        if not strategy_type:  # Handles None, empty string, and missing key
+            # Migration: assign a random baseline strategy to legacy plants
+            from core.plants.plant_strategy_types import get_random_strategy_type
+            strategy_type = get_random_strategy_type().value
+        
         g = cls(
             axiom=data.get("axiom", "F"),
             angle=data.get("angle", 25.0),
@@ -632,6 +722,7 @@ class PlantGenome:
             growth_efficiency=data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.95),
             type=data.get("type") or data.get("fractal_type", "lsystem"),
+            strategy_type=strategy_type,
             # Floral traits
             floral_type=data.get("floral_type", "spiral"),
             floral_petals=data.get("floral_petals", 5),

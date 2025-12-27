@@ -14,7 +14,7 @@ class TestConnectorLogic(unittest.TestCase):
         self.tank_registry.set_connection_manager(self.connection_manager)
 
     def test_max_one_connector(self):
-        """Test that adding a second connection between two tanks replaces the first."""
+        """Test that adding a duplicate connection replaces it, but opposite direction is allowed."""
         # Create connection A -> B
         conn1 = TankConnection(
             id="A->B",
@@ -29,7 +29,7 @@ class TestConnectorLogic(unittest.TestCase):
         self.assertEqual(len(self.connection_manager.list_connections()), 1)
         self.assertEqual(self.connection_manager.get_connection("A->B").probability, 25)
 
-        # Create connection B -> A (should replace A->B)
+        # Create connection B -> A (opposite direction - should be allowed)
         conn2 = TankConnection(
             id="B->A",
             source_tank_id="tank_b",
@@ -39,11 +39,29 @@ class TestConnectorLogic(unittest.TestCase):
         )
         self.connection_manager.add_connection(conn2)
 
-        # Verify only one connection exists and it's the new one
+        # Verify BOTH connections exist (bidirectional allowed)
         connections = self.connection_manager.list_connections()
-        self.assertEqual(len(connections), 1)
-        self.assertEqual(connections[0].id, "B->A")
-        self.assertEqual(connections[0].probability, 50)
+        self.assertEqual(len(connections), 2)
+
+        # Now add a duplicate A->B with different probability - should replace
+        conn3 = TankConnection(
+            id="A->B-v2",
+            source_tank_id="tank_a",
+            destination_tank_id="tank_b",
+            probability=75,
+            direction="right"
+        )
+        self.connection_manager.add_connection(conn3)
+
+        # Verify still 2 connections (duplicate replaced, opposite direction preserved)
+        connections = self.connection_manager.list_connections()
+        self.assertEqual(len(connections), 2)
+        
+        # The A->B connection should have the new ID and probability
+        a_to_b = [c for c in connections if c.source_tank_id == "tank_a" and c.destination_tank_id == "tank_b"]
+        self.assertEqual(len(a_to_b), 1)
+        self.assertEqual(a_to_b[0].id, "A->B-v2")
+        self.assertEqual(a_to_b[0].probability, 75)
 
     def test_cascade_delete(self):
         """Test that removing a tank removes its connections."""

@@ -202,6 +202,7 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
     const strong = sorted.map(s => s.vs_strong);
     const confWeak = sorted.map(s => s.conf_weak ?? 0.5);
     const confStrong = sorted.map(s => s.conf_strong ?? 0.5);
+    const confExpert = sorted.map(s => s.conf_expert ?? 0.5);
     const elo = sorted.map(s => s.pop_mean_elo ?? 1200);
 
     const popEma = ema(pop);
@@ -209,6 +210,7 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
     const strongEma = ema(strong);
     const confWeakEma = ema(confWeak, 0.35);
     const confStrongEma = ema(confStrong, 0.35);
+    const confExpertEma = ema(confExpert, 0.35);
     const eloEma = ema(elo, 0.25);
 
     let minVal = 0;
@@ -262,6 +264,7 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
         strong_ema: strongEma[i],
         conf_weak_ema: confWeakEma[i],
         conf_strong_ema: confStrongEma[i],
+        conf_expert_ema: confExpertEma[i],
         elo_ema: eloEma[i],
     }));
 
@@ -281,6 +284,7 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
             ? [
                 { id: 'confWeak', name: 'conf vs Weak (EMA)', color: '#22c55e', dash: '6 3', get: (p: typeof points[number]) => p.conf_weak_ema },
                 { id: 'confStrong', name: 'conf vs Strong (EMA)', color: '#ef4444', dash: '3 3', get: (p: typeof points[number]) => p.conf_strong_ema },
+                { id: 'confExpert', name: 'conf vs Expert (EMA)', color: '#a78bfa', dash: '2 2', get: (p: typeof points[number]) => p.conf_expert_ema },
             ]
             : metric === 'elo'
                 ? [
@@ -756,13 +760,26 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
                     <div style={styles.noData}>
                         {data?.status === 'not_available'
                             ? 'Benchmark is disabled on the server.'
-                            : 'No benchmark data available yet.'}
+                            : (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{
+                                        display: 'inline-block',
+                                        width: '8px',
+                                        height: '8px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#818cf8',
+                                        animation: 'pulse 1.5s ease-in-out infinite',
+                                    }} />
+                                    Running first benchmark...
+                                </span>
+                            )}
                         <br />
                         <span style={{ fontSize: '11px', color: colors.textSecondary }}>
                             {data?.status === 'not_available'
                                 ? 'Set TANK_EVOLUTION_BENCHMARK_ENABLED=1 and restart the server.'
-                                : 'Benchmarks run periodically to measure poker skill evolution.'}
+                                : 'Evaluating fish poker skill against baseline opponents (~30s)'}
                         </span>
+                        <style>{`@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
                     </div>
                 </CollapsibleSection>
             </div>

@@ -132,9 +132,9 @@ class SimulationRunner(CommandHandlerMixin):
                 use_quick_benchmark=True,
             )
             self._evolution_benchmark_guard = threading.Lock()
-            # Initialize to (now - interval + 5 seconds) so first benchmark runs after ~5 seconds of startup
+            # Initialize to (now - interval + 2 seconds) so first benchmark runs after ~2 seconds of startup
             # This gives the simulation time to populate fish before the first evaluation
-            initial_delay = 5.0
+            initial_delay = 2.0
             interval = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "30"))
             self._evolution_benchmark_last_completed_time = time.time() - interval + initial_delay
         else:
@@ -538,6 +538,15 @@ class SimulationRunner(CommandHandlerMixin):
             )
 
         try:
+            # Helper to get recent poker events
+            poker_events = self._collect_poker_events()
+            
+            # Calculate derived stats properly
+            stats = self._collect_stats(current_frame) # Re-using existing _collect_stats
+
+            # Collect entities once
+            entity_snapshots = self._collect_entities()
+
             send_full = (
                 force_full
                 or not allow_delta
@@ -546,28 +555,43 @@ class SimulationRunner(CommandHandlerMixin):
             )
 
             if send_full:
-                state = self._build_full_state(current_frame, elapsed_time)
+                # Full state update
                 self._last_full_frame = current_frame
-                self._last_entities = {entity.id: entity for entity in state.entities}
+                self._last_entities = {e.id: e for e in entity_snapshots}
+                
+                state = FullStatePayload(
+                    frame=current_frame, # Using current_frame as self.world.step_count
+                    elapsed_time=elapsed_time, # Using elapsed_time as self.world.time
+                    entities=entity_snapshots,
+                    stats=stats,
+                    poker_events=poker_events, # Include events in full update
+                    auto_evaluation=self._collect_auto_eval(), # Re-using existing _collect_auto_eval
+                    tank_id=self.tank_id,
+                    poker_leaderboard=self._collect_poker_leaderboard() # Re-using existing _collect_poker_leaderboard
+                )
             else:
-                entities = self._collect_entities()
-                current_entities = {entity.id: entity for entity in entities}
-
+                # Delta update
+                # optimization: only send poker events if changed? 
+                # For now, we only send them on full updates (every 30 frames ~ 1 sec)
+                # AND if explicitly requested or if we detect a change (TODO).
+                # Current decision: Exclude from delta to save massive bandwidth/memory.
+                # Frontend will persist the last known list.
+                
+                current_entities = {entity.id: entity for entity in entity_snapshots}
                 added = [entity.to_full_dict() for eid, entity in current_entities.items() if eid not in self._last_entities]
                 removed = [eid for eid in self._last_entities if eid not in current_entities]
-                updates = [entity.to_delta_dict() for entity in entities]
-
-                poker_events = self._collect_poker_events()
+                updates = [entity.to_delta_dict() for entity in entity_snapshots]
+                
                 state = DeltaStatePayload(
-                    frame=current_frame,
-                    elapsed_time=elapsed_time,
+                    frame=current_frame, # Using current_frame as self.world.step_count
+                    elapsed_time=elapsed_time, # Using elapsed_time as self.world.time
                     updates=updates,
                     added=added,
                     removed=removed,
-                    poker_events=poker_events,
-                    stats=None,
+                    stats=stats,
+                    # poker_events=poker_events, # REMOVED from delta to prevent leak/bloat
+                    tank_id=self.tank_id
                 )
-
                 self._last_entities = current_entities
 
             self._cached_state = state

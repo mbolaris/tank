@@ -412,6 +412,9 @@ class PokerSystem(BaseSystem):
 
         # Add poker event for display
         if hasattr(self._engine, "add_plant_poker_event") and result.plant_count > 0:
+            from core.entities import Fish
+            from core.entities.plant import Plant
+
             # Use plant poker event format for games with plants
             winner_is_fish = result.winner_type == "fish"
 
@@ -424,9 +427,30 @@ class PokerSystem(BaseSystem):
             if result.loser_hands and result.loser_hands[0] is not None:
                 loser_hand_desc = result.loser_hands[0].description
 
+            # Get actual display IDs (not offset IDs from get_poker_id())
+            # result.winner_id and loser_ids contain offset IDs
+            # We need the actual entity IDs for display
+            fish_display_id = 0
+            plant_display_id = 0
+
+            for player in poker.players:
+                player_poker_id = poker._get_player_id(player)
+                if winner_is_fish:
+                    # Fish won - find fish winner and plant loser
+                    if isinstance(player, Fish) and player_poker_id == result.winner_id:
+                        fish_display_id = player.fish_id
+                    elif isinstance(player, Plant) and result.loser_ids and player_poker_id in result.loser_ids:
+                        plant_display_id = player.plant_id
+                else:
+                    # Plant won - find plant winner and fish loser
+                    if isinstance(player, Plant) and player_poker_id == result.winner_id:
+                        plant_display_id = player.plant_id
+                    elif isinstance(player, Fish) and result.loser_ids and player_poker_id in result.loser_ids:
+                        fish_display_id = player.fish_id
+
             self._engine.add_plant_poker_event(
-                fish_id=result.winner_id if winner_is_fish else (result.loser_ids[0] if result.loser_ids else 0),
-                plant_id=result.winner_id if not winner_is_fish else 0,
+                fish_id=fish_display_id,
+                plant_id=plant_display_id,
                 fish_won=winner_is_fish,
                 fish_hand=winner_hand_desc,
                 plant_hand=loser_hand_desc,

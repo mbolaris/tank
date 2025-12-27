@@ -29,6 +29,7 @@ export interface PlantGenomeData {
         output: string;
         prob: number;
     }>;
+    strategy_type?: string;
 }
 
 interface TurtleState {

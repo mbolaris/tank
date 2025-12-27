@@ -63,6 +63,7 @@ from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
 from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
+from core.systems.poker_proximity import PokerProximitySystem
 from core.time_system import TimeSystem
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 
@@ -174,6 +175,7 @@ class SimulationEngine:
         self.poker_system.enabled = self.config.server.poker_activity_enabled
         self.poker_events = self.poker_system.poker_events
         self.lifecycle_system = EntityLifecycleSystem(self)
+        self.poker_proximity_system = PokerProximitySystem(self)
 
         # Food spawning (initialized in setup after environment exists)
         self.food_spawning_system: Optional[FoodSpawningSystem] = None
@@ -261,6 +263,7 @@ class SimulationEngine:
         self._system_registry.register(self.time_system)
         self._system_registry.register(self.food_spawning_system)
         self._system_registry.register(self.collision_system)
+        self._system_registry.register(self.poker_proximity_system)
         self._system_registry.register(self.reproduction_system)
         self._system_registry.register(self.poker_system)
 
@@ -501,6 +504,7 @@ class SimulationEngine:
         self._phase_lifecycle(new_entities, entities_to_remove)
         self._phase_spawn()
         self._phase_collision()
+        self._phase_interaction()
         self._phase_reproduction()
         self._phase_frame_end()
 
@@ -645,17 +649,30 @@ class SimulationEngine:
                 update_position(entity)
 
     def _phase_collision(self) -> None:
-        """COLLISION: Handle collisions between entities.
+        """COLLISION: Handle physical collisions between entities.
         
-        CollisionSystem now owns ALL collision logic including:
+        CollisionSystem handles physical collision logic:
         - Fish-Food collisions (eating)
         - Fish-Crab collisions (predation)
-        - Fish-Fish proximity for poker games
         - Food-Crab collisions
+        
+        Note: Fish-Fish poker proximity is handled by PokerProximitySystem
+        in _phase_interaction().
         """
         self._current_phase = UpdatePhase.COLLISION
-        # CollisionSystem._do_update() handles all collision iteration
+        # CollisionSystem._do_update() handles physical collision iteration
         self.collision_system.update(self.frame_count)
+
+    def _phase_interaction(self) -> None:
+        """INTERACTION: Handle social interactions between entities.
+        
+        Systems in this phase:
+        - PokerProximitySystem: Detects fish groups and triggers poker games
+        - PokerSystem (mixed): Handles fish-plant and plant-plant poker
+        """
+        self._current_phase = UpdatePhase.INTERACTION
+        # Fish-fish poker proximity detection
+        self.poker_proximity_system.update(self.frame_count)
         # Mixed poker (fish-plant, plant-plant) handled by PokerSystem
         self.handle_mixed_poker_games()
 
