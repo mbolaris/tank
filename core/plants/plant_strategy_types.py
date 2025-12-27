@@ -16,7 +16,7 @@ import random
 
 class PlantStrategyType(Enum):
     """Baseline poker strategy types for plants.
-    
+
     Each type maps to a poker strategy implementation and has a distinct
     visual appearance (L-system parameters, color palette).
     """
@@ -29,6 +29,11 @@ class PlantStrategyType(Enum):
     BALANCED = "balanced"
     MANIAC = "maniac"
     GTO_EXPERT = "gto_expert"
+    # Advanced strategies
+    ADAPTIVE = "adaptive"
+    POSITIONAL_EXPLOITER = "positional_exploiter"
+    TRAP_SETTER = "trap_setter"
+    MATHEMATICAL = "mathematical"
 
 
 @dataclass
@@ -284,6 +289,103 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=6,
         floral_spin=0.5,
     ),
+
+    # Advanced strategies
+    PlantStrategyType.ADAPTIVE: PlantVisualConfig(
+        axiom="X",
+        angle_range=(22.0, 35.0),  # Variable angles for adaptive look
+        length_ratio_range=(0.6, 0.75),
+        branch_probability_range=(0.8, 0.95),
+        curve_factor_range=(0.1, 0.25),
+        color_hue_range=(0.15, 0.18),  # GOLD/AMBER - adaptable, flexible
+        color_saturation_range=(0.85, 1.0),
+        stem_thickness_range=(0.9, 1.2),
+        leaf_density_range=(0.7, 0.85),
+        production_rules=[
+            ("X", "F[+X][-X]FX", 0.35),
+            ("X", "F[-X]F[+X]F", 0.35),
+            ("X", "FF[++X][--X]", 0.3),
+            ("F", "FF", 1.0),
+        ],
+        display_name="Golden Reed",
+        description="Flexible golden plant that adapts to any situation",
+        floral_type="vortex",
+        floral_petals=6,
+        floral_layers=4,
+        floral_spin=1.5,
+    ),
+
+    PlantStrategyType.POSITIONAL_EXPLOITER: PlantVisualConfig(
+        axiom="X",
+        angle_range=(30.0, 45.0),  # Asymmetric angles for position awareness
+        length_ratio_range=(0.55, 0.68),
+        branch_probability_range=(0.75, 0.88),
+        curve_factor_range=(0.05, 0.15),
+        color_hue_range=(0.55, 0.58),  # DARK BLUE - strategic, calculating
+        color_saturation_range=(0.8, 0.95),
+        stem_thickness_range=(0.8, 1.1),
+        leaf_density_range=(0.5, 0.7),
+        production_rules=[
+            ("X", "F[++X][-X]FX", 0.4),  # Asymmetric branching
+            ("X", "F[+X][--X]F", 0.4),
+            ("X", "FF[+X]", 0.2),
+            ("F", "F[-F]+F", 0.6),
+            ("F", "FF", 0.4),
+        ],
+        display_name="Shadow Fern",
+        description="Strategic plant that exploits positional advantage",
+        floral_type="starburst",
+        floral_petals=5,
+        floral_layers=4,
+        floral_spin=2.0,
+    ),
+
+    PlantStrategyType.TRAP_SETTER: PlantVisualConfig(
+        axiom="X",
+        angle_range=(15.0, 22.0),  # Tight, deceptive angles
+        length_ratio_range=(0.72, 0.82),
+        branch_probability_range=(0.6, 0.75),
+        curve_factor_range=(0.15, 0.28),
+        color_hue_range=(0.75, 0.78),  # DEEP PURPLE - mysterious, trapping
+        color_saturation_range=(0.7, 0.85),
+        stem_thickness_range=(1.3, 1.6),
+        leaf_density_range=(0.4, 0.55),
+        production_rules=[
+            ("X", "F[-X]F[+X]", 0.5),
+            ("X", "FF[-X][+X]F", 0.3),
+            ("X", "F[+X]F", 0.2),
+            ("F", "FF", 1.0),
+        ],
+        display_name="Venus Trap",
+        description="Deceptive plant that slowplays to trap opponents",
+        floral_type="hypno",
+        floral_petals=5,
+        floral_layers=5,
+        floral_spin=0.3,
+    ),
+
+    PlantStrategyType.MATHEMATICAL: PlantVisualConfig(
+        axiom="X",
+        angle_range=(25.0, 30.0),  # Precise, geometric angles
+        length_ratio_range=(0.68, 0.72),  # Consistent ratios
+        branch_probability_range=(0.85, 0.92),
+        curve_factor_range=(0.0, 0.03),  # Nearly straight - precise
+        color_hue_range=(0.42, 0.45),  # TEAL/GREEN-BLUE - analytical, precise
+        color_saturation_range=(0.9, 1.0),
+        stem_thickness_range=(1.0, 1.2),
+        leaf_density_range=(0.8, 0.9),
+        production_rules=[
+            ("X", "F[+X][-X]FX", 0.5),
+            ("X", "F[-X]F[+X]F", 0.5),
+            ("F", "FF", 1.0),
+        ],
+        display_name="Fibonacci Spiral",
+        description="Mathematically perfect fractal using pure pot odds",
+        floral_type="mandala",
+        floral_petals=8,
+        floral_layers=5,
+        floral_spin=0.8,
+    ),
 }
 
 
@@ -305,7 +407,7 @@ def get_all_strategy_types() -> List[PlantStrategyType]:
 
 def get_poker_strategy_for_type(strategy_type: PlantStrategyType, rng: Optional[random.Random] = None):
     """Get the corresponding poker strategy implementation for a plant strategy type.
-    
+
     Returns:
         PokerStrategyAlgorithm instance for the given strategy type
     """
@@ -320,7 +422,13 @@ def get_poker_strategy_for_type(strategy_type: PlantStrategyType, rng: Optional[
         ManiacStrategy,
     )
     from core.poker.strategy.implementations.expert import GTOExpertStrategy
-    
+    from core.poker.strategy.implementations.advanced import (
+        AdaptiveStrategy,
+        PositionalExploiter,
+        TrapSetterStrategy,
+        MathematicalStrategy,
+    )
+
     strategy_map = {
         PlantStrategyType.ALWAYS_FOLD: AlwaysFoldStrategy,
         PlantStrategyType.RANDOM: RandomStrategy,
@@ -331,7 +439,12 @@ def get_poker_strategy_for_type(strategy_type: PlantStrategyType, rng: Optional[
         PlantStrategyType.BALANCED: BalancedStrategy,
         PlantStrategyType.MANIAC: ManiacStrategy,
         PlantStrategyType.GTO_EXPERT: GTOExpertStrategy,
+        # Advanced strategies
+        PlantStrategyType.ADAPTIVE: AdaptiveStrategy,
+        PlantStrategyType.POSITIONAL_EXPLOITER: PositionalExploiter,
+        PlantStrategyType.TRAP_SETTER: TrapSetterStrategy,
+        PlantStrategyType.MATHEMATICAL: MathematicalStrategy,
     }
-    
+
     strategy_class = strategy_map[strategy_type]
     return strategy_class.random_instance(rng=rng)
