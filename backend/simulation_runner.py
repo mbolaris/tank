@@ -132,9 +132,9 @@ class SimulationRunner(CommandHandlerMixin):
                 use_quick_benchmark=True,
             )
             self._evolution_benchmark_guard = threading.Lock()
-            # Initialize to (now - interval + 5 seconds) so first benchmark runs after ~5 seconds of startup
+            # Initialize to (now - interval + 2 seconds) so first benchmark runs after ~2 seconds of startup
             # This gives the simulation time to populate fish before the first evaluation
-            initial_delay = 5.0
+            initial_delay = 2.0
             interval = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "30"))
             self._evolution_benchmark_last_completed_time = time.time() - interval + initial_delay
         else:
