@@ -62,6 +62,13 @@ class PlantVisualConfig:
     # Description for UI
     description: str = ""
 
+    # Nectar/Floral visual configuration
+    floral_type: str = "vortex"  # "vortex", "starburst", "hypno", "mandala"
+    floral_petals: int = 5
+    floral_layers: int = 3
+    floral_spin: float = 1.0
+
+
 
 # Visual configurations for each strategy type
 # IMPORTANT: Each strategy has a VERY DISTINCT color to be easily identifiable
@@ -82,6 +89,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Wilted Fern",
         description="A droopy plant that folds under pressure",
+        floral_type="hypno",
+        floral_petals=3,
+        floral_layers=2,
+        floral_spin=0.5,
     ),
     
     PlantStrategyType.RANDOM: PlantVisualConfig(
@@ -103,6 +114,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Chaos Fern",
         description="Unpredictable chaotic growth pattern",
+        floral_type="starburst",
+        floral_petals=7,
+        floral_layers=4,
+        floral_spin=5.0,
     ),
     
     PlantStrategyType.LOOSE_PASSIVE: PlantVisualConfig(
@@ -122,6 +137,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Leafy Bush",
         description="A passive, leafy bush that calls everything",
+        floral_type="vortex",
+        floral_petals=4,
+        floral_layers=3,
+        floral_spin=1.0,
     ),
     
     PlantStrategyType.TIGHT_PASSIVE: PlantVisualConfig(
@@ -140,6 +159,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Stone Shrub",
         description="A compact, rock-like shrub that rarely raises",
+        floral_type="hypno",
+        floral_petals=4,
+        floral_layers=2,
+        floral_spin=0.2,
     ),
     
     PlantStrategyType.TIGHT_AGGRESSIVE: PlantVisualConfig(
@@ -160,6 +183,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Thorny Spike",
         description="Sharp angular thorns - plays few hands aggressively",
+        floral_type="starburst",
+        floral_petals=3,
+        floral_layers=3,
+        floral_spin=3.0,
     ),
     
     PlantStrategyType.LOOSE_AGGRESSIVE: PlantVisualConfig(
@@ -180,6 +207,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Sprawling Vine",
         description="Aggressive sprawling vines - plays many hands",
+        floral_type="vortex",
+        floral_petals=6,
+        floral_layers=4,
+        floral_spin=2.5,
     ),
     
     PlantStrategyType.BALANCED: PlantVisualConfig(
@@ -199,6 +230,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Jade Tree",
         description="Perfectly symmetric tree - balanced play",
+        floral_type="dahlia",
+        floral_petals=5,
+        floral_layers=5,
+        floral_spin=1.0,
     ),
     
     PlantStrategyType.MANIAC: PlantVisualConfig(
@@ -220,6 +255,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Chaos Spike",
         description="Explosive spiky growth - ultra-aggressive maniac",
+        floral_type="starburst",
+        floral_petals=9,
+        floral_layers=5,
+        floral_spin=8.0,
     ),
     
     PlantStrategyType.GTO_EXPERT: PlantVisualConfig(
@@ -240,6 +279,10 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         ],
         display_name="Crystal Fern",
         description="Crystalline geometric fractal - optimal play",
+        floral_type="mandelbrot",
+        floral_petals=8,
+        floral_layers=6,
+        floral_spin=0.5,
     ),
 }
 

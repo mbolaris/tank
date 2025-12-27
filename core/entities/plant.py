@@ -324,12 +324,47 @@ class Plant(Agent):
         # Note: In the same file in the new structure
         # from core.entities.plant import PlantNectar
 
+        # Determine visuals based on strategy
+        floral_visuals = {}
+        if self.genome.strategy_type:
+            try:
+                from core.plants.plant_strategy_types import PlantStrategyType, get_strategy_visual_config
+                strategy_type = PlantStrategyType(self.genome.strategy_type)
+                config = get_strategy_visual_config(strategy_type)
+                
+                # Calculate average hue from range for consistent look
+                hue = (config.color_hue_range[0] + config.color_hue_range[1]) / 2
+                sat = (config.color_saturation_range[0] + config.color_saturation_range[1]) / 2
+                
+                floral_visuals = {
+                    "floral_type": config.floral_type,
+                    "floral_petals": config.floral_petals,
+                    "floral_layers": config.floral_layers,
+                    "floral_spin": config.floral_spin,
+                    "floral_hue": hue,
+                    "floral_saturation": sat,
+                }
+            except Exception:
+                pass
+        
+        # If no strategy specific visuals (e.g. evolved/legacy plant), use genome colors
+        if not floral_visuals:
+             floral_visuals = {
+                "floral_type": "vortex", # Default
+                "floral_hue": self.genome.color_hue,
+                "floral_saturation": self.genome.color_saturation,
+                "floral_petals": 5,
+                "floral_layers": 3,
+                "floral_spin": 1.0
+             }
+
         return PlantNectar(
             environment=self.environment,
             x=nectar_x,
             y=nectar_y,
             source_plant=self,
             relative_y_offset_pct=relative_y_offset_pct,
+            floral_visuals=floral_visuals,
         )
 
     def can_play_poker(self) -> bool:
@@ -631,6 +666,7 @@ class PlantNectar(Food):
         y: float,
         source_plant: Plant,
         relative_y_offset_pct: float = 0.20,
+        floral_visuals: Optional[dict] = None,
     ) -> None:
         """Initialize plant nectar.
 
@@ -640,6 +676,7 @@ class PlantNectar(Food):
             y: Y position
             source_plant: The plant that produced this
             relative_y_offset_pct: Vertical offset from top as percentage of height (0.0-1.0)
+            floral_visuals: Dictionary of visual properties (hue, saturation, type, etc.)
         """
         super().__init__(
             environment,
@@ -652,6 +689,7 @@ class PlantNectar(Food):
 
         self.source_plant = source_plant
         self.relative_y_offset_pct = relative_y_offset_pct
+        self.floral_visuals = floral_visuals or {}
         self.parent_genome = source_plant.genome  # Reference to parent genome
         # Override energy from Food init (which uses default 90.0 from constants)
         self.energy = self.NECTAR_ENERGY
@@ -732,6 +770,11 @@ class PlantNectar(Food):
             "energy": self.energy,
             "source_plant_id": self.source_plant.plant_id if self.source_plant else None,
         }
+        
+        # Add visual properties
+        if self.floral_visuals:
+            result.update(self.floral_visuals)
+            
         # Add source plant position for sway synchronization
         if self.source_plant:
             result["source_plant_x"] = self.source_plant.pos.x + self.source_plant.width / 2
