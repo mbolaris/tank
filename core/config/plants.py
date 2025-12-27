@@ -46,7 +46,7 @@ PLANT_POKER_BET_RATIO = 0.15  # Max bet as ratio of energy
 PLANT_NECTAR_COOLDOWN = 600  # 20 seconds between nectar production - Increased from 300
 PLANT_NECTAR_ENERGY = 50.0  # Energy provided by nectar
 PLANT_SPROUTING_CHANCE = 0.5  # Chance to sprout when nectar consumed - Reduced from 0.8
-PLANT_INITIAL_COUNT = 9  # Number of plants to start with (one per baseline strategy)
+PLANT_INITIAL_COUNT = 13  # Number of plants to start with (one per strategy type)
 
 # Plant Energy Collection (Passive Growth)
 PLANT_BASE_ENERGY_RATE = 0.02  # Base energy gain per frame - Increased to prevent starvation

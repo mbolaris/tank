@@ -5,7 +5,7 @@ POKER_MAX_PLAYERS = 6  # Maximum players (fish + plants) in a single poker game
 
 # Poker Ante - forces all players to contribute before cards are dealt
 # This prevents "always fold" strategies from dominating since folding still costs energy
-POKER_ANTE_AMOUNT = 1.0  # Each player must ante this amount before cards are dealt
+POKER_ANTE_AMOUNT = 5.0  # Each player must ante this amount before cards are dealt
 
 # Poker Aggression Factors
 POKER_AGGRESSION_LOW = 0.3  # Low aggression factor
