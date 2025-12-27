@@ -9,16 +9,13 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
-from core.config.poker import (
-    POKER_MAX_ACTIONS_PER_ROUND,
-    POKER_MAX_HAND_RANK,
-)
+from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND
 from core.poker.betting.actions import BettingAction, BettingRound
 from core.poker.betting.decision import AGGRESSION_MEDIUM, decide_action
 from core.poker.core.game_state import PokerGameState
 from core.poker.core.hand import PokerHand
 from core.poker.evaluation.hand_evaluator import evaluate_hand
-from core.poker.evaluation.strength import evaluate_starting_hand_strength
+from core.poker.evaluation.strength import evaluate_starting_hand_strength, evaluate_hand_strength
 
 if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
@@ -235,7 +232,7 @@ def _decide_player_action(
         else:
             # Post-flop: use evaluated hand rank
             hand = _evaluate_hand_for_player(current_player, game_state, hand_cache)
-            hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
+            hand_strength = evaluate_hand_strength(hand)
         return player_strategy.decide_action(
             hand_strength=hand_strength,
             current_bet=current_bet,

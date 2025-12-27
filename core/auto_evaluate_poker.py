@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.config.poker import POKER_MAX_HAND_RANK
+
 
 # Import directly from source modules to avoid lazy import issues
 from core.poker.betting.actions import BettingAction, BettingRound
@@ -33,7 +33,10 @@ from core.poker.betting.decision import decide_action
 from core.poker.core.cards import Card, Deck
 from core.poker.core.hand import PokerHand
 from core.poker.evaluation.hand_evaluator import evaluate_hand
-from core.poker.evaluation.strength import evaluate_starting_hand_strength
+from core.poker.evaluation.strength import (
+    evaluate_hand_strength,
+    evaluate_starting_hand_strength,
+)
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
@@ -424,7 +427,7 @@ class AutoEvaluatePokerGame:
             if is_preflop and len(player.hole_cards) == 2:
                 hand_strength = evaluate_starting_hand_strength(player.hole_cards, position_on_button)
             else:
-                hand_strength = hand.rank_value / POKER_MAX_HAND_RANK  # Normalize to 0-1
+                hand_strength = evaluate_hand_strength(hand)
 
             max_opponent_bet = max(p.current_bet for p in self.players if not p.folded)
 
