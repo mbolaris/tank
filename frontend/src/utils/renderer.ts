@@ -1486,6 +1486,43 @@ export class Renderer {
             );
         }
 
+        // Render strategy type label for baseline plants (hidden when HUD is hidden)
+        if (showEffects && genome.strategy_type) {
+            ctx.save();
+            ctx.font = 'bold 9px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // Get display-friendly label
+            const strategyLabels: Record<string, string> = {
+                'always_fold': 'FOLDER',
+                'random': 'RANDOM',
+                'loose_passive': 'PASSIVE',
+                'tight_passive': 'ROCK',
+                'tight_aggressive': 'TAG',
+                'loose_aggressive': 'LAG',
+                'balanced': 'BALANCED',
+                'maniac': 'MANIAC',
+                'gto_expert': 'GTO'
+            };
+            const label = strategyLabels[genome.strategy_type] || genome.strategy_type;
+
+            // Draw background pill
+            const labelWidth = ctx.measureText(label).width + 8;
+            const labelX = x + width / 2;
+            const labelY = baseY + 5;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.beginPath();
+            ctx.roundRect(labelX - labelWidth / 2, labelY, labelWidth, 14, 3);
+            ctx.fill();
+
+            // Draw text
+            ctx.fillStyle = '#fff';
+            ctx.fillText(label, labelX, labelY + 2);
+            ctx.restore();
+        }
+
         // Plants no longer display an energy/health meter in the UI.
     }
 

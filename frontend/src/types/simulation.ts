@@ -37,7 +37,10 @@ export interface PlantGenomeData {
     | 'gpt'
     | 'gpt_codex'
     | 'sonnet'
-    | 'gemini';
+    | 'gemini'
+    | 'baseline';  // New baseline strategy type
+    // Poker strategy type for baseline plants
+    strategy_type?: 'always_fold' | 'random' | 'loose_passive' | 'tight_passive' | 'tight_aggressive' | 'loose_aggressive' | 'balanced' | 'maniac' | 'gto_expert';
     aggression: number;
     bluff_frequency: number;
     risk_tolerance: number;

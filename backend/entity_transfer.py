@@ -429,6 +429,7 @@ def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> S
             "growth_efficiency": plant.genome.growth_efficiency,
             "nectar_threshold_ratio": plant.genome.nectar_threshold_ratio,
             "type": plant.genome.type,
+            "strategy_type": plant.genome.strategy_type,  # Baseline poker strategy type
             "floral_type": plant.genome.floral_type,
             "floral_petals": plant.genome.floral_petals,
             "floral_layers": plant.genome.floral_layers,
@@ -567,36 +568,12 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
         if root_spot is None:
             raise NoRootSpotsError("No available root spots")
 
-        # Recreate genome
+        # Recreate genome using from_dict to enable migration logic (assigns strategy_type to legacy plants)
         genome_data = data["genome_data"]
         if not isinstance(genome_data, dict):
             logger.error("Cannot deserialize plant: genome_data must be an object")
             return None
-        genome = PlantGenome(
-            axiom=genome_data.get("axiom", "F"),
-            angle=genome_data.get("angle", 25.0),
-            length_ratio=genome_data.get("length_ratio", 0.7),
-            branch_probability=genome_data.get("branch_probability", 0.85),
-            curve_factor=genome_data.get("curve_factor", 0.1),
-            color_hue=genome_data.get("color_hue", 0.33),
-            color_saturation=genome_data.get("color_saturation", 0.7),
-            stem_thickness=genome_data.get("stem_thickness", 1.0),
-            leaf_density=genome_data.get("leaf_density", 0.6),
-            aggression=genome_data.get("aggression", 0.4),
-            bluff_frequency=genome_data.get("bluff_frequency", 0.15),
-            risk_tolerance=genome_data.get("risk_tolerance", 0.5),
-            base_energy_rate=genome_data.get("base_energy_rate", 0.02),
-            growth_efficiency=genome_data.get("growth_efficiency", 1.0),
-            nectar_threshold_ratio=genome_data.get("nectar_threshold_ratio", 0.95),
-            type=genome_data.get("type") or genome_data.get("fractal_type", "lsystem"),
-            # Floral traits
-            floral_type=genome_data.get("floral_type", "spiral"),
-            floral_petals=genome_data.get("floral_petals", 5),
-            floral_layers=genome_data.get("floral_layers", 3),
-            floral_spin=genome_data.get("floral_spin", 0.3),
-            floral_hue=genome_data.get("floral_hue", 0.12),
-            floral_saturation=genome_data.get("floral_saturation", 0.8),
-        )
+        genome = PlantGenome.from_dict(genome_data)
 
         # Create plant with proper constructor
         plant = Plant(
