@@ -367,16 +367,60 @@ class Plant(Agent):
 
         Args:
             amount: Energy to gain
+            source: Source of the energy gain (for tracking)
 
         Returns:
-            Actual amount gained
+            Actual amount gained (including overflow that was routed)
         """
-        actual_gain = min(self.max_energy - self.energy, amount)
-        self.energy += actual_gain
+        if amount <= 0:
+            return 0.0
+
+        new_energy = self.energy + amount
+
+        if new_energy > self.max_energy:
+            overflow = new_energy - self.max_energy
+            self.energy = self.max_energy
+            self._route_overflow_energy(overflow)
+        else:
+            self.energy = new_energy
+            overflow = 0.0
+
         self._update_size()
-        if actual_gain > 0 and self.ecosystem is not None:
-            self.ecosystem.record_plant_energy_gain(source, actual_gain)
-        return actual_gain
+        if amount > 0 and self.ecosystem is not None:
+            self.ecosystem.record_plant_energy_gain(source, amount)
+        return amount  # Return full amount since overflow was routed
+
+    def _route_overflow_energy(self, overflow: float) -> None:
+        """Route overflow energy into a food drop near the plant.
+
+        When a plant gains more energy than it can hold (e.g., from poker
+        winnings), this method converts the excess into food that drops
+        near the plant base, conserving energy in the ecosystem.
+
+        Args:
+            overflow: Amount of energy exceeding max capacity
+        """
+        if overflow < 1.0:
+            return
+
+        try:
+            rng = getattr(self.environment, "rng", random)
+            food = Food(
+                environment=self.environment,
+                x=self.pos.x + self.width / 2 + rng.uniform(-20, 20),
+                y=self.pos.y + self.height - 10,  # Near the base of the plant
+                food_type="energy",
+            )
+            food.energy = min(overflow, food.max_energy)
+            food.max_energy = food.energy
+
+            if hasattr(self.environment, "add_entity"):
+                self.environment.add_entity(food)
+
+            if self.ecosystem is not None:
+                self.ecosystem.record_energy_burn("plant_overflow_food", food.energy)
+        except Exception:
+            pass  # Energy lost on failure is acceptable
 
     def is_dead(self) -> bool:
         """Check if plant is dead (energy too low) or has migrated.
