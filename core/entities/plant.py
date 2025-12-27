@@ -356,10 +356,13 @@ class Plant(Agent):
             Actual amount lost
         """
         actual_loss = min(self.energy, amount)
+        before = self.energy
         self.energy -= actual_loss
         self._update_size()
-        if actual_loss > 0 and self.ecosystem is not None:
-            self.ecosystem.record_plant_energy_burn(source, actual_loss)
+        if actual_loss > 0:
+            logger.debug(f"Plant #{self.plant_id} lost {actual_loss:.1f} energy ({source}): {before:.1f} -> {self.energy:.1f}")
+            if self.ecosystem is not None:
+                self.ecosystem.record_plant_energy_burn(source, actual_loss)
         return actual_loss
 
     def gain_energy(self, amount: float, *, source: str = "poker") -> float:
@@ -390,6 +393,7 @@ class Plant(Agent):
             
         # Check condition-based death (low energy)
         if self.energy < PLANT_DEATH_ENERGY:
+            logger.debug(f"Plant #{self.plant_id} died from low energy ({self.energy:.1f} < {PLANT_DEATH_ENERGY})")
             self.state.transition(EntityState.DEAD, reason="low_energy")
             return True
             
@@ -447,9 +451,28 @@ class Plant(Agent):
     def get_poker_strategy(self):
         """Get poker strategy for this plant.
 
+        If this plant has a strategy_type set (baseline strategy plant),
+        returns the corresponding baseline poker strategy implementation.
+        Otherwise falls back to the genome-based adapter.
+
         Returns:
-            PlantPokerStrategyAdapter wrapping this plant's genome
+            PokerStrategyAlgorithm: Either a baseline strategy or PlantPokerStrategyAdapter
         """
+        # Check if this is a baseline strategy plant
+        if self.genome.strategy_type is not None:
+            from core.plants.plant_strategy_types import (
+                PlantStrategyType,
+                get_poker_strategy_for_type,
+            )
+            try:
+                strategy_type = PlantStrategyType(self.genome.strategy_type)
+                # Use environment RNG if available for determinism
+                rng = getattr(self.environment, "rng", None)
+                return get_poker_strategy_for_type(strategy_type, rng=rng)
+            except ValueError:
+                pass  # Fall through to genome-based strategy
+        
+        # Fall back to genome-based strategy (legacy behavior)
         from core.plant_poker_strategy import PlantPokerStrategyAdapter
         return PlantPokerStrategyAdapter(self.genome)
 
