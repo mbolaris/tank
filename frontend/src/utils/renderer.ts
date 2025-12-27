@@ -551,111 +551,116 @@ export class Renderer {
     ) {
         const { ctx } = this;
 
-        // If we have a target ID and it's a loss (transferring energy), draw an arrow
-        if (state.target_id !== undefined && state.target_type !== undefined && state.status === 'lost' && allEntities && entityX !== undefined && entityY !== undefined) {
-            const target = allEntities.find(e => e.id === state.target_id && e.type === state.target_type);
+        // If we have a target ID and it's a loss, draw an arrow FROM Winner (target) TO Loser (entity)
+        // This visualizes the "attack" or "win"
+        if (state.target_id !== undefined && state.target_type !== undefined && allEntities && entityX !== undefined && entityY !== undefined) {
 
-            if (target) {
-                // Calculate target center
-                const targetX = target.x + target.width / 2;
-                const targetY = target.y + target.height / 2;
+            // Only draw for 'lost' status (Loser draws the arrow coming from Winner)
+            // This ensures we handles multiple losers correctly (one arrow per loser)
+            // and avoids double-drawing (since we ignore 'won' status)
+            if (state.status === 'lost') {
+                const target = allEntities.find(e => e.id === state.target_id && e.type === state.target_type);
 
-                // Track when this poker effect started for one-time animation
-                const now = Date.now();
-                if (!this.pokerEffectStartTime.has(entityId)) {
-                    this.pokerEffectStartTime.set(entityId, now);
-                }
-                const startTime = this.pokerEffectStartTime.get(entityId)!;
-                const elapsed = now - startTime;
-                const animationDuration = 1000; // 1 second animation
+                if (target) {
+                    // Calculate target center (Winner position)
+                    const targetX = target.x + target.width / 2;
+                    const targetY = target.y + target.height / 2;
 
-                // Calculate progress (0 to 1, clamped)
-                const progress = Math.min(elapsed / animationDuration, 1);
+                    // Track when this poker effect started for one-time animation
+                    const now = Date.now();
+                    if (!this.pokerEffectStartTime.has(entityId)) {
+                        this.pokerEffectStartTime.set(entityId, now);
+                    }
+                    const startTime = this.pokerEffectStartTime.get(entityId)!;
+                    const elapsed = now - startTime;
+                    const animationDuration = 1000; // 1 second animation
 
-                // If animation is complete, clear the tracking and don't render
-                if (progress >= 1) {
-                    this.pokerEffectStartTime.delete(entityId);
+                    // Calculate progress (0 to 1, clamped)
+                    const progress = Math.min(elapsed / animationDuration, 1);
+
+                    // If animation is complete, clear the tracking and don't render
+                    if (progress >= 1) {
+                        this.pokerEffectStartTime.delete(entityId);
+                        return;
+                    }
+
+                    // Check distance - if too far, stop rendering to prevent "stretching" artifact
+                    // Use 120px (1.5x max poker distance) as cutoff
+                    const dx = targetX - entityX;
+                    const dy = targetY - entityY;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq > 120 * 120) {
+                        return;
+                    }
+
+                    // Draw direction: Target (Winner) -> Entity (Loser)
+                    const startX = targetX;
+                    const startY = targetY;
+                    const endX = entityX;
+                    const endY = entityY;
+
+                    // Draw green energy arrow
+                    ctx.save();
+
+                    // Draw the main line (solid)
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+
+                    // Glow effect
+                    ctx.shadowColor = '#4ade80';
+                    ctx.shadowBlur = 10;
+                    ctx.strokeStyle = '#4ade80';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Red dot on loser (End of arrow)
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw arrow head at Entity (Loser - End of arrow)
+                    const angle = Math.atan2(endY - startY, endX - startX);
+                    const headLen = 15;
+
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = '#4ade80';
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(
+                        endX - headLen * Math.cos(angle - Math.PI / 6),
+                        endY - headLen * Math.sin(angle - Math.PI / 6)
+                    );
+                    ctx.lineTo(
+                        endX - headLen * Math.cos(angle + Math.PI / 6),
+                        endY - headLen * Math.sin(angle + Math.PI / 6)
+                    );
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Draw energy amount moving along the line (one-time animation)
+                    const particleX = startX + (endX - startX) * progress;
+                    const particleY = startY + (endY - startY) * progress;
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // Show amount (e.g. "120")
+                    ctx.fillText(`${state.amount.toFixed(0)}`, particleX, particleY - 10);
+
+                    ctx.restore();
+
+                    // Return early as we've handled the visual
                     return;
                 }
-
-                // Check distance - if too far, stop rendering to prevent "stretching" artifact
-                // Use 120px (1.5x max poker distance) as cutoff
-                const dx = targetX - entityX;
-                const dy = targetY - entityY;
-                const distSq = dx * dx + dy * dy;
-                if (distSq > 120 * 120) {
-                    return;
-                }
-
-                // Draw green energy arrow
-                ctx.save();
-
-                // Draw the main line (solid)
-                ctx.beginPath();
-                ctx.moveTo(entityX, entityY);
-                ctx.lineTo(targetX, targetY);
-
-                // Glow effect
-                ctx.shadowColor = '#4ade80';
-                ctx.shadowBlur = 10;
-                ctx.strokeStyle = '#4ade80';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-
-                // Red dot on loser
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = '#ff0000';
-                ctx.beginPath();
-                ctx.arc(entityX, entityY, 5, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Draw arrow head at target
-                const angle = Math.atan2(targetY - entityY, targetX - entityX);
-                const headLen = 15;
-
-                ctx.setLineDash([]);
-                ctx.fillStyle = '#4ade80';
-                ctx.beginPath();
-                ctx.moveTo(targetX, targetY);
-                ctx.lineTo(
-                    targetX - headLen * Math.cos(angle - Math.PI / 6),
-                    targetY - headLen * Math.sin(angle - Math.PI / 6)
-                );
-                ctx.lineTo(
-                    targetX - headLen * Math.cos(angle + Math.PI / 6),
-                    targetY - headLen * Math.sin(angle + Math.PI / 6)
-                );
-                ctx.closePath();
-                ctx.fill();
-
-                // Draw energy amount moving along the line (one-time animation)
-                const particleX = entityX + (targetX - entityX) * progress;
-                const particleY = entityY + (targetY - entityY) * progress;
-
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(`${state.amount.toFixed(0)}`, particleX, particleY - 10);
-
-                ctx.restore();
-
-                // Don't draw the text bubble for the loser
-                return;
             }
         }
 
-        // Don't draw text bubble for winners either (arrow is enough)
-        if (state.status === 'won') {
-            return;
-        }
-
-        // Don't draw text bubble for losers either - arrow with number is the only indicator
-        if (state.status === 'lost') {
-            return;
-        }
-
-        // Only show bubble for ties (no arrow for ties)
+        // For 'won' and 'lost', we have returned above if target exists.
+        // If we represent a tie, show the bubble.
         if (state.status !== 'tie') {
             return;
         }
@@ -665,16 +670,19 @@ export class Renderer {
         ctx.textBaseline = 'middle';
         ctx.font = 'bold 20px Arial';
 
-        // Draw background bubble
+        // Draw background bubble for TIE
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.beginPath();
-        ctx.roundRect(x - 30, y - 15, 60, 30, 15);
+        const text = 'TIE';
+        const bubbleWidth = 60;
+
+        ctx.roundRect(x - bubbleWidth / 2, y - 15, bubbleWidth, 30, 15);
         ctx.fill();
 
-        // Tie indicator
+        // Tie text
         ctx.fillStyle = '#fbbf24'; // Amber
         ctx.font = 'bold 18px Arial';
-        ctx.fillText('TIE', x, y);
+        ctx.fillText(text, x, y);
 
         ctx.restore();
     }
