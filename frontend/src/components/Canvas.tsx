@@ -135,8 +135,17 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                 const scaleX = width / WORLD_WIDTH;
                 const scaleY = height / WORLD_HEIGHT;
 
+                // Collect active poker effect IDs for cleanup
+                const pokerActiveIds = new Set<number>();
+                currentState.entities.forEach(e => {
+                    // Check if entity has any active poker status
+                    if (e.poker_effect_state && (e.poker_effect_state.status === 'lost' || e.poker_effect_state.status === 'won')) {
+                        pokerActiveIds.add(e.id);
+                    }
+                });
+
                 // Prune caches
-                r.pruneEntityFacingCache(currentState.entities.map(e => e.id));
+                r.pruneEntityFacingCache(currentState.entities.map(e => e.id), pokerActiveIds);
                 r.prunePlantCaches(
                     currentState.entities
                         .filter(e => e.type === 'plant')

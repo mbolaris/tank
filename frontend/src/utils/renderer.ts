@@ -199,7 +199,7 @@ export class Renderer {
      * entities (e.g., food), which can otherwise exhaust browser memory over
      * time.
      */
-    pruneEntityFacingCache(activeEntityIds: Iterable<number>) {
+    pruneEntityFacingCache(activeEntityIds: Iterable<number>, pokerActiveIds?: Set<number>) {
         const activeIds = new Set(activeEntityIds);
         for (const cachedId of this.entityFacingLeft.keys()) {
             if (!activeIds.has(cachedId)) {
@@ -207,8 +207,13 @@ export class Renderer {
             }
         }
         // Also prune poker effect start times
+        // We delete if:
+        // 1. Entity no longer exists (removed from tank)
+        // 2. Entity exists but no longer has a poker effect (pokerActiveIds provided and ID missing)
         for (const cachedId of this.pokerEffectStartTime.keys()) {
             if (!activeIds.has(cachedId)) {
+                this.pokerEffectStartTime.delete(cachedId);
+            } else if (pokerActiveIds && !pokerActiveIds.has(cachedId)) {
                 this.pokerEffectStartTime.delete(cachedId);
             }
         }
@@ -580,9 +585,11 @@ export class Renderer {
 
                     // If animation is complete, clear the tracking and don't render
                     if (progress >= 1) {
-                        this.pokerEffectStartTime.delete(entityId);
+                        // Animation complete - do NOT delete here.
+                        // We wait for the backend to clear the state, handled by pruneEntityFacingCache
                         return;
                     }
+
 
                     // Check distance - if too far, stop rendering to prevent "stretching" artifact
                     // Use 120px (1.5x max poker distance) as cutoff
@@ -593,11 +600,11 @@ export class Renderer {
                         return;
                     }
 
-                    // Draw direction: Target (Winner) -> Entity (Loser)
-                    const startX = targetX;
-                    const startY = targetY;
-                    const endX = entityX;
-                    const endY = entityY;
+                    // Draw direction: Entity (Loser) -> Target (Winner)
+                    const startX = entityX!;
+                    const startY = entityY!;
+                    const endX = targetX;
+                    const endY = targetY;
 
                     // Draw green energy arrow
                     ctx.save();
@@ -614,12 +621,7 @@ export class Renderer {
                     ctx.lineWidth = 3;
                     ctx.stroke();
 
-                    // Red dot on loser (End of arrow)
-                    ctx.shadowBlur = 0;
-                    ctx.fillStyle = '#ff0000';
-                    ctx.beginPath();
-                    ctx.arc(endX, endY, 5, 0, Math.PI * 2);
-                    ctx.fill();
+
 
                     // Draw arrow head at Entity (Loser - End of arrow)
                     const angle = Math.atan2(endY - startY, endX - startX);
@@ -638,6 +640,13 @@ export class Renderer {
                         endY - headLen * Math.sin(angle + Math.PI / 6)
                     );
                     ctx.closePath();
+                    ctx.fill();
+
+                    // Red dot on loser (End of arrow) - Draw AFTER arrow head to be visible
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath();
+                    ctx.arc(endX, endY, 5, 0, Math.PI * 2);
                     ctx.fill();
 
                     // Draw energy amount moving along the line (one-time animation)
