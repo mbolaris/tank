@@ -21,9 +21,9 @@ PLANT_ROOT_Y_VARIANCE = 8  # Slight Y variation for natural look
 PLANT_CULL_INTERVAL = 120
 
 # Plant Energy System
-PLANT_INITIAL_ENERGY = 20.0  # Starting energy for new sprouted plants
-PLANT_MATURE_ENERGY = 200.0  # Starting energy for initial/respawned plants
-PLANT_MAX_ENERGY = 200.0  # Maximum energy capacity
+PLANT_INITIAL_ENERGY = 40.0  # Starting energy for new sprouted plants
+PLANT_MATURE_ENERGY = 400.0  # Starting energy for initial/respawned plants
+PLANT_MAX_ENERGY = 400.0  # Maximum energy capacity
 PLANT_MIN_SIZE = 0.3  # Minimum size multiplier
 PLANT_MAX_SIZE = 1.0  # Maximum size multiplier - Reduced from 1.2
 PLANT_DEATH_ENERGY = 5.0  # Energy threshold for death
