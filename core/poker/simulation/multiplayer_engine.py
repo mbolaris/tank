@@ -9,16 +9,13 @@ import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
-from core.config.poker import (
-    POKER_MAX_ACTIONS_PER_ROUND,
-    POKER_MAX_HAND_RANK,
-)
+from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND
 from core.poker.betting.actions import BettingAction, BettingRound
 from core.poker.betting.decision import AGGRESSION_MEDIUM, decide_action
 from core.poker.core.cards import Card, Deck
 from core.poker.core.hand import PokerHand
 from core.poker.evaluation.hand_evaluator import evaluate_hand
-from core.poker.evaluation.strength import evaluate_starting_hand_strength
+from core.poker.evaluation.strength import evaluate_starting_hand_strength, evaluate_hand_strength
 
 if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
@@ -365,7 +362,7 @@ def _decide_multiplayer_action(
         if is_preflop and player.hole_cards and len(player.hole_cards) == 2:
             hand_strength = evaluate_starting_hand_strength(player.hole_cards, position_on_button)
         else:
-            hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
+            hand_strength = evaluate_hand_strength(hand)
         return player.strategy.decide_action(
             hand_strength=hand_strength,
             current_bet=player.current_bet,

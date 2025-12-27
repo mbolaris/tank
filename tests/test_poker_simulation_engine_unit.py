@@ -2,7 +2,6 @@ import logging
 
 import pytest
 
-from core.config.poker import POKER_MAX_HAND_RANK
 from core.poker.betting.actions import BettingAction
 from core.poker.core.cards import Card, Rank, Suit
 from core.poker.core.game_state import PokerGameState
@@ -88,13 +87,16 @@ def test_decide_player_action_strategy_postflop_uses_rank_value(monkeypatch):
     strategy = DummyStrategy()
 
     class DummyHand:
-        rank_value = POKER_MAX_HAND_RANK / 2
+        rank_value = 5  # Arbitrary value, not used directly
+        primary_ranks = [14]  # Ace high
+        kickers = []
 
     monkeypatch.setattr(
         simulation_engine,
         "_evaluate_hand_for_player",
         lambda *_: DummyHand(),
     )
+    monkeypatch.setattr(simulation_engine, "evaluate_hand_strength", lambda *_: 0.5)
     monkeypatch.setattr(
         simulation_engine,
         "evaluate_starting_hand_strength",

@@ -16,10 +16,13 @@ CFR learning is separated from the core interaction logic because:
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from core.config.poker import POKER_MAX_HAND_RANK
+
 from core.poker.betting.actions import BettingAction
 from core.poker.core import evaluate_hand
-from core.poker.evaluation.strength import evaluate_starting_hand_strength
+from core.poker.evaluation.strength import (
+    evaluate_hand_strength,
+    evaluate_starting_hand_strength,
+)
 
 if TYPE_CHECKING:
     from core.mixed_poker.state import MultiplayerGameState, MultiplayerPlayerContext
@@ -75,7 +78,7 @@ def update_cfr_learning(
         if game_state.community_cards:
             try:
                 hand = evaluate_hand(hole_cards, game_state.community_cards)
-                hand_strength = hand.rank_value / POKER_MAX_HAND_RANK
+                hand_strength = evaluate_hand_strength(hand)
             except Exception:
                 hand_strength = 0.5
         else:

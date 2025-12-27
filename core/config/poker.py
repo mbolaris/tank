@@ -44,7 +44,7 @@ POKER_HOUSE_CUT_MIN_PERCENTAGE = 0.08  # Minimum house cut (8% at size 0.35)
 POKER_HOUSE_CUT_SIZE_MULTIPLIER = 0.18  # House cut increase per size unit (8-25% range)
 
 # Poker Hand Evaluation
-POKER_MAX_HAND_RANK = 9.0  # Maximum hand rank value for normalization
+
 POKER_WEAK_HAND_THRESHOLD = 0.3  # Threshold for considering a hand weak (for bluff detection)
 
 # Poker Preflop Decision Constants

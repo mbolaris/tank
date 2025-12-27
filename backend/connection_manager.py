@@ -101,30 +101,27 @@ class ConnectionManager:
     def add_connection(self, connection: TankConnection) -> None:
         """Add or update a connection.
 
-        Enforces a maximum of 1 connection between any two tanks.
-        If a connection already exists between the source and destination (in either direction),
+        Enforces a maximum of 1 connection in each direction between any two tanks.
+        A→B and B→A are considered separate connections and both are allowed.
+        If a connection already exists with the same source and destination,
         it will be replaced by the new connection.
 
         Args:
             connection: The connection to add/update
         """
         with self._lock:
-            # Check for existing connections between these two tanks (in either direction)
-            # We need to find any connection where:
-            # (source == new_source AND dest == new_dest) OR (source == new_dest AND dest == new_source)
-
+            # Check for existing connection with SAME source and destination
+            # (opposite direction is allowed - A→B and B→A can coexist)
             to_remove = []
             for existing_id, existing_conn in self._connections.items():
-                # Check forward match
                 if (existing_conn.source_tank_id == connection.source_tank_id and
-                    existing_conn.destination_tank_id == connection.destination_tank_id) or (existing_conn.source_tank_id == connection.destination_tank_id and
-                      existing_conn.destination_tank_id == connection.source_tank_id):
+                    existing_conn.destination_tank_id == connection.destination_tank_id):
                     to_remove.append(existing_id)
 
             # Remove conflicting connections
             for conn_id in to_remove:
                 del self._connections[conn_id]
-                logger.info(f"Removed conflicting connection {conn_id} to enforce max 1 rule")
+                logger.info(f"Removed duplicate connection {conn_id} (same direction)")
 
             # Add the new connection
             self._connections[connection.id] = connection

@@ -49,7 +49,7 @@ PLANT_SPROUTING_CHANCE = 0.5  # Chance to sprout when nectar consumed - Reduced 
 PLANT_INITIAL_COUNT = 3  # Number of plants to start with
 
 # Plant Energy Collection (Passive Growth)
-PLANT_BASE_ENERGY_RATE = 0.01  # Base energy gain per frame - Increased to prevent starvation
+PLANT_BASE_ENERGY_RATE = 0.02  # Base energy gain per frame - Increased to prevent starvation
 PLANT_GROWTH_FACTOR = 0.3  # Compound growth rate modifier
 PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
 PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk
