@@ -59,7 +59,19 @@ class Food(Agent):
         # Select random food type based on rarity if not specified
         if food_type is None:
             # Use provided rng, or fall back to environment.rng, or create new Random
-            _rng = rng or getattr(environment, "rng", None) or random.Random()
+            _rng = rng
+            if _rng is None:
+                env_rng = getattr(environment, "rng", None)
+                if isinstance(env_rng, random.Random):
+                    _rng = env_rng
+                else:
+                    env_internal = getattr(environment, "_rng", None)
+                    if isinstance(env_internal, random.Random):
+                        _rng = env_internal
+                    elif env_rng is not None:
+                        _rng = env_rng
+                    else:
+                        _rng = random.Random()
             food_type = self._select_random_food_type(
                 include_stationary=allow_stationary_types, include_live=False, rng=_rng
             )

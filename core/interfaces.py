@@ -79,6 +79,7 @@ __all__ = [
     "PokerCoordinator",
     "MigrationHandler",
     "MigrationCapable",
+    "TelemetrySink",
 ]
 
 if TYPE_CHECKING:
@@ -88,6 +89,7 @@ if TYPE_CHECKING:
     from core.genetics import Genome
     from core.poker.core import PokerHand
     from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
+    from core.telemetry.events import TelemetryEvent
 
 
 @runtime_checkable
@@ -126,6 +128,15 @@ class TraitContainer(Protocol):
         rng: "pyrandom.Random",
     ) -> "TraitContainer":
         """Inherit traits from two parents with mutation."""
+        ...
+
+
+@runtime_checkable
+class TelemetrySink(Protocol):
+    """Sink for telemetry events emitted by domain entities."""
+
+    def record_event(self, event: "TelemetryEvent") -> None:
+        """Record a telemetry event."""
         ...
 
 

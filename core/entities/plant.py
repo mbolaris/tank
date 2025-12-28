@@ -16,6 +16,7 @@ from core.entity_ids import PlantId
 from core.state_machine import EntityState
 from core.genetics import PlantGenome
 from core.entities.resources import Food
+from core.telemetry.events import EnergyBurnEvent, EnergyGainEvent
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -133,6 +134,15 @@ class Plant(Agent):
 
         # Update size based on initial energy
         self._update_size()
+
+    def _emit_event(self, event: object) -> None:
+        """Emit a telemetry event if a sink is available."""
+        telemetry = self.ecosystem
+        if telemetry is None:
+            return
+        record_event = getattr(telemetry, "record_event", None)
+        if callable(record_event):
+            record_event(event)
 
     def _update_size(self) -> None:
         """Update plant size based on current energy."""
@@ -272,8 +282,8 @@ class Plant(Agent):
         before = self.energy
         self.energy = min(self.max_energy, self.energy + energy_gain)
         actual_gain = self.energy - before
-        if actual_gain > 0 and self.ecosystem is not None:
-            self.ecosystem.record_plant_energy_gain("photosynthesis", actual_gain)
+        if actual_gain > 0:
+            self._emit_event(EnergyGainEvent("photosynthesis", actual_gain, scope="plant"))
 
     def _try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:
         """Try to produce nectar if conditions are met.
@@ -396,8 +406,7 @@ class Plant(Agent):
         self._update_size()
         if actual_loss > 0:
             logger.debug(f"Plant #{self.plant_id} lost {actual_loss:.1f} energy ({source}): {before:.1f} -> {self.energy:.1f}")
-            if self.ecosystem is not None:
-                self.ecosystem.record_plant_energy_burn(source, actual_loss)
+            self._emit_event(EnergyBurnEvent(source, actual_loss, scope="plant"))
         return actual_loss
 
     def gain_energy(self, amount: float, *, source: str = "poker") -> float:
@@ -424,8 +433,8 @@ class Plant(Agent):
             overflow = 0.0
 
         self._update_size()
-        if amount > 0 and self.ecosystem is not None:
-            self.ecosystem.record_plant_energy_gain(source, amount)
+        if amount > 0:
+            self._emit_event(EnergyGainEvent(source, amount, scope="plant"))
         return amount  # Return full amount since overflow was routed
 
     def _route_overflow_energy(self, overflow: float) -> None:
@@ -458,8 +467,7 @@ class Plant(Agent):
             elif hasattr(self.environment, "add_entity"):
                 self.environment.add_entity(food)
 
-            if self.ecosystem is not None:
-                self.ecosystem.record_energy_burn("plant_overflow_food", food.energy)
+            self._emit_event(EnergyBurnEvent("plant_overflow_food", food.energy))
         except Exception:
             pass  # Energy lost on failure is acceptable
 

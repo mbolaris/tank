@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from typing import List, Tuple
 
+from core.telemetry.events import EnergyBurnEvent
+
 
 class _EnvironmentStub:
     def __init__(self) -> None:
@@ -29,6 +31,10 @@ class _EcosystemStub:
 
     def record_energy_burn(self, category: str, amount: float) -> None:
         self.burns.append((category, float(amount)))
+
+    def record_event(self, event) -> None:
+        if isinstance(event, EnergyBurnEvent):
+            self.burns.append((event.source, float(event.amount)))
 
     def generate_new_fish_id(self) -> int:
         """Generate a new fish ID."""

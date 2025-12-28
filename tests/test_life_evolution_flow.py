@@ -13,6 +13,8 @@ immediately when reproduction conditions are met.
 import random
 from typing import List
 
+from core.telemetry.events import BirthEvent, ReproductionEvent
+
 from core.algorithms.energy_management import EnergyConserver
 from core.entities import Fish, LifeStage
 from core.fish.reproduction_component import ReproductionComponent
@@ -49,6 +51,19 @@ class MiniEcosystem:
     def record_energy_gain(self, source: str, amount: float) -> None:
         """Stub for energy gain tracking."""
         pass
+
+    def record_event(self, event) -> None:
+        if isinstance(event, BirthEvent):
+            self.record_birth(
+                event.fish_id,
+                event.generation,
+                parent_ids=event.parent_ids,
+                algorithm_id=event.algorithm_id,
+                color=event.color_hex,
+            )
+            return
+        if isinstance(event, ReproductionEvent):
+            self.record_reproduction(event.algorithm_id, is_asexual=event.is_asexual)
 
 
 class MiniEnvironment:

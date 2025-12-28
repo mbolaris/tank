@@ -22,6 +22,14 @@ from core.poker_stats_manager import PokerStatsManager
 from core.population_tracker import PopulationTracker
 from core.reproduction_stats_manager import ReproductionStatsManager
 from core.services.energy_tracker import EnergyTracker
+from core.telemetry.events import (
+    BirthEvent,
+    EnergyBurnEvent,
+    EnergyGainEvent,
+    FoodEatenEvent,
+    ReproductionEvent,
+    TelemetryEvent,
+)
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -247,6 +255,58 @@ class EcosystemManager:
     def get_recent_events(self, count: int = 10) -> List[EcosystemEvent]:
         """Get the most recent events."""
         return self.events[-count:]
+
+    # =========================================================================
+    # Telemetry Event Recording
+    # =========================================================================
+
+    def record_event(self, event: TelemetryEvent) -> None:
+        """Record a telemetry event emitted by domain entities."""
+        if isinstance(event, EnergyGainEvent):
+            if event.scope == "plant":
+                self.record_plant_energy_gain(event.source, event.amount)
+            else:
+                self.record_energy_gain(event.source, event.amount)
+            return
+
+        if isinstance(event, EnergyBurnEvent):
+            if event.scope == "plant":
+                self.record_plant_energy_burn(event.source, event.amount)
+            else:
+                self.record_energy_burn(event.source, event.amount)
+            return
+
+        if isinstance(event, FoodEatenEvent):
+            if event.food_type == "nectar":
+                self.record_nectar_eaten(event.algorithm_id, event.energy_gained)
+            elif event.food_type == "live_food":
+                self.record_live_food_eaten(
+                    event.algorithm_id,
+                    event.energy_gained,
+                    genome=event.genome,
+                    generation=event.generation,
+                )
+            elif event.food_type == "falling_food":
+                self.record_falling_food_eaten(event.algorithm_id, event.energy_gained)
+            else:
+                self.record_food_eaten(event.algorithm_id, event.energy_gained)
+            return
+
+        if isinstance(event, BirthEvent):
+            self.record_birth(
+                event.fish_id,
+                event.generation,
+                parent_ids=list(event.parent_ids) if event.parent_ids else None,
+                algorithm_id=event.algorithm_id,
+                color=event.color_hex,
+            )
+            if event.is_soup_spawn:
+                self.record_energy_gain("soup_spawn", event.energy)
+            return
+
+        if isinstance(event, ReproductionEvent):
+            self.record_reproduction(event.algorithm_id, is_asexual=event.is_asexual)
+            return
 
     # =========================================================================
     # Population Recording (delegate to PopulationTracker)

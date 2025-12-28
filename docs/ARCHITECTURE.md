@@ -172,6 +172,7 @@ SimulationEngine
       ├─ Handle collisions
       ├─ Handle reproduction
       ├─ Update ecosystem stats and telemetry
+      ├─ Consume telemetry events emitted by entities
       └─ Send state via WebSocket
             ↓
 React Frontend (Canvas)

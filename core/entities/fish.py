@@ -47,6 +47,13 @@ from core.genetics.trait import GeneticTrait
 from core.fish.skill_game_component import SkillGameComponent
 from core.skills.base import SkillGameType, SkillStrategy, SkillGameResult
 from core.fish_memory import MemoryType
+from core.telemetry.events import (
+    BirthEvent,
+    EnergyBurnEvent,
+    EnergyGainEvent,
+    FoodEatenEvent,
+    ReproductionEvent,
+)
 
 
 class Fish(Agent):
@@ -462,10 +469,18 @@ class Fish(Agent):
             elif hasattr(self.environment, "add_entity"):
                 self.environment.add_entity(food)
 
-            if self.ecosystem is not None:
-                self.ecosystem.record_energy_burn("overflow_food", food.energy)
+            self._emit_event(EnergyBurnEvent("overflow_food", food.energy))
         except Exception:
             pass  # Energy lost on failure is acceptable
+
+    def _emit_event(self, event: object) -> None:
+        """Emit a telemetry event if a sink is available."""
+        telemetry = self.ecosystem
+        if telemetry is None:
+            return
+        record_event = getattr(telemetry, "record_event", None)
+        if callable(record_event):
+            record_event(event)
 
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
@@ -488,22 +503,21 @@ class Fish(Agent):
                 self.state.transition(EntityState.DEAD, reason="starvation")
             self._cached_is_dead = True
 
-        if self.ecosystem is not None:
-            self.ecosystem.record_energy_burn("existence", energy_breakdown["existence"])
-            self.ecosystem.record_energy_burn("movement", energy_breakdown["movement"])
+        self._emit_event(EnergyBurnEvent("existence", energy_breakdown["existence"]))
+        self._emit_event(EnergyBurnEvent("movement", energy_breakdown["movement"]))
 
-            metabolism_total = energy_breakdown["metabolism"]
-            rate = self.genome.metabolism_rate
-            if rate > 0:
-                trait_fraction = max(0.0, (rate - 1.0) / rate)
-                trait_cost = metabolism_total * trait_fraction
-                base_cost = metabolism_total - trait_cost
-            else:
-                trait_cost = 0.0
-                base_cost = metabolism_total
+        metabolism_total = energy_breakdown["metabolism"]
+        rate = self.genome.metabolism_rate
+        if rate > 0:
+            trait_fraction = max(0.0, (rate - 1.0) / rate)
+            trait_cost = metabolism_total * trait_fraction
+            base_cost = metabolism_total - trait_cost
+        else:
+            trait_cost = 0.0
+            base_cost = metabolism_total
 
-            self.ecosystem.record_energy_burn("metabolism", base_cost)
-            self.ecosystem.record_energy_burn("trait_maintenance", trait_cost)
+        self._emit_event(EnergyBurnEvent("metabolism", base_cost))
+        self._emit_event(EnergyBurnEvent("trait_maintenance", trait_cost))
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy)."""
@@ -551,21 +565,18 @@ class Fish(Agent):
         # Determine parent lineage
         parent_ids = [self.parent_id] if self.parent_id is not None else None
 
-        # Record birth in phylogenetic tree and stats
-        self.ecosystem.record_birth(
-            self.fish_id,
-            self.generation,
-            parent_ids=parent_ids,
-            algorithm_id=algorithm_id,
-            color=color_hex,
+        # Emit birth telemetry (includes soup spawn energy for true inflow).
+        self._emit_event(
+            BirthEvent(
+                fish_id=self.fish_id,
+                generation=self.generation,
+                parent_ids=parent_ids,
+                algorithm_id=algorithm_id,
+                color_hex=color_hex,
+                energy=self.energy,
+                is_soup_spawn=self.parent_id is None,
+            )
         )
-
-        # Record energy inflow for soup spawns only
-        # - Reproduction births are NOT recorded as inflows because the energy came from
-        #   the parent (it's an internal transfer within the fish population, not new energy)
-        # - "soup_spawn": spontaneous/system-injected fish (true net inflow of new energy)
-        if self.parent_id is None:
-            self.ecosystem.record_energy_gain("soup_spawn", self.energy)
 
     def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
         """Set a visual effect for poker status.
@@ -871,10 +882,10 @@ class Fish(Agent):
 
         # Record reproduction stats using composable behavior ID
         composable = self.genome.behavioral.behavior
-        if self.ecosystem is not None and composable is not None and composable.value is not None:
+        if composable is not None and composable.value is not None:
             behavior_id = composable.value.behavior_id
             algorithm_id = hash(behavior_id) % 1000
-            self.ecosystem.record_reproduction(algorithm_id, is_asexual=True)
+            self._emit_event(ReproductionEvent(algorithm_id, is_asexual=True))
 
         # Inherit skill game strategies from parent with mutation
         baby._skill_game_component.inherit_from_parent(
@@ -1022,29 +1033,37 @@ class Fish(Agent):
         self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)
 
         # Record food consumption for behavior performance tracking
-        ecosystem = self.ecosystem
-        if ecosystem is not None:
-            from core.entities.plant import PlantNectar
-            from core.entities.resources import LiveFood
-            
-            # Get algorithm ID for tracking (0 if no composable behavior)
-            composable = self.genome.behavioral.behavior
-            if composable is not None and composable.value is not None:
-                behavior_id = composable.value.behavior_id
-                algorithm_id = hash(behavior_id) % 1000
-            else:
-                algorithm_id = 0  # Default algorithm for fish without composable behavior
+        from core.entities.plant import PlantNectar
+        from core.entities.resources import LiveFood
 
-            # Determine food type and call appropriate tracking method
-            # Use actual_energy to prevent "phantom" stats
-            if isinstance(food, PlantNectar):
-                ecosystem.record_nectar_eaten(algorithm_id, actual_energy)
-            elif isinstance(food, LiveFood):
-                ecosystem.record_live_food_eaten(
-                    algorithm_id, actual_energy, self.genome, self.generation
+        # Get algorithm ID for tracking (0 if no composable behavior)
+        composable = self.genome.behavioral.behavior
+        if composable is not None and composable.value is not None:
+            behavior_id = composable.value.behavior_id
+            algorithm_id = hash(behavior_id) % 1000
+        else:
+            algorithm_id = 0  # Default algorithm for fish without composable behavior
+
+        # Determine food type and emit telemetry
+        # Use actual_energy to prevent "phantom" stats
+        if isinstance(food, PlantNectar):
+            self._emit_event(
+                FoodEatenEvent("nectar", algorithm_id, actual_energy)
+            )
+        elif isinstance(food, LiveFood):
+            self._emit_event(
+                FoodEatenEvent(
+                    "live_food",
+                    algorithm_id,
+                    actual_energy,
+                    genome=self.genome,
+                    generation=self.generation,
                 )
-            else:
-                ecosystem.record_falling_food_eaten(algorithm_id, actual_energy)
+            )
+        else:
+            self._emit_event(
+                FoodEatenEvent("falling_food", algorithm_id, actual_energy)
+            )
 
     def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
         """Apply an energy penalty for direction changes, scaled by turn angle and fish size.
@@ -1076,7 +1095,6 @@ class Fish(Agent):
 
                 self.energy = max(0, self.energy - energy_cost)
 
-                if self.ecosystem is not None:
-                    self.ecosystem.record_energy_burn("turning", energy_cost)
+                self._emit_event(EnergyBurnEvent("turning", energy_cost))
 
         self.last_direction = new_direction

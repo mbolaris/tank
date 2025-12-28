@@ -112,9 +112,7 @@ class PokerSystem(BaseSystem):
             and getattr(poker.result, "reproduction_occurred", False)
             and getattr(poker.result, "offspring", None) is not None
         ):
-            if self._engine.request_spawn(
-                poker.result.offspring, reason="poker_reproduction"
-            ):
+            if self._request_spawn(poker.result.offspring, reason="poker_reproduction"):
                 if hasattr(poker.result.offspring, "register_birth"):
                     poker.result.offspring.register_birth()
                 if hasattr(self._engine, "lifecycle_system"):
@@ -508,7 +506,7 @@ class PokerSystem(BaseSystem):
                 # Trigger instant asexual reproduction
                 baby = winner_fish._create_asexual_offspring()
                 if baby is not None:
-                    if self._engine.request_spawn(baby, reason="poker_reproduction"):
+                    if self._request_spawn(baby, reason="poker_reproduction"):
                         baby.register_birth()
 
     # =========================================================================
@@ -594,12 +592,19 @@ class PokerSystem(BaseSystem):
         if baby is None:
             return None
 
-        if not self._engine.request_spawn(baby, reason="poker_reproduction"):
+        if not self._request_spawn(baby, reason="poker_reproduction"):
             return None
         baby.register_birth()
         if hasattr(self._engine, "lifecycle_system"):
             self._engine.lifecycle_system.record_birth()
         return baby
+
+    def _request_spawn(self, entity: "Fish", *, reason: str) -> bool:
+        """Request a spawn via the engine, if available."""
+        request_spawn = getattr(self._engine, "request_spawn", None)
+        if not callable(request_spawn):
+            return False
+        return bool(request_spawn(entity, reason=reason))
 
     def _create_post_poker_offspring(
         self, winner: "Fish", mate: "Fish", rng
