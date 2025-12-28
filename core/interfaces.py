@@ -47,7 +47,7 @@ Why Protocols over ABC?
 Usage
 -----
 Import protocols for type hints:
-    from core.interfaces import EnergyHolder, PokerPlayer, SpatialQuery
+    from core.interfaces import EnergyHolder, PokerPlayer
 
 Use isinstance() checks with @runtime_checkable protocols:
     if isinstance(entity, EnergyHolder):
@@ -55,8 +55,6 @@ Use isinstance() checks with @runtime_checkable protocols:
 """
 
 from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
-
-from core.world import World
 
 # Explicit public API for this module
 __all__ = [
@@ -73,7 +71,6 @@ __all__ = [
     "BehaviorStrategy",
     "SimulationStats",
     "EntityManager",
-    "SpatialQuery",
     "FoodSpawner",
     "CollisionHandler",
     "PokerCoordinator",
@@ -409,16 +406,6 @@ class EntityManager(Protocol):
     def get_all_entities(self) -> List["Agent"]:
         """Get all entities in the simulation."""
         ...
-
-
-@runtime_checkable
-class SpatialQuery(World, Protocol):
-    """Interface for spatial queries in the environment.
-    
-    This protocol is now a specialized view of the World interface.
-    Use World protocol for new code.
-    """
-    ...
 
 
 @runtime_checkable

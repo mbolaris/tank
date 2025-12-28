@@ -488,9 +488,6 @@ class Environment:
         if agents:
             self.spatial_grid.rebuild(agents)
 
-        # Query cache to avoid redundant searches within the same frame
-        # Cache is cleared when rebuild_spatial_grid() is called
-        self._query_cache: Dict[Tuple, List[Agent]] = {}
         self._type_cache: Dict[Type[Agent], List[Agent]] = {}
 
         # NEW: Initialize communication system for fish
@@ -536,8 +533,6 @@ class Environment:
         """Rebuild the spatial grid from scratch. Call when agents are added/removed."""
         if self.agents:
             self.spatial_grid.rebuild(self.agents)
-        # Clear query caches when grid is rebuilt
-        self._query_cache.clear()
         # Note: Type cache is NOT cleared here - it's only cleared on entity add/remove
 
     def invalidate_type_cache(self):

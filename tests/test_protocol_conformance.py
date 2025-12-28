@@ -357,7 +357,6 @@ class TestInterfacesModuleProtocols:
             "BehaviorStrategy",
             "SimulationStats",
             "EntityManager",
-            "SpatialQuery",
             "FoodSpawner",
             "CollisionHandler",
             "PokerCoordinator",
