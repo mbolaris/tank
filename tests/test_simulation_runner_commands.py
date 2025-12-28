@@ -11,9 +11,9 @@ class TestSimulationRunnerCommands:
             import random
             # Configure mock world
             mock_world_instance = MockWorld.return_value
-            mock_world_instance.rng = MagicMock()
+            # Use a real RNG for Food creation (require_rng needs environment.rng)
+            mock_world_instance.rng = random.Random(42)
             mock_world_instance.environment = MagicMock()
-            # Add proper _rng for Food creation to work
             mock_world_instance.environment._rng = random.Random(42)
             mock_world_instance.ecosystem = MagicMock()
             mock_world_instance.entities_list = []

@@ -380,6 +380,7 @@ class Castle(Entity):
         """
         super().__init__(environment, x, y)
         self.blocks_root_spots = True
+        self.speed = 0  # For backward compatibility (Castle doesn't move)
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
         self.set_size(225.0, 225.0)
 
