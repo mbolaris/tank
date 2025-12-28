@@ -698,48 +698,6 @@ class EcosystemManager:
             record.player2_algo_id,
         )
 
-    def record_poker_outcome(
-        self,
-        winner_id: int,
-        loser_id: int,
-        winner_algo_id: Optional[int],
-        loser_algo_id: Optional[int],
-        amount: float,
-        winner_hand: "PokerHand",
-        loser_hand: "PokerHand",
-        house_cut: float = 0.0,
-        result: Optional["PokerResult"] = None,
-        player1_algo_id: Optional[int] = None,
-        player2_algo_id: Optional[int] = None,
-    ) -> None:
-        """Record a poker game outcome.
-        
-        .. deprecated::
-            Use record_poker_outcome_record(PokerOutcomeRecord(...)) instead.
-            This multi-parameter method will be removed in a future version.
-        """
-        import warnings
-        warnings.warn(
-            "record_poker_outcome() with multiple parameters is deprecated. "
-            "Use record_poker_outcome_record(PokerOutcomeRecord(...)) instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        record = PokerOutcomeRecord(
-            winner_id=winner_id,
-            loser_id=loser_id,
-            winner_algo_id=winner_algo_id,
-            loser_algo_id=loser_algo_id,
-            amount=amount,
-            winner_hand=winner_hand,
-            loser_hand=loser_hand,
-            house_cut=house_cut,
-            result=result,
-            player1_algo_id=player1_algo_id,
-            player2_algo_id=player2_algo_id,
-        )
-        self.record_poker_outcome_record(record)
-
     def record_plant_poker_game_record(self, record: PlantPokerOutcomeRecord) -> None:
         """Record a plant poker outcome from a value object."""
         self.poker_manager.record_plant_poker_game(
@@ -753,40 +711,6 @@ class EcosystemManager:
         )
         net_amount = record.energy_transferred if record.fish_won else -record.energy_transferred
         self.record_plant_poker_energy_gain(net_amount)
-
-    def record_plant_poker_game(
-        self,
-        fish_id: int,
-        plant_id: int,
-        fish_won: bool,
-        energy_transferred: float,
-        fish_hand_rank: int,
-        plant_hand_rank: int,
-        won_by_fold: bool,
-    ) -> None:
-        """Record a poker game between a fish and a fractal plant.
-        
-        .. deprecated::
-            Use record_plant_poker_game_record(PlantPokerOutcomeRecord(...)) instead.
-            This multi-parameter method will be removed in a future version.
-        """
-        import warnings
-        warnings.warn(
-            "record_plant_poker_game() with multiple parameters is deprecated. "
-            "Use record_plant_poker_game_record(PlantPokerOutcomeRecord(...)) instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        record = PlantPokerOutcomeRecord(
-            fish_id=fish_id,
-            plant_id=plant_id,
-            fish_won=fish_won,
-            energy_transferred=energy_transferred,
-            fish_hand_rank=fish_hand_rank,
-            plant_hand_rank=plant_hand_rank,
-            won_by_fold=won_by_fold,
-        )
-        self.record_plant_poker_game_record(record)
 
     def record_mixed_poker_energy_transfer(
         self,
@@ -828,35 +752,6 @@ class EcosystemManager:
         if (not winner_is_fish) and house_cut > 0:
             self.record_plant_energy_gain("poker", house_cut)
             self.record_plant_energy_burn("poker_house_cut", house_cut)
-
-    def record_mixed_poker_outcome(
-        self,
-        *,
-        fish_delta: float,
-        plant_delta: float,
-        house_cut: float,
-        winner_type: str,
-    ) -> None:
-        """Record mixed poker outcome with correct per-economy house cut attribution.
-        
-        .. deprecated::
-            Use record_mixed_poker_outcome_record(MixedPokerOutcomeRecord(...)) instead.
-            This multi-parameter method will be removed in a future version.
-        """
-        import warnings
-        warnings.warn(
-            "record_mixed_poker_outcome() with multiple parameters is deprecated. "
-            "Use record_mixed_poker_outcome_record(MixedPokerOutcomeRecord(...)) instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        record = MixedPokerOutcomeRecord(
-            fish_delta=fish_delta,
-            plant_delta=plant_delta,
-            house_cut=house_cut,
-            winner_type=winner_type,
-        )
-        self.record_mixed_poker_outcome_record(record)
 
     def record_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-fish poker."""

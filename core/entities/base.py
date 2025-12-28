@@ -1,4 +1,18 @@
-"""Base entity classes for the simulation."""
+"""Base entity classes for the simulation.
+
+Entity Hierarchy
+----------------
+Entity (base)
+    Core attributes: pos, state, rect, width, height, environment
+    For: Static/decorative entities (Castle)
+
+Agent(Entity)
+    Adds: velocity, movement, AI behaviors (avoid, align, etc.)
+    For: Moving entities with behavior (Fish, Plant, Food, Crab)
+
+This hierarchy ensures decorative entities don't inherit unnecessary
+movement methods while maintaining backward compatibility.
+"""
 
 import random
 from dataclasses import dataclass, field
@@ -24,7 +38,7 @@ class EntityUpdateResult:
         spawned_entities: List of new entities spawned by this entity
         events: List of events emitted by this entity (e.g. death, interaction)
     """
-    spawned_entities: List["Agent"] = field(default_factory=list)
+    spawned_entities: List["Entity"] = field(default_factory=list)
     events: List[Any] = field(default_factory=list)
 
 
@@ -72,33 +86,32 @@ class Rect:
         )
 
 
-class Agent:
-    """Base class for all entities in the simulation (pure logic, no rendering)."""
+class Entity:
+    """Base class for all simulation entities (pure logic, no rendering).
 
-    def __init__(self, environment: World, x: float, y: float, speed: float) -> None:
-        """Initialize an agent.
+    This is the minimal base class with just position, state, and bounding box.
+    Use this for static/decorative entities that don't move or have AI.
+
+    For moving entities with behavior, use Agent instead.
+    """
+
+    def __init__(self, environment: World, x: float, y: float) -> None:
+        """Initialize an entity.
 
         Args:
-            environment: The world the agent lives in
+            environment: The world the entity lives in
             x: Initial x position
             y: Initial y position
-            speed: Base movement speed
         """
-        self.speed: float = speed
-        self.vel: Vector2 = Vector2(speed, 0)
         self.pos: Vector2 = Vector2(x, y)
-        self.avoidance_velocity: Vector2 = Vector2(0, 0)
         self.environment: World = environment
 
         # Bounding box for collision detection (will be updated by size)
-        self.width: float = DEFAULT_AGENT_SIZE  # Default size
+        self.width: float = DEFAULT_AGENT_SIZE
         self.height: float = DEFAULT_AGENT_SIZE
 
         # Whether this entity should block fractal plant root spots beneath it
         self.blocks_root_spots: bool = False
-
-        # Entity traits (overridden by subclasses)
-        self.is_predator: bool = False
 
         self.rect: Rect = Rect(x, y, self.width, self.height)
         self._groups: List = []  # Track sprite groups for kill() method
@@ -112,12 +125,81 @@ class Agent:
         return (self.pos.x, self.pos.y, self.width, self.height)
 
     def set_size(self, width: float, height: float) -> None:
-        """Set the size of the agent's bounding box."""
+        """Set the size of the entity's bounding box."""
         self.width = width
         self.height = height
         # Keep rect in sync with size
         self.rect.width = width
         self.rect.height = height
+
+    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+        """Update the entity state (pure logic, no rendering).
+
+        Returns:
+            EntityUpdateResult containing any spawned entities or events.
+        """
+        return EntityUpdateResult()
+
+    def add_internal(self, group) -> None:
+        """Track group for kill() method."""
+        if group not in self._groups:
+            self._groups.append(group)
+
+    def is_dead(self) -> bool:
+        """Check if the entity is dead."""
+        return self.state.state in (EntityState.DEAD, EntityState.REMOVED)
+
+    def kill(self) -> None:
+        """Remove this entity from all groups."""
+        for group in self._groups[:]:  # Copy list to avoid modification during iteration
+            if hasattr(group, "remove"):
+                group.remove(self)
+        self._groups.clear()
+
+    def _emit_event(self, event: object) -> None:
+        """Emit a telemetry event if a sink is available.
+
+        Subclasses that have an ecosystem attribute (Fish, Plant) can use this
+        to emit events. Entities without ecosystem will silently skip emission.
+        """
+        telemetry = getattr(self, "ecosystem", None)
+        if telemetry is None:
+            return
+        record_event = getattr(telemetry, "record_event", None)
+        if callable(record_event):
+            record_event(event)
+
+
+class Agent(Entity):
+    """Moving entity with velocity and AI behaviors.
+
+    Extends Entity with:
+    - Velocity and movement (update_position, handle_screen_edges)
+    - AI behaviors (avoid, align_near, move_away, move_towards)
+    - Migration support
+
+    Use this for Fish, Plant, Food, Crab, and other entities that move or
+    have behavioral AI.
+    """
+
+    def __init__(self, environment: World, x: float, y: float, speed: float) -> None:
+        """Initialize an agent.
+
+        Args:
+            environment: The world the agent lives in
+            x: Initial x position
+            y: Initial y position
+            speed: Base movement speed
+        """
+        super().__init__(environment, x, y)
+
+        # Movement attributes
+        self.speed: float = speed
+        self.vel: Vector2 = Vector2(speed, 0)
+        self.avoidance_velocity: Vector2 = Vector2(0, 0)
+
+        # Entity traits (overridden by subclasses)
+        self.is_predator: bool = False
 
     def update_position(self) -> None:
         """Update the position of the agent."""
@@ -276,31 +358,12 @@ class Agent:
         if diff_length > 0:
             self.vel += difference.normalize() * ALIGNMENT_SPEED_CHANGE
 
-    def add_internal(self, group) -> None:
-        """Track group for kill() method."""
-        if group not in self._groups:
-            self._groups.append(group)
 
-    def is_dead(self) -> bool:
-        """Check if the agent is dead."""
-        return self.state.state in (EntityState.DEAD, EntityState.REMOVED)
+class Castle(Entity):
+    """A decorative castle entity that doesn't move.
 
-    def kill(self) -> None:
-        """Remove this agent from all groups."""
-        for group in self._groups[:]:  # Copy list to avoid modification during iteration
-            if hasattr(group, "remove"):
-                group.remove(self)
-        self._groups.clear()
-
-
-
-
-class Castle(Agent):
-    """A castle entity (decorative, pure logic)."""
-
-    def is_dead(self) -> bool:
-        return False
-
+    Inherits from Entity (not Agent) since it has no movement or AI behaviors.
+    """
 
     def __init__(
         self,
@@ -315,8 +378,11 @@ class Castle(Agent):
             x: Initial x position
             y: Initial y position
         """
-        super().__init__(environment, x, y, 0)
+        super().__init__(environment, x, y)
         self.blocks_root_spots = True
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
-        # Use set_size to keep the collision rect in sync
         self.set_size(225.0, 225.0)
+
+    def is_dead(self) -> bool:
+        """Castle is never dead (decorative only)."""
+        return False

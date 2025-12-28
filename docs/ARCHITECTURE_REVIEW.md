@@ -4,6 +4,23 @@
 
 Your simulation has a **solid foundation** with good patterns in key areas. However, there's room for improvement in consistency and reducing complexity. This review prioritizes **quality over quantity** - identifying code to remove and abstractions to simplify.
 
+## Changes Implemented
+
+### Phase 1: Code Cleanup (Completed)
+- ✅ Removed 3 deprecated poker methods (~90 lines)
+- ✅ Moved `_emit_event()` to Entity base class (deduplicated)
+- ✅ Updated docstring example in ecosystem_stats.py
+
+### Phase 2: Entity Hierarchy (Completed)
+- ✅ Created `Entity` base class with core attributes
+- ✅ `Agent` now extends `Entity` (adds movement/AI)
+- ✅ `Castle` now inherits from `Entity` (not Agent)
+- ✅ Castle no longer has unused velocity/AI methods
+
+### Findings
+- All 14 food-seeking algorithms are **legacy code** replaced by `ComposableBehavior`
+- They're kept for backwards compatibility with old saves
+
 ---
 
 ## What's Working Well ✓

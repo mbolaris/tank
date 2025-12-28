@@ -475,15 +475,6 @@ class Fish(Agent):
         except Exception:
             pass  # Energy lost on failure is acceptable
 
-    def _emit_event(self, event: object) -> None:
-        """Emit a telemetry event if a sink is available."""
-        telemetry = self.ecosystem
-        if telemetry is None:
-            return
-        record_event = getattr(telemetry, "record_event", None)
-        if callable(record_event):
-            record_event(event)
-
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
 
