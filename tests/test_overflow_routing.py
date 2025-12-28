@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import random
 from typing import List, Tuple
 
 from core.telemetry.events import EnergyBurnEvent
@@ -9,9 +10,15 @@ from core.telemetry.events import EnergyBurnEvent
 class _EnvironmentStub:
     def __init__(self) -> None:
         self.added: List[object] = []
+        self.rng = random.Random(42)  # Deterministic RNG for tests
 
     def add_entity(self, entity: object) -> None:
         self.added.append(entity)
+
+    def request_spawn(self, entity: object, *, reason: str = "") -> bool:
+        """Spawn request API for overflow food spawning."""
+        self.added.append(entity)
+        return True
 
     def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """Return default environment bounds."""

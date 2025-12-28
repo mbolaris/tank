@@ -10,7 +10,8 @@ def test_collision_removal_is_queued(simulation_engine):
     food = Food(engine.environment, fish.pos.x, fish.pos.y, food_type="energy")
     food.energy = 0.05
     food.max_energy = 0.05
-    engine.add_entity(food)
+    engine.request_spawn(food, reason="test")
+    engine._apply_entity_mutations("test_setup")
 
     assert food in engine.get_all_entities()
     assert engine._entity_mutations.pending_removal_count() == 0

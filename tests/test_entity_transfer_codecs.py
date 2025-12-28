@@ -71,7 +71,8 @@ def test_plant_transfer_round_trip() -> None:
         ecosystem=source.engine.ecosystem,
     )
     spot.claim(plant)
-    source.engine.add_entity(plant)
+    source.engine.request_spawn(plant, reason="test")
+    source.engine._apply_entity_mutations("test")
 
     data = serialize_entity_for_transfer(plant, migration_direction="left")
     assert data is not None

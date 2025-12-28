@@ -402,15 +402,47 @@ class SimulationEngine:
         """Get all entities in the simulation."""
         return self._entity_manager.entities_list
 
-    def add_entity(self, entity: entities.Agent) -> None:
-        """Add an entity to the simulation."""
+    def _add_entity(self, entity: entities.Agent) -> None:
+        """Add an entity to the simulation (INTERNAL USE ONLY).
+        
+        This method should only be called by the engine when applying
+        queued mutations from _apply_entity_mutations(). External code
+        should use request_spawn() to queue spawns for safe processing.
+        """
         if hasattr(entity, "add_internal"):
             entity.add_internal(self.agents)
         self._entity_manager.add(entity)
 
-    def remove_entity(self, entity: entities.Agent) -> None:
-        """Remove an entity from the simulation."""
+    def _remove_entity(self, entity: entities.Agent) -> None:
+        """Remove an entity from the simulation (INTERNAL USE ONLY).
+        
+        This method should only be called by the engine when applying
+        queued mutations from _apply_entity_mutations(). External code
+        should use request_remove() to queue removals for safe processing.
+        """
         self._entity_manager.remove(entity)
+
+    def add_entity(self, entity: entities.Agent) -> None:
+        """Add an entity to the simulation (PRIVILEGED API).
+        
+        WARNING: This bypasses the mutation queue. Only use from privileged
+        infrastructure code like tank persistence, migration handlers, etc.
+        
+        Game systems should use request_spawn() to queue spawns for safe
+        processing between phases. Calling this mid-frame can cause subtle bugs.
+        """
+        self._add_entity(entity)
+
+    def remove_entity(self, entity: entities.Agent) -> None:
+        """Remove an entity from the simulation (PRIVILEGED API).
+        
+        WARNING: This bypasses the mutation queue. Only use from privileged
+        infrastructure code like tank persistence, migration handlers, etc.
+        
+        Game systems should use request_remove() to queue removals for safe
+        processing between phases. Calling this mid-frame can cause subtle bugs.
+        """
+        self._remove_entity(entity)
 
     def request_spawn(
         self,
@@ -444,11 +476,11 @@ class SimulationEngine:
         """Apply queued spawns/removals at a safe point in the frame."""
         removals = self._entity_mutations.drain_removals()
         for mutation in removals:
-            self.remove_entity(mutation.entity)
+            self._remove_entity(mutation.entity)
 
         spawns = self._entity_mutations.drain_spawns()
         for mutation in spawns:
-            self.add_entity(mutation.entity)
+            self._add_entity(mutation.entity)
 
     def get_fish_list(self) -> List[entities.Fish]:
         """Get cached list of all fish in the simulation."""

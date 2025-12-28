@@ -31,7 +31,8 @@ def test_restore_snapshot_infers_missing_type_for_plants() -> None:
         ecosystem=source.engine.ecosystem,
     )
     spot.claim(plant)
-    source.engine.add_entity(plant)
+    source.engine.request_spawn(plant, reason="test")
+    source.engine._apply_entity_mutations("test")
 
     entity_data = serialize_entity_for_transfer(plant, migration_direction="left")
     assert entity_data is not None

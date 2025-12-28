@@ -453,7 +453,9 @@ class Fish(Agent):
         try:
             from core.entities.resources import Food
 
-            rng = getattr(self.environment, "rng", None) or random.Random()
+            rng = getattr(self.environment, "rng", None)
+            if rng is None:
+                raise RuntimeError("environment.rng is required for deterministic food spawning")
             food = Food(
                 environment=self.environment,
                 x=self.pos.x + rng.uniform(-20, 20),
@@ -466,8 +468,8 @@ class Fish(Agent):
             request_spawn = getattr(self.environment, "request_spawn", None)
             if callable(request_spawn):
                 request_spawn(food, reason="overflow_food")
-            elif hasattr(self.environment, "add_entity"):
-                self.environment.add_entity(food)
+            else:
+                logger.warning("request_spawn unavailable, overflow food lost")
 
             self._emit_event(EnergyBurnEvent("overflow_food", food.energy))
         except Exception:

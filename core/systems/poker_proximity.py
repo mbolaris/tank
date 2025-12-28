@@ -22,7 +22,6 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
-from core.config.server import POKER_ACTIVITY_ENABLED
 from core.poker_interaction import (
     MAX_PLAYERS as POKER_MAX_PLAYERS,
     PokerInteraction,
@@ -74,7 +73,7 @@ class PokerProximitySystem(BaseSystem):
         Returns:
             SystemResult with poker proximity statistics
         """
-        if not POKER_ACTIVITY_ENABLED:
+        if not self._engine.poker_system.enabled:
             return SystemResult.empty()
 
         # Get all fish
@@ -115,7 +114,6 @@ class PokerProximitySystem(BaseSystem):
             Adjacency map where fish_poker_contacts[fish] is the set of
             fish within poker range
         """
-        from core.config.simulation import COLLISION_QUERY_RADIUS
 
         fish_poker_contacts: Dict["Fish", Set["Fish"]] = {
             fish: set() for fish in fish_list
@@ -134,7 +132,7 @@ class PokerProximitySystem(BaseSystem):
 
             # Get nearby fish using spatial grid
             if environment is not None and hasattr(environment, "nearby_evolving_agents"):
-                nearby = environment.nearby_evolving_agents(fish, radius=COLLISION_QUERY_RADIUS)
+                nearby = environment.nearby_evolving_agents(fish, radius=FISH_POKER_MAX_DISTANCE)
             else:
                 nearby = [f for f in fish_list if f is not fish]
 

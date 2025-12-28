@@ -112,7 +112,9 @@ class Plant(Agent):
         # Migration timer - check for migration every 300 frames (5 seconds at 60fps)
         # Add random offset to prevent synchronized migrations (use environment RNG)
         self.migration_check_interval = 300
-        rng = getattr(environment, "rng", None) or random.Random()
+        rng = getattr(environment, "rng", None)
+        if rng is None:
+            raise RuntimeError("environment.rng is required for deterministic plant initialization")
         self.migration_timer = rng.randint(0, self.migration_check_interval)
 
         # Statistics
@@ -320,7 +322,9 @@ class Plant(Agent):
         # Use a fixed offset from the TOP of the bounding box (where branches are)
         # Random position in top 15% of the visual tree (which is upper portion of bbox)
         # Use environment RNG for determinism
-        rng = getattr(self.environment, "rng", None) or random.Random()
+        rng = getattr(self.environment, "rng", None)
+        if rng is None:
+            raise RuntimeError("environment.rng is required for deterministic nectar production")
         top_offset_pct = rng.uniform(0.02, 0.15)  # 2-15% down from top of bbox
 
         nectar_x = self.pos.x + self.width / 2
@@ -451,7 +455,9 @@ class Plant(Agent):
             return
 
         try:
-            rng = getattr(self.environment, "rng", None) or random.Random()
+            rng = getattr(self.environment, "rng", None)
+            if rng is None:
+                raise RuntimeError("environment.rng is required for deterministic food spawning")
             food = Food(
                 environment=self.environment,
                 x=self.pos.x + self.width / 2 + rng.uniform(-20, 20),
@@ -464,8 +470,8 @@ class Plant(Agent):
             request_spawn = getattr(self.environment, "request_spawn", None)
             if callable(request_spawn):
                 request_spawn(food, reason="plant_overflow_food")
-            elif hasattr(self.environment, "add_entity"):
-                self.environment.add_entity(food)
+            else:
+                logger.warning("request_spawn unavailable, plant overflow food lost")
 
             self._emit_event(EnergyBurnEvent("plant_overflow_food", food.energy))
         except Exception:
@@ -634,7 +640,9 @@ class Plant(Agent):
         if direction is not None:
             # Attempt migration with a probability (20% per check)
             # This makes migration less aggressive than guaranteed (use environment RNG)
-            rng = getattr(self.environment, "rng", None) or random.Random()
+            rng = getattr(self.environment, "rng", None)
+            if rng is None:
+                raise RuntimeError("environment.rng is required for deterministic migration")
             if rng.random() < 0.20:
                 self._attempt_migration(direction)
 

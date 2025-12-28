@@ -29,7 +29,8 @@ class AgentsWrapper:
                 or a SimulationEngine instance (for production use)
         """
         # Support both legacy list usage and engine-aware management
-        if hasattr(entities_or_engine, "add_entity") and hasattr(
+        # Check for _entity_manager to detect SimulationEngine
+        if hasattr(entities_or_engine, "_entity_manager") and hasattr(
             entities_or_engine, "entities_list"
         ):
             self._engine = entities_or_engine
@@ -47,7 +48,7 @@ class AgentsWrapper:
                 continue
 
             if self._engine is not None:
-                self._engine.add_entity(entity)
+                self._engine._add_entity(entity)
             else:
                 self._entities.append(entity)
             if hasattr(entity, "add_internal"):
@@ -59,7 +60,7 @@ class AgentsWrapper:
             if entity not in self._entities:
                 continue
             if self._engine is not None:
-                self._engine.remove_entity(entity)
+                self._engine._remove_entity(entity)
             else:
                 self._entities.remove(entity)
 

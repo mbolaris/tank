@@ -1,4 +1,5 @@
 import math
+import random
 
 from core.ecosystem import EcosystemManager
 from core.entities import Fish
@@ -18,6 +19,7 @@ class _EnvStub:
         self.width = width
         self.height = height
         self.agents = []
+        self.rng = random.Random(42)  # Deterministic RNG for tests
 
     def get_bounds(self):
         return (0.0, 0.0), (float(self.width), float(self.height))
