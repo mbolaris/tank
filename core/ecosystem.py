@@ -16,6 +16,9 @@ from core.ecosystem_stats import (
     EcosystemEvent,
     GeneticDiversityStats,
     PokerStats,
+    PokerOutcomeRecord,
+    PlantPokerOutcomeRecord,
+    MixedPokerOutcomeRecord,
 )
 from core.lineage_tracker import LineageTracker
 from core.poker_stats_manager import PokerStatsManager
@@ -679,6 +682,22 @@ class EcosystemManager:
     # Poker Recording
     # =========================================================================
 
+    def record_poker_outcome_record(self, record: PokerOutcomeRecord) -> None:
+        """Record a poker game outcome from a value object."""
+        self.poker_manager.record_poker_outcome(
+            record.winner_id,
+            record.loser_id,
+            record.winner_algo_id,
+            record.loser_algo_id,
+            record.amount,
+            record.winner_hand,
+            record.loser_hand,
+            record.house_cut,
+            record.result,
+            record.player1_algo_id,
+            record.player2_algo_id,
+        )
+
     def record_poker_outcome(
         self,
         winner_id: int,
@@ -694,19 +713,34 @@ class EcosystemManager:
         player2_algo_id: Optional[int] = None,
     ) -> None:
         """Record a poker game outcome."""
-        self.poker_manager.record_poker_outcome(
-            winner_id,
-            loser_id,
-            winner_algo_id,
-            loser_algo_id,
-            amount,
-            winner_hand,
-            loser_hand,
-            house_cut,
-            result,
-            player1_algo_id,
-            player2_algo_id,
+        record = PokerOutcomeRecord(
+            winner_id=winner_id,
+            loser_id=loser_id,
+            winner_algo_id=winner_algo_id,
+            loser_algo_id=loser_algo_id,
+            amount=amount,
+            winner_hand=winner_hand,
+            loser_hand=loser_hand,
+            house_cut=house_cut,
+            result=result,
+            player1_algo_id=player1_algo_id,
+            player2_algo_id=player2_algo_id,
         )
+        self.record_poker_outcome_record(record)
+
+    def record_plant_poker_game_record(self, record: PlantPokerOutcomeRecord) -> None:
+        """Record a plant poker outcome from a value object."""
+        self.poker_manager.record_plant_poker_game(
+            record.fish_id,
+            record.plant_id,
+            record.fish_won,
+            record.energy_transferred,
+            record.fish_hand_rank,
+            record.plant_hand_rank,
+            record.won_by_fold,
+        )
+        net_amount = record.energy_transferred if record.fish_won else -record.energy_transferred
+        self.record_plant_poker_energy_gain(net_amount)
 
     def record_plant_poker_game(
         self,
@@ -719,17 +753,16 @@ class EcosystemManager:
         won_by_fold: bool,
     ) -> None:
         """Record a poker game between a fish and a fractal plant."""
-        self.poker_manager.record_plant_poker_game(
-            fish_id,
-            plant_id,
-            fish_won,
-            energy_transferred,
-            fish_hand_rank,
-            plant_hand_rank,
-            won_by_fold,
+        record = PlantPokerOutcomeRecord(
+            fish_id=fish_id,
+            plant_id=plant_id,
+            fish_won=fish_won,
+            energy_transferred=energy_transferred,
+            fish_hand_rank=fish_hand_rank,
+            plant_hand_rank=plant_hand_rank,
+            won_by_fold=won_by_fold,
         )
-        net_amount = energy_transferred if fish_won else -energy_transferred
-        self.record_plant_poker_energy_gain(net_amount)
+        self.record_plant_poker_game_record(record)
 
     def record_mixed_poker_energy_transfer(
         self,
@@ -749,6 +782,29 @@ class EcosystemManager:
         )
         self.record_plant_poker_energy_gain(energy_to_fish)
 
+    def record_mixed_poker_outcome_record(self, record: MixedPokerOutcomeRecord) -> None:
+        """Record mixed poker outcome with correct per-economy house cut attribution."""
+        self.poker_manager.record_mixed_poker_energy_transfer(
+            record.fish_delta,
+            winner_type=record.winner_type,
+            is_plant_game=True,
+        )
+
+        winner_is_fish = record.winner_type == "fish"
+        house_cut = float(record.house_cut or 0.0)
+
+        if record.fish_delta > 0:
+            gross = record.fish_delta + (house_cut if winner_is_fish else 0.0)
+            self.record_energy_gain("poker_plant", gross)
+            if winner_is_fish and house_cut > 0:
+                self.record_energy_burn("poker_house_cut", house_cut)
+        elif record.fish_delta < 0:
+            self.record_energy_burn("poker_plant_loss", -record.fish_delta)
+
+        if (not winner_is_fish) and house_cut > 0:
+            self.record_plant_energy_gain("poker", house_cut)
+            self.record_plant_energy_burn("poker_house_cut", house_cut)
+
     def record_mixed_poker_outcome(
         self,
         *,
@@ -758,26 +814,13 @@ class EcosystemManager:
         winner_type: str,
     ) -> None:
         """Record mixed poker outcome with correct per-economy house cut attribution."""
-        self.poker_manager.record_mixed_poker_energy_transfer(
-            fish_delta, 
+        record = MixedPokerOutcomeRecord(
+            fish_delta=fish_delta,
+            plant_delta=plant_delta,
+            house_cut=house_cut,
             winner_type=winner_type,
-            is_plant_game=True
         )
-
-        winner_is_fish = winner_type == "fish"
-        house_cut = float(house_cut or 0.0)
-
-        if fish_delta > 0:
-            gross = fish_delta + (house_cut if winner_is_fish else 0.0)
-            self.record_energy_gain("poker_plant", gross)
-            if winner_is_fish and house_cut > 0:
-                self.record_energy_burn("poker_house_cut", house_cut)
-        elif fish_delta < 0:
-            self.record_energy_burn("poker_plant_loss", -fish_delta)
-
-        if (not winner_is_fish) and house_cut > 0:
-            self.record_plant_energy_gain("poker", house_cut)
-            self.record_plant_energy_burn("poker_house_cut", house_cut)
+        self.record_mixed_poker_outcome_record(record)
 
     def record_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-fish poker."""

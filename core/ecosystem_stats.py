@@ -280,6 +280,29 @@ class PokerOutcomeRecord:
         return self.amount - self.house_cut
 
 
+@dataclass(frozen=True)
+class PlantPokerOutcomeRecord:
+    """Encapsulate fish-vs-plant poker outcome data for stats recording."""
+
+    fish_id: int
+    plant_id: int
+    fish_won: bool
+    energy_transferred: float
+    fish_hand_rank: int
+    plant_hand_rank: int
+    won_by_fold: bool
+
+
+@dataclass(frozen=True)
+class MixedPokerOutcomeRecord:
+    """Encapsulate mixed poker energy attribution for stats recording."""
+
+    fish_delta: float
+    plant_delta: float
+    house_cut: float
+    winner_type: str
+
+
 @dataclass
 class ReproductionStats:
     """Statistics for reproduction dynamics.

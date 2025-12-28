@@ -475,11 +475,15 @@ class PokerSystem(BaseSystem):
                     elif isinstance(player, Plant):
                         plant_delta += delta
 
-            ecosystem.record_mixed_poker_outcome(
-                fish_delta=fish_delta,
-                plant_delta=plant_delta,
-                house_cut=float(getattr(result, "house_cut", 0.0) or 0.0),
-                winner_type=str(getattr(result, "winner_type", "")),
+            from core.ecosystem_stats import MixedPokerOutcomeRecord
+
+            ecosystem.record_mixed_poker_outcome_record(
+                MixedPokerOutcomeRecord(
+                    fish_delta=fish_delta,
+                    plant_delta=plant_delta,
+                    house_cut=float(getattr(result, "house_cut", 0.0) or 0.0),
+                    winner_type=str(getattr(result, "winner_type", "")),
+                )
             )
 
         if result.plant_count == 0:

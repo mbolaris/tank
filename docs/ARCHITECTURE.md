@@ -245,6 +245,7 @@ Algorithms are defined in `core/algorithms/` and registered in `registry.py`:
 - Current generation
 - Death causes histogram
 - Event log (recent events)
+- Poker outcomes are recorded via value objects (e.g., `PokerOutcomeRecord`, `MixedPokerOutcomeRecord`)
 
 ## Design Patterns
 

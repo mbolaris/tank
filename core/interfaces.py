@@ -90,6 +90,11 @@ if TYPE_CHECKING:
     from core.poker.core import PokerHand
     from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
     from core.telemetry.events import TelemetryEvent
+    from core.ecosystem_stats import (
+        PokerOutcomeRecord,
+        PlantPokerOutcomeRecord,
+        MixedPokerOutcomeRecord,
+    )
 
 
 @runtime_checkable
@@ -374,6 +379,18 @@ class SimulationStats(Protocol):
             player1_algo_id: Algorithm ID of player 1 (for position tracking)
             player2_algo_id: Algorithm ID of player 2 (for position tracking)
         """
+        ...
+
+    def record_poker_outcome_record(self, record: "PokerOutcomeRecord") -> None:
+        """Record a poker outcome using a value object."""
+        ...
+
+    def record_plant_poker_game_record(self, record: "PlantPokerOutcomeRecord") -> None:
+        """Record a plant poker outcome using a value object."""
+        ...
+
+    def record_mixed_poker_outcome_record(self, record: "MixedPokerOutcomeRecord") -> None:
+        """Record a mixed poker outcome using a value object."""
         ...
 
 
