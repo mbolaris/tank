@@ -243,7 +243,7 @@ class PokerOutcomeRecord:
             winner_hand=winner_hand,
             loser_hand=loser_hand,
         )
-        ecosystem.record_poker_outcome(record)
+        ecosystem.record_poker_outcome_record(record)
     """
 
     # Required fields - who won and lost

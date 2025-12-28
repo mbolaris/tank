@@ -144,15 +144,6 @@ class Plant(Agent):
         # Update size based on initial energy
         self._update_size()
 
-    def _emit_event(self, event: object) -> None:
-        """Emit a telemetry event if a sink is available."""
-        telemetry = self.ecosystem
-        if telemetry is None:
-            return
-        record_event = getattr(telemetry, "record_event", None)
-        if callable(record_event):
-            record_event(event)
-
     def _update_size(self) -> None:
         """Update plant size based on current energy."""
         # Size scales with energy
