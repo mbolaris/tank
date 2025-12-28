@@ -11,17 +11,19 @@ class TestSimulationRunnerCommands:
             import random
             # Configure mock world
             mock_world_instance = MockWorld.return_value
-            # Use a real RNG for Food creation (require_rng needs environment.rng)
-            mock_world_instance.rng = random.Random(42)
+            # Use MagicMock for rng but configure choices() for Food creation
+            mock_world_instance.rng = MagicMock()
+            mock_world_instance.rng.randint.return_value = 100
+            mock_world_instance.rng.choices.return_value = ["algae"]  # Valid food type
             mock_world_instance.environment = MagicMock()
             mock_world_instance.environment._rng = random.Random(42)
             mock_world_instance.ecosystem = MagicMock()
             mock_world_instance.entities_list = []
-            
+
             runner = SimulationRunner(seed=123)
             # Mock the invalidate_state_cache method to avoid side effects
             runner._invalidate_state_cache = MagicMock()
-            
+
             return runner
 
     def test_handle_unknown_command(self, runner):
