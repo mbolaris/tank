@@ -16,7 +16,10 @@ class TestSimulationRunnerCommands:
             mock_world_instance.rng.randint.return_value = 100
             mock_world_instance.rng.choices.return_value = ["algae"]  # Valid food type
             mock_world_instance.environment = MagicMock()
-            mock_world_instance.environment._rng = random.Random(42)
+            # Alias environment.rng to world.rng so mocks are shared
+            mock_world_instance.environment.rng = mock_world_instance.rng
+            # Configure default return values for rng
+            mock_world_instance.rng.choices.return_value = ["algae"]
             mock_world_instance.ecosystem = MagicMock()
             mock_world_instance.entities_list = []
 
