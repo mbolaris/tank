@@ -103,7 +103,7 @@ class RPSStrategy(SkillStrategy[RPSAction]):
         Returns:
             The chosen action
         """
-        _rng = rng if rng is not None else random
+        _rng = rng if rng is not None else random.Random()
         r = _rng.random()
         if r < self.prob_rock:
             action = RPSAction.ROCK
@@ -348,7 +348,7 @@ class RockPaperScissorsGame(SkillGame):
         Args:
             rng: Optional random number generator for determinism
         """
-        _rng = rng if rng is not None else random
+        _rng = rng if rng is not None else random.Random()
         # Add some randomness to starting probabilities
         r = _rng.random() * 0.3 + 0.2  # 0.2 to 0.5
         p = _rng.random() * 0.3 + 0.2

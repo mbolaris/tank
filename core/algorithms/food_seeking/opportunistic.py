@@ -22,13 +22,13 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="opportunistic_feeder",
             parameters={
-                "max_pursuit_distance": (rng or random).uniform(150, 300),  # INCREASED from 50-200
-                "speed": (rng or random).uniform(0.9, 1.3),  # INCREASED from 0.6-1.0
-                "exploration_speed": (rng or random).uniform(0.5, 0.8),  # NEW: explore when idle
+                "max_pursuit_distance": (rng or random.Random()).uniform(150, 300),  # INCREASED from 50-200
+                "speed": (rng or random.Random()).uniform(0.9, 1.3),  # INCREASED from 0.6-1.0
+                "exploration_speed": (rng or random.Random()).uniform(0.5, 0.8),  # NEW: explore when idle
             },
             rng=rng,
         )
-        self.exploration_angle = (rng or random).uniform(0, 2 * math.pi)
+        self.exploration_angle = (rng or random.Random()).uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
@@ -79,7 +79,7 @@ class OpportunisticFeeder(BehaviorAlgorithm):
 
         # IMPROVEMENT: Don't just idle - explore! (use environment RNG for determinism)
         if is_critical or is_low:
-            rng = getattr(fish.environment, "rng", random)
+            rng = getattr(fish.environment, "rng", None) or random.Random()
             self.exploration_angle += rng.uniform(-0.4, 0.4)
             ex_speed = self.parameters["exploration_speed"] * (1.5 if is_critical else 1.0)
             return (

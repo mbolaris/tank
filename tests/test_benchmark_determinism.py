@@ -52,10 +52,8 @@ class TestHeadsUpDeterminism(unittest.TestCase):
         import random
 
         # Create strategies with seeded random for consistent parameters
-        random.seed(100)
-        candidate = BalancedStrategy()
-        random.seed(200)
-        benchmark = TightAggressiveStrategy()
+        candidate = BalancedStrategy(rng=random.Random(100))
+        benchmark = TightAggressiveStrategy(rng=random.Random(200))
 
         stats = AutoEvaluatePokerGame.run_heads_up(
             candidate_algo=candidate,
@@ -76,10 +74,8 @@ class TestHeadsUpDeterminism(unittest.TestCase):
         import random
 
         # Use fixed-parameter strategies
-        random.seed(100)
-        candidate = BalancedStrategy()
-        random.seed(200)
-        benchmark = TightAggressiveStrategy()
+        candidate = BalancedStrategy(rng=random.Random(100))
+        benchmark = TightAggressiveStrategy(rng=random.Random(200))
 
         # Note: Strategy decisions use random(), so results won't be perfectly
         # deterministic unless we also control strategy RNG. The key test is

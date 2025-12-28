@@ -58,7 +58,7 @@ def blend_values(
     Returns:
         Blended value
     """
-    rng = rng if rng is not None else random
+    rng = rng if rng is not None else random.Random()
     weight2 = 1.0 - weight1
 
     if mode == CrossoverMode.AVERAGING:
@@ -103,7 +103,7 @@ def blend_discrete(
     Returns:
         Selected value (either val1 or val2)
     """
-    rng = rng if rng is not None else random
+    rng = rng if rng is not None else random.Random()
     return val1 if rng.random() < weight1 else val2
 
 
@@ -128,7 +128,7 @@ def crossover_dict_values(
     Returns:
         Blended dictionary
     """
-    rng = rng if rng is not None else random
+    rng = rng if rng is not None else random.Random()
     result: Dict[str, float] = {}
 
     # Get all keys from both parents

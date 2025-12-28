@@ -259,10 +259,10 @@ class TestSkillGameComponent:
         # At least one attempt should produce mutations with high mutation rate
         mutation_detected = False
         for seed in [42, 123, 456, 789, 1000]:
-            random.seed(seed)
+            rng = random.Random(seed)
             child = SkillGameComponent()
             # Use very high mutation rate to maximize chance of mutation
-            child.inherit_from_parent(parent, mutation_rate=1.0)
+            child.inherit_from_parent(parent, mutation_rate=1.0, rng=rng)
 
             child_strategy = child.get_strategy(SkillGameType.ROCK_PAPER_SCISSORS)
             assert child_strategy is not None

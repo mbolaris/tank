@@ -257,7 +257,7 @@ def get_algorithm_name(algorithm_index: int) -> str:
 
 def get_random_algorithm(rng: Optional[random.Random] = None) -> BehaviorAlgorithm:
     """Get a random behavior algorithm instance."""
-    _rng = rng if rng is not None else random
+    _rng = rng if rng is not None else random.Random()
     algorithm_class = _rng.choice(ALL_ALGORITHMS)
     try:
         return algorithm_class.random_instance(rng=_rng)
@@ -267,7 +267,7 @@ def get_random_algorithm(rng: Optional[random.Random] = None) -> BehaviorAlgorit
 
 def get_algorithm_by_id(algorithm_id: str, rng: Optional[random.Random] = None) -> Optional[BehaviorAlgorithm]:
     """Get algorithm instance by ID."""
-    _rng = rng if rng is not None else random
+    _rng = rng if rng is not None else random.Random()
     for algo_class in ALL_ALGORITHMS:
         try:
             instance = algo_class.random_instance(rng=_rng)
@@ -341,7 +341,7 @@ def inherit_algorithm_with_mutation(
     """
     # Create new instance of same algorithm type
     # Create offspring via class random_instance when possible to honor RNG
-    _rng = rng if rng is not None else random
+    _rng = rng if rng is not None else random.Random()
     try:
         offspring = parent_algorithm.__class__.random_instance(rng=_rng)
     except Exception:
@@ -396,7 +396,7 @@ def _crossover_algorithms_base(
         New algorithm instance with blended parameters
     """
     # Handle edge cases
-    _rng = rng if rng is not None else random
+    _rng = rng if rng is not None else random.Random()
     if parent1_algorithm is None and parent2_algorithm is None:
         return get_random_algorithm(rng=_rng)
     elif parent1_algorithm is None:

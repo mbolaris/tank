@@ -127,7 +127,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         # 3. POKER ENGAGEMENT - Only when no food detected
         poker_priority = self.parameters.get("poker_priority", 0.3)
         poker_vx, poker_vy, poker_active = self._execute_poker_engagement(fish, energy_ratio)
-        rng = getattr(fish.environment, "rng", random)
+        rng = getattr(fish.environment, "rng", None) or random.Random()
         if poker_active and poker_priority > rng.random():
             return poker_vx, poker_vy
 

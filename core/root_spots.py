@@ -107,7 +107,7 @@ class RootSpotManager:
         """
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.rng = rng if rng is not None else random
+        self.rng = rng if rng is not None else random.Random()
         self.spots: List[RootSpot] = []
         self._initialize_spots(spot_count)
 

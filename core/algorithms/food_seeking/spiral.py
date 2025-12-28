@@ -20,9 +20,9 @@ class SpiralForager(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="spiral_forager",
             parameters={
-                "spiral_speed": (rng or random).uniform(0.8, 1.2),
-                "spiral_growth": (rng or random).uniform(0.3, 0.7),
-                "food_pursuit_speed": (rng or random).uniform(1.1, 1.5),
+                "spiral_speed": (rng or random.Random()).uniform(0.8, 1.2),
+                "spiral_growth": (rng or random.Random()).uniform(0.3, 0.7),
+                "food_pursuit_speed": (rng or random.Random()).uniform(1.1, 1.5),
             },
             rng=rng,
         )

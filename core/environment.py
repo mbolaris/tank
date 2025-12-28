@@ -467,7 +467,7 @@ class Environment:
         self.width = width
         self.height = height
         self.time_system = time_system
-        self._rng = rng if rng is not None else random
+        self._rng = rng if rng is not None else random.Random()
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled
@@ -477,6 +477,9 @@ class Environment:
 
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0
+
+        # Optional spawn requester (injected by engine to centralize mutations)
+        self._spawn_requester = None
 
         # Initialize spatial grid for fast proximity queries
         self.spatial_grid = SpatialGrid(width, height, cell_size=150)
@@ -494,6 +497,22 @@ class Environment:
         from core.fish_communication import FishCommunicationSystem
 
         self.communication_system = FishCommunicationSystem(max_signals=50, decay_rate=0.05)
+
+    def set_spawn_requester(self, requester) -> None:
+        """Inject a spawn requester callback from the simulation engine.
+
+        The requester should accept (entity, reason=..., metadata=...) and return bool.
+        """
+        self._spawn_requester = requester
+
+    def request_spawn(self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """Request an entity spawn via the engine's mutation queue.
+
+        Returns False if no requester is configured.
+        """
+        if self._spawn_requester is None:
+            return False
+        return bool(self._spawn_requester(entity, reason=reason, metadata=metadata))
 
     def update_detection_modifier(self) -> None:
         """Update cached detection range modifier from time system.

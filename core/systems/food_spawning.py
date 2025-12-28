@@ -98,7 +98,7 @@ class FoodSpawningSystem(BaseSystem):
             display_config: Display config for spawn bounds
         """
         super().__init__(engine, "FoodSpawning")
-        self._rng = rng if rng is not None else random
+        self._rng = rng if rng is not None else random.Random()
         self.config = spawn_rate_config if spawn_rate_config is not None else SpawnRateConfig()
         self._auto_food_enabled = auto_food_enabled
         self._screen_width = (display_config.screen_width if display_config else SCREEN_WIDTH)
@@ -219,11 +219,12 @@ class FoodSpawningSystem(BaseSystem):
             # Auto-spawned food should fall; exclude stationary types like nectar.
             food = food_pool.acquire(environment, x, y, allow_stationary_types=False)
 
-        # Add to simulation
-        self._engine.add_entity(food)
-        self._total_spawned += 1
+        # Add to simulation via mutation queue
+        if self._engine.request_spawn(food, reason="auto_food_spawn"):
+            self._total_spawned += 1
+            return 1
 
-        return 1
+        return 0
 
     def get_debug_info(self) -> Dict[str, Any]:
         """Return food spawning statistics for debugging.

@@ -25,6 +25,9 @@ live here, and the engine simply calls this system's methods.
 
 To add new removal rules: Add a method here, call from _phase_lifecycle.
 Do NOT add inline removal logic in SimulationEngine.
+
+Removal requests are queued through the engine mutation queue and applied
+between phases to prevent mid-iteration mutations.
 """
 
 import logging
@@ -117,7 +120,7 @@ class EntityLifecycleSystem(BaseSystem):
 
         elif isinstance(entity, Plant):
             entity.die()  # Release root spot
-            self._engine.remove_entity(entity)
+            self._engine.request_remove(entity, reason="plant_death")
             self._deaths_this_frame += 1
             self._total_deaths += 1
             self._plants_died += 1
@@ -125,11 +128,11 @@ class EntityLifecycleSystem(BaseSystem):
             return True
 
         elif isinstance(entity, PlantNectar):
-            self._engine.remove_entity(entity)
+            self._engine.request_remove(entity, reason="plant_nectar_expired")
             return True
 
         elif isinstance(entity, Food):
-            self._engine.remove_entity(entity)
+            self._engine.request_remove(entity, reason="food_removed")
             self._food_removed += 1
             return True
 
@@ -157,13 +160,13 @@ class EntityLifecycleSystem(BaseSystem):
 
         if isinstance(entity, LiveFood):
             if entity.is_expired():
-                self._engine.remove_entity(entity)
+                self._engine.request_remove(entity, reason="food_expired")
                 self._food_removed += 1
                 return True
         else:
             # Standard food sinks off bottom
             if entity.pos.y >= screen_height - entity.height:
-                self._engine.remove_entity(entity)
+                self._engine.request_remove(entity, reason="food_offscreen")
                 self._food_removed += 1
                 return True
 
@@ -245,7 +248,7 @@ class EntityLifecycleSystem(BaseSystem):
                     to_remove.append(entity)
 
         for fish in to_remove:
-            self._engine.remove_entity(fish)
+            self._engine.request_remove(fish, reason="death_effect_complete")
 
     def get_debug_info(self) -> Dict[str, Any]:
         """Return lifecycle statistics for debugging.

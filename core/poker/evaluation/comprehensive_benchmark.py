@@ -14,7 +14,7 @@ Key features:
 from __future__ import annotations
 
 import logging
-import random as rng_module
+import random as pyrandom
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -335,6 +335,7 @@ def run_comprehensive_benchmark(
     frame: int = 0,
     parallel: bool = True,
     max_workers: int = 4,
+    rng: Optional[pyrandom.Random] = None,
 ) -> PopulationBenchmarkResult:
     """Run comprehensive benchmark suite on fish population.
 
@@ -346,6 +347,7 @@ def run_comprehensive_benchmark(
         frame: Current simulation frame
         parallel: Whether to run evaluations in parallel
         max_workers: Max parallel workers
+        rng: Random number generator for deterministic sampling
 
     Returns:
         PopulationBenchmarkResult with all metrics
@@ -377,6 +379,7 @@ def run_comprehensive_benchmark(
 
     sorted_fish = sorted(fish_population, key=get_poker_winnings, reverse=True)
     total_fish = len(sorted_fish)
+    rng = rng if rng is not None else pyrandom.Random()
 
     # Stratified sampling: divide population into tiers and sample from each
     # This ensures we get a representative view of the entire population
@@ -412,13 +415,13 @@ def run_comprehensive_benchmark(
             selected_fish.extend(top_tier)
 
         if len(mid_tier) >= mid_count:
-            mid_sample = rng_module.sample(mid_tier, mid_count)
+            mid_sample = rng.sample(mid_tier, mid_count)
             selected_fish.extend(mid_sample)
         elif mid_tier:
             selected_fish.extend(mid_tier)
 
         if len(bottom_tier) >= bottom_count:
-            bottom_sample = rng_module.sample(bottom_tier, bottom_count)
+            bottom_sample = rng.sample(bottom_tier, bottom_count)
             selected_fish.extend(bottom_sample)
         elif bottom_tier:
             selected_fish.extend(bottom_tier)
@@ -426,7 +429,7 @@ def run_comprehensive_benchmark(
         # Add random samples from any fish not yet selected
         remaining = [f for f in sorted_fish if f not in selected_fish]
         if remaining and random_count > 0:
-            random_sample = rng_module.sample(
+            random_sample = rng.sample(
                 remaining, min(random_count, len(remaining))
             )
             selected_fish.extend(random_sample)
@@ -580,6 +583,7 @@ def run_comprehensive_benchmark(
 def run_quick_benchmark(
     fish_population: List["Fish"],
     frame: int = 0,
+    rng: Optional[pyrandom.Random] = None,
 ) -> PopulationBenchmarkResult:
     """Run a quick benchmark with reduced sample size.
 
@@ -593,12 +597,14 @@ def run_quick_benchmark(
         frame=frame,
         parallel=False,
         max_workers=1,
+        rng=rng,
     )
 
 
 def run_full_benchmark(
     fish_population: List["Fish"],
     frame: int = 0,
+    rng: Optional[pyrandom.Random] = None,
 ) -> PopulationBenchmarkResult:
     """Run a full benchmark with high sample size.
 
@@ -612,4 +618,5 @@ def run_full_benchmark(
         frame=frame,
         parallel=True,
         max_workers=4,
+        rng=rng,
     )

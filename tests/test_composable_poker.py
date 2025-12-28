@@ -248,8 +248,9 @@ class TestComposablePokerStrategyDecisions:
             position_awareness=PositionAwareness.HEAVY_EXPLOIT,
             hand_selection=HandSelection.BALANCED,
         )
-        # Fixed seed for consistency
-        random.seed(42)
+        # Fixed RNGs for consistency
+        rng_ip = random.Random(42)
+        rng_oop = random.Random(42)
         
         # Same marginal hand, different position
         # In position should be more likely to play
@@ -260,8 +261,8 @@ class TestComposablePokerStrategyDecisions:
             pot=30,
             player_energy=100,
             position_on_button=True,
+            rng=rng_ip,
         )
-        random.seed(42)  # Reset
         oop_action, _ = strategy.decide_action(
             hand_strength=0.3,
             current_bet=0,
@@ -269,6 +270,7 @@ class TestComposablePokerStrategyDecisions:
             pot=30,
             player_energy=100,
             position_on_button=False,
+            rng=rng_oop,
         )
         # At least the adjusted strength should differ
         # (Can't guarantee different actions due to randomness)

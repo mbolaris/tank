@@ -15,8 +15,8 @@ class FoodMemorySeeker(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="food_memory_seeker",
             parameters={
-                "memory_strength": (rng or random).uniform(0.5, 1.0),
-                "exploration_rate": (rng or random).uniform(0.2, 0.5),
+                "memory_strength": (rng or random.Random()).uniform(0.5, 1.0),
+                "exploration_rate": (rng or random.Random()).uniform(0.2, 0.5),
             },
             rng=rng,
         )
@@ -39,7 +39,7 @@ class FoodMemorySeeker(BehaviorAlgorithm):
 
         # No food visible, check memory
         if self.food_memory_locations:
-            rng = self.rng or getattr(fish.environment, "rng", random)
+            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             if rng.random() > self.parameters["exploration_rate"]:
                 target = rng.choice(self.food_memory_locations)
             else:

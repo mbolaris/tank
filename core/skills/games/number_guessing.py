@@ -69,7 +69,7 @@ class PatternGenerator:
     
     def __post_init__(self):
         if self.rng is None:
-            self.rng = random
+            self.rng = random.Random()
 
     def reset(self, pattern_type: Optional[PatternType] = None) -> None:
         """Reset the generator, optionally with a new pattern."""
@@ -478,7 +478,7 @@ class NumberGuessingGame(SkillGame):
         Args:
             rng: Optional random number generator for determinism
         """
-        _rng = rng if rng is not None else self.generator.rng or random
+        _rng = rng if rng is not None else self.generator.rng or random.Random()
         weights = [_rng.random() for _ in range(4)]
         total = sum(weights)
         weights = [w / total for w in weights]
@@ -503,7 +503,7 @@ class NumberGuessingGame(SkillGame):
             return
 
         if self._rounds_played > 0 and self._rounds_played % self.pattern_change_frequency == 0:
-            _rng = rng if rng is not None else self.generator.rng or random
+            _rng = rng if rng is not None else self.generator.rng or random.Random()
             patterns = list(PatternType)
             new_pattern = _rng.choice(patterns)
             self.generator.reset(new_pattern)

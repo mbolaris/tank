@@ -94,9 +94,15 @@ tank/
 3. `FoodSpawningSystem` (`core/systems/food_spawning.py`) – deterministic food spawning using engine RNG
 4. `CollisionSystem` (`core/collision_system.py`) – proximity detection and interaction hooks
 5. `ReproductionSystem` (`core/reproduction_system.py`) – mating, offspring creation, and trait inheritance
-6. `PokerSystem` (`core/poker_system.py`) – poker history, throttling, and stats
+6. `PokerSystem` (`core/poker_system.py`) - poker history, throttling, and stats
 
 All systems expose `update(frame)`, `get_debug_info()`, and runtime enable/disable controls via the engine registry.
+
+### Determinism Policy
+
+- Core simulation randomness must flow through `SimulationEngine.rng` or `Environment.rng`.
+- No global RNG calls (`random.*`) in core simulation paths; use injected RNGs or per-instance `Random`.
+- The engine does not seed the global random module; determinism is explicit via seed/RNG injection.
 
 ### 2. Web Backend (backend/)
 
@@ -291,6 +297,8 @@ class BaseSystem(ABC):
 - `_phase_lifecycle()`: Process deaths, add/remove entities
 - `_phase_collision()`: Handle all collisions via CollisionSystem
 - `_phase_reproduction()`: Handle reproduction via ReproductionSystem
+Note: Entity spawns/removals are requested by systems and applied by the engine
+between phases via the mutation queue (no mid-phase collection mutation).
 
 ### Strategy Pattern
 Different movement strategies for entities:

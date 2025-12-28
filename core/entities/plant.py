@@ -111,7 +111,7 @@ class Plant(Agent):
         # Migration timer - check for migration every 300 frames (5 seconds at 60fps)
         # Add random offset to prevent synchronized migrations (use environment RNG)
         self.migration_check_interval = 300
-        rng = getattr(environment, "rng", random)
+        rng = getattr(environment, "rng", None) or random.Random()
         self.migration_timer = rng.randint(0, self.migration_check_interval)
 
         # Statistics
@@ -310,7 +310,7 @@ class Plant(Agent):
         # Use a fixed offset from the TOP of the bounding box (where branches are)
         # Random position in top 15% of the visual tree (which is upper portion of bbox)
         # Use environment RNG for determinism
-        rng = getattr(self.environment, "rng", random)
+        rng = getattr(self.environment, "rng", None) or random.Random()
         top_offset_pct = rng.uniform(0.02, 0.15)  # 2-15% down from top of bbox
 
         nectar_x = self.pos.x + self.width / 2
@@ -442,7 +442,7 @@ class Plant(Agent):
             return
 
         try:
-            rng = getattr(self.environment, "rng", random)
+            rng = getattr(self.environment, "rng", None) or random.Random()
             food = Food(
                 environment=self.environment,
                 x=self.pos.x + self.width / 2 + rng.uniform(-20, 20),
@@ -452,7 +452,10 @@ class Plant(Agent):
             food.energy = min(overflow, food.max_energy)
             food.max_energy = food.energy
 
-            if hasattr(self.environment, "add_entity"):
+            request_spawn = getattr(self.environment, "request_spawn", None)
+            if callable(request_spawn):
+                request_spawn(food, reason="plant_overflow_food")
+            elif hasattr(self.environment, "add_entity"):
                 self.environment.add_entity(food)
 
             if self.ecosystem is not None:
@@ -623,7 +626,7 @@ class Plant(Agent):
         if direction is not None:
             # Attempt migration with a probability (20% per check)
             # This makes migration less aggressive than guaranteed (use environment RNG)
-            rng = getattr(self.environment, "rng", random)
+            rng = getattr(self.environment, "rng", None) or random.Random()
             if rng.random() < 0.20:
                 self._attempt_migration(direction)
 

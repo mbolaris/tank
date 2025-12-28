@@ -199,7 +199,7 @@ class Agent:
         Uses environment's RNG when available for deterministic behavior.
         """
         # Use environment's rng if available for deterministic simulation
-        _rng = getattr(self.environment, 'rng', None) or random
+        _rng = getattr(self.environment, "rng", None) or random.Random()
         random_x_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         random_y_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         self.vel.x += random_x_direction / divisor

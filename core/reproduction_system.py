@@ -130,15 +130,15 @@ class ReproductionSystem(BaseSystem):
             # Access the trait correctly
             asexual_trait = fish.genome.behavioral.asexual_reproduction_chance.value
             # Use environment RNG for determinism
-            rng = getattr(fish.environment, "rng", random)
+            rng = getattr(fish.environment, "rng", None) or random.Random()
             if rng.random() < asexual_trait:
                 # Trigger instant asexual reproduction
                 baby = fish._create_asexual_offspring()
                 if baby is not None:
                     # Add baby to simulation
-                    self._engine.add_entity(baby)
-                    baby.register_birth()
-                    self._asexual_triggered += 1
+                    if self._engine.request_spawn(baby, reason="asexual_reproduction"):
+                        baby.register_birth()
+                        self._asexual_triggered += 1
 
     def _handle_emergency_spawning(self, frame: int) -> None:
         """Handle emergency spawning when population is critical."""
@@ -229,7 +229,7 @@ class ReproductionSystem(BaseSystem):
         if hasattr(self._engine, "lifecycle_system"):
             self._engine.lifecycle_system.record_emergency_spawn()
 
-        self._engine.add_entity(new_fish)
+        self._engine.request_spawn(new_fish, reason="emergency_spawn")
 
     def get_debug_info(self) -> Dict[str, Any]:
         """Return reproduction statistics for debugging.

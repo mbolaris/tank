@@ -32,8 +32,8 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="greedy_food_seeker",
             parameters={
-                "speed_multiplier": (rng or random).uniform(0.7, 1.3),
-                "detection_range": (rng or random).uniform(0.5, 1.0),
+                "speed_multiplier": (rng or random.Random()).uniform(0.7, 1.3),
+                "detection_range": (rng or random.Random()).uniform(0.5, 1.0),
             },
             rng=rng,
         )

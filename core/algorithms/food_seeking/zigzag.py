@@ -19,13 +19,13 @@ class ZigZagForager(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="zigzag_forager",
             parameters={
-                "zigzag_frequency": (rng or random).uniform(0.02, 0.08),
-                "zigzag_amplitude": (rng or random).uniform(0.5, 1.2),
-                "forward_speed": (rng or random).uniform(0.6, 1.0),
+                "zigzag_frequency": (rng or random.Random()).uniform(0.02, 0.08),
+                "zigzag_amplitude": (rng or random.Random()).uniform(0.5, 1.2),
+                "forward_speed": (rng or random.Random()).uniform(0.6, 1.0),
             },
             rng=rng,
         )
-        self.zigzag_phase = (rng or random).uniform(0, 2 * math.pi)
+        self.zigzag_phase = (rng or random.Random()).uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

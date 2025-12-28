@@ -13,7 +13,7 @@ class GTOExpertStrategy(PokerStrategyAlgorithm):
     """GTO-inspired expert strategy using optimal frequencies and ranges."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             strategy_id="gto_expert",
             parameters={

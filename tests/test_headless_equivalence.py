@@ -4,8 +4,6 @@ This test demonstrates that web mode and headless CLI mode use the same
 simulation engine and produce equivalent results.
 """
 
-import random
-
 import pytest
 
 from core import entities
@@ -63,9 +61,7 @@ def test_statistical_equivalence():
     for run in range(NUM_RUNS):
         print(f"\nRun #{run + 1}:")
         print("-" * 40)
-        random.seed(SEED + run)
-
-        engine = SimulationEngine(headless=True)
+        engine = SimulationEngine(headless=True, seed=SEED + run)
         engine.setup()
 
         for _frame in range(NUM_FRAMES):

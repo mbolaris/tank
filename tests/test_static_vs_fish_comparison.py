@@ -11,7 +11,7 @@ with their own aggression parameters and decision-making logic.
 """
 
 import random
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from core.algorithms.poker import PokerChallenger, PokerConservative, PokerGambler
 from core.auto_evaluate_poker import AutoEvaluatePokerGame, AutoEvaluateStats
@@ -98,7 +98,10 @@ class PokerComparisonResults:
 
 
 def create_fish_player_config(
-    behavior_class, fish_id: int, poker_strategy_class=None
+    behavior_class,
+    fish_id: int,
+    poker_strategy_class=None,
+    rng: Optional[random.Random] = None,
 ) -> Dict:
     """Create a fish player configuration for auto-evaluation.
 
@@ -114,7 +117,8 @@ def create_fish_player_config(
         poker_strategy_class = BalancedStrategy
 
     # Create a poker strategy instance for this fish
-    poker_strategy = poker_strategy_class()
+    rng = rng if rng is not None else random.Random()
+    poker_strategy = poker_strategy_class(rng=rng)
     strategy_name = poker_strategy.strategy_id
 
     return {
@@ -142,15 +146,21 @@ def test_static_vs_poker_challenger():
     print("\nNote: The behavior affects fish movement, but poker skill comes from")
     print("      the evolved strategy and aggression parameters.")
 
-    random.seed(42)  # For reproducibility
+    rng = random.Random(42)  # For reproducibility
     results = PokerComparisonResults("PokerChallenger")
 
     # Create 3 fish with PokerChallenger behavior and different poker strategies
     # Challenger = aggressive seekers, so give them aggressive poker strategies
     fish_players = [
-        create_fish_player_config(PokerChallenger, fish_id=1, poker_strategy_class=LooseAggressiveStrategy),
-        create_fish_player_config(PokerChallenger, fish_id=2, poker_strategy_class=TightAggressiveStrategy),
-        create_fish_player_config(PokerChallenger, fish_id=3, poker_strategy_class=BalancedStrategy),
+        create_fish_player_config(
+            PokerChallenger, fish_id=1, poker_strategy_class=LooseAggressiveStrategy, rng=rng
+        ),
+        create_fish_player_config(
+            PokerChallenger, fish_id=2, poker_strategy_class=TightAggressiveStrategy, rng=rng
+        ),
+        create_fish_player_config(
+            PokerChallenger, fish_id=3, poker_strategy_class=BalancedStrategy, rng=rng
+        ),
     ]
 
     print(f"\nCreated {len(fish_players)} fish with poker strategies:")
@@ -193,15 +203,21 @@ def test_static_vs_poker_gambler():
     print("  - Balances poker and food at medium energy")
     print("  - High risk tolerance in movement (affects WHEN they play)")
 
-    random.seed(123)  # Different seed
+    rng = random.Random(123)  # Different seed
     results = PokerComparisonResults("PokerGambler")
 
     # Create 3 fish with PokerGambler behavior
     # Gambler = high risk, so give them aggressive/risky poker strategies
     fish_players = [
-        create_fish_player_config(PokerGambler, fish_id=4, poker_strategy_class=ManiacStrategy),
-        create_fish_player_config(PokerGambler, fish_id=5, poker_strategy_class=LooseAggressiveStrategy),
-        create_fish_player_config(PokerGambler, fish_id=6, poker_strategy_class=LoosePassiveStrategy),
+        create_fish_player_config(
+            PokerGambler, fish_id=4, poker_strategy_class=ManiacStrategy, rng=rng
+        ),
+        create_fish_player_config(
+            PokerGambler, fish_id=5, poker_strategy_class=LooseAggressiveStrategy, rng=rng
+        ),
+        create_fish_player_config(
+            PokerGambler, fish_id=6, poker_strategy_class=LoosePassiveStrategy, rng=rng
+        ),
     ]
 
     print(f"\nCreated {len(fish_players)} fish with poker strategies:")
@@ -242,15 +258,21 @@ def test_static_vs_poker_conservative():
     print("  - Requires significant energy advantage over opponent")
     print("  - Very selective movement (affects WHEN they play)")
 
-    random.seed(456)  # Different seed
+    rng = random.Random(456)  # Different seed
     results = PokerComparisonResults("PokerConservative")
 
     # Create 3 fish with PokerConservative behavior
     # Conservative = risk-averse, so give them tight/passive poker strategies
     fish_players = [
-        create_fish_player_config(PokerConservative, fish_id=7, poker_strategy_class=TightPassiveStrategy),
-        create_fish_player_config(PokerConservative, fish_id=8, poker_strategy_class=TightAggressiveStrategy),
-        create_fish_player_config(PokerConservative, fish_id=9, poker_strategy_class=BalancedStrategy),
+        create_fish_player_config(
+            PokerConservative, fish_id=7, poker_strategy_class=TightPassiveStrategy, rng=rng
+        ),
+        create_fish_player_config(
+            PokerConservative, fish_id=8, poker_strategy_class=TightAggressiveStrategy, rng=rng
+        ),
+        create_fish_player_config(
+            PokerConservative, fish_id=9, poker_strategy_class=BalancedStrategy, rng=rng
+        ),
     ]
 
     print(f"\nCreated {len(fish_players)} fish with poker strategies:")

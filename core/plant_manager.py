@@ -105,7 +105,7 @@ class PlantManager:
         self.environment = environment
         self.ecosystem = ecosystem
         self._entity_adder = entity_adder
-        self.rng = rng if rng is not None else random
+        self.rng = rng if rng is not None else random.Random()
 
         # Initialize root spot manager
         self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)
@@ -113,6 +113,22 @@ class PlantManager:
         # Track reconciliation and respawns
         self._last_reconcile_frame: int = -1
         self._last_emergency_respawn_frame: int = -PLANT_EMERGENCY_RESPAWN_COOLDOWN
+
+    def _request_spawn(self, entity: "Agent", *, reason: str) -> bool:
+        """Request a spawn via the engine mutation queue when available."""
+        requester = getattr(self._entity_adder, "request_spawn", None)
+        if callable(requester):
+            return requester(entity, reason=reason)
+        self._entity_adder.add_entity(entity)
+        return True
+
+    def _request_remove(self, entity: "Agent", *, reason: str) -> bool:
+        """Request a removal via the engine mutation queue when available."""
+        requester = getattr(self._entity_adder, "request_remove", None)
+        if callable(requester):
+            return requester(entity, reason=reason)
+        self._entity_adder.remove_entity(entity)
+        return True
 
     @property
     def enabled(self) -> bool:
@@ -254,7 +270,7 @@ class PlantManager:
             if not spot.claim(plant):
                 continue
 
-            self._entity_adder.add_entity(plant)
+            self._request_spawn(plant, reason="initial_plants")
             created += 1
 
         logger.info(f"Created {created} baseline strategy plants")
@@ -312,7 +328,8 @@ class PlantManager:
         if not spot.claim(plant):
             return False
 
-        self._entity_adder.add_entity(plant)
+        if not self._request_spawn(plant, reason="emergency_respawn"):
+            return False
         self._last_emergency_respawn_frame = frame_count
         logger.info(f"Plant respawned (pop={plant_count}, strategy={strategy_type.value}): #{plant.plant_id}")
         return True
@@ -364,7 +381,7 @@ class PlantManager:
         if not spot.claim(plant):
             return Err(f"Failed to claim root spot at ({spot.x:.0f}, {spot.y:.0f})")
 
-        self._entity_adder.add_entity(plant)
+        self._request_spawn(plant, reason="sprout_new_plant")
         strategy_info = f", strategy={parent_genome.strategy_type}" if parent_genome.strategy_type else ""
         logger.debug(
             f"Sprouted new plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f}){strategy_info}"
@@ -426,7 +443,7 @@ class PlantManager:
             plants_to_remove.append(entity)
 
         for plant in plants_to_remove:
-            self._entity_adder.remove_entity(plant)
+            self._request_remove(plant, reason="reconcile_plants")
 
         if plants_to_remove:
             logger.info(f"Reconcile: Removed {len(plants_to_remove)} orphaned plants")

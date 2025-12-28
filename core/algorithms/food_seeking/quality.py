@@ -34,8 +34,8 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="food_quality_optimizer",
             parameters={
-                "quality_weight": (rng or random).uniform(0.5, 1.0),
-                "distance_weight": (rng or random).uniform(0.3, 0.7),
+                "quality_weight": (rng or random.Random()).uniform(0.5, 1.0),
+                "distance_weight": (rng or random.Random()).uniform(0.3, 0.7),
             },
             rng=rng,
         )

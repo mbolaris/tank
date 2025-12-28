@@ -79,12 +79,13 @@ class GeneticTrait(Generic[T]):
     mutation_strength: float = 1.0
     hgt_probability: float = 0.1
 
-    def mutate_meta(self, rng: pyrandom.Random = pyrandom) -> None:
+    def mutate_meta(self, rng: Optional[pyrandom.Random] = None) -> None:
         """Mutate the metadata itself (evolution of evolution).
         
         Uses dampened mutation rates to prevent runaway evolvability changes.
         See module-level META_* constants for tuning parameters.
         """
+        rng = rng if rng is not None else pyrandom.Random()
         if rng.random() < META_MUTATION_CHANCE:
             self.mutation_rate = max(
                 META_MUTATION_RATE_MIN,

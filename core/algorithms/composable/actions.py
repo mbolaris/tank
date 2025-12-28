@@ -72,7 +72,7 @@ class BehaviorActionsMixin:
             amplitude = self.parameters.get("erratic_amplitude", 0.5)
             # Add random perpendicular component (use environment RNG for determinism)
             perp = Vector2(-escape_dir.y, escape_dir.x)
-            rng = getattr(fish.environment, "rng", random)
+            rng = getattr(fish.environment, "rng", None) or random.Random()
             erratic = (rng.random() - 0.5) * 2 * amplitude
             vx = escape_dir.x * speed + perp.x * erratic
             vy = escape_dir.y * speed + perp.y * erratic
@@ -292,7 +292,7 @@ class BehaviorActionsMixin:
                 return 0.0, 0.0, False
             seek_radius = self.parameters.get("poker_seek_radius", 120.0)
             nearby = self._find_nearby_fish(fish, seek_radius)
-            rng = getattr(fish.environment, "rng", random)
+            rng = getattr(fish.environment, "rng", None) or random.Random()
             if nearby and rng.random() < 0.3:  # 30% chance to engage
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
                 direction = self._safe_normalize(nearest.pos - fish.pos)
@@ -335,7 +335,7 @@ class BehaviorActionsMixin:
     def _default_exploration(self, fish: "Fish") -> Tuple[float, float]:
         """Default wandering behavior when nothing else applies."""
         # Gentle random walk (use environment RNG for determinism)
-        rng = getattr(fish.environment, "rng", random)
+        rng = getattr(fish.environment, "rng", None) or random.Random()
         self._patrol_angle += (rng.random() - 0.5) * 0.2
         vx = math.cos(self._patrol_angle) * 0.3
         vy = math.sin(self._patrol_angle) * 0.3

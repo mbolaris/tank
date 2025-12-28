@@ -13,7 +13,7 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
     """Baseline strategy: always folds to any bet, only checks if allowed."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        super().__init__(strategy_id="always_fold", parameters={}, _rng=rng or random)
+        super().__init__(strategy_id="always_fold", parameters={}, _rng=rng or random.Random())
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None) -> "AlwaysFoldStrategy":
@@ -46,7 +46,7 @@ class RandomStrategy(PokerStrategyAlgorithm):
             "min_raise_fraction": 0.3,
             "max_raise_fraction": 1.0,
         }
-        super().__init__(strategy_id="random", parameters=parameters, _rng=rng or random)
+        super().__init__(strategy_id="random", parameters=parameters, _rng=rng or random.Random())
 
     def decide_action(
         self,

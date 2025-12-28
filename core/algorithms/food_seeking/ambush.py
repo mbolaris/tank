@@ -16,9 +16,9 @@ class AmbushFeeder(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="ambush_feeder",
             parameters={
-                "strike_distance": (rng or random).uniform(30, 80),
-                "strike_speed": (rng or random).uniform(1.0, 1.5),
-                "patience": (rng or random).uniform(0.5, 1.0),
+                "strike_distance": (rng or random.Random()).uniform(30, 80),
+                "strike_speed": (rng or random.Random()).uniform(1.0, 1.5),
+                "patience": (rng or random.Random()).uniform(0.5, 1.0),
             },
             rng=rng,
         )

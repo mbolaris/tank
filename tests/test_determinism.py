@@ -19,10 +19,9 @@ def test_simulation_seed_determinism():
     """SimulationEngine should produce identical results with same seed.
 
     PROGRESS MADE:
-    - Fixed ~100+ instances of unseeded random.Random() in core modules
-    - Now using (rng or random) pattern to fall back to global random
-    - SimulationEngine now seeds global random module when seed is provided
-    - Initial entity positions and energies are now deterministic
+    - Core simulation paths use injected RNGs or local Random instances
+    - SimulationEngine no longer seeds the global random module
+    - Initial entity positions and energies are deterministic with a seed
     """
     seed = 12345
     engine1 = SimulationEngine(seed=seed)

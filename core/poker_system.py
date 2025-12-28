@@ -112,11 +112,13 @@ class PokerSystem(BaseSystem):
             and getattr(poker.result, "reproduction_occurred", False)
             and getattr(poker.result, "offspring", None) is not None
         ):
-            self._engine.add_entity(poker.result.offspring)
-            if hasattr(poker.result.offspring, "register_birth"):
-                poker.result.offspring.register_birth()
-            if hasattr(self._engine, "lifecycle_system"):
-                self._engine.lifecycle_system.record_birth()
+            if self._engine.request_spawn(
+                poker.result.offspring, reason="poker_reproduction"
+            ):
+                if hasattr(poker.result.offspring, "register_birth"):
+                    poker.result.offspring.register_birth()
+                if hasattr(self._engine, "lifecycle_system"):
+                    self._engine.lifecycle_system.record_birth()
 
     def _add_poker_event_to_history(
         self,
@@ -390,7 +392,7 @@ class PokerSystem(BaseSystem):
                     elif isinstance(player, Plant) and player.is_dead():
                         if player in all_entities_set:
                             player.die()
-                            self._engine.remove_entity(player)
+                            self._engine.request_remove(player, reason="poker_plant_death")
                             all_entities_set.discard(player)
 
             except Exception:
@@ -506,8 +508,8 @@ class PokerSystem(BaseSystem):
                 # Trigger instant asexual reproduction
                 baby = winner_fish._create_asexual_offspring()
                 if baby is not None:
-                    self._engine.add_entity(baby)
-                    baby.register_birth()
+                    if self._engine.request_spawn(baby, reason="poker_reproduction"):
+                        baby.register_birth()
 
     # =========================================================================
     # Post-Poker Fish-Fish Reproduction
@@ -592,7 +594,8 @@ class PokerSystem(BaseSystem):
         if baby is None:
             return None
 
-        self._engine.add_entity(baby)
+        if not self._engine.request_spawn(baby, reason="poker_reproduction"):
+            return None
         baby.register_birth()
         if hasattr(self._engine, "lifecycle_system"):
             self._engine.lifecycle_system.record_birth()

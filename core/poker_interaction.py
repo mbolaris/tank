@@ -173,7 +173,7 @@ def should_offer_post_poker_reproduction(
         if is_winner
         else POST_POKER_REPRODUCTION_LOSER_PROB
     )
-    rng = rng if rng is not None else random
+    rng = rng if rng is not None else random.Random()
     return rng.random() < offer_prob
 
 

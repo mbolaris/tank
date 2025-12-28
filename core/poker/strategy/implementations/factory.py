@@ -58,7 +58,7 @@ def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrat
     Args:
         rng: Random number generator. If None, creates a new Random() instance.
     """
-    _rng = rng if rng is not None else random
+    _rng = rng if rng is not None else random.Random()
     cls = _rng.choice(ALL_POKER_STRATEGIES)
     try:
         return cls.random_instance(rng=_rng)
@@ -90,6 +90,7 @@ def crossover_poker_strategies(
     mutation_rate: float = None,
     mutation_strength: float = None,
     winner_weight: float = None,
+    rng: Optional[random.Random] = None,
 ) -> "PokerStrategyAlgorithm":
     """Crossover two poker strategies with winner-biased inheritance.
 
@@ -106,12 +107,19 @@ def crossover_poker_strategies(
         mutation_rate: Probability of mutating each parameter (0.0-1.0)
         mutation_strength: Standard deviation of Gaussian mutation
         winner_weight: How much parent1 (winner) contributes (0.0-1.0, default 0.8)
+        rng: Random number generator for deterministic crossover/mutation
 
     Returns:
         New offspring poker strategy
     """
     # Handle ComposablePokerStrategy crossover
     from core.poker.strategy.composable import ComposablePokerStrategy
+
+    crossover_rng = rng
+    if crossover_rng is None:
+        parent1_rng = getattr(parent1, "_rng", None) if parent1 is not None else None
+        parent2_rng = getattr(parent2, "_rng", None) if parent2 is not None else None
+        crossover_rng = parent1_rng or parent2_rng or random.Random()
 
     if isinstance(parent1, ComposablePokerStrategy) and isinstance(parent2, ComposablePokerStrategy):
         cfg = POKER_EVOLUTION_CONFIG
@@ -126,13 +134,22 @@ def crossover_poker_strategies(
             weight1=winner_weight,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
+            rng=crossover_rng,
         )
 
     # If one is composable and other is not, prefer composable offspring
     if isinstance(parent1, ComposablePokerStrategy):
-        return parent1.clone_with_mutation(mutation_rate or 0.10, mutation_strength or 0.12)
+        return parent1.clone_with_mutation(
+            mutation_rate or 0.10,
+            mutation_strength or 0.12,
+            rng=crossover_rng,
+        )
     if isinstance(parent2, ComposablePokerStrategy):
-        return parent2.clone_with_mutation(mutation_rate or 0.10, mutation_strength or 0.12)
+        return parent2.clone_with_mutation(
+            mutation_rate or 0.10,
+            mutation_strength or 0.12,
+            rng=crossover_rng,
+        )
 
     # Legacy crossover for monolithic strategies
     cfg = POKER_EVOLUTION_CONFIG
@@ -150,27 +167,23 @@ def crossover_poker_strategies(
 
     # Novelty injection: small chance of completely random strategy
     # This maintains diversity but at a lower rate to preserve adaptations
-    # Note: Use parent RNG if available, otherwise use global random
-    crossover_rng = parent1._rng if parent1 is not None else (
-        parent2._rng if parent2 is not None else random
-    )
-    
+    # Note: Use parent RNG if available, otherwise use a local RNG
     if crossover_rng.random() < cfg["novelty_injection_rate"]:
         return get_random_poker_strategy(rng=crossover_rng)
 
     if parent1 is None and parent2 is None:
         return get_random_poker_strategy(rng=crossover_rng)
     elif parent1 is None:
-        offspring = parent2.__class__(rng=parent2._rng)
+        offspring = parent2.__class__(rng=crossover_rng)
         offspring.parameters = parent2.parameters.copy()
     elif parent2 is None:
-        offspring = parent1.__class__(rng=parent1._rng)
+        offspring = parent1.__class__(rng=crossover_rng)
         offspring.parameters = parent1.parameters.copy()
     else:
         same_type = type(parent1) is type(parent2)
         if same_type:
             # Same strategy type: blend parameters with winner-biased weighting
-            offspring = parent1.__class__(rng=parent1._rng)
+            offspring = parent1.__class__(rng=crossover_rng)
             for param_key in parent1.parameters:
                 if param_key in parent2.parameters:
                     # Use winner-biased weighted average
@@ -188,12 +201,12 @@ def crossover_poker_strategies(
                 offspring = get_random_poker_strategy(rng=crossover_rng)
             elif crossover_rng.random() < winner_weight:
                 # Winner-biased selection: prefer winner's (parent1) strategy type
-                offspring = parent1.__class__()
+                offspring = parent1.__class__(rng=crossover_rng)
                 offspring.parameters = parent1.parameters.copy()
             else:
                 # Loser's strategy type selected
-                offspring = parent2.__class__()
+                offspring = parent2.__class__(rng=crossover_rng)
                 offspring.parameters = parent2.parameters.copy()
 
-    offspring.mutate_parameters(mutation_rate, mutation_strength)
+    offspring.mutate_parameters(mutation_rate, mutation_strength, rng=crossover_rng)
     return offspring

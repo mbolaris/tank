@@ -682,6 +682,8 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
                 self.parameter_bounds = {
                     key: (float(low), float(high)) for key, (low, high) in bounds.items()
                 }
+        if self.rng is None:
+            self.rng = random.Random()
 
     @abstractmethod
     def execute(self, fish: "Fish") -> Tuple[float, float]:
@@ -712,7 +714,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
             adaptive_factor: Multiplier for mutation rates (1.0 = normal, <1.0 = less mutation, >1.0 = more mutation)
             rng: Random number generator for determinism. If None, creates a new Random instance.
         """
-        _rng = rng if rng is not None else random
+        _rng = rng or self.rng or random.Random()
         
         # Optimization: If mutation is disabled, return early
         if mutation_rate <= 1e-9 and mutation_strength <= 1e-9:

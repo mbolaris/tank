@@ -30,7 +30,7 @@ class TerritorialDefender(BehaviorAlgorithm):
     """Defend a territory from other fish."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="territorial_defender",
             parameters={
@@ -100,7 +100,7 @@ class RandomExplorer(BehaviorAlgorithm):
     """Explore randomly, covering new ground."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="random_explorer",
             parameters={
@@ -154,7 +154,7 @@ class RandomExplorer(BehaviorAlgorithm):
             avoid_y = -0.5
 
         # Change direction periodically or when hitting boundaries
-        rng = self.rng or getattr(fish.environment, "rng", random)
+        rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
         if rng.random() < self.parameters["change_frequency"] or (avoid_x != 0 or avoid_y != 0):
             # Bias new direction away from edges
             new_x = rng.uniform(-1, 1) + avoid_x
@@ -189,7 +189,7 @@ class WallFollower(BehaviorAlgorithm):
     """Follow along tank walls."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="wall_follower",
             parameters={
@@ -215,10 +215,10 @@ class WallFollower(BehaviorAlgorithm):
 
         # Move parallel to nearest wall
         if min_dist in (dist_to_left, dist_to_right):
-            rng = self.rng or getattr(fish.environment, "rng", random)
+            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             return 0, rng.choice([-1, 1]) * self.parameters["follow_speed"]
         else:
-            rng = self.rng or getattr(fish.environment, "rng", random)
+            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             return rng.choice([-1, 1]) * self.parameters["follow_speed"], 0
 
 
@@ -227,7 +227,7 @@ class CornerSeeker(BehaviorAlgorithm):
     """Prefer staying in corners."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="corner_seeker",
             parameters={
@@ -266,7 +266,7 @@ class CenterHugger(BehaviorAlgorithm):
     """Stay near the center of the tank."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="center_hugger",
             parameters={
@@ -299,7 +299,7 @@ class RoutePatroller(BehaviorAlgorithm):
     """Patrol between specific waypoints."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="route_patroller",
             parameters={
@@ -320,7 +320,7 @@ class RoutePatroller(BehaviorAlgorithm):
 
         if not self.initialized:
             # Create strategic waypoints - cover different areas of tank
-            rng = self.rng or getattr(fish.environment, "rng", random)
+            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             num_waypoints = rng.randint(4, 7)
             for i in range(num_waypoints):
                 # Distribute waypoints in a pattern
@@ -409,7 +409,7 @@ class BoundaryExplorer(BehaviorAlgorithm):
     """Explore edges and boundaries."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="boundary_explorer",
             parameters={
@@ -439,7 +439,7 @@ class NomadicWanderer(BehaviorAlgorithm):
     """Wander continuously without a home base."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="nomadic_wanderer",
             parameters={
@@ -471,7 +471,7 @@ class NomadicWanderer(BehaviorAlgorithm):
                 # Flee but maintain nomadic unpredictability
                 base_escape = self._safe_normalize(fish.pos - nearest_predator.pos)
                 perp_x, perp_y = -base_escape.y, base_escape.x
-                rng = self.rng or getattr(fish.environment, "rng", random)
+                rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
                 randomness = rng.uniform(-0.4, 0.4)
                 vx = base_escape.x * 1.0 + perp_x * randomness
                 vy = base_escape.y * 1.0 + perp_y * randomness
@@ -500,11 +500,11 @@ class NomadicWanderer(BehaviorAlgorithm):
             to_center_x = center_x - fish_x
             to_center_y = center_y - fish_y
             # Blend turn toward center with random wandering
-            rng = self.rng or getattr(fish.environment, "rng", random)
+            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             self.wander_angle = math.atan2(to_center_y, to_center_x) + rng.gauss(0, 0.3)
 
         # Gradually change direction with smooth random walk
-        rng = self.rng or getattr(fish.environment, "rng", random)
+        rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
         angle_change = rng.gauss(0, self.parameters["direction_change_rate"])
         self.wander_angle += angle_change
 

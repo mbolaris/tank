@@ -58,6 +58,7 @@ from core.root_spots import RootSpotManager
 from core.services.stats_calculator import StatsCalculator
 from core.simulation.entity_manager import EntityManager
 from core.simulation.system_registry import SystemRegistry
+from core.simulation.entity_mutation_queue import EntityMutationQueue
 
 
 from core.systems.base import BaseSystem
@@ -83,6 +84,11 @@ class SimulationEngine:
         ├── Systems (CollisionSystem, PokerSystem, etc.)
         ├── Managers (PlantManager, EcosystemManager)
         └── Services (StatsCalculator, StatsExporter)
+
+    Mutation Ownership:
+        Systems never mutate entity collections directly. They request
+        spawns/removals via the engine's mutation queue, and the engine
+        applies those mutations between phases.
 
     Attributes:
         config: Simulation configuration
@@ -124,16 +130,13 @@ class SimulationEngine:
         self.headless = self.config.headless
 
         # RNG handling: prefer explicit rng, then seed, then fresh RNG
-        # IMPORTANT: Also seed the global random module for determinism
-        # This ensures code that falls back to `random` (not rng) is still deterministic
+        # NOTE: Do not seed the global random module to avoid cross-engine contamination.
         if rng is not None:
             self.rng: random.Random = rng
             self.seed = None
         elif seed is not None:
             self.rng = random.Random(seed)
             self.seed = seed
-            # Seed global random for code that falls back to global random
-            random.seed(seed)
         else:
             self.rng = random.Random()
             self.seed = None
@@ -156,6 +159,9 @@ class SimulationEngine:
 
         # System registry (delegated to SystemRegistry)
         self._system_registry = SystemRegistry()
+
+        # Central mutation queue for spawns/removals
+        self._entity_mutations = EntityMutationQueue()
 
         # Core state
         self.environment: Optional[environment.Environment] = None
@@ -236,6 +242,7 @@ class SimulationEngine:
             self.time_system,
             rng=self.rng,
         )
+        self.environment.set_spawn_requester(self.request_spawn)
 
         # Initialize ecosystem manager
         self.ecosystem = EcosystemManager(max_population=eco_config.max_population)
@@ -275,6 +282,7 @@ class SimulationEngine:
         if self.plant_manager is not None:
             self._block_root_spots_with_obstacles()
             self.plant_manager.create_initial_plants(self._entity_manager.entities_list)
+            self._apply_entity_mutations("setup_plants")
 
     def _build_spawn_rate_config(self) -> SpawnRateConfig:
         """Translate SimulationConfig food settings into SpawnRateConfig."""
@@ -404,6 +412,44 @@ class SimulationEngine:
         """Remove an entity from the simulation."""
         self._entity_manager.remove(entity)
 
+    def request_spawn(
+        self,
+        entity: entities.Agent,
+        *,
+        reason: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Queue a spawn request to be applied by the engine."""
+        return self._entity_mutations.request_spawn(
+            entity, reason=reason, metadata=metadata
+        )
+
+    def request_remove(
+        self,
+        entity: entities.Agent,
+        *,
+        reason: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Queue a removal request to be applied by the engine."""
+        return self._entity_mutations.request_remove(
+            entity, reason=reason, metadata=metadata
+        )
+
+    def is_pending_removal(self, entity: entities.Agent) -> bool:
+        """Check if an entity is queued for removal."""
+        return self._entity_mutations.is_pending_removal(entity)
+
+    def _apply_entity_mutations(self, stage: str) -> None:
+        """Apply queued spawns/removals at a safe point in the frame."""
+        removals = self._entity_mutations.drain_removals()
+        for mutation in removals:
+            self.remove_entity(mutation.entity)
+
+        spawns = self._entity_mutations.drain_spawns()
+        for mutation in spawns:
+            self.add_entity(mutation.entity)
+
     def get_fish_list(self) -> List[entities.Fish]:
         """Get cached list of all fish in the simulation."""
         return self._entity_manager.get_fish()
@@ -526,6 +572,7 @@ class SimulationEngine:
             self.plant_manager.respawn_if_low(
                 self._entity_manager.entities_list, self.frame_count
             )
+        self._apply_entity_mutations("frame_start")
 
     def _phase_time_update(self) -> tuple:
         """TIME_UPDATE: Advance day/night cycle.
@@ -611,16 +658,18 @@ class SimulationEngine:
     ) -> None:
         """LIFECYCLE: Process deaths, add/remove entities.
         
-        This phase is the SINGLE OWNER of entity removal logic:
+        This phase is the SINGLE OWNER of entity removal decisions:
         - Entities marked for removal in entity_act phase
         - Food expiry and off-screen removal
         - Fish death effect cleanup
+
+        Removals/spawns are queued and applied between phases by the engine.
         """
         self._current_phase = UpdatePhase.LIFECYCLE
         
         # Remove entities collected during entity_act phase
         for entity in entities_to_remove:
-            self.remove_entity(entity)
+            self.request_remove(entity, reason="entity_act")
 
         # Process food removal (expiry, off-screen) - LifecycleSystem owns this logic
         screen_height = self.config.display.screen_height
@@ -633,7 +682,9 @@ class SimulationEngine:
 
         # Add new entities spawned during entity_act
         for new_entity in new_entities:
-            self.add_entity(new_entity)
+            self.request_spawn(new_entity, reason="entity_act")
+
+        self._apply_entity_mutations("lifecycle")
 
     def _phase_spawn(self) -> None:
         """SPAWN: Auto-spawn food and update spatial positions."""
@@ -641,6 +692,8 @@ class SimulationEngine:
         
         if self.food_spawning_system:
             self.food_spawning_system.update(self.frame_count)
+
+        self._apply_entity_mutations("spawn")
 
         # Update spatial grid for moved entities
         if self.environment is not None:
@@ -662,6 +715,7 @@ class SimulationEngine:
         self._current_phase = UpdatePhase.COLLISION
         # CollisionSystem._do_update() handles physical collision iteration
         self.collision_system.update(self.frame_count)
+        self._apply_entity_mutations("collision")
 
     def _phase_interaction(self) -> None:
         """INTERACTION: Handle social interactions between entities.
@@ -675,6 +729,7 @@ class SimulationEngine:
         self.poker_proximity_system.update(self.frame_count)
         # Mixed poker (fish-plant, plant-plant) handled by PokerSystem
         self.handle_mixed_poker_games()
+        self._apply_entity_mutations("interaction")
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.
@@ -686,6 +741,7 @@ class SimulationEngine:
         self._current_phase = UpdatePhase.REPRODUCTION
         # ReproductionSystem now handles both mating and emergency spawns
         self.handle_reproduction()
+        self._apply_entity_mutations("reproduction")
 
         ecosystem = self.ecosystem
         if ecosystem is None:

@@ -26,7 +26,7 @@ class EnergyConserver(BehaviorAlgorithm):
     """Minimize movement to conserve energy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="energy_conserver",
             parameters={
@@ -91,7 +91,7 @@ class EnergyConserver(BehaviorAlgorithm):
         if exploration_rate > 0:
         # Gentle wandering to explore for food when idle
             # Use fish_id as stable phase offset and environment RNG for time variation
-            rng = getattr(fish.environment, "_rng", None) or random.Random(fish.fish_id)
+            rng = getattr(fish.environment, "rng", None) or random.Random(fish.fish_id)
             # Generate a pseudo-time from the RNG seeded by fish_id for consistent per-fish behavior
             phase = fish.fish_id * 0.1  # Stable phase offset per fish
             wander_state = rng.random() * 6.283185307  # Random angle
@@ -107,7 +107,7 @@ class BurstSwimmer(BehaviorAlgorithm):
     """Alternate between bursts of activity and rest."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="burst_swimmer",
             parameters={
@@ -196,7 +196,7 @@ class OpportunisticRester(BehaviorAlgorithm):
     """Rest when no food or threats nearby."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="opportunistic_rester",
             parameters={
@@ -232,7 +232,7 @@ class OpportunisticRester(BehaviorAlgorithm):
                 vel_len = math.sqrt(vel_len_sq)
                 return fish.vel.x / vel_len * self.parameters["active_speed"], fish.vel.y / vel_len * self.parameters["active_speed"]
             # If stationary, pick a random direction (use environment RNG for determinism)
-            rng = getattr(fish.environment, "rng", random)
+            rng = getattr(fish.environment, "rng", None) or random.Random()
             angle = rng.random() * 6.283185307
             return self.parameters["active_speed"] * math.cos(angle), self.parameters["active_speed"] * math.sin(angle)
 
@@ -241,7 +241,7 @@ class OpportunisticRester(BehaviorAlgorithm):
         if idle_speed > 0:
             # Gentle random wandering to explore environment
             # Use fish_id as stable phase offset and environment RNG for variation
-            rng = getattr(fish.environment, "_rng", None) or random.Random(fish.fish_id)
+            rng = getattr(fish.environment, "rng", None) or random.Random(fish.fish_id)
             phase = fish.fish_id * 0.05  # Stable phase offset per fish
             wander_state = rng.random() * 6.283185307  # Random angle
             vx = math.cos(wander_state + phase) * idle_speed
@@ -256,7 +256,7 @@ class EnergyBalancer(BehaviorAlgorithm):
     """Balance energy expenditure with reserves."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="energy_balancer",
             parameters={
@@ -298,7 +298,7 @@ class EnergyBalancer(BehaviorAlgorithm):
                 vel_len = math.sqrt(vel_len_sq)
                 return fish.vel.x / vel_len * 0.1, fish.vel.y / vel_len * 0.1
             # If stationary, pick a random direction to explore (use environment RNG)
-            rng = getattr(fish.environment, "rng", random)
+            rng = getattr(fish.environment, "rng", None) or random.Random()
             angle = rng.random() * 6.283185307
             return 0.1 * math.cos(angle), 0.1 * math.sin(angle)
 
@@ -320,7 +320,7 @@ class EnergyBalancer(BehaviorAlgorithm):
             vel_len = math.sqrt(vel_len_sq)
             return fish.vel.x / vel_len * activity, fish.vel.y / vel_len * activity
         # If stationary, pick random direction (use environment RNG for determinism)
-        rng = getattr(fish.environment, "rng", random)
+        rng = getattr(fish.environment, "rng", None) or random.Random()
         angle = rng.random() * 6.283185307
         return activity * math.cos(angle), activity * math.sin(angle)
 
@@ -330,7 +330,7 @@ class SustainableCruiser(BehaviorAlgorithm):
     """Maintain steady, sustainable pace."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="sustainable_cruiser",
             parameters={
@@ -351,7 +351,7 @@ class SustainableCruiser(BehaviorAlgorithm):
             vel_len = math.sqrt(vel_len_sq)
             return fish.vel.x / vel_len * cruise, fish.vel.y / vel_len * cruise
         # If stationary, pick random direction (use environment RNG for determinism)
-        rng = getattr(fish.environment, "rng", random)
+        rng = getattr(fish.environment, "rng", None) or random.Random()
         angle = rng.random() * 6.283185307
         return cruise * math.cos(angle), cruise * math.sin(angle)
 
@@ -361,7 +361,7 @@ class StarvationPreventer(BehaviorAlgorithm):
     """Prioritize food when energy gets low."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="starvation_preventer",
             parameters={
@@ -436,7 +436,7 @@ class MetabolicOptimizer(BehaviorAlgorithm):
     """Adjust activity based on metabolic efficiency."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="metabolic_optimizer",
             parameters={
@@ -465,7 +465,7 @@ class MetabolicOptimizer(BehaviorAlgorithm):
             vel_len = math.sqrt(vel_len_sq)
             return fish.vel.x / vel_len * speed, fish.vel.y / vel_len * speed
         # If stationary, pick random direction (use environment RNG for determinism)
-        rng = getattr(fish.environment, "rng", random)
+        rng = getattr(fish.environment, "rng", None) or random.Random()
         angle = rng.random() * 6.283185307
         return speed * math.cos(angle), speed * math.sin(angle)
 
@@ -475,7 +475,7 @@ class AdaptivePacer(BehaviorAlgorithm):
     """Adapt speed based on current energy and environment."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random
+        rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="adaptive_pacer",
             parameters={
@@ -552,7 +552,7 @@ class AdaptivePacer(BehaviorAlgorithm):
         # Default gentle cruising if nothing else to do
         if vx == 0 and vy == 0:
             # Cruise in a gentle pattern using environment RNG for determinism
-            rng = getattr(fish.environment, "_rng", None) or random.Random(fish.fish_id)
+            rng = getattr(fish.environment, "rng", None) or random.Random(fish.fish_id)
             wander_angle = rng.random() * 6.283185307
             vx = math.cos(wander_angle) * base_speed * 0.6
             vy = math.sin(wander_angle * 0.5) * base_speed * 0.3

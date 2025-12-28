@@ -30,9 +30,9 @@ class AggressiveHunter(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="aggressive_hunter",
             parameters={
-                "pursuit_speed": (rng or random).uniform(1.3, 1.7),
-                "detection_range": (rng or random).uniform(250, 400),
-                "strike_speed": (rng or random).uniform(1.5, 2.0),
+                "pursuit_speed": (rng or random.Random()).uniform(1.3, 1.7),
+                "detection_range": (rng or random.Random()).uniform(250, 400),
+                "strike_speed": (rng or random.Random()).uniform(1.5, 2.0),
             },
             rng=rng,
         )

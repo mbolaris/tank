@@ -21,9 +21,9 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="energy_aware_food_seeker",
             parameters={
-                "urgency_threshold": (rng or random).uniform(0.3, 0.7),
-                "calm_speed": (rng or random).uniform(0.3, 0.6),
-                "urgent_speed": (rng or random).uniform(0.8, 1.2),
+                "urgency_threshold": (rng or random.Random()).uniform(0.3, 0.7),
+                "calm_speed": (rng or random.Random()).uniform(0.3, 0.6),
+                "urgent_speed": (rng or random.Random()).uniform(0.8, 1.2),
             },
             rng=rng,
         )

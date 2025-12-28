@@ -25,9 +25,9 @@ class CooperativeForager(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="cooperative_forager",
             parameters={
-                "follow_strength": (rng or random).uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
-                "independence": (rng or random).uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
-                "food_pursuit_speed": (rng or random).uniform(1.1, 1.4),  # NEW
+                "follow_strength": (rng or random.Random()).uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
+                "independence": (rng or random.Random()).uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
+                "food_pursuit_speed": (rng or random.Random()).uniform(1.1, 1.4),  # NEW
             },
             rng=rng,
         )
@@ -73,7 +73,7 @@ class CooperativeForager(BehaviorAlgorithm):
                     norm_x = -dx / pred_dist
                     norm_y = -dy / pred_dist
                 else:
-                    rng = self.rng or getattr(fish.environment, "rng", random)
+                    rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
                     angle = rng.random() * 6.283185  # 2*pi
                     norm_x = math.cos(angle)
                     norm_y = math.sin(angle)
@@ -185,7 +185,7 @@ class CooperativeForager(BehaviorAlgorithm):
             )
 
         # No one to follow, explore independently
-        rng = self.rng or getattr(fish.environment, "rng", random)
+        rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
         if rng.random() < self.parameters["independence"]:
             return rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5)
 

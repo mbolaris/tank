@@ -464,6 +464,7 @@ def _inherit_poker_strategy(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
             winner_weight=winner_weight,  # Pass winner bias to crossover
+            rng=rng,
         )
     else:
         # Default to composable poker strategy for new offspring

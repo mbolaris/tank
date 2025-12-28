@@ -16,8 +16,8 @@ class BottomFeeder(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="bottom_feeder",
             parameters={
-                "preferred_depth": (rng or random).uniform(0.7, 0.9),  # 70-90% from top
-                "search_speed": (rng or random).uniform(0.4, 0.8),
+                "preferred_depth": (rng or random.Random()).uniform(0.7, 0.9),  # 70-90% from top
+                "search_speed": (rng or random.Random()).uniform(0.4, 0.8),
             },
             rng=rng,
         )
@@ -46,7 +46,7 @@ class BottomFeeder(BehaviorAlgorithm):
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
             vx *= (1.0 + pursuit_aggression * 0.5)
         else:
-            rng = self.rng or getattr(fish.environment, "rng", random)
+            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             vx = (
                 self.parameters["search_speed"]
                 if rng.random() > 0.5

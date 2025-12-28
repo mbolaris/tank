@@ -352,9 +352,13 @@ class CollisionSystem(BaseSystem):
                             break  # Fish died, stop checking collisions for it
 
                 elif other_type is Food or isinstance(other, Food):
+                    if self._engine.is_pending_removal(other):
+                        continue
                     # For food: use actual collision check
                     if check_collision(fish, other):
                         self.handle_fish_food_collision(fish, other)
+                        if self._engine.is_pending_removal(other):
+                            all_entities_set.discard(other)
 
         # Note: Fish-fish poker proximity is now handled by PokerProximitySystem
 
@@ -447,7 +451,7 @@ class CollisionSystem(BaseSystem):
 
         for food in food_list:
             # Check if food is still in simulation (may have been eaten)
-            if food not in all_entities_set:
+            if food not in all_entities_set or self._engine.is_pending_removal(food):
                 continue
 
             # Use spatial grid for nearby entity lookup
@@ -468,7 +472,7 @@ class CollisionSystem(BaseSystem):
                     if type(other) is Crab or isinstance(other, Crab):
                         other.eat_food(food)
                         food.get_eaten()
-                        self._engine.remove_entity(food)
+                        self._engine.request_remove(food, reason="crab_food_collision")
                         all_entities_set.discard(food)
                         self._frame_entities_removed += 1
                         break
@@ -498,19 +502,19 @@ class CollisionSystem(BaseSystem):
                 rng = (
                     self._engine.rng
                     if hasattr(self._engine, "rng") and self._engine.rng
-                    else random
+                    else random.Random()
                 )
                 if rng.random() < PLANT_SPROUTING_CHANCE:
                     self._engine.sprout_new_plant(parent_genome, parent_x, parent_y)
 
-                self._engine.remove_entity(food)
+                self._engine.request_remove(food, reason="plant_nectar_consumed")
                 self._frame_entities_removed += 1
         else:
             fish.eat(food)
 
             if food.is_fully_consumed():
                 food.get_eaten()
-                self._engine.remove_entity(food)
+                self._engine.request_remove(food, reason="food_consumed")
                 self._frame_entities_removed += 1
 
     def get_debug_info(self) -> Dict[str, Any]:

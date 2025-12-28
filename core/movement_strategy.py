@@ -127,7 +127,7 @@ class AlgorithmicMovement(MovementStrategy):
         # Anti-stuck mechanism: if velocity is very low, add small random nudge
         # This prevents fish from getting permanently stuck at (0,0)
         if vel_length_sq < 0.01:
-            rng = getattr(sprite.environment, "rng", random)
+            rng = getattr(sprite.environment, "rng", None) or random.Random()
             angle = rng.random() * 6.283185307
             nudge_speed = speed * 0.3  # Small nudge to get unstuck
             vel.x = nudge_speed * math.cos(angle)

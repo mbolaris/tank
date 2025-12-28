@@ -1,7 +1,5 @@
 """Test simulation determinism with seeded random."""
 
-import random
-
 import pytest
 
 from core import entities
@@ -15,14 +13,10 @@ def test_simulation_determinism():
     """Verify two runs with the same seed produce identical results.
     
     ROOT CAUSES (Phase 1 cleanup targets):
-    1. Poker strategy implementations use `rng = rng or random` anti-pattern
-       where the `random` module is treated as a Random instance (it's not!)
-    2. `PokerStrategyAlgorithm.mutate_parameters()` uses `random.random()`
-    3. Various `decide_action()` methods call `random.random()` directly
-    4. `BehaviorAlgorithm.mutate_parameters()` uses global random
-    5. Multiple core modules (skill games, food spawning, tank world) use global random
+    1. Some decision paths still depend on iteration order and stochastic ties
+    2. RNG threading is improved but not yet enforced everywhere
     
-    FIX: Add `rng` to World Protocol and thread through all randomness.
+    FIX: Keep threading RNGs through all core paths and stabilize ordering.
     """
     print("=" * 80)
     print("TESTING: Simulation Determinism")
@@ -34,8 +28,7 @@ def test_simulation_determinism():
     # Run simulation #1
     print("\n1. Running simulation #1...")
     print("-" * 40)
-    random.seed(SEED)
-    sim1 = SimulationEngine(headless=True)
+    sim1 = SimulationEngine(headless=True, seed=SEED)
     sim1.setup()
 
     for frame in range(NUM_FRAMES):
@@ -56,8 +49,7 @@ def test_simulation_determinism():
     # Run simulation #2 with same seed
     print("\n2. Running simulation #2 (same seed)...")
     print("-" * 40)
-    random.seed(SEED)
-    sim2 = SimulationEngine(headless=True)
+    sim2 = SimulationEngine(headless=True, seed=SEED)
     sim2.setup()
 
     for frame in range(NUM_FRAMES):

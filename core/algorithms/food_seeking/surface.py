@@ -21,9 +21,9 @@ class SurfaceSkimmer(BehaviorAlgorithm):
         super().__init__(
             algorithm_id="surface_skimmer",
             parameters={
-                "preferred_depth": (rng or random).uniform(0.1, 0.25),  # 10-25% from top
-                "horizontal_speed": (rng or random).uniform(0.8, 1.3),  # INCREASED from 0.5-1.0
-                "dive_for_food_threshold": (rng or random).uniform(150, 250),  # NEW: will dive for food
+                "preferred_depth": (rng or random.Random()).uniform(0.1, 0.25),  # 10-25% from top
+                "horizontal_speed": (rng or random.Random()).uniform(0.8, 1.3),  # INCREASED from 0.5-1.0
+                "dive_for_food_threshold": (rng or random.Random()).uniform(150, 250),  # NEW: will dive for food
             },
             rng=rng,
         )
@@ -99,7 +99,7 @@ class SurfaceSkimmer(BehaviorAlgorithm):
             # IMPROVEMENT: Active patrol instead of random flip
             vx = self.parameters["horizontal_speed"]
             # Change direction periodically
-            rng = self.rng or getattr(fish.environment, "rng", random)
+            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             if rng.random() < 0.02:  # 2% chance per frame to reverse
                 self.parameters["horizontal_speed"] *= -1
             return vx, vy

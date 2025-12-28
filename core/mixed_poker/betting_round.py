@@ -87,11 +87,11 @@ def decide_player_action(
         )
 
     # Fallback: Simple aggression-based decision
-    # Use provided RNG, or fallback to player environment, or generic random
+    # Use provided RNG, or fallback to player environment, or local RNG
     player = players[player_idx]
     _rng = rng
     if _rng is None:
-        _rng = getattr(getattr(player, "environment", None), "rng", random)
+        _rng = getattr(getattr(player, "environment", None), "rng", None) or random.Random()
         
     aggression = ctx.aggression
     play_strength = hand_strength + (aggression - 0.5) * 0.2 + _rng.uniform(-0.1, 0.1)

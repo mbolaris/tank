@@ -115,7 +115,7 @@ class ComposablePokerStrategy:
     @classmethod
     def create_random(cls, rng: Optional[random.Random] = None) -> "ComposablePokerStrategy":
         """Create a random composable poker strategy."""
-        rng = rng or random
+        rng = rng or random.Random()
         return cls(
             hand_selection=HandSelection(rng.randint(0, len(HandSelection) - 1)),
             betting_style=BettingStyle(rng.randint(0, len(BettingStyle) - 1)),
@@ -162,7 +162,7 @@ class ComposablePokerStrategy:
             Tuple of (action, amount)
         """
         # Use provided RNG or create a fallback for backward compatibility
-        _rng = rng if rng is not None else random
+        _rng = rng if rng is not None else random.Random()
         call_amount = max(0, opponent_bet - current_bet)
 
         # Can't call if insufficient energy
@@ -436,7 +436,7 @@ class ComposablePokerStrategy:
             sub_behavior_switch_rate: Probability of switching each sub-behavior
             rng: Random number generator
         """
-        rng = rng or random
+        rng = rng or random.Random()
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
@@ -528,7 +528,7 @@ class ComposablePokerStrategy:
         if strategy is None:
             return None
 
-        rng = rng or random
+        rng = rng or random.Random()
         roll = rng.random()
         cumulative = 0.0
         for action, prob in strategy.items():
@@ -688,7 +688,7 @@ class ComposablePokerStrategy:
         rng: Optional[random.Random] = None,
     ) -> "ComposablePokerStrategy":
         """Create offspring by crossing over two parent strategies."""
-        rng = rng or random
+        rng = rng or random.Random()
 
         # Mendelian inheritance for discrete sub-behaviors
         hand_selection = (
@@ -770,7 +770,7 @@ class ComposablePokerStrategy:
         rng: Optional[random.Random] = None,
     ) -> "ComposablePokerStrategy":
         """Create a mutated clone (for asexual reproduction)."""
-        rng = rng or random
+        rng = rng or random.Random()
         clone = ComposablePokerStrategy(
             hand_selection=self.hand_selection,
             betting_style=self.betting_style,

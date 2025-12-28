@@ -446,7 +446,7 @@ class Fish(Agent):
         try:
             from core.entities.resources import Food
 
-            rng = getattr(self.environment, "rng", random)
+            rng = getattr(self.environment, "rng", None) or random.Random()
             food = Food(
                 environment=self.environment,
                 x=self.pos.x + rng.uniform(-20, 20),
@@ -456,7 +456,10 @@ class Fish(Agent):
             food.energy = min(overflow, food.max_energy)
             food.max_energy = food.energy
 
-            if hasattr(self.environment, "add_entity"):
+            request_spawn = getattr(self.environment, "request_spawn", None)
+            if callable(request_spawn):
+                request_spawn(food, reason="overflow_food")
+            elif hasattr(self.environment, "add_entity"):
                 self.environment.add_entity(food)
 
             if self.ecosystem is not None:
@@ -813,7 +816,7 @@ class Fish(Agent):
             The newly created baby fish, or None if creation failed
         """
         # Obtain RNG for determinism
-        rng = getattr(self.environment, "rng", random)
+        rng = getattr(self.environment, "rng", None) or random.Random()
 
         # Generate offspring genome (also sets cooldown)
         offspring_genome, _unused_fraction = self._reproduction_component.trigger_asexual_reproduction(
