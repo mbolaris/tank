@@ -53,6 +53,7 @@ from core.plant_manager import PlantManager
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
 from core.poker_interaction import PokerInteraction
 from core.poker_system import PokerSystem
+from core.reproduction_coordinator import ReproductionCoordinator
 from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
 from core.services.stats_calculator import StatsCalculator
@@ -177,6 +178,7 @@ class SimulationEngine:
         # Systems - initialized here, registered in setup()
         self.collision_system = CollisionSystem(self)
         self.reproduction_system = ReproductionSystem(self)
+        self.reproduction_coordinator = ReproductionCoordinator(self)
         self.poker_system = PokerSystem(self, max_events=self.config.poker.max_poker_events)
         self.poker_system.enabled = self.config.server.poker_activity_enabled
         self.poker_events = self.poker_system.poker_events
