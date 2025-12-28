@@ -13,13 +13,14 @@ class BottomFeeder(BehaviorAlgorithm):
     """Stay near bottom to catch sinking food."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="bottom_feeder",
             parameters={
-                "preferred_depth": (rng or random.Random()).uniform(0.7, 0.9),  # 70-90% from top
-                "search_speed": (rng or random.Random()).uniform(0.4, 0.8),
+                "preferred_depth": _rng.uniform(0.7, 0.9),  # 70-90% from top
+                "search_speed": _rng.uniform(0.4, 0.8),
             },
-            rng=rng,
+            rng=_rng,
         )
 
     @classmethod

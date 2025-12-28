@@ -22,14 +22,15 @@ class CooperativeForager(BehaviorAlgorithm):
     """Follow other fish to food sources - HEAVILY IMPROVED."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="cooperative_forager",
             parameters={
-                "follow_strength": (rng or random.Random()).uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
-                "independence": (rng or random.Random()).uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
-                "food_pursuit_speed": (rng or random.Random()).uniform(1.1, 1.4),  # NEW
+                "follow_strength": _rng.uniform(0.8, 1.2),  # INCREASED from 0.5-0.9
+                "independence": _rng.uniform(0.5, 0.8),  # INCREASED from 0.2-0.5
+                "food_pursuit_speed": _rng.uniform(1.1, 1.4),  # NEW
             },
-            rng=rng,
+            rng=_rng,
         )
 
     @classmethod

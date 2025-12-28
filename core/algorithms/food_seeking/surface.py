@@ -18,14 +18,15 @@ class SurfaceSkimmer(BehaviorAlgorithm):
     """Stay near surface to catch falling food - IMPROVED for better survival."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="surface_skimmer",
             parameters={
-                "preferred_depth": (rng or random.Random()).uniform(0.1, 0.25),  # 10-25% from top
-                "horizontal_speed": (rng or random.Random()).uniform(0.8, 1.3),  # INCREASED from 0.5-1.0
-                "dive_for_food_threshold": (rng or random.Random()).uniform(150, 250),  # NEW: will dive for food
+                "preferred_depth": _rng.uniform(0.1, 0.25),  # 10-25% from top
+                "horizontal_speed": _rng.uniform(0.8, 1.3),  # INCREASED from 0.5-1.0
+                "dive_for_food_threshold": _rng.uniform(150, 250),  # NEW: will dive for food
             },
-            rng=rng,
+            rng=_rng,
         )
 
     @classmethod

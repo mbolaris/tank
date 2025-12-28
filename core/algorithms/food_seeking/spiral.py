@@ -17,14 +17,15 @@ class SpiralForager(BehaviorAlgorithm):
     """NEW: Spiral outward from center to systematically cover area - replaces weak algorithms."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="spiral_forager",
             parameters={
-                "spiral_speed": (rng or random.Random()).uniform(0.8, 1.2),
-                "spiral_growth": (rng or random.Random()).uniform(0.3, 0.7),
-                "food_pursuit_speed": (rng or random.Random()).uniform(1.1, 1.5),
+                "spiral_speed": _rng.uniform(0.8, 1.2),
+                "spiral_growth": _rng.uniform(0.3, 0.7),
+                "food_pursuit_speed": _rng.uniform(1.1, 1.5),
             },
-            rng=rng,
+            rng=_rng,
         )
         self.spiral_angle = 0
         self.spiral_radius = 10

@@ -16,16 +16,17 @@ class ZigZagForager(BehaviorAlgorithm):
     """Move in zigzag pattern to maximize food discovery."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="zigzag_forager",
             parameters={
-                "zigzag_frequency": (rng or random.Random()).uniform(0.02, 0.08),
-                "zigzag_amplitude": (rng or random.Random()).uniform(0.5, 1.2),
-                "forward_speed": (rng or random.Random()).uniform(0.6, 1.0),
+                "zigzag_frequency": _rng.uniform(0.02, 0.08),
+                "zigzag_amplitude": _rng.uniform(0.5, 1.2),
+                "forward_speed": _rng.uniform(0.6, 1.0),
             },
-            rng=rng,
+            rng=_rng,
         )
-        self.zigzag_phase = (rng or random.Random()).uniform(0, 2 * math.pi)
+        self.zigzag_phase = _rng.uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

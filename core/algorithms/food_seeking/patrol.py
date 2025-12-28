@@ -19,17 +19,18 @@ class PatrolFeeder(BehaviorAlgorithm):
     """Patrol in a pattern looking for food - IMPROVED with better detection."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="patrol_feeder",
             parameters={
-                "patrol_radius": (rng or random.Random()).uniform(100, 200),  # INCREASED from 50-150
-                "patrol_speed": (rng or random.Random()).uniform(0.8, 1.2),  # INCREASED from 0.5-1.0
-                "food_priority": (rng or random.Random()).uniform(1.0, 1.4),  # INCREASED from 0.6-1.0
+                "patrol_radius": _rng.uniform(100, 200),  # INCREASED from 50-150
+                "patrol_speed": _rng.uniform(0.8, 1.2),  # INCREASED from 0.5-1.0
+                "food_priority": _rng.uniform(1.0, 1.4),  # INCREASED from 0.6-1.0
             },
-            rng=rng,
+            rng=_rng,
         )
         self.patrol_center = None
-        self.patrol_angle = (rng or random.Random()).uniform(0, 2 * math.pi)
+        self.patrol_angle = _rng.uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

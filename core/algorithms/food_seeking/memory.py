@@ -12,13 +12,14 @@ class FoodMemorySeeker(BehaviorAlgorithm):
     """Remember where food was found before."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="food_memory_seeker",
             parameters={
-                "memory_strength": (rng or random.Random()).uniform(0.5, 1.0),
-                "exploration_rate": (rng or random.Random()).uniform(0.2, 0.5),
+                "memory_strength": _rng.uniform(0.5, 1.0),
+                "exploration_rate": _rng.uniform(0.2, 0.5),
             },
-            rng=rng,
+            rng=_rng,
         )
         self.food_memory_locations: List[Vector2] = []
 

@@ -18,14 +18,15 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
     """Seek food more aggressively when energy is low."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="energy_aware_food_seeker",
             parameters={
-                "urgency_threshold": (rng or random.Random()).uniform(0.3, 0.7),
-                "calm_speed": (rng or random.Random()).uniform(0.3, 0.6),
-                "urgent_speed": (rng or random.Random()).uniform(0.8, 1.2),
+                "urgency_threshold": _rng.uniform(0.3, 0.7),
+                "calm_speed": _rng.uniform(0.3, 0.6),
+                "urgent_speed": _rng.uniform(0.8, 1.2),
             },
-            rng=rng,
+            rng=_rng,
         )
 
     @classmethod

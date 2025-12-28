@@ -31,13 +31,14 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
     """Prefer high-value food types."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="food_quality_optimizer",
             parameters={
-                "quality_weight": (rng or random.Random()).uniform(0.5, 1.0),
-                "distance_weight": (rng or random.Random()).uniform(0.3, 0.7),
+                "quality_weight": _rng.uniform(0.5, 1.0),
+                "distance_weight": _rng.uniform(0.3, 0.7),
             },
-            rng=rng,
+            rng=_rng,
         )
 
     @classmethod

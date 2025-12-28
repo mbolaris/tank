@@ -151,7 +151,7 @@ def test_plant_records_energy_gains_and_spends(simulation_env):
     )
 
     before_energy = plant.energy
-    plant._collect_energy(time_modifier=1.0)
+    plant._collect_energy(time_of_day=0.5)  # 0.5 = noon = full daylight
     assert plant.energy >= before_energy
     assert ecosystem.plant_energy_sources.get("photosynthesis", 0.0) > 0.0
 

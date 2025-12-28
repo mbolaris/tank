@@ -893,6 +893,90 @@ class Fish(Agent):
 
         return baby
 
+    def _get_visual_bounds_offsets(self) -> Tuple[float, float, float, float]:
+        """Return visual bounds offsets from self.pos for edge clamping.
+
+        Accounts for lifecycle scaling and parametric template geometry so the
+        rendered fish stays inside the tank bounds.
+        """
+        base_size = max(self.width, self.height)
+        lifecycle = getattr(self, "_lifecycle_component", None)
+        size = lifecycle.size if lifecycle is not None and hasattr(lifecycle, "size") else 1.0
+        scaled_base = base_size * size
+
+        genome = getattr(self, "genome", None)
+        physical = getattr(genome, "physical", None) if genome is not None else None
+        if physical is None:
+            return (0.0, scaled_base, 0.0, scaled_base)
+
+        fin_trait = getattr(physical, "fin_size", None)
+        tail_trait = getattr(physical, "tail_size", None)
+        body_trait = getattr(physical, "body_aspect", None)
+        template_trait = getattr(physical, "template_id", None)
+
+        fin_size = fin_trait.value if fin_trait is not None and fin_trait.value is not None else 1.0
+        tail_size = tail_trait.value if tail_trait is not None and tail_trait.value is not None else 1.0
+        body_aspect = body_trait.value if body_trait is not None and body_trait.value is not None else 1.0
+        template_id = (
+            int(template_trait.value)
+            if template_trait is not None and template_trait.value is not None
+            else 0
+        )
+        template_id = max(0, min(5, template_id))
+
+        width_scale = body_aspect
+        height_scale = 1.0
+
+        if template_id == 5:
+            width_scale = body_aspect * 1.3
+            height_scale = 0.7
+            min_x_ratio = min(0.05, 0.3 - 0.08 * fin_size, 0.1 - 0.15 * tail_size)
+            max_x_ratio = 0.98
+            min_y_ratio = min(0.25, 0.35 - 0.12 * fin_size)
+            max_y_ratio = 0.75
+        elif template_id == 4:
+            min_x_ratio = min(0.2, 0.4 - 0.2 * fin_size, 0.25 - 0.18 * tail_size)
+            max_x_ratio = 0.92
+            min_y_ratio = 0.15 - 0.15 * fin_size
+            max_y_ratio = 0.85
+        elif template_id == 3:
+            min_x_ratio = 0.3 - 0.25 * tail_size
+            max_x_ratio = 0.9
+            min_y_ratio = min(0.2, 0.22 - 0.3 * fin_size)
+            max_y_ratio = 0.78 + 0.3 * fin_size
+        elif template_id == 2:
+            min_x_ratio = min(0.2, 0.25 - 0.3 * tail_size)
+            max_x_ratio = 0.95
+            min_y_ratio = 0.2 - 0.25 * fin_size
+            max_y_ratio = 0.8 + 0.25 * fin_size
+        elif template_id == 1:
+            min_x_ratio = min(0.1, 0.4 - 0.1 * fin_size, 0.15 - 0.2 * tail_size)
+            max_x_ratio = 0.95
+            min_y_ratio = min(0.2, 0.3 - 0.15 * fin_size)
+            max_y_ratio = 0.8
+        else:
+            min_x_ratio = min(0.1, 0.35 - 0.15 * fin_size, 0.2 - 0.25 * tail_size)
+            max_x_ratio = 0.95
+            min_y_ratio = min(0.1, 0.15 - 0.2 * fin_size)
+            max_y_ratio = 0.9
+
+        width = scaled_base * width_scale
+        height = scaled_base * height_scale
+        min_x = min_x_ratio * width
+        max_x = max_x_ratio * width
+        min_y = min_y_ratio * height
+        max_y = max_y_ratio * height
+
+        flipped_min_x = scaled_base - max_x
+        flipped_max_x = scaled_base - min_x
+
+        effective_min_x = min(0.0, min_x, flipped_min_x)
+        effective_max_x = max(scaled_base, max_x, flipped_max_x)
+        effective_min_y = min(0.0, min_y)
+        effective_max_y = max(scaled_base, max_y)
+
+        return (effective_min_x, effective_max_x, effective_min_y, effective_max_y)
+
     def handle_screen_edges(self) -> None:
         """Handle the fish hitting the edge of the screen with top margin for energy bar visibility.
 
@@ -902,29 +986,31 @@ class Fish(Agent):
 
         # Get boundaries from environment (World protocol)
         bounds = self.environment.get_bounds()
-        (min_x, min_y), (max_x, max_y) = bounds
+        (env_min_x, env_min_y), (env_max_x, env_max_y) = bounds
+
+        min_x_offset, max_x_offset, min_y_offset, max_y_offset = self._get_visual_bounds_offsets()
 
         # Adjusted top boundary for energy bar visibility
-        adjusted_min_y = max(min_y, FISH_TOP_MARGIN)
+        adjusted_min_y = max(env_min_y, FISH_TOP_MARGIN)
 
         # Horizontal boundaries - check for migration first, then bounce
-        if self.pos.x < min_x:
+        if self.pos.x + min_x_offset < env_min_x:
             if self._attempt_migration("left"):
                 return  # Migration successful, fish removed from this tank
-            self.pos.x = min_x
+            self.pos.x = env_min_x - min_x_offset
             self.vel.x = abs(self.vel.x)  # Bounce right
-        elif self.pos.x + self.width > max_x:
+        elif self.pos.x + max_x_offset > env_max_x:
             if self._attempt_migration("right"):
                 return  # Migration successful, fish removed from this tank
-            self.pos.x = max_x - self.width
+            self.pos.x = env_max_x - max_x_offset
             self.vel.x = -abs(self.vel.x)  # Bounce left
 
         # Vertical boundaries with top margin for energy bar visibility
-        if self.pos.y < adjusted_min_y:
-            self.pos.y = adjusted_min_y
+        if self.pos.y + min_y_offset < adjusted_min_y:
+            self.pos.y = adjusted_min_y - min_y_offset
             self.vel.y = abs(self.vel.y)  # Bounce down
-        elif self.pos.y + self.height > max_y:
-            self.pos.y = max_y - self.height
+        elif self.pos.y + max_y_offset > env_max_y:
+            self.pos.y = env_max_y - max_y_offset
             self.vel.y = -abs(self.vel.y)  # Bounce up
 
     def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":

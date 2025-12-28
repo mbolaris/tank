@@ -134,7 +134,7 @@ class MigrationHandler:
 
             # Remove from source before adding to destination. This prevents entity duplication
             # and keeps population/energy accounting stable.
-            source_manager.world.engine.remove_entity(entity)
+            source_manager.world.engine._remove_entity(entity)
             removed_from_source = True
 
             # Deserialize in destination
@@ -148,7 +148,7 @@ class MigrationHandler:
                             original_root_spot.claim(entity)
                         except Exception:
                             logger.debug("Failed to re-claim root spot after migration failure", exc_info=True)
-                    source_manager.world.engine.add_entity(entity)
+                    source_manager.world.engine._add_entity(entity)
                     return False
 
                 # Failed - restore the original entity to the source tank.
@@ -157,7 +157,7 @@ class MigrationHandler:
                         original_root_spot.claim(entity)
                     except Exception:
                         logger.debug("Failed to re-claim root spot after migration failure", exc_info=True)
-                source_manager.world.engine.add_entity(entity)
+                source_manager.world.engine._add_entity(entity)
                 log_transfer(
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
@@ -182,7 +182,7 @@ class MigrationHandler:
             else:  # right
                 new_entity.pos.x = 10
 
-            dest_manager.world.engine.add_entity(new_entity)
+            dest_manager.world.engine._add_entity(new_entity)
             added_to_destination = True
 
             # Track energy entering the destination tank (for fish only)
@@ -244,7 +244,7 @@ class MigrationHandler:
                                 source_tank_id[:8],
                                 exc_info=True,
                             )
-                    source_manager.world.engine.add_entity(entity)
+                    source_manager.world.engine._add_entity(entity)
                 except Exception:
                     logger.debug(
                         "Failed to restore entity after migration error (tank=%s)",

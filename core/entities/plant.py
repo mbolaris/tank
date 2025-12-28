@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 from core.config.plants import (
     PLANT_BASE_HEIGHT,
     PLANT_BASE_WIDTH,
+    PLANT_DAY_MODIFIER,
+    PLANT_DAWN_DUSK_MODIFIER,
     PLANT_DEATH_ENERGY,
     PLANT_ENERGY_GAIN_MULTIPLIER,
     PLANT_INITIAL_ENERGY,
@@ -38,6 +40,7 @@ from core.config.plants import (
     PLANT_MIN_SIZE,
     PLANT_NECTAR_COOLDOWN,
     PLANT_NECTAR_ENERGY,
+    PLANT_NIGHT_MODIFIER,
 )
 
 logger = logging.getLogger(__name__)
@@ -220,7 +223,7 @@ class Plant(Agent):
             self._check_migration()
 
         # Passive energy collection (compound growth)
-        self._collect_energy(time_modifier)
+        self._collect_energy(time_of_day)
 
         # Update size based on new energy
         self._update_size()
@@ -234,24 +237,53 @@ class Plant(Agent):
 
         return result
 
-    def _collect_energy(self, time_modifier: float = 1.0) -> None:
+    def _collect_energy(self, time_of_day: Optional[float] = None) -> None:
         """Collect passive energy.
 
         Energy collection rate increases with current energy (compound growth).
+        Photosynthesis rate varies with time of day:
+        - Day (0.35-0.65): Full rate
+        - Dawn/Dusk: 70% rate  
+        - Night: 30% rate
 
         Args:
-            time_modifier: Modifier based on time of day
+            time_of_day: Normalized time of day (0.0-1.0), None defaults to full power
         """
         # Base rate from genome
         base_rate = self.genome.base_energy_rate
 
-        # Compound growth factor: more energy = faster collection
-        # Uses sqrt to prevent runaway growth
-        growth_factor = 1.0 + (self.energy / self.max_energy) ** 0.5 * 0.5
+        # Compound growth factor with seedling boost
+        # Large plants (>30% energy): standard compound growth 1.0-1.5x
+        # Small plants (<30% energy): seedling boost to help recovery (1.5-2.0x)
+        # This prevents the "rich get richer" problem where small plants struggle
+        energy_ratio = self.energy / self.max_energy
+        
+        if energy_ratio < 0.3:
+            # Seedling boost: inverse relationship - smaller plants grow faster
+            # At 0% energy: 2.0x, at 30% energy: 1.5x (smooth transition to standard)
+            seedling_boost = 2.0 - (energy_ratio / 0.3) * 0.5
+            growth_factor = seedling_boost
+        else:
+            # Standard compound growth for established plants (1.0-1.5x)
+            # Uses sqrt to prevent runaway growth
+            growth_factor = 1.0 + (energy_ratio ** 0.5) * 0.5
 
-        # Time of day affects photosynthesis
-        # Day = 1.0, Dawn/Dusk = 0.7, Night = 0.3
-        energy_gain = base_rate * growth_factor * time_modifier
+        # Calculate photosynthesis modifier based on time of day
+        # This was previously incorrectly using fish activity modifier (0.5-1.0)
+        # Plants need their own photosynthesis logic: Day=1.0, Dawn/Dusk=0.7, Night=0.3
+        if time_of_day is None:
+            photosynthesis_modifier = PLANT_DAY_MODIFIER
+        elif 0.35 <= time_of_day <= 0.65:
+            # Full daylight (middle 30% of the day)
+            photosynthesis_modifier = PLANT_DAY_MODIFIER
+        elif 0.25 <= time_of_day < 0.35 or 0.65 < time_of_day <= 0.75:
+            # Dawn (0.25-0.35) or Dusk (0.65-0.75)
+            photosynthesis_modifier = PLANT_DAWN_DUSK_MODIFIER
+        else:
+            # Night (before 0.25 or after 0.75)
+            photosynthesis_modifier = PLANT_NIGHT_MODIFIER
+
+        energy_gain = base_rate * growth_factor * photosynthesis_modifier
         energy_gain *= PLANT_ENERGY_GAIN_MULTIPLIER
 
         # Reduce energy production if neighboring root slots are occupied.

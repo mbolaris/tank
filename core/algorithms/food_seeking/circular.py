@@ -20,18 +20,19 @@ class CircularHunter(BehaviorAlgorithm):
     """Circle around food before striking - IMPROVED for better survival."""
 
     def __init__(self, rng: Optional[random.Random] = None):
+        _rng = rng if rng is not None else random.Random()
         super().__init__(
             algorithm_id="circular_hunter",
             parameters={
-                "circle_radius": (rng or random.Random()).uniform(50, 80),
-                "approach_speed": (rng or random.Random()).uniform(0.9, 1.2),
-                "strike_distance": (rng or random.Random()).uniform(60, 100),
-                "exploration_speed": (rng or random.Random()).uniform(0.6, 0.9),
+                "circle_radius": _rng.uniform(50, 80),
+                "approach_speed": _rng.uniform(0.9, 1.2),
+                "strike_distance": _rng.uniform(60, 100),
+                "exploration_speed": _rng.uniform(0.6, 0.9),
             },
-            rng=rng,
+            rng=_rng,
         )
         self.circle_angle = 0
-        self.exploration_direction = (rng or random.Random()).uniform(0, 2 * math.pi)
+        self.exploration_direction = _rng.uniform(0, 2 * math.pi)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
