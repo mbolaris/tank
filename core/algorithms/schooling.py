@@ -302,7 +302,7 @@ class FrontRunner(BehaviorAlgorithm):
             )
 
         # If alone, move in a random direction (use environment RNG for determinism)
-        rng = getattr(fish.environment, "rng", None) or random.Random()
+        rng = fish.environment.rng
         angle = rng.random() * 6.283185307
         speed = self.parameters["independence"]
         return speed * math.cos(angle), speed * math.sin(angle)

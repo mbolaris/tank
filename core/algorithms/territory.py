@@ -154,15 +154,14 @@ class RandomExplorer(BehaviorAlgorithm):
             avoid_y = -0.5
 
         # Change direction periodically or when hitting boundaries
-        rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-        if rng.random() < self.parameters["change_frequency"] or (avoid_x != 0 or avoid_y != 0):
+        if self.rng.random() < self.parameters["change_frequency"] or (avoid_x != 0 or avoid_y != 0):
             # Bias new direction away from edges
-            new_x = rng.uniform(-1, 1) + avoid_x
-            new_y = rng.uniform(-1, 1) + avoid_y
+            new_x = self.rng.uniform(-1, 1) + avoid_x
+            new_y = self.rng.uniform(-1, 1) + avoid_y
             self.current_direction = self._safe_normalize(Vector2(new_x, new_y))
 
         # Sometimes explore toward unexplored areas (away from other fish)
-        if rng.random() < 0.1:
+        if self.rng.random() < 0.1:
             allies = fish.environment.get_agents_of_type(FishClass)
             if len(allies) > 1:
                 # Find average position of other fish using inline math
@@ -215,11 +214,9 @@ class WallFollower(BehaviorAlgorithm):
 
         # Move parallel to nearest wall
         if min_dist in (dist_to_left, dist_to_right):
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-            return 0, rng.choice([-1, 1]) * self.parameters["follow_speed"]
+            return 0, self.rng.choice([-1, 1]) * self.parameters["follow_speed"]
         else:
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-            return rng.choice([-1, 1]) * self.parameters["follow_speed"], 0
+            return self.rng.choice([-1, 1]) * self.parameters["follow_speed"], 0
 
 
 @dataclass
@@ -320,12 +317,11 @@ class RoutePatroller(BehaviorAlgorithm):
 
         if not self.initialized:
             # Create strategic waypoints - cover different areas of tank
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-            num_waypoints = rng.randint(4, 7)
+            num_waypoints = self.rng.randint(4, 7)
             for i in range(num_waypoints):
                 # Distribute waypoints in a pattern
                 angle = (2 * math.pi * i) / num_waypoints
-                radius = rng.uniform(120, 250)
+                radius = self.rng.uniform(120, 250)
                 center_x, center_y = SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2
                 wp_x = center_x + math.cos(angle) * radius
                 wp_y = center_y + math.sin(angle) * radius
@@ -471,8 +467,7 @@ class NomadicWanderer(BehaviorAlgorithm):
                 # Flee but maintain nomadic unpredictability
                 base_escape = self._safe_normalize(fish.pos - nearest_predator.pos)
                 perp_x, perp_y = -base_escape.y, base_escape.x
-                rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-                randomness = rng.uniform(-0.4, 0.4)
+                randomness = self.rng.uniform(-0.4, 0.4)
                 vx = base_escape.x * 1.0 + perp_x * randomness
                 vy = base_escape.y * 1.0 + perp_y * randomness
                 return vx, vy
@@ -500,12 +495,10 @@ class NomadicWanderer(BehaviorAlgorithm):
             to_center_x = center_x - fish_x
             to_center_y = center_y - fish_y
             # Blend turn toward center with random wandering
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-            self.wander_angle = math.atan2(to_center_y, to_center_x) + rng.gauss(0, 0.3)
+            self.wander_angle = math.atan2(to_center_y, to_center_x) + self.rng.gauss(0, 0.3)
 
         # Gradually change direction with smooth random walk
-        rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-        angle_change = rng.gauss(0, self.parameters["direction_change_rate"])
+        angle_change = self.rng.gauss(0, self.parameters["direction_change_rate"])
         self.wander_angle += angle_change
 
         # Add some Perlin-like noise for more natural wandering

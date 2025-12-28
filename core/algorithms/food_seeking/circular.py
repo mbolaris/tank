@@ -57,8 +57,7 @@ class CircularHunter(BehaviorAlgorithm):
         if not nearest_food:
             # CRITICAL FIX: Actively explore instead of stopping!
             # Slowly change direction for more exploration coverage
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-            self.exploration_direction += rng.uniform(-0.3, 0.3)
+            self.exploration_direction += self.rng.uniform(-0.3, 0.3)
             exploration_vec = Vector2(
                 math.cos(self.exploration_direction), math.sin(self.exploration_direction)
             )

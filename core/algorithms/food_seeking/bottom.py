@@ -46,10 +46,9 @@ class BottomFeeder(BehaviorAlgorithm):
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
             vx *= (1.0 + pursuit_aggression * 0.5)
         else:
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
             vx = (
                 self.parameters["search_speed"]
-                if rng.random() > 0.5
+                if self.rng.random() > 0.5
                 else -self.parameters["search_speed"]
             )
 

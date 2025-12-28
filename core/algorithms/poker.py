@@ -151,8 +151,7 @@ class PokerChallenger(BehaviorAlgorithm):
             return direction.x * speed, direction.y * speed
 
         # No fish nearby - wander
-        rng = getattr(self, "rng", None) or random.Random()
-        return rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5)
+        return self.rng.uniform(-0.5, 0.5), self.rng.uniform(-0.5, 0.5)
 
 
 @dataclass
@@ -312,8 +311,7 @@ class PokerGambler(BehaviorAlgorithm):
         # If energy is medium, balance poker with food
         elif energy_ratio > 0.3:
             # 50/50 chance between seeking fish or food
-            rng = getattr(self, "rng", None) or random.Random()
-            if rng.random() < 0.5:
+            if self.rng.random() < 0.5:
                 # OPTIMIZATION: Use spatial query
                 nearest_fish, _ = _find_nearest_fish_spatial(fish, 200)
                 if nearest_fish is not None:
@@ -372,8 +370,7 @@ class SelectivePoker(BehaviorAlgorithm):
         # Only seek poker in the "sweet spot" energy range
         if self.parameters["min_energy_ratio"] < energy_ratio < self.parameters["max_energy_ratio"]:
             # Be selective - only challenge sometimes
-            rng = getattr(self, "rng", None) or random.Random()
-            if rng.random() < self.parameters["selectivity"]:
+            if self.rng.random() < self.parameters["selectivity"]:
                 # OPTIMIZATION: Use spatial query with max distance 150
                 nearest_fish, dist_sq = _find_nearest_fish_spatial(fish, 150)
 
@@ -575,8 +572,7 @@ class PokerStrategist(BehaviorAlgorithm):
                     score -= 0.3 * self.parameters["opponent_tracking"]
 
             # Add some randomness based on aggression variance
-            rng = getattr(self, "rng", None) or random.Random()
-            score += rng.uniform(
+            score += self.rng.uniform(
                 -self.parameters["aggression_variance"], self.parameters["aggression_variance"]
             )
 
@@ -596,8 +592,7 @@ class PokerStrategist(BehaviorAlgorithm):
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * 0.8, direction.y * 0.8
 
-        rng = getattr(self, "rng", None) or random.Random()
-        return rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3)
+        return self.rng.uniform(-0.3, 0.3), self.rng.uniform(-0.3, 0.3)
 
 
 @dataclass
@@ -646,11 +641,10 @@ class PokerBluffer(BehaviorAlgorithm):
         self.mode_timer += 1
         if self.mode_timer >= self.mode_duration:
             # Switch modes randomly
-            rng = getattr(self, "rng", None) or random.Random()
-            if rng.random() < self.parameters["bluff_frequency"]:
+            if self.rng.random() < self.parameters["bluff_frequency"]:
                 modes = ["normal", "aggressive", "passive"]
-                self.current_mode = rng.choice(modes)
-                self.mode_duration = rng.randint(30, 100)
+                self.current_mode = self.rng.choice(modes)
+                self.mode_duration = self.rng.randint(30, 100)
                 self.mode_timer = 0
 
         # Don't bluff if energy is too low
@@ -712,13 +706,12 @@ class PokerBluffer(BehaviorAlgorithm):
 
         else:  # normal mode
             # Balanced approach with unpredictability
-            rng = getattr(self, "rng", None) or random.Random()
-            if other_fish and rng.random() < 0.6:
+            if other_fish and self.rng.random() < 0.6:
                 nearest_fish, _ = _find_nearest_fish_spatial(fish, 150)
                 if nearest_fish is not None:
                     direction = self._safe_normalize(nearest_fish.pos - fish.pos)
                     # Add unpredictable speed variation
-                    speed = 0.8 + rng.uniform(0, self.parameters["unpredictability"])
+                    speed = 0.8 + self.rng.uniform(0, self.parameters["unpredictability"])
                     return direction.x * speed, direction.y * speed
 
             # Default to food seeking
@@ -727,8 +720,7 @@ class PokerBluffer(BehaviorAlgorithm):
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.8, direction.y * 0.8
 
-        rng = getattr(self, "rng", None) or random.Random()
-        return rng.uniform(-0.4, 0.4), rng.uniform(-0.4, 0.4)
+        return self.rng.uniform(-0.4, 0.4), self.rng.uniform(-0.4, 0.4)
 
 
 @dataclass
@@ -799,9 +791,8 @@ class PokerConservative(BehaviorAlgorithm):
                         best_advantage = energy_advantage
                         best_target = other
 
-        # Only engage if we found a favorable matchup (use environment RNG for determinism)
-        rng = getattr(fish.environment, "rng", None) or random.Random()
-        if best_target and rng.random() > self.parameters["max_risk_tolerance"]:
+        # Only engage if we found a favorable matchup
+        if best_target and fish.environment.rng.random() > self.parameters["max_risk_tolerance"]:
             direction = self._safe_normalize(best_target.pos - fish.pos)
             speed = self.parameters["challenge_speed"]
             return direction.x * speed, direction.y * speed

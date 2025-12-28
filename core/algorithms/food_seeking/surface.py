@@ -99,7 +99,6 @@ class SurfaceSkimmer(BehaviorAlgorithm):
             # IMPROVEMENT: Active patrol instead of random flip
             vx = self.parameters["horizontal_speed"]
             # Change direction periodically
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-            if rng.random() < 0.02:  # 2% chance per frame to reverse
+            if self.rng.random() < 0.02:  # 2% chance per frame to reverse
                 self.parameters["horizontal_speed"] *= -1
             return vx, vy

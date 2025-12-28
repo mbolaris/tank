@@ -39,9 +39,8 @@ class FoodMemorySeeker(BehaviorAlgorithm):
 
         # No food visible, check memory
         if self.food_memory_locations:
-            rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-            if rng.random() > self.parameters["exploration_rate"]:
-                target = rng.choice(self.food_memory_locations)
+            if self.rng.random() > self.parameters["exploration_rate"]:
+                target = self.rng.choice(self.food_memory_locations)
             else:
                 # If not randomly exploring, head to the closest remembered location
                 target = min(

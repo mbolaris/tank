@@ -223,7 +223,7 @@ class ErraticEvader(BehaviorAlgorithm):
 
                 # Mix escape direction with random perpendicular movement (use environment RNG)
                 randomness = self.parameters["randomness"]
-                rng = getattr(fish.environment, "rng", None) or random.Random()
+                rng = fish.environment.rng
                 vx = away_dir.x * 0.6 + perp_x * rng.uniform(-randomness, randomness)
                 vy = away_dir.y * 0.6 + perp_y * rng.uniform(-randomness, randomness)
 
@@ -244,8 +244,7 @@ class ErraticEvader(BehaviorAlgorithm):
                     vy -= 0.3
 
                 # Sometimes join nearby fish for group defense (use environment RNG)
-                rng = getattr(fish.environment, "rng", None) or random.Random()
-                if rng.random() < 0.2:
+                if fish.environment.rng.random() < 0.2:
                     allies = [
                         f for f in fish.environment.get_agents_of_type(FishClass) if f != fish
                     ]
@@ -516,8 +515,7 @@ class DistanceKeeper(BehaviorAlgorithm):
                 # In the danger zone, maintain distance
                 # Strafe perpendicular while keeping distance (use environment RNG)
                 perp_x, perp_y = -direction.y, direction.x
-                rng = getattr(fish.environment, "rng", None) or random.Random()
-                if rng.random() > 0.5:
+                if fish.environment.rng.random() > 0.5:
                     perp_x, perp_y = -perp_x, -perp_y
                 return (direction.x * 0.4 + perp_x * 0.6) * self.parameters["flee_speed"], (
                     direction.y * 0.4 + perp_y * 0.6

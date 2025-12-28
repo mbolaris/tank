@@ -73,8 +73,7 @@ class CooperativeForager(BehaviorAlgorithm):
                     norm_x = -dx / pred_dist
                     norm_y = -dy / pred_dist
                 else:
-                    rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-                    angle = rng.random() * 6.283185  # 2*pi
+                    angle = self.rng.random() * 6.283185  # 2*pi
                     norm_x = math.cos(angle)
                     norm_y = math.sin(angle)
                 return norm_x * 1.3, norm_y * 1.3
@@ -185,8 +184,7 @@ class CooperativeForager(BehaviorAlgorithm):
             )
 
         # No one to follow, explore independently
-        rng = self.rng or getattr(fish.environment, "rng", None) or random.Random()
-        if rng.random() < self.parameters["independence"]:
-            return rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5)
+        if self.rng.random() < self.parameters["independence"]:
+            return self.rng.uniform(-0.5, 0.5), self.rng.uniform(-0.5, 0.5)
 
         return 0, 0
