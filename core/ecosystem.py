@@ -712,7 +712,19 @@ class EcosystemManager:
         player1_algo_id: Optional[int] = None,
         player2_algo_id: Optional[int] = None,
     ) -> None:
-        """Record a poker game outcome."""
+        """Record a poker game outcome.
+        
+        .. deprecated::
+            Use record_poker_outcome_record(PokerOutcomeRecord(...)) instead.
+            This multi-parameter method will be removed in a future version.
+        """
+        import warnings
+        warnings.warn(
+            "record_poker_outcome() with multiple parameters is deprecated. "
+            "Use record_poker_outcome_record(PokerOutcomeRecord(...)) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         record = PokerOutcomeRecord(
             winner_id=winner_id,
             loser_id=loser_id,
@@ -752,7 +764,19 @@ class EcosystemManager:
         plant_hand_rank: int,
         won_by_fold: bool,
     ) -> None:
-        """Record a poker game between a fish and a fractal plant."""
+        """Record a poker game between a fish and a fractal plant.
+        
+        .. deprecated::
+            Use record_plant_poker_game_record(PlantPokerOutcomeRecord(...)) instead.
+            This multi-parameter method will be removed in a future version.
+        """
+        import warnings
+        warnings.warn(
+            "record_plant_poker_game() with multiple parameters is deprecated. "
+            "Use record_plant_poker_game_record(PlantPokerOutcomeRecord(...)) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         record = PlantPokerOutcomeRecord(
             fish_id=fish_id,
             plant_id=plant_id,
@@ -813,7 +837,19 @@ class EcosystemManager:
         house_cut: float,
         winner_type: str,
     ) -> None:
-        """Record mixed poker outcome with correct per-economy house cut attribution."""
+        """Record mixed poker outcome with correct per-economy house cut attribution.
+        
+        .. deprecated::
+            Use record_mixed_poker_outcome_record(MixedPokerOutcomeRecord(...)) instead.
+            This multi-parameter method will be removed in a future version.
+        """
+        import warnings
+        warnings.warn(
+            "record_mixed_poker_outcome() with multiple parameters is deprecated. "
+            "Use record_mixed_poker_outcome_record(MixedPokerOutcomeRecord(...)) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         record = MixedPokerOutcomeRecord(
             fish_delta=fish_delta,
             plant_delta=plant_delta,
