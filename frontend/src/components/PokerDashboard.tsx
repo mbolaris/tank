@@ -61,6 +61,13 @@ export const PokerDashboard: React.FC<PokerDashboardProps> = ({ state }) => {
                     <span className="metric-value">{pokerStats?.win_rate_pct ?? "0%"}</span>
                     <span className="metric-subtext">Population Skill Level</span>
                 </div>
+                <div className="metric-card">
+                    <span className="metric-label">🌱 Plant Win Rate</span>
+                    <span className="metric-value">{pokerStats?.plant_win_rate_pct ?? "0.0%"}</span>
+                    <span className="metric-subtext">
+                        {pokerStats?.plant_poker_wins ?? 0}W / {pokerStats?.fish_poker_wins ?? 0}L
+                    </span>
+                </div>
             </div>
 
             {/* Improvement Section - "Are they improving?" */}

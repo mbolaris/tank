@@ -153,6 +153,10 @@ export interface PokerStatsData {
     total_games: number;
     total_fish_games?: number;
     total_plant_games?: number;
+    plant_poker_wins?: number;
+    fish_poker_wins?: number;
+    plant_win_rate?: number;
+    plant_win_rate_pct?: string;
     total_plant_energy_transferred?: number;
     total_wins: number;
     total_losses: number;

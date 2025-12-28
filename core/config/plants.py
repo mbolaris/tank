@@ -26,7 +26,7 @@ PLANT_MATURE_ENERGY = 400.0  # Starting energy for initial/respawned plants
 PLANT_MAX_ENERGY = 400.0  # Maximum energy capacity
 PLANT_MIN_SIZE = 0.3  # Minimum size multiplier
 PLANT_MAX_SIZE = 1.0  # Maximum size multiplier - Reduced from 1.2
-PLANT_DEATH_ENERGY = 5.0  # Energy threshold for death
+PLANT_DEATH_ENERGY = 0.0  # Energy threshold for death (0 = die when empty)
 PLANT_ENERGY_GAIN_MULTIPLIER = 2.5  # Global boost to energy collection
 
 # Plant Emergency Respawn
@@ -49,7 +49,7 @@ PLANT_SPROUTING_CHANCE = 0.5  # Chance to sprout when nectar consumed - Reduced 
 PLANT_INITIAL_COUNT = 13  # Number of plants to start with (one per strategy type)
 
 # Plant Energy Collection (Passive Growth)
-PLANT_BASE_ENERGY_RATE = 0.02  # Base energy gain per frame - Increased to prevent starvation
+PLANT_BASE_ENERGY_RATE = 0.04  # Base energy gain per frame - Doubled to offset poker losses
 PLANT_GROWTH_FACTOR = 0.3  # Compound growth rate modifier
 PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
 PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk

@@ -675,9 +675,18 @@ class EcosystemManager:
         self,
         energy_to_fish: float,
         is_plant_game: bool = True,
+        winner_type: str = "",
     ) -> None:
-        """Record energy transfer from a mixed poker game."""
-        self.poker_manager.record_mixed_poker_energy_transfer(energy_to_fish, is_plant_game)
+        """Record energy transfer from a mixed poker game.
+        
+        Args:
+            energy_to_fish: Net energy transferred to fish
+            is_plant_game: Whether this game involved plants
+            winner_type: "fish" or "plant" - who won the game
+        """
+        self.poker_manager.record_mixed_poker_energy_transfer(
+            energy_to_fish, winner_type=winner_type, is_plant_game=is_plant_game
+        )
         self.record_plant_poker_energy_gain(energy_to_fish)
 
     def record_mixed_poker_outcome(
@@ -689,7 +698,11 @@ class EcosystemManager:
         winner_type: str,
     ) -> None:
         """Record mixed poker outcome with correct per-economy house cut attribution."""
-        self.poker_manager.record_mixed_poker_energy_transfer(fish_delta, is_plant_game=True)
+        self.poker_manager.record_mixed_poker_energy_transfer(
+            fish_delta, 
+            winner_type=winner_type,
+            is_plant_game=True
+        )
 
         winner_is_fish = winner_type == "fish"
         house_cut = float(house_cut or 0.0)

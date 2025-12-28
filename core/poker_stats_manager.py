@@ -30,6 +30,8 @@ class PokerStatsManager:
         self.total_fish_poker_games: int = 0
         self.total_plant_poker_games: int = 0
         self.total_plant_poker_energy_transferred: float = 0.0
+        self.plant_poker_wins: int = 0
+        self.fish_poker_wins: int = 0
         self._poker_save_counter: int = 0
 
         self._init_poker_stats()
@@ -147,10 +149,16 @@ class PokerStatsManager:
         total_showdown_wins = sum(s.won_at_showdown for s in self.poker_stats.values())
         showdown_win_rate_pct = f"{(total_showdown_wins / total_showdowns):.1%}" if total_showdowns > 0 else "0.0%"
 
+        plant_win_rate = (self.plant_poker_wins / self.total_plant_poker_games) if self.total_plant_poker_games > 0 else 0.0
+
         return {
             "total_games": total_games,
             "total_fish_games": self.total_fish_poker_games,
             "total_plant_games": self.total_plant_poker_games,
+            "plant_poker_wins": self.plant_poker_wins,
+            "fish_poker_wins": self.fish_poker_wins,
+            "plant_win_rate": plant_win_rate,
+            "plant_win_rate_pct": f"{plant_win_rate:.1%}",
             "total_plant_energy_transferred": self.total_plant_poker_energy_transferred,
             "total_wins": total_wins,
             "total_losses": total_losses,
@@ -341,12 +349,14 @@ class PokerStatsManager:
             stats.wins += 1
             stats.total_energy_won += energy_transferred
             self.total_plant_poker_energy_transferred += energy_transferred
+            self.fish_poker_wins += 1  # Track fish win vs plant
             if won_by_fold:
                 stats.wins_by_fold += 1
         else:
             stats.losses += 1
             stats.total_energy_lost += energy_transferred
             self.total_plant_poker_energy_transferred -= energy_transferred
+            self.plant_poker_wins += 1  # Track plant win vs fish
             if won_by_fold:
                 stats.losses_by_fold += 1
 
@@ -363,6 +373,7 @@ class PokerStatsManager:
     def record_mixed_poker_energy_transfer(
         self,
         energy_to_fish: float,
+        winner_type: str = "",
         is_plant_game: bool = True,
     ) -> None:
         """Record energy transfer from a mixed poker game (fish + plants).
@@ -370,9 +381,14 @@ class PokerStatsManager:
         Args:
             energy_to_fish: Net energy transferred to fish (positive = fish gained from plants,
                            negative = plants gained from fish)
+            winner_type: "fish" or "plant" - who won the game
             is_plant_game: Whether this game involved plants (for counting)
         """
         self.total_plant_poker_energy_transferred += energy_to_fish
+        if winner_type == "plant":
+            self.plant_poker_wins += 1
+        elif winner_type == "fish":
+            self.fish_poker_wins += 1
         if is_plant_game:
             self.total_plant_poker_games += 1
             try:

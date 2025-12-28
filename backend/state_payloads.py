@@ -171,6 +171,11 @@ class PokerStatsPayload:
     net_energy: float
     best_hand_rank: int
     best_hand_name: str
+    # Plant vs fish win tracking
+    plant_poker_wins: int = 0
+    fish_poker_wins: int = 0
+    plant_win_rate: float = 0.0
+    plant_win_rate_pct: str = "0.0%"
     win_rate: float = 0.0
     win_rate_pct: str = "0.0%"
     roi: float = 0.0

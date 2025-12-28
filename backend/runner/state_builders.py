@@ -34,6 +34,11 @@ def collect_poker_stats_payload(stats: Dict[str, Any]) -> PokerStatsPayload:
         net_energy=poker_stats_dict.get("net_energy", 0.0),
         best_hand_rank=poker_stats_dict.get("best_hand_rank", 0),
         best_hand_name=poker_stats_dict.get("best_hand_name", "None"),
+        # Plant vs fish win tracking
+        plant_poker_wins=poker_stats_dict.get("plant_poker_wins", 0),
+        fish_poker_wins=poker_stats_dict.get("fish_poker_wins", 0),
+        plant_win_rate=poker_stats_dict.get("plant_win_rate", 0.0),
+        plant_win_rate_pct=poker_stats_dict.get("plant_win_rate_pct", "0.0%"),
         win_rate=poker_stats_dict.get("win_rate", 0.0),
         win_rate_pct=poker_stats_dict.get("win_rate_pct", "0.0%"),
         roi=poker_stats_dict.get("roi", 0.0),

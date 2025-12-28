@@ -353,7 +353,7 @@ export function TankView({ tankId }: TankViewProps) {
 
 
             {/* Poker Dashboard - Leaderboard & Activity */}
-            {state?.poker_leaderboard && state?.poker_events && (
+            {state && (
                 <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
                     <div className="glass-panel" style={{ padding: '16px' }}>
                         <CollapsibleSection
@@ -364,27 +364,100 @@ export function TankView({ tankId }: TankViewProps) {
                             }
                             defaultExpanded={false}
                         >
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr',
-                                gap: '16px',
-                                marginTop: '16px'
-                            }}>
+                            <div style={{ marginTop: '16px' }}>
+                                {/* Key Metrics Row */}
                                 <div style={{
-                                    backgroundColor: '#0f172a',
-                                    borderRadius: '12px',
-                                    padding: '16px',
-                                    border: '1px solid #334155'
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(5, 1fr)',
+                                    gap: '12px',
+                                    marginBottom: '16px'
                                 }}>
-                                    <PokerLeaderboard leaderboard={state.poker_leaderboard} />
+                                    <div style={{
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        border: '1px solid #334155',
+                                        textAlign: 'center'
+                                    }}>
+                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Total Games</div>
+                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
+                                            {state.stats?.poker_stats?.total_games?.toLocaleString() ?? 0}
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        border: '1px solid #334155',
+                                        textAlign: 'center'
+                                    }}>
+                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Economy Volume</div>
+                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
+                                            {Math.round(state.stats?.poker_stats?.total_energy_won ?? 0).toLocaleString()}⚡
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        border: '1px solid #334155',
+                                        textAlign: 'center'
+                                    }}>
+                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Avg Win Rate</div>
+                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
+                                            {state.stats?.poker_stats?.win_rate_pct ?? "0%"}
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        border: '1px solid #334155',
+                                        textAlign: 'center'
+                                    }}>
+                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>🌱 Plant Win Rate</div>
+                                        <div style={{ color: '#4ade80', fontSize: '18px', fontWeight: 700 }}>
+                                            {state.stats?.poker_stats?.plant_win_rate_pct ?? "0.0%"}
+                                        </div>
+                                        <div style={{ color: '#64748b', fontSize: '10px', marginTop: '2px' }}>
+                                            {state.stats?.poker_stats?.plant_poker_wins ?? 0}W / {state.stats?.poker_stats?.fish_poker_wins ?? 0}L
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        border: '1px solid #334155',
+                                        textAlign: 'center'
+                                    }}>
+                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Plant Games</div>
+                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
+                                            {state.stats?.poker_stats?.total_plant_games?.toLocaleString() ?? 0}
+                                        </div>
+                                    </div>
                                 </div>
+                                {/* Leaderboard and Activity */}
                                 <div style={{
-                                    backgroundColor: '#0f172a',
-                                    borderRadius: '12px',
-                                    padding: '16px',
-                                    border: '1px solid #334155'
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '16px'
                                 }}>
-                                    <PokerEvents events={state.poker_events} currentFrame={state.frame} />
+                                    <div style={{
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        border: '1px solid #334155'
+                                    }}>
+                                        <PokerLeaderboard leaderboard={state.poker_leaderboard ?? []} />
+                                    </div>
+                                    <div style={{
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        border: '1px solid #334155'
+                                    }}>
+                                        <PokerEvents events={state.poker_events ?? []} currentFrame={state.frame} />
+                                    </div>
                                 </div>
                             </div>
                         </CollapsibleSection>
