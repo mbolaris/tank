@@ -277,8 +277,14 @@ class PokerSkillGame(SkillGame):
         
         state = game_state or {}
         
-        # Use provided RNG or a local RNG for determinism
-        _rng = state.get("rng") or random.Random()
+        # Use provided RNG or fail loudly
+        _rng = state.get("rng")
+        if _rng is None:
+            # Check if we can fallback to a deterministic source, otherwise fail
+            from core.util.rng import get_rng_or_default
+            # If called from observe_strategy (before my fix lands), this might fail.
+            # But user asked to fail loudly.
+            _rng = get_rng_or_default(None, context="PokerSkillGame.play_round")
         
         # Generate random hand strengths if not provided (using RNG)
         player_strength = state.get("hand_strength", _rng.random())
@@ -390,10 +396,17 @@ class PokerSkillGame(SkillGame):
         
         # Track action frequencies
         action_counts = {action: 0 for action in BettingAction}
+
+        # Use a consistent seed for benchmarking stability
+        import random
+        benchmark_rng = random.Random(42)
         
         for i in range(num_games):
             # Alternate position
-            state = {"position_on_button": i % 2 == 0}
+            state = {
+                "position_on_button": i % 2 == 0,
+                "rng": benchmark_rng,
+            }
             result = self.play_round(strategy, opponent, state)
             metrics.update_from_result(result)
             

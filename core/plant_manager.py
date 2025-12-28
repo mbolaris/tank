@@ -114,6 +114,15 @@ class PlantManager:
         self._last_reconcile_frame: int = -1
         self._last_emergency_respawn_frame: int = -PLANT_EMERGENCY_RESPAWN_COOLDOWN
 
+        # Deterministic ID generation for plants
+        self._next_plant_id: int = 1
+
+    def generate_plant_id(self) -> int:
+        """Generate a deterministic, per-engine plant ID."""
+        pid = self._next_plant_id
+        self._next_plant_id += 1
+        return pid
+
     def _request_spawn(self, entity: "Agent", *, reason: str) -> bool:
         """Request a spawn via the engine mutation queue when available."""
         requester = getattr(self._entity_adder, "request_spawn", None)
@@ -265,6 +274,7 @@ class PlantManager:
                 root_spot=spot,
                 initial_energy=PLANT_MATURE_ENERGY,
                 ecosystem=self.ecosystem,
+                plant_id=self.generate_plant_id(),
             )
 
             if not spot.claim(plant):
@@ -323,6 +333,7 @@ class PlantManager:
             root_spot=spot,
             initial_energy=PLANT_MATURE_ENERGY,  # Start at full energy
             ecosystem=self.ecosystem,
+            plant_id=self.generate_plant_id(),
         )
 
         if not spot.claim(plant):
@@ -376,6 +387,7 @@ class PlantManager:
             root_spot=spot,
             initial_energy=30.0,  # Enough to mature in reasonable time
             ecosystem=self.ecosystem,
+            plant_id=self.generate_plant_id(),
         )
 
         if not spot.claim(plant):

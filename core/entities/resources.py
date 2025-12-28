@@ -58,20 +58,11 @@ class Food(Agent):
         """
         # Select random food type based on rarity if not specified
         if food_type is None:
-            # Use provided rng, or fall back to environment.rng, or create new Random
+            # Use provided rng, or fall back to environment.rng - fail if neither
             _rng = rng
             if _rng is None:
-                env_rng = getattr(environment, "rng", None)
-                if isinstance(env_rng, random.Random):
-                    _rng = env_rng
-                else:
-                    env_internal = getattr(environment, "_rng", None)
-                    if isinstance(env_internal, random.Random):
-                        _rng = env_internal
-                    elif env_rng is not None:
-                        _rng = env_rng
-                    else:
-                        _rng = random.Random()
+                from core.util.rng import require_rng
+                _rng = require_rng(environment, "Food.__init__")
             food_type = self._select_random_food_type(
                 include_stationary=allow_stationary_types, include_live=False, rng=_rng
             )
@@ -210,8 +201,9 @@ class LiveFood(Food):
         # Fish speed_modifier averages ~0.85, giving 2.2 * 0.85 = 1.87 base speed
         # LiveFood at 1.4 gives ~33% speed advantage to average fish
         self.max_speed = speed * 0.93  # 1.5 * 0.93 = 1.4
-        # Use environment.rng if available, otherwise create a local RNG
-        self._rng = getattr(environment, "rng", None) or random.Random()
+        # Use environment.rng for deterministic behavior
+        from core.util.rng import require_rng
+        self._rng = require_rng(environment, "LiveFood.__init__")
         self.wander_timer = self._rng.randint(20, 45)
         # BALANCE: Reduced avoid_radius from 180 to 80 so fish can get much closer
         # before triggering flee response - makes hunting more effective

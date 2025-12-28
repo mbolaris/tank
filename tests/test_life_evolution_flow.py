@@ -69,10 +69,16 @@ class MiniEcosystem:
 class MiniEnvironment:
     """Simple environment stub exposing only what Fish requires."""
 
-    def __init__(self, width: int = 200, height: int = 200):
+    def __init__(self, width: int = 200, height: int = 200, seed: int = 42):
         self.width = width
         self.height = height
         self.agents: List[Fish] = []
+        self._rng = random.Random(seed)
+
+    @property
+    def rng(self) -> random.Random:
+        """Deterministic RNG for test reproducibility."""
+        return self._rng
 
     def get_bounds(self):
         return (0.0, 0.0), (float(self.width), float(self.height))

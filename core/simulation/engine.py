@@ -433,6 +433,11 @@ class SimulationEngine:
         Game systems should use request_spawn() to queue spawns for safe
         processing between phases. Calling this mid-frame can cause subtle bugs.
         """
+        if self._current_phase is not None:
+            raise RuntimeError(
+                f"Unsafe call to add_entity during phase {self._current_phase}. "
+                "Use request_spawn() instead."
+            )
         self._add_entity(entity)
 
     def remove_entity(self, entity: entities.Agent) -> None:
@@ -444,6 +449,11 @@ class SimulationEngine:
         Game systems should use request_remove() to queue removals for safe
         processing between phases. Calling this mid-frame can cause subtle bugs.
         """
+        if self._current_phase is not None:
+            raise RuntimeError(
+                f"Unsafe call to remove_entity during phase {self._current_phase}. "
+                "Use request_remove() instead."
+            )
         self._remove_entity(entity)
 
     def request_spawn(

@@ -828,8 +828,9 @@ class Fish(Agent):
         Returns:
             The newly created baby fish, or None if creation failed
         """
-        # Obtain RNG for determinism
-        rng = getattr(self.environment, "rng", None) or random.Random()
+        # Obtain RNG for determinism - fail loudly if unavailable
+        from core.util.rng import require_rng
+        rng = require_rng(self.environment, "Fish._create_asexual_offspring")
 
         # Generate offspring genome (also sets cooldown)
         offspring_genome, _unused_fraction = self._reproduction_component.trigger_asexual_reproduction(

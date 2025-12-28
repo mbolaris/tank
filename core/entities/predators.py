@@ -92,7 +92,8 @@ class Crab(Agent):
         # Simple patrol: just keep walking in current direction
         # If no horizontal velocity, pick a random direction (use environment RNG)
         if abs(self.vel.x) < 0.1:
-            rng = getattr(self.environment, "rng", None) or random.Random()
+            from core.util.rng import require_rng
+            rng = require_rng(self.environment, "Crab.update.patrol")
             direction = rng.choice([-1, 1])
             self.vel.x = direction * self.speed
 

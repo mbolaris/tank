@@ -196,10 +196,10 @@ class Agent:
     def add_random_velocity_change(self, probabilities: List[float], divisor: float) -> None:
         """Add a random direction change to the agent.
 
-        Uses environment's RNG when available for deterministic behavior.
+        Uses environment's RNG for deterministic behavior.
         """
-        # Use environment's rng if available for deterministic simulation
-        _rng = getattr(self.environment, "rng", None) or random.Random()
+        from core.util.rng import require_rng
+        _rng = require_rng(self.environment, "Agent.add_random_velocity_change")
         random_x_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         random_y_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         self.vel.x += random_x_direction / divisor

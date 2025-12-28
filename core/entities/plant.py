@@ -77,6 +77,7 @@ class Plant(Agent):
         root_spot: "RootSpot",
         initial_energy: float = PLANT_INITIAL_ENERGY,
         ecosystem: Optional["EcosystemManager"] = None,
+        plant_id: Optional[int] = None,
     ) -> None:
         """Initialize a plant.
 
@@ -85,6 +86,7 @@ class Plant(Agent):
             genome: The plant's genetic information
             root_spot: The root spot this plant grows from
             initial_energy: Starting energy level
+            plant_id: Unique identifier (should be provided by PlantManager)
         """
         # Initialize at the root spot position
         super().__init__(
@@ -95,8 +97,13 @@ class Plant(Agent):
         )
 
         # Assign unique ID
-        self.plant_id = Plant._next_id
-        Plant._next_id += 1
+        if plant_id is not None:
+            self.plant_id = plant_id
+        else:
+            # Fallback for legacy tests not using PlantManager
+            # TODO: Remove this once all call sites are updated
+            self.plant_id = Plant._next_id
+            Plant._next_id += 1
 
         # Core attributes
         self.genome = genome
