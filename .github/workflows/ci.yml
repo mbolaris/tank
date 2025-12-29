@@ -63,7 +63,7 @@ jobs:
 
     - name: Run headless simulation test
       run: |
-        python -c "from core.simulation_engine import HeadlessSimulator; sim = HeadlessSimulator(max_frames=100); sim.run(); print('Headless test passed')"
+        python -c "from core.simulation import HeadlessSimulator; sim = HeadlessSimulator(max_frames=100); sim.run(); print('Headless test passed')"
 
   lint:
     runs-on: ubuntu-latest
