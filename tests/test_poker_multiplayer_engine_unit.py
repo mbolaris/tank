@@ -1,7 +1,10 @@
+import random
+
 import pytest
 
 from core.poker.betting.actions import BettingAction, BettingRound
 from core.poker.core.cards import Card, Rank, Suit
+from core.poker.simulation import hand_engine
 from core.poker.simulation import multiplayer_engine as multiplayer_engine
 
 
@@ -26,14 +29,14 @@ def test_simulate_multiplayer_game_rejects_two_players():
 def test_simulate_multiplayer_game_uses_default_configs(monkeypatch):
     calls = {"betting": 0, "evaluate": 0}
 
-    def fake_betting_rounds(game_state):
+    def fake_betting_rounds(game_state, **_kwargs):
         calls["betting"] += 1
 
     def fake_evaluate(game_state):
         calls["evaluate"] += 1
 
-    monkeypatch.setattr(multiplayer_engine, "_play_multiplayer_betting_rounds", fake_betting_rounds)
-    monkeypatch.setattr(multiplayer_engine, "_evaluate_multiplayer_hands", fake_evaluate)
+    monkeypatch.setattr(hand_engine, "_play_multiplayer_betting_rounds", fake_betting_rounds)
+    monkeypatch.setattr(hand_engine, "_evaluate_multiplayer_hands", fake_evaluate)
 
     state = multiplayer_engine.simulate_multiplayer_game(
         num_players=3,
@@ -155,7 +158,7 @@ def test_play_multiplayer_betting_rounds_auto_advances_when_only_one_can_act():
     state.players[1].all_in = True
     state.players[2].all_in = True
 
-    multiplayer_engine._play_multiplayer_betting_rounds(state)
+    multiplayer_engine._play_multiplayer_betting_rounds(state, rng=random.Random(0))
 
     assert state.current_round == BettingRound.RIVER
     assert len(state.community_cards) == 5
@@ -173,7 +176,7 @@ def test_play_multiplayer_betting_rounds_breaks_on_fold_winner():
     state.players[1].folded = True
     state.players[2].folded = True
 
-    multiplayer_engine._play_multiplayer_betting_rounds(state)
+    multiplayer_engine._play_multiplayer_betting_rounds(state, rng=random.Random(0))
 
     assert state.current_round == BettingRound.PRE_FLOP
     assert len(state.community_cards) == 0
@@ -182,12 +185,12 @@ def test_play_multiplayer_betting_rounds_breaks_on_fold_winner():
 def test_play_multiplayer_betting_rounds_advances_rounds(monkeypatch):
     seen = []
 
-    def fake_play_round(game_state, hand_cache, round_num):
+    def fake_play_round(game_state, hand_cache, round_num, **_kwargs):
         seen.append((round_num, len(hand_cache)))
         hand_cache[round_num] = "seen"
 
-    monkeypatch.setattr(multiplayer_engine, "_play_single_betting_round", fake_play_round)
-    monkeypatch.setattr(multiplayer_engine, "_refund_unmatched_bets", lambda *_: None)
+    monkeypatch.setattr(hand_engine, "_play_single_betting_round", fake_play_round)
+    monkeypatch.setattr(hand_engine, "_refund_unmatched_bets", lambda *_: None)
 
     state = multiplayer_engine._create_multiplayer_game_state(
         num_players=3,
@@ -198,7 +201,7 @@ def test_play_multiplayer_betting_rounds_advances_rounds(monkeypatch):
         button_position=0,
     )
 
-    multiplayer_engine._play_multiplayer_betting_rounds(state)
+    multiplayer_engine._play_multiplayer_betting_rounds(state, rng=random.Random(0))
 
     assert state.current_round == BettingRound.RIVER
     assert seen[0][0] == 0
@@ -241,9 +244,11 @@ def test_decide_multiplayer_action_strategy_preflop_uses_starting_strength(monke
     )
     state.community_cards = []
 
-    monkeypatch.setattr(multiplayer_engine, "evaluate_starting_hand_strength", lambda *_: 0.33)
+    monkeypatch.setattr(hand_engine, "evaluate_starting_hand_strength", lambda *_: 0.33)
 
-    action, amount = multiplayer_engine._decide_multiplayer_action(0, state, {})
+    action, amount = multiplayer_engine._decide_multiplayer_action(
+        0, state, {}, rng=random.Random(0)
+    )
 
     assert action == BettingAction.CHECK
     assert amount == 0.0
@@ -273,15 +278,17 @@ def test_decide_multiplayer_action_strategy_postflop_uses_rank_value(monkeypatch
         Card(Rank.NINE, Suit.SPADES),
     ]
 
-    monkeypatch.setattr(multiplayer_engine, "evaluate_hand", lambda *_: DummyHand())
-    monkeypatch.setattr(multiplayer_engine, "evaluate_hand_strength", lambda *_: 0.5)
+    monkeypatch.setattr(hand_engine, "evaluate_hand", lambda *_: DummyHand())
+    monkeypatch.setattr(hand_engine, "evaluate_hand_strength", lambda *_: 0.5)
     monkeypatch.setattr(
-        multiplayer_engine,
+        hand_engine,
         "evaluate_starting_hand_strength",
         lambda *_: pytest.fail("Should not call preflop evaluation postflop"),
     )
 
-    action, amount = multiplayer_engine._decide_multiplayer_action(0, state, {})
+    action, amount = multiplayer_engine._decide_multiplayer_action(
+        0, state, {}, rng=random.Random(0)
+    )
 
     assert action == BettingAction.CHECK
     assert amount == 0.0
@@ -298,13 +305,11 @@ def test_decide_multiplayer_action_default_uses_decide_action(monkeypatch):
         button_position=0,
     )
 
-    monkeypatch.setattr(
-        multiplayer_engine,
-        "decide_action",
-        lambda **_: (BettingAction.CHECK, 0.0),
-    )
+    monkeypatch.setattr(hand_engine, "decide_action", lambda **_: (BettingAction.CHECK, 0.0))
 
-    action, amount = multiplayer_engine._decide_multiplayer_action(0, state, {})
+    action, amount = multiplayer_engine._decide_multiplayer_action(
+        0, state, {}, rng=random.Random(0)
+    )
 
     assert action == BettingAction.CHECK
     assert amount == 0.0
@@ -483,7 +488,7 @@ def test_play_single_betting_round_records_actions():
     for player in state.players.values():
         player.current_bet = 0.0
 
-    multiplayer_engine._play_single_betting_round(state, {}, 0)
+    multiplayer_engine._play_single_betting_round(state, {}, 0, rng=random.Random(0))
 
     assert len(state.betting_history) == 3
     assert all(action == BettingAction.CHECK for _, action, _ in state.betting_history)
@@ -503,7 +508,7 @@ def test_play_single_betting_round_skips_folded_player_postflop():
         player.current_bet = 0.0
     state.players[0].folded = True
 
-    multiplayer_engine._play_single_betting_round(state, {}, 1)
+    multiplayer_engine._play_single_betting_round(state, {}, 1, rng=random.Random(0))
 
     assert all(pid != 0 for pid, _, _ in state.betting_history)
 
@@ -519,17 +524,13 @@ def test_play_single_betting_round_updates_last_raiser(monkeypatch):
     )
 
     monkeypatch.setattr(
-        multiplayer_engine,
+        hand_engine,
         "_decide_multiplayer_action",
         lambda **_: (BettingAction.RAISE, 5.0),
     )
-    monkeypatch.setattr(
-        multiplayer_engine,
-        "_apply_multiplayer_action",
-        lambda **_: True,
-    )
+    monkeypatch.setattr(hand_engine, "_apply_multiplayer_action", lambda **_: True)
 
-    multiplayer_engine._play_single_betting_round(state, {}, 0)
+    multiplayer_engine._play_single_betting_round(state, {}, 0, rng=random.Random(0))
 
     assert state.betting_history == []
 
@@ -552,13 +553,13 @@ def test_play_single_betting_round_breaks_on_fold_victory(monkeypatch):
         return False
 
     monkeypatch.setattr(
-        multiplayer_engine,
+        hand_engine,
         "_decide_multiplayer_action",
         lambda **_: (BettingAction.CHECK, 0.0),
     )
-    monkeypatch.setattr(multiplayer_engine, "_apply_multiplayer_action", fake_apply)
+    monkeypatch.setattr(hand_engine, "_apply_multiplayer_action", fake_apply)
 
-    multiplayer_engine._play_single_betting_round(state, {}, 0)
+    multiplayer_engine._play_single_betting_round(state, {}, 0, rng=random.Random(0))
 
     assert len(state.betting_history) == 1
     assert state.get_winner_by_fold() is not None

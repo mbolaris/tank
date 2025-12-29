@@ -9,14 +9,14 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.poker.core import (
-    BettingAction,
-    BettingRound,
-    Card,
-    Deck,
-    PokerHand,
-    decide_action,
-    evaluate_hand,
+from core.poker.core import BettingAction, BettingRound, Card, Deck
+from core.poker.simulation.hand_engine import (
+    MultiplayerGameState,
+    MultiplayerPlayerContext,
+    _apply_multiplayer_action,
+    _decide_multiplayer_action,
+    _deal_hole_cards,
+    determine_payouts,
 )
 
 logger = logging.getLogger(__name__)
@@ -141,25 +141,50 @@ class HumanPokerGame:
         
         # Decision RNG for deterministic AI decisions (unseeded for human game variation)
         self._decision_rng = random.Random()
+        self._hand_state: Optional[MultiplayerGameState] = None
+        self._hand_cache: Dict[int, Any] = {}
+        self._players_acted_since_raise: set[int] = set()
+        self._last_raiser: Optional[int] = None
 
         # Deal cards and post blinds
         self._start_hand()
 
     def _start_hand(self):
         """Start a new hand: deal cards and post blinds."""
-        # Reset deck and deal hole cards
+        num_players = len(self.players)
+
         self.deck.reset()
-        for player in self.players:
+        contexts: Dict[int, MultiplayerPlayerContext] = {}
+        for i, player in enumerate(self.players):
             player.current_bet = 0.0
             player.total_bet = 0.0
-            player.last_action = None  # Reset last action for new hand
-            # Players with no energy are eliminated - mark them as folded
+            player.last_action = None
+            context = MultiplayerPlayerContext(
+                player_id=i,
+                remaining_energy=player.energy,
+                aggression=player.aggression if not player.is_human else 0.5,
+            )
             if player.energy <= 0:
+                context.folded = True
+                context.all_in = True
+            contexts[i] = context
+
+        self._hand_state = MultiplayerGameState(
+            num_players=num_players,
+            players=contexts,
+            button_position=self.button_index,
+            small_blind=self.small_blind,
+            big_blind=self.big_blind,
+            min_raise=self.big_blind,
+            last_raise_amount=self.big_blind,
+            deck=self.deck,
+        )
+        _deal_hole_cards(self._hand_state)
+
+        for i, player in enumerate(self.players):
+            if contexts[i].folded:
+                contexts[i].hole_cards = []
                 player.hole_cards = []
-                player.folded = True
-            else:
-                player.hole_cards = self.deck.deal(2)
-                player.folded = False
 
         self.community_cards = []
         self.pot = 0.0
@@ -169,26 +194,29 @@ class HumanPokerGame:
         self.game_over = False
         self.actions_this_round = 0
         self.hands_played += 1
+        self._hand_cache = {}
+        self._players_acted_since_raise = set()
+        self._last_raiser = None
 
         # Post blinds - skip players with no energy
         small_blind_index = self._get_next_active_player(self.button_index)
         self.big_blind_index = self._get_next_active_player(small_blind_index)
-        self.big_blind_has_option = True  # BB gets option to raise if no raises pre-flop
+        self.big_blind_has_option = True
 
-        self._player_bet(small_blind_index, self.small_blind)
-        self._player_bet(self.big_blind_index, self.big_blind)
+        self._hand_state.player_bet(small_blind_index, self.small_blind)
+        self._hand_state.player_bet(self.big_blind_index, self.big_blind)
+        self._last_raiser = self.big_blind_index
 
         # First to act is player after big blind
         self.current_player_index = self._get_next_active_player(self.big_blind_index)
+
+        self._sync_from_hand_state()
 
         self.message = f"Hand #{self.hands_played} - Blinds: {self.small_blind}/{self.big_blind}"
         logger.info(
             f"Game {self.game_id}: Started hand #{self.hands_played}. Button at index {self.button_index}, "
             f"current player: {self.current_player_index}"
         )
-
-        # Don't process AI actions automatically - let frontend poll for each one
-        # This allows the UI to show the highlight on each AI player's turn
 
     def _get_next_active_player(self, from_index: int) -> int:
         """Get the next player with energy > 0 after the given index."""
@@ -216,6 +244,41 @@ class HumanPokerGame:
             else:
                 self.message = f"Session ended after {self.hands_played} hands - all players are out!"
 
+    def _sync_from_hand_state(self) -> None:
+        """Sync public-facing player state from the hand engine."""
+        if self._hand_state is None:
+            return
+
+        self.pot = self._hand_state.pot
+        self.community_cards = list(self._hand_state.community_cards)
+        self.current_round = BettingRound(self._hand_state.current_round)
+
+        for i, player in enumerate(self.players):
+            state_player = self._hand_state.players[i]
+            player.current_bet = state_player.current_bet
+            player.total_bet = state_player.total_bet
+            player.energy = state_player.remaining_energy
+            player.folded = state_player.folded
+            player.hole_cards = list(state_player.hole_cards)
+
+    def _sync_hand_state_from_players(self) -> None:
+        """Sync hand engine state from public-facing player data."""
+        if self._hand_state is None:
+            return
+
+        for i, player in enumerate(self.players):
+            state_player = self._hand_state.players[i]
+            state_player.remaining_energy = player.energy
+            state_player.current_bet = player.current_bet
+            state_player.total_bet = player.total_bet
+            state_player.folded = player.folded
+            state_player.hole_cards = list(player.hole_cards)
+            state_player.all_in = state_player.remaining_energy <= 0 and not state_player.folded
+
+        self._hand_state.community_cards = list(self.community_cards)
+        self._hand_state.pot = self.pot
+        self._hand_state.current_round = self.current_round
+
     def _player_bet(self, player_index: int, amount: float):
         """Record a player's bet.
 
@@ -223,13 +286,10 @@ class HumanPokerGame:
             player_index: Index of the player
             amount: Amount to bet
         """
-        player = self.players[player_index]
-        # Ensure we don't bet more than available energy
-        actual_amount = min(amount, player.energy)
-        player.current_bet += actual_amount
-        player.total_bet += actual_amount
-        player.energy -= actual_amount
-        self.pot += actual_amount
+        if self._hand_state is None:
+            return
+        self._hand_state.player_bet(player_index, amount)
+        self._sync_from_hand_state()
 
     def _get_call_amount(self, player_index: int) -> float:
         """Get the amount a player needs to call.
@@ -240,8 +300,12 @@ class HumanPokerGame:
         Returns:
             Amount needed to call
         """
-        player = self.players[player_index]
-        active_bets = [p.current_bet for p in self.players if not p.folded]
+        if self._hand_state is None:
+            return 0.0
+        player = self._hand_state.players[player_index]
+        active_bets = [
+            p.current_bet for p in self._hand_state.players.values() if not p.folded
+        ]
         if not active_bets:
             return 0.0
         max_bet = max(active_bets)
@@ -249,107 +313,88 @@ class HumanPokerGame:
 
     def _advance_round(self):
         """Move to the next betting round and deal community cards."""
-        # Check if only one player remains - if so, end immediately without dealing cards
-        active_players = [p for p in self.players if not p.folded]
+        if self._hand_state is None:
+            return
+
+        active_players = [
+            p for p in self._hand_state.players.values() if not p.folded
+        ]
         if len(active_players) <= 1:
-            self.current_round = BettingRound.SHOWDOWN
             self._showdown()
             return
 
-        if self.current_round == BettingRound.PRE_FLOP:
-            # Deal flop
-            self.deck.deal(1)  # Burn card
-            self.community_cards.extend(self.deck.deal(3))
-            self.current_round = BettingRound.FLOP
-            self.message = "Flop dealt!"
-        elif self.current_round == BettingRound.FLOP:
-            # Deal turn
-            self.deck.deal(1)  # Burn card
-            self.community_cards.append(self.deck.deal_one())
-            self.current_round = BettingRound.TURN
-            self.message = "Turn dealt!"
-        elif self.current_round == BettingRound.TURN:
-            # Deal river
-            self.deck.deal(1)  # Burn card
-            self.community_cards.append(self.deck.deal_one())
-            self.current_round = BettingRound.RIVER
-            self.message = "River dealt!"
-        elif self.current_round == BettingRound.RIVER:
-            # Go to showdown
-            self.current_round = BettingRound.SHOWDOWN
-            self._showdown()
-            return
-
-        # Reset current bets and action counter for new round
-        for player in self.players:
-            player.current_bet = 0.0
+        self._hand_state.advance_round()
+        self._hand_cache = {}
+        self._players_acted_since_raise = set()
+        self._last_raiser = None
         self.actions_this_round = 0
+        self._sync_from_hand_state()
 
-        # First to act post-flop is player after button
+        if self.current_round == BettingRound.FLOP:
+            self.message = "Flop dealt!"
+        elif self.current_round == BettingRound.TURN:
+            self.message = "Turn dealt!"
+        elif self.current_round == BettingRound.RIVER:
+            self.message = "River dealt!"
+        elif self.current_round == BettingRound.SHOWDOWN:
+            self._showdown()
+            return
+
         self.current_player_index = (self.button_index + 1) % len(self.players)
-        # Skip folded players and all-in players (with loop guard to prevent infinite loop)
         attempts = 0
         while attempts < len(self.players):
             player = self.players[self.current_player_index]
-            # Player can act if not folded and has energy
             if not player.folded and player.energy > 0:
                 break
             self.current_player_index = (self.current_player_index + 1) % len(self.players)
             attempts += 1
 
-        # Safety check: if no players can act, end the hand (all folded or all-in)
         if attempts >= len(self.players):
             logger.warning("No players can act - going to showdown")
-            self.current_round = BettingRound.SHOWDOWN
             self._showdown()
             return
 
     def _showdown(self):
         """Determine winner at showdown."""
-        active_players = [p for p in self.players if not p.folded]
+        if self._hand_state is None:
+            return
 
-        if len(active_players) == 1:
-            # Only one player left - they win
-            self.winner_index = self.players.index(active_players[0])
-            winner = self.players[self.winner_index]
-            winner.energy += self.pot
+        self._sync_hand_state_from_players()
+        self._hand_state.current_round = BettingRound.SHOWDOWN
+
+        payouts = determine_payouts(self._hand_state)
+        winner_by_fold = self._hand_state.get_winner_by_fold()
+        winners = [player_id for player_id, payout in payouts.items() if payout > 0]
+
+        for player_id, payout in payouts.items():
+            state_player = self._hand_state.players[player_id]
+            state_player.remaining_energy += payout
+
+        self._sync_from_hand_state()
+
+        if winner_by_fold is not None:
+            winner = self.players[winner_by_fold]
+            self.winner_index = winner_by_fold
             self.message = f"{winner.name} wins {self.pot:.0f} energy!"
             self.game_over = True
             self._check_session_over()
             return
 
-        # Evaluate hands
-        best_hand: Optional[PokerHand] = None
-        winning_player_indices: List[int] = []
-
-        for i, player in enumerate(self.players):
-            if player.folded:
-                continue
-
-            hand = evaluate_hand(player.hole_cards, self.community_cards)
-            logger.debug(f"Player {player.name}: {hand}")
-
-            if best_hand is None or hand.beats(best_hand):
-                best_hand = hand
-                winning_player_indices = [i]
-            elif hand.ties(best_hand):
-                winning_player_indices.append(i)
-
-        if winning_player_indices:
-            split_amount = self.pot / len(winning_player_indices)
-            for idx in winning_player_indices:
-                self.players[idx].energy += split_amount
-
-            # Preserve legacy single-winner field for UI by picking the first winner
-            self.winner_index = winning_player_indices[0]
-
-            if len(winning_player_indices) == 1:
+        if winners:
+            self.winner_index = winners[0]
+            if len(winners) == 1:
                 winner = self.players[self.winner_index]
-                self.message = f"{winner.name} wins {self.pot:.0f} energy with {best_hand}!"
+                winning_hand = self._hand_state.player_hands.get(self.winner_index)
+                if winning_hand is not None:
+                    self.message = (
+                        f"{winner.name} wins {self.pot:.0f} energy with {winning_hand}!"
+                    )
+                else:
+                    self.message = f"{winner.name} wins {self.pot:.0f} energy!"
             else:
-                winners = ", ".join(self.players[idx].name for idx in winning_player_indices)
+                winners_str = ", ".join(self.players[idx].name for idx in winners)
                 self.message = (
-                    f"Hand ends in a tie - {winners} split {self.pot:.0f} energy with {best_hand}!"
+                    f"Hand ends in a tie - {winners_str} split {self.pot:.0f} energy!"
                 )
 
             self.game_over = True
@@ -392,33 +437,31 @@ class HumanPokerGame:
         Returns:
             True if all active players have matched the current bet
         """
-        players_in_hand = [p for p in self.players if not p.folded]
-
-        # If no players remain (shouldn't happen) or only one, betting is complete
-        if len(players_in_hand) <= 1:
+        if self._hand_state is None:
             return True
 
-        # All non-folded bets contribute to the pot and call requirements
-        max_bet = max(p.current_bet for p in players_in_hand)
+        self._sync_hand_state_from_players()
+        active_players = [
+            pid for pid, player in self._hand_state.players.items()
+            if not player.folded and player.remaining_energy > 0
+        ]
+        if not active_players:
+            return True
 
-        # Players who can still act (have energy) must match the highest bet
-        active_players = [p for p in players_in_hand if p.energy > 0]
-        for player in active_players:
-            if player.current_bet + 1e-6 < max_bet:  # small epsilon for float safety
+        max_bet = max(
+            player.current_bet
+            for player in self._hand_state.players.values()
+            if not player.folded
+        )
+
+        for pid in active_players:
+            player = self._hand_state.players[pid]
+            if player.current_bet + 1e-6 < max_bet:
+                return False
+            if pid not in self._players_acted_since_raise:
                 return False
 
-        # Pre-flop special case: big blind gets option to raise even if all call
-        if self.current_round == BettingRound.PRE_FLOP and self.big_blind_has_option:
-            bb_player = self.players[self.big_blind_index]
-            # BB still has option if they haven't acted yet (only posted blind)
-            # and no one has raised above the big blind
-            if not bb_player.folded and bb_player.energy > 0:
-                # Check if max bet is still just the big blind (no raises)
-                if max_bet <= self.big_blind + 0.01:  # epsilon for float comparison
-                    return False
-
-        # Ensure all players have had a chance to act this round
-        return self.actions_this_round >= len(active_players)
+        return True
 
     def _next_player(self):
         """Move to the next active player."""
@@ -485,52 +528,37 @@ class HumanPokerGame:
                 "state": self.get_state(),
             }
 
+        if self._hand_state is not None:
+            self._sync_hand_state_from_players()
+
         call_amount = self._get_call_amount(self.current_player_index)
 
         # Clear big blind option if BB is acting
         if self.current_player_index == self.big_blind_index:
             self.big_blind_has_option = False
 
-        # Process action
+        if self._hand_state is None:
+            return {
+                "success": False,
+                "error": "Game state not initialized",
+                "state": self.get_state(),
+            }
+
+        state_player = self._hand_state.players[self.current_player_index]
+        before_bet = state_player.current_bet
+
         if action == "fold":
-            current_player.folded = True
-            current_player.last_action = "fold"
-            self.last_move = {"player": current_player.name, "action": "fold"}
-            self.betting_history.append(
-                {
-                    "player": current_player.name,
-                    "action": "fold",
-                    "amount": 0.0,
-                }
-            )
-            self.actions_this_round += 1
-            self.message = f"{current_player.name} folds"
-
-            # Check if only one player left
-            active_players = [p for p in self.players if not p.folded]
-            if len(active_players) == 1:
-                self._showdown()
-
+            action_enum = BettingAction.FOLD
+            bet_amount = 0.0
         elif action == "check":
-            # Use small epsilon for floating point comparison
             if call_amount > 0.01:
                 return {
                     "success": False,
                     "error": f"Cannot check - must call {call_amount:.0f} or fold",
                     "state": self.get_state(),
                 }
-            current_player.last_action = "check"
-            self.last_move = {"player": current_player.name, "action": "check"}
-            self.betting_history.append(
-                {
-                    "player": current_player.name,
-                    "action": "check",
-                    "amount": 0.0,
-                }
-            )
-            self.actions_this_round += 1
-            self.message = f"{current_player.name} checks"
-
+            action_enum = BettingAction.CHECK
+            bet_amount = 0.0
         elif action == "call":
             if call_amount == 0:
                 return {
@@ -538,22 +566,8 @@ class HumanPokerGame:
                     "error": "Nothing to call - use check instead",
                     "state": self.get_state(),
                 }
-            if call_amount > current_player.energy:
-                # All-in call
-                call_amount = current_player.energy
-            self._player_bet(self.current_player_index, call_amount)
-            current_player.last_action = f"call {call_amount:.0f}"
-            self.last_move = {"player": current_player.name, "action": f"call {call_amount:.0f}"}
-            self.betting_history.append(
-                {
-                    "player": current_player.name,
-                    "action": "call",
-                    "amount": call_amount,
-                }
-            )
-            self.actions_this_round += 1
-            self.message = f"{current_player.name} calls {call_amount:.0f}"
-
+            action_enum = BettingAction.CALL
+            bet_amount = 0.0
         elif action in ["raise", "bet"]:
             if amount <= 0:
                 return {
@@ -561,35 +575,79 @@ class HumanPokerGame:
                     "error": "Raise/bet amount must be positive",
                     "state": self.get_state(),
                 }
-
-            # Total amount is call + raise
-            total_amount = call_amount + amount
-            if total_amount > current_player.energy:
-                total_amount = current_player.energy
-
-            self._player_bet(self.current_player_index, total_amount)
-            action_name = "raise" if call_amount > 0 else "bet"
-            current_player.last_action = f"{action_name} {total_amount:.0f}"
-            self.last_move = {"player": current_player.name, "action": f"{action_name} {total_amount:.0f}"}
-            self.betting_history.append(
-                {
-                    "player": current_player.name,
-                    "action": action_name,
-                    "amount": total_amount,
-                }
-            )
-            # Reset action counter on raise - others need to respond
-            self.actions_this_round = 1
-            # Clear big blind option since there was a raise
-            self.big_blind_has_option = False
-            self.message = f"{current_player.name} {action_name}s {total_amount:.0f}"
-
+            action_enum = BettingAction.RAISE
+            bet_amount = amount
         else:
             return {
                 "success": False,
                 "error": f"Invalid action: {action}",
                 "state": self.get_state(),
             }
+
+        was_raise = _apply_multiplayer_action(
+            player_id=self.current_player_index,
+            action=action_enum,
+            bet_amount=bet_amount,
+            game_state=self._hand_state,
+        )
+        actual_amount = max(0.0, state_player.current_bet - before_bet)
+
+        if was_raise:
+            self._last_raiser = self.current_player_index
+            self._players_acted_since_raise = {self.current_player_index}
+            self.actions_this_round = 1
+            self.big_blind_has_option = False
+        else:
+            self._players_acted_since_raise.add(self.current_player_index)
+            self.actions_this_round = len(self._players_acted_since_raise)
+
+        if action_enum == BettingAction.FOLD:
+            current_player.last_action = "fold"
+            self.last_move = {"player": current_player.name, "action": "fold"}
+            self.betting_history.append(
+                {"player": current_player.name, "action": "fold", "amount": 0.0}
+            )
+            self.message = f"{current_player.name} folds"
+        elif action_enum == BettingAction.CHECK:
+            current_player.last_action = "check"
+            self.last_move = {"player": current_player.name, "action": "check"}
+            self.betting_history.append(
+                {"player": current_player.name, "action": "check", "amount": 0.0}
+            )
+            self.message = f"{current_player.name} checks"
+        elif action_enum == BettingAction.CALL:
+            current_player.last_action = f"call {actual_amount:.0f}"
+            self.last_move = {
+                "player": current_player.name,
+                "action": f"call {actual_amount:.0f}",
+            }
+            self.betting_history.append(
+                {"player": current_player.name, "action": "call", "amount": actual_amount}
+            )
+            self.message = f"{current_player.name} calls {actual_amount:.0f}"
+        elif action_enum == BettingAction.RAISE:
+            action_name = "raise" if call_amount > 0 else "bet"
+            current_player.last_action = f"{action_name} {actual_amount:.0f}"
+            self.last_move = {
+                "player": current_player.name,
+                "action": f"{action_name} {actual_amount:.0f}",
+            }
+            self.betting_history.append(
+                {
+                    "player": current_player.name,
+                    "action": action_name,
+                    "amount": actual_amount,
+                }
+            )
+            self.message = f"{current_player.name} {action_name}s {actual_amount:.0f}"
+
+        self._sync_from_hand_state()
+
+        active_players = [
+            p for p in self._hand_state.players.values() if not p.folded
+        ]
+        if len(active_players) <= 1:
+            self._showdown()
 
         # Move to next player
         if not self.game_over:
@@ -666,88 +724,75 @@ class HumanPokerGame:
             self._next_player()
             return
 
-        # Clear big blind option if BB is acting
+        if self._hand_state is None:
+            return
+
         if self.current_player_index == self.big_blind_index:
             self.big_blind_has_option = False
 
-        # Evaluate hand
-        hand = evaluate_hand(player.hole_cards, self.community_cards)
         call_amount = self._get_call_amount(self.current_player_index)
+        state_player = self._hand_state.players[self.current_player_index]
+        before_bet = state_player.current_bet
 
-        # Use decide_action to decide action
-        active_bets = [p.current_bet for p in self.players if not p.folded]
-        opponent_bet = max(active_bets) if active_bets else 0.0
-
-        action, bet_amount = decide_action(
-            hand=hand,
-            current_bet=player.current_bet,
-            opponent_bet=opponent_bet,
-            pot=self.pot,
-            player_energy=player.energy,
-            aggression=player.aggression,
-            hole_cards=player.hole_cards,
-            community_cards=self.community_cards,
-            position_on_button=(self.current_player_index == self.button_index),
+        action, bet_amount = _decide_multiplayer_action(
+            player_id=self.current_player_index,
+            game_state=self._hand_state,
+            hand_cache=self._hand_cache,
             rng=self._decision_rng,
         )
 
-        # Process action directly without calling handle_action to avoid recursion
+        was_raise = _apply_multiplayer_action(
+            player_id=self.current_player_index,
+            action=action,
+            bet_amount=bet_amount,
+            game_state=self._hand_state,
+        )
+        actual_amount = max(0.0, state_player.current_bet - before_bet)
+
+        if was_raise:
+            self._last_raiser = self.current_player_index
+            self._players_acted_since_raise = {self.current_player_index}
+            self.actions_this_round = 1
+            self.big_blind_has_option = False
+        else:
+            self._players_acted_since_raise.add(self.current_player_index)
+            self.actions_this_round = len(self._players_acted_since_raise)
+
         if action == BettingAction.FOLD:
-            player.folded = True
             player.last_action = "fold"
             self.last_move = {"player": player.name, "action": "fold"}
             self.betting_history.append({"player": player.name, "action": "fold", "amount": 0.0})
-            self.actions_this_round += 1
             self.message = f"{player.name} folds"
-            # Check if only one player left
-            active_players = [p for p in self.players if not p.folded]
-            if len(active_players) == 1:
-                self._showdown()
-                return
-
         elif action == BettingAction.CHECK:
             player.last_action = "check"
             self.last_move = {"player": player.name, "action": "check"}
             self.betting_history.append({"player": player.name, "action": "check", "amount": 0.0})
-            self.actions_this_round += 1
             self.message = f"{player.name} checks"
-
         elif action == BettingAction.CALL:
-            if call_amount > player.energy:
-                call_amount = player.energy
-            self._player_bet(self.current_player_index, call_amount)
-            player.last_action = f"call {call_amount:.0f}"
-            self.last_move = {"player": player.name, "action": f"call {call_amount:.0f}"}
+            player.last_action = f"call {actual_amount:.0f}"
+            self.last_move = {"player": player.name, "action": f"call {actual_amount:.0f}"}
             self.betting_history.append(
-                {"player": player.name, "action": "call", "amount": call_amount}
+                {"player": player.name, "action": "call", "amount": actual_amount}
             )
-            self.actions_this_round += 1
-            self.message = f"{player.name} calls {call_amount:.0f}"
-
+            self.message = f"{player.name} calls {actual_amount:.0f}"
         elif action == BettingAction.RAISE:
-            total_amount = call_amount + bet_amount
-            if total_amount > player.energy:
-                total_amount = player.energy
-            self._player_bet(self.current_player_index, total_amount)
             action_name = "raise" if call_amount > 0 else "bet"
-            player.last_action = f"{action_name} {total_amount:.0f}"
-            self.last_move = {"player": player.name, "action": f"{action_name} {total_amount:.0f}"}
+            player.last_action = f"{action_name} {actual_amount:.0f}"
+            self.last_move = {"player": player.name, "action": f"{action_name} {actual_amount:.0f}"}
             self.betting_history.append(
-                {
-                    "player": player.name,
-                    "action": action_name,
-                    "amount": total_amount,
-                }
+                {"player": player.name, "action": action_name, "amount": actual_amount}
             )
-            # Reset action counter on raise - others need to respond
-            self.actions_this_round = 1
-            # Clear big blind option since there was a raise
-            self.big_blind_has_option = False
-            self.message = (
-                f"{player.name} {action_name}s {total_amount:.0f}"
-            )
+            self.message = f"{player.name} {action_name}s {actual_amount:.0f}"
 
-        # Move to next player
+        self._sync_from_hand_state()
+
+        active_players = [
+            p for p in self._hand_state.players.values() if not p.folded
+        ]
+        if len(active_players) <= 1:
+            self._showdown()
+            return
+
         if not self.game_over:
             self._next_player()
 

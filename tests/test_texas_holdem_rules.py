@@ -20,6 +20,7 @@ from core.poker.core import (
     resolve_bet,
     simulate_multi_round_game,
 )
+from core.poker.simulation.hand_engine import MultiplayerGameState, MultiplayerPlayerContext, _apply_multiplayer_action
 from core.poker.evaluation.hand_evaluator import _evaluate_five_cards
 from core.poker.core.cards import Card, Rank, Suit
 
@@ -74,35 +75,38 @@ def test_all_in_raise_downgrades_to_call_when_under_minimum():
     Ensure attempted raises that cannot meet the minimum are treated as calls.
     """
 
-    state = PokerGameState(small_blind=5.0, big_blind=10.0, button_position=1)
-
-    # Post blinds manually
-    state.player_bet(1, 5.0)
-    state.player_bet(2, 10.0)
-
-    contexts = {
-        1: simulate_multi_round_game.__globals__["PlayerContext"](
-            remaining_energy=7.0, aggression=0.5, strategy=None
-        ),
-        2: simulate_multi_round_game.__globals__["PlayerContext"](
-            remaining_energy=100.0, aggression=0.5, strategy=None
-        ),
+    players = {
+        0: MultiplayerPlayerContext(player_id=0, remaining_energy=5.0, aggression=0.5),
+        1: MultiplayerPlayerContext(player_id=1, remaining_energy=50.0, aggression=0.5),
     }
-
-    _apply_action = simulate_multi_round_game.__globals__["_apply_action"]
-    _apply_action(
-        current_player=1,
-        action=BettingAction.RAISE,
-        bet_amount=25.0,
-        remaining_energy=contexts[1].remaining_energy,
-        game_state=state,
-        contexts=contexts,
+    state = MultiplayerGameState(
+        num_players=2,
+        players=players,
+        button_position=0,
+        small_blind=5.0,
+        big_blind=10.0,
+        min_raise=10.0,
+        last_raise_amount=10.0,
     )
 
+    state.players[0].current_bet = 10.0
+    state.players[0].total_bet = 10.0
+    state.players[1].current_bet = 20.0
+    state.players[1].total_bet = 20.0
+    state.pot = 30.0
+
+    result = _apply_multiplayer_action(
+        player_id=0,
+        action=BettingAction.RAISE,
+        bet_amount=25.0,
+        game_state=state,
+    )
+
+    assert result is False
     assert state.betting_history[-1][1] == BettingAction.CALL
     assert state.betting_history[-1][2] == 5.0
-    assert state.player1_current_bet == state.player2_current_bet == 10.0
-    assert contexts[1].remaining_energy == 2.0
+    assert state.players[0].current_bet == 15.0
+    assert state.players[0].remaining_energy == 0.0
 
 
 

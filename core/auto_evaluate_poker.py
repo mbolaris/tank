@@ -28,15 +28,9 @@ from typing import Any, Dict, List, Optional
 
 
 # Import directly from source modules to avoid lazy import issues
-from core.poker.betting.actions import BettingAction, BettingRound
-from core.poker.betting.decision import decide_action
+from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
-from core.poker.core.hand import PokerHand
-from core.poker.evaluation.hand_evaluator import evaluate_hand
-from core.poker.evaluation.strength import (
-    evaluate_hand_strength,
-    evaluate_starting_hand_strength,
-)
+from core.poker.simulation.hand_engine import Deal, determine_payouts, simulate_hand_from_deal
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
@@ -149,7 +143,7 @@ class AutoEvaluatePokerGame:
         self._current_deal_seed = rng_seed if rng_seed is not None else 0
         self._rotation_index = 0  # Which rotation we're on for current deal
         self._saved_hole_cards: List[List[Card]] = []  # Cards for each player in base deal
-        self._saved_deck_state: List[Card] = []  # Remaining deck after dealing hole cards
+        self._saved_community_cards: List[Card] = []  # Community cards for base deal
 
         # Create players list
         self.players: List[EvalPlayerState] = []
@@ -208,16 +202,10 @@ class AutoEvaluatePokerGame:
         """Get list of players."""
         return self.players
 
-    def _start_hand(self):
-        """Start a new hand: deal cards and post blinds.
-
-        With position_rotation enabled, this method implements duplicate deals:
-        - First call with a new deal: deals fresh cards, saves them
-        - Subsequent calls (rotations): reuses same cards, rotates seat assignments
-        """
+    def _build_deal(self) -> Deal:
+        """Create the next deal, applying position rotation when enabled."""
         num_players = len(self.players)
 
-        # Reset player state for new hand
         for player in self.players:
             player.current_bet = 0.0
             player.total_bet = 0.0
@@ -228,320 +216,128 @@ class AutoEvaluatePokerGame:
         self.current_round = BettingRound.PRE_FLOP
 
         if self.position_rotation:
-            # Position rotation mode: replay same cards with rotated seats
             if self._rotation_index == 0:
-                # First rotation of a new deal set - deal fresh cards
                 self._current_deal_seed += 1
-                self.deck = Deck(seed=self._current_deal_seed)
-                self.deck.reset()
+                deck = Deck(seed=self._current_deal_seed)
+                deck.reset()
+                self._saved_hole_cards = [deck.deal(2) for _ in range(num_players)]
+                self._saved_community_cards = self._deal_community_cards(deck)
 
-                # Deal and save hole cards for each position
-                self._saved_hole_cards = [self.deck.deal(2) for _ in range(num_players)]
-                # Save remaining deck state for community cards
-                self._saved_deck_state = list(self.deck.cards)
-            else:
-                # Subsequent rotation - restore deck state for community cards
-                self.deck.cards = list(self._saved_deck_state)
+            base_hole_cards = self._saved_hole_cards
+            community_cards = list(self._saved_community_cards)
+            hole_cards: Dict[int, List[Card]] = {}
 
-            # Assign hole cards with rotation offset
-            # Player i gets the cards from position (i + rotation_index) % N
             for i, player in enumerate(self.players):
                 card_position = (i + self._rotation_index) % num_players
-                player.hole_cards = list(self._saved_hole_cards[card_position])
+                cards = list(base_hole_cards[card_position])
+                player.hole_cards = cards
+                hole_cards[i] = cards
 
-            # Advance rotation for next hand
             self._rotation_index = (self._rotation_index + 1) % num_players
         else:
-            # Standard mode - deal fresh cards each hand
             self.deck.reset()
-            for player in self.players:
-                player.hole_cards = self.deck.deal(2)
+            base_hole_cards = [self.deck.deal(2) for _ in range(num_players)]
+            community_cards = self._deal_community_cards(self.deck)
+            hole_cards = {}
+            for i, player in enumerate(self.players):
+                cards = list(base_hole_cards[i])
+                player.hole_cards = cards
+                hole_cards[i] = cards
 
-        # Rotate button position (same logic for both modes)
         self.button_position = (self.button_position + 1) % num_players
-
-        # Post blinds (small blind is player after button, big blind is next player)
-        small_blind_index = (self.button_position + 1) % num_players
-        big_blind_index = (self.button_position + 2) % num_players
-
-        self._player_bet(small_blind_index, self.small_blind)
-        self._player_bet(big_blind_index, self.big_blind)
-
-        # First to act pre-flop is player after big blind
-        self.current_player_index = (big_blind_index + 1) % num_players
-
         self.hands_played += 1
 
-    def _player_bet(self, player_index: int, amount: float):
-        """Record a player's bet."""
-        players = self.get_players()
-        player = players[player_index]
-        # Ensure we don't bet more than available energy
-        actual_amount = min(amount, player.energy)
-        player.current_bet += actual_amount
-        player.total_bet += actual_amount
-        player.energy -= actual_amount
-        self.pot += actual_amount
+        return Deal(
+            hole_cards=hole_cards,
+            community_cards=community_cards,
+            button_position=self.button_position,
+        )
 
-    def _get_call_amount(self, player_index: int) -> float:
-        """Get the amount a player needs to call."""
-        player = self.players[player_index]
-        max_bet = max(p.current_bet for p in self.players if not p.folded)
-        return max_bet - player.current_bet
+    @staticmethod
+    def _deal_community_cards(deck: Deck) -> List[Card]:
+        """Deal a full board (flop/turn/river) from the given deck."""
+        deck.deal(1)
+        flop = deck.deal(3)
+        deck.deal(1)
+        turn = deck.deal_one()
+        deck.deal(1)
+        river = deck.deal_one()
+        return list(flop) + [turn, river]
 
-    def _advance_round(self):
-        """Move to the next betting round and deal community cards."""
-        if self.current_round == BettingRound.PRE_FLOP:
-            self.deck.deal(1)  # Burn card
-            self.community_cards.extend(self.deck.deal(3))
-            self.current_round = BettingRound.FLOP
-        elif self.current_round == BettingRound.FLOP:
-            self.deck.deal(1)  # Burn card
-            self.community_cards.append(self.deck.deal_one())
-            self.current_round = BettingRound.TURN
-        elif self.current_round == BettingRound.TURN:
-            self.deck.deal(1)  # Burn card
-            self.community_cards.append(self.deck.deal_one())
-            self.current_round = BettingRound.RIVER
-        elif self.current_round == BettingRound.RIVER:
-            self.current_round = BettingRound.SHOWDOWN
-            self._showdown()
+    def _apply_hand_result(self, game_state, payouts: Dict[int, float]) -> None:
+        """Update player stats and energies from a simulated hand."""
+        self.community_cards = list(game_state.community_cards)
+        self.pot = game_state.pot
+        self.current_round = game_state.current_round
+
+        for player_id, player in enumerate(self.players):
+            state_player = game_state.players[player_id]
+            player.current_bet = state_player.current_bet
+            player.total_bet = state_player.total_bet
+            player.folded = state_player.folded
+            player.energy = state_player.remaining_energy + payouts.get(player_id, 0.0)
+
+        winner_by_fold = game_state.get_winner_by_fold()
+        if winner_by_fold is not None:
+            winner = self.players[winner_by_fold]
+            winner.hands_won += 1
+            winner.total_energy_won += self.pot
+            for i, player in enumerate(self.players):
+                if i != winner_by_fold and player.total_bet > 0:
+                    player.hands_lost += 1
+                    player.total_energy_lost += player.total_bet
             return
 
-        # Reset current bets for new round
-        for player in self.players:
-            player.current_bet = 0.0
+        active_players = [
+            player_id for player_id, player in game_state.players.items() if not player.folded
+        ]
+        for player_id in active_players:
+            self.players[player_id].showdowns_played += 1
 
-        # First to act post-flop is player after button
-        num_players = len(self.players)
-        self.current_player_index = (self.button_position + 1) % num_players
-        # Skip folded players
-        while self.players[self.current_player_index].folded:
-            self.current_player_index = (self.current_player_index + 1) % num_players
-
-    def _showdown(self):
-        """Determine winner at showdown."""
-        active_players = [i for i, p in enumerate(self.players) if not p.folded]
-
-        # If only one player left, they win
-        if len(active_players) == 1:
-            self._award_pot(active_players[0])
+        winners = [player_id for player_id, payout in payouts.items() if payout > 0.0]
+        if len(winners) > 1:
+            for player_id in winners:
+                self.players[player_id].showdowns_won += 1
+                self.players[player_id].total_energy_won += payouts[player_id]
+            self.last_hand_message = f"Tie! Pot split among {len(winners)} players."
             return
 
-        for i in active_players:
-            self.players[i].showdowns_played += 1
-
-        # Evaluate hands for all active players
-        best_hand: Optional[PokerHand] = None
-        best_player_index: Optional[int] = None
-        tied_players: List[int] = []
-
-        for i in active_players:
-            player = self.players[i]
-            hand = evaluate_hand(player.hole_cards, self.community_cards)
-            logger.debug(f"Auto-eval {self.game_id}: {player.name}: {hand}")
-
-            if best_hand is None or hand.beats(best_hand):
-                best_hand = hand
-                best_player_index = i
-                tied_players = [i]
-            elif hand.ties(best_hand):
-                tied_players.append(i)
-
-        # Award pot to winner(s)
-        if len(tied_players) > 1:
-            self._split_pot(tied_players)
-            for i in tied_players:
-                self.players[i].showdowns_won += 1
-            self.last_hand_message = f"Tie! Pot split among {len(tied_players)} players."
-        elif best_player_index is not None:
-            self._award_pot(best_player_index)
-            winner = self.players[best_player_index]
+        if len(winners) == 1:
+            winner_id = winners[0]
+            winner = self.players[winner_id]
+            winner.hands_won += 1
+            winner.total_energy_won += payouts[winner_id]
             winner.showdowns_won += 1
-            self.last_hand_message = f"{winner.name} wins with {best_hand}!"
-
-    def _award_pot(self, winner_index: int):
-        """Award the pot to the winner."""
-        winner = self.players[winner_index]
-
-        winner.energy += self.pot
-        winner.hands_won += 1
-        winner.total_energy_won += self.pot
-
-        # Track losses for non-winners who didn't fold
-        for i, player in enumerate(self.players):
-            if i != winner_index and player.total_bet > 0:
-                player.hands_lost += 1
-                player.total_energy_lost += player.total_bet
-
-
-
-    def _split_pot(self, tied_player_indices: List[int]):
-        """Split the pot among tied players."""
-        split_amount = self.pot / len(tied_player_indices)
-        for i in tied_player_indices:
-            self.players[i].energy += split_amount
-            self.players[i].total_energy_won += split_amount
-
-    def _process_player_action(self, player_index: int):
-        """Process a player's action."""
-        player = self.players[player_index]
-
-        if player.folded:
-            return
-
-        call_amount = self._get_call_amount(player_index)
-
-        # Can't call - must fold
-        if call_amount > player.energy:
-            player.folded = True
-            logger.debug(f"Auto-eval {self.game_id}: {player.name} folds (insufficient energy)")
-            return
-
-        # Determine action based on player type
-        if player.is_standard:  # Standard player
-            # Use decide_action (standard algorithm)
-            hand = evaluate_hand(player.hole_cards, self.community_cards)
-            max_opponent_bet = max(p.current_bet for p in self.players if not p.folded)
-
-            action, amount = decide_action(
-                hand=hand,
-                current_bet=player.current_bet,
-                opponent_bet=max_opponent_bet,
-                pot=self.pot,
-                player_energy=player.energy,
-                aggression=0.5,  # Medium aggression
-                hole_cards=player.hole_cards,
-                community_cards=self.community_cards if self.community_cards else None,
-                position_on_button=(player_index == self.button_position),
-                rng=self._decision_rng,
-            )
-
-        else:  # Fish player
-            # Use fish's poker strategy
-            hand = evaluate_hand(player.hole_cards, self.community_cards)
-            is_preflop = len(self.community_cards) == 0
-            position_on_button = player_index == self.button_position
-
-            # Use starting hand evaluation for pre-flop to match standard algorithm's info
-            if is_preflop and len(player.hole_cards) == 2:
-                hand_strength = evaluate_starting_hand_strength(player.hole_cards, position_on_button)
+            for i, player in enumerate(self.players):
+                if i != winner_id and player.total_bet > 0:
+                    player.hands_lost += 1
+                    player.total_energy_lost += player.total_bet
+            winning_hand = game_state.player_hands.get(winner_id)
+            if winning_hand is not None:
+                self.last_hand_message = f"{winner.name} wins with {winning_hand}!"
             else:
-                hand_strength = evaluate_hand_strength(hand)
-
-            max_opponent_bet = max(p.current_bet for p in self.players if not p.folded)
-
-            action, amount = player.poker_strategy.decide_action(
-                hand_strength=hand_strength,
-                current_bet=player.current_bet,
-                opponent_bet=max_opponent_bet,
-                pot=self.pot,
-                player_energy=player.energy,
-                position_on_button=position_on_button,
-                rng=self._decision_rng,
-            )
-
-        # Execute action
-        if action == BettingAction.FOLD:
-            player.folded = True
-            logger.debug(f"Auto-eval {self.game_id}: {player.name} folds")
-
-        elif action == BettingAction.CHECK:
-            logger.debug(f"Auto-eval {self.game_id}: {player.name} checks")
-
-        elif action == BettingAction.CALL:
-            if call_amount > player.energy:
-                call_amount = player.energy
-            self._player_bet(player_index, call_amount)
-            logger.debug(f"Auto-eval {self.game_id}: {player.name} calls {call_amount:.1f}")
-
-        elif action == BettingAction.RAISE:
-            total_amount = call_amount + amount
-            if total_amount > player.energy:
-                total_amount = player.energy
-            self._player_bet(player_index, total_amount)
-            logger.debug(f"Auto-eval {self.game_id}: {player.name} raises {total_amount:.1f}")
-
-    def _play_betting_round(self):
-        """Play one betting round."""
-        max_actions = 100  # Prevent infinite loops (increased for multi-player)
-        actions_taken = 0
-        num_players = len(self.players)
-
-        while actions_taken < max_actions:
-            # Make shutdown responsive even in the middle of a hand.
-            if _shutdown_requested:
-                self.game_over = True
-                return
-
-            current = self.players[self.current_player_index]
-
-            # If current player folded, skip to next
-            if current.folded:
-                self.current_player_index = (self.current_player_index + 1) % num_players
-                actions_taken += 1
-                continue
-
-            # Process action
-            self._process_player_action(self.current_player_index)
-
-            # Check if only one player left
-            active_players = [p for p in self.players if not p.folded]
-            if len(active_players) <= 1:
-                break
-
-            # Check if betting is complete
-            if self._is_betting_complete():
-                break
-
-            # Move to next player
-            self.current_player_index = (self.current_player_index + 1) % num_players
-            actions_taken += 1
-
-            # Yield to reduce GIL starvation of the main server thread/event loop.
-            if actions_taken % 10 == 0:
-                time.sleep(0)
-
-    def _is_betting_complete(self) -> bool:
-        """Check if betting is complete for the current round."""
-        active_players = [p for p in self.players if not p.folded]
-
-        # If only one player left, betting is done
-        if len(active_players) <= 1:
-            return True
-
-        # Get max bet
-        max_bet = max(p.current_bet for p in active_players)
-
-        # Check if all active players have matched max bet
-        for player in active_players:
-            if player.current_bet < max_bet and player.energy > 0:
-                return False
-
-        return True
+                self.last_hand_message = f"{winner.name} wins!"
 
     def play_hand(self):
         """Play one complete hand of poker."""
-        self._start_hand()
+        deal = self._build_deal()
+        player_energies = [player.energy for player in self.players]
+        player_aggressions = [0.5] * len(self.players)
+        player_strategies = [
+            None if player.is_standard else player.poker_strategy for player in self.players
+        ]
 
-        # Play pre-flop
-        self._play_betting_round()
-
-        # Continue through remaining rounds if more than one player active
-        while self.current_round != BettingRound.SHOWDOWN:
-            active_players = [p for p in self.players if not p.folded]
-            if len(active_players) <= 1:
-                # Someone won by everyone else folding
-                self._showdown()
-                break
-
-            self._advance_round()
-            if self.current_round != BettingRound.SHOWDOWN:
-                self._play_betting_round()
-
-        # If we haven't had a showdown yet, trigger it
-        if self.current_round != BettingRound.SHOWDOWN:
-            self._showdown()
+        game_state = simulate_hand_from_deal(
+            deal=deal,
+            initial_bet=self.big_blind,
+            player_energies=player_energies,
+            player_aggressions=player_aggressions,
+            player_strategies=player_strategies,
+            small_blind=self.small_blind,
+            rng=self._decision_rng,
+        )
+        payouts = determine_payouts(game_state)
+        self._apply_hand_result(game_state, payouts)
 
         # Capture performance snapshot after each hand
         self._record_hand_performance()

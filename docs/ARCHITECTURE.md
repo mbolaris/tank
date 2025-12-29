@@ -87,6 +87,8 @@ tank/
 ### Poker Systems
 
 - **core/poker/**: Engine, betting, strategy, and evaluation packages used by simulation and mixed poker.
+- **core/poker/simulation/hand_engine.py**: Unified hand-level engine shared by heads-up, multiplayer, evaluation, and UI wrappers.
+- **core/poker/simulation/engine.py** and **core/poker/simulation/multiplayer_engine.py**: Thin adapters that configure players and delegate to the shared hand engine.
 - **core/poker_system.py**: BaseSystem that tracks poker events, throttles mixed games, and exposes UI-facing history.
 - **core/mixed_poker/** + **core/plant_poker_strategy.py**: Plant vs. fish poker integration, including plant-triggered reproduction rules.
 - **skill_game_system.py** + **core/skills/games/**: Optional skill game orchestration with adapters (e.g., poker adapter in `core/skills/games/poker_adapter.py`).

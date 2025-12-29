@@ -10,7 +10,11 @@ from core.poker.evaluation.benchmark_eval import (
     create_standard_strategy,
     evaluate_vs_single_benchmark_duplicate,
 )
-from core.poker.strategy.implementations import BalancedStrategy, TightAggressiveStrategy
+from core.poker.strategy.implementations import (
+    AlwaysFoldStrategy,
+    BalancedStrategy,
+    TightAggressiveStrategy,
+)
 
 
 class TestDeckDeterminism(unittest.TestCase):
@@ -105,6 +109,36 @@ class TestHeadsUpDeterminism(unittest.TestCase):
             stats_seat0.net_bb_for_candidate != stats_different_seed.net_bb_for_candidate
             or abs(stats_seat0.net_bb_for_candidate) < 0.1
         )
+
+
+class TestPositionRotation(unittest.TestCase):
+    """Test duplicate-deal position rotation behavior."""
+
+    def test_position_rotation_balances_blinds_for_symmetric_fold(self):
+        player_pool = [
+            {"name": "FoldBotA", "poker_strategy": AlwaysFoldStrategy(rng=random.Random(1))},
+            {"name": "FoldBotB", "poker_strategy": AlwaysFoldStrategy(rng=random.Random(2))},
+        ]
+
+        game = AutoEvaluatePokerGame(
+            game_id="rotation_test",
+            player_pool=player_pool,
+            standard_energy=100.0,
+            max_hands=2,
+            small_blind=5.0,
+            big_blind=10.0,
+            rng_seed=42,
+            include_standard_player=False,
+            position_rotation=True,
+        )
+
+        stats = game.run_evaluation()
+        energies = [player["energy"] for player in stats.players]
+
+        self.assertEqual(stats.hands_played, 2)
+        self.assertAlmostEqual(energies[0], 100.0, places=1)
+        self.assertAlmostEqual(energies[1], 100.0, places=1)
+        self.assertAlmostEqual(energies[0], energies[1], places=1)
 
 
 class TestBenchmarkEvaluation(unittest.TestCase):

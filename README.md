@@ -122,6 +122,7 @@ Fish can play poker against each other and against plants for energy rewards!
 
 - **Automatic**: Fish play when they collide and have >10 energy
 - **Texas Hold'em**: Full poker rules with community cards and betting rounds
+- **Unified Hand Engine**: Shared hand-level engine powers heads-up, multiplayer, evaluation, and the human UI
 - **Energy Stakes**: Winner takes energy from loser (house cut only for fish-vs-fish)
 - **Mixed Games**: Fish and plants can play together (requires at least 1 fish per game)
 - **Energy Flow Tracking**: Stats panel shows 🌱⚡→🐟 indicator for net plant-to-fish energy transfers
@@ -340,6 +341,10 @@ tank/
 |   |-- poker/               # Poker game system (organized package)
 |   |   |-- core/            # Card, Hand, PokerEngine
 |   |   |-- evaluation/      # Hand evaluation logic
+|   |   |-- simulation/      # Shared hand engine + simulation adapters
+|   |   |   |-- hand_engine.py
+|   |   |   |-- engine.py
+|   |   |   `-- multiplayer_engine.py
 |   |   `-- strategy/        # AI poker strategies
 |   |-- algorithms/          # Behavior algorithm library (58 strategies)
 |   |-- genetics/            # Fish/plant genome, traits, inheritance
