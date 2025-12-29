@@ -1,0 +1,111 @@
+{
+  "metadata": {
+    "solution_id": "133de727_20251229_173918",
+    "name": "Opus-4.5 Poker Champion",
+    "description": "First poker solution from Opus-4.5 - 43 games played",
+    "author": "Opus-4.5",
+    "submitted_at": "2025-12-29T17:39:18.111109",
+    "version": "1.0.0",
+    "generation": 1,
+    "simulation_frames": 0,
+    "fish_id": 26,
+    "commit_sha": "bf03d74e4fd1422ad933eab6af95661cc7acd916",
+    "branch": "claude/improve-solution-tracking-Tm9Rj"
+  },
+  "behavior_algorithm": {
+    "type": "ComposableBehavior",
+    "threat_response": 0,
+    "food_approach": 3,
+    "social_mode": 3,
+    "poker_engagement": 2,
+    "parameters": {
+      "alignment_strength": 0.39063287566751426,
+      "ambush_patience": 0.7735584448515054,
+      "ambush_strike_distance": 23.610014731567638,
+      "base_speed_multiplier": 0.89494629186023,
+      "burst_duration": 71.84158743047956,
+      "burst_speed": 1.263463856326246,
+      "circle_radius": 66.91175842733452,
+      "circle_speed": 0.10471983769539761,
+      "cohesion_strength": 0.5131550656035523,
+      "energy_urgency_threshold": 0.4931859377709723,
+      "erratic_amplitude": 0.8,
+      "flee_speed": 1.15822965027871,
+      "flee_threshold": 123.17182889301212,
+      "follow_distance": 36.67169723239547,
+      "food_priority": 0.6532486752069855,
+      "freeze_distance": 71.97996197120958,
+      "intercept_skill": 0.6054739724403384,
+      "min_energy_for_poker": 0.37520647336409507,
+      "patrol_radius": 116.20522649421277,
+      "poker_avoid_radius": 111.33045384506893,
+      "poker_priority": 0.23988533617606075,
+      "poker_seek_radius": 155.09714120980317,
+      "pursuit_speed": 1.1572191283644901,
+      "rest_duration": 80.11372358983147,
+      "separation_distance": 16.919730337086705,
+      "social_distance": 38.33419500912753,
+      "social_priority": 0.39211821880394576,
+      "stealth_speed": 0.3002598826003148,
+      "threat_priority": 0.8281852591437613,
+      "zigzag_amplitude": 0.6637786616458171,
+      "zigzag_frequency": 0.050360156836947494
+    }
+  },
+  "poker_strategy": {},
+  "composable_behavior": null,
+  "capture_stats": {
+    "total_games": 43,
+    "wins": 31,
+    "losses": 12,
+    "ties": 0,
+    "win_rate": 0.7209302325581395,
+    "total_energy_won": 599.6668725270127,
+    "total_energy_lost": 77.80153951290447,
+    "net_energy": 374.74905170922466,
+    "roi": 8.715094225795923,
+    "current_streak": 28,
+    "best_streak": 28,
+    "worst_streak": -4,
+    "showdown_win_rate": 0.0,
+    "fold_rate": 0.27906976744186046,
+    "best_hand_rank": 0,
+    "avg_hand_rank": 0.0,
+    "button_win_rate": 1.0,
+    "non_button_win_rate": 0.14285714285714285,
+    "positional_advantage": 0.8571428571428572,
+    "recent_win_rate": 1.0,
+    "skill_trend": "improving"
+  },
+  "benchmark_result": {
+    "per_opponent": {
+      "always_fold": 166.0618,
+      "random": 228.9933,
+      "loose_passive": -34.681,
+      "balanced": 46.50727482678983
+    },
+    "weighted_bb_per_100": 101.72034370669748,
+    "total_hands_played": 3866,
+    "elo_rating": 1229.8864111418136,
+    "confidence_intervals": {
+      "always_fold": [
+        148.41878604534747,
+        183.70481395465254
+      ],
+      "random": [
+        130.6455959403337,
+        327.3410040596663
+      ],
+      "loose_passive": [
+        -36.65283133121471,
+        -32.70916866878528
+      ],
+      "balanced": [
+        -175.62854213681595,
+        222.0139782270415
+      ]
+    },
+    "skill_tier": "beginner",
+    "evaluated_at": "2025-12-29T17:39:24.947202"
+  }
+}
