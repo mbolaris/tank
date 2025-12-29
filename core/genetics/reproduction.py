@@ -10,10 +10,13 @@ from core.evolution.mutation import calculate_adaptive_mutation_rate
 
 @dataclass(frozen=True)
 class ReproductionParams:
-    """Inputs that control mutation for a reproduction event."""
+    """Inputs that control mutation for a reproduction event.
 
-    mutation_rate: float = 0.1
-    mutation_strength: float = 0.1
+    TUNED FOR FASTER EVOLUTION: Increased defaults to accelerate adaptation.
+    """
+
+    mutation_rate: float = 0.15  # Increased from 0.1 for faster evolution
+    mutation_strength: float = 0.15  # Increased from 0.1 for larger mutations
 
     def adaptive_mutation(self) -> Tuple[float, float]:
         """Return (adaptive_rate, adaptive_strength) after clamping."""

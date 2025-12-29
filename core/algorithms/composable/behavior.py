@@ -148,9 +148,9 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
 
     def mutate(
         self,
-        mutation_rate: float = 0.1,
-        mutation_strength: float = 0.15,
-        sub_behavior_switch_rate: float = 0.05,
+        mutation_rate: float = 0.15,  # Increased from 0.1
+        mutation_strength: float = 0.20,  # Increased from 0.15
+        sub_behavior_switch_rate: float = 0.10,  # Increased from 0.05
         rng: Optional["random.Random"] = None,
     ) -> None:
         """Mutate the composable behavior."""
@@ -215,9 +215,9 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         parent1: "ComposableBehavior",
         parent2: "ComposableBehavior",
         weight1: float = 0.5,
-        mutation_rate: float = 0.1,
-        mutation_strength: float = 0.15,
-        sub_behavior_switch_rate: float = 0.03,
+        mutation_rate: float = 0.15,  # Increased from 0.1
+        mutation_strength: float = 0.20,  # Increased from 0.15
+        sub_behavior_switch_rate: float = 0.08,  # Increased from 0.03
         rng: Optional["random.Random"] = None,
     ) -> "ComposableBehavior":
         """Create offspring by crossing over two parent behaviors."""

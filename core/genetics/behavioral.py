@@ -428,7 +428,7 @@ def _inherit_composable_behavior(
         weight1=weight1,
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
-        sub_behavior_switch_rate=0.03,
+        sub_behavior_switch_rate=0.08,  # Increased from 0.03 for more behavioral diversity
         rng=rng,
     )
 

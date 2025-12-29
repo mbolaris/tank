@@ -23,17 +23,17 @@ T = TypeVar("T")
 # =============================================================================
 # These control the "evolution of evolution" - how quickly the meta-genetic
 # parameters (mutation_rate, mutation_strength, hgt_probability) can change.
-# Keep these low to prevent runaway evolvability oscillations.
+# TUNED FOR FASTER EVOLUTION: Increased rates to accelerate adaptation.
 
-META_MUTATION_CHANCE: float = 0.05  # 5% chance per trait per generation
-META_HGT_MUTATION_CHANCE: float = 0.08  # HGT mutates slightly more often
-META_MUTATION_SIGMA: float = 0.05  # Gaussian sigma for meta-changes
+META_MUTATION_CHANCE: float = 0.10  # 10% chance per trait (up from 5%)
+META_HGT_MUTATION_CHANCE: float = 0.15  # 15% HGT mutation chance (up from 8%)
+META_MUTATION_SIGMA: float = 0.08  # Gaussian sigma for meta-changes (up from 0.05)
 
-# Bounds to prevent extreme evolvability values
-META_MUTATION_RATE_MIN: float = 0.5
-META_MUTATION_RATE_MAX: float = 2.0
-META_MUTATION_STRENGTH_MIN: float = 0.5
-META_MUTATION_STRENGTH_MAX: float = 2.0
+# Bounds widened to allow more evolutionary diversity
+META_MUTATION_RATE_MIN: float = 0.4  # Allow slightly lower rates
+META_MUTATION_RATE_MAX: float = 3.0  # Allow much higher rates (up from 2.0)
+META_MUTATION_STRENGTH_MIN: float = 0.4  # Allow slightly lower strength
+META_MUTATION_STRENGTH_MAX: float = 3.0  # Allow much stronger mutations (up from 2.0)
 
 
 def random_genetic_trait(

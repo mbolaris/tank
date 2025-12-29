@@ -82,8 +82,8 @@ POST_POKER_REPRODUCTION_LOSER_PROB = 0.2  # Probability loser offers reproductio
 POST_POKER_CROSSOVER_WINNER_WEIGHT = 0.7  # Winner contributes 70% of DNA, loser 30%
 POST_POKER_MATING_DISTANCE = 80  # Maximum distance for post-poker mating (pixels)
 POST_POKER_PARENT_ENERGY_CONTRIBUTION = 0.15  # Energy contribution from each parent (15%)
-POST_POKER_MUTATION_RATE = 0.1  # Mutation rate for post-poker offspring
-POST_POKER_MUTATION_STRENGTH = 0.1  # Mutation strength for post-poker offspring
+POST_POKER_MUTATION_RATE = 0.15  # Mutation rate for post-poker offspring (up from 0.1)
+POST_POKER_MUTATION_STRENGTH = 0.15  # Mutation strength for post-poker offspring (up from 0.1)
 
 # Fish Memory and Learning Constants
 

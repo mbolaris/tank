@@ -31,18 +31,17 @@ class MutationConfig:
     """
 
     # Base mutation rates (INCREASED for faster evolution)
-    # Base mutation rates (reduced for more stability)
-    base_rate: float = 0.08  # 8% chance per trait
-    base_strength: float = 0.06  # Gaussian std dev as fraction of range
+    base_rate: float = 0.12  # 12% chance per trait (up from 8%)
+    base_strength: float = 0.10  # Gaussian std dev (up from 6%)
 
-    # Adaptive mutation bounds (narrower for stability)
-    min_rate: float = 0.04  # Never mutate less than 4%
-    max_rate: float = 0.25  # Never mutate more than 25%
-    min_strength: float = 0.03
-    max_strength: float = 0.15
+    # Adaptive mutation bounds (widened for more evolutionary exploration)
+    min_rate: float = 0.05  # Never mutate less than 5%
+    max_rate: float = 0.35  # Allow up to 35% mutation rate
+    min_strength: float = 0.04
+    max_strength: float = 0.25  # Allow stronger mutations
 
     # Algorithm mutation (INCREASED for more behavioral diversity)
-    algorithm_switch_rate: float = 0.04  # 4% chance of completely new algorithm
+    algorithm_switch_rate: float = 0.08  # 8% chance of completely new algorithm (up from 4%)
 
 
 # Default configuration
