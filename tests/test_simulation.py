@@ -1,7 +1,7 @@
 """Quick test to verify the simulation runs without errors."""
 
 from core import entities
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 
 
 def test_simulation():

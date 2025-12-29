@@ -8,7 +8,7 @@ from core.poker_interaction import PokerInteraction
 from core.mixed_poker import MixedPokerInteraction, MixedPokerResult
 from core.movement_strategy import AlgorithmicMovement
 from core.genetics import PlantGenome
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 from core.skill_game_system import SkillGameSystem
 from core.skills.base import SkillGameResult
 from core.skills.config import SkillGameConfig

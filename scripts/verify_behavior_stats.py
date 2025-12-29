@@ -5,7 +5,7 @@ import os
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 from core.services.stats_calculator import StatsCalculator
 from core.algorithms.composable import ComposableBehavior
 

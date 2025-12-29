@@ -3,7 +3,7 @@
 This package contains the pure simulation logic for the fish tank ecosystem,
 with no UI dependencies. Key modules include:
 
-- simulation_engine: Main headless simulation runner
+- simulation: Main headless simulation runner (core.simulation.engine)
 - ecosystem: Population tracking and statistics
 - environment: Spatial queries and grid management
 - entities: Fish, Food, Plants, and other entities
@@ -22,7 +22,7 @@ from . import algorithms as algorithms
 from . import entities as entities
 from . import genetics as genetics
 from . import interfaces as interfaces
-from . import simulation_engine as simulation_engine
+from . import simulation as simulation
 
 # Public API of the core package. Keep this list intentionally small.
 __all__ = [
@@ -30,5 +30,5 @@ __all__ = [
 	"entities",
 	"genetics",
 	"interfaces",
-	"simulation_engine",
+	"simulation",
 ]

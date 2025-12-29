@@ -1,7 +1,7 @@
 
 import json
 import difflib
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 from tests.test_determinism import remove_non_deterministic_fields
 
 def debug_determinism_diff():

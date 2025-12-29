@@ -6,7 +6,7 @@ import sys
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from core.simulation_engine import HeadlessSimulator
+from core.simulation.engine import HeadlessSimulator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

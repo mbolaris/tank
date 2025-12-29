@@ -2,7 +2,7 @@
 
 This script is intended for local developer checks and CI smoke tests.
 """
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 
 
 def main() -> None:

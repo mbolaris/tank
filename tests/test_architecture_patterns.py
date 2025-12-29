@@ -279,7 +279,7 @@ class TestCollisionSystemWithSystemResult:
     def test_collision_system_returns_system_result(self):
         """CollisionSystem._do_update should return a SystemResult."""
         from core.collision_system import CollisionSystem
-        from core.simulation_engine import SimulationEngine
+        from core.simulation.engine import SimulationEngine
 
         # Create engine and collision system
         engine = SimulationEngine(headless=True)
@@ -299,7 +299,7 @@ class TestCollisionSystemWithSystemResult:
     def test_collision_system_tracks_per_frame_stats(self):
         """CollisionSystem should track per-frame collision statistics."""
         from core.collision_system import CollisionSystem
-        from core.simulation_engine import SimulationEngine
+        from core.simulation.engine import SimulationEngine
         from core.math_utils import Vector2
 
         # Create engine

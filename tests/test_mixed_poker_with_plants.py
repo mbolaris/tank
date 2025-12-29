@@ -20,7 +20,7 @@ import pytest
 
 from core.entities.plant import Plant
 from core.entities import Fish
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE
 from core.config.plants import (
     PLANT_POKER_MAX_DISTANCE,

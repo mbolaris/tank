@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 
 from core.ecosystem import EcosystemManager
 from core.entities.fish import Fish
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 from core.poker_stats_manager import PokerStatsManager
 
 # Configure logging to errors only for cleaner output

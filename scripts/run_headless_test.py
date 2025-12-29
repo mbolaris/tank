@@ -1,6 +1,6 @@
 import logging
 
-from core.simulation_engine import HeadlessSimulator
+from core.simulation.engine import HeadlessSimulator
 
 
 def main():

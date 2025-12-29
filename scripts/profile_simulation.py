@@ -8,7 +8,7 @@ import time
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 
 
 def run_simulation():

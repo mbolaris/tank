@@ -7,7 +7,7 @@ simulation engine and produce equivalent results.
 import pytest
 
 from core import entities
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 
 
 def test_headless_mode_architecture():

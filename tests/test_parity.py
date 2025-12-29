@@ -3,7 +3,7 @@
 import pytest
 
 from core import entities
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 
 
 @pytest.mark.xfail(

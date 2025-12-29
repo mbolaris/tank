@@ -1,6 +1,6 @@
 import json
 
-from core.simulation_engine import SimulationEngine
+from core.simulation.engine import SimulationEngine
 
 
 # Fields that depend on wall-clock time or other non-deterministic factors
