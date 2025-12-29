@@ -1,0 +1,131 @@
+{
+  "metadata": {
+    "solution_id": "603bca97_20251229_182751",
+    "name": "Sonnet-4.5 Poker Master",
+    "description": "Sonnet-4.5 poker strategy evolved from 50k frame simulation - 345 games played",
+    "author": "Sonnet-4.5",
+    "submitted_at": "2025-12-29T18:27:51.321541",
+    "version": "1.0.0",
+    "generation": 15,
+    "simulation_frames": 0,
+    "fish_id": 1121,
+    "commit_sha": "b387676687323dc904c9c69a676fae03f29b48f2",
+    "branch": "claude/poker-strategy-solution-4k11S"
+  },
+  "behavior_algorithm": {
+    "type": "ComposableBehavior",
+    "threat_response": 2,
+    "food_approach": 1,
+    "social_mode": 0,
+    "poker_engagement": 2,
+    "parameters": {
+      "alignment_strength": 0.497185258448552,
+      "ambush_patience": 0.8823080996749849,
+      "ambush_strike_distance": 35.69304065423557,
+      "base_speed_multiplier": 0.5,
+      "burst_duration": 53.31096853315424,
+      "burst_speed": 1.3399572579811996,
+      "circle_radius": 50.300814354254896,
+      "circle_speed": 0.12780776517062087,
+      "cohesion_strength": 0.43894989264388745,
+      "energy_urgency_threshold": 0.3577442218465147,
+      "erratic_amplitude": 0.6340924706206376,
+      "flee_speed": 1.3173612091744171,
+      "flee_threshold": 179.2121783187247,
+      "follow_distance": 35.33454913176297,
+      "food_priority": 0.8610888466339117,
+      "freeze_distance": 81.40544886520368,
+      "intercept_skill": 0.7459756250195005,
+      "min_energy_for_poker": 0.3972697278742756,
+      "patrol_radius": 140.5133339539102,
+      "poker_avoid_radius": 130.51888555522115,
+      "poker_priority": 0.3693506247083573,
+      "poker_seek_radius": 197.78920851586872,
+      "pursuit_speed": 1.0337608779092093,
+      "rest_duration": 86.2371283150343,
+      "separation_distance": 36.867944620671096,
+      "social_distance": 40.776853318259995,
+      "social_priority": 0.11868149602330164,
+      "stealth_speed": 0.255269551046246,
+      "threat_priority": 0.7390995129575362,
+      "zigzag_amplitude": 0.9156188081576865,
+      "zigzag_frequency": 0.03787915867194397
+    }
+  },
+  "poker_strategy": {},
+  "composable_behavior": null,
+  "capture_stats": {
+    "total_games": 345,
+    "wins": 308,
+    "losses": 37,
+    "ties": 0,
+    "win_rate": 0.8927536231884058,
+    "total_energy_won": 5869.242352730037,
+    "total_energy_lost": 1266.8680866426591,
+    "net_energy": 3162.472966600678,
+    "roi": 9.166588308987473,
+    "current_streak": 1,
+    "best_streak": 101,
+    "worst_streak": -9,
+    "showdown_win_rate": 0.2,
+    "fold_rate": 0.08405797101449275,
+    "best_hand_rank": 5,
+    "avg_hand_rank": 0.21159420289855072,
+    "button_win_rate": 0.9715189873417721,
+    "non_button_win_rate": 0.034482758620689655,
+    "positional_advantage": 0.9370362287210825,
+    "recent_win_rate": 0.9,
+    "skill_trend": "stable"
+  },
+  "benchmark_result": {
+    "per_opponent": {
+      "always_fold": 175.01110000000006,
+      "random": 830.4384414831981,
+      "loose_passive": -1065.5505263157895,
+      "tight_passive": 704.9490750000001,
+      "tight_aggressive": 884.8015996878656,
+      "loose_aggressive": 2887.3947839046195,
+      "maniac": 846.9539419087139,
+      "balanced": 288.6743856332703
+    },
+    "weighted_bb_per_100": 683.8927773796695,
+    "total_hands_played": 17613,
+    "elo_rating": 1384.528449238526,
+    "confidence_intervals": {
+      "always_fold": [
+        167.2214195399139,
+        182.8007804600861
+      ],
+      "random": [
+        533.3080518089782,
+        1147.775179243104
+      ],
+      "loose_passive": [
+        -1262.8077211272694,
+        -959.9503882687476
+      ],
+      "tight_passive": [
+        660.3702215399979,
+        749.527928460002
+      ],
+      "tight_aggressive": [
+        -130.49112219642393,
+        1167.3738992038884
+      ],
+      "loose_aggressive": [
+        955.1401038347792,
+        4382.185440478428
+      ],
+      "maniac": [
+        -3073.60326531783,
+        5547.21305247389
+      ],
+      "balanced": [
+        -629.6691831032566,
+        476.0741145079645
+      ]
+    },
+    "skill_tier": "intermediate",
+    "evaluated_at": "2025-12-29T18:28:17.344165"
+  }
+}
