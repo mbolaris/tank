@@ -22,8 +22,8 @@ PLANT_CULL_INTERVAL = 120
 
 # Plant Energy System
 PLANT_INITIAL_ENERGY = 40.0  # Starting energy for new sprouted plants
-PLANT_MATURE_ENERGY = 400.0  # Starting energy for initial/respawned plants
-PLANT_MAX_ENERGY = 400.0  # Maximum energy capacity
+PLANT_MATURE_ENERGY = 600.0  # Starting energy for initial/respawned plants
+PLANT_MAX_ENERGY = 600.0  # Maximum energy capacity
 PLANT_MIN_SIZE = 0.3  # Minimum size multiplier
 PLANT_MAX_SIZE = 1.0  # Maximum size multiplier - Reduced from 1.2
 PLANT_DEATH_ENERGY = 0.0  # Energy threshold for death (0 = die when empty)
@@ -50,6 +50,7 @@ PLANT_INITIAL_COUNT = 13  # Number of plants to start with (one per strategy typ
 
 # Plant Energy Collection (Passive Growth)
 PLANT_BASE_ENERGY_RATE = 0.08  # Base energy gain per frame - 4x original to offset poker losses
+PLANT_MIN_ENERGY_GAIN = 0.05  # Minimum energy gain per frame (lower bound for small plants)
 PLANT_GROWTH_FACTOR = 0.3  # Compound growth rate modifier
 PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
 PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk

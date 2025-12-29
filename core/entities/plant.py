@@ -36,6 +36,7 @@ from core.config.plants import (
     PLANT_INITIAL_ENERGY,
     PLANT_MAX_ENERGY,
     PLANT_MAX_SIZE,
+    PLANT_MIN_ENERGY_GAIN,
     PLANT_MIN_POKER_ENERGY,
     PLANT_MIN_SIZE,
     PLANT_NECTAR_COOLDOWN,
@@ -303,6 +304,9 @@ class Plant(Agent):
         # Cosmic Fern variants have a small energy collection bonus
         if getattr(self.genome, "type", "lsystem") == "cosmic_fern":
             energy_gain *= 1.1
+
+        # Apply minimum energy gain floor to prevent small plants from growing too slowly
+        energy_gain = max(energy_gain, PLANT_MIN_ENERGY_GAIN)
 
         before = self.energy
         self.energy = min(self.max_energy, self.energy + energy_gain)
