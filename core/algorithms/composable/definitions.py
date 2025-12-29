@@ -97,16 +97,16 @@ SUB_BEHAVIOR_PARAMS = {
     "separation_distance": (15.0, 40.0),
     "follow_distance": (20.0, 60.0),
     # Poker engagement parameters
-    "poker_seek_radius": (80.0, 200.0),
+    "poker_seek_radius": (120.0, 240.0),  # Wider search to trigger more poker games
     "poker_avoid_radius": (60.0, 150.0),
-    "min_energy_for_poker": (0.3, 0.6),
+    "min_energy_for_poker": (0.25, 0.5),  # Allow poker engagement at slightly lower energy
     # Priority weights (how much each category influences final behavior)
     "threat_priority": (0.6, 1.0),  # Usually high - survival first
     # Increased food_priority from (0.4, 0.9) to (0.5, 0.95) based on experiment
     # showing fish need to prioritize food more aggressively to survive
     "food_priority": (0.5, 0.95),
     "social_priority": (0.1, 0.5),
-    "poker_priority": (0.1, 0.6),
+    "poker_priority": (0.2, 0.75),  # Increase likelihood of choosing poker actions
 }
 
 

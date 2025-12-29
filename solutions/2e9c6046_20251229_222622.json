@@ -1,0 +1,131 @@
+{
+  "metadata": {
+    "solution_id": "2e9c6046_20251229_222622",
+    "name": "GPT-5.2-Codex-Prime Poker Overlord",
+    "description": "GPT-5.2-Codex-Prime Poker Overlord evolved over 100,000 frames (seed 6060) using multi-metric candidate scan (metric elo score 1359.22). Poker games=172, win_rate=0.733, roi=6.619, net_energy=1138.5.",
+    "author": "GPT-5.2-Codex-Prime",
+    "submitted_at": "2025-12-29T22:26:22.497132",
+    "version": "1.0.0",
+    "generation": 60,
+    "simulation_frames": 0,
+    "fish_id": 2633,
+    "commit_sha": "0531547164ccee207c83a54f26fca9898ee6b2fe",
+    "branch": "master"
+  },
+  "behavior_algorithm": {
+    "type": "ComposableBehavior",
+    "threat_response": 2,
+    "food_approach": 3,
+    "social_mode": 0,
+    "poker_engagement": 1,
+    "parameters": {
+      "alignment_strength": 0.3609749829209154,
+      "ambush_patience": 0.8436092686852068,
+      "ambush_strike_distance": 30.444881610345895,
+      "base_speed_multiplier": 0.6539701942279897,
+      "burst_duration": 46.65322939688453,
+      "burst_speed": 1.302282848802098,
+      "circle_radius": 68.98114829110524,
+      "circle_speed": 0.07629271961270317,
+      "cohesion_strength": 0.6271884083491495,
+      "energy_urgency_threshold": 0.38257685245640166,
+      "erratic_amplitude": 0.7163823153045691,
+      "flee_speed": 1.186184738249991,
+      "flee_threshold": 105.39128079902636,
+      "follow_distance": 54.334286718288496,
+      "food_priority": 0.8048177455273476,
+      "freeze_distance": 82.58377935511456,
+      "intercept_skill": 0.6439416870999662,
+      "min_energy_for_poker": 0.38740063580654205,
+      "patrol_radius": 61.1502229009195,
+      "poker_avoid_radius": 97.83699366347719,
+      "poker_priority": 0.3317216904416082,
+      "poker_seek_radius": 193.66371544836989,
+      "pursuit_speed": 1.1038798131412164,
+      "rest_duration": 48.141805898850166,
+      "separation_distance": 29.899800009227732,
+      "social_distance": 78.03623678870667,
+      "social_priority": 0.4859420813436506,
+      "stealth_speed": 0.4553794191108397,
+      "threat_priority": 0.7590390294739764,
+      "zigzag_amplitude": 0.4248582873715352,
+      "zigzag_frequency": 0.05716171045178267
+    }
+  },
+  "poker_strategy": {},
+  "composable_behavior": null,
+  "capture_stats": {
+    "total_games": 172,
+    "wins": 126,
+    "losses": 46,
+    "ties": 0,
+    "win_rate": 0.7325581395348837,
+    "total_energy_won": 2778.100053471683,
+    "total_energy_lost": 958.0473085448552,
+    "net_energy": 1138.5014242121056,
+    "roi": 6.619194326814568,
+    "current_streak": 10,
+    "best_streak": 38,
+    "worst_streak": -19,
+    "showdown_win_rate": 0.5,
+    "fold_rate": 0.19767441860465115,
+    "best_hand_rank": 6,
+    "avg_hand_rank": 0.5581395348837209,
+    "button_win_rate": 0.9140625,
+    "non_button_win_rate": 0.20454545454545456,
+    "positional_advantage": 0.7095170454545454,
+    "recent_win_rate": 1.0,
+    "skill_trend": "improving"
+  },
+  "benchmark_result": {
+    "per_opponent": {
+      "always_fold": 153.9245,
+      "random": 477.20015923566876,
+      "loose_passive": 35.818775,
+      "tight_passive": 109.93675,
+      "tight_aggressive": 84.86456102783725,
+      "loose_aggressive": 1971.474858757062,
+      "balanced": 59.55532730758696,
+      "maniac": 608.3498607242342
+    },
+    "weighted_bb_per_100": 426.2599815587029,
+    "total_hands_played": 23594,
+    "elo_rating": 1582.6553168166306,
+    "confidence_intervals": {
+      "always_fold": [
+        147.66143272341915,
+        160.18756727658084
+      ],
+      "random": [
+        351.8088091430136,
+        636.386538197452
+      ],
+      "loose_passive": [
+        19.36868388295006,
+        52.268866117049946
+      ],
+      "tight_passive": [
+        82.05703098750392,
+        137.8164690124961
+      ],
+      "tight_aggressive": [
+        -29.43347472922926,
+        188.98685446379793
+      ],
+      "loose_aggressive": [
+        1693.0931450240166,
+        3465.7969614371896
+      ],
+      "balanced": [
+        -37.81785295100672,
+        130.2063998776189
+      ],
+      "maniac": [
+        -1490.7854088183708,
+        2540.7982223980794
+      ]
+    },
+    "skill_tier": "expert",
+    "evaluated_at": "2025-12-29T22:30:34.346822"
+  }
+}
