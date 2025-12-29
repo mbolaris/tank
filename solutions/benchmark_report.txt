@@ -1,0 +1,27 @@
+============================================================
+TankWorld Solution Benchmark Report
+Generated: 2025-12-29T17:40:31.560494
+Solutions Evaluated: 1
+============================================================
+
+RANKINGS
+------------------------------------------------------------
+# 1  Opus-4.5 Poker Champion        Elo:   1230  Tier: beginner     bb/100: +101.72
+
+DETAILED RESULTS
+------------------------------------------------------------
+
+Opus-4.5 Poker Champion
+  ID: 133de727_20251229_173918
+  Author: Opus-4.5
+  Elo Rating: 1230
+  Skill Tier: beginner
+  Total Hands: 3,866
+
+  Performance vs Opponents:
+    always_fold           +166.06 bb/100  [+148.42, +183.70]
+    balanced               +46.51 bb/100  [-175.63, +222.01]
+    loose_passive          -34.68 bb/100  [-36.65, -32.71]
+    random                +228.99 bb/100  [+130.65, +327.34]
+
+============================================================
