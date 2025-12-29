@@ -36,7 +36,8 @@ BASELINE_ELO_RATINGS: Dict[str, float] = {
 # K-factor controls how much rating changes per game
 # Higher K = faster convergence but more volatility
 # Lower K = slower convergence but more stability
-BASE_K_FACTOR = 32.0
+# Higher K spreads strong performers; previous 32.0 capped ratings ~1426 even with dominant results
+BASE_K_FACTOR = 64.0
 
 # Rating floor and ceiling
 MIN_RATING = 500.0

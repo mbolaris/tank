@@ -25,7 +25,7 @@ FOOD_SINK_ACCELERATION = 0.01  # Pixels/frame². Slow sink gives fish time to in
 #
 # Trade-off: Faster spawning = easier survival but weaker selection pressure.
 #            Slower spawning = stronger selection but risk of extinction.
-AUTO_FOOD_SPAWN_RATE = 25  # Base rate: 1.2 food per second (30fps -> ~25 frames)
+AUTO_FOOD_SPAWN_RATE = 18  # Faster spawns (~1.7 food/sec) to reduce starvation and keep poker active
 AUTO_FOOD_ENABLED = True
 
 # Dynamic Spawn Scaling
@@ -35,10 +35,10 @@ AUTO_FOOD_ENABLED = True
 #
 # Energy thresholds are based on total ecosystem energy (sum of all fish energy).
 # A healthy ecosystem of 80 fish at 50 energy each = 4000 total energy.
-AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 1500  # Crisis: 4x spawn rate (population near collapse)
-AUTO_FOOD_LOW_ENERGY_THRESHOLD = 3500       # Struggling: 3x spawn rate
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500    # Comfortable: reduce spawn rate
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500    # Thriving: further reduce (prevent overpopulation)
+AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 2200  # Crisis: 4x spawn rate (population near collapse)
+AUTO_FOOD_LOW_ENERGY_THRESHOLD = 4200       # Struggling: 3x spawn rate
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 5200    # Comfortable: reduce spawn rate
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 7500    # Thriving: further reduce (prevent overpopulation)
 AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80         # 80 fish: reduce spawning
 AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 90         # 90 fish: further reduce (approaching MAX_POPULATION)
 
