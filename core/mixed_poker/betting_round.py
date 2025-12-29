@@ -227,12 +227,20 @@ def play_betting_round(
                     game_state.player_all_in[current_pos] = True
             else:
                 # Can't raise, just call
-                game_state.player_bet(current_pos, call_amount)
-                contexts[current_pos].remaining_energy -= call_amount
-                contexts[current_pos].current_bet += call_amount
-                modify_player_energy(players[current_pos], -call_amount)
-                game_state.betting_history.append((current_pos, BettingAction.CALL, call_amount))
+                call_amount = min(call_amount, contexts[current_pos].remaining_energy)
+                if call_amount > 0:
+                    game_state.player_bet(current_pos, call_amount)
+                    contexts[current_pos].remaining_energy -= call_amount
+                    contexts[current_pos].current_bet += call_amount
+                    modify_player_energy(players[current_pos], -call_amount)
+                    game_state.betting_history.append((current_pos, BettingAction.CALL, call_amount))
+                else:
+                    game_state.betting_history.append((current_pos, BettingAction.CHECK, 0.0))
                 players_acted.add(current_pos)
+
+                if contexts[current_pos].remaining_energy <= 0:
+                    contexts[current_pos].is_all_in = True
+                    game_state.player_all_in[current_pos] = True
 
         actions_this_round += 1
 

@@ -271,6 +271,21 @@ class MixedPokerInteraction:
         if not self.can_play_poker():
             return False
 
+        # IMPORTANT: During a poker hand, we must not "kill" fish/players mid-hand
+        # just because they temporarily go all-in (energy hits 0 due to a bet).
+        # If a player later wins the pot, they should remain alive.
+        #
+        # To prevent irreversible death state transitions during betting, we queue
+        # all per-action energy deltas and settle them once at the end of the hand.
+        pending_energy_deltas: List[float] = [0.0] * self.num_players
+        player_idx_by_object_id = {id(p): i for i, p in enumerate(self.players)}
+
+        def queue_energy_change(player: Player, amount: float) -> None:
+            idx = player_idx_by_object_id.get(id(player))
+            if idx is None:
+                return
+            pending_energy_deltas[idx] += float(amount)
+
         # Calculate bet amount (big blind)
         if bet_amount is None:
             bet_amount = self.calculate_bet_amount()
@@ -313,7 +328,11 @@ class MixedPokerInteraction:
             if ante_amount > 0:
                 game_state.player_bet(i, ante_amount)
                 ctx.remaining_energy -= ante_amount
-                self._modify_player_energy(player, -ante_amount)
+                # Keep context betting state consistent with game_state.player_current_bets.
+                # Antes contribute to the pot and should count toward the amount "to call"
+                # in the first betting round.
+                ctx.current_bet += ante_amount
+                queue_energy_change(player, -ante_amount)
 
         # Post blinds (in addition to antes)
         sb_pos = (button_position + 1) % self.num_players
@@ -323,15 +342,15 @@ class MixedPokerInteraction:
         sb_amount = min(small_blind, contexts[sb_pos].remaining_energy)
         game_state.player_bet(sb_pos, sb_amount)
         contexts[sb_pos].remaining_energy -= sb_amount
-        contexts[sb_pos].current_bet = sb_amount
-        self._modify_player_energy(self.players[sb_pos], -sb_amount)
+        contexts[sb_pos].current_bet += sb_amount
+        queue_energy_change(self.players[sb_pos], -sb_amount)
 
         # Big blind
         bb_amount = min(big_blind, contexts[bb_pos].remaining_energy)
         game_state.player_bet(bb_pos, bb_amount)
         contexts[bb_pos].remaining_energy -= bb_amount
-        contexts[bb_pos].current_bet = bb_amount
-        self._modify_player_energy(self.players[bb_pos], -bb_amount)
+        contexts[bb_pos].current_bet += bb_amount
+        queue_energy_change(self.players[bb_pos], -bb_amount)
 
         # Deal hole cards
         game_state.deal_hole_cards()
@@ -359,7 +378,7 @@ class MixedPokerInteraction:
                 start_position=start_pos,
                 num_players=self.num_players,
                 players=self.players,
-                modify_player_energy=self._modify_player_energy,
+                modify_player_energy=queue_energy_change,
                 rng=self.rng,
             )
             if not round_active:
@@ -418,7 +437,7 @@ class MixedPokerInteraction:
 
             # Winner gets pot minus house cut
             winnings = total_pot - house_cut
-            self._modify_player_energy(winner, winnings)
+            queue_energy_change(winner, winnings)
             energy_transferred = net_gain - house_cut
 
             # Get first loser for target info
@@ -492,7 +511,7 @@ class MixedPokerInteraction:
             split_amount = total_pot / len(tied_players)
 
             for i in tied_players:
-                self._modify_player_energy(self.players[i], split_amount)
+                queue_energy_change(self.players[i], split_amount)
                 # For ties, point to another tied player
                 other_tied = next((j for j in tied_players if j != i), i)
                 self._set_poker_effect(
@@ -552,6 +571,11 @@ class MixedPokerInteraction:
                 players_folded=[ctx.folded for ctx in contexts],
                 betting_history=game_state.betting_history,
             )
+
+        # Settle energy deltas once (prevents mid-hand death that can't be undone)
+        for i, delta in enumerate(pending_energy_deltas):
+            if delta:
+                self._modify_player_energy(self.players[i], delta)
 
         # Set cooldown on all players
         for player in self.players:
