@@ -147,5 +147,31 @@ class TestBenchmarkEvaluation(unittest.TestCase):
         self.assertEqual(len(result.bb_per_100_ci_95), 2)
 
 
+    def test_repro_missing_rng_failures(self):
+        """Test strategies that were reported to fail with MissingRNGError."""
+        # Test 1: Direct creation
+        rng = random.Random(42)
+        print("\nTesting LoosePassive creation...")
+        lp = create_standard_strategy("loose_passive", rng=rng)
+        self.assertIsNotNone(lp)
+        
+        print("Testing AlwaysFold creation...")
+        af = create_standard_strategy("always_fold", rng=rng)
+        self.assertIsNotNone(af)
+
+        # Test 2: Full evaluation logic
+        candidate = BalancedStrategy(rng=random.Random(123))
+        cfg = BenchmarkEvalConfig(
+            num_duplicate_sets=1,
+            hands_per_match=10,
+            base_seed=42,
+        )
+        
+        problem_ids = ["loose_passive", "always_fold"]
+        for pid in problem_ids:
+            print(f"Testing evaluation vs {pid}...")
+            res = evaluate_vs_single_benchmark_duplicate(candidate, pid, cfg)
+            self.assertEqual(res.benchmark_id, pid)
+
 if __name__ == "__main__":
     unittest.main()
