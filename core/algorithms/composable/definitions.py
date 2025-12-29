@@ -73,7 +73,9 @@ SUB_BEHAVIOR_PARAMS = {
     "freeze_distance": (40.0, 100.0),
     "erratic_amplitude": (0.3, 0.8),
     # Food approach parameters
-    "pursuit_speed": (0.8, 1.2),
+    # Increased pursuit_speed from (0.8, 1.2) to (0.9, 1.4) based on experiment
+    # showing 98.9% starvation - fish need to catch food faster
+    "pursuit_speed": (0.9, 1.4),
     "intercept_skill": (0.3, 0.9),
     "circle_radius": (30.0, 80.0),
     "circle_speed": (0.05, 0.15),
@@ -100,7 +102,9 @@ SUB_BEHAVIOR_PARAMS = {
     "min_energy_for_poker": (0.3, 0.6),
     # Priority weights (how much each category influences final behavior)
     "threat_priority": (0.6, 1.0),  # Usually high - survival first
-    "food_priority": (0.4, 0.9),
+    # Increased food_priority from (0.4, 0.9) to (0.5, 0.95) based on experiment
+    # showing fish need to prioritize food more aggressively to survive
+    "food_priority": (0.5, 0.95),
     "social_priority": (0.1, 0.5),
     "poker_priority": (0.1, 0.6),
 }

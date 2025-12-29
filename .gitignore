@@ -93,3 +93,6 @@ Thumbs.db
 *.tmp
 *.bak
 *.swp
+# Experiment result files
+experiment_results.json
+improved_results.json
