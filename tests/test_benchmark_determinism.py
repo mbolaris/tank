@@ -1,6 +1,7 @@
 """Simple smoke tests for benchmark evaluation determinism."""
 
 import unittest
+import random
 
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.core.cards import Deck
@@ -111,20 +112,21 @@ class TestBenchmarkEvaluation(unittest.TestCase):
 
     def test_create_standard_strategy(self):
         """Test creating standard strategies by ID."""
-        balanced = create_standard_strategy("balanced")
+        rng = random.Random(42)
+        balanced = create_standard_strategy("balanced", rng=rng)
         self.assertIsInstance(balanced, BalancedStrategy)
 
-        tag = create_standard_strategy("tight_aggressive")
+        tag = create_standard_strategy("tight_aggressive", rng=rng)
         self.assertIsInstance(tag, TightAggressiveStrategy)
 
     def test_create_standard_strategy_invalid(self):
         """Test that invalid strategy ID raises error."""
         with self.assertRaises(ValueError):
-            create_standard_strategy("invalid_strategy")
+            create_standard_strategy("invalid_strategy", rng=random.Random(42))
 
     def test_evaluate_vs_single_benchmark_smoke(self):
         """Smoke test: evaluation runs without errors."""
-        candidate = BalancedStrategy()
+        candidate = BalancedStrategy(rng=random.Random(123))
         cfg = BenchmarkEvalConfig(
             num_duplicate_sets=2,  # Very small for fast test
             hands_per_match=10,

@@ -40,9 +40,10 @@ With N duplicate sets:
 from __future__ import annotations
 
 import math
+import random
 import statistics
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -119,7 +120,7 @@ def _compute_ci_95(values: List[float]) -> Tuple[float, float]:
     return (mean - margin, mean + margin)
 
 
-def create_standard_strategy(strategy_id: str) -> PokerStrategyAlgorithm:
+def create_standard_strategy(strategy_id: str, rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
     """Create a standard benchmark strategy by ID.
 
     Args:
@@ -162,7 +163,7 @@ def create_standard_strategy(strategy_id: str) -> PokerStrategyAlgorithm:
             f"Valid options: {list(strategy_map.keys())}"
         )
 
-    return strategy_cls()
+    return strategy_cls(rng=rng)
 
 
 def evaluate_vs_single_benchmark_duplicate(
@@ -188,7 +189,10 @@ def evaluate_vs_single_benchmark_duplicate(
     # Import here to avoid circular import with core.auto_evaluate_poker
     from core.auto_evaluate_poker import AutoEvaluatePokerGame, is_shutdown_requested
 
-    benchmark_algo = create_standard_strategy(benchmark_id)
+    # Deterministically seed the benchmark opponent using simple string sum (stable)
+    bench_seed = cfg.base_seed + sum(ord(c) for c in benchmark_id)
+    bench_rng = random.Random(bench_seed)
+    benchmark_algo = create_standard_strategy(benchmark_id, rng=bench_rng)
 
     bb_per_100_samples: List[float] = []
     total_hands = 0

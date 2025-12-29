@@ -116,12 +116,14 @@ class TestCrossover:
 
     def test_blend_values_averaging(self):
         """Averaging mode should average parent values."""
-        result = blend_values(0.2, 0.8, weight1=0.5, mode=CrossoverMode.AVERAGING)
+        rng = random.Random(42)
+        result = blend_values(0.2, 0.8, weight1=0.5, mode=CrossoverMode.AVERAGING, rng=rng)
         assert result == pytest.approx(0.5, abs=0.01)
 
     def test_blend_values_weighted(self):
         """Weighted mode should respect weights."""
-        result = blend_values(0.0, 1.0, weight1=0.7, mode=CrossoverMode.WEIGHTED)
+        rng = random.Random(42)
+        result = blend_values(0.0, 1.0, weight1=0.7, mode=CrossoverMode.WEIGHTED, rng=rng)
         assert result == pytest.approx(0.3, abs=0.01)
 
     def test_blend_values_recombination(self):
@@ -141,11 +143,13 @@ class TestCrossover:
         """Should blend dictionary values from parents."""
         parent1 = {"a": 0.2, "b": 0.4}
         parent2 = {"a": 0.8, "b": 0.6}
+        rng = random.Random(42)
 
         result = crossover_dict_values(
             parent1, parent2,
             weight1=0.5,
             mode=CrossoverMode.AVERAGING,
+            rng=rng,
         )
 
         assert result["a"] == pytest.approx(0.5, abs=0.01)
@@ -210,10 +214,9 @@ class TestAlgorithmInheritance:
         from core.algorithms.energy_management import EnergyConserver
         from core.algorithms.food_seeking import GreedyFoodSeeker
 
-        alg1 = GreedyFoodSeeker.random_instance()
-        alg2 = EnergyConserver.random_instance()
-
         rng = random.Random(42)
+        alg1 = GreedyFoodSeeker.random_instance(rng=rng)
+        alg2 = EnergyConserver.random_instance(rng=rng)
 
         # Run multiple times to verify inheritance works
         types_seen = set()
@@ -234,8 +237,8 @@ class TestAlgorithmInheritance:
         """Should handle None parent algorithms."""
         from core.algorithms.food_seeking import GreedyFoodSeeker
 
-        alg1 = GreedyFoodSeeker.random_instance()
         rng = random.Random(42)
+        alg1 = GreedyFoodSeeker.random_instance(rng=rng)
 
         # One parent None
         child = inherit_algorithm(alg1, None, rng=rng)
@@ -250,20 +253,20 @@ class TestAlgorithmInheritance:
         assert child is not None
 
 
-
-
 class TestFullGenomeEvolution:
     """Integration tests for full genome evolution."""
 
     def test_genome_from_parents_produces_valid_offspring(self):
         """Genome.from_parents should produce valid offspring."""
-        parent1 = Genome.random()
-        parent2 = Genome.random()
+        rng = random.Random(42)
+        parent1 = Genome.random(rng=rng)
+        parent2 = Genome.random(rng=rng)
 
         offspring = Genome.from_parents(
             parent1, parent2,
             mutation_rate=0.1,
             mutation_strength=0.1,
+            rng=rng,
         )
 
         # Offspring should have valid values
@@ -273,15 +276,15 @@ class TestFullGenomeEvolution:
 
     def test_genome_weighted_crossover_favors_winner(self):
         """Weighted crossover should favor the higher-weighted parent."""
-        random.Random(42)
+        rng = random.Random(42)
 
         # Create parents with distinct traits (using actual dataclass fields)
         # Note: speed_modifier is a computed property, so we use fin_size/tail_size instead
-        parent1 = Genome.random()
+        parent1 = Genome.random(rng=rng)
         parent1.behavioral.aggression.value = 0.1
         parent1.physical.fin_size.value = 0.8
         parent1.physical.tail_size.value = 0.8
-        parent2 = Genome.random()
+        parent2 = Genome.random(rng=rng)
         parent2.behavioral.aggression.value = 0.9
         parent2.physical.fin_size.value = 1.3
         parent2.physical.tail_size.value = 1.3
@@ -295,6 +298,7 @@ class TestFullGenomeEvolution:
                 parent1, parent2,
                 parent1_weight=0.8,  # Parent1 contributes 80%
                 mutation_rate=0.0,  # No mutation for clearer test
+                rng=rng,
             )
             aggression_sum += offspring.behavioral.aggression.value
 
@@ -306,8 +310,9 @@ class TestFullGenomeEvolution:
 
     def test_multi_generation_evolution(self):
         """Evolution should work across multiple generations."""
+        rng = random.Random(42)
         # Start with initial population
-        population = [Genome.random() for _ in range(10)]
+        population = [Genome.random(rng=rng) for _ in range(10)]
 
         # Evolve for several generations
         for generation in range(5):
@@ -323,6 +328,7 @@ class TestFullGenomeEvolution:
                     parent1, parent2,
                     mutation_rate=0.15,
                     mutation_strength=0.15,
+                    rng=rng,
                 )
                 new_population.append(offspring)
 
@@ -342,8 +348,9 @@ class TestPlantEvolution:
         """PlantGenome.from_parent should produce valid offspring."""
         from core.genetics import PlantGenome
 
-        parent = PlantGenome.create_random()
-        offspring = PlantGenome.from_parent(parent, mutation_rate=0.2)
+        rng = random.Random(42)
+        parent = PlantGenome.create_random(rng=rng)
+        offspring = PlantGenome.from_parent(parent, mutation_rate=0.2, rng=rng)
 
         # Offspring should have valid values
         assert 15.0 <= offspring.angle <= 45.0
@@ -354,13 +361,14 @@ class TestPlantEvolution:
         """Plant variant type should be preserved across generations."""
         from core.genetics import PlantGenome
 
+        rng = random.Random(42)
         # Create a specific variant
-        parent = PlantGenome.create_claude_variant()
+        parent = PlantGenome.create_claude_variant(rng=rng)
 
         # Evolve for several generations
         current = parent
         for _ in range(5):
-            current = PlantGenome.from_parent(current, mutation_rate=0.2)
+            current = PlantGenome.from_parent(current, mutation_rate=0.2, rng=rng)
 
         # Variant should be preserved
         assert current.type == "claude"
