@@ -185,8 +185,8 @@ class Genome:
         parent1: "Genome",
         parent2: "Genome",
         parent1_weight: float = 0.5,
-        mutation_rate: float = 0.1,
-        mutation_strength: float = 0.1,
+        mutation_rate: float = 0.15,  # Increased from 0.1
+        mutation_strength: float = 0.15,  # Increased from 0.1
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
@@ -250,8 +250,8 @@ class Genome:
         cls,
         parent1: "Genome",
         parent2: "Genome",
-        mutation_rate: float = 0.1,
-        mutation_strength: float = 0.1,
+        mutation_rate: float = 0.15,  # Increased from 0.1
+        mutation_strength: float = 0.15,  # Increased from 0.1
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
@@ -310,8 +310,8 @@ class Genome:
         cls,
         winner: "Genome",
         mate: "Genome",
-        mutation_rate: float = 0.1,
-        mutation_strength: float = 0.1,
+        mutation_rate: float = 0.15,  # Increased from 0.1
+        mutation_strength: float = 0.15,  # Increased from 0.1
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Create offspring where winner selectively borrows mate traits.
