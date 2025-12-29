@@ -53,7 +53,7 @@ from core.plant_manager import PlantManager
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
 from core.poker_interaction import PokerInteraction
 from core.poker_system import PokerSystem
-from core.reproduction_coordinator import ReproductionCoordinator
+from core.reproduction_service import ReproductionService
 from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
 from core.services.stats_calculator import StatsCalculator
@@ -177,8 +177,8 @@ class SimulationEngine:
 
         # Systems - initialized here, registered in setup()
         self.collision_system = CollisionSystem(self)
+        self.reproduction_service = ReproductionService(self)
         self.reproduction_system = ReproductionSystem(self)
-        self.reproduction_coordinator = ReproductionCoordinator(self)
         self.poker_system = PokerSystem(self, max_events=self.config.poker.max_poker_events)
         self.poker_system.enabled = self.config.server.poker_activity_enabled
         self.poker_events = self.poker_system.poker_events
@@ -245,6 +245,7 @@ class SimulationEngine:
             rng=self.rng,
         )
         self.environment.set_spawn_requester(self.request_spawn)
+        self.environment.set_remove_requester(self.request_remove)
 
         # Initialize ecosystem manager
         self.ecosystem = EcosystemManager(max_population=eco_config.max_population)
@@ -275,6 +276,7 @@ class SimulationEngine:
         self._system_registry.register(self.poker_proximity_system)
         self._system_registry.register(self.reproduction_system)
         self._system_registry.register(self.poker_system)
+        self._validate_system_phase_declarations()
 
 
         # Create initial entities
@@ -299,6 +301,45 @@ class SimulationEngine:
             high_pop_threshold_2=food_cfg.high_pop_threshold_2,
             live_food_chance=food_cfg.live_food_chance,
         )
+
+    def _validate_system_phase_declarations(self) -> None:
+        """Verify phase metadata matches the explicit phase loop."""
+        phase_map = {
+            UpdatePhase.FRAME_START: [self.lifecycle_system],
+            UpdatePhase.TIME_UPDATE: [self.time_system],
+            UpdatePhase.SPAWN: [self.food_spawning_system],
+            UpdatePhase.COLLISION: [self.collision_system],
+            UpdatePhase.INTERACTION: [self.poker_proximity_system, self.poker_system],
+            UpdatePhase.REPRODUCTION: [self.reproduction_system],
+        }
+
+        executed_systems = set()
+        for phase, systems in phase_map.items():
+            for system in systems:
+                if system is None:
+                    continue
+                executed_systems.add(system)
+                declared_phase = system.phase
+                if declared_phase is None:
+                    continue
+                if declared_phase != phase:
+                    logger.warning(
+                        "System %s declares phase %s but runs in %s",
+                        system.name,
+                        declared_phase.name,
+                        phase.name,
+                    )
+
+        for system in self._system_registry.get_all():
+            declared_phase = system.phase
+            if declared_phase is None:
+                continue
+            if system not in executed_systems:
+                logger.warning(
+                    "System %s declares phase %s but is not scheduled in the explicit phase loop",
+                    system.name,
+                    declared_phase.name,
+                )
 
 
     # =========================================================================
@@ -749,6 +790,8 @@ class SimulationEngine:
         self._current_phase = UpdatePhase.INTERACTION
         # Fish-fish poker proximity detection
         self.poker_proximity_system.update(self.frame_count)
+        # PokerSystem is event-driven but still participates in phase accounting
+        self.poker_system.update(self.frame_count)
         # Mixed poker (fish-plant, plant-plant) handled by PokerSystem
         self.handle_mixed_poker_games()
         self._apply_entity_mutations("interaction")

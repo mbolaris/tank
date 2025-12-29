@@ -7,14 +7,15 @@ Design Principles:
 - Each system has ONE responsibility (Single Responsibility Principle)
 - Systems are initialized with their dependencies (Dependency Injection)
 - Systems can be enabled/disabled without code changes
-- Systems declare which phase they run in (explicit ordering)
+- Systems may declare a phase for diagnostics and validation
 - Systems report their state for debugging
 - Systems return results describing what they did (for debugging/metrics)
 
 Phase-System Mapping:
 ---------------------
-Systems declare which UpdatePhase they belong to. This makes execution order
-explicit and self-documenting:
+Systems may declare which UpdatePhase they belong to. The engine uses an
+explicit phase loop for execution order; the phase metadata is used for
+diagnostics and validation:
 
     @runs_in_phase(UpdatePhase.COLLISION)
     class CollisionSystem(BaseSystem):
@@ -142,7 +143,8 @@ class BaseSystem(ABC):
     Subclass this when creating new systems.
 
     Systems can optionally declare which phase they run in using the
-    @runs_in_phase decorator or by setting _phase in __init__.
+    @runs_in_phase decorator or by setting _phase in __init__. The engine
+    still controls execution order explicitly; phase metadata is informational.
 
     Example:
         from core.update_phases import UpdatePhase, runs_in_phase

@@ -17,37 +17,20 @@ Without explicit ordering:
 
 ## Decision
 
-Use an **explicit `UpdatePhase` enum** to order simulation updates:
+Use an explicit `UpdatePhase` enum to name phase boundaries and support
+instrumentation. The `SimulationEngine` executes phases with explicit methods
+(e.g., `_phase_frame_start`, `_phase_time_update`, ...). Systems may annotate
+their phase using `@runs_in_phase` metadata; the engine can validate these
+annotations but does not execute systems via a PhaseRunner.
 
 ```python
-class UpdatePhase(Enum):
-    """Defines the order of simulation update phases."""
-    
-    ENVIRONMENT = 1      # Day/night, weather
-    ENTITY_UPDATE = 2    # Movement, AI decisions
-    COLLISION = 3        # Collision detection/response
-    REPRODUCTION = 4     # Spawning new entities
-    LIFECYCLE = 5        # Death, cleanup
-    STATISTICS = 6       # Metrics, analytics
-```
+from core.update_phases import UpdatePhase, runs_in_phase
 
-Systems declare their phase using the `@runs_in_phase` decorator:
-
-```python
 @runs_in_phase(UpdatePhase.COLLISION)
 class CollisionSystem(BaseSystem):
     def _do_update(self, frame: int) -> SystemResult:
         ...
 ```
-
-The `SimulationEngine` then executes phases in order:
-
-```python
-def update(self) -> None:
-    for phase in UpdatePhase:
-        self._execute_phase(phase)
-```
-
 ## Consequences
 
 ### Positive
@@ -66,12 +49,15 @@ def update(self) -> None:
 
 | Phase | Purpose | Systems |
 |-------|---------|---------|
-| ENVIRONMENT | Time, weather, global state | TimeSystem |
-| ENTITY_UPDATE | Individual entity AI/movement | (handled per-entity) |
-| COLLISION | Detect and resolve collisions | CollisionSystem |
-| REPRODUCTION | Create new entities | ReproductionSystem |
-| LIFECYCLE | Deaths, cleanup | EntityLifecycleSystem |
-| STATISTICS | Metrics, logging | StatsSystem |
-
+| FRAME_START | Reset counters, reconcile plants | EntityLifecycleSystem |
+| TIME_UPDATE | Day/night cycle | TimeSystem |
+| ENVIRONMENT | Ecosystem + detection modifiers | (engine) |
+| ENTITY_ACT | Entity updates | (entities) |
+| LIFECYCLE | Removals + cleanup | EntityLifecycleSystem helpers |
+| SPAWN | Auto food spawning + spatial updates | FoodSpawningSystem |
+| COLLISION | Physical collisions | CollisionSystem |
+| INTERACTION | Poker proximity + mixed poker | PokerProximitySystem, PokerSystem |
+| REPRODUCTION | Asexual + emergency reproduction | ReproductionSystem |
+| FRAME_END | Stats + cache rebuild | (engine) |
 ## Related
 - ADR-001: Systems Architecture (systems use phases)

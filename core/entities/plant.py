@@ -478,6 +478,8 @@ class Plant(Agent):
             return
 
         try:
+            from core.util.mutations import request_spawn
+
             rng = getattr(self.environment, "rng", None)
             if rng is None:
                 raise RuntimeError("environment.rng is required for deterministic food spawning")
@@ -490,11 +492,8 @@ class Plant(Agent):
             food.energy = min(overflow, food.max_energy)
             food.max_energy = food.energy
 
-            request_spawn = getattr(self.environment, "request_spawn", None)
-            if callable(request_spawn):
-                request_spawn(food, reason="plant_overflow_food")
-            else:
-                logger.warning("request_spawn unavailable, plant overflow food lost")
+            if not request_spawn(food, reason="plant_overflow_food"):
+                logger.warning("spawn requester unavailable, plant overflow food lost")
 
             self._emit_event(EnergyBurnEvent("plant_overflow_food", food.energy))
         except Exception:

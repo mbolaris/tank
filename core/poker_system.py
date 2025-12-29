@@ -101,10 +101,10 @@ class PokerSystem(BaseSystem):
         """
         self.add_poker_event(poker)
         
-        # Delegate post-poker reproduction to the ReproductionCoordinator
-        coordinator = getattr(self._engine, "reproduction_coordinator", None)
-        if coordinator is not None:
-            baby = coordinator.handle_post_poker_reproduction(poker)
+        # Delegate post-poker reproduction to the ReproductionService
+        reproduction_service = getattr(self._engine, "reproduction_service", None)
+        if reproduction_service is not None:
+            baby = reproduction_service.handle_post_poker_reproduction(poker)
             if baby is not None:
                 return
         
@@ -509,10 +509,10 @@ class PokerSystem(BaseSystem):
                     break
 
             if winner_fish is not None:
-                # Delegate to ReproductionCoordinator
-                coordinator = getattr(self._engine, "reproduction_coordinator", None)
-                if coordinator is not None:
-                    coordinator.handle_plant_poker_asexual_reproduction(winner_fish)
+                # Delegate to ReproductionService
+                reproduction_service = getattr(self._engine, "reproduction_service", None)
+                if reproduction_service is not None:
+                    reproduction_service.handle_plant_poker_asexual_reproduction(winner_fish)
 
     # =========================================================================
     # Spawn Helper

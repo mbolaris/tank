@@ -483,6 +483,8 @@ class Environment:
 
         # Optional spawn requester (injected by engine to centralize mutations)
         self._spawn_requester = None
+        # Optional remove requester (injected by engine to centralize mutations)
+        self._remove_requester = None
 
         # Initialize spatial grid for fast proximity queries
         self.spatial_grid = SpatialGrid(width, height, cell_size=150)
@@ -505,14 +507,34 @@ class Environment:
         """
         self._spawn_requester = requester
 
+    def set_remove_requester(self, requester) -> None:
+        """Inject a removal requester callback from the simulation engine.
+
+        The requester should accept (entity, reason=..., metadata=...) and return bool.
+        """
+        self._remove_requester = requester
+
     def request_spawn(self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None) -> bool:
         """Request an entity spawn via the engine's mutation queue.
+
+        Prefer core.util.mutations.request_spawn for entity-owned spawn requests.
 
         Returns False if no requester is configured.
         """
         if self._spawn_requester is None:
             return False
         return bool(self._spawn_requester(entity, reason=reason, metadata=metadata))
+
+    def request_remove(self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """Request an entity removal via the engine's mutation queue.
+
+        Prefer core.util.mutations.request_remove for entity-owned removal requests.
+
+        Returns False if no requester is configured.
+        """
+        if self._remove_requester is None:
+            return False
+        return bool(self._remove_requester(entity, reason=reason, metadata=metadata))
 
     def update_detection_modifier(self) -> None:
         """Update cached detection range modifier from time system.

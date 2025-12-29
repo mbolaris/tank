@@ -11,6 +11,7 @@ immediately when reproduction conditions are met.
 """
 
 import random
+from types import SimpleNamespace
 from typing import List
 
 from core.telemetry.events import BirthEvent, ReproductionEvent
@@ -99,6 +100,22 @@ class MiniEngine:
     def __init__(self, env: MiniEnvironment):
         self.entities_list: List[Fish] = []
         self.environment = env
+        self.rng = env.rng
+        self.ecosystem = None
+        self.config = SimpleNamespace(
+            ecosystem=SimpleNamespace(
+                emergency_spawn_cooldown=1000,
+                critical_population_threshold=1,
+                max_population=100,
+                spawn_margin_pixels=0,
+            ),
+            display=SimpleNamespace(
+                files={"schooling_fish": ["test_fish"]},
+            ),
+        )
+        from core.reproduction_service import ReproductionService
+
+        self.reproduction_service = ReproductionService(self)
         self.reproduction_system = ReproductionSystem(self)
 
     def get_all_entities(self):

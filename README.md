@@ -311,47 +311,50 @@ See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for complete guide and `docs/PROOF_OF_A
 
 ```
 tank/
-├── main.py                  # CLI entry point (web or headless)
-├── backend/                 # FastAPI app + WebSocket bridge
-│   ├── main.py              # API and WebSocket server
-│   ├── simulation_runner.py # Threaded simulation runner for the UI
-│   ├── state_payloads.py    # Pydantic models for WebSocket state
-│   └── models.py            # Pydantic schemas shared with the frontend
-├── frontend/                # React + Vite frontend (npm run dev)
-│   └── src/                 # Components, hooks, rendering utilities
-├── core/                    # Shared simulation logic
-│   ├── tank_world.py        # Simulation wrapper with config + RNG
-│   ├── simulation_engine.py # Headless engine used by both modes
-│   ├── entities/            # Entity classes (modular structure)
-│   │   ├── fish.py          # Fish entity with component system
-│   │   ├── plant.py         # L-system fractal plants
-│   │   ├── resources.py     # Food, Plant, PlantNectar, Castle
-│   │   ├── predators.py     # Crab entity
-│   │   └── base.py          # Base Agent class
-│   ├── fish/                # Fish component system
-│   │   ├── energy_component.py
-│   │   ├── lifecycle_component.py
-│   │   ├── reproduction_component.py
-│   │   └── poker_stats_component.py
-│   ├── poker/               # Poker game system (organized package)
-│   │   ├── core/            # Card, Hand, PokerEngine
-│   │   ├── evaluation/      # Hand evaluation logic
-│   │   └── strategy/        # AI poker strategies
-│   ├── algorithms/          # Behavior algorithm library (58 strategies)
-│   ├── genetics/    # Fish/plant genome, traits, inheritance
-│   ├── plant_poker.py       # Plant vs fish poker games
-│   ├── root_spots.py        # Plant anchor point management
-│   ├── ecosystem.py         # Population tracking & statistics
-│   ├── environment.py       # Spatial queries & collision detection
-│   ├── time_system.py       # Day/night cycle management
-│   └── constants.py         # Configuration parameters
-├── scripts/                 # Automation scripts (AI code evolution, demos)
-├── tests/                   # Test suite (determinism, integration)
-├── docs/                    # Architecture + feature documentation
-├── BEHAVIOR_DEVELOPMENT_GUIDE.md # Guide for creating behaviors
-├── EVOLUTION_EXAMPLE.md     # Example evolution scenarios
-├── QUICK_REFERENCE.md       # Quick command reference
-└── README.md                # This file
+|-- main.py                  # CLI entry point (web or headless)
+|-- backend/                 # FastAPI app + WebSocket bridge
+|   |-- main.py              # API and WebSocket server
+|   |-- simulation_runner.py # Threaded simulation runner for the UI
+|   |-- state_payloads.py    # Pydantic models for WebSocket state
+|   `-- models.py            # Pydantic schemas shared with the frontend
+|-- frontend/                # React + Vite frontend (npm run dev)
+|   `-- src/                 # Components, hooks, rendering utilities
+|-- core/                    # Shared simulation logic
+|   |-- tank_world.py        # Simulation wrapper with config + RNG
+|   |-- simulation/          # Engine orchestration + diagnostics
+|   |   |-- engine.py        # Simulation engine used by both modes
+|   |   |-- entity_manager.py
+|   |   |-- system_registry.py
+|   |   `-- diagnostics.py
+|   |-- entities/            # Entity classes (modular structure)
+|   |   |-- fish.py          # Fish entity with component system
+|   |   |-- plant.py         # L-system fractal plants
+|   |   |-- resources.py     # Food, PlantNectar, Castle
+|   |   |-- predators.py     # Crab entity
+|   |   `-- base.py          # Entity base classes
+|   |-- fish/                # Fish component system
+|   |   |-- energy_component.py
+|   |   |-- lifecycle_component.py
+|   |   |-- reproduction_component.py
+|   |   `-- poker_stats_component.py
+|   |-- poker/               # Poker game system (organized package)
+|   |   |-- core/            # Card, Hand, PokerEngine
+|   |   |-- evaluation/      # Hand evaluation logic
+|   |   `-- strategy/        # AI poker strategies
+|   |-- algorithms/          # Behavior algorithm library (58 strategies)
+|   |-- genetics/            # Fish/plant genome, traits, inheritance
+|   |-- systems/             # BaseSystem + system implementations
+|   |-- config/              # Simulation configuration modules
+|   |-- ecosystem.py         # Population tracking & statistics
+|   |-- environment.py       # Spatial queries & collision detection
+|   `-- time_system.py       # Day/night cycle management
+|-- scripts/                 # Automation scripts (AI code evolution, demos)
+|-- tests/                   # Test suite (determinism, integration)
+|-- docs/                    # Architecture + feature documentation
+|-- BEHAVIOR_DEVELOPMENT_GUIDE.md # Guide for creating behaviors
+|-- EVOLUTION_EXAMPLE.md     # Example evolution scenarios
+|-- QUICK_REFERENCE.md       # Quick command reference
+`-- README.md                # This file
 ```
 
 ## Web UI Controls
@@ -362,40 +365,28 @@ tank/
 
 ## Configuration
 
-Key parameters in `core/constants.py`:
+Simulation defaults live in `core/config/` and are aggregated in
+`core/config/simulation_config.py` (`SimulationConfig`).
 
 ```python
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+# core/config/display.py
+SCREEN_WIDTH = 1088
+SCREEN_HEIGHT = 612
 FRAME_RATE = 30
-NUM_SCHOOLING_FISH = 6
 
-# Automatic food spawning
-AUTO_FOOD_SPAWN_RATE = 180  # Spawn food every 6 seconds
-AUTO_FOOD_ENABLED = True  # Enable/disable automatic food
-
-# Poker settings
-POKER_ENABLED = True
-POKER_MIN_ENERGY = 10.0  # Minimum energy to play poker
-POKER_BASE_STAKE = 5.0   # Base energy stake for poker
-POKER_HOUSE_CUT_PERCENTAGE = 10  # House cut for fish-vs-fish games (8-25% scaled by winner size)
+# core/config/food.py
+AUTO_FOOD_SPAWN_RATE = 30  # 1 food per second at 30 FPS
+AUTO_FOOD_ENABLED = True
+AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 1500
+AUTO_FOOD_LOW_ENERGY_THRESHOLD = 3500
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500
 ```
 
-Key entity parameters in `core/entities.py`:
-
-```python
-# Fish
-BASE_MAX_ENERGY = 100.0
-ENERGY_FROM_FOOD = 40.0
-BASE_METABOLISM = 0.015
-BABY_AGE = 300  # 10 seconds
-ADULT_AGE = 1800  # 1 minute
-BASE_MAX_AGE = 5400  # 3 minutes
-
-# Plants
-BASE_FOOD_PRODUCTION_RATE = 150  # 5 seconds
-MAX_FOOD_CAPACITY = 8  # per plant
-```
+Other notable config modules:
+- `core/config/fish.py` (energy, lifecycle, reproduction tuning)
+- `core/config/plants.py` (food/nectar production tuning)
+- `core/config/poker.py` (poker event and benchmark settings)
 
 ## Ecosystem Dynamics Observed
 

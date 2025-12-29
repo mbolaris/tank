@@ -453,6 +453,7 @@ class Fish(Agent):
 
         try:
             from core.entities.resources import Food
+            from core.util.mutations import request_spawn
             from core.util.rng import require_rng
 
             rng = require_rng(self.environment, "Fish._spawn_overflow_food")
@@ -465,11 +466,8 @@ class Fish(Agent):
             food.energy = min(overflow, food.max_energy)
             food.max_energy = food.energy
 
-            request_spawn = getattr(self.environment, "request_spawn", None)
-            if callable(request_spawn):
-                request_spawn(food, reason="overflow_food")
-            else:
-                logger.warning("request_spawn unavailable, overflow food lost")
+            if not request_spawn(food, reason="overflow_food"):
+                logger.warning("spawn requester unavailable, overflow food lost")
 
             self._emit_event(EnergyBurnEvent("overflow_food", food.energy))
         except Exception:
@@ -833,28 +831,10 @@ class Fish(Agent):
         Returns:
             Newborn fish if reproduction occurred, None otherwise
         """
-        # Update reproduction cooldown
+        from core.reproduction_service import ReproductionService
+
         self._reproduction_component.update_cooldown()
-
-        # Calculate energy needed for a baby (approximate - uses default size modifier)
-        from core.config.fish import FISH_BABY_SIZE
-        baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE  # ~75 energy
-        
-        bank = self._reproduction_component.overflow_energy_bank
-        
-        # Allow reproduction if:
-        # 1. Off cooldown
-        # 2. Adult (mature enough to reproduce)
-        # 3. Bank has enough energy to fully fund a baby (no parent sacrifice needed)
-        # This prevents bank overflow spilling as food drops
-        if (
-            self._reproduction_component.reproduction_cooldown <= 0
-            and self._lifecycle_component.life_stage == LifeStage.ADULT
-            and bank >= baby_energy_needed
-        ):
-            return self._create_asexual_offspring()
-
-        return None
+        return ReproductionService.maybe_create_banked_offspring(self)
 
     def _create_asexual_offspring(self) -> Optional["Fish"]:
         """Create an offspring through asexual reproduction.
@@ -1111,20 +1091,11 @@ class Fish(Agent):
 
         self._apply_turn_energy_cost(previous_direction)
 
-        # Reproduction
-        newborn = self.update_reproduction()
-
-
-
-
-
         # Update poker cooldown
         if self.poker_cooldown > 0:
             self.poker_cooldown -= 1
 
         result = EntityUpdateResult()
-        if newborn:
-            result.spawned_entities.append(newborn)
         return result
 
     def eat(self, food: "Food") -> None:

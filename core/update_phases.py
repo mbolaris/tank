@@ -30,6 +30,10 @@ Benefits:
 - Testing: can run phases in isolation
 - Self-documenting code
 
+Note: The current SimulationEngine uses explicit phase methods instead of
+PhaseRunner. PhaseRunner remains as an optional utility for tests or future
+refactors.
+
 Usage:
 ------
     # Systems declare which phase they run in

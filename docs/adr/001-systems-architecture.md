@@ -24,7 +24,7 @@ Adopt a **Systems Architecture** where:
 
 1. Each system has ONE clear responsibility (Single Responsibility Principle)
 2. Systems extend `BaseSystem` and implement `_do_update(frame)`
-3. Systems declare which `UpdatePhase` they belong to
+3. Systems may declare which `UpdatePhase` they belong to for diagnostics
 4. `SimulationEngine` orchestrates systems but doesn't implement game logic
 5. Systems access shared state through the engine reference
 

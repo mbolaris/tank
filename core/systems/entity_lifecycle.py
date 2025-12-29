@@ -5,7 +5,7 @@ It is the SINGLE OWNER of entity removal logic in the simulation.
 
 Architecture Notes:
 - Extends BaseSystem for uniform system management
-- Runs in UpdatePhase.LIFECYCLE (but also resets counters at FRAME_START)
+- Runs in UpdatePhase.FRAME_START to reset per-frame counters
 - OWNS ALL entity removal decisions:
   - Fish death processing (with death animation delay)
   - Plant death and root spot release
@@ -43,11 +43,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@runs_in_phase(UpdatePhase.LIFECYCLE)
+@runs_in_phase(UpdatePhase.FRAME_START)
 class EntityLifecycleSystem(BaseSystem):
     """Single owner of entity removal logic and lifecycle tracking.
 
-    This system runs in the LIFECYCLE phase and is the authoritative source
+    This system runs in the FRAME_START phase and is the authoritative source
     for all entity removal decisions:
     - Fish death (with animation delay before removal)
     - Plant death (releases root spot)
@@ -56,8 +56,8 @@ class EntityLifecycleSystem(BaseSystem):
 
     Also tracks lifecycle statistics (births, deaths, food removed).
 
-    Note: The system also resets per-frame counters at FRAME_START via
-    _do_update(), which is called by the engine at the start of each frame.
+    Note: The system resets per-frame counters at FRAME_START via _do_update(),
+    which is called by the engine at the start of each frame.
 
     Attributes:
         _deaths_this_frame: Count of deaths in current frame
