@@ -23,6 +23,7 @@ class PokerStrategyAlgorithm:
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
         """Make betting decision based on evolved parameters."""
         raise NotImplementedError

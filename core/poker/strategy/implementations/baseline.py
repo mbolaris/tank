@@ -29,6 +29,7 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > 0:
@@ -60,13 +61,15 @@ class RandomStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
+        _rng = rng or self._rng
         fold_prob = self.parameters.get("fold_prob", 0.33)
         call_prob = self.parameters.get("call_prob", 0.33)
         min_raise_frac = self.parameters.get("min_raise_fraction", 0.3)
         max_raise_frac = self.parameters.get("max_raise_fraction", 1.0)
 
-        roll = self._rng.random()
+        roll = _rng.random()
         call_amount = max(0, opponent_bet - current_bet)
 
         if roll < fold_prob:
@@ -86,7 +89,7 @@ class RandomStrategy(PokerStrategyAlgorithm):
 
         else:
             # Want to raise
-            raise_fraction = self._rng.uniform(min_raise_frac, max_raise_frac)
+            raise_fraction = _rng.uniform(min_raise_frac, max_raise_frac)
             raise_amount = pot * raise_fraction
             raise_amount = min(raise_amount, player_energy - call_amount)
 

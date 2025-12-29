@@ -39,6 +39,7 @@ class GTOExpertStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
 
         call_amount = opponent_bet - current_bet

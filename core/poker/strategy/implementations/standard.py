@@ -45,7 +45,9 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
+        _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -56,7 +58,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
             hand_strength = min(1.0, hand_strength)
 
         if hand_strength < self.parameters["weak_fold_threshold"]:
-            if self._rng.random() < self.parameters["bluff_frequency"]:
+            if _rng.random() < self.parameters["bluff_frequency"]:
                 bluff = min(pot * 0.5, player_energy * 0.2)
                 return (BettingAction.RAISE, bluff)
             return (BettingAction.FOLD, 0.0)
@@ -102,7 +104,9 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
+        _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -118,8 +122,8 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         if hand_strength < self.parameters["weak_fold_threshold"]:
             return (BettingAction.FOLD, 0.0)
 
-        if self._rng.random() < self.parameters["bluff_frequency"]:
-            bluff = pot * self._rng.uniform(0.5, 1.2)
+        if _rng.random() < self.parameters["bluff_frequency"]:
+            bluff = pot * _rng.uniform(0.5, 1.2)
             return (BettingAction.RAISE, min(bluff, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION))
 
         if hand_strength >= self.parameters["raise_threshold"]:
@@ -161,6 +165,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
 
         call_amount = opponent_bet - current_bet
@@ -220,7 +225,9 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
+        _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -239,7 +246,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
                     if call_amount > 0
                     else (BettingAction.CHECK, 0.0)
                 )
-            if self._rng.random() < self.parameters["bluff_frequency"] * 0.5:
+            if _rng.random() < self.parameters["bluff_frequency"] * 0.5:
                 bluff = pot * self.parameters["bluff_multiplier"]
                 return (BettingAction.RAISE, min(bluff, player_energy * 0.25))
             return (BettingAction.FOLD, 0.0)
@@ -250,7 +257,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
             return (BettingAction.RAISE, max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER))
 
         if hand_strength >= self.parameters["medium_threshold"]:
-            if self._rng.random() < 0.4:
+            if _rng.random() < 0.4:
                 raise_amt = pot * self.parameters["value_raise_multiplier"] * 0.7
                 raise_amt = min(raise_amt, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION)
                 return (BettingAction.RAISE, max(raise_amt, call_amount * 1.3))
@@ -300,7 +307,9 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
+        _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -309,16 +318,16 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         if hand_strength < self.parameters["min_hand_to_play"]:
             return (BettingAction.FOLD, 0.0)
 
-        if hand_strength >= self.parameters["all_in_threshold"] and self._rng.random() < 0.3:
+        if hand_strength >= self.parameters["all_in_threshold"] and _rng.random() < 0.3:
             return (BettingAction.RAISE, player_energy * 0.9)
 
-        if self._rng.random() < self.parameters["raise_frequency"]:
+        if _rng.random() < self.parameters["raise_frequency"]:
             raise_amt = pot * self.parameters["raise_sizing"]
             raise_amt = min(raise_amt, player_energy * 0.5)
             return (BettingAction.RAISE, max(raise_amt, call_amount * 2.0))
 
         if call_amount == 0:
-            if self._rng.random() < 0.5:
+            if _rng.random() < 0.5:
                 return (BettingAction.RAISE, pot * 0.5)
             return (BettingAction.CHECK, 0.0)
         return (BettingAction.CALL, call_amount)
@@ -356,6 +365,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
     ) -> Tuple[BettingAction, float]:
 
         call_amount = opponent_bet - current_bet
