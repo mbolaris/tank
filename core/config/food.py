@@ -25,7 +25,7 @@ FOOD_SINK_ACCELERATION = 0.01  # Pixels/frame². Slow sink gives fish time to in
 #
 # Trade-off: Faster spawning = easier survival but weaker selection pressure.
 #            Slower spawning = stronger selection but risk of extinction.
-AUTO_FOOD_SPAWN_RATE = 30  # Base rate: 1 food per second (30 frames at 30fps)
+AUTO_FOOD_SPAWN_RATE = 25  # Base rate: 1.2 food per second (30fps -> ~25 frames)
 AUTO_FOOD_ENABLED = True
 
 # Dynamic Spawn Scaling
@@ -138,7 +138,7 @@ URGENCY_BOOST_LOW = 0.15        # 15% speed boost when hungry
 # =============================================================================
 # Vision range creates day/night gameplay difference.
 # Night hunting is harder, rewarding memory-based foraging and schooling.
-BASE_FOOD_DETECTION_RANGE = 400.0  # Daytime: full visibility (pixels)
+BASE_FOOD_DETECTION_RANGE = 450.0  # Daytime: full visibility (pixels)
 # Actual range = BASE * time_modifier:
 #   Night (25%):     100px - forces close-range hunting, rewards memory
 #   Dawn/Dusk (75%): 300px - transitional

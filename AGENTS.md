@@ -63,6 +63,10 @@ The simulation outputs key metrics to watch:
    - Survival rates per algorithm
    - Average lifespan
 
+**Artifacts to review after long runs:**
+- `results.json` (exported stats; includes death_causes, max_generation, frame_count)
+- `logs/algorithm_performance_report.txt` (per-algorithm reproduction and starvation rates)
+
 ### Step 3: Identify Improvements
 
 Common patterns to look for:

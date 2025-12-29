@@ -90,6 +90,7 @@ ALGORITHM_PARAMETER_BOUNDS = {
     },
     "energy_aware_food_seeker": {
         "calm_speed": (0.3, 0.6),
+        "search_speed": (0.4, 0.8),
         "urgency_threshold": (0.3, 0.7),
         "urgent_speed": (0.8, 1.2),
     },
