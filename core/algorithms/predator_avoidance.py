@@ -41,6 +41,7 @@ class PanicFlee(BehaviorAlgorithm):
                 "flee_speed": rng.uniform(1.2, 1.8),
                 "panic_distance": rng.uniform(100, 200),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -82,6 +83,7 @@ class StealthyAvoider(BehaviorAlgorithm):
                 "stealth_speed": rng.uniform(0.3, 0.6),
                 "awareness_range": rng.uniform(150, 250),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -126,6 +128,7 @@ class FreezeResponse(BehaviorAlgorithm):
                 "resume_distance": rng.uniform(120, 180),  # Reduced from 200-300
                 "desperation_threshold": rng.uniform(30, 50),  # Energy % to ignore threats
             },
+            rng=rng,
         )
         self.is_frozen = False
         self.search_angle = rng.uniform(0, 6.28)  # For systematic food search
@@ -209,6 +212,7 @@ class ErraticEvader(BehaviorAlgorithm):
                 "randomness": rng.uniform(0.5, 1.0),
                 "threat_range": rng.uniform(100, 180),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -284,6 +288,7 @@ class VerticalEscaper(BehaviorAlgorithm):
                 "escape_direction": rng.choice([-1, 1]),  # -1 for up, 1 for down
                 "escape_speed": rng.uniform(1.0, 1.5),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -320,6 +325,7 @@ class GroupDefender(BehaviorAlgorithm):
                 "group_strength": rng.uniform(0.6, 1.0),
                 "min_group_distance": rng.uniform(30, 80),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -364,6 +370,7 @@ class SpiralEscape(BehaviorAlgorithm):
                 "spiral_rate": rng.uniform(0.1, 0.3),
                 "spiral_radius": rng.uniform(20, 60),
             },
+            rng=rng,
         )
         self.spiral_angle = 0
 
@@ -410,6 +417,7 @@ class BorderHugger(BehaviorAlgorithm):
                 "border_preference": rng.choice(["top", "bottom", "left", "right"]),
                 "hug_speed": rng.uniform(0.7, 1.1),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -453,6 +461,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
                 "escape_speed": rng.uniform(1.0, 1.4),
                 "direction_preference": rng.choice([-1, 1]),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -502,6 +511,7 @@ class DistanceKeeper(BehaviorAlgorithm):
                 "approach_speed": rng.uniform(0.3, 0.6),
                 "flee_speed": rng.uniform(0.8, 1.2),
             },
+            rng=rng,
         )
 
     @classmethod

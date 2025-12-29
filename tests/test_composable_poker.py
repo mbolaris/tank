@@ -33,7 +33,8 @@ class TestComposablePokerStrategyCreation:
 
     def test_create_random_strategy(self):
         """Can create a random composable strategy."""
-        strategy = ComposablePokerStrategy.create_random()
+        rng = random.Random(42)  # Deterministic seed
+        strategy = ComposablePokerStrategy.create_random(rng)
         assert strategy is not None
         assert isinstance(strategy.hand_selection, HandSelection)
         assert isinstance(strategy.betting_style, BettingStyle)
@@ -44,7 +45,8 @@ class TestComposablePokerStrategyCreation:
 
     def test_random_instance_alias(self):
         """random_instance is an alias for create_random."""
-        strategy = ComposablePokerStrategy.random_instance()
+        rng = random.Random(42)  # Deterministic seed
+        strategy = ComposablePokerStrategy.random_instance(rng)
         assert strategy is not None
 
     def test_default_parameters_initialized(self):
@@ -72,37 +74,41 @@ class TestComposablePokerStrategyInheritance:
 
     def test_from_parents_creates_offspring(self):
         """Offspring combines parent traits."""
+        rng = random.Random(42)  # Deterministic seed
         p1 = ComposablePokerStrategy.create_random(random.Random(1))
         p2 = ComposablePokerStrategy.create_random(random.Random(2))
-        child = ComposablePokerStrategy.from_parents(p1, p2)
+        child = ComposablePokerStrategy.from_parents(p1, p2, rng=rng)
         assert child is not None
         # Child should have some combination of parent sub-behaviors
         assert isinstance(child.hand_selection, HandSelection)
 
     def test_winner_biased_inheritance(self):
         """Heavy winner weight favors parent1 traits."""
+        rng = random.Random(42)  # Deterministic seed
         p1 = ComposablePokerStrategy(hand_selection=HandSelection.ULTRA_TIGHT)
         p2 = ComposablePokerStrategy(hand_selection=HandSelection.LOOSE)
         # With weight1=1.0, child should always get parent1's traits
         child = ComposablePokerStrategy.from_parents(
-            p1, p2, weight1=1.0, mutation_rate=0.0, sub_behavior_switch_rate=0.0
+            p1, p2, weight1=1.0, mutation_rate=0.0, sub_behavior_switch_rate=0.0, rng=rng
         )
         assert child.hand_selection == HandSelection.ULTRA_TIGHT
 
     def test_crossover_function_handles_composable(self):
         """crossover_poker_strategies works with ComposablePokerStrategy."""
-        p1 = ComposablePokerStrategy.create_random()
-        p2 = ComposablePokerStrategy.create_random()
-        child = crossover_poker_strategies(p1, p2)
+        rng = random.Random(42)  # Deterministic seed
+        p1 = ComposablePokerStrategy.create_random(rng)
+        p2 = ComposablePokerStrategy.create_random(rng)
+        child = crossover_poker_strategies(p1, p2, rng=rng)
         assert isinstance(child, ComposablePokerStrategy)
 
     def test_parameters_blended(self):
         """Continuous parameters are blended between parents."""
+        rng = random.Random(42)  # Deterministic seed
         p1 = ComposablePokerStrategy(parameters={"bluff_frequency": 0.1})
         p2 = ComposablePokerStrategy(parameters={"bluff_frequency": 0.5})
         # 50/50 blend
         child = ComposablePokerStrategy.from_parents(
-            p1, p2, weight1=0.5, mutation_rate=0.0
+            p1, p2, weight1=0.5, mutation_rate=0.0, rng=rng
         )
         # Should be around 0.3, but mutation might adjust slightly
         assert 0.15 <= child.parameters["bluff_frequency"] <= 0.45
@@ -113,10 +119,11 @@ class TestComposablePokerStrategyMutation:
 
     def test_mutate_changes_parameters(self):
         """Mutation changes at least some parameters."""
-        strategy = ComposablePokerStrategy.create_random(random.Random(1))
+        rng = random.Random(1)
+        strategy = ComposablePokerStrategy.create_random(rng)
         original_params = dict(strategy.parameters)
         # High mutation rate to ensure change
-        strategy.mutate(mutation_rate=1.0, mutation_strength=0.5)
+        strategy.mutate(mutation_rate=1.0, mutation_strength=0.5, rng=rng)
         # At least one parameter should be different
         changed = any(
             original_params[k] != strategy.parameters[k]
@@ -126,9 +133,10 @@ class TestComposablePokerStrategyMutation:
 
     def test_mutate_respects_bounds(self):
         """Mutated parameters stay within bounds."""
-        strategy = ComposablePokerStrategy.create_random()
+        rng = random.Random(42)  # Deterministic seed
+        strategy = ComposablePokerStrategy.create_random(rng)
         for _ in range(10):
-            strategy.mutate(mutation_rate=1.0, mutation_strength=0.5)
+            strategy.mutate(mutation_rate=1.0, mutation_strength=0.5, rng=rng)
         for key, value in strategy.parameters.items():
             if key in POKER_SUB_BEHAVIOR_PARAMS:
                 low, high = POKER_SUB_BEHAVIOR_PARAMS[key]
@@ -148,9 +156,10 @@ class TestComposablePokerStrategyMutation:
 
     def test_clone_with_mutation(self):
         """Clone creates independent copy with mutations."""
-        original = ComposablePokerStrategy.create_random(random.Random(1))
+        rng = random.Random(1)
+        original = ComposablePokerStrategy.create_random(rng)
         # Disable both mutation and sub-behavior switching
-        clone = original.clone_with_mutation(mutation_rate=0.0, sub_behavior_switch_rate=0.0)
+        clone = original.clone_with_mutation(mutation_rate=0.0, sub_behavior_switch_rate=0.0, rng=rng)
         # With no mutation and no switching, should have same sub-behaviors
         assert clone.hand_selection == original.hand_selection
         assert clone.betting_style == original.betting_style
@@ -161,7 +170,8 @@ class TestComposablePokerStrategySerialization:
 
     def test_to_dict_and_back(self):
         """Strategy survives round-trip serialization."""
-        original = ComposablePokerStrategy.create_random(random.Random(42))
+        rng = random.Random(42)  # Deterministic seed
+        original = ComposablePokerStrategy.create_random(rng)
         data = original.to_dict()
         restored = ComposablePokerStrategy.from_dict(data)
         assert restored.hand_selection == original.hand_selection
@@ -184,6 +194,7 @@ class TestComposablePokerStrategyDecisions:
 
     def test_decides_action(self):
         """Strategy returns valid action tuple."""
+        rng = random.Random(42)  # Deterministic seed
         strategy = ComposablePokerStrategy()
         action, amount = strategy.decide_action(
             hand_strength=0.5,
@@ -192,12 +203,14 @@ class TestComposablePokerStrategyDecisions:
             pot=50,
             player_energy=100,
             position_on_button=True,
+            rng=rng,
         )
         assert isinstance(action, BettingAction)
         assert isinstance(amount, (int, float))
 
     def test_folds_with_weak_hand_tight_strategy(self):
         """Ultra-tight strategy folds weak hands."""
+        rng = random.Random(42)  # Deterministic seed
         strategy = ComposablePokerStrategy(hand_selection=HandSelection.ULTRA_TIGHT)
         action, _ = strategy.decide_action(
             hand_strength=0.2,  # Weak hand
@@ -205,12 +218,14 @@ class TestComposablePokerStrategyDecisions:
             opponent_bet=20,
             pot=50,
             player_energy=100,
+            rng=rng,
         )
         # Should fold weak hand
         assert action == BettingAction.FOLD
 
     def test_raises_with_premium_hand(self):
         """Strategy raises with premium hands when facing a bet."""
+        rng = random.Random(42)  # Deterministic seed
         strategy = ComposablePokerStrategy(
             hand_selection=HandSelection.BALANCED,
             betting_style=BettingStyle.VALUE_HEAVY,
@@ -225,6 +240,7 @@ class TestComposablePokerStrategyDecisions:
             opponent_bet=20,  # Face a bet so we must act
             pot=50,
             player_energy=100,
+            rng=rng,
         )
         # With premium hand above threshold, should always raise
         assert action == BettingAction.RAISE
@@ -232,6 +248,7 @@ class TestComposablePokerStrategyDecisions:
 
     def test_insufficient_energy_folds(self):
         """Folds when call amount exceeds energy."""
+        rng = random.Random(42)  # Deterministic seed
         strategy = ComposablePokerStrategy()
         action, _ = strategy.decide_action(
             hand_strength=0.9,
@@ -239,6 +256,7 @@ class TestComposablePokerStrategyDecisions:
             opponent_bet=200,  # More than we have
             pot=50,
             player_energy=100,
+            rng=rng,
         )
         assert action == BettingAction.FOLD
 
@@ -311,7 +329,8 @@ class TestStrategyDiversity:
 
     def test_random_strategies_are_diverse(self):
         """Random strategies have variety in sub-behaviors."""
-        strategies = [ComposablePokerStrategy.create_random() for _ in range(100)]
+        rng = random.Random(42)  # Deterministic seed
+        strategies = [ComposablePokerStrategy.create_random(rng) for _ in range(100)]
         
         # Should see multiple different hand selections
         hand_selections = set(s.hand_selection for s in strategies)

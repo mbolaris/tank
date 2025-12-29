@@ -54,6 +54,7 @@ class TightSchooler(BehaviorAlgorithm):
                 "cohesion_strength": rng.uniform(0.7, 1.2),
                 "preferred_distance": rng.uniform(20, 50),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -100,6 +101,7 @@ class LooseSchooler(BehaviorAlgorithm):
                 "cohesion_strength": rng.uniform(0.3, 0.6),
                 "max_distance": rng.uniform(100, 200),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -150,6 +152,7 @@ class LeaderFollower(BehaviorAlgorithm):
                 "follow_strength": rng.uniform(0.6, 1.0),
                 "max_follow_distance": rng.uniform(80, 150),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -192,6 +195,7 @@ class AlignmentMatcher(BehaviorAlgorithm):
                 "alignment_strength": rng.uniform(0.5, 1.0),
                 "alignment_radius": rng.uniform(60, 120),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -241,6 +245,7 @@ class SeparationSeeker(BehaviorAlgorithm):
                 "min_distance": rng.uniform(30, 70),
                 "separation_strength": rng.uniform(0.5, 1.0),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -281,6 +286,7 @@ class FrontRunner(BehaviorAlgorithm):
                 "leadership_strength": rng.uniform(0.7, 1.2),
                 "independence": rng.uniform(0.5, 0.9),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -334,6 +340,7 @@ class PerimeterGuard(BehaviorAlgorithm):
                 "orbit_radius": rng.uniform(70, 130),
                 "orbit_speed": rng.uniform(0.5, 0.9),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -402,6 +409,7 @@ class MirrorMover(BehaviorAlgorithm):
                 "mirror_strength": rng.uniform(0.6, 1.0),
                 "mirror_distance": rng.uniform(50, 100),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -440,6 +448,7 @@ class BoidsBehavior(BehaviorAlgorithm):
                 "alignment_weight": rng.uniform(0.3, 0.7),
                 "cohesion_weight": rng.uniform(0.3, 0.7),
             },
+            rng=rng,
         )
 
     @classmethod
@@ -592,6 +601,7 @@ class DynamicSchooler(BehaviorAlgorithm):
                 "calm_cohesion": rng.uniform(0.3, 0.6),
                 "danger_threshold": rng.uniform(150, 250),
             },
+            rng=rng,
         )
 
     @classmethod
