@@ -295,6 +295,9 @@ class SolutionBenchmark:
             PokerStrategyAlgorithm,
         )
 
+        # Create a deterministic RNG based on solution ID
+        rng = random.Random(hash(solution.metadata.solution_id))
+
         # If the solution has poker strategy config, use it
         poker_config = solution.poker_strategy
         if poker_config and poker_config.get("class"):
@@ -303,7 +306,7 @@ class SolutionBenchmark:
                 from core.poker.strategy import implementations as impl
                 strategy_class = getattr(impl, poker_config["class"], None)
                 if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
-                    return strategy_class()
+                    return strategy_class(rng=rng)
             except Exception:
                 pass
 
@@ -311,7 +314,6 @@ class SolutionBenchmark:
         behavior = solution.behavior_algorithm
         if behavior:
             # Use balanced strategy with adjusted parameters based on behavior
-            rng = random.Random(hash(solution.metadata.solution_id))
             strategy = BalancedStrategy(rng=rng)
 
             # Adjust strategy based on captured behavior parameters
@@ -323,7 +325,7 @@ class SolutionBenchmark:
             return strategy
 
         # Fallback to balanced strategy
-        return BalancedStrategy()
+        return BalancedStrategy(rng=rng)
 
     def _run_head_to_head(
         self,
@@ -423,14 +425,14 @@ class SolutionBenchmark:
             result = solution.benchmark_result
             if result:
                 lines.append(
-                    f"#{rank:2d}  {solution.metadata.name:<30} "
+                    f"#{rank:<2}  {solution.metadata.name:<30} "
                     f"Elo: {result.elo_rating:>6.0f}  "
                     f"Tier: {result.skill_tier:<12} "
                     f"bb/100: {result.weighted_bb_per_100:>+7.2f}"
                 )
             else:
                 lines.append(
-                    f"#{rank:2d}  {solution.metadata.name:<30} [Not Evaluated]"
+                    f"#{rank:<2}  {solution.metadata.name:<30} [Not Evaluated]"
                 )
 
         lines.append("")
