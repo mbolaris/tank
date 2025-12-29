@@ -71,16 +71,36 @@ export const transformLineageData = (flatData: FishRecord[]): LineageTransformRe
 
     try {
         // Validate data structure before stratifying
+        const uniqueDataMap = new Map<string, FishRecord>();
         const sanitizedData = flatData.map((record) => ({
             ...record,
             // Normalize any null/undefined parents to the root node
             parent_id: record.parent_id ?? ROOT_NODE_ID,
         }));
 
-        const orphans: string[] = [];
-        const idSet = new Set([...sanitizedData.map((d) => d.id), ROOT_NODE_ID]);
-
+        // Deduplicate by ID, preferring records with higher generation or later birth time
         for (const record of sanitizedData) {
+            const existing = uniqueDataMap.get(record.id);
+            if (!existing) {
+                uniqueDataMap.set(record.id, record);
+            } else {
+                // Collision detected: determine which one to keep
+                // Logic: Keep the one with higher generation (likely newer)
+                // If generations equal, keep the one appearing later in the list (newest)
+                if ((record.generation || 0) > (existing.generation || 0)) {
+                    uniqueDataMap.set(record.id, record);
+                }
+                // Else keep existing
+                console.warn(`Lineage: Duplicate ID ${record.id} detected. Keeping Gen ${uniqueDataMap.get(record.id)?.generation}.`);
+            }
+        }
+
+        const uniqueData = Array.from(uniqueDataMap.values());
+
+        const orphans: string[] = [];
+        const idSet = new Set([...uniqueData.map((d) => d.id), ROOT_NODE_ID]);
+
+        for (const record of uniqueData) {
             if (record.parent_id !== ROOT_NODE_ID && !idSet.has(record.parent_id)) {
                 orphans.push(`Fish ${record.id} has parent ${record.parent_id} which doesn't exist`);
             }
@@ -114,7 +134,7 @@ export const transformLineageData = (flatData: FishRecord[]): LineageTransformRe
             birth_time: 0,
         };
 
-        const tree = strategy([rootNode, ...sanitizedData]);
+        const tree = strategy([rootNode, ...uniqueData]);
 
         // React-D3-Tree expects a specific format (name, attributes, children)
         // We write a recursive mapper to convert the D3 node to the React component format
