@@ -9,11 +9,13 @@ from core.config.fish import (
     EYE_SIZE_MIN, EYE_SIZE_MAX,
     BODY_ASPECT_MIN, BODY_ASPECT_MAX,
 )
+import random
 from core.genetics import Genome
 
 
 def test_visual_traits():
     """Test that visual traits are properly initialized and inherited"""
+    rng = random.Random(42)  # Deterministic seed
 
     print("=" * 60)
     print("Testing Visual Genetics System")
@@ -21,7 +23,7 @@ def test_visual_traits():
 
     # Test 1: Random genome generation
     print("\n1. Testing random genome generation:")
-    genome1 = Genome.random(use_algorithm=False)
+    genome1 = Genome.random(use_algorithm=False, rng=rng)
     phys1 = genome1.physical
 
     print(f"   Template ID: {phys1.template_id.value} (should be 0-{FISH_TEMPLATE_COUNT - 1})")
@@ -46,7 +48,7 @@ def test_visual_traits():
 
     # Test 2: Create another random genome for breeding
     print("\n2. Testing inheritance from two parents:")
-    genome2 = Genome.random(use_algorithm=False)
+    genome2 = Genome.random(use_algorithm=False, rng=rng)
     phys2 = genome2.physical
 
     print("\n   Parent 1:")
@@ -65,7 +67,7 @@ def test_visual_traits():
 
     # Test 3: Create offspring
     offspring = Genome.from_parents(
-        genome1, genome2, mutation_rate=0.1, mutation_strength=0.1
+        genome1, genome2, mutation_rate=0.1, mutation_strength=0.1, rng=rng
     )
 
     print("\n   Offspring:")
@@ -107,7 +109,7 @@ def test_visual_traits():
         for i in range(3):
             parent1 = current_gen[i % len(current_gen)]
             parent2 = current_gen[(i + 1) % len(current_gen)]
-            child = Genome.from_parents(parent1, parent2, mutation_rate=0.15)
+            child = Genome.from_parents(parent1, parent2, mutation_rate=0.15, rng=rng)
             next_gen.append(child)
 
         print(f"   Generation {gen}: {len(next_gen)} offspring created")
@@ -133,6 +135,7 @@ def test_visual_traits():
         genome2,
         mutation_rate=0.2,
         mutation_strength=0.2,
+        rng=rng,
     )
 
     stressed_phys = stressed_offspring.physical

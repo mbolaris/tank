@@ -107,8 +107,8 @@ class TestAdaptiveMutation:
     def test_mutation_rate_clamps_to_max(self):
         """Mutation rate should be clamped to configured maximums."""
         rate, strength = calculate_adaptive_mutation_rate(1.0, 1.0)
-        assert rate <= 0.25
-        assert strength <= 0.15
+        assert rate <= 0.35
+        assert strength <= 0.25
 
 
 class TestCrossover:

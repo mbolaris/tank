@@ -444,7 +444,10 @@ def _crossover_algorithms_base(
         try:
             offspring = parent1_algorithm.__class__.random_instance(rng=_rng)
         except Exception:
-            offspring = parent1_algorithm.__class__()
+            try:
+                offspring = parent1_algorithm.__class__(rng=_rng)
+            except TypeError:
+                offspring = parent1_algorithm.__class__()
 
         for param_key in parent1_algorithm.parameters:
             if param_key in parent2_algorithm.parameters:
@@ -492,7 +495,10 @@ def _crossover_algorithms_base(
         try:
             offspring = chosen_parent.__class__.random_instance(rng=_rng)
         except Exception:
-            offspring = chosen_parent.__class__()
+            try:
+                offspring = chosen_parent.__class__(rng=_rng)
+            except TypeError:
+                offspring = chosen_parent.__class__()
         offspring.parameters = chosen_parent.parameters.copy()
 
     # Apply mutations to offspring parameters

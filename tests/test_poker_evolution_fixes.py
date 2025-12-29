@@ -33,8 +33,9 @@ class TestWinnerBiasedInheritance:
         winner_type_count = 0
 
         # Use fixed strategies for reproducibility
-        winner = TightAggressiveStrategy()
-        loser = LooseAggressiveStrategy()
+        rng = random.Random(42)
+        winner = TightAggressiveStrategy(rng=rng)
+        loser = LooseAggressiveStrategy(rng=rng)
 
         for _ in range(n_trials):
             offspring = crossover_poker_strategies(
@@ -42,6 +43,7 @@ class TestWinnerBiasedInheritance:
                 mutation_rate=0.12,
                 mutation_strength=0.15,
                 winner_weight=0.80,
+                rng=rng,
             )
 
             if offspring.strategy_id == "tight_aggressive":
@@ -63,11 +65,12 @@ class TestWinnerBiasedInheritance:
         """Test that parameter values are closer to winner's values."""
         n_trials = 200
 
-        winner = TightAggressiveStrategy()
+        rng = random.Random(42)
+        winner = TightAggressiveStrategy(rng=rng)
         winner.parameters["weak_fold_threshold"] = 0.20  # Winner's value
         winner.parameters["bluff_frequency"] = 0.05
 
-        loser = TightAggressiveStrategy()  # Same type for cleaner test
+        loser = TightAggressiveStrategy(rng=rng)  # Same type for cleaner test
         loser.parameters["weak_fold_threshold"] = 0.80  # Very different
         loser.parameters["bluff_frequency"] = 0.95
 
@@ -79,6 +82,7 @@ class TestWinnerBiasedInheritance:
                 mutation_rate=0.12,
                 mutation_strength=0.15,
                 winner_weight=0.80,
+                rng=rng,
             )
 
             if offspring.strategy_id == "tight_aggressive":
@@ -100,14 +104,15 @@ class TestWinnerBiasedInheritance:
         n_trials = 100
         winner_strategy_count = 0
 
+        rng = random.Random(42)
         for _ in range(n_trials):
             # Create two genomes with different poker strategies
-            winner_genome = Genome.random(use_algorithm=True)
-            loser_genome = Genome.random(use_algorithm=True)
+            winner_genome = Genome.random(use_algorithm=True, rng=rng)
+            loser_genome = Genome.random(use_algorithm=True, rng=rng)
 
             # Ensure they have different strategies
-            winner_genome.behavioral.poker_strategy.value = TightAggressiveStrategy()
-            loser_genome.behavioral.poker_strategy.value = LooseAggressiveStrategy()
+            winner_genome.behavioral.poker_strategy.value = TightAggressiveStrategy(rng=rng)
+            loser_genome.behavioral.poker_strategy.value = LooseAggressiveStrategy(rng=rng)
 
             # Create offspring using winner-choice (80/20 split)
             offspring = Genome.from_winner_choice(
@@ -115,6 +120,7 @@ class TestWinnerBiasedInheritance:
                 mate=loser_genome,
                 mutation_rate=0.1,
                 mutation_strength=0.1,
+                rng=rng,
             )
 
             if offspring.behavioral.poker_strategy.value.strategy_id == "tight_aggressive":
@@ -147,13 +153,15 @@ class TestNoveltyInjectionRates:
         n_trials = 200
         same_type_count = 0
 
-        parent = TightAggressiveStrategy()
+        rng = random.Random(42)
+        parent = TightAggressiveStrategy(rng=rng)
 
         for _ in range(n_trials):
             offspring = crossover_poker_strategies(
                 parent, parent,  # Same type
                 mutation_rate=0.12,
                 mutation_strength=0.15,
+                rng=rng,
             )
 
             if offspring.strategy_id == "tight_aggressive":
@@ -191,9 +199,10 @@ class TestMutationRates:
         total_drift = 0.0
         valid_trials = 0
 
+        rng = random.Random(42)
         for trial in range(n_trials):
             # Start with a strategy with known parameters
-            original = TightAggressiveStrategy()
+            original = TightAggressiveStrategy(rng=rng)
             original.parameters["weak_fold_threshold"] = 0.35
             original.parameters["bluff_frequency"] = 0.10
 
@@ -205,6 +214,7 @@ class TestMutationRates:
                     current, current,
                     mutation_rate=0.12,
                     mutation_strength=0.15,
+                    rng=rng,
                 )
 
             # Measure drift if strategy type was preserved
@@ -233,8 +243,11 @@ class TestEvolutionSimulation:
         n_generations = 10
 
         # Start with diverse population
+        rng = random.Random(42)  # rng for initial pop and mutation
+        # Note: get_random_poker_strategy might need rng param if it supports it, 
+        # checking signature... likely yes given recent changes
         population: List[PokerStrategyAlgorithm] = [
-            get_random_poker_strategy() for _ in range(population_size)
+            get_random_poker_strategy(rng=rng) for _ in range(population_size)
         ]
 
         initial_types = len(set(s.strategy_id for s in population))
@@ -266,6 +279,7 @@ class TestEvolutionSimulation:
                 offspring = crossover_poker_strategies(
                     parent1, parent2,
                     winner_weight=0.80,
+                    rng=rng,
                 )
                 next_gen.append(offspring)
 
@@ -291,8 +305,9 @@ class TestInheritPokerStrategyFunction:
         n_trials = 100
         winner_type_count = 0
 
-        winner_strat = TightAggressiveStrategy()
-        loser_strat = LooseAggressiveStrategy()
+        rng = random.Random(42)
+        winner_strat = TightAggressiveStrategy(rng=rng)
+        loser_strat = LooseAggressiveStrategy(rng=rng)
 
         for i in range(n_trials):
             rng = random.Random(i)

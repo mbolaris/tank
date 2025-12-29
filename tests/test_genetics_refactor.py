@@ -75,7 +75,8 @@ class TestGeneticsRefactor:
 
     def test_genome_traits(self):
         """Test that Genome trait containers expose expected values."""
-        genome = Genome.random()
+        rng = random.Random(42)
+        genome = Genome.random(rng=rng)
         
         # Test value access
         val = genome.physical.size_modifier.value
@@ -93,8 +94,9 @@ class TestGeneticsRefactor:
 
     def test_genome_inheritance(self):
         """Test inheritance from parents."""
-        parent1 = Genome.random()
-        parent2 = Genome.random()
+        rng = random.Random(42)
+        parent1 = Genome.random(rng=rng)
+        parent2 = Genome.random(rng=rng)
         
         # Set distinct values to verify mixing
         parent1.physical.size_modifier.value = 0.8
@@ -104,7 +106,7 @@ class TestGeneticsRefactor:
         parent1.physical.size_modifier.mutation_rate = 0.5
         parent2.physical.size_modifier.mutation_rate = 1.5
         
-        offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.0, mutation_strength=0.0)
+        offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.0, mutation_strength=0.0, rng=rng)
         
         # With 0 mutation, value should be between parents (weighted average logic in base inherit_trait)
         # Note: inherit_trait might add small noise even with 0 mutation if not careful, 
@@ -117,20 +119,22 @@ class TestGeneticsRefactor:
 
     def test_genome_crossover_modes(self):
         """Test different crossover modes (interface check)."""
-        p1 = Genome.random()
-        p2 = Genome.random()
+        rng = random.Random(42)
+        p1 = Genome.random(rng=rng)
+        p2 = Genome.random(rng=rng)
         
         # Currently implementation delegates to weighted average, but we ensure it runs
-        offspring_avg = Genome.from_parents(p1, p2, crossover_mode=GeneticCrossoverMode.AVERAGING)
+        offspring_avg = Genome.from_parents(p1, p2, crossover_mode=GeneticCrossoverMode.AVERAGING, rng=rng)
         assert isinstance(offspring_avg, Genome)
         
-        offspring_rec = Genome.from_parents(p1, p2, crossover_mode=GeneticCrossoverMode.RECOMBINATION)
+        offspring_rec = Genome.from_parents(p1, p2, crossover_mode=GeneticCrossoverMode.RECOMBINATION, rng=rng)
         assert isinstance(offspring_rec, Genome)
 
     def test_fish_integration(self):
         """Test that a Fish entity can be created and updated with the new Genome."""
         # Mock environment
-        env = Environment(width=800, height=600)
+        rng = random.Random(42)
+        env = Environment(width=800, height=600, rng=rng)
         
         # Create fish with random genome
         fish = Fish(
@@ -155,15 +159,16 @@ class TestGeneticsRefactor:
 
     def test_mate_attraction(self):
         """Test mate attraction calculation."""
-        g1 = Genome.random()
-        g2 = Genome.random()
+        rng = random.Random(42)
+        g1 = Genome.random(rng=rng)
+        g2 = Genome.random(rng=rng)
         
         score = g1.calculate_mate_attraction(g2)
         assert 0.0 <= score <= 1.0
         
         # Identical genomes should have high compatibility (based on size/traits)
         # but color preference might lower it (prefer different colors)
-        g3 = Genome.random()
+        g3 = Genome.random(rng=rng)
         g3.physical = g1.physical # Clone physical traits
         # Reset color to be different to maximize score if preference is for difference
         g3.physical.color_hue.value = (g1.physical.color_hue.value + 0.5) % 1.0
@@ -210,16 +215,17 @@ class TestGeneticsRefactor:
     def test_meta_inheritance_in_offspring(self):
         """Test that meta-genetic parameters are inherited and can evolve."""
         # Create parents with distinct meta-parameters
-        parent1 = Genome.random()
+        rng = random.Random(42)
+        parent1 = Genome.random(rng=rng)
         parent1.physical.size_modifier.mutation_rate = 0.5
         parent1.physical.size_modifier.mutation_strength = 0.5
         
-        parent2 = Genome.random()
+        parent2 = Genome.random(rng=rng)
         parent2.physical.size_modifier.mutation_rate = 2.0
         parent2.physical.size_modifier.mutation_strength = 2.0
         
         # Create offspring
-        offspring = Genome.from_parents_weighted(parent1, parent2, mutation_rate=0.0, mutation_strength=0.0)
+        offspring = Genome.from_parents_weighted(parent1, parent2, mutation_rate=0.0, mutation_strength=0.0, rng=rng)
         
         # Offspring should have averaged meta-parameters (with possible mutation)
         # Average would be 1.25, allow some deviation from mutation
@@ -232,8 +238,9 @@ class TestGeneticsRefactor:
         # Meta-mutation has only 1% chance per generation, so we need initial variation
         # to reliably test that the system preserves/propagates variation
         population = []
+        rng = random.Random(42)
         for i in range(20):
-            g = Genome.random()
+            g = Genome.random(rng=rng)
             # Start with some variation to test inheritance/mutation
             g.physical.size_modifier.mutation_rate = 0.3 + (i * 0.02)
             g.physical.size_modifier.mutation_strength = 0.3 + (i * 0.015)
@@ -245,7 +252,7 @@ class TestGeneticsRefactor:
             for _ in range(20):
                 p1 = random.choice(population)
                 p2 = random.choice(population)
-                offspring = Genome.from_parents(p1, p2)
+                offspring = Genome.from_parents(p1, p2, rng=rng)
                 new_population.append(offspring)
             population = new_population
 

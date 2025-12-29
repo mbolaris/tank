@@ -53,20 +53,22 @@ class TestEdgeCasesAndBoundaries:
 
     def test_mutation_with_zero_rate(self):
         """Mutation with 0.0 rate should never mutate."""
+        rng = random.Random(42)
         original = 0.5
         mutated_count = 0
         for _ in range(100):
-            result = mutate_continuous_trait(original, 0.0, 1.0, mutation_rate=0.0, mutation_strength=0.1)
+            result = mutate_continuous_trait(original, 0.0, 1.0, mutation_rate=0.0, mutation_strength=0.1, rng=rng)
             if result != original:
                 mutated_count += 1
         assert mutated_count == 0, "Zero mutation rate should never mutate"
 
     def test_mutation_with_max_rate(self):
         """Mutation with 1.0 rate should always mutate."""
+        rng = random.Random(42)
         original = 0.5
         mutated_count = 0
         for _ in range(100):
-            result = mutate_continuous_trait(original, 0.0, 1.0, mutation_rate=1.0, mutation_strength=0.1)
+            result = mutate_continuous_trait(original, 0.0, 1.0, mutation_rate=1.0, mutation_strength=0.1, rng=rng)
             if result != original:
                 mutated_count += 1
         # With 1.0 rate, most should mutate (allow some due to Gaussian randomness)
@@ -74,6 +76,7 @@ class TestEdgeCasesAndBoundaries:
 
     def test_mutation_respects_bounds(self):
         """Mutation should never exceed min/max bounds."""
+        rng = random.Random(42)
         for _ in range(1000):
             value = random.uniform(0.0, 1.0)
             result = mutate_continuous_trait(
@@ -82,6 +85,7 @@ class TestEdgeCasesAndBoundaries:
                 1.0,  # max_val
                 mutation_rate=1.0,
                 mutation_strength=1.0,  # Very strong mutation
+                rng=rng,
             )
             assert 0.0 <= result <= 1.0, f"Mutation {result} exceeded bounds [0.0, 1.0]"
 
@@ -103,13 +107,15 @@ class TestEdgeCasesAndBoundaries:
 
     def test_discrete_mutation_with_single_value_range(self):
         """Discrete mutation with single value range should stay the same."""
-        result = mutate_discrete_trait(5, min_val=5, max_val=5, mutation_rate=1.0)
+        rng = random.Random(42)
+        result = mutate_discrete_trait(5, min_val=5, max_val=5, mutation_rate=1.0, rng=rng)
         assert result == 5
 
     def test_discrete_mutation_respects_bounds(self):
         """Discrete mutation should stay within min/max bounds."""
+        rng = random.Random(42)
         for _ in range(100):
-            result = mutate_discrete_trait(5, min_val=0, max_val=10, mutation_rate=1.0)
+            result = mutate_discrete_trait(5, min_val=0, max_val=10, mutation_rate=1.0, rng=rng)
             assert 0 <= result <= 10
 
     def test_algorithm_switch_probability(self):
@@ -119,11 +125,12 @@ class TestEdgeCasesAndBoundaries:
         base_mutation_rate = 0.08  # Base mutation rate
 
         # Effective rate = config.algorithm_switch_rate * (1 + mutation_rate)
-        # With config.algorithm_switch_rate = 0.04 and mutation_rate = 0.08:
-        effective_switch_rate = 0.04 * (1 + base_mutation_rate)  # ~0.0432
+        # With config.algorithm_switch_rate = 0.08 and mutation_rate = 0.08:
+        effective_switch_rate = 0.08 * (1 + base_mutation_rate)  # ~0.0864
 
+        rng = random.Random(42)
         for _ in range(trials):
-            if should_switch_algorithm(base_mutation_rate):
+            if should_switch_algorithm(base_mutation_rate, rng=rng):
                 switch_count += 1
 
         # Should be within reasonable range (use 3 sigma for 99.7% confidence)
@@ -134,12 +141,13 @@ class TestEdgeCasesAndBoundaries:
 
     def test_crossover_modes(self):
         """Test different crossover modes."""
+        rng = random.Random(42)
         # Test AVERAGING mode
-        result = blend_values(5.0, 10.0, weight1=0.5, mode=CrossoverMode.AVERAGING)
+        result = blend_values(5.0, 10.0, weight1=0.5, mode=CrossoverMode.AVERAGING, rng=rng)
         assert 5.0 <= result <= 10.0
 
         # Test RECOMBINATION mode
-        result = blend_values(5.0, 10.0, weight1=0.5, mode=CrossoverMode.RECOMBINATION)
+        result = blend_values(5.0, 10.0, weight1=0.5, mode=CrossoverMode.RECOMBINATION, rng=rng)
         assert 5.0 <= result <= 10.0
 
     def test_genome_with_extreme_traits(self):
@@ -211,7 +219,8 @@ class TestMultiGenerationEvolution:
     def test_fish_evolution_over_generations(self):
         """Test fish genome evolution over multiple generations."""
         # Create initial population
-        population = [Genome.random() for _ in range(20)]
+        rng = random.Random(42)
+        population = [Genome.random(rng=rng) for _ in range(20)]
 
         # Track diversity over generations
         generations = 10
@@ -227,7 +236,7 @@ class TestMultiGenerationEvolution:
             for _ in range(20):
                 parent1 = random.choice(population)
                 parent2 = random.choice(population)
-                child = Genome.from_parents(parent1, parent2)
+                child = Genome.from_parents(parent1, parent2, rng=rng)
                 next_gen.append(child)
 
             population = next_gen
@@ -240,13 +249,14 @@ class TestMultiGenerationEvolution:
 
     def test_weighted_evolution_favors_winner(self):
         """Test that weighted crossover favors winner's traits."""
+        rng = random.Random(42)
         # Create genomes with distinct traits (using actual dataclass fields, not computed properties)
-        winner = Genome.random(use_algorithm=False)
+        winner = Genome.random(use_algorithm=False, rng=rng)
         winner.behavioral.aggression.value = 1.0
         winner.physical.fin_size.value = 1.4
         winner.physical.tail_size.value = 1.4  # High aggression, large fins
 
-        loser = Genome.random(use_algorithm=False)
+        loser = Genome.random(use_algorithm=False, rng=rng)
         loser.behavioral.aggression.value = 0.0
         loser.physical.fin_size.value = 0.6
         loser.physical.tail_size.value = 0.6  # Low aggression, small fins
@@ -257,6 +267,7 @@ class TestMultiGenerationEvolution:
             child = Genome.from_parents_weighted(
                 winner, loser,
                 parent1_weight=0.8,  # Corrected parameter name
+                rng=rng,
             )
             offspring.append(child)
 
@@ -270,12 +281,13 @@ class TestMultiGenerationEvolution:
 
     def test_plant_evolution_preserves_variant(self):
         """Test that plant evolution preserves variant type."""
-        parent = PlantGenome.create_claude_variant()
+        rng = random.Random(42)
+        parent = PlantGenome.create_claude_variant(rng=rng)
 
         # Generate offspring through asexual reproduction.
         offspring = []
         for _ in range(50):
-            child = PlantGenome.from_parent(parent)
+            child = PlantGenome.from_parent(parent, rng=rng)
             offspring.append(child)
 
         # All should maintain Claude variant type (most important characteristic)
@@ -293,13 +305,15 @@ class TestPokerEvolution:
 
     def test_poker_algorithm_crossover(self):
         """Test poker algorithm crossover between parents."""
-        parent1_algo = TightAggressiveStrategy()
-        parent2_algo = LooseAggressiveStrategy()
+        rng = random.Random(42)
+        parent1_algo = TightAggressiveStrategy(rng=rng)
+        parent2_algo = LooseAggressiveStrategy(rng=rng)
 
         # Create offspring strategies (no weight1 param)
+        rng = random.Random(42)
         offspring_algos = []
         for _ in range(50):
-            child_algo = crossover_poker_strategies(parent1_algo, parent2_algo)
+            child_algo = crossover_poker_strategies(parent1_algo, parent2_algo, rng=rng)
             offspring_algos.append(child_algo)
 
         # Should get a mix of strategy types
@@ -308,6 +322,7 @@ class TestPokerEvolution:
 
     def test_poker_weighted_genome_crossover(self):
         """Test that poker winners pass more traits to offspring."""
+        rng = random.Random(42)
         winner = Genome(
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(1.0),
@@ -328,7 +343,7 @@ class TestPokerEvolution:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy=GeneticTrait(TightAggressiveStrategy()),
+                poker_strategy=GeneticTrait(TightAggressiveStrategy(rng=rng)),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,
@@ -357,7 +372,7 @@ class TestPokerEvolution:
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
-                poker_strategy=GeneticTrait(ManiacStrategy()),
+                poker_strategy=GeneticTrait(ManiacStrategy(rng=rng)),
                 mate_preferences=GeneticTrait({
                     "prefer_similar_size": 0.5,
                     "prefer_different_color": 0.5,
@@ -372,6 +387,7 @@ class TestPokerEvolution:
             child = Genome.from_parents_weighted(
                 winner, loser,
                 parent1_weight=0.75,  # Corrected parameter name
+                rng=rng,
             )
             offspring.append(child)
 
@@ -405,8 +421,9 @@ class TestPlantGenetics:
         )
 
         offspring = []
+        val_rng = random.Random(42)
         for _ in range(100):
-            child = PlantGenome.from_parent(parent, mutation_rate=0.3)
+            child = PlantGenome.from_parent(parent, mutation_rate=0.3, rng=val_rng)
             offspring.append(child)
 
         # Parameters should vary (allow smaller variation with moderate mutation)
@@ -431,8 +448,9 @@ class TestPlantGenetics:
         )
 
         offspring = []
+        val_rng = random.Random(42)
         for _ in range(100):
-            child = PlantGenome.from_parent(parent, mutation_rate=0.5)
+            child = PlantGenome.from_parent(parent, mutation_rate=0.5, rng=val_rng)
             offspring.append(child)
 
         # Discrete traits should sometimes mutate
@@ -445,14 +463,16 @@ class TestPlantGenetics:
 
     def test_cosmic_fern_variant(self):
         """Test cosmic fern variant creation and evolution."""
-        fern = PlantGenome.create_cosmic_fern_variant()
+        rng = random.Random(42)
+        fern = PlantGenome.create_cosmic_fern_variant(rng=rng)
 
         # Should have specific characteristics (type is the key identifier)
         assert fern.type == "cosmic_fern"
         assert 0.65 <= fern.color_hue <= 0.90  # Initial color range
 
         # Evolve it
-        offspring = [PlantGenome.from_parent(fern, mutation_rate=0.2) for _ in range(50)]
+        val_rng = random.Random(42)
+        offspring = [PlantGenome.from_parent(fern, mutation_rate=0.2, rng=val_rng) for _ in range(50)]
 
         # All should maintain cosmic_fern variant type (most important)
         for child in offspring:
@@ -471,7 +491,8 @@ class TestPlantGenetics:
             nectar_threshold_ratio=0.94,  # Updated to new range (0.90-0.98)
         )
 
-        offspring = [PlantGenome.from_parent(parent, mutation_rate=0.5) for _ in range(100)]
+        rng = random.Random(42)
+        offspring = [PlantGenome.from_parent(parent, mutation_rate=0.5, rng=rng) for _ in range(100)]
 
         # Energy parameters should evolve
         energy_rates = [o.base_energy_rate for o in offspring]
@@ -497,6 +518,7 @@ class TestStatisticalProperties:
         original = 0.5
         mutations = []
 
+        rng = random.Random(42)
         for _ in range(10000):
             mutated = mutate_continuous_trait(
                 original,
@@ -504,6 +526,7 @@ class TestStatisticalProperties:
                 1.0,  # max_val
                 mutation_rate=1.0,  # Always mutate
                 mutation_strength=0.1,
+                rng=rng,
             )
             mutations.append(mutated - original)
 
@@ -520,14 +543,16 @@ class TestStatisticalProperties:
     def test_genetic_diversity_maintained(self):
         """Test that evolution maintains genetic diversity."""
         # Start with diverse population
-        population = [Genome.random() for _ in range(50)]
+        rng = random.Random(42)
+        population = [Genome.random(rng=rng) for _ in range(50)]
 
         # Evolve for several generations
+        rng = random.Random(42)
         for _ in range(20):
             next_gen = []
             for _ in range(50):
                 p1, p2 = random.sample(population, 2)
-                child = Genome.from_parents(p1, p2)
+                child = Genome.from_parents(p1, p2, rng=rng)
                 next_gen.append(child)
             population = next_gen
 
@@ -545,19 +570,21 @@ class TestStatisticalProperties:
 
     def test_trait_correlation_in_offspring(self):
         """Test that offspring traits correlate with parents."""
+        rng = random.Random(42)
         # Use actual dataclass fields (fin_size, tail_size) instead of computed speed_modifier
-        parent1 = Genome.random(use_algorithm=False)
+        parent1 = Genome.random(use_algorithm=False, rng=rng)
         parent1.physical.fin_size.value = 1.4
         parent1.physical.tail_size.value = 1.4
         parent1.physical.size_modifier.value = 1.5
 
-        parent2 = Genome.random(use_algorithm=False)
+        parent2 = Genome.random(use_algorithm=False, rng=rng)
         parent2.physical.fin_size.value = 0.6
         parent2.physical.tail_size.value = 0.6
         parent2.physical.size_modifier.value = 0.5
 
+        rng = random.Random(42)
         offspring = [
-            Genome.from_parents(parent1, parent2)
+            Genome.from_parents(parent1, parent2, rng=rng)
             for _ in range(200)
         ]
 
@@ -677,18 +704,21 @@ class TestComplexIntegration:
 
     def test_algorithm_evolution_preserves_functionality(self):
         """Test that evolved algorithms remain functional."""
-        parent1_algo = GreedyFoodSeeker()
-        parent2_algo = GreedyFoodSeeker()
+        rng = random.Random(42)
+        parent1_algo = GreedyFoodSeeker(rng=rng)
+        parent2_algo = GreedyFoodSeeker(rng=rng)
 
         # Mutate parameters slightly (detection_range not search_radius)
         parent2_algo.parameters["detection_range"] = 0.8
 
         # Crossover (disable algorithm_switch_rate to ensure type preservation)
+        rng = random.Random(42)
         child_algo = crossover_algorithms(
             parent1_algo, parent2_algo,
             mutation_rate=0.5,
             mutation_strength=0.1,
-            algorithm_switch_rate=0.0  # Disable random algorithm switching for this test
+            algorithm_switch_rate=0.0,  # Disable random algorithm switching for this test
+            rng=rng,
         )
 
         # Should still be GreedyFoodSeeker

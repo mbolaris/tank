@@ -8,6 +8,7 @@ These tests verify that:
 """
 
 import pytest
+import random
 from typing import List, Tuple
 
 from core.world import World, World2D, is_2d_world, get_2d_dimensions
@@ -21,7 +22,7 @@ class TestWorldProtocol:
     
     def test_environment_implements_world_protocol(self):
         """Environment should satisfy World Protocol."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         # Protocol check - Environment should be recognized as a World
         assert isinstance(env, World), "Environment should implement World Protocol"
@@ -32,7 +33,7 @@ class TestWorldProtocol:
     
     def test_environment_implements_world2d_protocol(self):
         """Environment should satisfy World2D Protocol."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         # Protocol check - Environment should be recognized as a World2D
         assert isinstance(env, World2D), "Environment should implement World2D Protocol"
@@ -43,7 +44,7 @@ class TestWorldProtocol:
             def __init__(self, env, x, y):
                 super().__init__(env, x, y, 0)
         
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         agent = MockAgent(env, 100, 100)
         
         # Generic methods should exist
@@ -59,13 +60,13 @@ class TestWorldProtocol:
     
     def test_is_2d_world_helper(self):
         """is_2d_world helper should correctly identify 2D worlds."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         assert is_2d_world(env), "Environment should be identified as 2D world"
     
     def test_get_2d_dimensions_helper(self):
         """get_2d_dimensions should extract width/height from 2D worlds."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         width, height = get_2d_dimensions(env)
         assert width == 800, "Width should match"
@@ -78,7 +79,7 @@ class TestWorldProtocol:
             def __init__(self, env, x, y):
                 super().__init__(env, x, y, 0)
         
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         agent1 = MockAgent(env, 100, 100)
         agent2 = MockAgent(env, 150, 150)
         agent3 = MockAgent(env, 500, 500)
@@ -95,7 +96,7 @@ class TestWorldProtocol:
     
     def test_world_dimensions_property(self):
         """World.dimensions property should return environment dimensions."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         dims = env.dimensions
         assert len(dims) == 2, "Should have 2 dimensions"
@@ -104,7 +105,7 @@ class TestWorldProtocol:
     
     def test_world_bounds_method(self):
         """World.get_bounds should return valid boundaries."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         bounds = env.get_bounds()
         assert bounds is not None, "Bounds should be defined"
@@ -113,7 +114,7 @@ class TestWorldProtocol:
     
     def test_world_is_valid_position(self):
         """World.is_valid_position should check position validity."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         # Valid positions
         assert env.is_valid_position((100, 100)), "Center position should be valid"
@@ -172,7 +173,7 @@ class TestSkillfulAgentProtocol:
         from core.entities.fish import Fish
         from core.movement_strategy import AlgorithmicMovement
         
-        env = Environment(agents=[], width=800, height=600)
+        env = Environment(agents=[], width=800, height=600, rng=random.Random(42))
         movement = AlgorithmicMovement()
         
         fish = Fish(
@@ -204,7 +205,7 @@ class TestProtocolBackwardCompatibility:
     
     def test_environment_still_has_original_methods(self):
         """Environment should retain all original methods."""
-        env = Environment(width=800, height=600)
+        env = Environment(width=800, height=600, rng=random.Random(42))
         
         # Original methods should still exist
         assert hasattr(env, 'nearby_agents'), "Should have nearby_agents"
@@ -218,7 +219,7 @@ class TestProtocolBackwardCompatibility:
             def __init__(self, env, x, y):
                 super().__init__(env, x, y, 0)
         
-        env = Environment(agents=[], width=800, height=600)  # Initialize with empty list
+        env = Environment(agents=[], width=800, height=600, rng=random.Random(42))  # Initialize with empty list
         agent = MockAgent(env, 100, 100)
         env.agents = [agent]  # Add agent to list
         
