@@ -168,16 +168,17 @@ class TimeSystem(BaseSystem):
 
         Returns:
             Float multiplier for detection range:
-            - Night (0.0-0.25, 0.75-1.0): 0.25 (25% range)
+            - Night (0.0-0.25, 0.75-1.0): 0.40 (40% range) - increased from 0.25
             - Dawn (0.25-0.35): 0.75 (75% range)
             - Dusk (0.65-0.75): 0.75 (75% range)
             - Day (0.35-0.65): 1.0 (100% range)
         """
         time_of_day = self.get_time_of_day()
 
-        # Night: very limited detection
+        # Night: limited detection - increased from 0.25 to 0.40 based on
+        # experiment showing 98.9% starvation deaths. Night was too punishing.
         if time_of_day < 0.25 or time_of_day > 0.75:
-            return 0.25
+            return 0.40
         # Dawn: transitioning to full visibility
         elif time_of_day < 0.35:
             return 0.75

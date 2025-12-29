@@ -68,16 +68,12 @@ def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=N
         stats_interval: Print stats every N frames
         seed: Optional random seed for deterministic behavior
         export_stats: Optional filename to export JSON stats for LLM analysis
-        trace_output: Optional filename to export debug trace data
+        trace_output: Optional filename to export debug trace data (currently unused)
     """
     from core.tank_world import TankWorld, TankWorldConfig
 
     # Create configuration for headless mode
-    config = TankWorldConfig(
-        headless=True,
-        trace_mode=bool(trace_output),
-        trace_output=trace_output,
-    )
+    config = TankWorldConfig(headless=True)
 
     # Create TankWorld with optional seed
     world = TankWorld(config=config, seed=seed)
@@ -86,7 +82,6 @@ def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=N
         max_frames=max_frames,
         stats_interval=stats_interval,
         export_json=export_stats,
-        trace_output=trace_output,
     )
 
 

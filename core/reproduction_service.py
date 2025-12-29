@@ -285,6 +285,14 @@ class ReproductionService:
         return 0
 
     def _spawn_emergency_fish(self) -> bool:
+        """Spawn an emergency fish to maintain population.
+
+        IMPROVEMENT: When surviving fish exist, prefer cloning from the healthiest
+        one rather than creating a fully random genome. This preserves successful
+        genetic traits instead of diluting the gene pool with random genetics.
+
+        The cloned genome gets light mutation to maintain diversity.
+        """
         from core import entities, movement_strategy
         from core.genetics import Genome
 
@@ -293,7 +301,21 @@ class ReproductionService:
         if environment is None or ecosystem is None:
             return False
 
-        genome = Genome.random(use_algorithm=True, rng=self._engine.rng)
+        # Try to clone from a surviving fish if any exist (preserves successful traits)
+        fish_list = self._get_fish_list()
+        if fish_list:
+            # Select the healthiest fish (highest energy ratio) as the template
+            best_fish = max(fish_list, key=lambda f: f.energy / max(f.max_energy, 1.0))
+            # Clone with light mutation to maintain diversity
+            genome = Genome.clone_with_mutation(
+                parent=best_fish.genome,
+                rng=self._engine.rng,
+            )
+            generation = best_fish.generation  # Inherit generation for tracking
+        else:
+            # No fish to clone from - create random genome (extinction recovery)
+            genome = Genome.random(use_algorithm=True, rng=self._engine.rng)
+            generation = 0
 
         bounds = environment.get_bounds()
         (min_x, min_y), (max_x, max_y) = bounds
@@ -309,7 +331,7 @@ class ReproductionService:
             y,
             4,
             genome=genome,
-            generation=0,
+            generation=generation,
             ecosystem=ecosystem,
         )
         new_fish.register_birth()
