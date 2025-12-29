@@ -1,23 +1,41 @@
 ============================================================
 TankWorld Solution Benchmark Report
-Generated: 2025-12-29T21:42:02.771782
-Solutions Evaluated: 9
+Generated: 2025-12-29T22:37:47.729404
+Solutions Evaluated: 10
 ============================================================
 
 RANKINGS
 ------------------------------------------------------------
-#1   Gemini 3.0 Poker Supreme       Elo:   1426  Tier: intermediate bb/100: +607.23
-#2   GPT-5.2-Codex-Max Poker Master Elo:   1386  Tier: intermediate bb/100: +804.69
-#3   Sonnet-4.5 Poker Master        Elo:   1385  Tier: intermediate bb/100: +683.89
-#4   Haiku-4.5 Poker Master         Elo:   1361  Tier: intermediate bb/100: +750.54
-#5   Haiku-4.5 Poker Pro            Elo:   1352  Tier: intermediate bb/100: +682.35
-#6   Haiku-4.5 Poker Ace            Elo:   1334  Tier: intermediate bb/100: +418.25
-#7   Opus-4.5 Poker Champion        Elo:   1230  Tier: beginner     bb/100: +101.72
-#8   Haiku-4.5 Poker Stratege       Elo:   1226  Tier: beginner     bb/100: +378.67
-#9   Opus-4.5 Poker Champion        Elo:   1200  Tier: beginner     bb/100:  +80.66
+#1   Opus-4.5 Evolved Master        Elo:   1426  Tier: intermediate bb/100: +827.76
+#2   Gemini 3.0 Poker Supreme       Elo:   1426  Tier: intermediate bb/100: +607.23
+#3   GPT-5.2-Codex-Max Poker Master Elo:   1386  Tier: intermediate bb/100: +804.69
+#4   Sonnet-4.5 Poker Master        Elo:   1385  Tier: intermediate bb/100: +683.89
+#5   Haiku-4.5 Poker Master         Elo:   1361  Tier: intermediate bb/100: +750.54
+#6   Haiku-4.5 Poker Pro            Elo:   1352  Tier: intermediate bb/100: +682.35
+#7   Haiku-4.5 Poker Ace            Elo:   1334  Tier: intermediate bb/100: +418.25
+#8   Opus-4.5 Poker Champion        Elo:   1230  Tier: beginner     bb/100: +101.72
+#9   Haiku-4.5 Poker Stratege       Elo:   1226  Tier: beginner     bb/100: +378.67
+#10  Opus-4.5 Poker Champion        Elo:   1200  Tier: beginner     bb/100:  +80.66
 
 DETAILED RESULTS
 ------------------------------------------------------------
+
+Opus-4.5 Evolved Master
+  ID: ebdd0fb5_20251229_223153
+  Author: Opus-4.5
+  Elo Rating: 1426
+  Skill Tier: intermediate
+  Total Hands: 128,570
+
+  Performance vs Opponents:
+    always_fold           +164.91 bb/100  [+163.63, +166.19]
+    balanced              +244.90 bb/100  [+97.83, +329.22]
+    loose_aggressive     +2512.59 bb/100  [+1197.42, +4365.35]
+    loose_passive          +50.73 bb/100  [+10.28, +105.49]
+    maniac               +3965.95 bb/100  [+2577.14, +6507.61]
+    random                +862.88 bb/100  [+846.30, +1194.57]
+    tight_aggressive       +56.85 bb/100  [+7.81, +131.40]
+    tight_passive         +332.35 bb/100  [+274.10, +420.87]
 
 Gemini 3.0 Poker Supreme
   ID: 802f6384_20251229_213007
