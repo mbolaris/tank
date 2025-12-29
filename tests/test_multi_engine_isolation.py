@@ -1,4 +1,5 @@
 import json
+from typing import Tuple
 
 from core.simulation.engine import SimulationEngine
 
@@ -17,15 +18,36 @@ def _stats_fingerprint(stats: dict) -> str:
     return json.dumps(_clean_stats(stats), sort_keys=True)
 
 
-def _run_solo(seed: int, frames: int) -> str:
+def _world_snapshot_hash(engine: SimulationEngine) -> int:
+    """Compute a stable hash of entity IDs + positions + energies.
+    
+    This catches divergence in world state that stats might miss.
+    """
+    tuples = sorted(
+        (
+            getattr(e, 'entity_id', id(e)),
+            round(e.x, 6),
+            round(e.y, 6),
+            round(getattr(e, 'energy', 0), 6),
+        )
+        for e in engine.entities_list
+    )
+    return hash(tuple(tuples))
+
+
+def _run_solo(seed: int, frames: int) -> Tuple[SimulationEngine, str]:
+    """Run engine solo and return (engine, stats_fingerprint)."""
     engine = SimulationEngine(seed=seed)
     engine.setup()
     for _ in range(frames):
         engine.update()
-    return _stats_fingerprint(engine.get_stats())
+    return engine, _stats_fingerprint(engine.get_stats())
 
 
-def _run_interleaved(seed_a: int, seed_b: int, frames_each: int) -> tuple[str, str]:
+def _run_interleaved(
+    seed_a: int, seed_b: int, frames_each: int
+) -> Tuple[SimulationEngine, str, SimulationEngine, str]:
+    """Run two engines interleaved, return (engine_a, fp_a, engine_b, fp_b)."""
     engine_a = SimulationEngine(seed=seed_a)
     engine_b = SimulationEngine(seed=seed_b)
 
@@ -36,18 +58,42 @@ def _run_interleaved(seed_a: int, seed_b: int, frames_each: int) -> tuple[str, s
         engine_a.update()
         engine_b.update()
 
-    return _stats_fingerprint(engine_a.get_stats()), _stats_fingerprint(engine_b.get_stats())
+    return (
+        engine_a,
+        _stats_fingerprint(engine_a.get_stats()),
+        engine_b,
+        _stats_fingerprint(engine_b.get_stats()),
+    )
 
 
 def test_multi_engine_isolation_interleaved_vs_solo():
+    """Verify two engines produce identical results whether run solo or interleaved."""
     frames = 200
     seed_a = 12345
     seed_b = 54321
 
-    solo_a = _run_solo(seed_a, frames)
-    solo_b = _run_solo(seed_b, frames)
+    # Run each engine solo
+    engine_solo_a, solo_stats_a = _run_solo(seed_a, frames)
+    engine_solo_b, solo_stats_b = _run_solo(seed_b, frames)
 
-    inter_a, inter_b = _run_interleaved(seed_a, seed_b, frames)
+    # Run both engines interleaved
+    engine_inter_a, inter_stats_a, engine_inter_b, inter_stats_b = _run_interleaved(
+        seed_a, seed_b, frames
+    )
 
-    assert solo_a == inter_a, "Engine A differs when interleaved with another engine"
-    assert solo_b == inter_b, "Engine B differs when interleaved with another engine"
+    # Compare stats fingerprints
+    assert solo_stats_a == inter_stats_a, "Engine A stats differ when interleaved"
+    assert solo_stats_b == inter_stats_b, "Engine B stats differ when interleaved"
+
+    # Compare world snapshot hashes (catches state divergence that stats miss)
+    solo_world_a = _world_snapshot_hash(engine_solo_a)
+    solo_world_b = _world_snapshot_hash(engine_solo_b)
+    inter_world_a = _world_snapshot_hash(engine_inter_a)
+    inter_world_b = _world_snapshot_hash(engine_inter_b)
+
+    assert solo_world_a == inter_world_a, (
+        "Engine A world state diverged when interleaved (stats matched but world differed)"
+    )
+    assert solo_world_b == inter_world_b, (
+        "Engine B world state diverged when interleaved (stats matched but world differed)"
+    )
