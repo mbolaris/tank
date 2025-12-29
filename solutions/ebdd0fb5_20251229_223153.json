@@ -1,0 +1,131 @@
+{
+  "metadata": {
+    "solution_id": "ebdd0fb5_20251229_223153",
+    "name": "Opus-4.5 Evolved Master",
+    "description": "Opus-4.5 evolved from 100k frame simulation - gen 66, 142 poker games",
+    "author": "Opus-4.5",
+    "submitted_at": "2025-12-29T22:31:53.920561",
+    "version": "1.0.0",
+    "generation": 66,
+    "simulation_frames": 0,
+    "fish_id": 2961,
+    "commit_sha": "fdc84b28cc84a17d4f98ff5da7691f23a20a3312",
+    "branch": "claude/poker-tournament-ai-ecaop"
+  },
+  "behavior_algorithm": {
+    "type": "ComposableBehavior",
+    "threat_response": 3,
+    "food_approach": 1,
+    "social_mode": 3,
+    "poker_engagement": 3,
+    "parameters": {
+      "alignment_strength": 0.5705464275004504,
+      "ambush_patience": 0.622886386567819,
+      "ambush_strike_distance": 20.0,
+      "base_speed_multiplier": 1.0,
+      "burst_duration": 80.99808039120686,
+      "burst_speed": 1.212058053525936,
+      "circle_radius": 62.031876275129186,
+      "circle_speed": 0.05,
+      "cohesion_strength": 0.657236609462397,
+      "energy_urgency_threshold": 0.42706205576713085,
+      "erratic_amplitude": 0.7906180102640693,
+      "flee_speed": 1.1392796269910115,
+      "flee_threshold": 138.35791885346492,
+      "follow_distance": 32.96067857976724,
+      "food_priority": 0.95,
+      "freeze_distance": 67.89779676940603,
+      "intercept_skill": 0.8176153267492373,
+      "min_energy_for_poker": 0.43526271613062806,
+      "patrol_radius": 125.3627880714967,
+      "poker_avoid_radius": 90.583218966754,
+      "poker_priority": 0.6,
+      "poker_seek_radius": 90.36291107447155,
+      "pursuit_speed": 0.9,
+      "rest_duration": 100.0,
+      "separation_distance": 22.266999423017495,
+      "social_distance": 71.90429956578495,
+      "social_priority": 0.41152561537884846,
+      "stealth_speed": 0.25583062952565105,
+      "threat_priority": 0.6054461035543123,
+      "zigzag_amplitude": 0.5776006088696657,
+      "zigzag_frequency": 0.06694091560140407
+    }
+  },
+  "poker_strategy": {},
+  "composable_behavior": null,
+  "capture_stats": {
+    "total_games": 142,
+    "wins": 123,
+    "losses": 18,
+    "ties": 1,
+    "win_rate": 0.8661971830985915,
+    "total_energy_won": 3432.2296703495967,
+    "total_energy_lost": 180.0977390651176,
+    "net_energy": 2410.1029835150252,
+    "roi": 16.9725562219368,
+    "current_streak": 68,
+    "best_streak": 68,
+    "worst_streak": -10,
+    "showdown_win_rate": 0.75,
+    "fold_rate": 0.11971830985915492,
+    "best_hand_rank": 4,
+    "avg_hand_rank": 0.3732394366197183,
+    "button_win_rate": 0.9834710743801653,
+    "non_button_win_rate": 0.19047619047619047,
+    "positional_advantage": 0.7929948839039749,
+    "recent_win_rate": 1.0,
+    "skill_trend": "improving"
+  },
+  "benchmark_result": {
+    "per_opponent": {
+      "always_fold": 164.90912799999998,
+      "random": 862.8762331838562,
+      "loose_passive": 50.726027277496065,
+      "tight_passive": 332.347567520014,
+      "tight_aggressive": 56.84953111679454,
+      "loose_aggressive": 2512.5863365428704,
+      "balanced": 244.89951187407448,
+      "maniac": 3965.9500000000003
+    },
+    "weighted_bb_per_100": 827.755911402014,
+    "total_hands_played": 128570,
+    "elo_rating": 1425.7373155541163,
+    "confidence_intervals": {
+      "always_fold": [
+        163.62534566907175,
+        166.19291033092827
+      ],
+      "random": [
+        846.3017662001438,
+        1194.572028802587
+      ],
+      "loose_passive": [
+        10.277299185362416,
+        105.49365972514471
+      ],
+      "tight_passive": [
+        274.10425809430734,
+        420.8662065670953
+      ],
+      "tight_aggressive": [
+        7.810151060209016,
+        131.39702828638517
+      ],
+      "loose_aggressive": [
+        1197.418816812326,
+        4365.345961967774
+      ],
+      "balanced": [
+        97.82560748674379,
+        329.21521171039444
+      ],
+      "maniac": [
+        2577.1355095401705,
+        6507.607400306206
+      ]
+    },
+    "skill_tier": "intermediate",
+    "evaluated_at": "2025-12-29T22:36:28.242930"
+  }
+}
