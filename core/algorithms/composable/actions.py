@@ -87,20 +87,32 @@ class BehaviorActionsMixin:
             (vx, vy) velocity toward food, or (0, 0) if no food
 
         Design Decision:
-            pursuit_speed is the SINGLE evolvable trait controlling chase speed.
-            No urgency multipliers - energy state affects pursuit priority in
-            the caller (execute()), not speed here.
+            Genomic behavioral traits now directly affect food-seeking:
+            - pursuit_aggression: boosts chase speed (up to +40%)
+            - prediction_skill: improves interception accuracy
+            - hunting_stamina: sustains high-speed pursuit
+            This enables natural selection to favor better hunters.
         """
         nearest_food = self._find_nearest_food(fish)
         if not nearest_food:
             return 0.0, 0.0
 
         distance = (nearest_food.pos - fish.pos).length()
+
+        # Read genomic behavioral traits that affect hunting
+        pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
+        prediction_skill = fish.genome.behavioral.prediction_skill.value
+        hunting_stamina = fish.genome.behavioral.hunting_stamina.value
+
+        # Base speed from behavior parameters, boosted by pursuit_aggression
         base_speed = self.parameters.get("pursuit_speed", 0.9)
+        base_speed *= (1.0 + pursuit_aggression * 0.4)  # Up to 40% speed boost
         
         # Calculate target position - use prediction for moving food
         target_pos = nearest_food.pos  # Default: current position
         
+        # prediction_skill affects how accurately the fish can predict food movement
+        # Low skill = aim at current position, high skill = aim at predicted intercept
         if hasattr(nearest_food, "vel") and hasattr(nearest_food, "food_properties"):
             # It's a Food entity - check if it's moving
             food_vel = nearest_food.vel
@@ -108,44 +120,62 @@ class BehaviorActionsMixin:
                 # Get the sink multiplier for this food type
                 sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                 acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
-                
+
                 # Use acceleration-aware prediction for sinking food
                 if acceleration > 0 and food_vel.y >= 0:  # Falling food
-                    target_pos, _ = predict_falling_intercept(
+                    predicted_pos, _ = predict_falling_intercept(
                         fish.pos, fish.speed, nearest_food.pos, food_vel, acceleration
                     )
                 else:
                     # Non-sinking food (like live food) - simple linear prediction
                     time_to_reach = distance / max(fish.speed, 0.1)
                     time_to_reach = min(time_to_reach, 60.0)  # Cap at ~2 seconds
-                    target_pos = Vector2(
+                    predicted_pos = Vector2(
                         nearest_food.pos.x + food_vel.x * time_to_reach,
                         nearest_food.pos.y + food_vel.y * time_to_reach,
                     )
+                # Blend current and predicted position based on prediction_skill
+                # skill_factor ranges from 0.2 (low skill) to 1.0 (high skill)
+                skill_factor = 0.2 + (prediction_skill * 0.8)
+                target_pos = Vector2(
+                    nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+                    nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
+                )
         elif hasattr(nearest_food, "vel"):
             # Has velocity but not food_properties - use simple prediction
             food_vel = nearest_food.vel
             if food_vel.length() > 0.01:
                 time_to_reach = distance / max(fish.speed, 0.1)
                 time_to_reach = min(time_to_reach, 60.0)
-                target_pos = Vector2(
+                predicted_pos = Vector2(
                     nearest_food.pos.x + food_vel.x * time_to_reach,
                     nearest_food.pos.y + food_vel.y * time_to_reach,
+                )
+                # Blend based on prediction_skill
+                skill_factor = 0.2 + (prediction_skill * 0.8)
+                target_pos = Vector2(
+                    nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+                    nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
                 )
         
         # Now calculate direction to predicted target position
         direction = self._safe_normalize(target_pos - fish.pos)
         predicted_distance = (target_pos - fish.pos).length()
 
+        # hunting_stamina provides sustained speed boost for longer chases
+        stamina_boost = 1.0
+        if hunting_stamina > 0.5:
+            stamina_boost = 1.0 + (hunting_stamina - 0.5) * 0.3  # Up to 15% boost
+
         if self.food_approach == FoodApproach.DIRECT_PURSUIT:
-            # Direct pursuit now uses predicted position
-            return direction.x * base_speed, direction.y * base_speed
+            # Direct pursuit - fast and aggressive
+            speed = base_speed * stamina_boost
+            return direction.x * speed, direction.y * speed
 
         elif self.food_approach == FoodApproach.PREDICTIVE_INTERCEPT:
-            # Already using predicted position above, just apply skill-based speed boost
-            skill = self.parameters.get("intercept_skill", 0.5)
-            # Higher skill = faster pursuit (not position blending)
-            speed = base_speed * (1.0 + skill * 0.3)
+            # Predictive intercept - genomic prediction_skill already applied above
+            # Additional speed boost based on prediction_skill (better predictors chase harder)
+            speed = base_speed * (1.0 + prediction_skill * 0.2) * stamina_boost
             return direction.x * speed, direction.y * speed
 
         elif self.food_approach == FoodApproach.CIRCLING_STRIKE:
@@ -155,7 +185,9 @@ class BehaviorActionsMixin:
 
             if predicted_distance < strike_distance:
                 # Close enough - strike directly at predicted position
-                return direction.x * base_speed * 1.3, direction.y * base_speed * 1.3
+                # pursuit_aggression boosts strike speed
+                strike_speed = base_speed * 1.3 * (1.0 + pursuit_aggression * 0.2)
+                return direction.x * strike_speed, direction.y * strike_speed
             elif predicted_distance < circle_radius * 2:
                 # Circle around predicted food position
                 self._circle_angle += circle_speed
@@ -168,15 +200,17 @@ class BehaviorActionsMixin:
                 return circle_dir.x * base_speed * 0.8, circle_dir.y * base_speed * 0.8
             else:
                 # Too far - approach predicted position
-                return direction.x * base_speed, direction.y * base_speed
+                speed = base_speed * stamina_boost
+                return direction.x * speed, direction.y * speed
 
         elif self.food_approach == FoodApproach.AMBUSH_WAIT:
             patience = self.parameters.get("ambush_patience", 0.7)
             strike_dist = self.parameters.get("ambush_strike_distance", 40.0)
 
             if predicted_distance < strike_dist:
-                # Strike at predicted position
-                return direction.x * base_speed * 1.5, direction.y * base_speed * 1.5
+                # Strike at predicted position - pursuit_aggression boosts strike
+                strike_speed = base_speed * 1.5 * (1.0 + pursuit_aggression * 0.3)
+                return direction.x * strike_speed, direction.y * strike_speed
             elif predicted_distance < strike_dist * 3:
                 # Wait patiently (move very slowly toward predicted position)
                 return direction.x * 0.1 * patience, direction.y * 0.1 * patience
@@ -188,31 +222,36 @@ class BehaviorActionsMixin:
             amplitude = self.parameters.get("zigzag_amplitude", 0.6)
             frequency = self.parameters.get("zigzag_frequency", 0.05)
             self._zigzag_phase += frequency
-            # Zigzag toward predicted position
+            # Zigzag toward predicted position - stamina helps maintain pattern
+            speed = base_speed * stamina_boost
             perp = Vector2(-direction.y, direction.x)
             zigzag = math.sin(self._zigzag_phase) * amplitude
-            vx = direction.x * base_speed + perp.x * zigzag
-            vy = direction.y * base_speed + perp.y * zigzag
+            vx = direction.x * speed + perp.x * zigzag
+            vy = direction.y * speed + perp.y * zigzag
             return vx, vy
 
         elif self.food_approach == FoodApproach.PATROL_ROUTE:
             patrol_radius = self.parameters.get("patrol_radius", 100.0)
-            food_priority = self.parameters.get("food_priority", 0.7)
+            # pursuit_aggression affects how quickly fish divert to food
+            food_priority = self.parameters.get("food_priority", 0.7) + pursuit_aggression * 0.2
 
             # If food is close, divert from patrol toward predicted position
             if predicted_distance < patrol_radius * 0.5:
-                return direction.x * base_speed, direction.y * base_speed
+                speed = base_speed * stamina_boost
+                return direction.x * speed, direction.y * speed
 
             # Otherwise, blend patrol with predicted food direction
             self._patrol_angle += 0.02
             patrol_dir = Vector2(math.cos(self._patrol_angle), math.sin(self._patrol_angle))
-            blend = food_priority
+            blend = min(1.0, food_priority)  # Clamp to avoid > 1.0
             vx = direction.x * blend + patrol_dir.x * (1 - blend)
             vy = direction.y * blend + patrol_dir.y * (1 - blend)
-            speed = base_speed * 0.7
+            speed = base_speed * 0.7 * stamina_boost
             return vx * speed, vy * speed
 
-        return direction.x * base_speed, direction.y * base_speed
+        # Default fallback - apply genomic boosts
+        speed = base_speed * stamina_boost
+        return direction.x * speed, direction.y * speed
 
     def _execute_social_mode(self, fish: "Fish") -> Tuple[float, float]:
         """Execute the selected social mode sub-behavior.
