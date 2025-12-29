@@ -13,10 +13,10 @@ from core.poker.core import BettingAction, BettingRound, Card, Deck
 from core.poker.simulation.hand_engine import (
     MultiplayerGameState,
     MultiplayerPlayerContext,
-    _apply_multiplayer_action,
-    _decide_multiplayer_action,
-    _deal_hole_cards,
+    apply_action,
+    decide_action,
     determine_payouts,
+    start_hand_from_players,
 )
 
 logger = logging.getLogger(__name__)
@@ -169,17 +169,13 @@ class HumanPokerGame:
                 context.all_in = True
             contexts[i] = context
 
-        self._hand_state = MultiplayerGameState(
-            num_players=num_players,
+        self._hand_state = start_hand_from_players(
             players=contexts,
             button_position=self.button_index,
             small_blind=self.small_blind,
             big_blind=self.big_blind,
-            min_raise=self.big_blind,
-            last_raise_amount=self.big_blind,
             deck=self.deck,
         )
-        _deal_hole_cards(self._hand_state)
 
         for i, player in enumerate(self.players):
             if contexts[i].folded:
@@ -198,13 +194,10 @@ class HumanPokerGame:
         self._players_acted_since_raise = set()
         self._last_raiser = None
 
-        # Post blinds - skip players with no energy
+        # Track blind positions for game flow (BB option, first-to-act)
         small_blind_index = self._get_next_active_player(self.button_index)
         self.big_blind_index = self._get_next_active_player(small_blind_index)
         self.big_blind_has_option = True
-
-        self._hand_state.player_bet(small_blind_index, self.small_blind)
-        self._hand_state.player_bet(self.big_blind_index, self.big_blind)
         self._last_raiser = self.big_blind_index
 
         # First to act is player after big blind
@@ -584,11 +577,11 @@ class HumanPokerGame:
                 "state": self.get_state(),
             }
 
-        was_raise = _apply_multiplayer_action(
+        was_raise = apply_action(
+            game_state=self._hand_state,
             player_id=self.current_player_index,
             action=action_enum,
             bet_amount=bet_amount,
-            game_state=self._hand_state,
         )
         actual_amount = max(0.0, state_player.current_bet - before_bet)
 
@@ -734,18 +727,18 @@ class HumanPokerGame:
         state_player = self._hand_state.players[self.current_player_index]
         before_bet = state_player.current_bet
 
-        action, bet_amount = _decide_multiplayer_action(
-            player_id=self.current_player_index,
+        action, bet_amount = decide_action(
             game_state=self._hand_state,
+            player_id=self.current_player_index,
             hand_cache=self._hand_cache,
             rng=self._decision_rng,
         )
 
-        was_raise = _apply_multiplayer_action(
+        was_raise = apply_action(
+            game_state=self._hand_state,
             player_id=self.current_player_index,
             action=action,
             bet_amount=bet_amount,
-            game_state=self._hand_state,
         )
         actual_amount = max(0.0, state_player.current_bet - before_bet)
 

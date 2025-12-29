@@ -638,6 +638,93 @@ def determine_payouts(game_state: MultiplayerGameState) -> Dict[int, float]:
     return {player_id: split_amount for player_id in winners}
 
 
+# =============================================================================
+# Public Stepping API for Interactive Play
+# =============================================================================
+# These functions expose a stable interface for step-by-step hand control,
+# eliminating the need to import private underscore helpers.
+
+
+def start_hand_from_players(
+    players: Dict[int, MultiplayerPlayerContext],
+    button_position: int,
+    small_blind: float,
+    big_blind: float,
+    deck: Deck,
+) -> MultiplayerGameState:
+    """Initialize a hand for interactive step-by-step play.
+
+    Args:
+        players: Pre-constructed player contexts keyed by player_id (0-indexed).
+        button_position: Position of the dealer button.
+        small_blind: Small blind amount.
+        big_blind: Big blind amount.
+        deck: Deck to deal from (should be shuffled).
+
+    Returns:
+        Initialized MultiplayerGameState with hole cards dealt and blinds posted.
+    """
+    num_players = len(players)
+    game_state = MultiplayerGameState(
+        num_players=num_players,
+        players=players,
+        button_position=button_position,
+        small_blind=small_blind,
+        big_blind=big_blind,
+        min_raise=big_blind,
+        last_raise_amount=big_blind,
+        deck=deck,
+    )
+
+    _deal_hole_cards(game_state)
+
+    small_blind_pos, big_blind_pos = _blind_positions(num_players, button_position)
+    game_state.player_bet(small_blind_pos, small_blind)
+    game_state.player_bet(big_blind_pos, big_blind)
+
+    return game_state
+
+
+def apply_action(
+    game_state: MultiplayerGameState,
+    player_id: int,
+    action: BettingAction,
+    bet_amount: float = 0.0,
+) -> bool:
+    """Apply a betting action to the game state.
+
+    Args:
+        game_state: Current game state (mutated in place).
+        player_id: Player making the action.
+        action: The betting action to apply.
+        bet_amount: Amount for raises/bets.
+
+    Returns:
+        True if the action was a raise, False otherwise.
+    """
+    return _apply_multiplayer_action(player_id, action, bet_amount, game_state)
+
+
+def decide_action(
+    game_state: MultiplayerGameState,
+    player_id: int,
+    hand_cache: Dict[int, PokerHand],
+    rng: Optional[random.Random] = None,
+) -> Tuple[BettingAction, float]:
+    """Decide what action an AI player should take.
+
+    Args:
+        game_state: Current game state.
+        player_id: Player to decide for.
+        hand_cache: Cache of evaluated hands (mutated to add new evaluations).
+        rng: Random number generator for decision randomness.
+
+    Returns:
+        Tuple of (action, bet_amount).
+    """
+    return _decide_multiplayer_action(player_id, game_state, hand_cache, rng)
+
+
 def _validate_deal(deal: Deal, num_players: int) -> None:
     if len(deal.hole_cards) != num_players:
         raise ValueError("Deal hole cards must match player count")

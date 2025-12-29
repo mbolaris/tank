@@ -18,16 +18,27 @@ def _stats_fingerprint(stats: dict) -> str:
     return json.dumps(_clean_stats(stats), sort_keys=True)
 
 
+def _get_stable_entity_id(entity) -> str:
+    """Get a stable identifier for an entity, avoiding Python's id()."""
+    # Try type-specific IDs first
+    for id_attr in ('fish_id', 'plant_id', 'food_id', 'crab_id'):
+        if hasattr(entity, id_attr):
+            return f"{type(entity).__name__}_{getattr(entity, id_attr)}"
+    # Fallback: use type + rounded position as identifier
+    return f"{type(entity).__name__}_{round(entity.pos.x, 2)}_{round(entity.pos.y, 2)}"
+
+
 def _world_snapshot_hash(engine: SimulationEngine) -> int:
-    """Compute a stable hash of entity IDs + positions + energies.
+    """Compute a stable hash of entity positions and energies.
     
     This catches divergence in world state that stats might miss.
+    Uses stable identifiers to ensure deterministic hashing.
     """
     tuples = sorted(
         (
-            getattr(e, 'entity_id', id(e)),
-            round(e.x, 6),
-            round(e.y, 6),
+            _get_stable_entity_id(e),
+            round(e.pos.x, 6),
+            round(e.pos.y, 6),
             round(getattr(e, 'energy', 0), 6),
         )
         for e in engine.entities_list
