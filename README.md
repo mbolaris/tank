@@ -461,6 +461,12 @@ python tests/test_simulation.py
 # Test determinism
 python tests/test_parity.py
 
+# Run poker regression manual tests
+# Bash/macOS:
+python -m pytest tests/test_poker_*.py tests/test_texas_holdem_rules.py -m manual
+# PowerShell:
+$files = Get-ChildItem tests -Filter "test_poker_*.py"; python -m pytest $files tests/test_texas_holdem_rules.py -m manual
+
 # Run static analysis (import order, safety, style)
 ruff check
 
