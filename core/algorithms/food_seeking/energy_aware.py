@@ -1,6 +1,7 @@
 """EnergyAwareFoodSeeker food-seeking behavior."""
 
 
+import math
 import random
 from dataclasses import dataclass
 from typing import Tuple, Optional
@@ -12,6 +13,7 @@ from core.config.food import (
     PREDATOR_PROXIMITY_THRESHOLD,
 )
 from core.entities import Crab
+from core.math_utils import Vector2
 
 @dataclass
 class EnergyAwareFoodSeeker(BehaviorAlgorithm):
@@ -26,10 +28,12 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
             parameters={
                 "urgency_threshold": _rng.uniform(0.3, 0.7),
                 "calm_speed": _rng.uniform(0.3, 0.6),
+                "search_speed": _rng.uniform(0.4, 0.8),
                 "urgent_speed": _rng.uniform(0.8, 1.2),
             },
             rng=_rng,
         )
+        self._search_heading: Optional[Vector2] = None
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
@@ -98,4 +102,15 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * speed, direction.y * speed
-        return 0, 0
+
+        # No food nearby: keep moving to explore instead of idling
+        if self._search_heading is None or self.rng.random() < 0.05:
+            angle = self.rng.uniform(0.0, math.tau)
+            self._search_heading = Vector2(math.cos(angle), math.sin(angle))
+
+        heading = self._search_heading
+        speed = self.parameters["search_speed"] + (1.0 - energy_ratio) * 0.3
+        if is_critical:
+            speed *= 1.15
+
+        return heading.x * speed, heading.y * speed
