@@ -17,6 +17,20 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 
+def _coerce_enum(enum_cls, value, default: int = 0):
+    try:
+        return enum_cls(value)
+    except (TypeError, ValueError):
+        try:
+            index = int(value)
+        except (TypeError, ValueError):
+            index = default
+        size = len(enum_cls)
+        if size <= 0:
+            return enum_cls(default)
+        return enum_cls(index % size)
+
+
 @dataclass
 class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     """A behavior composed of multiple sub-behavior selections plus parameters.
@@ -73,10 +87,18 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         from core.util.rng import require_rng_param
         rng = require_rng_param(rng, "ComposableBehavior.create_random")
         return cls(
-            threat_response=ThreatResponse(rng.randint(0, len(ThreatResponse) - 1)),
-            food_approach=FoodApproach(rng.randint(0, len(FoodApproach) - 1)),
-            social_mode=SocialMode(rng.randint(0, len(SocialMode) - 1)),
-            poker_engagement=PokerEngagement(rng.randint(0, len(PokerEngagement) - 1)),
+            threat_response=_coerce_enum(
+                ThreatResponse, rng.randint(0, len(ThreatResponse) - 1)
+            ),
+            food_approach=_coerce_enum(
+                FoodApproach, rng.randint(0, len(FoodApproach) - 1)
+            ),
+            social_mode=_coerce_enum(
+                SocialMode, rng.randint(0, len(SocialMode) - 1)
+            ),
+            poker_engagement=_coerce_enum(
+                PokerEngagement, rng.randint(0, len(PokerEngagement) - 1)
+            ),
             parameters=_random_params(rng),
         )
 
@@ -159,13 +181,21 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
-            self.threat_response = ThreatResponse(rng.randint(0, len(ThreatResponse) - 1))
+            self.threat_response = _coerce_enum(
+                ThreatResponse, rng.randint(0, len(ThreatResponse) - 1)
+            )
         if rng.random() < sub_behavior_switch_rate:
-            self.food_approach = FoodApproach(rng.randint(0, len(FoodApproach) - 1))
+            self.food_approach = _coerce_enum(
+                FoodApproach, rng.randint(0, len(FoodApproach) - 1)
+            )
         if rng.random() < sub_behavior_switch_rate:
-            self.social_mode = SocialMode(rng.randint(0, len(SocialMode) - 1))
+            self.social_mode = _coerce_enum(
+                SocialMode, rng.randint(0, len(SocialMode) - 1)
+            )
         if rng.random() < sub_behavior_switch_rate:
-            self.poker_engagement = PokerEngagement(rng.randint(0, len(PokerEngagement) - 1))
+            self.poker_engagement = _coerce_enum(
+                PokerEngagement, rng.randint(0, len(PokerEngagement) - 1)
+            )
 
         # Mutate continuous parameters (sorted for determinism)
         for key, value in sorted(self.parameters.items()):
@@ -198,10 +228,10 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         NOTE: energy_style is ignored if present in data (removed from behavior system).
         """
         return cls(
-            threat_response=ThreatResponse(data.get("threat_response", 0)),
-            food_approach=FoodApproach(data.get("food_approach", 0)),
-            social_mode=SocialMode(data.get("social_mode", 0)),
-            poker_engagement=PokerEngagement(data.get("poker_engagement", 1)),
+            threat_response=_coerce_enum(ThreatResponse, data.get("threat_response", 0)),
+            food_approach=_coerce_enum(FoodApproach, data.get("food_approach", 0)),
+            social_mode=_coerce_enum(SocialMode, data.get("social_mode", 0)),
+            poker_engagement=_coerce_enum(PokerEngagement, data.get("poker_engagement", 1)),
             parameters=data.get("parameters", {}),
         )
 

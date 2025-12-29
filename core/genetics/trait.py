@@ -35,6 +35,18 @@ META_MUTATION_RATE_MAX: float = 3.0  # Allow much higher rates (up from 2.0)
 META_MUTATION_STRENGTH_MIN: float = 0.4  # Allow slightly lower strength
 META_MUTATION_STRENGTH_MAX: float = 3.0  # Allow much stronger mutations (up from 2.0)
 
+def _coerce_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+def _coerce_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
 
 def random_genetic_trait(
     value: Any,
@@ -55,11 +67,20 @@ def random_genetic_trait(
     Returns:
         GeneticTrait with randomized mutation_rate, mutation_strength, hgt_probability
     """
+    mutation_rate = _coerce_float(
+        rng.uniform(META_MUTATION_RATE_MIN, META_MUTATION_RATE_MAX),
+        (META_MUTATION_RATE_MIN + META_MUTATION_RATE_MAX) / 2,
+    )
+    mutation_strength = _coerce_float(
+        rng.uniform(META_MUTATION_STRENGTH_MIN, META_MUTATION_STRENGTH_MAX),
+        (META_MUTATION_STRENGTH_MIN + META_MUTATION_STRENGTH_MAX) / 2,
+    )
+    hgt_probability = _coerce_float(rng.uniform(0.0, hgt_max), hgt_max / 2)
     return GeneticTrait(
         value,
-        mutation_rate=rng.uniform(META_MUTATION_RATE_MIN, META_MUTATION_RATE_MAX),
-        mutation_strength=rng.uniform(META_MUTATION_STRENGTH_MIN, META_MUTATION_STRENGTH_MAX),
-        hgt_probability=rng.uniform(0.0, hgt_max),
+        mutation_rate=mutation_rate,
+        mutation_strength=mutation_strength,
+        hgt_probability=hgt_probability,
     )
 
 
@@ -138,13 +159,31 @@ class TraitSpec:
             val = rng.randint(int(self.min_val), int(self.max_val))
         else:
             val = rng.uniform(self.min_val, self.max_val)
+
+        if self.discrete:
+            default_val = int(round((self.min_val + self.max_val) / 2))
+            val = _coerce_int(val, default_val)
+            val = max(int(self.min_val), min(int(self.max_val), int(val)))
+        else:
+            default_val = (self.min_val + self.max_val) / 2.0
+            val = _coerce_float(val, default_val)
+            val = max(self.min_val, min(self.max_val, float(val)))
         
         # Randomize meta-genetic values to seed initial diversity
+        mutation_rate = _coerce_float(
+            rng.uniform(META_MUTATION_RATE_MIN, META_MUTATION_RATE_MAX),
+            (META_MUTATION_RATE_MIN + META_MUTATION_RATE_MAX) / 2,
+        )
+        mutation_strength = _coerce_float(
+            rng.uniform(META_MUTATION_STRENGTH_MIN, META_MUTATION_STRENGTH_MAX),
+            (META_MUTATION_STRENGTH_MIN + META_MUTATION_STRENGTH_MAX) / 2,
+        )
+        hgt_probability = _coerce_float(rng.uniform(0.0, 0.2), 0.1)
         return GeneticTrait(
             val,
-            mutation_rate=rng.uniform(META_MUTATION_RATE_MIN, META_MUTATION_RATE_MAX),
-            mutation_strength=rng.uniform(META_MUTATION_STRENGTH_MIN, META_MUTATION_STRENGTH_MAX),
-            hgt_probability=rng.uniform(0.0, 0.2),  # 0-20% initial HGT range
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            hgt_probability=hgt_probability,
         )
 
     def inherit(
