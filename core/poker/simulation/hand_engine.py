@@ -705,7 +705,7 @@ def apply_action(
     return _apply_multiplayer_action(player_id, action, bet_amount, game_state)
 
 
-def decide_action(
+def decide_action_for_player(
     game_state: MultiplayerGameState,
     player_id: int,
     hand_cache: Dict[int, PokerHand],
