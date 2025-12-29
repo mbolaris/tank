@@ -556,12 +556,12 @@ export class Renderer {
     ) {
         const { ctx } = this;
 
-        // If we have a target ID and it's a loss, draw an arrow FROM Winner (target) TO Loser (entity)
-        // This visualizes the "attack" or "win"
+        // If we have a target ID and it's a loss, draw an arrow FROM Loser (entity) TO Winner (target)
+        // This visualizes energy flowing from the loser to the winner
         if (state.target_id !== undefined && state.target_type !== undefined && allEntities && entityX !== undefined && entityY !== undefined) {
 
-            // Only draw for 'lost' status (Loser draws the arrow coming from Winner)
-            // This ensures we handles multiple losers correctly (one arrow per loser)
+            // Only draw for 'lost' status (Loser draws the arrow pointing to Winner)
+            // This ensures we handle multiple losers correctly (one arrow per loser)
             // and avoids double-drawing (since we ignore 'won' status)
             if (state.status === 'lost') {
                 const target = allEntities.find(e => e.id === state.target_id && e.type === state.target_type);
@@ -600,10 +600,11 @@ export class Renderer {
                         return;
                     }
 
-                    // Draw direction: Entity (Loser) -> Target (Winner)
-                    const startX = entityX!;
+                    // Arrow direction: Loser (entity) -> Winner (target)
+                    // Energy flows from the loser to the winner
+                    const startX = entityX!;  // Loser position (arrow origin)
                     const startY = entityY!;
-                    const endX = targetX;
+                    const endX = targetX;     // Winner position (arrow destination)
                     const endY = targetY;
 
                     // Draw green energy arrow
@@ -623,7 +624,7 @@ export class Renderer {
 
 
 
-                    // Draw arrow head at Entity (Loser - End of arrow)
+                    // Draw arrow head at Winner (end of arrow, where energy flows to)
                     const angle = Math.atan2(endY - startY, endX - startX);
                     const headLen = 15;
 
@@ -642,11 +643,11 @@ export class Renderer {
                     ctx.closePath();
                     ctx.fill();
 
-                    // Red dot on loser (End of arrow) - Draw AFTER arrow head to be visible
+                    // Red dot on loser (start of arrow, where energy is lost from)
                     ctx.shadowBlur = 0;
                     ctx.fillStyle = '#ff0000';
                     ctx.beginPath();
-                    ctx.arc(endX, endY, 5, 0, Math.PI * 2);
+                    ctx.arc(startX, startY, 5, 0, Math.PI * 2);
                     ctx.fill();
 
                     // Draw energy amount moving along the line (one-time animation)
