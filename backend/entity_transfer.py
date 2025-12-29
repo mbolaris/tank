@@ -573,7 +573,8 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
         if not isinstance(genome_data, dict):
             logger.error("Cannot deserialize plant: genome_data must be an object")
             return None
-        genome = PlantGenome.from_dict(genome_data)
+        rng = getattr(target_world, "rng", None)
+        genome = PlantGenome.from_dict(genome_data, rng=rng)
 
         # Get plant_id from serialized data (preserve identity across migration)
         plant_id = data.get("id")

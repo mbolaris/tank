@@ -684,11 +684,8 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
                 self.parameter_bounds = {
                     key: (float(low), float(high)) for key, (low, high) in bounds.items()
                 }
-        if self.rng is None:
-            raise MissingRNGError(
-                f"BehaviorAlgorithm '{self.algorithm_id}' requires an RNG at construction time. "
-                "Pass rng=engine.rng or rng=environment.rng when creating algorithms."
-            )
+        # Ensure and validate RNG
+        self.rng = require_rng_param(self.rng, f"BehaviorAlgorithm '{self.algorithm_id}'")
 
     @abstractmethod
     def execute(self, fish: "Fish") -> Tuple[float, float]:

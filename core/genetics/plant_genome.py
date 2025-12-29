@@ -715,7 +715,7 @@ class PlantGenome:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "PlantGenome":
+    def from_dict(cls, data: Dict, rng: Optional[random.Random] = None) -> "PlantGenome":
         rules = [
             (r["input"], r["output"], r["prob"])
             for r in data.get("production_rules", [])
@@ -726,7 +726,7 @@ class PlantGenome:
         if not strategy_type:  # Handles None, empty string, and missing key
             # Migration: assign a random baseline strategy to legacy plants
             from core.plants.plant_strategy_types import get_random_strategy_type
-            strategy_type = get_random_strategy_type().value
+            strategy_type = get_random_strategy_type(rng=rng).value
         
         g = cls(
             axiom=data.get("axiom", "F"),
