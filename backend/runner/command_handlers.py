@@ -66,7 +66,7 @@ class CommandHandlerMixin:
             logger.info(f"Creating fish at position ({x}, {y})")
 
             # Create new fish with random genome
-            genome = Genome.random(use_algorithm=True)
+            genome = Genome.random(use_algorithm=True, rng=self.world.rng)
             new_fish = entities.Fish(
                 self.world.environment,
                 movement_strategy.AlgorithmicMovement(),

@@ -18,9 +18,9 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
     """TAG: Plays few hands aggressively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-
-        _rng = require_rng_param(rng, "__init__")
+        if rng is None:
+             raise RuntimeError("TightAggressiveStrategy: RNG is None")
+        _rng = rng
         super().__init__(
             strategy_id="tight_aggressive",
             parameters={
@@ -77,9 +77,9 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
     """LAG: Plays many hands aggressively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-
-        _rng = require_rng_param(rng, "__init__")
+        if rng is None:
+             raise RuntimeError("LooseAggressiveStrategy: RNG is None")
+        _rng = rng
         super().__init__(
             strategy_id="loose_aggressive",
             parameters={
@@ -138,9 +138,10 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 class TightPassiveStrategy(PokerStrategyAlgorithm):
     """Rock: Plays few hands, rarely raises."""
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-
-        _rng = require_rng_param(rng, "__init__")
+        # Inline RNG check
+        if rng is None:
+             raise RuntimeError("TightPassiveStrategy: RNG is None")
+        _rng = rng
         super().__init__(
             strategy_id="tight_passive",
             parameters={
@@ -195,9 +196,9 @@ class BalancedStrategy(PokerStrategyAlgorithm):
     """Balanced/GTO-inspired strategy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-
-        _rng = require_rng_param(rng, "__init__")
+        if rng is None:
+             raise RuntimeError("BalancedStrategy: RNG is None")
+        _rng = rng
         super().__init__(
             strategy_id="balanced",
             parameters={
@@ -280,9 +281,9 @@ class ManiacStrategy(PokerStrategyAlgorithm):
     """Ultra-aggressive strategy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-
-        _rng = require_rng_param(rng, "__init__")
+        if rng is None:
+             raise RuntimeError("ManiacStrategy: RNG is None")
+        _rng = rng
         super().__init__(
             strategy_id="maniac",
             parameters={
@@ -338,9 +339,10 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
     """Calling station: plays many hands passively."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-
-        _rng = require_rng_param(rng, "__init__")
+        # Inline RNG check
+        if rng is None:
+             raise RuntimeError("LoosePassiveStrategy: RNG is None")
+        _rng = rng
         super().__init__(
             strategy_id="loose_passive",
             parameters={

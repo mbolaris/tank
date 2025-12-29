@@ -13,8 +13,9 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
     """Baseline strategy: always folds to any bet, only checks if allowed."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-        _rng = require_rng_param(rng, "AlwaysFoldStrategy.__init__")
+        if rng is None:
+             raise RuntimeError("AlwaysFoldStrategy: RNG is None")
+        _rng = rng
         super().__init__(strategy_id="always_fold", parameters={}, _rng=_rng)
 
     @classmethod
@@ -42,8 +43,9 @@ class RandomStrategy(PokerStrategyAlgorithm):
     """Baseline strategy: completely random legal moves."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        from core.util.rng import require_rng_param
-        _rng = require_rng_param(rng, "RandomStrategy.__init__")
+        if rng is None:
+             raise RuntimeError("RandomStrategy: RNG is None")
+        _rng = rng
         parameters = {
             "fold_prob": 0.33,
             "call_prob": 0.33,

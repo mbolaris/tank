@@ -85,7 +85,7 @@ class PokerStrategyAlgorithm:
         # But get_all_poker_strategies returns classes.
         
         strategy_map = {
-            cls(rng=None).strategy_id: cls for cls in get_all_poker_strategies()
+            cls(rng=random.Random(0)).strategy_id: cls for cls in get_all_poker_strategies()
         }
 
         strategy_cls = strategy_map.get(strategy_id)

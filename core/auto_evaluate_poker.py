@@ -438,6 +438,7 @@ class AutoEvaluatePokerGame:
                 pot=self.pot,
                 player_energy=player.energy,
                 position_on_button=position_on_button,
+                rng=self._decision_rng,
             )
 
         # Execute action
