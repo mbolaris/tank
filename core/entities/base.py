@@ -169,6 +169,29 @@ class Entity:
         if callable(record_event):
             record_event(event)
 
+    def constrain_to_screen(self) -> None:
+        """Hard constraint to keep the entity fully within the bounds of the screen.
+
+        This acts as a final safety clamp after movement and collision resolution.
+        """
+        bounds = self.environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+
+        # Clamp horizontally
+        if self.pos.x < min_x:
+            self.pos.x = min_x
+        elif self.pos.x + self.width > max_x:
+            self.pos.x = max_x - self.width
+
+        # Clamp vertically
+        if self.pos.y < min_y:
+            self.pos.y = min_y
+        elif self.pos.y + self.height > max_y:
+            self.pos.y = max_y - self.height
+
+        # Keep rect in sync with position
+        self.rect.topleft = self.pos
+
 
 class Agent(Entity):
     """Moving entity with velocity and AI behaviors.
@@ -271,6 +294,8 @@ class Agent(Entity):
         """
         self.update_position()
         return EntityUpdateResult()
+
+
 
 
 

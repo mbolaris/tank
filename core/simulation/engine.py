@@ -375,30 +375,7 @@ class SimulationEngine:
     # Utility Methods
     # =========================================================================
 
-    def keep_entity_on_screen(
-        self, entity: entities.Agent, screen_width: Optional[int] = None, screen_height: Optional[int] = None
-    ) -> None:
-        """Keep an entity fully within the bounds of the screen.
 
-        Args:
-            entity: Entity to constrain
-            screen_width: Optional override for screen width
-            screen_height: Optional override for screen height
-        """
-        w = screen_width if screen_width is not None else self.config.display.screen_width
-        h = screen_height if screen_height is not None else self.config.display.screen_height
-
-        # Clamp horizontally
-        if entity.pos.x < 0:
-            entity.pos.x = 0
-        elif entity.pos.x + entity.width > w:
-            entity.pos.x = w - entity.width
-
-        # Clamp vertically
-        if entity.pos.y < 0:
-            entity.pos.y = 0
-        elif entity.pos.y + entity.height > h:
-            entity.pos.y = h - entity.height
 
     def get_all_entities(self) -> List[entities.Agent]:
         """Get all entities in the simulation."""
@@ -691,7 +668,8 @@ class SimulationEngine:
             # Note: Food removal (expiry, off-screen) is handled by LifecycleSystem
             # in _phase_lifecycle to keep removal logic in one place
 
-            self.keep_entity_on_screen(entity)
+            # Enforce screen boundaries as a final safety check
+            entity.constrain_to_screen()
 
         return new_entities, entities_to_remove
 
