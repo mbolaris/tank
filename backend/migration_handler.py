@@ -132,32 +132,18 @@ class MigrationHandler:
 
             old_id = id(entity)
 
-            # Remove from source before adding to destination. This prevents entity duplication
-            # and keeps population/energy accounting stable.
-            source_manager.world.engine._remove_entity(entity)
-            removed_from_source = True
+            # Optimistic removal causes flickering if destination fails.
+            # New flow: Check destination first -> then remove/add.
 
-            # Deserialize in destination
+            # Deserialize in destination (Check)
             new_entity_outcome = try_deserialize_entity(entity_data, dest_manager.world)
             if not new_entity_outcome.ok:
+                # Failed to deserialize in destination (e.g. no root spots)
+                # Just return False, no need to restore since we haven't removed yet.
                 if new_entity_outcome.error and new_entity_outcome.error.code == "no_root_spots":
-                    # SILENT FAIL: No room for plant in destination.
-                    # Restore original entity to source but don't log to history or console.
-                    if original_root_spot is not None:
-                        try:
-                            original_root_spot.claim(entity)
-                        except Exception:
-                            logger.debug("Failed to re-claim root spot after migration failure", exc_info=True)
-                    source_manager.world.engine._add_entity(entity)
-                    return False
-
-                # Failed - restore the original entity to the source tank.
-                if original_root_spot is not None:
-                    try:
-                        original_root_spot.claim(entity)
-                    except Exception:
-                        logger.debug("Failed to re-claim root spot after migration failure", exc_info=True)
-                source_manager.world.engine._add_entity(entity)
+                     # Silent fail for plants
+                     return False
+                
                 log_transfer(
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
@@ -172,6 +158,11 @@ class MigrationHandler:
                 )
                 return False
 
+            # If we get here, migration is go.
+            # Remove from source (Commit)
+            source_manager.world.engine.request_remove(entity, reason="migration_transfer")
+            removed_from_source = True
+
             new_entity = new_entity_outcome.value
 
             # Position entity at opposite edge of destination tank
@@ -182,7 +173,7 @@ class MigrationHandler:
             else:  # right
                 new_entity.pos.x = 10
 
-            dest_manager.world.engine._add_entity(new_entity)
+            dest_manager.world.engine.request_spawn(new_entity, reason="migration_in")
             added_to_destination = True
 
             # Track energy entering the destination tank (for fish only)
@@ -244,7 +235,7 @@ class MigrationHandler:
                                 source_tank_id[:8],
                                 exc_info=True,
                             )
-                    source_manager.world.engine._add_entity(entity)
+                    source_manager.world.engine.request_spawn(entity, reason="migration_restore_error")
                 except Exception:
                     logger.debug(
                         "Failed to restore entity after migration error (tank=%s)",

@@ -193,26 +193,13 @@ class MigrationScheduler:
             if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
-            # Remove from source
-            source_manager.world.engine.remove_entity(entity)
-
-            # Add to destination
+            # Check destination first (Check)
             outcome = try_deserialize_entity(entity_data, dest_manager.world)
             if not outcome.ok:
                 # SILENT FAIL check
                 if outcome.error and outcome.error.code == "no_root_spots":
-                    # Restore to source silently
-                    from backend.entity_transfer import deserialize_entity
-                    restored = deserialize_entity(entity_data, source_manager.world)
-                    if restored:
-                        source_manager.world.engine.add_entity(restored)
+                    # Just return, no restore needed
                     return
-
-                # Failed - try to restore
-                from backend.entity_transfer import deserialize_entity
-                restored = deserialize_entity(entity_data, source_manager.world)
-                if restored:
-                    source_manager.world.engine.add_entity(restored)
 
                 log_transfer(
                     entity_type=entity_type,
@@ -227,8 +214,11 @@ class MigrationScheduler:
                 )
                 return
 
+            # Remove from source (Commit)
+            source_manager.world.engine.request_remove(entity, reason="migration_out")
+
             new_entity = outcome.value
-            dest_manager.world.engine.add_entity(new_entity)
+            dest_manager.world.engine.request_spawn(new_entity, reason="migration_in")
 
             # Track energy entering the destination tank (for fish only)
             if isinstance(new_entity, Fish) and hasattr(new_entity, 'ecosystem') and new_entity.ecosystem is not None:
@@ -330,7 +320,7 @@ class MigrationScheduler:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
             # Remove from source tank
-            source_manager.world.engine.remove_entity(entity)
+            source_manager.world.engine.request_remove(entity, reason="remote_migration_out")
 
             # Send to remote server
             result = await self.server_client.remote_transfer_entity(
@@ -366,7 +356,7 @@ class MigrationScheduler:
 
                 restored = deserialize_entity(entity_data, source_manager.world)
                 if restored:
-                    source_manager.world.engine.add_entity(restored)
+                    source_manager.world.engine.request_spawn(restored, reason="remote_migration_restore")
 
                 error_msg = result.get("error", "Unknown error") if result else "No response from remote server"
                 
@@ -400,7 +390,7 @@ class MigrationScheduler:
                 if entity_data:
                     restored = deserialize_entity(entity_data, source_manager.world)
                     if restored:
-                        source_manager.world.engine.add_entity(restored)
+                        source_manager.world.engine.request_spawn(restored, reason="remote_migration_restore_error")
             except Exception as restore_error:
                 logger.error(
                     f"Failed to restore entity {entity.id} after migration failure: {restore_error}",
