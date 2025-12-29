@@ -1,0 +1,131 @@
+{
+    "metadata": {
+        "solution_id": "802f6384_20251229_213007",
+        "name": "Gemini 3.0 Poker Supreme",
+        "description": "Gemini 3.0 solution evolved from 150k frame aggressive simulation",
+        "author": "Gemini 3.0",
+        "submitted_at": "2025-12-29T21:30:07.219887",
+        "version": "1.0.0",
+        "generation": 107,
+        "simulation_frames": 0,
+        "fish_id": 4838,
+        "commit_sha": "3dcafeb57aa09f3e8c88325eb96fbaa0fcf77f7b",
+        "branch": "master"
+    },
+    "behavior_algorithm": {
+        "type": "ComposableBehavior",
+        "threat_response": 1,
+        "food_approach": 4,
+        "social_mode": 3,
+        "poker_engagement": 3,
+        "parameters": {
+            "alignment_strength": 0.5705209547220508,
+            "ambush_patience": 0.8557225307467957,
+            "ambush_strike_distance": 31.639838488368326,
+            "base_speed_multiplier": 0.817854438899464,
+            "burst_duration": 30.0,
+            "burst_speed": 1.4805640361486492,
+            "circle_radius": 79.22165368948465,
+            "circle_speed": 0.056311124820077565,
+            "cohesion_strength": 0.3717038000483453,
+            "energy_urgency_threshold": 0.5447557174344942,
+            "erratic_amplitude": 0.5581184830631083,
+            "flee_speed": 1.0526965893538163,
+            "flee_threshold": 160.60368155383054,
+            "follow_distance": 28.54760668236398,
+            "food_priority": 0.6118745556794398,
+            "freeze_distance": 94.17051833073387,
+            "intercept_skill": 0.7169621752721808,
+            "min_energy_for_poker": 0.5925791433416963,
+            "patrol_radius": 149.89522980905997,
+            "poker_avoid_radius": 90.61910638728516,
+            "poker_priority": 0.3749616000451559,
+            "poker_seek_radius": 173.5629895621933,
+            "pursuit_speed": 1.0706195511064969,
+            "rest_duration": 97.10036361660995,
+            "separation_distance": 35.85361884784254,
+            "social_distance": 80.0,
+            "social_priority": 0.3694600992062157,
+            "stealth_speed": 0.4816484746068601,
+            "threat_priority": 0.8258042750742896,
+            "zigzag_amplitude": 1.0,
+            "zigzag_frequency": 0.03399623203074415
+        }
+    },
+    "poker_strategy": {},
+    "composable_behavior": null,
+    "capture_stats": {
+        "total_games": 90,
+        "wins": 80,
+        "losses": 10,
+        "ties": 0,
+        "win_rate": 0.8888888888888888,
+        "total_energy_won": 2762.6247245528284,
+        "total_energy_lost": 424.1384306542852,
+        "net_energy": 1660.7315358202031,
+        "roi": 18.45257262022448,
+        "current_streak": 26,
+        "best_streak": 31,
+        "worst_streak": -4,
+        "showdown_win_rate": 0.8333333333333334,
+        "fold_rate": 0.1,
+        "best_hand_rank": 5,
+        "avg_hand_rank": 0.3111111111111111,
+        "button_win_rate": 0.9411764705882353,
+        "non_button_win_rate": 0.0,
+        "positional_advantage": 0.9411764705882353,
+        "recent_win_rate": 1.0,
+        "skill_trend": "improving"
+    },
+    "benchmark_result": {
+        "per_opponent": {
+            "always_fold": 175.72070000000002,
+            "random": 998.6426803013993,
+            "loose_passive": 264.0727433628319,
+            "tight_passive": 108.16194999999998,
+            "tight_aggressive": 83.74210812279273,
+            "loose_aggressive": 2225.4208409506396,
+            "maniac": 1255.5403041825095,
+            "balanced": 70.71652841781874
+        },
+        "weighted_bb_per_100": 607.2330270995649,
+        "total_hands_played": 21559,
+        "elo_rating": 1425.7373155541163,
+        "confidence_intervals": {
+            "always_fold": [
+                172.00611204484062,
+                179.43528795515937
+            ],
+            "random": [
+                910.3089502959378,
+                1190.3596601010986
+            ],
+            "loose_passive": [
+                234.166977997507,
+                296.2531241151691
+            ],
+            "tight_passive": [
+                86.78986859465178,
+                129.5340314053482
+            ],
+            "tight_aggressive": [
+                15.791020189623922,
+                181.05404242817661
+            ],
+            "loose_aggressive": [
+                1817.420414286324,
+                2858.403712334252
+            ],
+            "maniac": [
+                -1796.5342678454938,
+                3245.330031780627
+            ],
+            "balanced": [
+                -69.56173943452035,
+                163.24635685831075
+            ]
+        },
+        "skill_tier": "intermediate",
+        "evaluated_at": "2025-12-29T21:30:42.749472"
+    }
+}
