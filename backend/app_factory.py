@@ -285,16 +285,17 @@ def create_app(
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
     from backend.routers import discovery, servers, tanks, transfers, websocket
+    from backend.routers.solutions import create_solutions_router
     from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
-    
+
     # Setup discovery router
     discovery_router = discovery.setup_router(ctx.discovery_service)
     app.include_router(discovery_router)
-    
+
     # Setup transfers router
     transfers_router = transfers.setup_router(ctx.tank_registry, ctx.connection_manager)
     app.include_router(transfers_router)
-    
+
     # Setup tanks router
     tanks_router = tanks.setup_router(
         tank_registry=ctx.tank_registry,
@@ -304,7 +305,7 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
         auto_save_service=ctx.auto_save_service,
     )
     app.include_router(tanks_router)
-    
+
     # Setup servers router
     servers_router = servers.setup_router(
         tank_registry=ctx.tank_registry,
@@ -317,5 +318,9 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     # Setup websocket routes
     websocket_router = websocket.setup_router(ctx.tank_registry)
     app.include_router(websocket_router)
+
+    # Setup solutions router
+    solutions_router = create_solutions_router(ctx.tank_registry)
+    app.include_router(solutions_router)
 
     ctx.logger.info("All API routers configured successfully")

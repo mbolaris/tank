@@ -1,0 +1,228 @@
+.solutionLeaderboard {
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid rgba(100, 150, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.header h3 {
+    margin: 0;
+    color: #e0e0ff;
+    font-size: 1.1rem;
+}
+
+.captureButton {
+    background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.captureButton:hover {
+    background: linear-gradient(135deg, #5aa0e9 0%, #458acd 100%);
+    transform: translateY(-1px);
+}
+
+.captureButton:disabled {
+    background: #444;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.captureMessage {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    background: rgba(100, 150, 255, 0.1);
+    color: #8ab4f8;
+    font-size: 0.9rem;
+}
+
+.loading,
+.error {
+    padding: 2rem;
+    text-align: center;
+    color: #888;
+}
+
+.error {
+    color: #ff6b6b;
+}
+
+.empty {
+    padding: 2rem;
+    text-align: center;
+    color: #888;
+}
+
+.empty p {
+    margin: 0.5rem 0;
+}
+
+.leaderboardTable {
+    overflow-x: auto;
+}
+
+.leaderboardTable table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.leaderboardTable th {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+    color: #8ab4f8;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.leaderboardTable td {
+    padding: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+}
+
+.leaderboardTable tr:hover {
+    background: rgba(100, 150, 255, 0.05);
+}
+
+/* Rank styling */
+.rank1 {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.1) 0%, transparent 100%);
+}
+
+.rank2 {
+    background: linear-gradient(90deg, rgba(192, 192, 192, 0.1) 0%, transparent 100%);
+}
+
+.rank3 {
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.1) 0%, transparent 100%);
+}
+
+.rankCell {
+    font-size: 1.1rem;
+    text-align: center;
+    width: 2rem;
+}
+
+.nameCell {
+    min-width: 120px;
+}
+
+.solutionInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.solutionName {
+    font-weight: 600;
+    color: #e0e0ff;
+}
+
+.solutionId {
+    font-size: 0.75rem;
+    color: #888;
+    font-family: monospace;
+}
+
+.authorCell {
+    color: #aaa;
+}
+
+.eloCell {
+    font-weight: 600;
+    color: #ffd700;
+    font-family: monospace;
+}
+
+.tierCell {
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+/* Tier colors */
+.tierMaster {
+    color: #ffd700;
+}
+
+.tierExpert {
+    color: #ff69b4;
+}
+
+.tierAdvanced {
+    color: #00bfff;
+}
+
+.tierIntermediate {
+    color: #32cd32;
+}
+
+.tierBeginner {
+    color: #98fb98;
+}
+
+.tierNovice {
+    color: #daa520;
+}
+
+.tierFailing {
+    color: #ff6347;
+}
+
+.positive {
+    color: #4caf50;
+}
+
+.negative {
+    color: #f44336;
+}
+
+.dateCell {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.count {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.refreshButton {
+    background: transparent;
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    color: #8ab4f8;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.refreshButton:hover {
+    background: rgba(100, 150, 255, 0.1);
+    border-color: rgba(100, 150, 255, 0.5);
+}
