@@ -129,9 +129,11 @@ class TestNumberGuessingGame:
 
     def test_alternating_pattern_detection(self):
         """Strategy should learn alternating patterns."""
+        rng = random.Random(42)  # Deterministic seed
         game = NumberGuessingGame(
             pattern_type=PatternType.ALTERNATING,
             pattern_change_frequency=0,  # No pattern changes
+            rng=rng,
         )
         strategy = NumberGuessingStrategy()
 
@@ -159,10 +161,12 @@ class TestNumberGuessingGame:
 
     def test_pattern_generator_produces_expected_values(self):
         """Pattern generator should produce expected patterns."""
+        rng = random.Random(42)  # Deterministic seed
         gen = PatternGenerator(
             pattern_type=PatternType.ALTERNATING,
             value_range=(0.0, 100.0),
             noise_level=0.0,
+            rng=rng,
         )
 
         values = [gen.generate_next() for _ in range(10)]
@@ -176,7 +180,8 @@ class TestNumberGuessingGame:
 
     def test_reward_calculation(self):
         """Closer predictions should get higher rewards."""
-        game = NumberGuessingGame(stake=10.0, max_error_for_reward=20.0)
+        rng = random.Random(42)  # Deterministic seed
+        game = NumberGuessingGame(stake=10.0, max_error_for_reward=20.0, rng=rng)
 
         # Good prediction strategy
         from core.skills.base import SkillStrategy
@@ -305,7 +310,9 @@ class TestConfig:
         """Should be able to change active game."""
         set_active_skill_game(SkillGameType.NUMBER_GUESSING)
 
-        game = get_active_skill_game()
+        # Pass RNG since NumberGuessingGame requires it
+        rng = random.Random(42)
+        game = get_active_skill_game(rng=rng)
         assert game is not None
         assert game.game_type == SkillGameType.NUMBER_GUESSING
 

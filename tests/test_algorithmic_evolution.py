@@ -13,9 +13,10 @@ from core.genetics import Genome
 def test_algorithm_creation():
     """Test that algorithms can be created."""
     print("Testing algorithm creation...")
+    rng = random.Random(42)  # Deterministic seed
 
     # Test random algorithm
-    algo = get_random_algorithm()
+    algo = get_random_algorithm(rng=rng)
     print(f"✓ Created random algorithm: {algo.algorithm_id}")
     print(f"  Parameters: {algo.parameters}")
 
@@ -25,7 +26,7 @@ def test_algorithm_creation():
     # Create one of each type
     created_types = set()
     for algo_class in ALL_ALGORITHMS:
-        instance = algo_class.random_instance()
+        instance = algo_class.random_instance(rng=rng)
         created_types.add(instance.algorithm_id)
 
     print(f"✓ Successfully created {len(created_types)} unique algorithm types")
@@ -37,9 +38,10 @@ def test_algorithm_creation():
 def test_genome_with_algorithm():
     """Test that genomes can include behavior algorithms."""
     print("\nTesting genome creation with algorithms...")
+    rng = random.Random(42)  # Deterministic seed
 
     # Create genome with algorithm (now uses behavior)
-    genome = Genome.random(use_algorithm=True)
+    genome = Genome.random(use_algorithm=True, rng=rng)
 
     # Check behavior instead of behavior_algorithm
     assert genome.behavioral.behavior is not None, "Genome should have a behavior trait"
@@ -51,7 +53,7 @@ def test_genome_with_algorithm():
     print(f"  Food approach: {behavior.food_approach.name if behavior.food_approach else 'None'}")
 
     # Create genome without algorithm
-    genome_no_algo = Genome.random(use_algorithm=False)
+    genome_no_algo = Genome.random(use_algorithm=False, rng=rng)
     assert genome_no_algo.behavioral.behavior.value is None, "Genome should NOT have a composable behavior"
 
     print("✓ Genome created without algorithm")
@@ -60,10 +62,11 @@ def test_genome_with_algorithm():
 def test_algorithm_inheritance():
     """Test that algorithms are inherited with mutations."""
     print("\nTesting algorithm inheritance and mutation...")
+    rng = random.Random(42)  # Deterministic seed
 
     # Create parent genome
-    parent1 = Genome.random(use_algorithm=True)
-    parent2 = Genome.random(use_algorithm=True)
+    parent1 = Genome.random(use_algorithm=True, rng=rng)
+    parent2 = Genome.random(use_algorithm=True, rng=rng)
 
     behavior1 = parent1.behavioral.behavior.value
     behavior2 = parent2.behavioral.behavior.value
@@ -76,7 +79,7 @@ def test_algorithm_inheritance():
     print(f"  Food approach: {behavior2.food_approach.name if behavior2.food_approach else 'None'}")
 
     # Create offspring
-    offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.3, mutation_strength=0.2)
+    offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.3, mutation_strength=0.2, rng=rng)
 
     assert offspring.behavioral.behavior is not None, "Offspring should have a behavior trait"
     assert offspring.behavioral.behavior.value is not None, "Offspring should have a composable behavior"
@@ -93,9 +96,10 @@ def test_algorithm_inheritance():
 def test_parameter_mutation():
     """Test that algorithm parameters mutate correctly."""
     print("\nTesting parameter mutation...")
+    rng = random.Random(42)  # Deterministic seed
 
     # Create algorithm and record original parameters
-    original_algo = get_random_algorithm()
+    original_algo = get_random_algorithm(rng=rng)
     original_params = original_algo.parameters.copy()
 
     print(f"Original algorithm: {original_algo.algorithm_id}")
@@ -103,7 +107,7 @@ def test_parameter_mutation():
 
     # Mutate with high mutation rate
     mutated_algo = inherit_algorithm_with_mutation(
-        original_algo, mutation_rate=1.0, mutation_strength=0.3  # 100% mutation rate
+        original_algo, mutation_rate=1.0, mutation_strength=0.3, rng=rng  # 100% mutation rate
     )
 
     print(f"\nMutated algorithm: {mutated_algo.algorithm_id}")
@@ -141,11 +145,12 @@ def test_parameter_mutation():
 def test_multiple_generations():
     """Test evolution over multiple generations."""
     print("\nTesting multi-generational evolution...")
+    rng = random.Random(42)  # Deterministic seed
 
     # Start with a population
     population = []
     for _ in range(10):
-        genome = Genome.random(use_algorithm=True)
+        genome = Genome.random(use_algorithm=True, rng=rng)
         population.append(genome)
 
     print(f"Generation 0: {len(population)} fish")
@@ -165,10 +170,10 @@ def test_multiple_generations():
         # Create offspring from random pairs
         new_population = []
         for _ in range(10):
-            parent1 = random.choice(population)
-            parent2 = random.choice(population)
+            parent1 = rng.choice(population)
+            parent2 = rng.choice(population)
             offspring = Genome.from_parents(
-                parent1, parent2, mutation_rate=0.2, mutation_strength=0.15
+                parent1, parent2, mutation_rate=0.2, mutation_strength=0.15, rng=rng
             )
             new_population.append(offspring)
 

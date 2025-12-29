@@ -35,6 +35,7 @@ from core.skills.base import (
     SkillGameType,
     SkillStrategy,
 )
+from core.util.rng import require_rng_param
 
 
 class PatternType(Enum):
@@ -68,8 +69,8 @@ class PatternGenerator:
     _mean: float = 50.0
     
     def __post_init__(self):
-        if self.rng is None:
-            self.rng = random.Random()
+        # RNG is required for deterministic pattern generation
+        self.rng = require_rng_param(self.rng, "PatternGenerator.__post_init__")
 
     def reset(self, pattern_type: Optional[PatternType] = None) -> None:
         """Reset the generator, optionally with a new pattern."""
@@ -476,9 +477,17 @@ class NumberGuessingGame(SkillGame):
         """Create a new strategy with random initial weights.
         
         Args:
-            rng: Optional random number generator for determinism
+            rng: Random number generator for determinism. Falls back to generator.rng.
+        
+        Raises:
+            ValueError: If no RNG available from parameter or generator
         """
-        _rng = rng if rng is not None else self.generator.rng or random.Random()
+        _rng = rng if rng is not None else self.generator.rng
+        if _rng is None:
+            raise ValueError(
+                "NumberGuessingGame.create_default_strategy requires an RNG. "
+                "Pass rng parameter or ensure generator has an rng."
+            )
         weights = [_rng.random() for _ in range(4)]
         total = sum(weights)
         weights = [w / total for w in weights]
@@ -503,7 +512,12 @@ class NumberGuessingGame(SkillGame):
             return
 
         if self._rounds_played > 0 and self._rounds_played % self.pattern_change_frequency == 0:
-            _rng = rng if rng is not None else self.generator.rng or random.Random()
+            _rng = rng if rng is not None else self.generator.rng
+            if _rng is None:
+                raise ValueError(
+                    "NumberGuessingGame._maybe_change_pattern requires an RNG. "
+                    "Pass rng parameter or ensure generator has an rng."
+                )
             patterns = list(PatternType)
             new_pattern = _rng.choice(patterns)
             self.generator.reset(new_pattern)

@@ -115,7 +115,7 @@ class TestFish:
         # Create a genome with size_modifier=1.0 for deterministic testing
         from core.genetics import Genome
 
-        genome = Genome.random(use_algorithm=False)
+        genome = Genome.random(use_algorithm=False, rng=env.rng)
         genome.physical.size_modifier.value = 1.0
         fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
 
@@ -237,7 +237,7 @@ class TestPlant:
         root_spot.spot_id = 1
         root_spot.manager = None
         
-        genome = PlantGenome.create_random()
+        genome = PlantGenome.create_random(rng=env.rng)
         plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=0)
         assert plant.speed == 0
 
@@ -254,7 +254,7 @@ class TestPlant:
         root_spot.spot_id = 1
         root_spot.manager = None
         
-        genome = PlantGenome.create_random()
+        genome = PlantGenome.create_random(rng=env.rng)
         plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=1)
         initial_pos = plant.pos.copy()
 
