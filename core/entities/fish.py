@@ -544,12 +544,17 @@ class Fish(Agent):
 
         # Get behavior ID from behavior for tracking
         algorithm_id = None
+        algorithm_name = None
         behavior = self.genome.behavioral.behavior
         if behavior is not None and behavior.value is not None:
             # Use a hash of the behavior_id for backwards compatibility with integer tracking
             # The ecosystem stats system expects an integer algorithm_id
             behavior_id = behavior.value.behavior_id
             algorithm_id = hash(behavior_id) % 1000  # Keep it in a reasonable range
+            # Extract algorithm name from behavior_id for lineage display
+            # behavior_id format is typically "ComposableBehavior(algo1, algo2, ...)"
+            # We want a clean display name
+            algorithm_name = self._extract_algorithm_name(behavior_id)
 
         # Get color as hex string for phylogenetic tree
         r, g, b = self.genome.get_color_tint()
@@ -557,6 +562,9 @@ class Fish(Agent):
 
         # Determine parent lineage
         parent_ids = [self.parent_id] if self.parent_id is not None else None
+        
+        # Get tank name from environment if available
+        tank_name = getattr(self.environment, "tank_name", None)
 
         # Emit birth telemetry (includes soup spawn energy for true inflow).
         self._emit_event(
@@ -568,8 +576,46 @@ class Fish(Agent):
                 color_hex=color_hex,
                 energy=self.energy,
                 is_soup_spawn=self.parent_id is None,
+                algorithm_name=algorithm_name,
+                tank_name=tank_name,
             )
         )
+    
+    def _extract_algorithm_name(self, behavior_id: str) -> str:
+        """Extract a short, readable algorithm name from a behavior_id string.
+        
+        Args:
+            behavior_id: The behavior ID string, e.g. "flee-seek-schooling-opportunistic"
+            
+        Returns:
+            Short display name, e.g. "Flee/Seek"
+        """
+        if not behavior_id:
+            return "Unknown"
+        
+        # Handle hyphen-separated format: "flee-seek-schooling-opportunistic"
+        if "-" in behavior_id:
+            parts = behavior_id.split("-")
+            # Take first 2 components, capitalize them
+            short_parts = [p.capitalize() for p in parts[:2]]
+            return "/".join(short_parts)
+        
+        # Handle ComposableBehavior format: "ComposableBehavior(AlgoName, ...)"
+        if "ComposableBehavior(" in behavior_id:
+            start = behavior_id.find("(")
+            end = behavior_id.rfind(")")
+            if start != -1 and end != -1 and end > start:
+                inner = behavior_id[start + 1:end]
+                parts = inner.split(",")
+                if parts:
+                    return parts[0].strip()[:15]  # Max 15 chars
+        
+        # Handle simple class names
+        if "." in behavior_id:
+            return behavior_id.split(".")[-1][:15]  # Max 15 chars
+        
+        # Return truncated if too long
+        return behavior_id[:15] if len(behavior_id) > 15 else behavior_id
 
     def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
         """Set a visual effect for poker status.

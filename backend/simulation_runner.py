@@ -183,6 +183,7 @@ class SimulationRunner(CommandHandlerMixin):
                 env.connection_manager = self.connection_manager
                 env.tank_registry = self.tank_registry
                 env.tank_id = self.tank_id
+                env.tank_name = self.tank_name
 
                 # Create (or clear) a migration handler based on available dependencies.
                 # Core entities depend only on the MigrationHandler protocol, while the backend

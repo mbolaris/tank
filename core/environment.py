@@ -475,6 +475,7 @@ class Environment:
         self.connection_manager: Any = None  # Set by backend if migrations enabled
         self.tank_registry: Any = None  # Set by backend if migrations enabled
         self.tank_id: Optional[str] = None  # Set by backend if migrations enabled
+        self.tank_name: Optional[str] = None  # Set by backend for lineage tracking
         self.migration_handler: Optional[MigrationHandler] = None  # Set by backend if migrations enabled
 
         # Performance: Cache detection range modifier (updated once per frame)

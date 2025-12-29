@@ -103,8 +103,9 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
     // Custom node renderer to color-code by fish color
     const renderCustomNode = ({ nodeDatum, toggleNode }: CustomNodeElementProps) => {
         const treeNode = nodeDatum as unknown as TreeNodeData;
-        const labelWidth = 200;
-        const labelHeight = 68;
+        const labelWidth = 180;
+        const labelHeight = 72;
+        const tankName = treeNode.attributes?.Tank;
         return (
             <g>
                 <circle
@@ -126,7 +127,8 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'center',
-                            paddingLeft: '12px',
+                            paddingLeft: '10px',
+                            paddingRight: '8px',
                             boxSizing: 'border-box',
                             fontFamily: 'Inter, system-ui, sans-serif',
                         }}
@@ -134,23 +136,35 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
                         <div
                             style={{
                                 color: '#f1f5f9',
-                                fontSize: '16px',
+                                fontSize: '14px',
                                 fontWeight: 600,
                                 lineHeight: '1.2',
-                                marginBottom: '4px',
+                                marginBottom: '3px',
                             }}
                         >
-                            {treeNode.attributes?.Algo || 'Unknown algo'}
+                            {treeNode.attributes?.Algo || 'Unknown'}
                         </div>
                         <div
                             style={{
                                 color: '#cbd5e1',
-                                fontSize: '13px',
+                                fontSize: '12px',
                                 lineHeight: '1.2',
                             }}
                         >
                             ID: {treeNode.attributes?.ID}
                         </div>
+                        {tankName && (
+                            <div
+                                style={{
+                                    color: '#22d3ee',
+                                    fontSize: '11px',
+                                    lineHeight: '1.2',
+                                    marginTop: '2px',
+                                }}
+                            >
+                                📍 {tankName}
+                            </div>
+                        )}
                     </div>
                 </foreignObject>
             </g>

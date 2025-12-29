@@ -324,6 +324,10 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
             if "poker_stats" in eco_data:
                 eco.total_fish_poker_games = eco_data["poker_stats"].get("total_fish_games", 0)
                 eco.total_plant_poker_games = eco_data["poker_stats"].get("total_plant_games", 0)
+            # Restore lineage log for phylogenetic tree
+            if "lineage_log" in eco_data:
+                eco.lineage.lineage_log = list(eco_data["lineage_log"])
+                logger.debug(f"Restored {len(eco.lineage.lineage_log)} lineage records")
 
         # Restore paused state
         if "paused" in snapshot:

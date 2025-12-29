@@ -327,6 +327,8 @@ class SimulationManager:
                         "total_fish_games": engine.ecosystem.total_fish_poker_games,
                         "total_plant_games": engine.ecosystem.total_plant_poker_games,
                     },
+                    # Save lineage data for phylogenetic tree persistence
+                    "lineage_log": list(engine.ecosystem.lineage.lineage_log),
                 }
 
                 # 3. Capture entities (mutable state only)

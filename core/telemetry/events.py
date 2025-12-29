@@ -45,6 +45,8 @@ class BirthEvent:
     color_hex: str
     energy: float
     is_soup_spawn: bool
+    algorithm_name: Optional[str] = None  # Direct algorithm name (avoids lookup)
+    tank_name: Optional[str] = None  # Tank where fish was born
 
 
 @dataclass(frozen=True)

@@ -302,6 +302,8 @@ class EcosystemManager:
                 parent_ids=list(event.parent_ids) if event.parent_ids else None,
                 algorithm_id=event.algorithm_id,
                 color=event.color_hex,
+                algorithm_name=event.algorithm_name,
+                tank_name=event.tank_name,
             )
             if event.is_soup_spawn:
                 self.record_energy_gain("soup_spawn", event.energy)
@@ -322,12 +324,15 @@ class EcosystemManager:
         parent_ids: Optional[List[int]] = None,
         algorithm_id: Optional[int] = None,
         color: Optional[str] = None,
+        algorithm_name: Optional[str] = None,
+        tank_name: Optional[str] = None,
     ) -> None:
         """Record a fish birth."""
-        # Get algorithm name for lineage
-        algorithm_name = "Unknown"
-        if algorithm_id is not None and algorithm_id in self.algorithm_stats:
-            algorithm_name = self.algorithm_stats[algorithm_id].algorithm_name
+        # Use provided algorithm_name if available, otherwise try lookup
+        if algorithm_name is None:
+            algorithm_name = "Unknown"
+            if algorithm_id is not None and algorithm_id in self.algorithm_stats:
+                algorithm_name = self.algorithm_stats[algorithm_id].algorithm_name
 
         # Record in population tracker
         self.population.record_birth(
@@ -349,6 +354,7 @@ class EcosystemManager:
             algorithm_name=algorithm_name,
             color=color or "#00ff00",
             birth_frame=self.frame_count,
+            tank_name=tank_name,
         )
 
     def record_death(
