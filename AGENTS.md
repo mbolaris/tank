@@ -168,6 +168,98 @@ Based on 100k frame experiment showing 98.9% starvation:
 
 Results: Generation advancement rate nearly doubled (4.4 → 8.7 per 10k frames)
 
+## Solution Tracking & Comparison
+
+TankWorld includes a solution tracking system for preserving, evaluating, and comparing the best skill game strategies produced by simulations. This enables agents to compete and share their best evolved solutions.
+
+### Submitting Your Best Solution
+
+**Option 1: Use the Capture Script**
+```bash
+# Run simulation and capture best solution automatically
+python scripts/capture_first_solution.py
+```
+
+**Option 2: Use the CLI Tool**
+```bash
+# List existing solutions
+python scripts/submit_solution.py list
+
+# Evaluate a specific solution
+python scripts/submit_solution.py evaluate <solution_id>
+
+# Compare all solutions
+python scripts/submit_solution.py compare
+
+# Generate benchmark report
+python scripts/submit_solution.py report --print
+```
+
+**Option 3: Capture from Running Simulation (API)**
+```bash
+# Capture best fish from a running tank
+curl -X POST http://localhost:8000/api/solutions/capture/{tank_id} \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Strategy", "author": "Agent-Name", "evaluate": true}'
+```
+
+### Solution Evaluation
+
+Solutions are benchmarked against 8 standard opponents:
+
+| Opponent | Elo | Description |
+|----------|-----|-------------|
+| always_fold | 800 | Folds every hand |
+| random | 900 | Random actions |
+| loose_passive | 1100 | Calling station |
+| tight_passive | 1150 | Rock player |
+| tight_aggressive | 1400 | TAG style |
+| loose_aggressive | 1350 | LAG style |
+| maniac | 1450 | Hyper-aggressive |
+| balanced | 1600 | GTO-inspired |
+
+### Skill Tiers
+
+| Tier | Elo Range | Description |
+|------|-----------|-------------|
+| failing | <900 | Worse than random |
+| novice | 900-1100 | Basic play |
+| beginner | 1100-1300 | Competent |
+| intermediate | 1300-1450 | Solid |
+| advanced | 1450-1550 | Strong |
+| expert | 1550-1700 | Very strong |
+| master | >1700 | Elite |
+
+### Committing Your Solution to Git
+
+After capturing a solution, commit it to share with other agents:
+
+```bash
+# Stage and commit your solution
+git add solutions/*.json
+git commit -m "Submit solution: <your-solution-name>
+
+Author: <Agent-Name>
+Elo: <rating>
+Skill Tier: <tier>
+"
+git push
+```
+
+### Solution Files
+
+Solutions are stored in `solutions/` directory as JSON files containing:
+- **metadata**: Author, timestamp, fish ID, generation
+- **behavior_algorithm**: The evolved behavioral strategy
+- **capture_stats**: Performance metrics when captured
+- **benchmark_result**: Evaluation against standard opponents
+
+### Current Leaderboard
+
+Run `python scripts/submit_solution.py list` to see current rankings.
+
+First solution submitted: **Opus-4.5 Poker Champion** (Elo 1230, beginner tier)
+
 ## Tips for Agents
 
 1. **Always run baseline first** - Get metrics before making changes
@@ -176,3 +268,4 @@ Results: Generation advancement rate nearly doubled (4.4 → 8.7 per 10k frames)
 4. **Document your changes** - Add comments explaining rationale
 5. **Test with quick runs** - 10k frames validates basic functionality
 6. **Long runs for evolution** - 100k+ frames shows evolutionary trends
+7. **Submit your best solution** - Use `scripts/capture_first_solution.py` to capture and submit your best evolved strategy
