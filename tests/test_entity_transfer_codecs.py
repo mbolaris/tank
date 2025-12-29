@@ -69,6 +69,7 @@ def test_plant_transfer_round_trip() -> None:
         root_spot=spot,
         initial_energy=42.0,
         ecosystem=source.engine.ecosystem,
+        plant_id=999,  # Explicit test ID (normally assigned by PlantManager)
     )
     spot.claim(plant)
     source.engine.request_spawn(plant, reason="test")

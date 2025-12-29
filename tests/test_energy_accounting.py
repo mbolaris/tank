@@ -148,6 +148,7 @@ def test_plant_records_energy_gains_and_spends(simulation_env):
         root_spot=spot,
         initial_energy=1.0,
         ecosystem=ecosystem,
+        plant_id=12,  # Match the spot_id for test clarity
     )
 
     before_energy = plant.energy

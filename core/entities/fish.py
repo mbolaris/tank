@@ -99,22 +99,23 @@ class Fish(Agent):
             ecosystem: Ecosystem manager for tracking
             initial_energy: Override initial energy (for reproduction energy transfer)
         """
+        from core.util.rng import require_rng
+        
         if genome is not None:
             self.genome = genome
         else:
-            # Use environment RNG for deterministic genome creation
-            rng = getattr(environment, "rng", None)
+            # Use require_rng for deterministic genome creation (fails loudly if unavailable)
+            rng = require_rng(environment, "Fish.__init__.genome")
             self.genome = Genome.random(rng=rng)
 
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
         if self.genome.behavioral.poker_strategy is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            # Use environment RNG if available
-            rng = getattr(environment, "rng", None)
+            rng = require_rng(environment, "Fish.__init__.poker_strategy")
             self.genome.behavioral.poker_strategy = GeneticTrait(get_random_poker_strategy(rng=rng))
         elif self.genome.behavioral.poker_strategy.value is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
-            rng = getattr(environment, "rng", None)
+            rng = require_rng(environment, "Fish.__init__.poker_strategy_value")
             self.genome.behavioral.poker_strategy.value = get_random_poker_strategy(rng=rng)
         
         self.generation: int = generation
@@ -452,10 +453,9 @@ class Fish(Agent):
 
         try:
             from core.entities.resources import Food
+            from core.util.rng import require_rng
 
-            rng = getattr(self.environment, "rng", None)
-            if rng is None:
-                raise RuntimeError("environment.rng is required for deterministic food spawning")
+            rng = require_rng(self.environment, "Fish._spawn_overflow_food")
             food = Food(
                 environment=self.environment,
                 x=self.pos.x + rng.uniform(-20, 20),

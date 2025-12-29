@@ -23,8 +23,6 @@ def test_simulation_seed_determinism():
     - SimulationEngine no longer seeds the global random module
     - Initial entity positions and energies are deterministic with a seed
     """
-    from core.entities.plant import Plant
-    
     seed = 12345
     
     engine1 = SimulationEngine(seed=seed)

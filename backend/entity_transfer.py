@@ -575,6 +575,17 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             return None
         genome = PlantGenome.from_dict(genome_data)
 
+        # Get plant_id from serialized data (preserve identity across migration)
+        plant_id = data.get("id")
+        if plant_id is None:
+            # Generate a new ID if not present (should not happen for valid transfers)
+            plant_manager = getattr(target_world.engine, "plant_manager", None)
+            if plant_manager is not None:
+                plant_id = plant_manager._generate_plant_id()
+            else:
+                logger.warning("Cannot generate plant_id: no plant_manager available")
+                plant_id = 0  # Fallback (not ideal but prevents crash)
+
         # Create plant with proper constructor
         plant = Plant(
             environment=target_world.engine.environment,
@@ -582,6 +593,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             root_spot=root_spot,
             initial_energy=data["energy"],
             ecosystem=getattr(target_world.engine, "ecosystem", None),
+            plant_id=plant_id,
         )
 
         # Claim the spot for this plant (may race with concurrent sprouting/migration).

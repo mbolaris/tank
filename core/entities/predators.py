@@ -30,12 +30,14 @@ class Crab(Agent):
         y: float = 550,
     ) -> None:
         """Initialize a crab."""
+        # Use require_rng for deterministic genome creation
+        from core.util.rng import require_rng
+        
         # Crabs are slower and less aggressive now
-        # Use environment RNG for deterministic genome creation
         if genome is not None:
             self.genome: Genome = genome
         else:
-            rng = getattr(environment, "rng", None)
+            rng = require_rng(environment, "Crab.__init__.genome")
             self.genome = Genome.random(rng=rng)
         base_speed = 1.5  # Much slower than before (was 2)
         speed = base_speed * self.genome.speed_modifier

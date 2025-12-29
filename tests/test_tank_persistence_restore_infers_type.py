@@ -29,6 +29,7 @@ def test_restore_snapshot_infers_missing_type_for_plants() -> None:
         root_spot=spot,
         initial_energy=42.0,
         ecosystem=source.engine.ecosystem,
+        plant_id=998,  # Explicit test ID (normally assigned by PlantManager)
     )
     spot.claim(plant)
     source.engine.request_spawn(plant, reason="test")

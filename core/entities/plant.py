@@ -70,9 +70,6 @@ class Plant(Agent):
         poker_losses: Count of poker games lost
     """
 
-    # Class-level ID counter
-    _next_id = 0
-
     def __init__(
         self,
         environment: "World",
@@ -80,7 +77,8 @@ class Plant(Agent):
         root_spot: "RootSpot",
         initial_energy: float = PLANT_INITIAL_ENERGY,
         ecosystem: Optional["EcosystemManager"] = None,
-        plant_id: Optional[int] = None,
+        *,
+        plant_id: int,
     ) -> None:
         """Initialize a plant.
 
@@ -89,7 +87,7 @@ class Plant(Agent):
             genome: The plant's genetic information
             root_spot: The root spot this plant grows from
             initial_energy: Starting energy level
-            plant_id: Unique identifier (should be provided by PlantManager)
+            plant_id: Unique identifier (required, assigned by PlantManager)
         """
         # Initialize at the root spot position
         super().__init__(
@@ -99,14 +97,8 @@ class Plant(Agent):
             0,  # Plants don't move
         )
 
-        # Assign unique ID
-        if plant_id is not None:
-            self.plant_id = plant_id
-        else:
-            # Fallback for legacy tests not using PlantManager
-            # TODO: Remove this once all call sites are updated
-            self.plant_id = Plant._next_id
-            Plant._next_id += 1
+        # Assign unique ID (no fallback - must be provided by PlantManager)
+        self.plant_id = plant_id
 
         # Core attributes
         self.genome = genome
@@ -260,8 +252,9 @@ class Plant(Agent):
         
         if energy_ratio < 0.3:
             # Seedling boost: inverse relationship - smaller plants grow faster
-            # At 0% energy: 2.0x, at 30% energy: 1.5x (smooth transition to standard)
-            seedling_boost = 2.0 - (energy_ratio / 0.3) * 0.5
+            # At 0% energy: 3.0x, at 30% energy: 1.5x (smooth transition to standard)
+            # This aggressive boost helps small plants recover quickly after poker losses
+            seedling_boost = 3.0 - (energy_ratio / 0.3) * 1.5
             growth_factor = seedling_boost
         else:
             # Standard compound growth for established plants (1.0-1.5x)

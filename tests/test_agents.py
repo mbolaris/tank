@@ -238,7 +238,7 @@ class TestPlant:
         root_spot.manager = None
         
         genome = PlantGenome.create_random()
-        plant = Plant(env, genome=genome, root_spot=root_spot)
+        plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=0)
         assert plant.speed == 0
 
     def test_plant_does_not_move(self, simulation_env):
@@ -255,7 +255,7 @@ class TestPlant:
         root_spot.manager = None
         
         genome = PlantGenome.create_random()
-        plant = Plant(env, genome=genome, root_spot=root_spot)
+        plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=1)
         initial_pos = plant.pos.copy()
 
         plant.update_position()
@@ -271,3 +271,4 @@ class TestCastle:
         env, _ = simulation_env
         castle = Castle(env)
         assert castle.speed == 0
+
