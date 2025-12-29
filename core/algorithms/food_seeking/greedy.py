@@ -29,7 +29,9 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
     """
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="greedy_food_seeker",
             parameters={

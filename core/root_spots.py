@@ -107,7 +107,9 @@ class RootSpotManager:
         """
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        self.rng = require_rng_param(rng, "__init__")
         self.spots: List[RootSpot] = []
         self._initialize_spots(spot_count)
 

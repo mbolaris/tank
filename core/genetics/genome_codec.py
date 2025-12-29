@@ -80,7 +80,9 @@ def genome_from_dict(
 
     Unknown fields are ignored; missing fields keep randomized defaults from `genome_factory`.
     """
-    rng = rng if rng is not None else pyrandom.Random()
+    from core.util.rng import require_rng_param
+
+    rng = require_rng_param(rng, "__init__")
     genome = genome_factory()
 
     schema_version = data.get("schema_version")

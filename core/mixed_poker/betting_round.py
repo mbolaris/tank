@@ -84,6 +84,7 @@ def decide_player_action(
             pot=game_state.pot,
             player_energy=ctx.remaining_energy,
             position_on_button=position_on_button,
+            rng=rng,
         )
 
     # Fallback: Simple aggression-based decision

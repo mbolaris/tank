@@ -85,7 +85,9 @@ class GeneticTrait(Generic[T]):
         Uses dampened mutation rates to prevent runaway evolvability changes.
         See module-level META_* constants for tuning parameters.
         """
-        rng = rng if rng is not None else pyrandom.Random()
+        from core.util.rng import require_rng_param
+
+        rng = require_rng_param(rng, "__init__")
         if rng.random() < META_MUTATION_CHANCE:
             self.mutation_rate = max(
                 META_MUTATION_RATE_MIN,

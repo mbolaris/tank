@@ -27,14 +27,16 @@ class AggressiveHunter(BehaviorAlgorithm):
     """
 
     def __init__(self, rng: Optional[random.Random] = None):
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "AggressiveHunter.__init__")
         super().__init__(
             algorithm_id="aggressive_hunter",
             parameters={
-                "pursuit_speed": (rng or random.Random()).uniform(1.3, 1.7),
-                "detection_range": (rng or random.Random()).uniform(250, 400),
-                "strike_speed": (rng or random.Random()).uniform(1.5, 2.0),
+                "pursuit_speed": _rng.uniform(1.3, 1.7),
+                "detection_range": _rng.uniform(250, 400),
+                "strike_speed": _rng.uniform(1.5, 2.0),
             },
-            rng=rng,
+            rng=_rng,
         )
         self.last_food_pos = None
 

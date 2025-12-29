@@ -106,7 +106,9 @@ class Genome:
 
         Unknown fields are ignored; missing fields keep randomized defaults.
         """
-        rng = rng if rng is not None else pyrandom.Random()
+        from core.util.rng import require_rng_param
+
+        rng = require_rng_param(rng, "__init__")
         return genome_from_dict(
             data,
             schema_version_expected=GENOME_SCHEMA_VERSION,
@@ -148,7 +150,9 @@ class Genome:
         cls, use_algorithm: bool = True, rng: Optional[pyrandom.Random] = None
     ) -> "Genome":
         """Create a random genome."""
-        rng = rng if rng is not None else pyrandom.Random()
+        from core.util.rng import require_rng_param
+
+        rng = require_rng_param(rng, "__init__")
         physical = PhysicalTraits.random(rng)
         return cls(
             physical=physical,
@@ -191,7 +195,9 @@ class Genome:
         handles all the per-trait inheritance, eliminating hundreds of lines
         of duplicated code.
         """
-        rng = rng if rng is not None else pyrandom.Random()
+        from core.util.rng import require_rng_param
+
+        rng = require_rng_param(rng, "__init__")
         parent1_weight = max(0.0, min(1.0, parent1_weight))
         adaptive_rate, adaptive_strength = ReproductionParams(
             mutation_rate=mutation_rate,
@@ -250,7 +256,9 @@ class Genome:
         rng: Optional[pyrandom.Random] = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
-        rng = rng if rng is not None else pyrandom.Random()
+        from core.util.rng import require_rng_param
+
+        rng = require_rng_param(rng, "__init__")
         params = ReproductionParams(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,

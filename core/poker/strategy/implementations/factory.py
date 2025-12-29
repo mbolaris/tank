@@ -58,7 +58,9 @@ def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrat
     Args:
         rng: Random number generator. If None, creates a new Random() instance.
     """
-    _rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+
+    _rng = require_rng_param(rng, "__init__")
     cls = _rng.choice(ALL_POKER_STRATEGIES)
     try:
         return cls.random_instance(rng=_rng)
@@ -114,12 +116,9 @@ def crossover_poker_strategies(
     """
     # Handle ComposablePokerStrategy crossover
     from core.poker.strategy.composable import ComposablePokerStrategy
+    from core.util.rng import require_rng_param
 
-    crossover_rng = rng
-    if crossover_rng is None:
-        parent1_rng = getattr(parent1, "_rng", None) if parent1 is not None else None
-        parent2_rng = getattr(parent2, "_rng", None) if parent2 is not None else None
-        crossover_rng = parent1_rng or parent2_rng or random.Random()
+    crossover_rng = require_rng_param(rng, "crossover_poker_strategies")
 
     if isinstance(parent1, ComposablePokerStrategy) and isinstance(parent2, ComposablePokerStrategy):
         cfg = POKER_EVOLUTION_CONFIG

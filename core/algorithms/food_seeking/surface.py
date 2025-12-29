@@ -18,7 +18,9 @@ class SurfaceSkimmer(BehaviorAlgorithm):
     """Stay near surface to catch falling food - IMPROVED for better survival."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="surface_skimmer",
             parameters={

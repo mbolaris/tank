@@ -91,7 +91,9 @@ def mutate_continuous_trait(
     Returns:
         Mutated value, clamped to [min_val, max_val]
     """
-    rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+
+    rng = require_rng_param(rng, "__init__")
     if rng.random() < mutation_rate:
         # Apply Gaussian mutation
         value += rng.gauss(0, mutation_strength)
@@ -119,7 +121,9 @@ def mutate_discrete_trait(
     Returns:
         Mutated value, clamped to [min_val, max_val]
     """
-    rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+
+    rng = require_rng_param(rng, "__init__")
     if rng.random() < mutation_rate:
         # Shift by -1, 0, or +1
         value += rng.choice([-1, 0, 1])
@@ -146,7 +150,9 @@ def should_switch_algorithm(
         True if algorithm should be replaced with random one
     """
     cfg = config or DEFAULT_MUTATION_CONFIG
-    rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+
+    rng = require_rng_param(rng, "__init__")
     effective_rate = cfg.algorithm_switch_rate * (1 + mutation_rate)
 
     return rng.random() < effective_rate

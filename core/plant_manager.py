@@ -105,7 +105,9 @@ class PlantManager:
         self.environment = environment
         self.ecosystem = ecosystem
         self._entity_adder = entity_adder
-        self.rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        self.rng = require_rng_param(rng, "__init__")
 
         # Initialize root spot manager
         self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)

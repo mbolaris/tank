@@ -17,7 +17,9 @@ class SpiralForager(BehaviorAlgorithm):
     """NEW: Spiral outward from center to systematically cover area - replaces weak algorithms."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="spiral_forager",
             parameters={

@@ -467,7 +467,9 @@ class Environment:
         self.width = width
         self.height = height
         self.time_system = time_system
-        self._rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        self._rng = require_rng_param(rng, "__init__")
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled

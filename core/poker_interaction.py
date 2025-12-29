@@ -173,7 +173,9 @@ def should_offer_post_poker_reproduction(
         if is_winner
         else POST_POKER_REPRODUCTION_LOSER_PROB
     )
-    rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+
+    rng = require_rng_param(rng, "__init__")
     return rng.random() < offer_prob
 
 

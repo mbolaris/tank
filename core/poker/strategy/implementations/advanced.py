@@ -13,7 +13,9 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
     """Adapts play style based on pot size and stack depth."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             strategy_id="adaptive",
             parameters={
@@ -77,7 +79,9 @@ class PositionalExploiter(PokerStrategyAlgorithm):
     """Heavily exploits positional advantage."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             strategy_id="positional_exploiter",
             parameters={
@@ -140,7 +144,9 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
     """Slowplays strong hands to trap opponents."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             strategy_id="trap_setter",
             parameters={
@@ -206,7 +212,9 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
     """Pure pot odds and equity-based decisions."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             strategy_id="mathematical",
             parameters={

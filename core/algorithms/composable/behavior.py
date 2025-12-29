@@ -70,8 +70,8 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     @classmethod
     def create_random(cls, rng: Optional["random.Random"] = None) -> "ComposableBehavior":
         """Create a random composable behavior."""
-        import random as random_module
-        rng = rng or random_module.Random()
+        from core.util.rng import require_rng_param
+        rng = require_rng_param(rng, "ComposableBehavior.create_random")
         return cls(
             threat_response=ThreatResponse(rng.randint(0, len(ThreatResponse) - 1)),
             food_approach=FoodApproach(rng.randint(0, len(FoodApproach) - 1)),
@@ -154,8 +154,8 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         rng: Optional["random.Random"] = None,
     ) -> None:
         """Mutate the composable behavior."""
-        import random as random_module
-        rng = rng or random_module.Random()
+        from core.util.rng import require_rng_param
+        rng = require_rng_param(rng, "ComposableBehavior.mutate")
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
@@ -221,8 +221,8 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         rng: Optional["random.Random"] = None,
     ) -> "ComposableBehavior":
         """Create offspring by crossing over two parent behaviors."""
-        import random as random_module
-        rng = rng or random_module.Random()
+        from core.util.rng import require_rng_param
+        rng = require_rng_param(rng, "ComposableBehavior.from_parents")
 
         # Mendelian inheritance for discrete sub-behaviors
         threat_response = (

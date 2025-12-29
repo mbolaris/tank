@@ -238,6 +238,9 @@ def get_algorithm_index(algorithm: BehaviorAlgorithm) -> int:
 def get_algorithm_name(algorithm_index: int) -> str:
     """Get the human-readable name of an algorithm from its index.
 
+    Note: This function is for UI/metadata purposes only, not for simulation.
+    It uses a fixed seed to create algorithm instances purely to read their ID.
+
     Args:
         algorithm_index: Index (0-47) of the algorithm
 
@@ -246,18 +249,30 @@ def get_algorithm_name(algorithm_index: int) -> str:
     """
     if 0 <= algorithm_index < len(ALL_ALGORITHMS):
         algorithm_class = ALL_ALGORITHMS[algorithm_index]
-        # Create a temporary instance to get its algorithm_id
+        # Use deterministic seed for metadata lookup (not used in simulation)
+        metadata_rng = random.Random(0)
         try:
-            instance = algorithm_class.random_instance(rng=None)
+            instance = algorithm_class.random_instance(rng=metadata_rng)
         except TypeError:
             instance = algorithm_class.random_instance()
         return instance.algorithm_id
     return "Unknown"
 
 
-def get_random_algorithm(rng: Optional[random.Random] = None) -> BehaviorAlgorithm:
-    """Get a random behavior algorithm instance."""
-    _rng = rng if rng is not None else random.Random()
+def get_random_algorithm(rng: random.Random) -> BehaviorAlgorithm:
+    """Get a random behavior algorithm instance.
+    
+    Args:
+        rng: Required random number generator for determinism.
+        
+    Returns:
+        A randomly selected algorithm instance.
+        
+    Raises:
+        MissingRNGError: If rng is None
+    """
+    from core.util.rng import require_rng_param
+    _rng = require_rng_param(rng, "get_random_algorithm")
     algorithm_class = _rng.choice(ALL_ALGORITHMS)
     try:
         return algorithm_class.random_instance(rng=_rng)
@@ -265,9 +280,21 @@ def get_random_algorithm(rng: Optional[random.Random] = None) -> BehaviorAlgorit
         return algorithm_class.random_instance()
 
 
-def get_algorithm_by_id(algorithm_id: str, rng: Optional[random.Random] = None) -> Optional[BehaviorAlgorithm]:
-    """Get algorithm instance by ID."""
-    _rng = rng if rng is not None else random.Random()
+def get_algorithm_by_id(algorithm_id: str, rng: random.Random) -> Optional[BehaviorAlgorithm]:
+    """Get algorithm instance by ID.
+    
+    Args:
+        algorithm_id: The algorithm identifier string.
+        rng: Required random number generator for determinism.
+        
+    Returns:
+        Algorithm instance or None if not found.
+        
+    Raises:
+        MissingRNGError: If rng is None
+    """
+    from core.util.rng import require_rng_param
+    _rng = require_rng_param(rng, "get_algorithm_by_id")
     for algo_class in ALL_ALGORITHMS:
         try:
             instance = algo_class.random_instance(rng=_rng)
@@ -339,9 +366,9 @@ def inherit_algorithm_with_mutation(
     Returns:
         New algorithm instance with mutated parameters
     """
-    # Create new instance of same algorithm type
     # Create offspring via class random_instance when possible to honor RNG
-    _rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+    _rng = require_rng_param(rng, "inherit_algorithm_with_mutation")
     try:
         offspring = parent_algorithm.__class__.random_instance(rng=_rng)
     except Exception:
@@ -396,7 +423,8 @@ def _crossover_algorithms_base(
         New algorithm instance with blended parameters
     """
     # Handle edge cases
-    _rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+    _rng = require_rng_param(rng, "_crossover_algorithms_base")
     if parent1_algorithm is None and parent2_algorithm is None:
         return get_random_algorithm(rng=_rng)
     elif parent1_algorithm is None:
@@ -585,13 +613,15 @@ def crossover_poker_algorithms(
     Returns:
         New poker algorithm with intelligently blended parameters
     """
-    # Handle edge cases
+    # Handle edge cases - RNG is required for all code paths
+    from core.util.rng import require_rng_param
+    _rng = require_rng_param(rng, "crossover_poker_algorithms")
     if parent1_algorithm is None and parent2_algorithm is None:
-        return get_random_algorithm()
+        return get_random_algorithm(rng=_rng)
     elif parent1_algorithm is None:
-        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength)
+        return inherit_algorithm_with_mutation(parent2_algorithm, mutation_rate, mutation_strength, rng=_rng)
     elif parent2_algorithm is None:
-        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength)
+        return inherit_algorithm_with_mutation(parent1_algorithm, mutation_rate, mutation_strength, rng=_rng)
 
     # Check if these are poker algorithms
     is_poker1 = "poker" in parent1_algorithm.algorithm_id.lower()

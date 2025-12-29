@@ -98,7 +98,9 @@ class FoodSpawningSystem(BaseSystem):
             display_config: Display config for spawn bounds
         """
         super().__init__(engine, "FoodSpawning")
-        self._rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        self._rng = require_rng_param(rng, "__init__")
         self.config = spawn_rate_config if spawn_rate_config is not None else SpawnRateConfig()
         self._auto_food_enabled = auto_food_enabled
         self._screen_width = (display_config.screen_width if display_config else SCREEN_WIDTH)

@@ -27,7 +27,9 @@ class FoodPool:
         """
         self._pool: List[Food] = []
         self._active: set = set()
-        self._rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        self._rng = require_rng_param(rng, "__init__")
 
     def acquire(
         self,

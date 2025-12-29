@@ -200,7 +200,9 @@ class SkillStrategy(ABC, Generic[ActionType]):
             rng: Optional random number generator for deterministic mutations
         """
         import random
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         params = self.get_parameters()
         mutated = {}
         for key, value in params.items():

@@ -42,7 +42,9 @@ def create_initial_population(
     display_config = display_config or DisplayConfig()
     ecosystem_config = ecosystem_config or EcosystemConfig()
     population = []
-    rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+
+    rng = require_rng_param(rng, "__init__")
 
     # Reset fish ID counter for deterministic runs
     entities.Fish._id_counter = 0

@@ -119,14 +119,31 @@ def test_no_unseeded_random_in_core() -> None:
     For simulation code, use require_rng() from core.util.rng which
     fails loudly when an RNG is not available.
     """
-    # Files that are explicitly allowed (audited and deemed safe)
-    allowlist = {
-        "rng.py",  # The utility module itself
+    # Files that are explicitly allowed to create RNGs (engine/world level, or utility)
+    # These are the ONLY places that should create random.Random(seed)
+    allowlist_files = {
+        "rng.py",  # The utility module itself (documents the pattern)
+        "engine.py",  # SimulationEngine creates the master RNG with seed
+        "tank_world.py",  # TankWorld may need RNG for standalone usage
+    }
+    
+    # Paths within core/ that are allowed (e.g., non-simulation utilities)
+    allowlist_paths = {
+        "core/poker/simulation/",  # Poker simulation has its own engine
+        "core/poker/evaluation/",  # Benchmark tools
+        "core/skills/games/",  # Mini-game utilities (not core sim)
+        "core/human_poker_game.py",  # Human-facing game
     }
     
     violations: List[str] = []
     for path in _iter_core_files():
-        if path.name in allowlist:
+        # Check file allowlist
+        if path.name in allowlist_files:
+            continue
+        
+        # Check path allowlist
+        path_str = str(path).replace("\\", "/")
+        if any(allowed in path_str for allowed in allowlist_paths):
             continue
         
         source = path.read_text(encoding="utf-8", errors="ignore")
@@ -141,14 +158,14 @@ def test_no_unseeded_random_in_core() -> None:
         for line, detail in visitor.violations:
             violations.append(f"{path}:{line}: {detail}")
 
-    # Currently this logs warnings rather than failing, to allow gradual migration.
-    # Once all fallbacks in simulation hot paths are fixed, this can become an assert.
-    if violations:
-        import warnings
-        warnings.warn(
-            f"Found {len(violations)} unseeded random.Random() calls in core/ (determinism risk):\n"
-            + "\n".join(sorted(violations)[:20])
-            + ("\n..." if len(violations) > 20 else "")
-            + "\nFix by passing explicit rng or using require_rng() for simulation code."
-        )
-
+    # STRICT MODE: This test now fails if there are violations in core simulation paths
+    # If you get failures, either:
+    # 1. Fix the code to use require_rng() or require_rng_param()
+    # 2. Add the file to allowlist_files if it's a legitimate engine/world-level RNG creator
+    # 3. Add the path to allowlist_paths if it's a non-simulation utility
+    assert not violations, (
+        f"Found {len(violations)} unseeded random.Random() calls in core/ (determinism risk):\n"
+        + "\n".join(sorted(violations)[:30])
+        + ("\n..." if len(violations) > 30 else "")
+        + "\nFix by using require_rng_param() or adding to allowlist if legitimately top-level."
+    )

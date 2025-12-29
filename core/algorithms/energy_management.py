@@ -26,16 +26,18 @@ class EnergyConserver(BehaviorAlgorithm):
     """Minimize movement to conserve energy."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "EnergyConserver.__init__")
         super().__init__(
             algorithm_id="energy_conserver",
             parameters={
-                "activity_threshold": rng.uniform(0.4, 0.7),
-                "rest_speed": rng.uniform(0.1, 0.3),
-                "exploration_rate": rng.uniform(
+                "activity_threshold": _rng.uniform(0.4, 0.7),
+                "rest_speed": _rng.uniform(0.1, 0.3),
+                "exploration_rate": _rng.uniform(
                     0.0, 0.4
                 ),  # 0 = no exploration, 0.4 = moderate wandering
             },
+            rng=_rng,
         )
 
     @classmethod
@@ -107,14 +109,16 @@ class BurstSwimmer(BehaviorAlgorithm):
     """Alternate between bursts of activity and rest."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "BurstSwimmer.__init__")
         super().__init__(
             algorithm_id="burst_swimmer",
             parameters={
-                "burst_duration": rng.uniform(30, 90),
-                "rest_duration": rng.uniform(60, 120),
-                "burst_speed": rng.uniform(1.2, 1.6),
+                "burst_duration": _rng.uniform(30, 90),
+                "rest_duration": _rng.uniform(60, 120),
+                "burst_speed": _rng.uniform(1.2, 1.6),
             },
+            rng=_rng,
         )
         self.cycle_timer = 0
         self.is_bursting = True
@@ -196,16 +200,18 @@ class OpportunisticRester(BehaviorAlgorithm):
     """Rest when no food or threats nearby."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "OpportunisticRester.__init__")
         super().__init__(
             algorithm_id="opportunistic_rester",
             parameters={
-                "safe_radius": rng.uniform(100, 200),
-                "active_speed": rng.uniform(0.5, 0.9),
-                "idle_wander_speed": rng.uniform(
+                "safe_radius": _rng.uniform(100, 200),
+                "active_speed": _rng.uniform(0.5, 0.9),
+                "idle_wander_speed": _rng.uniform(
                     0.0, 0.3
                 ),  # 0 = stay still, 0.3 = gentle wandering
             },
+            rng=_rng,
         )
 
     @classmethod
@@ -256,13 +262,15 @@ class EnergyBalancer(BehaviorAlgorithm):
     """Balance energy expenditure with reserves."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "EnergyBalancer.__init__")
         super().__init__(
             algorithm_id="energy_balancer",
             parameters={
-                "min_energy_ratio": rng.uniform(0.3, 0.5),
-                "max_energy_ratio": rng.uniform(0.7, 0.9),
+                "min_energy_ratio": _rng.uniform(0.3, 0.5),
+                "max_energy_ratio": _rng.uniform(0.7, 0.9),
             },
+            rng=_rng,
         )
 
     @classmethod
@@ -330,13 +338,15 @@ class SustainableCruiser(BehaviorAlgorithm):
     """Maintain steady, sustainable pace."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "SustainableCruiser.__init__")
         super().__init__(
             algorithm_id="sustainable_cruiser",
             parameters={
-                "cruise_speed": rng.uniform(0.4, 0.7),
-                "consistency": rng.uniform(0.7, 1.0),
+                "cruise_speed": _rng.uniform(0.4, 0.7),
+                "consistency": _rng.uniform(0.7, 1.0),
             },
+            rng=_rng,
         )
 
     @classmethod
@@ -361,13 +371,15 @@ class StarvationPreventer(BehaviorAlgorithm):
     """Prioritize food when energy gets low."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "StarvationPreventer.__init__")
         super().__init__(
             algorithm_id="starvation_preventer",
             parameters={
-                "critical_threshold": rng.uniform(0.2, 0.4),
-                "urgency_multiplier": rng.uniform(1.3, 1.8),
+                "critical_threshold": _rng.uniform(0.2, 0.4),
+                "urgency_multiplier": _rng.uniform(1.3, 1.8),
             },
+            rng=_rng,
         )
 
     @classmethod
@@ -436,14 +448,16 @@ class MetabolicOptimizer(BehaviorAlgorithm):
     """Adjust activity based on metabolic efficiency."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "MetabolicOptimizer.__init__")
         super().__init__(
             algorithm_id="metabolic_optimizer",
             parameters={
-                "efficiency_threshold": rng.uniform(0.5, 0.8),
-                "low_efficiency_speed": rng.uniform(0.2, 0.4),
-                "high_efficiency_speed": rng.uniform(0.7, 1.1),
+                "efficiency_threshold": _rng.uniform(0.5, 0.8),
+                "low_efficiency_speed": _rng.uniform(0.2, 0.4),
+                "high_efficiency_speed": _rng.uniform(0.7, 1.1),
             },
+            rng=_rng,
         )
 
     @classmethod
@@ -475,13 +489,15 @@ class AdaptivePacer(BehaviorAlgorithm):
     """Adapt speed based on current energy and environment."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "AdaptivePacer.__init__")
         super().__init__(
             algorithm_id="adaptive_pacer",
             parameters={
-                "base_speed": rng.uniform(0.5, 0.8),
-                "energy_influence": rng.uniform(0.3, 0.7),
+                "base_speed": _rng.uniform(0.5, 0.8),
+                "energy_influence": _rng.uniform(0.3, 0.7),
             },
+            rng=_rng,
         )
 
     @classmethod

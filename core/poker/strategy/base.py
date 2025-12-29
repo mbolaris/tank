@@ -274,7 +274,9 @@ class PokerStrategyEngine:
     ) -> bool:
         """Decide whether to bluff in this situation."""
         # Use provided RNG or create a fallback for backward compatibility
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         
         # Base bluff frequency
         bluff_chance = self.bluff_frequency

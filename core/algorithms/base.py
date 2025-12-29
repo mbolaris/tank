@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type
 
 from core.math_utils import Vector2
+from core.util.rng import MissingRNGError, require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -683,7 +684,10 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
                     key: (float(low), float(high)) for key, (low, high) in bounds.items()
                 }
         if self.rng is None:
-            self.rng = random.Random()
+            raise MissingRNGError(
+                f"BehaviorAlgorithm '{self.algorithm_id}' requires an RNG at construction time. "
+                "Pass rng=engine.rng or rng=environment.rng when creating algorithms."
+            )
 
     @abstractmethod
     def execute(self, fish: "Fish") -> Tuple[float, float]:
@@ -712,9 +716,14 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
             mutation_strength: Base magnitude of mutations
             use_parameter_specific: Use parameter-specific mutation rates
             adaptive_factor: Multiplier for mutation rates (1.0 = normal, <1.0 = less mutation, >1.0 = more mutation)
-            rng: Random number generator for determinism. If None, creates a new Random instance.
+            rng: Random number generator for determinism. If None, uses self.rng.
         """
-        _rng = rng or self.rng or random.Random()
+        _rng = rng or self.rng
+        if _rng is None:
+            raise MissingRNGError(
+                f"mutate_parameters requires an RNG for {self.algorithm_id}. "
+                "Pass rng= explicitly or ensure self.rng was set at construction."
+            )
         
         # Optimization: If mutation is disabled, return early
         if mutation_rate <= 1e-9 and mutation_strength <= 1e-9:

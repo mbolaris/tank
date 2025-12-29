@@ -55,6 +55,34 @@ def require_rng(environment: Any, context: str = "unknown") -> random.Random:
     return rng
 
 
+def require_rng_param(rng: Optional[random.Random], context: str) -> random.Random:
+    """Validate that an RNG parameter was provided, failing loudly if not.
+    
+    Use this in constructors and methods that require an RNG to be passed in,
+    instead of silently creating an unseeded fallback.
+    
+    Args:
+        rng: The RNG that should have been provided
+        context: Description of where this is called from (for error messages)
+        
+    Returns:
+        The validated RNG
+        
+    Raises:
+        MissingRNGError: If rng is None
+        
+    Example:
+        def __init__(self, rng: Optional[random.Random] = None):
+            _rng = require_rng_param(rng, "AggressiveHunter.__init__")
+            self.parameters = {"speed": _rng.uniform(1.0, 2.0)}
+    """
+    if rng is None:
+        raise MissingRNGError(
+            f"RNG required: {context}. Pass engine/environment RNG explicitly."
+        )
+    return rng
+
+
 def get_rng_or_default(
     environment: Any,
     fallback_rng: Optional[random.Random] = None,

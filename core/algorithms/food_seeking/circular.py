@@ -20,7 +20,9 @@ class CircularHunter(BehaviorAlgorithm):
     """Circle around food before striking - IMPROVED for better survival."""
 
     def __init__(self, rng: Optional[random.Random] = None):
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+
+        _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="circular_hunter",
             parameters={

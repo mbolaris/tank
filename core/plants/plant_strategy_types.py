@@ -396,7 +396,9 @@ def get_strategy_visual_config(strategy_type: PlantStrategyType) -> PlantVisualC
 
 def get_random_strategy_type(rng: Optional[random.Random] = None) -> PlantStrategyType:
     """Get a random strategy type for spawning new plants."""
-    _rng = rng if rng is not None else random.Random()
+    from core.util.rng import require_rng_param
+
+    _rng = require_rng_param(rng, "__init__")
     return _rng.choice(list(PlantStrategyType))
 
 

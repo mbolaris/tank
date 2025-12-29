@@ -91,12 +91,16 @@ class Food(Agent):
         Args:
             include_stationary: Whether to include stationary food types
             include_live: Whether to include live food type
-            rng: Random number generator (uses new Random if None)
+            rng: Random number generator (required for determinism)
 
         Returns:
             Selected food type string
+            
+        Raises:
+            MissingRNGError: If rng is None
         """
-        _rng = rng if rng is not None else random.Random()
+        from core.util.rng import require_rng_param
+        _rng = require_rng_param(rng, "Food._select_random_food_type")
         food_types = [
             ft
             for ft, props in Food.FOOD_TYPES.items()
