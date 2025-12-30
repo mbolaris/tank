@@ -14,7 +14,7 @@ CFR learning is separated from the core interaction logic because:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 from core.poker.betting.actions import BettingAction
 from core.poker.core import evaluate_hand
@@ -35,7 +35,7 @@ def update_cfr_learning(
     winner_idx: int,
     tied_players: List[int],
     players: List[Any],
-    get_player_energy: callable,
+    get_player_energy: Callable[[Any], float],
     initial_player_energies: List[float],
 ) -> None:
     """Update CFR learning for fish with composable strategies.

@@ -15,7 +15,7 @@ Design Decisions:
 """
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, Callable, List
 
 from core import entities
 from core.cache_manager import CacheManager
@@ -52,9 +52,9 @@ class EntityManager:
     def __init__(
         self,
         rng: "random.Random",
-        get_environment: callable,
-        get_ecosystem: callable,
-        get_root_spot_manager: callable,
+        get_environment: Callable[[], Any],
+        get_ecosystem: Callable[[], Any],
+        get_root_spot_manager: Callable[[], Any],
     ) -> None:
         """Initialize the entity manager.
 

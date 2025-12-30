@@ -15,7 +15,7 @@ Design Principles:
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 if TYPE_CHECKING:
     from core import entities
@@ -191,7 +191,7 @@ class CacheManager:
             rebuilt = True
         return rebuilt
 
-    def get_stats(self) -> Dict[str, any]:
+    def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics for debugging.
 
         Returns:

@@ -12,7 +12,10 @@ Configuration can be changed to:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type
+
+if TYPE_CHECKING:
+    from random import Random
 
 from core.skills.base import SkillGame, SkillGameType
 
@@ -111,7 +114,7 @@ def set_skill_game_config(config: SkillGameConfig) -> None:
     _global_config = config
 
 
-def get_active_skill_game(rng: Optional["random.Random"] = None) -> Optional[SkillGame]:
+def get_active_skill_game(rng: Optional["Random"] = None) -> Optional[SkillGame]:
     """Get an instance of the currently active skill game.
 
     Args:

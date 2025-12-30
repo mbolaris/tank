@@ -15,6 +15,8 @@ triggers immediately when conditions are met, and offspring are created in the s
 from typing import TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
+    from random import Random
+
     from core.entities.base import LifeStage
     from core.genetics import Genome
 
@@ -122,7 +124,7 @@ class ReproductionComponent:
         return energy >= max_energy * self.ASEXUAL_REPRODUCTION_THRESHOLD
 
     def trigger_asexual_reproduction(
-        self, own_genome: "Genome", rng: Optional["pyrandom.Random"] = None
+        self, own_genome: "Genome", rng: Optional["Random"] = None
     ) -> Tuple["Genome", float]:
         """Trigger instant asexual reproduction and return offspring genome.
 

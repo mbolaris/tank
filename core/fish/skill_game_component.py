@@ -9,7 +9,10 @@ Selection happens naturally through energy gains/losses from games.
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Deque, Dict, Optional
+from typing import TYPE_CHECKING, Any, Deque, Dict, Optional
+
+if TYPE_CHECKING:
+    from random import Random
 
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 
@@ -262,7 +265,7 @@ class SkillGameComponent:
         self,
         parent_component: "SkillGameComponent",
         mutation_rate: float = 0.1,
-        rng: Optional["random.Random"] = None,
+        rng: Optional["Random"] = None,
     ) -> None:
         """Inherit strategies from parent with mutation.
 
