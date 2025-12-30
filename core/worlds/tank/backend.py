@@ -94,6 +94,38 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             info={"frame": self._current_frame, "seed": reset_seed},
         )
 
+    @property
+    def frame_count(self) -> int:
+        """Current frame count for compatibility with legacy world runners."""
+        if self._world is None:
+            return 0
+        return self._world.frame_count
+
+    @property
+    def paused(self) -> bool:
+        """Whether the simulation is paused (compatibility shim)."""
+        if self._world is None:
+            return False
+        return self._world.paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set paused state on the underlying TankWorld when available."""
+        if self._world is None:
+            return
+        self._world.paused = value
+
+    @property
+    def entities_list(self) -> List[Any]:
+        """Expose entities list for snapshot builders."""
+        if self._world is None:
+            return []
+        return self._world.entities_list
+
+    def setup(self) -> None:
+        """Initialize the world using the backend reset."""
+        self.reset(seed=self._seed)
+
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
         """Advance the tank world by one time step.
 
@@ -124,6 +156,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             done=done,
             info={"frame": self._current_frame},
         )
+
+    def update(self) -> None:
+        """Advance the simulation by one step (compatibility shim)."""
+        self.step()
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Return current metrics for legacy callers."""
+        return self.get_current_metrics()
 
     def get_current_snapshot(self) -> Dict[str, Any]:
         """Get current world state snapshot.

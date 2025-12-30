@@ -130,14 +130,13 @@ def _create_tank_world(
         **kwargs: Additional configuration options
 
     Returns:
-        Tuple of (TankWorld, TankSnapshotBuilder)
+        Tuple of (TankWorldBackendAdapter, TankSnapshotBuilder)
     """
-    from core.tank_world import TankWorld, TankWorldConfig
     from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
+    from core.worlds.registry import WorldRegistry
 
-    config = TankWorldConfig(headless=headless)
-    world = TankWorld(config=config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=headless, **kwargs)
+    world.reset(seed=seed)
 
     snapshot_builder = TankSnapshotBuilder()
 
