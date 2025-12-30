@@ -47,30 +47,29 @@ def verify_state_match(original_state, restored_state, tank_id: str):
     errors = []
 
     # Check frame number
-    if original_state['frame'] != restored_state['frame']:
+    if original_state["frame"] != restored_state["frame"]:
         errors.append(
             f"Frame mismatch: original={original_state['frame']}, "
             f"restored={restored_state['frame']}"
         )
 
     # Check entity counts
-    _orig_entities = {e['type']: e for e in original_state['entities']}
-    _rest_entities = {e['type']: e for e in restored_state['entities']}
+    _orig_entities = {e["type"]: e for e in original_state["entities"]}
+    _rest_entities = {e["type"]: e for e in restored_state["entities"]}
 
-    orig_fish = [e for e in original_state['entities'] if e['type'] == 'Fish']
-    rest_fish = [e for e in restored_state['entities'] if e['type'] == 'Fish']
+    orig_fish = [e for e in original_state["entities"] if e["type"] == "Fish"]
+    rest_fish = [e for e in restored_state["entities"] if e["type"] == "Fish"]
 
     if len(orig_fish) != len(rest_fish):
         errors.append(
-            f"Fish count mismatch: original={len(orig_fish)}, "
-            f"restored={len(rest_fish)}"
+            f"Fish count mismatch: original={len(orig_fish)}, " f"restored={len(rest_fish)}"
         )
 
     # Check ecosystem stats
-    orig_eco = original_state['ecosystem']
-    rest_eco = restored_state['ecosystem']
+    orig_eco = original_state["ecosystem"]
+    rest_eco = restored_state["ecosystem"]
 
-    eco_fields = ['total_births', 'total_deaths', 'generation', 'current_population']
+    eco_fields = ["total_births", "total_deaths", "generation", "current_population"]
     for field in eco_fields:
         if orig_eco.get(field) != rest_eco.get(field):
             errors.append(
@@ -79,13 +78,12 @@ def verify_state_match(original_state, restored_state, tank_id: str):
             )
 
     # Check metadata
-    orig_meta = original_state['metadata']
-    rest_meta = restored_state['metadata']
+    orig_meta = original_state["metadata"]
+    rest_meta = restored_state["metadata"]
 
-    if orig_meta['name'] != rest_meta['name']:
+    if orig_meta["name"] != rest_meta["name"]:
         errors.append(
-            f"Tank name mismatch: original={orig_meta['name']}, "
-            f"restored={rest_meta['name']}"
+            f"Tank name mismatch: original={orig_meta['name']}, " f"restored={rest_meta['name']}"
         )
 
     if errors:
@@ -190,9 +188,7 @@ def main():
 
     # Compare states
     verification_passed = verify_state_match(
-        original_snapshot_data,
-        restored_snapshot_data,
-        restored_manager.tank_id
+        original_snapshot_data, restored_snapshot_data, restored_manager.tank_id
     )
 
     # Additional detailed checks
@@ -200,10 +196,12 @@ def main():
     print("  Frame Number:")
     print(f"    Original:  {original_snapshot_data['frame']}")
     print(f"    Restored:  {restored_snapshot_data['frame']}")
-    print(f"    Match: {'✓' if original_snapshot_data['frame'] == restored_snapshot_data['frame'] else '✗'}")
+    print(
+        f"    Match: {'✓' if original_snapshot_data['frame'] == restored_snapshot_data['frame'] else '✗'}"
+    )
 
-    orig_fish = [e for e in original_snapshot_data['entities'] if e['type'] == 'Fish']
-    rest_fish = [e for e in restored_snapshot_data['entities'] if e['type'] == 'Fish']
+    orig_fish = [e for e in original_snapshot_data["entities"] if e["type"] == "Fish"]
+    rest_fish = [e for e in restored_snapshot_data["entities"] if e["type"] == "Fish"]
 
     print("\n  Fish Count:")
     print(f"    Original:  {len(orig_fish)}")
@@ -211,22 +209,22 @@ def main():
     print(f"    Match: {'✓' if len(orig_fish) == len(rest_fish) else '✗'}")
 
     print("\n  Generation:")
-    orig_gen = original_snapshot_data['ecosystem']['generation']
-    rest_gen = restored_snapshot_data['ecosystem']['generation']
+    orig_gen = original_snapshot_data["ecosystem"]["generation"]
+    rest_gen = restored_snapshot_data["ecosystem"]["generation"]
     print(f"    Original:  {orig_gen}")
     print(f"    Restored:  {rest_gen}")
     print(f"    Match: {'✓' if orig_gen == rest_gen else '✗'}")
 
     print("\n  Total Births:")
-    orig_births = original_snapshot_data['ecosystem']['total_births']
-    rest_births = restored_snapshot_data['ecosystem']['total_births']
+    orig_births = original_snapshot_data["ecosystem"]["total_births"]
+    rest_births = restored_snapshot_data["ecosystem"]["total_births"]
     print(f"    Original:  {orig_births}")
     print(f"    Restored:  {rest_births}")
     print(f"    Match: {'✓' if orig_births == rest_births else '✗'}")
 
     print("\n  Total Deaths:")
-    orig_deaths = original_snapshot_data['ecosystem']['total_deaths']
-    rest_deaths = restored_snapshot_data['ecosystem']['total_deaths']
+    orig_deaths = original_snapshot_data["ecosystem"]["total_deaths"]
+    rest_deaths = restored_snapshot_data["ecosystem"]["total_deaths"]
     print(f"    Original:  {orig_deaths}")
     print(f"    Restored:  {rest_deaths}")
     print(f"    Match: {'✓' if orig_deaths == rest_deaths else '✗'}")

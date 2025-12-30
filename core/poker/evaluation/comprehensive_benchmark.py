@@ -92,11 +92,7 @@ class FishBenchmarkResult:
 
         def avg_bb(baseline_ids: List[str]) -> Tuple[float, int]:
             """Get average bb/100 and total hands for a set of baselines."""
-            results = [
-                self.vs_baselines[bid]
-                for bid in baseline_ids
-                if bid in self.vs_baselines
-            ]
+            results = [self.vs_baselines[bid] for bid in baseline_ids if bid in self.vs_baselines]
             if not results:
                 return 0.0, 0
             total_bb = sum(r.bb_per_100 for r in results)
@@ -109,16 +105,12 @@ class FishBenchmarkResult:
         self.avg_bb_per_100_vs_strong, hands_strong = avg_bb(strong_ids)
         self.avg_bb_per_100_vs_expert, hands_expert = avg_bb(expert_ids)
 
-        self.total_hands = (
-            hands_trivial + hands_weak + hands_moderate + hands_strong + hands_expert
-        )
+        self.total_hands = hands_trivial + hands_weak + hands_moderate + hands_strong + hands_expert
 
         # Overall unweighted average
         all_results = list(self.vs_baselines.values())
         if all_results:
-            self.overall_bb_per_100 = sum(r.bb_per_100 for r in all_results) / len(
-                all_results
-            )
+            self.overall_bb_per_100 = sum(r.bb_per_100 for r in all_results) / len(all_results)
 
         # Weighted average using baseline weights
         weights = {b.strategy_id: b.weight for b in BASELINE_OPPONENTS}
@@ -149,11 +141,7 @@ class FishBenchmarkResult:
         Uses the confidence interval to estimate probability that true skill
         is positive (winning) against this tier.
         """
-        results = [
-            self.vs_baselines[bid]
-            for bid in baseline_ids
-            if bid in self.vs_baselines
-        ]
+        results = [self.vs_baselines[bid] for bid in baseline_ids if bid in self.vs_baselines]
         if not results:
             return 0.5  # No data = uncertain
 
@@ -169,6 +157,7 @@ class FishBenchmarkResult:
         # Approximate probability that true skill > 0
         # Using normal approximation: P(X > 0) = Φ(avg / std)
         import math
+
         z = avg_bb / max(avg_ci_width / 1.96, 0.1)  # CI/1.96 ≈ std
         # Sigmoid approximation of normal CDF
         confidence = 1.0 / (1.0 + math.exp(-z * 0.7))
@@ -268,9 +257,11 @@ class PopulationBenchmarkResult:
             "best_elo": round(self.best_elo, 1),
             "best_strategy": self.best_strategy,
             "elo_tier_distribution": self.elo_tier_distribution,
-            "dominant_strategy": max(self.strategy_count.items(), key=lambda x: x[1])[0]
-            if self.strategy_count
-            else "unknown",
+            "dominant_strategy": (
+                max(self.strategy_count.items(), key=lambda x: x[1])[0]
+                if self.strategy_count
+                else "unknown"
+            ),
             "total_hands": self.total_hands,
         }
 
@@ -429,9 +420,7 @@ def run_comprehensive_benchmark(
         # Add random samples from any fish not yet selected
         remaining = [f for f in sorted_fish if f not in selected_fish]
         if remaining and random_count > 0:
-            random_sample = rng.sample(
-                remaining, min(random_count, len(remaining))
-            )
+            random_sample = rng.sample(remaining, min(random_count, len(remaining)))
             selected_fish.extend(random_sample)
 
     top_fish = selected_fish
@@ -462,8 +451,7 @@ def run_comprehensive_benchmark(
     if parallel and len(top_fish) > 1 and config.parallel_evaluation:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
-                executor.submit(_evaluate_single_fish, f, config, eval_config): f
-                for f in top_fish
+                executor.submit(_evaluate_single_fish, f, config, eval_config): f for f in top_fish
             }
             for future in as_completed(futures):
                 try:
@@ -493,21 +481,21 @@ def run_comprehensive_benchmark(
         result.pop_weighted_bb_per_100 = sum(all_weighted) / len(all_weighted)
 
         # Per-tier averages
-        result.pop_bb_vs_trivial = sum(
-            r.avg_bb_per_100_vs_trivial for r in fish_results
-        ) / len(fish_results)
+        result.pop_bb_vs_trivial = sum(r.avg_bb_per_100_vs_trivial for r in fish_results) / len(
+            fish_results
+        )
         result.pop_bb_vs_weak = sum(r.avg_bb_per_100_vs_weak for r in fish_results) / len(
             fish_results
         )
-        result.pop_bb_vs_moderate = sum(
-            r.avg_bb_per_100_vs_moderate for r in fish_results
-        ) / len(fish_results)
-        result.pop_bb_vs_strong = sum(
-            r.avg_bb_per_100_vs_strong for r in fish_results
-        ) / len(fish_results)
-        result.pop_bb_vs_expert = sum(
-            r.avg_bb_per_100_vs_expert for r in fish_results
-        ) / len(fish_results)
+        result.pop_bb_vs_moderate = sum(r.avg_bb_per_100_vs_moderate for r in fish_results) / len(
+            fish_results
+        )
+        result.pop_bb_vs_strong = sum(r.avg_bb_per_100_vs_strong for r in fish_results) / len(
+            fish_results
+        )
+        result.pop_bb_vs_expert = sum(r.avg_bb_per_100_vs_expert for r in fish_results) / len(
+            fish_results
+        )
 
         # Per-baseline population averages
         for baseline_id in config.fish_vs_baselines.baseline_opponents:
@@ -517,9 +505,7 @@ def run_comprehensive_benchmark(
                 if baseline_id in r.vs_baselines
             ]
             if baseline_bbs:
-                result.pop_vs_baseline[baseline_id] = sum(baseline_bbs) / len(
-                    baseline_bbs
-                )
+                result.pop_vs_baseline[baseline_id] = sum(baseline_bbs) / len(baseline_bbs)
 
         # Strategy-type breakdown
         strategy_bbs: Dict[str, List[float]] = defaultdict(list)
@@ -547,9 +533,7 @@ def run_comprehensive_benchmark(
 
         # Compute population Elo stats (more stable than raw bb/100)
         fish_elo_ratings = {
-            r.fish_id: r.elo_rating
-            for r in fish_results
-            if r.elo_rating is not None
+            r.fish_id: r.elo_rating for r in fish_results if r.elo_rating is not None
         }
         if fish_elo_ratings:
             result.pop_elo_stats = compute_population_elo_stats(fish_elo_ratings)

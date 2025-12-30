@@ -1,6 +1,5 @@
 """SurfaceSkimmer food-seeking behavior."""
 
-
 import random
 from dataclasses import dataclass
 from typing import Tuple, Optional
@@ -12,6 +11,7 @@ from core.config.food import (
 from core.config.display import SCREEN_HEIGHT
 from core.entities import Crab
 from core.predictive_movement import predict_falling_intercept
+
 
 @dataclass
 class SurfaceSkimmer(BehaviorAlgorithm):
@@ -62,31 +62,32 @@ class SurfaceSkimmer(BehaviorAlgorithm):
                 prediction_skill = fish.genome.behavioral.prediction_skill.value
                 target_pos = nearest_food.pos
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0:
-                     # Using acceleration-aware prediction for better diving
-                     is_accelerating = False
-                     acceleration = 0.0
-                     if hasattr(nearest_food, "food_properties"):
-                         from core.config.food import FOOD_SINK_ACCELERATION
-                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
-                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
-                         if acceleration > 0 and nearest_food.vel.y >= 0:
-                             is_accelerating = True
-                     
-                     if is_accelerating:
-                         intercept_point, _ = predict_falling_intercept(
+                    # Using acceleration-aware prediction for better diving
+                    is_accelerating = False
+                    acceleration = 0.0
+                    if hasattr(nearest_food, "food_properties"):
+                        from core.config.food import FOOD_SINK_ACCELERATION
+
+                        sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                        acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                        if acceleration > 0 and nearest_food.vel.y >= 0:
+                            is_accelerating = True
+
+                    if is_accelerating:
+                        intercept_point, _ = predict_falling_intercept(
                             fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
-                         )
-                         # High commitment to intercept for skimmers diving
-                         target_pos = intercept_point
-                     else:
-                         target_pos = nearest_food.pos + nearest_food.vel * (prediction_skill * 10)
+                        )
+                        # High commitment to intercept for skimmers diving
+                        target_pos = intercept_point
+                    else:
+                        target_pos = nearest_food.pos + nearest_food.vel * (prediction_skill * 10)
 
                 direction = self._safe_normalize(target_pos - fish.pos)
                 speed = 1.2 if is_desperate else 1.0
 
                 # Aggression boosts dive speed
                 pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
-                speed *= (1.0 + pursuit_aggression * 0.3)
+                speed *= 1.0 + pursuit_aggression * 0.3
 
                 return direction.x * speed, direction.y * speed
             else:

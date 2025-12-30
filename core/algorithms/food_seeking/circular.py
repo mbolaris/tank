@@ -1,6 +1,5 @@
 """CircularHunter food-seeking behavior."""
 
-
 import math
 import random
 from dataclasses import dataclass
@@ -14,6 +13,7 @@ from core.config.food import (
 )
 from core.entities import Crab
 from core.predictive_movement import predict_intercept_point, predict_falling_intercept
+
 
 @dataclass
 class CircularHunter(BehaviorAlgorithm):
@@ -49,7 +49,9 @@ class CircularHunter(BehaviorAlgorithm):
 
         # Predator check - flee distance based on energy
         nearest_predator = self._find_nearest(fish, Crab)
-        flee_distance = PREDATOR_FLEE_DISTANCE_DESPERATE if is_desperate else PREDATOR_FLEE_DISTANCE_NORMAL
+        flee_distance = (
+            PREDATOR_FLEE_DISTANCE_DESPERATE if is_desperate else PREDATOR_FLEE_DISTANCE_NORMAL
+        )
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < flee_distance:
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             # Conserve energy when desperate
@@ -72,27 +74,28 @@ class CircularHunter(BehaviorAlgorithm):
         # If food is moving (has velocity), predict its position
         food_future_pos = nearest_food.pos
         if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
-             is_accelerating = False
-             acceleration = 0.0
-             if hasattr(nearest_food, "food_properties"):
-                 from core.config.food import FOOD_SINK_ACCELERATION
-                 sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
-                 acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
-                 if acceleration > 0 and nearest_food.vel.y >= 0:
-                     is_accelerating = True
+            is_accelerating = False
+            acceleration = 0.0
+            if hasattr(nearest_food, "food_properties"):
+                from core.config.food import FOOD_SINK_ACCELERATION
 
-             if is_accelerating:
-                 food_future_pos, _ = predict_falling_intercept(
+                sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                if acceleration > 0 and nearest_food.vel.y >= 0:
+                    is_accelerating = True
+
+            if is_accelerating:
+                food_future_pos, _ = predict_falling_intercept(
                     fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
-                 )
-             else:
-                 intercept_point, _ = predict_intercept_point(
-                     fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
-                 )
-                 if intercept_point:
-                     food_future_pos = intercept_point
-                 else:
-                     food_future_pos = nearest_food.pos + nearest_food.vel * 10
+                )
+            else:
+                intercept_point, _ = predict_intercept_point(
+                    fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
+                )
+                if intercept_point:
+                    food_future_pos = intercept_point
+                else:
+                    food_future_pos = nearest_food.pos + nearest_food.vel * 10
 
         # IMPROVEMENT: Skip circling when desperate or very hungry
         # Go straight for food when energy is low!
@@ -102,7 +105,7 @@ class CircularHunter(BehaviorAlgorithm):
 
             # Hunting traits
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
-            speed *= (1.0 + pursuit_aggression * 0.3)
+            speed *= 1.0 + pursuit_aggression * 0.3
 
             return direction.x * speed, direction.y * speed
 
@@ -114,7 +117,7 @@ class CircularHunter(BehaviorAlgorithm):
 
             # Aggression boosts strike speed
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
-            strike_speed *= (1.0 + pursuit_aggression * 0.4)
+            strike_speed *= 1.0 + pursuit_aggression * 0.4
 
             return direction.x * strike_speed, direction.y * strike_speed
 

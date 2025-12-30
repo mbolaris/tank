@@ -1,6 +1,5 @@
 """CooperativeForager food-seeking behavior."""
 
-
 import math
 import random
 from dataclasses import dataclass
@@ -16,6 +15,7 @@ from core.config.food import (
     SOCIAL_SIGNAL_DETECTION_RANGE,
 )
 from core.entities import Crab
+
 
 @dataclass
 class CooperativeForager(BehaviorAlgorithm):
@@ -83,7 +83,9 @@ class CooperativeForager(BehaviorAlgorithm):
 
         # Look for food directly first - EXPANDED range
         nearest_food = self._find_nearest_food(fish)
-        detection_range = FOOD_PURSUIT_RANGE_DESPERATE if is_desperate else FOOD_PURSUIT_RANGE_NORMAL
+        detection_range = (
+            FOOD_PURSUIT_RANGE_DESPERATE if is_desperate else FOOD_PURSUIT_RANGE_NORMAL
+        )
         if nearest_food:
             # OPTIMIZATION: Inline distance calculation
             food_x = nearest_food.pos.x

@@ -27,6 +27,7 @@ class EnergyConserver(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "EnergyConserver.__init__")
         super().__init__(
             algorithm_id="energy_conserver",
@@ -91,7 +92,7 @@ class EnergyConserver(BehaviorAlgorithm):
         # Rest mode - gentle exploration based on exploration_rate parameter
         exploration_rate = self.parameters["exploration_rate"]
         if exploration_rate > 0:
-        # Gentle wandering to explore for food when idle
+            # Gentle wandering to explore for food when idle
             # Use fish_id as stable phase offset and environment RNG for time variation
             rng = fish.environment.rng
             # Generate a pseudo-time from the RNG seeded by fish_id for consistent per-fish behavior
@@ -110,6 +111,7 @@ class BurstSwimmer(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "BurstSwimmer.__init__")
         super().__init__(
             algorithm_id="burst_swimmer",
@@ -201,6 +203,7 @@ class OpportunisticRester(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "OpportunisticRester.__init__")
         super().__init__(
             algorithm_id="opportunistic_rester",
@@ -236,11 +239,16 @@ class OpportunisticRester(BehaviorAlgorithm):
             vel_len_sq = fish.vel.length_squared()
             if vel_len_sq > 0.01:
                 vel_len = math.sqrt(vel_len_sq)
-                return fish.vel.x / vel_len * self.parameters["active_speed"], fish.vel.y / vel_len * self.parameters["active_speed"]
+                return (
+                    fish.vel.x / vel_len * self.parameters["active_speed"],
+                    fish.vel.y / vel_len * self.parameters["active_speed"],
+                )
             # If stationary, pick a random direction (use environment RNG for determinism)
             rng = fish.environment.rng
             angle = rng.random() * 6.283185307
-            return self.parameters["active_speed"] * math.cos(angle), self.parameters["active_speed"] * math.sin(angle)
+            return self.parameters["active_speed"] * math.cos(angle), self.parameters[
+                "active_speed"
+            ] * math.sin(angle)
 
         # Idle wandering when no stimuli detected
         idle_speed = self.parameters["idle_wander_speed"]
@@ -263,6 +271,7 @@ class EnergyBalancer(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "EnergyBalancer.__init__")
         super().__init__(
             algorithm_id="energy_balancer",
@@ -339,6 +348,7 @@ class SustainableCruiser(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "SustainableCruiser.__init__")
         super().__init__(
             algorithm_id="sustainable_cruiser",
@@ -372,6 +382,7 @@ class StarvationPreventer(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "StarvationPreventer.__init__")
         super().__init__(
             algorithm_id="starvation_preventer",
@@ -449,6 +460,7 @@ class MetabolicOptimizer(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "MetabolicOptimizer.__init__")
         super().__init__(
             algorithm_id="metabolic_optimizer",
@@ -490,6 +502,7 @@ class AdaptivePacer(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "AdaptivePacer.__init__")
         super().__init__(
             algorithm_id="adaptive_pacer",

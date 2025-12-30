@@ -38,7 +38,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self,
         seed: Optional[int] = None,
         config: Optional[TankWorldConfig] = None,
-        **config_overrides
+        **config_overrides,
     ):
         """Initialize the Tank world backend adapter.
 
@@ -58,7 +58,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._world: Optional[TankWorld] = None
         self._current_frame = 0
 
-    def reset(self, seed: Optional[int] = None, scenario: Optional[Dict[str, Any]] = None) -> StepResult:
+    def reset(
+        self, seed: Optional[int] = None, scenario: Optional[Dict[str, Any]] = None
+    ) -> StepResult:
         """Reset the tank world to initial state.
 
         Args:
@@ -72,18 +74,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         reset_seed = seed if seed is not None else self._seed
 
         # Create fresh TankWorld instance
-        self._world = TankWorld(
-            config=self._base_config,
-            seed=reset_seed
-        )
+        self._world = TankWorld(config=self._base_config, seed=reset_seed)
 
         # Setup the simulation (creates initial entities)
         self._world.setup()
         self._current_frame = 0
 
         logger.info(
-            f"Tank world reset with seed={reset_seed}, "
-            f"config={self._base_config.to_dict()}"
+            f"Tank world reset with seed={reset_seed}, " f"config={self._base_config.to_dict()}"
         )
 
         # Return initial state
@@ -93,7 +91,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             events=[],
             metrics=self.get_current_metrics(),
             done=False,
-            info={"frame": self._current_frame, "seed": reset_seed}
+            info={"frame": self._current_frame, "seed": reset_seed},
         )
 
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
@@ -106,9 +104,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             StepResult with updated snapshot, events, metrics
         """
         if self._world is None:
-            raise RuntimeError(
-                "World not initialized. Call reset() before step()."
-            )
+            raise RuntimeError("World not initialized. Call reset() before step().")
 
         # Run one simulation tick
         self._world.update()
@@ -126,7 +122,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             events=events,
             metrics=self.get_current_metrics(),
             done=done,
-            info={"frame": self._current_frame}
+            info={"frame": self._current_frame},
         )
 
     def get_current_snapshot(self) -> Dict[str, Any]:
@@ -230,20 +226,24 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Fish genome
         if hasattr(genome, "physical"):
             physical = genome.physical
-            genome_data.update({
-                "color_hue": getattr(physical, "color_hue", None),
-                "size": getattr(physical, "size_modifier", None),
-                "template_id": getattr(physical, "template_id", None),
-            })
+            genome_data.update(
+                {
+                    "color_hue": getattr(physical, "color_hue", None),
+                    "size": getattr(physical, "size_modifier", None),
+                    "template_id": getattr(physical, "template_id", None),
+                }
+            )
 
         # Plant genome
         if hasattr(genome, "visual"):
             visual = genome.visual
-            genome_data.update({
-                "hue": getattr(visual, "hue", None),
-                "stem_height": getattr(visual, "stem_height", None),
-                "leaf_count": getattr(visual, "leaf_count", None),
-            })
+            genome_data.update(
+                {
+                    "hue": getattr(visual, "hue", None),
+                    "stem_height": getattr(visual, "stem_height", None),
+                    "leaf_count": getattr(visual, "leaf_count", None),
+                }
+            )
 
         return genome_data if genome_data else None
 
@@ -262,11 +262,13 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         try:
             poker_events = self._world.get_recent_poker_events(max_age_frames=60)
             for poker_event in poker_events:
-                events.append({
-                    "type": "poker",
-                    "data": poker_event,
-                    "frame": self._world.frame_count,
-                })
+                events.append(
+                    {
+                        "type": "poker",
+                        "data": poker_event,
+                        "frame": self._world.frame_count,
+                    }
+                )
         except Exception as e:
             logger.warning(f"Failed to collect poker events: {e}")
 

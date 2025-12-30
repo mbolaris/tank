@@ -72,7 +72,7 @@ class TerritorialDefender(BehaviorAlgorithm):
 
         if intruders:
             # Find nearest intruder using squared distance
-            min_dist_sq = float('inf')
+            min_dist_sq = float("inf")
             nearest = None
             for f in intruders:
                 dx = f.pos.x - fish_x
@@ -158,7 +158,9 @@ class RandomExplorer(BehaviorAlgorithm):
             avoid_y = -0.5
 
         # Change direction periodically or when hitting boundaries
-        if self.rng.random() < self.parameters["change_frequency"] or (avoid_x != 0 or avoid_y != 0):
+        if self.rng.random() < self.parameters["change_frequency"] or (
+            avoid_x != 0 or avoid_y != 0
+        ):
             # Bias new direction away from edges
             new_x = self.rng.uniform(-1, 1) + avoid_x
             new_y = self.rng.uniform(-1, 1) + avoid_y

@@ -20,7 +20,7 @@ def _get_report_header(ecosystem) -> List[str]:
 
 
 def _get_top_performers_section(
-    algorithms_with_data: List[Tuple[int, AlgorithmStats]]
+    algorithms_with_data: List[Tuple[int, AlgorithmStats]],
 ) -> List[str]:
     algorithms_sorted = sorted(
         algorithms_with_data, key=lambda item: item[1].get_reproduction_rate(), reverse=True
@@ -49,9 +49,7 @@ def _get_top_performers_section(
     return lines
 
 
-def _get_survival_section(
-    algorithms_with_data: List[Tuple[int, AlgorithmStats]]
-) -> List[str]:
+def _get_survival_section(algorithms_with_data: List[Tuple[int, AlgorithmStats]]) -> List[str]:
     algorithms_sorted = sorted(
         algorithms_with_data, key=lambda item: item[1].get_survival_rate(), reverse=True
     )
@@ -72,9 +70,7 @@ def _get_survival_section(
     return lines
 
 
-def _get_longevity_section(
-    algorithms_with_data: List[Tuple[int, AlgorithmStats]]
-) -> List[str]:
+def _get_longevity_section(algorithms_with_data: List[Tuple[int, AlgorithmStats]]) -> List[str]:
     algorithms_sorted = sorted(
         algorithms_with_data, key=lambda item: item[1].get_avg_lifespan(), reverse=True
     )
@@ -116,7 +112,9 @@ def _get_worst_performers_section(
     lines = ["-" * 80, "WORST PERFORMERS (highest starvation rate)", "-" * 80, ""]
 
     for i, (algo_id, stats) in enumerate(algorithms_with_deaths[:10], 1):
-        starvation_rate = stats.deaths_starvation / stats.total_deaths if stats.total_deaths > 0 else 0
+        starvation_rate = (
+            stats.deaths_starvation / stats.total_deaths if stats.total_deaths > 0 else 0
+        )
         lines.extend(
             [
                 f"#{i} - {stats.algorithm_name} (ID: {algo_id})",
@@ -132,7 +130,8 @@ def _get_worst_performers_section(
 
 
 def _get_recommendations_section(
-    algorithm_stats: Dict[int, AlgorithmStats], algorithms_with_data: List[Tuple[int, AlgorithmStats]]
+    algorithm_stats: Dict[int, AlgorithmStats],
+    algorithms_with_data: List[Tuple[int, AlgorithmStats]],
 ) -> List[str]:
     lines = ["-" * 80, "RECOMMENDATIONS FOR NEXT GENERATION", "-" * 80, ""]
 

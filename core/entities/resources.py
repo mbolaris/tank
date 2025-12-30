@@ -33,7 +33,6 @@ class Food(Agent):
         """Check if food is dead (it's not)."""
         return False
 
-
     def __init__(
         self,
         environment: "World",
@@ -62,6 +61,7 @@ class Food(Agent):
             _rng = rng
             if _rng is None:
                 from core.util.rng import require_rng
+
                 _rng = require_rng(environment, "Food.__init__")
             food_type = self._select_random_food_type(
                 include_stationary=allow_stationary_types, include_live=False, rng=_rng
@@ -95,11 +95,12 @@ class Food(Agent):
 
         Returns:
             Selected food type string
-            
+
         Raises:
             MissingRNGError: If rng is None
         """
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "Food._select_random_food_type")
         food_types = [
             ft
@@ -131,10 +132,7 @@ class Food(Agent):
         energy_ratio = self.energy / self.max_energy
         size_ratio = 0.2 + (0.8 * energy_ratio)
 
-        self.set_size(
-            self.original_width * size_ratio,
-            self.original_height * size_ratio
-        )
+        self.set_size(self.original_width * size_ratio, self.original_height * size_ratio)
 
         return consumed
 
@@ -142,7 +140,9 @@ class Food(Agent):
         """Check if food is fully consumed."""
         return self.energy <= 0.1  # Small threshold for float comparison
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the food state."""
         from core.entities.base import EntityUpdateResult
 
@@ -207,6 +207,7 @@ class LiveFood(Food):
         self.max_speed = speed * 0.93  # 1.5 * 0.93 = 1.4
         # Use environment.rng for deterministic behavior
         from core.util.rng import require_rng
+
         self._rng = require_rng(environment, "LiveFood.__init__")
         self.wander_timer = self._rng.randint(20, 45)
         # BALANCE: Reduced avoid_radius from 180 to 80 so fish can get much closer
@@ -222,7 +223,9 @@ class LiveFood(Food):
         """Check if this LiveFood has exceeded its lifespan."""
         return self.age >= self.max_lifespan
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         from core.entities.base import EntityUpdateResult
 
         self.age += 1

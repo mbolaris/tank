@@ -19,7 +19,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         if rng is None:
-             raise RuntimeError("TightAggressiveStrategy: RNG is None")
+            raise RuntimeError("TightAggressiveStrategy: RNG is None")
         _rng = rng
         super().__init__(
             strategy_id="tight_aggressive",
@@ -78,7 +78,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         if rng is None:
-             raise RuntimeError("LooseAggressiveStrategy: RNG is None")
+            raise RuntimeError("LooseAggressiveStrategy: RNG is None")
         _rng = rng
         super().__init__(
             strategy_id="loose_aggressive",
@@ -124,12 +124,18 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 
         if _rng.random() < self.parameters["bluff_frequency"]:
             bluff = pot * _rng.uniform(0.5, 1.2)
-            return (BettingAction.RAISE, min(bluff, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION))
+            return (
+                BettingAction.RAISE,
+                min(bluff, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION),
+            )
 
         if hand_strength >= self.parameters["raise_threshold"]:
             raise_amt = pot * self.parameters["raise_multiplier"]
             raise_amt = min(raise_amt, player_energy * 0.4)
-            return (BettingAction.RAISE, max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER))
+            return (
+                BettingAction.RAISE,
+                max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER),
+            )
 
         return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
 
@@ -137,10 +143,11 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 @dataclass
 class TightPassiveStrategy(PokerStrategyAlgorithm):
     """Rock: Plays few hands, rarely raises."""
+
     def __init__(self, rng: Optional[random.Random] = None):
         # Inline RNG check
         if rng is None:
-             raise RuntimeError("TightPassiveStrategy: RNG is None")
+            raise RuntimeError("TightPassiveStrategy: RNG is None")
         _rng = rng
         super().__init__(
             strategy_id="tight_passive",
@@ -197,7 +204,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         if rng is None:
-             raise RuntimeError("BalancedStrategy: RNG is None")
+            raise RuntimeError("BalancedStrategy: RNG is None")
         _rng = rng
         super().__init__(
             strategy_id="balanced",
@@ -255,7 +262,10 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         if hand_strength >= self.parameters["strong_threshold"]:
             raise_amt = pot * self.parameters["value_raise_multiplier"]
             raise_amt = min(raise_amt, player_energy * 0.40)
-            return (BettingAction.RAISE, max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER))
+            return (
+                BettingAction.RAISE,
+                max(raise_amt, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER),
+            )
 
         if hand_strength >= self.parameters["medium_threshold"]:
             if _rng.random() < 0.4:
@@ -282,7 +292,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         if rng is None:
-             raise RuntimeError("ManiacStrategy: RNG is None")
+            raise RuntimeError("ManiacStrategy: RNG is None")
         _rng = rng
         super().__init__(
             strategy_id="maniac",
@@ -341,7 +351,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
     def __init__(self, rng: Optional[random.Random] = None):
         # Inline RNG check
         if rng is None:
-             raise RuntimeError("LoosePassiveStrategy: RNG is None")
+            raise RuntimeError("LoosePassiveStrategy: RNG is None")
         _rng = rng
         super().__init__(
             strategy_id="loose_passive",

@@ -32,7 +32,7 @@ class Crab(Agent):
         """Initialize a crab."""
         # Use require_rng for deterministic genome creation
         from core.util.rng import require_rng
-        
+
         # Crabs are slower and less aggressive now
         if genome is not None:
             self.genome: Genome = genome
@@ -47,9 +47,7 @@ class Crab(Agent):
         self.is_predator = True
 
         # Energy system - max energy based on size
-        self.max_energy: float = (
-            CRAB_INITIAL_ENERGY * self.genome.physical.size_modifier.value
-        )
+        self.max_energy: float = CRAB_INITIAL_ENERGY * self.genome.physical.size_modifier.value
         self.energy: float = self.max_energy
 
         # Hunting mechanics
@@ -74,9 +72,9 @@ class Crab(Agent):
         energy_gained = food.get_energy_value()
         self.energy = min(self.max_energy, self.energy + energy_gained)
 
-
-
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the crab state.
 
         Simple patrol behavior: crab walks back and forth across the tank bottom.
@@ -95,6 +93,7 @@ class Crab(Agent):
         # If no horizontal velocity, pick a random direction (use environment RNG)
         if abs(self.vel.x) < 0.1:
             from core.util.rng import require_rng
+
             rng = require_rng(self.environment, "Crab.update.patrol")
             direction = rng.choice([-1, 1])
             self.vel.x = direction * self.speed

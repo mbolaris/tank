@@ -1,6 +1,5 @@
 """FoodQualityOptimizer food-seeking behavior."""
 
-
 import random
 from dataclasses import dataclass
 from typing import Tuple, Optional
@@ -25,6 +24,7 @@ from core.config.food import (
 from core.entities import Crab, Food
 from core.predictive_movement import predict_intercept_point, predict_falling_intercept
 from core.world import World
+
 
 @dataclass
 class FoodQualityOptimizer(BehaviorAlgorithm):
@@ -66,7 +66,9 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         flee_threshold = (
             PREDATOR_FLEE_DISTANCE_DESPERATE
             if is_critical
-            else (PREDATOR_FLEE_DISTANCE_CAUTIOUS if is_low else PREDATOR_FLEE_DISTANCE_CONSERVATIVE)
+            else (
+                PREDATOR_FLEE_DISTANCE_CAUTIOUS if is_low else PREDATOR_FLEE_DISTANCE_CONSERVATIVE
+            )
         )
         if nearest_predator and predator_distance < flee_threshold:
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
@@ -148,11 +150,12 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
                 is_accelerating = False
                 acceleration = 0.0
                 if hasattr(best_food, "food_properties"):
-                     from core.config.food import FOOD_SINK_ACCELERATION
-                     sink_multiplier = best_food.food_properties.get("sink_multiplier", 1.0)
-                     acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
-                     if acceleration > 0 and best_food.vel.y >= 0:
-                         is_accelerating = True
+                    from core.config.food import FOOD_SINK_ACCELERATION
+
+                    sink_multiplier = best_food.food_properties.get("sink_multiplier", 1.0)
+                    acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                    if acceleration > 0 and best_food.vel.y >= 0:
+                        is_accelerating = True
 
                 intercept_point = None
                 if is_accelerating:
@@ -165,9 +168,9 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
                     )
 
                 if intercept_point and prediction_skill > 0.3:
-                     # Stronger commitment to prediction
-                     skill_factor = 0.2 + (prediction_skill * 0.8)
-                     target_pos = Vector2(
+                    # Stronger commitment to prediction
+                    skill_factor = 0.2 + (prediction_skill * 0.8)
+                    target_pos = Vector2(
                         best_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
                         best_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
                     )
@@ -179,7 +182,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
 
             # Hunting traits boost
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
-            speed *= (1.0 + pursuit_aggression * 0.2)
+            speed *= 1.0 + pursuit_aggression * 0.2
 
             return direction.x * speed, direction.y * speed
 

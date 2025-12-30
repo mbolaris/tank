@@ -45,9 +45,11 @@ class PeriodicBenchmarkEvaluator:
         # Using total_winnings as proxy for poker skill
         top_fish = sorted(
             fish_population,
-            key=lambda f: getattr(
-                f.components.poker_stats, "total_winnings", 0
-            ) if hasattr(f, "components") and hasattr(f.components, "poker_stats") else 0,
+            key=lambda f: (
+                getattr(f.components.poker_stats, "total_winnings", 0)
+                if hasattr(f, "components") and hasattr(f.components, "poker_stats")
+                else 0
+            ),
             reverse=True,
         )[:10]
 

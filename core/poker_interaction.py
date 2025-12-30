@@ -8,7 +8,7 @@ of any type using full Texas Hold'em with betting rounds.
 
 Usage:
     from core.poker_interaction import PokerInteraction, PokerResult
-    
+
     players = [fish1, fish2, plant1]  # Any PokerPlayer entities
     poker = PokerInteraction(players)
     if poker.can_play_poker():
@@ -63,16 +63,16 @@ def _get_reproduction_cooldown(player: Player) -> int:
 
 def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     """Check if reproduction should be triggered after poker.
-    
+
     Both players must:
     - Have energy >= POST_POKER_REPRODUCTION_ENERGY_THRESHOLD of max
     - Be off cooldown (reproduction_cooldown <= 0)
     - Be same species
-    
+
     Args:
         player: First player
         opponent: Second player
-        
+
     Returns:
         True if reproduction conditions are met
     """
@@ -81,29 +81,29 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
         return False
     if opponent.energy < opponent.max_energy * POST_POKER_REPRODUCTION_ENERGY_THRESHOLD:
         return False
-    
+
     # Check cooldown
     if _get_reproduction_cooldown(player) > 0:
         return False
     if _get_reproduction_cooldown(opponent) > 0:
         return False
-        
+
     # Check same species (fish can only reproduce with fish, plants with plants)
     if player.species != opponent.species:
         return False
-        
+
     return True
 
 
 def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
     """Check whether a fish can BE THE PARENT in post-poker reproduction.
-    
+
     The parent (winner) must:
     - Have enough energy to produce offspring
     - Be off reproduction cooldown
     - Be an adult
     - Be same species as mate
-    
+
     Note: This is for the fish that will actually produce the child and pay
     the energy cost. Use is_valid_reproduction_mate() for the other fish.
     """
@@ -127,11 +127,11 @@ def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
 
 def is_valid_reproduction_mate(fish, parent) -> bool:
     """Check whether a fish can be a MATE (DNA donor) in reproduction.
-    
+
     The mate only needs to:
     - Be an adult (capable of reproduction)
     - Be same species as parent
-    
+
     The mate does NOT need:
     - High energy (they're just contributing DNA, not producing offspring)
     - To be off cooldown (only the parent goes on cooldown)
@@ -155,13 +155,13 @@ def should_offer_post_poker_reproduction(
     rng: Optional[random.Random] = None,
 ) -> bool:
     """Check if fish should reproduce after poker (legacy signature).
-    
+
     Args:
         fish: The fish to check
         opponent: The opponent fish
         is_winner: Whether fish won (unused, kept for compatibility)
         energy_gained: Energy gained (unused, kept for compatibility)
-        
+
     Returns:
         True if reproduction conditions are met
     """
@@ -169,9 +169,7 @@ def should_offer_post_poker_reproduction(
         return False
 
     offer_prob = (
-        POST_POKER_REPRODUCTION_WINNER_PROB
-        if is_winner
-        else POST_POKER_REPRODUCTION_LOSER_PROB
+        POST_POKER_REPRODUCTION_WINNER_PROB if is_winner else POST_POKER_REPRODUCTION_LOSER_PROB
     )
     from core.util.rng import require_rng_param
 
@@ -183,11 +181,11 @@ def calculate_house_cut(winner_size: float, net_gain: float) -> float:
     """Calculate house cut based on winner's size.
 
     Larger winners pay more: Size 0.35: 8%, Size 1.0: ~20%, Size 1.3: ~25%
-    
+
     Args:
         winner_size: Size of the winning player
         net_gain: Net energy gain from the pot
-        
+
     Returns:
         House cut amount (energy taken by the house)
     """
@@ -271,10 +269,7 @@ def filter_mutually_proximate(
     max_dist_sq = max_distance * max_distance
 
     # Pre-cache entity center positions for faster access
-    positions = [
-        (e.pos.x + e.width * 0.5, e.pos.y + e.height * 0.5)
-        for e in entities
-    ]
+    positions = [(e.pos.x + e.width * 0.5, e.pos.y + e.height * 0.5) for e in entities]
 
     # OPTIMIZATION: Use 2D list instead of dict for O(1) access without hash overhead
     # Build adjacency matrix as boolean: True = within distance
@@ -328,7 +323,7 @@ def filter_mutually_proximate(
 
 __all__ = [
     "PokerInteraction",
-    "PokerResult", 
+    "PokerResult",
     "BettingRound",
     "GameState",
     "PlayerContext",

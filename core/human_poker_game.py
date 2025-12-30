@@ -138,7 +138,7 @@ class HumanPokerGame:
         self.big_blind_index = 0  # Track big blind position for BB option
         self.big_blind_has_option = False  # BB gets option to raise if no raises pre-flop
         self.last_move: Optional[Dict[str, str]] = None  # Track the single most recent move
-        
+
         # Decision RNG for deterministic AI decisions (unseeded for human game variation)
         self._decision_rng = random.Random()
         self._hand_state: Optional[MultiplayerGameState] = None
@@ -235,7 +235,9 @@ class HumanPokerGame:
                     self.message = f"{player.name} wins the session with {player.energy:.0f} energy after {self.hands_played} hands!"
                     break
             else:
-                self.message = f"Session ended after {self.hands_played} hands - all players are out!"
+                self.message = (
+                    f"Session ended after {self.hands_played} hands - all players are out!"
+                )
 
     def _sync_from_hand_state(self) -> None:
         """Sync public-facing player state from the hand engine."""
@@ -296,9 +298,7 @@ class HumanPokerGame:
         if self._hand_state is None:
             return 0.0
         player = self._hand_state.players[player_index]
-        active_bets = [
-            p.current_bet for p in self._hand_state.players.values() if not p.folded
-        ]
+        active_bets = [p.current_bet for p in self._hand_state.players.values() if not p.folded]
         if not active_bets:
             return 0.0
         max_bet = max(active_bets)
@@ -309,9 +309,7 @@ class HumanPokerGame:
         if self._hand_state is None:
             return
 
-        active_players = [
-            p for p in self._hand_state.players.values() if not p.folded
-        ]
+        active_players = [p for p in self._hand_state.players.values() if not p.folded]
         if len(active_players) <= 1:
             self._showdown()
             return
@@ -379,16 +377,12 @@ class HumanPokerGame:
                 winner = self.players[self.winner_index]
                 winning_hand = self._hand_state.player_hands.get(self.winner_index)
                 if winning_hand is not None:
-                    self.message = (
-                        f"{winner.name} wins {self.pot:.0f} energy with {winning_hand}!"
-                    )
+                    self.message = f"{winner.name} wins {self.pot:.0f} energy with {winning_hand}!"
                 else:
                     self.message = f"{winner.name} wins {self.pot:.0f} energy!"
             else:
                 winners_str = ", ".join(self.players[idx].name for idx in winners)
-                self.message = (
-                    f"Hand ends in a tie - {winners_str} split {self.pot:.0f} energy!"
-                )
+                self.message = f"Hand ends in a tie - {winners_str} split {self.pot:.0f} energy!"
 
             self.game_over = True
             self._check_session_over()
@@ -435,16 +429,15 @@ class HumanPokerGame:
 
         self._sync_hand_state_from_players()
         active_players = [
-            pid for pid, player in self._hand_state.players.items()
+            pid
+            for pid, player in self._hand_state.players.items()
             if not player.folded and player.remaining_energy > 0
         ]
         if not active_players:
             return True
 
         max_bet = max(
-            player.current_bet
-            for player in self._hand_state.players.values()
-            if not player.folded
+            player.current_bet for player in self._hand_state.players.values() if not player.folded
         )
 
         for pid in active_players:
@@ -636,9 +629,7 @@ class HumanPokerGame:
 
         self._sync_from_hand_state()
 
-        active_players = [
-            p for p in self._hand_state.players.values() if not p.folded
-        ]
+        active_players = [p for p in self._hand_state.players.values() if not p.folded]
         if len(active_players) <= 1:
             self._showdown()
 
@@ -779,9 +770,7 @@ class HumanPokerGame:
 
         self._sync_from_hand_state()
 
-        active_players = [
-            p for p in self._hand_state.players.values() if not p.folded
-        ]
+        active_players = [p for p in self._hand_state.players.values() if not p.folded]
         if len(active_players) <= 1:
             self._showdown()
             return

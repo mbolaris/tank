@@ -21,7 +21,7 @@ def _stats_fingerprint(stats: dict) -> str:
 def _get_stable_entity_id(entity) -> str:
     """Get a stable identifier for an entity, avoiding Python's id()."""
     # Try type-specific IDs first
-    for id_attr in ('fish_id', 'plant_id', 'food_id', 'crab_id'):
+    for id_attr in ("fish_id", "plant_id", "food_id", "crab_id"):
         if hasattr(entity, id_attr):
             return f"{type(entity).__name__}_{getattr(entity, id_attr)}"
     # Fallback: use type + rounded position as identifier
@@ -30,7 +30,7 @@ def _get_stable_entity_id(entity) -> str:
 
 def _world_snapshot_hash(engine: SimulationEngine) -> int:
     """Compute a stable hash of entity positions and energies.
-    
+
     This catches divergence in world state that stats might miss.
     Uses stable identifiers to ensure deterministic hashing.
     """
@@ -39,7 +39,7 @@ def _world_snapshot_hash(engine: SimulationEngine) -> int:
             _get_stable_entity_id(e),
             round(e.pos.x, 6),
             round(e.pos.y, 6),
-            round(getattr(e, 'energy', 0), 6),
+            round(getattr(e, "energy", 0), 6),
         )
         for e in engine.entities_list
     )
@@ -102,9 +102,9 @@ def test_multi_engine_isolation_interleaved_vs_solo():
     inter_world_a = _world_snapshot_hash(engine_inter_a)
     inter_world_b = _world_snapshot_hash(engine_inter_b)
 
-    assert solo_world_a == inter_world_a, (
-        "Engine A world state diverged when interleaved (stats matched but world differed)"
-    )
-    assert solo_world_b == inter_world_b, (
-        "Engine B world state diverged when interleaved (stats matched but world differed)"
-    )
+    assert (
+        solo_world_a == inter_world_a
+    ), "Engine A world state diverged when interleaved (stats matched but world differed)"
+    assert (
+        solo_world_b == inter_world_b
+    ), "Engine B world state diverged when interleaved (stats matched but world differed)"

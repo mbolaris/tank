@@ -53,9 +53,7 @@ class StatsCalculator:
             return {}
 
         # Start with ecosystem summary stats
-        stats = self._engine.ecosystem.get_summary_stats(
-            self._engine.get_all_entities()
-        )
+        stats = self._engine.ecosystem.get_summary_stats(self._engine.get_all_entities())
 
         # Add cumulative energy sources
         stats["energy_sources"] = self._engine.ecosystem.get_energy_source_summary()

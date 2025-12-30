@@ -247,9 +247,7 @@ def test_decide_multiplayer_action_strategy_preflop_uses_starting_strength(monke
 
     monkeypatch.setattr(hand_engine, "evaluate_starting_hand_strength", lambda *_: 0.33)
 
-    action, amount = hand_engine._decide_multiplayer_action(
-        0, state, {}, rng=random.Random(0)
-    )
+    action, amount = hand_engine._decide_multiplayer_action(0, state, {}, rng=random.Random(0))
 
     assert action == BettingAction.CHECK
     assert amount == 0.0
@@ -287,9 +285,7 @@ def test_decide_multiplayer_action_strategy_postflop_uses_rank_value(monkeypatch
         lambda *_: pytest.fail("Should not call preflop evaluation postflop"),
     )
 
-    action, amount = hand_engine._decide_multiplayer_action(
-        0, state, {}, rng=random.Random(0)
-    )
+    action, amount = hand_engine._decide_multiplayer_action(0, state, {}, rng=random.Random(0))
 
     assert action == BettingAction.CHECK
     assert amount == 0.0
@@ -308,9 +304,7 @@ def test_decide_multiplayer_action_default_uses_decide_action(monkeypatch):
 
     monkeypatch.setattr(hand_engine, "decide_action", lambda **_: (BettingAction.CHECK, 0.0))
 
-    action, amount = hand_engine._decide_multiplayer_action(
-        0, state, {}, rng=random.Random(0)
-    )
+    action, amount = hand_engine._decide_multiplayer_action(0, state, {}, rng=random.Random(0))
 
     assert action == BettingAction.CHECK
     assert amount == 0.0

@@ -23,11 +23,7 @@ class TestWorldRegistry:
     def test_create_tank_world_with_config(self):
         """Test creating tank world with custom configuration."""
         world = WorldRegistry.create_world(
-            "tank",
-            seed=42,
-            max_population=50,
-            screen_width=800,
-            screen_height=600
+            "tank", seed=42, max_population=50, screen_width=800, screen_height=600
         )
         assert isinstance(world, TankWorldBackendAdapter)
 
@@ -248,7 +244,7 @@ class TestStepResult:
             events=[{"type": "test"}],
             metrics={"count": 5},
             done=True,
-            info={"custom": "value"}
+            info={"custom": "value"},
         )
 
         assert result.obs_by_agent == {"agent1": {"pos": [0, 0]}}

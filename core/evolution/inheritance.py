@@ -61,8 +61,7 @@ def inherit_trait(
 
     # Apply mutation
     inherited = mutate_continuous_trait(
-        inherited, min_val, max_val,
-        mutation_rate, mutation_strength, rng
+        inherited, min_val, max_val, mutation_rate, mutation_strength, rng
     )
 
     return inherited
@@ -99,10 +98,7 @@ def inherit_discrete_trait(
     inherited = val1 if rng.random() < weight1 else val2
 
     # Apply mutation
-    inherited = mutate_discrete_trait(
-        inherited, min_val, max_val,
-        mutation_rate, rng
-    )
+    inherited = mutate_discrete_trait(inherited, min_val, max_val, mutation_rate, rng)
 
     return inherited
 

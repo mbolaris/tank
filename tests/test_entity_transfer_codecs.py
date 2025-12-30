@@ -39,8 +39,7 @@ def test_fish_transfer_round_trip() -> None:
     assert restored.energy == pytest.approx(data["energy"])
     assert restored.generation == data["generation"]
     assert (
-        restored.genome.behavioral.mate_preferences.value
-        == data["genome_data"]["mate_preferences"]
+        restored.genome.behavioral.mate_preferences.value == data["genome_data"]["mate_preferences"]
     )
     assert restored.genome.physical.lifespan_modifier.value == pytest.approx(
         data["genome_data"]["lifespan_modifier"]

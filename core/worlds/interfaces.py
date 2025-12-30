@@ -45,7 +45,9 @@ class MultiAgentWorldBackend(ABC):
     """
 
     @abstractmethod
-    def reset(self, seed: Optional[int] = None, scenario: Optional[Dict[str, Any]] = None) -> StepResult:
+    def reset(
+        self, seed: Optional[int] = None, scenario: Optional[Dict[str, Any]] = None
+    ) -> StepResult:
         """Reset the world to initial state.
 
         Args:

@@ -2,7 +2,7 @@
 
 This module handles the mechanics of a single betting round including:
 - Player action selection
-- Bet/call/raise/fold processing  
+- Bet/call/raise/fold processing
 - Round completion detection
 
 Design Decision:
@@ -59,7 +59,7 @@ def decide_player_action(
     # Evaluate current hand strength
     hole_cards = game_state.player_hole_cards[player_idx]
     is_preflop = len(game_state.community_cards) == 0
-    position_on_button = (player_idx == game_state.button_position)
+    position_on_button = player_idx == game_state.button_position
 
     if is_preflop and hole_cards and len(hole_cards) == 2:
         # Pre-flop: use proper starting hand evaluation
@@ -93,9 +93,10 @@ def decide_player_action(
     _rng = rng
     if _rng is None:
         from core.util.rng import require_rng
+
         player_env = getattr(player, "environment", None)
         _rng = require_rng(player_env, "decide_player_action.aggression_fallback")
-        
+
     aggression = ctx.aggression
     play_strength = hand_strength + (aggression - 0.5) * 0.2 + _rng.uniform(-0.1, 0.1)
 
@@ -163,8 +164,7 @@ def play_betting_round(
     while actions_this_round < max_actions:
         # Safety check: if all active players are all-in, we're done
         active_can_act = [
-            i for i in range(num_players)
-            if not contexts[i].folded and not contexts[i].is_all_in
+            i for i in range(num_players) if not contexts[i].folded and not contexts[i].is_all_in
         ]
         if not active_can_act:
             return game_state.get_active_player_count() > 1
@@ -233,7 +233,9 @@ def play_betting_round(
                     contexts[current_pos].remaining_energy -= call_amount
                     contexts[current_pos].current_bet += call_amount
                     modify_player_energy(players[current_pos], -call_amount)
-                    game_state.betting_history.append((current_pos, BettingAction.CALL, call_amount))
+                    game_state.betting_history.append(
+                        (current_pos, BettingAction.CALL, call_amount)
+                    )
                 else:
                     game_state.betting_history.append((current_pos, BettingAction.CHECK, 0.0))
                 players_acted.add(current_pos)
@@ -246,8 +248,7 @@ def play_betting_round(
 
         # Check if betting round is complete
         active_players = [
-            i for i in range(num_players)
-            if not contexts[i].folded and not contexts[i].is_all_in
+            i for i in range(num_players) if not contexts[i].folded and not contexts[i].is_all_in
         ]
 
         if not active_players:
@@ -256,8 +257,7 @@ def play_betting_round(
         # All active players have acted and bets are equal
         max_bet = game_state.get_max_current_bet()
         all_matched = all(
-            contexts[i].current_bet == max_bet or contexts[i].is_all_in
-            for i in active_players
+            contexts[i].current_bet == max_bet or contexts[i].is_all_in for i in active_players
         )
         all_acted = all(i in players_acted for i in active_players)
 

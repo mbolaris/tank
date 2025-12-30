@@ -62,10 +62,18 @@ def test_algorithm_crossover():
     behavior1 = genome1.behavioral.behavior.value
     behavior2 = genome2.behavioral.behavior.value
 
-    print(f"Parent 1 threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}")
-    print(f"Parent 1 food approach: {behavior1.food_approach.name if behavior1.food_approach else 'None'}")
-    print(f"Parent 2 threat response: {behavior2.threat_response.name if behavior2.threat_response else 'None'}")
-    print(f"Parent 2 food approach: {behavior2.food_approach.name if behavior2.food_approach else 'None'}")
+    print(
+        f"Parent 1 threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}"
+    )
+    print(
+        f"Parent 1 food approach: {behavior1.food_approach.name if behavior1.food_approach else 'None'}"
+    )
+    print(
+        f"Parent 2 threat response: {behavior2.threat_response.name if behavior2.threat_response else 'None'}"
+    )
+    print(
+        f"Parent 2 food approach: {behavior2.food_approach.name if behavior2.food_approach else 'None'}"
+    )
     print()
 
     # Test crossover multiple times to see variation
@@ -102,7 +110,7 @@ def test_same_algorithm_parameter_blending():
 
     # Create two parents with same algorithm type but different parameters
     from core.algorithms.food_seeking import GreedyFoodSeeker
-    
+
     algo1 = GreedyFoodSeeker()
     algo1.parameters = {"speed_multiplier": 0.8, "detection_range": 0.6}
 

@@ -18,16 +18,12 @@ class EnergyTracker:
         self.energy_sources: Dict[str, float] = defaultdict(float)
 
         # Rolling per-frame energy gains.
-        self.recent_energy_gains: deque[Tuple[int, Dict[str, float]]] = deque(
-            maxlen=window_maxlen
-        )
+        self.recent_energy_gains: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=window_maxlen)
         self._current_frame_gains: Dict[str, float] = defaultdict(float)
 
         # Rolling per-frame energy burns.
         self.energy_burn: Dict[str, float] = defaultdict(float)
-        self.recent_energy_burns: deque[Tuple[int, Dict[str, float]]] = deque(
-            maxlen=window_maxlen
-        )
+        self.recent_energy_burns: deque[Tuple[int, Dict[str, float]]] = deque(maxlen=window_maxlen)
         self._current_frame_burns: Dict[str, float] = defaultdict(float)
 
         # Plant energy tracking (separate pool).
@@ -229,9 +225,7 @@ class EnergyTracker:
             self.energy_history.append((self.frame_count, total_fish_energy, fish_count))
             self._last_snapshot_frame = self.frame_count
 
-    def get_energy_delta(
-        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, Any]:
+    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, Any]:
         """Calculate the true change in fish population energy over a time window."""
         if not self.energy_history:
             return {

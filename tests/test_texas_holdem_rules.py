@@ -20,10 +20,13 @@ from core.poker.core import (
     resolve_bet,
     simulate_multi_round_game,
 )
-from core.poker.simulation.hand_engine import MultiplayerGameState, MultiplayerPlayerContext, _apply_multiplayer_action
+from core.poker.simulation.hand_engine import (
+    MultiplayerGameState,
+    MultiplayerPlayerContext,
+    _apply_multiplayer_action,
+)
 from core.poker.evaluation.hand_evaluator import _evaluate_five_cards
 from core.poker.core.cards import Card, Rank, Suit
-
 
 
 @pytest.mark.manual
@@ -37,7 +40,9 @@ def test_minimum_raise_enforcement():
     state = PokerGameState(small_blind=5.0, big_blind=10.0, button_position=1)
 
     # Verify initial min_raise is big blind
-    assert state.min_raise == 10.0, f"Initial min_raise should be big blind (10), got {state.min_raise}"
+    assert (
+        state.min_raise == 10.0
+    ), f"Initial min_raise should be big blind (10), got {state.min_raise}"
     print(f"  Initial min_raise: {state.min_raise} (= big blind)")
 
     # Test that after advance_round, min_raise resets to big blind
@@ -66,7 +71,6 @@ def test_minimum_raise_enforcement():
 
     print("  ✓ Ran 20 games, all raises were valid")
     print("PASSED: Minimum raise enforcement working\n")
-
 
 
 @pytest.mark.manual
@@ -107,7 +111,6 @@ def test_all_in_raise_downgrades_to_call_when_under_minimum():
     assert state.betting_history[-1][2] == 5.0
     assert state.players[0].current_bet == 15.0
     assert state.players[0].remaining_energy == 0.0
-
 
 
 @pytest.mark.manual
@@ -153,7 +156,6 @@ def test_wheel_straight():
     print("PASSED: Wheel straight handled correctly\n")
 
 
-
 @pytest.mark.manual
 def test_wheel_straight_flush():
     """Test that A-2-3-4-5 suited is a straight flush (not royal flush)."""
@@ -195,7 +197,6 @@ def test_wheel_straight_flush():
     print("PASSED: Wheel straight flush handled correctly\n")
 
 
-
 @pytest.mark.manual
 def test_headsup_blinds_order():
     """Test that heads-up blinds follow correct rules.
@@ -229,7 +230,6 @@ def test_headsup_blinds_order():
     print("  ✓ Button acts first pre-flop (correct)")
 
     print("PASSED: Heads-up blinds order correct\n")
-
 
 
 @pytest.mark.manual
@@ -277,7 +277,6 @@ def test_kicker_comparison():
     print("PASSED: Kicker comparison working correctly\n")
 
 
-
 @pytest.mark.manual
 def test_best_five_from_seven():
     """Test that the best 5-card hand is selected from 7 cards."""
@@ -308,7 +307,6 @@ def test_best_five_from_seven():
     print("  ✓ Correctly plays the board (Broadway straight)")
 
     print("PASSED: Best 5 from 7 selection working\n")
-
 
 
 @pytest.mark.manual
@@ -350,7 +348,6 @@ def test_split_pot_ties():
     print("PASSED: Split pot handling correct\n")
 
 
-
 @pytest.mark.manual
 def test_table_stakes_all_in():
     """Test that players can go all-in when they can't cover the full bet (Table Stakes rule)."""
@@ -359,6 +356,7 @@ def test_table_stakes_all_in():
     print("=" * 60)
 
     import random
+
     rng = random.Random(42)
 
     # Create a mock hand for testing
@@ -413,7 +411,6 @@ def test_table_stakes_all_in():
     print("PASSED: Table Stakes (All-In) rule working correctly\n")
 
 
-
 @pytest.mark.manual
 def test_unmatched_bets_refund():
     """Test that excess bets are refunded when one player is all-in for less."""
@@ -427,7 +424,7 @@ def test_unmatched_bets_refund():
         game = simulate_multi_round_game(
             initial_bet=10.0,
             player1_energy=100.0,  # Rich player
-            player2_energy=15.0,   # Poor player (can only afford ~15)
+            player2_energy=15.0,  # Poor player (can only afford ~15)
             button_position=1,
         )
 
@@ -453,7 +450,6 @@ def test_unmatched_bets_refund():
     print("PASSED: Unmatched bets handling correct\n")
 
 
-
 @pytest.mark.manual
 def test_interleaved_dealing():
     """Test that cards are dealt in interleaved order (P1, P2, P1, P2)."""
@@ -466,8 +462,12 @@ def test_interleaved_dealing():
     state.deal_cards()
 
     # Both players should have exactly 2 cards
-    assert len(state.player1_hole_cards) == 2, f"Player 1 should have 2 cards, got {len(state.player1_hole_cards)}"
-    assert len(state.player2_hole_cards) == 2, f"Player 2 should have 2 cards, got {len(state.player2_hole_cards)}"
+    assert (
+        len(state.player1_hole_cards) == 2
+    ), f"Player 1 should have 2 cards, got {len(state.player1_hole_cards)}"
+    assert (
+        len(state.player2_hole_cards) == 2
+    ), f"Player 2 should have 2 cards, got {len(state.player2_hole_cards)}"
 
     # All 4 cards should be unique (no duplicates)
     all_cards = state.player1_hole_cards + state.player2_hole_cards
@@ -480,7 +480,6 @@ def test_interleaved_dealing():
     print("  ✓ Cards dealt alternating (P1, P2, P1, P2)")
 
     print("PASSED: Interleaved dealing working correctly\n")
-
 
 
 @pytest.mark.manual
@@ -506,7 +505,9 @@ def test_finalize_pot_distribution():
     payout1, payout2 = finalize_pot(state1)
     print("  Test 1: P1 has Aces, P2 has Kings")
     print(f"  Pot: {state1.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
-    assert payout1 == 100.0 and payout2 == 0.0, f"P1 should win full pot, got ({payout1}, {payout2})"
+    assert (
+        payout1 == 100.0 and payout2 == 0.0
+    ), f"P1 should win full pot, got ({payout1}, {payout2})"
     print("  ✓ Player 1 wins entire pot with better hand")
 
     # Test 2: Player 2 wins by fold
@@ -537,7 +538,9 @@ def test_finalize_pot_distribution():
     payout1, payout2 = finalize_pot(state3)
     print("\n  Test 3: Both play the board (Broadway straight)")
     print(f"  Pot: {state3.pot}, P1 gets: {payout1}, P2 gets: {payout2}")
-    assert payout1 == 50.0 and payout2 == 50.0, f"Pot should be split 50/50, got ({payout1}, {payout2})"
+    assert (
+        payout1 == 50.0 and payout2 == 50.0
+    ), f"Pot should be split 50/50, got ({payout1}, {payout2})"
     print("  ✓ Pot is split equally on tie (no money vanishes)")
 
     print("\nPASSED: Finalize pot distribution working correctly\n")

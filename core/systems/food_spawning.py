@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SpawnRateConfig:
     """Configuration for dynamic food spawn rates.
-    
+
     Attributes:
         base_rate: Base frames between spawns (lower = faster)
         ultra_low_energy_threshold: Total energy below this triggers 4x spawning
@@ -51,6 +51,7 @@ class SpawnRateConfig:
         high_pop_threshold_2: Population above this further reduces spawning
         live_food_chance: Probability of spawning live (moving) food
     """
+
     base_rate: int = AUTO_FOOD_SPAWN_RATE
     ultra_low_energy_threshold: float = AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD
     low_energy_threshold: float = AUTO_FOOD_LOW_ENERGY_THRESHOLD
@@ -103,8 +104,8 @@ class FoodSpawningSystem(BaseSystem):
         self._rng = require_rng_param(rng, "__init__")
         self.config = spawn_rate_config if spawn_rate_config is not None else SpawnRateConfig()
         self._auto_food_enabled = auto_food_enabled
-        self._screen_width = (display_config.screen_width if display_config else SCREEN_WIDTH)
-        self._screen_height = (display_config.screen_height if display_config else SCREEN_HEIGHT)
+        self._screen_width = display_config.screen_width if display_config else SCREEN_WIDTH
+        self._screen_height = display_config.screen_height if display_config else SCREEN_HEIGHT
         self._total_spawned: int = 0
         self._frames_since_spawn: int = 0
         self._last_spawn_rate: int = self.config.base_rate
@@ -142,7 +143,8 @@ class FoodSpawningSystem(BaseSystem):
             entities_spawned=spawned_count,
             details={
                 "spawn_rate": spawn_rate,
-                "live_food": spawned_count > 0 and self._rng.random() < self.config.live_food_chance,
+                "live_food": spawned_count > 0
+                and self._rng.random() < self.config.live_food_chance,
             },
         )
 
@@ -155,7 +157,7 @@ class FoodSpawningSystem(BaseSystem):
             Frames between spawns (adjusted for ecosystem health)
         """
         base_rate = self.config.base_rate
-        
+
         # Get ecosystem state
         ecosystem = self._engine.ecosystem
         if ecosystem is None:
@@ -163,7 +165,7 @@ class FoodSpawningSystem(BaseSystem):
 
         fish_list = self._engine.get_fish_list()
         fish_count = len(fish_list)
-        
+
         # Calculate total fish energy
         total_energy = sum(f.energy for f in fish_list)
 

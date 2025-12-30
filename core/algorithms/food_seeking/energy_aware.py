@@ -1,6 +1,5 @@
 """EnergyAwareFoodSeeker food-seeking behavior."""
 
-
 import math
 import random
 from dataclasses import dataclass
@@ -14,6 +13,7 @@ from core.config.food import (
 )
 from core.entities import Crab
 from core.math_utils import Vector2
+
 
 @dataclass
 class EnergyAwareFoodSeeker(BehaviorAlgorithm):
@@ -98,7 +98,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
 
             # Apply hunting stamina bonus - maintain higher speed longer
             if hunting_stamina > 0.6:
-                speed *= (1.0 + (hunting_stamina - 0.6) * 0.5)
+                speed *= 1.0 + (hunting_stamina - 0.6) * 0.5
 
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             return direction.x * speed, direction.y * speed

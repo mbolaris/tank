@@ -284,7 +284,9 @@ class TestSkillGameComponent:
                 mutation_detected = True
                 break
 
-        assert mutation_detected, f"Expected mutation after multiple attempts, got parent={parent_params}, child={child_params}"
+        assert (
+            mutation_detected
+        ), f"Expected mutation after multiple attempts, got parent={parent_params}, child={child_params}"
 
 
 class TestConfig:

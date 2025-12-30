@@ -144,9 +144,7 @@ class Plant(Agent):
         """Update plant size based on current energy."""
         # Size scales with energy
         energy_ratio = self.energy / self.max_energy
-        size_multiplier = PLANT_MIN_SIZE + (
-            (PLANT_MAX_SIZE - PLANT_MIN_SIZE) * energy_ratio
-        )
+        size_multiplier = PLANT_MIN_SIZE + ((PLANT_MAX_SIZE - PLANT_MIN_SIZE) * energy_ratio)
 
         self.set_size(
             PLANT_BASE_WIDTH * size_multiplier,
@@ -236,7 +234,7 @@ class Plant(Agent):
         Energy collection rate increases with current energy (compound growth).
         Photosynthesis rate varies with time of day:
         - Day (0.35-0.65): Full rate
-        - Dawn/Dusk: 70% rate  
+        - Dawn/Dusk: 70% rate
         - Night: 30% rate
 
         Args:
@@ -250,7 +248,7 @@ class Plant(Agent):
         # Small plants (<30% energy): seedling boost to help recovery (1.5-2.0x)
         # This prevents the "rich get richer" problem where small plants struggle
         energy_ratio = self.energy / self.max_energy
-        
+
         if energy_ratio < 0.3:
             # Seedling boost: inverse relationship - smaller plants grow faster
             # At 0% energy: 3.0x, at 30% energy: 1.5x (smooth transition to standard)
@@ -260,7 +258,7 @@ class Plant(Agent):
         else:
             # Standard compound growth for established plants (1.0-1.5x)
             # Uses sqrt to prevent runaway growth
-            growth_factor = 1.0 + (energy_ratio ** 0.5) * 0.5
+            growth_factor = 1.0 + (energy_ratio**0.5) * 0.5
 
         # Calculate photosynthesis modifier based on time of day
         # This was previously incorrectly using fish activity modifier (0.5-1.0)
@@ -369,14 +367,18 @@ class Plant(Agent):
         floral_visuals = {}
         if self.genome.strategy_type:
             try:
-                from core.plants.plant_strategy_types import PlantStrategyType, get_strategy_visual_config
+                from core.plants.plant_strategy_types import (
+                    PlantStrategyType,
+                    get_strategy_visual_config,
+                )
+
                 strategy_type = PlantStrategyType(self.genome.strategy_type)
                 config = get_strategy_visual_config(strategy_type)
-                
+
                 # Calculate average hue from range for consistent look
                 hue = (config.color_hue_range[0] + config.color_hue_range[1]) / 2
                 sat = (config.color_saturation_range[0] + config.color_saturation_range[1]) / 2
-                
+
                 floral_visuals = {
                     "floral_type": config.floral_type,
                     "floral_petals": config.floral_petals,
@@ -387,17 +389,17 @@ class Plant(Agent):
                 }
             except Exception:
                 pass
-        
+
         # If no strategy specific visuals (e.g. evolved/legacy plant), use genome colors
         if not floral_visuals:
-             floral_visuals = {
-                "floral_type": "vortex", # Default
+            floral_visuals = {
+                "floral_type": "vortex",  # Default
                 "floral_hue": self.genome.color_hue,
                 "floral_saturation": self.genome.color_saturation,
                 "floral_petals": 5,
                 "floral_layers": 3,
-                "floral_spin": 1.0
-             }
+                "floral_spin": 1.0,
+            }
 
         return PlantNectar(
             environment=self.environment,
@@ -436,7 +438,9 @@ class Plant(Agent):
         self.energy -= actual_loss
         self._update_size()
         if actual_loss > 0:
-            logger.debug(f"Plant #{self.plant_id} lost {actual_loss:.1f} energy ({source}): {before:.1f} -> {self.energy:.1f}")
+            logger.debug(
+                f"Plant #{self.plant_id} lost {actual_loss:.1f} energy ({source}): {before:.1f} -> {self.energy:.1f}"
+            )
             self._emit_event(EnergyBurnEvent(source, actual_loss, scope="plant"))
         return actual_loss
 
@@ -512,13 +516,15 @@ class Plant(Agent):
         # Check explicit state first (e.g. migrated)
         if self.state.state in (EntityState.DEAD, EntityState.REMOVED):
             return True
-            
+
         # Check condition-based death (low energy)
         if self.energy < PLANT_DEATH_ENERGY:
-            logger.debug(f"Plant #{self.plant_id} died from low energy ({self.energy:.1f} < {PLANT_DEATH_ENERGY})")
+            logger.debug(
+                f"Plant #{self.plant_id} died from low energy ({self.energy:.1f} < {PLANT_DEATH_ENERGY})"
+            )
             self.state.transition(EntityState.DEAD, reason="low_energy")
             return True
-            
+
         return False
 
     def get_size_multiplier(self) -> float:
@@ -528,9 +534,7 @@ class Plant(Agent):
             Size multiplier (0.3 to 1.5)
         """
         energy_ratio = self.energy / self.max_energy
-        return PLANT_MIN_SIZE + (
-            (PLANT_MAX_SIZE - PLANT_MIN_SIZE) * energy_ratio
-        )
+        return PLANT_MIN_SIZE + ((PLANT_MAX_SIZE - PLANT_MIN_SIZE) * energy_ratio)
 
     def get_fractal_iterations(self) -> int:
         """Get number of L-system iterations based on size.
@@ -586,6 +590,7 @@ class Plant(Agent):
                 PlantStrategyType,
                 get_poker_strategy_for_type,
             )
+
             try:
                 strategy_type = PlantStrategyType(self.genome.strategy_type)
                 # Use environment RNG if available for determinism
@@ -593,9 +598,10 @@ class Plant(Agent):
                 return get_poker_strategy_for_type(strategy_type, rng=rng)
             except ValueError:
                 pass  # Fall through to genome-based strategy
-        
+
         # Fall back to genome-based strategy (legacy behavior)
         from core.plant_poker_strategy import PlantPokerStrategyAdapter
+
         return PlantPokerStrategyAdapter(self.genome)
 
     def get_poker_id(self) -> int:
@@ -606,7 +612,14 @@ class Plant(Agent):
         """
         return self.plant_id + 100000
 
-    def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
+    def set_poker_effect(
+        self,
+        status: str,
+        amount: float = 0.0,
+        duration: int = 15,
+        target_id: Optional[int] = None,
+        target_type: Optional[str] = None,
+    ) -> None:
         """Set a visual effect for poker status.
 
         Args:
@@ -650,7 +663,9 @@ class Plant(Agent):
 
         # Determine if this plant is in an edge position
         # Edge positions are the first 2 or last 2 spots out of 25
-        total_spots = len(self.root_spot.manager.spots) if hasattr(self.root_spot, "manager") else 25
+        total_spots = (
+            len(self.root_spot.manager.spots) if hasattr(self.root_spot, "manager") else 25
+        )
         edge_threshold = 2  # Consider first 2 and last 2 spots as "edge"
 
         spot_id = self.root_spot.spot_id
@@ -727,9 +742,9 @@ class Plant(Agent):
             "iterations": self.get_fractal_iterations(),
             "genome": self.genome.to_dict(),
             "age": self.age,
-            "nectar_ready": self.nectar_cooldown == 0 
-                and self.energy >= PLANT_NECTAR_ENERGY 
-                and self.energy / self.max_energy >= 0.90,
+            "nectar_ready": self.nectar_cooldown == 0
+            and self.energy >= PLANT_NECTAR_ENERGY
+            and self.energy / self.max_energy >= 0.90,
             "poker_effect_state": self.poker_effect_state,
         }
 
@@ -793,9 +808,13 @@ class PlantNectar(Food):
             # Calculate position from base going up
             base_y = self.source_plant.pos.y + self.source_plant.height
             self.pos.x = self.source_plant.pos.x + self.source_plant.width / 2 - self.width / 2
-            self.pos.y = base_y - self.source_plant.height * self.relative_y_offset_pct - self.height / 2
+            self.pos.y = (
+                base_y - self.source_plant.height * self.relative_y_offset_pct - self.height / 2
+            )
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update nectar state."""
         from core.entities.base import EntityUpdateResult
 
@@ -859,11 +878,11 @@ class PlantNectar(Food):
             "energy": self.energy,
             "source_plant_id": self.source_plant.plant_id if self.source_plant else None,
         }
-        
+
         # Add visual properties
         if self.floral_visuals:
             result.update(self.floral_visuals)
-            
+
         # Add source plant position for sway synchronization
         if self.source_plant:
             result["source_plant_x"] = self.source_plant.pos.x + self.source_plant.width / 2

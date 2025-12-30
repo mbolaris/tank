@@ -28,7 +28,7 @@ def test_tank_world_is_registered() -> None:
 def test_create_tank_world_returns_tuple() -> None:
     """create_world should return (world, snapshot_builder) tuple."""
     world, snapshot_builder = create_world("tank", seed=42)
-    
+
     assert world is not None
     assert snapshot_builder is not None
 
@@ -36,12 +36,12 @@ def test_create_tank_world_returns_tuple() -> None:
 def test_tank_world_satisfies_world_backend_protocol() -> None:
     """TankWorld should satisfy the WorldBackend protocol."""
     world, _ = create_world("tank", seed=42)
-    
+
     # Check required properties exist
     assert hasattr(world, "frame_count")
     assert hasattr(world, "paused")
     assert hasattr(world, "entities_list")
-    
+
     # Check required methods exist
     assert hasattr(world, "setup")
     assert hasattr(world, "update")
@@ -52,7 +52,7 @@ def test_tank_world_satisfies_world_backend_protocol() -> None:
 def test_tank_snapshot_builder_satisfies_protocol() -> None:
     """TankSnapshotBuilder should satisfy the SnapshotBuilder protocol."""
     _, snapshot_builder = create_world("tank", seed=42)
-    
+
     assert isinstance(snapshot_builder, TankSnapshotBuilder)
     assert hasattr(snapshot_builder, "collect")
     assert hasattr(snapshot_builder, "to_snapshot")
@@ -61,7 +61,7 @@ def test_tank_snapshot_builder_satisfies_protocol() -> None:
 def test_world_metadata() -> None:
     """World metadata should include view_mode."""
     metadata = get_world_metadata("tank")
-    
+
     assert metadata is not None
     assert metadata.world_type == "tank"
     assert metadata.view_mode == "side"
@@ -72,10 +72,10 @@ def test_world_runner_delegates_step() -> None:
     """WorldRunner.step() should call world.update()."""
     world, snapshot_builder = create_world("tank", seed=42)
     runner = WorldRunner(world, snapshot_builder, world_type="tank")
-    
+
     initial_frame = runner.frame_count
     runner.step()
-    
+
     # Frame count should advance (unless paused)
     assert runner.frame_count >= initial_frame
 
@@ -84,9 +84,9 @@ def test_world_runner_exposes_world_info() -> None:
     """WorldRunner should expose world_type and view_mode."""
     world, snapshot_builder = create_world("tank", seed=42)
     runner = WorldRunner(world, snapshot_builder, world_type="tank", view_mode="side")
-    
+
     info = runner.get_world_info()
-    
+
     assert info["world_type"] == "tank"
     assert info["view_mode"] == "side"
 
@@ -95,9 +95,9 @@ def test_world_runner_gets_entity_snapshots() -> None:
     """WorldRunner.get_entities_snapshot() should return list of snapshots."""
     world, snapshot_builder = create_world("tank", seed=42)
     runner = WorldRunner(world, snapshot_builder, world_type="tank")
-    
+
     snapshots = runner.get_entities_snapshot()
-    
+
     # Should return a list (may be empty if no entities yet)
     assert isinstance(snapshots, list)
 

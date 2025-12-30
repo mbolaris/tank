@@ -311,7 +311,7 @@ def compute_population_elo_stats(
 
     if len(ratings) > 1:
         variance = sum((r - mean_rating) ** 2 for r in ratings) / len(ratings)
-        std_rating = variance ** 0.5
+        std_rating = variance**0.5
     else:
         std_rating = 0.0
 

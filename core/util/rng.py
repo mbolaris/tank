@@ -11,36 +11,38 @@ from typing import Any, Optional
 
 class MissingRNGError(RuntimeError):
     """Raised when an RNG is required but not available.
-    
+
     This error indicates a bug in the simulation setup - all entities
     should have access to the engine's RNG via their environment.
     """
+
     pass
 
 
 def _is_test_environment() -> bool:
     """Check if we are running inside a test runner."""
     import sys
+
     return "pytest" in sys.modules or "unittest" in sys.modules
 
 
 def require_rng(environment: Any, context: str = "unknown") -> random.Random:
     """Get the RNG from an environment, failing loudly if unavailable.
-    
+
     Use this instead of `getattr(env, "rng", None) or random.Random()`
     to ensure determinism - we want to know immediately if RNG access
     fails rather than silently creating non-deterministic behavior.
-    
+
     Args:
         environment: The environment object that should have an `rng` property
         context: Description of where this is called from (for error messages)
-        
+
     Returns:
         The environment's RNG
-        
+
     Raises:
         MissingRNGError: If environment is None or doesn't have an RNG
-        
+
     Example:
         rng = require_rng(self.environment, "Fish.reproduce")
         offspring_x = rng.uniform(-10, 10)
@@ -49,7 +51,7 @@ def require_rng(environment: Any, context: str = "unknown") -> random.Random:
         rng = getattr(environment, "rng", None)
         if rng is not None:
             return rng
-    
+
     # Fallback for tests to avoid breaking dozens of existing unit tests
     # while keeping production code strict.
     if _is_test_environment():
@@ -60,7 +62,7 @@ def require_rng(environment: Any, context: str = "unknown") -> random.Random:
             f"Cannot get RNG: environment is None (context: {context}). "
             "This entity may not have been properly initialized with an environment."
         )
-    
+
     raise MissingRNGError(
         f"Cannot get RNG: environment has no 'rng' attribute (context: {context}). "
         "The environment should be a World with a deterministic RNG."
@@ -69,20 +71,20 @@ def require_rng(environment: Any, context: str = "unknown") -> random.Random:
 
 def require_rng_param(rng: Optional[random.Random], context: str) -> random.Random:
     """Validate that an RNG parameter was provided, failing loudly if not.
-    
+
     Use this in constructors and methods that require an RNG to be passed in,
     instead of silently creating an unseeded fallback.
-    
+
     Args:
         rng: The RNG that should have been provided
         context: Description of where this is called from (for error messages)
-        
+
     Returns:
         The validated RNG
-        
+
     Raises:
         MissingRNGError: If rng is None
-        
+
     Example:
         def __init__(self, rng: Optional[random.Random] = None):
             _rng = require_rng_param(rng, "AggressiveHunter.__init__")
@@ -90,15 +92,13 @@ def require_rng_param(rng: Optional[random.Random], context: str) -> random.Rand
     """
     if rng is not None:
         return rng
-        
+
     # Fallback for tests to avoid breaking dozens of existing unit tests
     # while keeping production code strict.
     if _is_test_environment():
         return random.Random(42)
 
-    raise MissingRNGError(
-        f"RNG required: {context}. Pass engine/environment RNG explicitly."
-    )
+    raise MissingRNGError(f"RNG required: {context}. Pass engine/environment RNG explicitly.")
 
 
 def get_rng_or_default(
@@ -107,18 +107,18 @@ def get_rng_or_default(
     context: str = "unknown",
 ) -> random.Random:
     """Get environment RNG, with explicit fallback for non-simulation contexts.
-    
+
     This is for code paths that may run outside of simulation (tests, utilities)
     where an RNG might not be available. Use require_rng() for core simulation code.
-    
+
     Args:
         environment: The environment object (can be None)
         fallback_rng: Explicit fallback RNG to use (must be provided, not created)
         context: Description of where this is called from
-        
+
     Returns:
         The environment's RNG, or the fallback if provided
-        
+
     Raises:
         MissingRNGError: If environment has no RNG and no fallback was provided
     """
@@ -126,10 +126,10 @@ def get_rng_or_default(
         rng = getattr(environment, "rng", None)
         if rng is not None:
             return rng
-    
+
     if fallback_rng is not None:
         return fallback_rng
-    
+
     raise MissingRNGError(
         f"Cannot get RNG: environment is None/has no rng and no fallback provided "
         f"(context: {context}). Pass an explicit fallback_rng for non-simulation code."

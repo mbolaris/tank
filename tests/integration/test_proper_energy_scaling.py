@@ -42,9 +42,9 @@ class MockEcosystem:
 
 def test_with_scaled_energy():
     """Test with energy properly scaled to fish's max_energy."""
-    print("="*70)
+    print("=" * 70)
     print("PROPERLY SCALED ENERGY TEST")
-    print("="*70)
+    print("=" * 70)
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -63,7 +63,7 @@ def test_with_scaled_energy():
         genome=genome1,
         generation=1,
         ecosystem=ecosystem,
-        initial_energy=50.0  # Placeholder
+        initial_energy=50.0,  # Placeholder
     )
 
     fish2 = Fish(
@@ -76,7 +76,7 @@ def test_with_scaled_energy():
         genome=genome2,
         generation=1,
         ecosystem=ecosystem,
-        initial_energy=50.0  # Placeholder
+        initial_energy=50.0,  # Placeholder
     )
 
     # NOW set energy to 95% of their actual max_energy
@@ -93,16 +93,24 @@ def test_with_scaled_energy():
     env.agents = [fish1, fish2]
 
     print("\nBEFORE POKER:")
-    print(f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)")
-    print(f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)")
+    print(
+        f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)"
+    )
+    print(
+        f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)"
+    )
 
     # Play poker
     poker = PokerInteraction([fish1, fish2])
     _success = poker.play_poker()
 
     print("\nAFTER POKER:")
-    print(f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)")
-    print(f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)")
+    print(
+        f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)"
+    )
+    print(
+        f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)"
+    )
 
     if poker.result:
         print("\nPOKER RESULT:")
@@ -115,15 +123,20 @@ def test_with_scaled_energy():
         loser_fish = fish2 if poker.result.winner_id == fish1.fish_id else fish1
 
         print("\nREPRODUCTION CHECK:")
-        print(f"  Winner: {winner_fish.energy:.1f} / {winner_fish.max_energy:.1f} ({winner_fish.energy/winner_fish.max_energy*100:.1f}%)")
-        print(f"  Loser: {loser_fish.energy:.1f} / {loser_fish.max_energy:.1f} ({loser_fish.energy/loser_fish.max_energy*100:.1f}%)")
+        print(
+            f"  Winner: {winner_fish.energy:.1f} / {winner_fish.max_energy:.1f} ({winner_fish.energy/winner_fish.max_energy*100:.1f}%)"
+        )
+        print(
+            f"  Loser: {loser_fish.energy:.1f} / {loser_fish.max_energy:.1f} ({loser_fish.energy/loser_fish.max_energy*100:.1f}%)"
+        )
         print(f"  Winner above 90%: {winner_fish.energy >= winner_fish.max_energy * 0.9}")
         print(f"  Loser above 90%: {loser_fish.energy >= loser_fish.max_energy * 0.9}")
 
         # Check if reproduction would be triggered using the new API
         from core.poker_interaction import should_trigger_reproduction
+
         can_reproduce = should_trigger_reproduction(winner_fish, loser_fish)
-        
+
         if can_reproduce:
             print("\n✓✓✓ SUCCESS! REPRODUCTION CONDITIONS MET!")
         else:
@@ -134,7 +147,9 @@ def test_with_scaled_energy():
                 deficit = (loser_fish.max_energy * 0.9) - loser_fish.energy
                 print(f"  Loser is {deficit:.1f} energy short of 90% threshold")
                 print(f"  Loser lost {poker.result.energy_transferred:.1f} energy in poker")
-                print(f"  This dropped them from 95% to {loser_fish.energy/loser_fish.max_energy*100:.1f}%")
+                print(
+                    f"  This dropped them from 95% to {loser_fish.energy/loser_fish.max_energy*100:.1f}%"
+                )
 
 
 if __name__ == "__main__":

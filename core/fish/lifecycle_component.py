@@ -54,7 +54,14 @@ class LifecycleComponent:
         genetic_size_modifier: Genetic body size trait (0.5-2.0).
     """
 
-    __slots__ = ("age", "max_age", "genetic_size_modifier", "_state_machine", "size", "_track_history")
+    __slots__ = (
+        "age",
+        "max_age",
+        "genetic_size_modifier",
+        "_state_machine",
+        "size",
+        "_track_history",
+    )
 
     def __init__(
         self,
@@ -131,9 +138,16 @@ class LifecycleComponent:
             # Determine immediate next stage based on standard lifecycle order
             # BABY -> JUVENILE -> ADULT -> ELDER
             next_step = None
-            if current_stage == LifeStage.BABY and target_stage in (LifeStage.JUVENILE, LifeStage.ADULT, LifeStage.ELDER):
+            if current_stage == LifeStage.BABY and target_stage in (
+                LifeStage.JUVENILE,
+                LifeStage.ADULT,
+                LifeStage.ELDER,
+            ):
                 next_step = LifeStage.JUVENILE
-            elif current_stage == LifeStage.JUVENILE and target_stage in (LifeStage.ADULT, LifeStage.ELDER):
+            elif current_stage == LifeStage.JUVENILE and target_stage in (
+                LifeStage.ADULT,
+                LifeStage.ELDER,
+            ):
                 next_step = LifeStage.ADULT
             elif current_stage == LifeStage.ADULT and target_stage == LifeStage.ELDER:
                 next_step = LifeStage.ELDER

@@ -77,9 +77,7 @@ class EntityMutationQueue:
         """Remove a pending spawn entry by entity id."""
         self._spawn_ids.discard(entity_id)
         self._pending_spawns = [
-            mutation
-            for mutation in self._pending_spawns
-            if id(mutation.entity) != entity_id
+            mutation for mutation in self._pending_spawns if id(mutation.entity) != entity_id
         ]
 
     def drain_spawns(self) -> List[EntityMutation]:

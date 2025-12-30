@@ -139,10 +139,7 @@ class SystemRegistry:
         Returns:
             Dictionary mapping system names to their debug info
         """
-        return {
-            system.name: system.get_debug_info()
-            for system in self._systems
-        }
+        return {system.name: system.get_debug_info() for system in self._systems}
 
     def __len__(self) -> int:
         """Get the number of registered systems."""

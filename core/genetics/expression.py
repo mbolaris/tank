@@ -8,7 +8,11 @@ characteristics from genetic traits. Separating this logic from the data storage
 from typing import Dict, Tuple
 
 from core.color import hue_to_rgb, FISH_COLOR_SATURATION
-from core.genetics.behavioral import MATE_PREFERENCE_SPECS, BehavioralTraits, normalize_mate_preferences
+from core.genetics.behavioral import (
+    MATE_PREFERENCE_SPECS,
+    BehavioralTraits,
+    normalize_mate_preferences,
+)
 from core.genetics.physical import PhysicalTraits
 from core.genetics.trait_utils import get_trait_value, has_trait_value
 
@@ -51,42 +55,42 @@ def _normalized_similarity(
 
 def calculate_speed_modifier(physical: PhysicalTraits) -> float:
     """Calculate speed modifier based on physical traits.
-    
+
     Combines template bonuses, propulsion from fins/tail, and hydrodynamic efficiency.
     """
     if not has_trait_value(physical.template_id):
         return 1.0
-        
+
     template_id = get_trait_value(physical.template_id, default=0)
     template_speed_bonus = _TEMPLATE_SPEED_BONUS.get(template_id, 1.0)
-    
+
     fin_val = get_trait_value(physical.fin_size, default=1.0)
     tail_val = get_trait_value(physical.tail_size, default=1.0)
     aspect_val = get_trait_value(physical.body_aspect, default=1.0)
-    
+
     propulsion = fin_val * 0.4 + tail_val * 0.6
     hydrodynamics = 1.0 - abs(aspect_val - 0.8) * 0.5
-    
+
     result = template_speed_bonus * propulsion * hydrodynamics
     return _clamp(result, _SPEED_MODIFIER_MIN, _SPEED_MODIFIER_MAX)
 
 
 def calculate_metabolism_rate(physical: PhysicalTraits, speed_modifier: float) -> float:
     """Calculate metabolism rate based on physical traits and capabilities.
-    
+
     Larger, faster, or more decorative fish have higher metabolic costs.
     """
     cost = 1.0
-    
+
     size_val = get_trait_value(physical.size_modifier, default=1.0)
     eye_val = get_trait_value(physical.eye_size, default=1.0)
     pattern_val = get_trait_value(physical.pattern_intensity, default=0.0)
-    
+
     cost += (size_val - 1.0) * 0.5
     cost += (speed_modifier - 1.0) * 0.8
     cost += (eye_val - 1.0) * 0.3
     cost += (pattern_val - _PATTERN_INTENSITY_BASELINE) * _PATTERN_INTENSITY_COST_WEIGHT
-    
+
     return max(_METABOLISM_RATE_MIN, cost)
 
 
@@ -94,19 +98,20 @@ def calculate_vision_range(physical: PhysicalTraits) -> float:
     """Calculate vision range based on eye size."""
     if not has_trait_value(physical.eye_size):
         return 1.0
-        
+
     # Clamp to allowed physical bounds to avoid out-of-range visual traits
     from core.config.fish import (
         EYE_SIZE_MAX,
         EYE_SIZE_MIN,
     )
+
     val = float(get_trait_value(physical.eye_size, default=1.0))
     return max(EYE_SIZE_MIN, min(EYE_SIZE_MAX, val))
 
 
 def calculate_color_tint(physical: PhysicalTraits) -> Tuple[int, int, int]:
     """Get RGB color tint based on genome.
-    
+
     Delegates to core.color.hue_to_rgb for the actual conversion.
     """
     if not has_trait_value(physical.color_hue):
@@ -116,11 +121,8 @@ def calculate_color_tint(physical: PhysicalTraits) -> Tuple[int, int, int]:
     return hue_to_rgb(hue, FISH_COLOR_SATURATION)
 
 
-
 def calculate_mate_attraction(
-    self_physical: PhysicalTraits,
-    self_behavioral: BehavioralTraits,
-    other_physical: PhysicalTraits
+    self_physical: PhysicalTraits, self_behavioral: BehavioralTraits, other_physical: PhysicalTraits
 ) -> float:
     """Calculate attraction score to a potential mate (0.0-1.0).
 
@@ -129,7 +131,7 @@ def calculate_mate_attraction(
     """
     raw_prefs = self_behavioral.mate_preferences.value if self_behavioral.mate_preferences else {}
     preferences = raw_prefs if isinstance(raw_prefs, dict) else {}
-    
+
     # We need to normalize preferences based on self_physical to fill in defaults
     # correctly (often defaulting to own traits).
     normalized_prefs = normalize_mate_preferences(
@@ -139,15 +141,15 @@ def calculate_mate_attraction(
 
     scores = []
     weights = []
-    
+
     for trait_name, spec in MATE_PREFERENCE_SPECS.items():
         desired = normalized_prefs[trait_name]
         other_trait = getattr(other_physical, trait_name, None)
-        
+
         if not has_trait_value(other_trait):
             # Skip missing traits
             continue
-            
+
         mate_value = get_trait_value(other_trait)
         score = _normalized_similarity(
             mate_value,
@@ -168,6 +170,6 @@ def calculate_mate_attraction(
     total_weight = sum(weights)
     if total_weight <= 0.0:
         return 0.0
-        
+
     attraction = sum(score * weight for score, weight in zip(scores, weights)) / total_weight
     return min(max(attraction, 0.0), 1.0)

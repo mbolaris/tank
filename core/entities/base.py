@@ -27,7 +27,11 @@ from core.math_utils import Vector2
 from core.world import World
 
 # Import LifeStage from state_machine for centralized definition with transition validation
-from core.state_machine import LifeStage, EntityState, create_entity_state_machine  # noqa: F401 - re-exported
+from core.state_machine import (
+    LifeStage,
+    EntityState,
+    create_entity_state_machine,
+)  # noqa: F401 - re-exported
 
 
 @dataclass
@@ -38,6 +42,7 @@ class EntityUpdateResult:
         spawned_entities: List of new entities spawned by this entity
         events: List of events emitted by this entity (e.g. death, interaction)
     """
+
     spawned_entities: List["Entity"] = field(default_factory=list)
     events: List[Any] = field(default_factory=list)
 
@@ -132,7 +137,9 @@ class Entity:
         self.rect.width = width
         self.rect.height = height
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the entity state (pure logic, no rendering).
 
         Returns:
@@ -286,7 +293,9 @@ class Agent(Entity):
 
         return False
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the agent state (pure logic, no rendering).
 
         Returns:
@@ -295,17 +304,13 @@ class Agent(Entity):
         self.update_position()
         return EntityUpdateResult()
 
-
-
-
-
-
     def add_random_velocity_change(self, probabilities: List[float], divisor: float) -> None:
         """Add a random direction change to the agent.
 
         Uses environment's RNG for deterministic behavior.
         """
         from core.util.rng import require_rng
+
         _rng = require_rng(self.environment, "Agent.add_random_velocity_change")
         random_x_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         random_y_direction = _rng.choices([-1, 0, 1], probabilities)[0]

@@ -63,6 +63,7 @@ def __getattr__(name: str):
     if name in _lazy_imports:
         module_path, attr_name = _lazy_imports[name]
         import importlib
+
         module = importlib.import_module(module_path)
         value = getattr(module, attr_name)
         # Cache in module namespace for future access

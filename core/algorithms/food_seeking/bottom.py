@@ -1,12 +1,12 @@
 """BottomFeeder food-seeking behavior."""
 
-
 import random
 from dataclasses import dataclass
 from typing import Tuple, Optional
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.display import SCREEN_HEIGHT
+
 
 @dataclass
 class BottomFeeder(BehaviorAlgorithm):
@@ -41,13 +41,13 @@ class BottomFeeder(BehaviorAlgorithm):
             prediction_skill = fish.genome.behavioral.prediction_skill.value
             target_x = nearest_food.pos.x
             if hasattr(nearest_food, "vel"):
-                 target_x += nearest_food.vel.x * (prediction_skill * 20)
+                target_x += nearest_food.vel.x * (prediction_skill * 20)
 
             vx = (target_x - fish.pos.x) / 100
 
             # Aggression boosts tracking speed
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
-            vx *= (1.0 + pursuit_aggression * 0.5)
+            vx *= 1.0 + pursuit_aggression * 0.5
         else:
             vx = (
                 self.parameters["search_speed"]

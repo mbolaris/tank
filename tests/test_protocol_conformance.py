@@ -59,9 +59,7 @@ class TestBehaviorStrategyProtocol:
         seen_ids = set()
         for algo_class in ALL_ALGORITHMS:
             instance = algo_class.random_instance()
-            assert hasattr(
-                instance, "algorithm_id"
-            ), f"{algo_class.__name__} missing algorithm_id"
+            assert hasattr(instance, "algorithm_id"), f"{algo_class.__name__} missing algorithm_id"
             assert isinstance(
                 instance.algorithm_id, str
             ), f"{algo_class.__name__}.algorithm_id should be str"
@@ -293,9 +291,7 @@ class TestWorldProtocolConformance:
         ]
 
         for method_name in world_methods:
-            assert hasattr(
-                env, method_name
-            ), f"Environment missing World method: {method_name}"
+            assert hasattr(env, method_name), f"Environment missing World method: {method_name}"
 
     def test_spatial_query_methods_return_lists(self):
         """All spatial query methods should return lists."""

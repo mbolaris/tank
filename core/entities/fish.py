@@ -100,7 +100,7 @@ class Fish(Agent):
             initial_energy: Override initial energy (for reproduction energy transfer)
         """
         from core.util.rng import require_rng
-        
+
         if genome is not None:
             self.genome = genome
         else:
@@ -111,13 +111,15 @@ class Fish(Agent):
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
         if self.genome.behavioral.poker_strategy is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
+
             rng = require_rng(environment, "Fish.__init__.poker_strategy")
             self.genome.behavioral.poker_strategy = GeneticTrait(get_random_poker_strategy(rng=rng))
         elif self.genome.behavioral.poker_strategy.value is None:
             from core.poker.strategy.implementations import get_random_poker_strategy
+
             rng = require_rng(environment, "Fish.__init__.poker_strategy_value")
             self.genome.behavioral.poker_strategy.value = get_random_poker_strategy(rng=rng)
-        
+
         self.generation: int = generation
         self.species: str = species
 
@@ -177,8 +179,6 @@ class Fish(Agent):
             learning_rate=FISH_MEMORY_LEARNING_RATE,
         )
 
-
-        
         # NEW: Skill game component (manages strategies and stats for skill games)
         self._skill_game_component = SkillGameComponent()
 
@@ -320,11 +320,7 @@ class Fish(Agent):
 
         from core.poker_interaction import MIN_ENERGY_TO_PLAY
 
-        return (
-            self.energy >= MIN_ENERGY_TO_PLAY
-            and self.poker_cooldown <= 0
-            and not self.is_dead()
-        )
+        return self.energy >= MIN_ENERGY_TO_PLAY and self.poker_cooldown <= 0 and not self.is_dead()
 
     # =========================================================================
     # EnergyHolder Protocol Implementation
@@ -560,7 +556,7 @@ class Fish(Agent):
 
         # Determine parent lineage
         parent_ids = [self.parent_id] if self.parent_id is not None else None
-        
+
         # Get tank name from environment if available
         tank_name = getattr(self.environment, "tank_name", None)
 
@@ -578,44 +574,51 @@ class Fish(Agent):
                 tank_name=tank_name,
             )
         )
-    
+
     def _extract_algorithm_name(self, behavior_id: str) -> str:
         """Extract a short, readable algorithm name from a behavior_id string.
-        
+
         Args:
             behavior_id: The behavior ID string, e.g. "flee-seek-schooling-opportunistic"
-            
+
         Returns:
             Short display name, e.g. "Flee/Seek"
         """
         if not behavior_id:
             return "Unknown"
-        
+
         # Handle hyphen-separated format: "flee-seek-schooling-opportunistic"
         if "-" in behavior_id:
             parts = behavior_id.split("-")
             # Take first 2 components, capitalize them
             short_parts = [p.capitalize() for p in parts[:2]]
             return "/".join(short_parts)
-        
+
         # Handle ComposableBehavior format: "ComposableBehavior(AlgoName, ...)"
         if "ComposableBehavior(" in behavior_id:
             start = behavior_id.find("(")
             end = behavior_id.rfind(")")
             if start != -1 and end != -1 and end > start:
-                inner = behavior_id[start + 1:end]
+                inner = behavior_id[start + 1 : end]
                 parts = inner.split(",")
                 if parts:
                     return parts[0].strip()[:15]  # Max 15 chars
-        
+
         # Handle simple class names
         if "." in behavior_id:
             return behavior_id.split(".")[-1][:15]  # Max 15 chars
-        
+
         # Return truncated if too long
         return behavior_id[:15] if len(behavior_id) > 15 else behavior_id
 
-    def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, target_id: Optional[int] = None, target_type: Optional[str] = None) -> None:
+    def set_poker_effect(
+        self,
+        status: str,
+        amount: float = 0.0,
+        duration: int = 15,
+        target_id: Optional[int] = None,
+        target_type: Optional[str] = None,
+    ) -> None:
         """Set a visual effect for poker status.
 
         Args:
@@ -693,8 +696,6 @@ class Fish(Agent):
         memories = self.memory_system.get_all_memories(MemoryType.FOOD_LOCATION, min_strength=0.1)
         return [m.location for m in memories]
 
-
-
     def is_dead(self) -> bool:
         """Check if fish should die or has migrated.
 
@@ -704,7 +705,7 @@ class Fish(Agent):
         # OPTIMIZATION: Return cached value if already dead
         if self._cached_is_dead:
             return True
-            
+
         # Check active state first (checks underlying state machine)
         if self.state.state in (EntityState.DEAD, EntityState.REMOVED):
             self._cached_is_dead = True
@@ -716,13 +717,13 @@ class Fish(Agent):
             self.state.transition(EntityState.DEAD, reason="starvation")
             self._cached_is_dead = True
             return True
-            
+
         # 2. Old age
         if self._lifecycle_component.age >= self._lifecycle_component.max_age:
             self.state.transition(EntityState.DEAD, reason="old_age")
             self._cached_is_dead = True
             return True
-            
+
         return False
 
     def get_death_cause(self) -> str:
@@ -742,7 +743,8 @@ class Fish(Agent):
                 # Reason is stored in transition (e.g. "starvation", "old_age", "migration")
                 # Normalize reason to match expected strings
                 reason = last_transition.reason
-                if "migration" in reason: return "migration"
+                if "migration" in reason:
+                    return "migration"
                 if "starvation" in reason:
                     # Check for predation overlap even if recorded as starvation
                     if (
@@ -751,8 +753,10 @@ class Fish(Agent):
                     ):
                         return "predation"
                     return "starvation"
-                if "old_age" in reason: return "old_age"
-                if "predation" in reason: return "predation"
+                if "old_age" in reason:
+                    return "old_age"
+                if "predation" in reason:
+                    return "predation"
 
         # Fallback to inference if history unavailable/unclear
         if self.state.state == EntityState.REMOVED:
@@ -770,16 +774,21 @@ class Fish(Agent):
                 return "starvation"  # Death without recent conflict
         elif self._lifecycle_component.age >= self._lifecycle_component.max_age:
             return "old_age"
-            
+
         # Debugging "Unknown" causes
         # Capture state to identify why we reached here
         parts = []
-        if self.state.state == EntityState.ACTIVE: parts.append("active")
-        if self.state.state == EntityState.DEAD: parts.append("dead")
-        if self.energy > 0: parts.append("pos_energy")
-        if not history: parts.append("no_hist")
-        else: parts.append(f"last_rsn_{history[-1].reason}")
-        
+        if self.state.state == EntityState.ACTIVE:
+            parts.append("active")
+        if self.state.state == EntityState.DEAD:
+            parts.append("dead")
+        if self.energy > 0:
+            parts.append("pos_energy")
+        if not history:
+            parts.append("no_hist")
+        else:
+            parts.append(f"last_rsn_{history[-1].reason}")
+
         return f"unknown_{'_'.join(parts)}"
 
     def mark_predator_encounter(self, escaped: bool = False, damage_taken: float = 0.0) -> None:
@@ -847,19 +856,19 @@ class Fish(Agent):
         """
         # Obtain RNG for determinism - fail loudly if unavailable
         from core.util.rng import require_rng
+
         rng = require_rng(self.environment, "Fish._create_asexual_offspring")
 
         # Generate offspring genome (also sets cooldown)
-        offspring_genome, _unused_fraction = self._reproduction_component.trigger_asexual_reproduction(
-            self.genome, rng=rng
+        offspring_genome, _unused_fraction = (
+            self._reproduction_component.trigger_asexual_reproduction(self.genome, rng=rng)
         )
 
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
         from core.config.fish import FISH_BABY_SIZE
+
         baby_max_energy = (
-            ENERGY_MAX_DEFAULT
-            * FISH_BABY_SIZE
-            * offspring_genome.physical.size_modifier.value
+            ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
         )
 
         # Use banked overflow energy first, then draw from parent
@@ -941,8 +950,12 @@ class Fish(Agent):
         template_trait = getattr(physical, "template_id", None)
 
         fin_size = fin_trait.value if fin_trait is not None and fin_trait.value is not None else 1.0
-        tail_size = tail_trait.value if tail_trait is not None and tail_trait.value is not None else 1.0
-        body_aspect = body_trait.value if body_trait is not None and body_trait.value is not None else 1.0
+        tail_size = (
+            tail_trait.value if tail_trait is not None and tail_trait.value is not None else 1.0
+        )
+        body_aspect = (
+            body_trait.value if body_trait is not None and body_trait.value is not None else 1.0
+        )
         template_id = (
             int(template_trait.value)
             if template_trait is not None and template_trait.value is not None
@@ -1039,7 +1052,9 @@ class Fish(Agent):
             self.pos.y = env_max_y - max_y_offset
             self.vel.y = -abs(self.vel.y)  # Bounce up
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the fish state.
 
         Args:
@@ -1063,9 +1078,6 @@ class Fish(Agent):
             # Update enhanced memory system less frequently
             self.memory_system.update(age)
 
-
-
-
         # Energy consumption
         self.consume_energy(time_modifier)
 
@@ -1077,7 +1089,7 @@ class Fish(Agent):
             # Stop movement for dying fish so they don't drift while showing death icon
             self.vel.x = 0
             self.vel.y = 0
-            
+
             # Create update result with death event if desired, or just empty
             # For now, SimulationEngine handles death by checking is_dead() separately
             # but we could move that here.
@@ -1127,6 +1139,7 @@ class Fish(Agent):
 
         # Record food location in memory
         from core.fish_memory import MemoryType
+
         self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)
 
         # Record food consumption for behavior performance tracking
@@ -1144,9 +1157,7 @@ class Fish(Agent):
         # Determine food type and emit telemetry
         # Use actual_energy to prevent "phantom" stats
         if isinstance(food, PlantNectar):
-            self._emit_event(
-                FoodEatenEvent("nectar", algorithm_id, actual_energy)
-            )
+            self._emit_event(FoodEatenEvent("nectar", algorithm_id, actual_energy))
         elif isinstance(food, LiveFood):
             self._emit_event(
                 FoodEatenEvent(
@@ -1158,9 +1169,7 @@ class Fish(Agent):
                 )
             )
         else:
-            self._emit_event(
-                FoodEatenEvent("falling_food", algorithm_id, actual_energy)
-            )
+            self._emit_event(FoodEatenEvent("falling_food", algorithm_id, actual_energy))
 
     def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
         """Apply an energy penalty for direction changes, scaled by turn angle and fish size.
@@ -1187,7 +1196,7 @@ class Fish(Agent):
             if turn_intensity > 0.1:  # Threshold to ignore tiny wobbles
                 # Base energy cost scaled by turn intensity and fish size
                 # Larger fish (size > 1.0) pay more, smaller fish (size < 1.0) pay less
-                size_factor = self._lifecycle_component.size ** DIRECTION_CHANGE_SIZE_MULTIPLIER
+                size_factor = self._lifecycle_component.size**DIRECTION_CHANGE_SIZE_MULTIPLIER
                 energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
 
                 self.energy = max(0, self.energy - energy_cost)

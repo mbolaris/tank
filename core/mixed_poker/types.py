@@ -18,6 +18,7 @@ Player = Union["Fish", "Plant"]
 
 class MultiplayerBettingRound(IntEnum):
     """Betting rounds in Texas Hold'em."""
+
     PRE_FLOP = 0
     FLOP = 1
     TURN = 2
@@ -28,6 +29,7 @@ class MultiplayerBettingRound(IntEnum):
 @dataclass
 class MixedPokerResult:
     """Result of a mixed poker game."""
+
     winner_id: int
     winner_type: str  # "fish" or "plant"
     winner_hand: Optional["PokerHand"]

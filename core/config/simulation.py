@@ -25,7 +25,7 @@ Design Philosophy:
 #            Wider range = more games, more incidental encounters.
 
 # Default skill game interaction distances (can be overridden per entity type)
-SKILL_GAME_MIN_DISTANCE = 10.0   # Minimum distance - entities shouldn't overlap
+SKILL_GAME_MIN_DISTANCE = 10.0  # Minimum distance - entities shouldn't overlap
 SKILL_GAME_MAX_DISTANCE = 80.0  # Maximum distance - must be "close enough"
 
 # Search radius for finding potential skill game partners

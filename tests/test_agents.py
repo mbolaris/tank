@@ -205,11 +205,12 @@ class TestFood:
         # Create a mock plant with the legacy interface for testing
         plant = MagicMock()
         plant.current_food_count = 5
-        
+
         def decrement_count():
             plant.current_food_count -= 1
+
         plant.notify_food_eaten = decrement_count
-        
+
         food = Food(env, 100, 50, source_plant=plant)
         agents.add(food)
 
@@ -228,7 +229,7 @@ class TestPlant:
         """Test that plant initializes correctly."""
         from core.genetics import PlantGenome
         from unittest.mock import MagicMock
-        
+
         env, _ = simulation_env
         # Create a mock root spot
         root_spot = MagicMock()
@@ -236,7 +237,7 @@ class TestPlant:
         root_spot.y = 500.0
         root_spot.spot_id = 1
         root_spot.manager = None
-        
+
         genome = PlantGenome.create_random(rng=env.rng)
         plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=0)
         assert plant.speed == 0
@@ -245,7 +246,7 @@ class TestPlant:
         """Test that plant stays in place."""
         from core.genetics import PlantGenome
         from unittest.mock import MagicMock
-        
+
         env, _ = simulation_env
         # Create a mock root spot
         root_spot = MagicMock()
@@ -253,7 +254,7 @@ class TestPlant:
         root_spot.y = 500.0
         root_spot.spot_id = 1
         root_spot.manager = None
-        
+
         genome = PlantGenome.create_random(rng=env.rng)
         plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=1)
         initial_pos = plant.pos.copy()
@@ -271,4 +272,3 @@ class TestCastle:
         env, _ = simulation_env
         castle = Castle(env)
         assert castle.speed == 0
-

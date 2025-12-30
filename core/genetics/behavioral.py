@@ -61,9 +61,7 @@ MATE_PREFERENCE_TRAIT_NAMES = (
 )
 
 MATE_PREFERENCE_SPECS: Dict[str, TraitSpec] = {
-    spec.name: spec
-    for spec in PHYSICAL_TRAIT_SPECS
-    if spec.name in MATE_PREFERENCE_TRAIT_NAMES
+    spec.name: spec for spec in PHYSICAL_TRAIT_SPECS if spec.name in MATE_PREFERENCE_TRAIT_NAMES
 }
 
 
@@ -199,8 +197,6 @@ class BehavioralTraits:
 
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
     mate_preferences: Optional[GeneticTrait[Dict[str, float]]] = None
-
-
 
     @classmethod
     def random(
@@ -365,10 +361,7 @@ class BehavioralTraits:
         prefs2 = parent2.mate_preferences.value if parent2.mate_preferences else {}
         mate_prefs = {}
         keys = (
-            set(DEFAULT_MATE_PREFERENCES)
-            | set(MATE_PREFERENCE_SPECS)
-            | set(prefs1)
-            | set(prefs2)
+            set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2)
         )
         for pref_key in sorted(keys):
             pref_weight1 = 1.0 if rng.random() < parent1_probability else 0.0
@@ -389,6 +382,7 @@ class BehavioralTraits:
         )
 
         return cls(**inherited)
+
 
 def _inherit_composable_behavior(
     behavior1: Optional["ComposableBehavior"],
@@ -535,7 +529,9 @@ def _inherit_mate_preferences(
 ) -> Dict[str, float]:
     """Inherit mate preferences from parents."""
     result = {}
-    keys = sorted(set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2))
+    keys = sorted(
+        set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2)
+    )
     for pref_key in keys:
         default_val = _default_preference_for_key(pref_key)
         p1_val = prefs1.get(pref_key, default_val)

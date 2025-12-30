@@ -335,7 +335,7 @@ class TestCollisionSystemWithSystemResult:
 
         # Now get result (which also resets counters)
         result = collision_system._do_update(frame=1)
-        
+
         # Note: result includes our 2 manual checks from before
         # The _do_update also runs full iteration, so stats may include more
         # What we're really testing is that stats accumulate and reset correctly

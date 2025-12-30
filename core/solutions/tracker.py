@@ -165,7 +165,11 @@ class SolutionTracker:
 
         # Trim/expand to desired pool size based on estimated Elo for stability.
         if len(candidates) > candidate_pool_size:
-            scored = [(fish, self._estimate_elo(fish.poker_stats)) for fish in candidates if fish.poker_stats]
+            scored = [
+                (fish, self._estimate_elo(fish.poker_stats))
+                for fish in candidates
+                if fish.poker_stats
+            ]
             scored.sort(key=lambda x: x[1], reverse=True)
             candidates = [fish for fish, _ in scored[:candidate_pool_size]]
         elif len(candidates) < candidate_pool_size:
@@ -194,7 +198,9 @@ class SolutionTracker:
 
             win_rates: List[float] = []
             for opp in opponent_solutions:
-                wr, _ = bench.run_head_to_head(candidate_solution, opp, hands_per_matchup, verbose=verbose)
+                wr, _ = bench.run_head_to_head(
+                    candidate_solution, opp, hands_per_matchup, verbose=verbose
+                )
                 win_rates.append(wr)
 
             avg_wr = sum(win_rates) / len(win_rates) if win_rates else 0.5
@@ -501,9 +507,7 @@ class SolutionTracker:
             if self.auto_capture_enabled:
                 self.save_solution(solution)
 
-            logger.info(
-                f"New best solution: Elo {current_elo:.0f} (was {best_elo:.0f})"
-            )
+            logger.info(f"New best solution: Elo {current_elo:.0f} (was {best_elo:.0f})")
             return solution
 
         return None

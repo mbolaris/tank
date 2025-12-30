@@ -116,10 +116,16 @@ class PokerStatsManager:
             "Straight Flush",
             "Royal Flush",
         ]
-        best_hand_name = hand_rank_names[best_hand_rank] if 0 <= best_hand_rank < len(hand_rank_names) else "Unknown"
+        best_hand_name = (
+            hand_rank_names[best_hand_rank]
+            if 0 <= best_hand_rank < len(hand_rank_names)
+            else "Unknown"
+        )
 
         avg_fold_rate = (total_folds / total_games) if total_games > 0 else 0.0
-        showdown_win_rate = (total_won_at_showdown / total_showdowns) if total_showdowns > 0 else 0.0
+        showdown_win_rate = (
+            (total_won_at_showdown / total_showdowns) if total_showdowns > 0 else 0.0
+        )
         net_energy = total_energy_won - total_energy_lost - total_house_cuts
 
         win_rate = (total_wins / total_games) if total_games > 0 else 0.0
@@ -132,7 +138,9 @@ class PokerStatsManager:
         total_button_games = sum(s.button_games for s in self.poker_stats.values())
         total_non_button_wins = sum(s.non_button_wins for s in self.poker_stats.values())
         total_non_button_games = sum(s.non_button_games for s in self.poker_stats.values())
-        button_win_rate = (total_button_wins / total_button_games) if total_button_games > 0 else 0.0
+        button_win_rate = (
+            (total_button_wins / total_button_games) if total_button_games > 0 else 0.0
+        )
         non_button_win_rate = (
             (total_non_button_wins / total_non_button_games) if total_non_button_games > 0 else 0.0
         )
@@ -147,9 +155,15 @@ class PokerStatsManager:
         avg_hand_rank = avg_hand_rank / num_active_algorithms if num_active_algorithms > 0 else 0.0
 
         total_showdown_wins = sum(s.won_at_showdown for s in self.poker_stats.values())
-        showdown_win_rate_pct = f"{(total_showdown_wins / total_showdowns):.1%}" if total_showdowns > 0 else "0.0%"
+        showdown_win_rate_pct = (
+            f"{(total_showdown_wins / total_showdowns):.1%}" if total_showdowns > 0 else "0.0%"
+        )
 
-        plant_win_rate = (self.plant_poker_wins / self.total_plant_poker_games) if self.total_plant_poker_games > 0 else 0.0
+        plant_win_rate = (
+            (self.plant_poker_wins / self.total_plant_poker_games)
+            if self.total_plant_poker_games > 0
+            else 0.0
+        )
 
         return {
             "total_games": total_games,
@@ -444,9 +458,8 @@ class PokerStatsManager:
             stats.won_at_showdown += 1
             stats.showdown_count += 1
 
-        winner_on_button = (
-            (winner_algo_id == player1_algo_id and result.button_position == 1)
-            or (winner_algo_id == player2_algo_id and result.button_position == 2)
+        winner_on_button = (winner_algo_id == player1_algo_id and result.button_position == 1) or (
+            winner_algo_id == player2_algo_id and result.button_position == 2
         )
 
         if winner_on_button:
@@ -496,9 +509,8 @@ class PokerStatsManager:
         stats._total_pot_size += result.final_pot
         stats.avg_pot_size = stats._total_pot_size / stats.total_games
 
-        loser_folded = (
-            (loser_algo_id == player1_algo_id and result.player1_folded)
-            or (loser_algo_id == player2_algo_id and result.player2_folded)
+        loser_folded = (loser_algo_id == player1_algo_id and result.player1_folded) or (
+            loser_algo_id == player2_algo_id and result.player2_folded
         )
 
         if loser_folded:
@@ -510,9 +522,8 @@ class PokerStatsManager:
         else:
             stats.showdown_count += 1
 
-        loser_on_button = (
-            (loser_algo_id == player1_algo_id and result.button_position == 1)
-            or (loser_algo_id == player2_algo_id and result.button_position == 2)
+        loser_on_button = (loser_algo_id == player1_algo_id and result.button_position == 1) or (
+            loser_algo_id == player2_algo_id and result.button_position == 2
         )
 
         if loser_on_button:

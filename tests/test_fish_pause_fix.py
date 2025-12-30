@@ -73,10 +73,16 @@ def test_algorithm_parameters_genetic():
     if behavior and behavior.value:
         behavior = behavior.value
         print(f"  Random genome created with composable behavior:")
-        print(f"    - Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}")
-        print(f"    - Food approach: {behavior.food_approach.name if behavior.food_approach else 'None'}")
+        print(
+            f"    - Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}"
+        )
+        print(
+            f"    - Food approach: {behavior.food_approach.name if behavior.food_approach else 'None'}"
+        )
         print(f"    - Social mode: {behavior.social_mode.name if behavior.social_mode else 'None'}")
-        print(f"    - Poker engagement: {behavior.poker_engagement.name if behavior.poker_engagement else 'None'}")
+        print(
+            f"    - Poker engagement: {behavior.poker_engagement.name if behavior.poker_engagement else 'None'}"
+        )
 
     print("  ✓ Composable behaviors are properly integrated into genetic system")
 

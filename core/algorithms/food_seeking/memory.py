@@ -1,11 +1,11 @@
 """FoodMemorySeeker food-seeking behavior."""
 
-
 import random
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
+
 
 @dataclass
 class FoodMemorySeeker(BehaviorAlgorithm):

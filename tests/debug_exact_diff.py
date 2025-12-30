@@ -1,8 +1,8 @@
-
 import json
 import difflib
 from core.simulation.engine import SimulationEngine
 from tests.test_determinism import remove_non_deterministic_fields
+
 
 def debug_determinism_diff():
     seed = 12345
@@ -24,15 +24,16 @@ def debug_determinism_diff():
         print("SUCCESS: JSONs are identical.")
     else:
         print("FAILURE: JSONs differ.")
-        
+
         diff = difflib.unified_diff(
             s1.splitlines(),
             s2.splitlines(),
-            fromfile='stats1.json',
-            tofile='stats2.json',
-            lineterm=''
+            fromfile="stats1.json",
+            tofile="stats2.json",
+            lineterm="",
         )
         print("\n".join(list(diff)[:50]))
+
 
 if __name__ == "__main__":
     debug_determinism_diff()

@@ -102,9 +102,7 @@ class PokerProximitySystem(BaseSystem):
 
         return result
 
-    def _build_proximity_graph(
-        self, fish_list: List["Fish"]
-    ) -> Dict["Fish", Set["Fish"]]:
+    def _build_proximity_graph(self, fish_list: List["Fish"]) -> Dict["Fish", Set["Fish"]]:
         """Build a graph of fish within poker proximity of each other.
 
         Args:
@@ -115,9 +113,7 @@ class PokerProximitySystem(BaseSystem):
             fish within poker range
         """
 
-        fish_poker_contacts: Dict["Fish", Set["Fish"]] = {
-            fish: set() for fish in fish_list
-        }
+        fish_poker_contacts: Dict["Fish", Set["Fish"]] = {fish: set() for fish in fish_list}
 
         # Pre-compute squared distance constants
         poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE

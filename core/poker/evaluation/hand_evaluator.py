@@ -13,7 +13,23 @@ from core.poker.core.cards import Card, get_card
 from core.poker.core.hand import HandRank, PokerHand
 
 # Pre-computed rank names for fast lookup (index 0-14, only 2-14 valid)
-_RANK_NAMES = ("", "", "2", "3", "4", "5", "6", "7", "8", "9", "Ten", "Jack", "Queen", "King", "Ace")
+_RANK_NAMES = (
+    "",
+    "",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "Ten",
+    "Jack",
+    "Queen",
+    "King",
+    "Ace",
+)
 
 
 def _rank_name(rank: int) -> str:
@@ -160,8 +176,8 @@ def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
     ranks = [c.rank for c in sorted_cards]
     suits = [c.suit for c in sorted_cards]
 
-    hand_type, rank_value, description, primary_ranks, kickers = (
-        _evaluate_five_cards_core(ranks, suits)
+    hand_type, rank_value, description, primary_ranks, kickers = _evaluate_five_cards_core(
+        ranks, suits
     )
     return PokerHand(
         hand_type=hand_type,
@@ -185,8 +201,8 @@ def _evaluate_five_cards_cached(five_cards_key: Tuple[int, int, int, int, int]) 
     ranks = [(k >> 2) for k in five_cards_key]
     suits = [(k & 3) for k in five_cards_key]
 
-    hand_type, rank_value, description, primary_ranks, kickers = (
-        _evaluate_five_cards_core(ranks, suits)
+    hand_type, rank_value, description, primary_ranks, kickers = _evaluate_five_cards_core(
+        ranks, suits
     )
     cards = [get_card(r, s) for r, s in zip(ranks, suits)]
     return PokerHand(
@@ -273,7 +289,6 @@ def evaluate_hand_cached(hole_key: Tuple[int, ...], community_key: Tuple[int, ..
     all_cards_int = hole_cards + community_cards
     n_cards = len(all_cards_int)
 
-
     if n_cards < 5:
         # Not enough cards yet - high card from what we have
         sorted_cards = sorted(all_cards_int, key=lambda x: x[0], reverse=True)
@@ -290,7 +305,12 @@ def evaluate_hand_cached(hole_key: Tuple[int, ...], community_key: Tuple[int, ..
         description = f"High Card {_rank_name(top_rank)}"
         card_ints = sorted_cards[:5]
         return _make_pokerhand_from_ints(
-            "high_card", HandRank.HIGH_CARD, description, card_ints, [], [r for r, s in card_ints[1:5]]
+            "high_card",
+            HandRank.HIGH_CARD,
+            description,
+            card_ints,
+            [],
+            [r for r, s in card_ints[1:5]],
         )
 
     # For exactly 5 cards, directly evaluate using cached five-card evaluator

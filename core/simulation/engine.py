@@ -170,7 +170,6 @@ class SimulationEngine:
         self.time_system: TimeSystem = TimeSystem(self)
         self.start_time: float = time.time()
 
-
         # NOTE: EventBus was removed as dead code. It subscribed to events
         # that were never emitted, and emitted events with no subscribers.
         # If we need pub/sub in the future, re-add it with actual use cases.
@@ -200,7 +199,6 @@ class SimulationEngine:
 
         # Services
         self.stats_calculator = StatsCalculator(self)
-
 
         # Phase tracking for debugging
         self._current_phase: Optional[UpdatePhase] = None
@@ -278,7 +276,6 @@ class SimulationEngine:
         self._system_registry.register(self.poker_system)
         self._validate_system_phase_declarations()
 
-
         # Create initial entities
         self.create_initial_entities()
 
@@ -341,7 +338,6 @@ class SimulationEngine:
                     declared_phase.name,
                 )
 
-
     # =========================================================================
     # System Registry Methods (delegate to SystemRegistry)
     # =========================================================================
@@ -367,7 +363,6 @@ class SimulationEngine:
     def set_system_enabled(self, name: str, enabled: bool) -> bool:
         """Enable or disable a system by name."""
         return self._system_registry.set_enabled(name, enabled)
-
 
     # =========================================================================
     # Phase Tracking
@@ -416,15 +411,13 @@ class SimulationEngine:
     # Utility Methods
     # =========================================================================
 
-
-
     def get_all_entities(self) -> List[entities.Agent]:
         """Get all entities in the simulation."""
         return self._entity_manager.entities_list
 
     def _add_entity(self, entity: entities.Agent) -> None:
         """Add an entity to the simulation (INTERNAL USE ONLY).
-        
+
         This method should only be called by the engine when applying
         queued mutations from _apply_entity_mutations(). External code
         should use request_spawn() to queue spawns for safe processing.
@@ -435,7 +428,7 @@ class SimulationEngine:
 
     def _remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation (INTERNAL USE ONLY).
-        
+
         This method should only be called by the engine when applying
         queued mutations from _apply_entity_mutations(). External code
         should use request_remove() to queue removals for safe processing.
@@ -444,10 +437,10 @@ class SimulationEngine:
 
     def add_entity(self, entity: entities.Agent) -> None:
         """Add an entity to the simulation (PRIVILEGED API).
-        
+
         WARNING: This bypasses the mutation queue. Only use from privileged
         infrastructure code like tank persistence, migration handlers, etc.
-        
+
         Game systems should use request_spawn() to queue spawns for safe
         processing between phases. Calling this mid-frame can cause subtle bugs.
         """
@@ -460,10 +453,10 @@ class SimulationEngine:
 
     def remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation (PRIVILEGED API).
-        
+
         WARNING: This bypasses the mutation queue. Only use from privileged
         infrastructure code like tank persistence, migration handlers, etc.
-        
+
         Game systems should use request_remove() to queue removals for safe
         processing between phases. Calling this mid-frame can cause subtle bugs.
         """
@@ -482,9 +475,7 @@ class SimulationEngine:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Queue a spawn request to be applied by the engine."""
-        return self._entity_mutations.request_spawn(
-            entity, reason=reason, metadata=metadata
-        )
+        return self._entity_mutations.request_spawn(entity, reason=reason, metadata=metadata)
 
     def request_remove(
         self,
@@ -494,9 +485,7 @@ class SimulationEngine:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Queue a removal request to be applied by the engine."""
-        return self._entity_mutations.request_remove(
-            entity, reason=reason, metadata=metadata
-        )
+        return self._entity_mutations.request_remove(entity, reason=reason, metadata=metadata)
 
     def is_pending_removal(self, entity: entities.Agent) -> bool:
         """Check if an entity is queued for removal."""
@@ -631,14 +620,12 @@ class SimulationEngine:
             self.plant_manager.reconcile_plants(
                 self._entity_manager.entities_list, self.frame_count
             )
-            self.plant_manager.respawn_if_low(
-                self._entity_manager.entities_list, self.frame_count
-            )
+            self.plant_manager.respawn_if_low(self._entity_manager.entities_list, self.frame_count)
         self._apply_entity_mutations("frame_start")
 
     def _phase_time_update(self) -> tuple:
         """TIME_UPDATE: Advance day/night cycle.
-        
+
         Returns:
             Tuple of (time_modifier, time_of_day) for use by entity updates
         """
@@ -658,15 +645,13 @@ class SimulationEngine:
         if self.environment is not None:
             self.environment.update_detection_modifier()
 
-    def _phase_entity_act(
-        self, time_modifier: float, time_of_day: float
-    ) -> tuple:
+    def _phase_entity_act(self, time_modifier: float, time_of_day: float) -> tuple:
         """ENTITY_ACT: Update all entities, collect spawns/deaths.
-        
+
         Args:
             time_modifier: Activity modifier from day/night cycle
             time_of_day: Current time of day (0-1)
-            
+
         Returns:
             Tuple of (new_entities, entities_to_remove)
         """
@@ -720,7 +705,7 @@ class SimulationEngine:
         entities_to_remove: List[entities.Agent],
     ) -> None:
         """LIFECYCLE: Process deaths, add/remove entities.
-        
+
         This phase is the SINGLE OWNER of entity removal decisions:
         - Entities marked for removal in entity_act phase
         - Food expiry and off-screen removal
@@ -729,7 +714,7 @@ class SimulationEngine:
         Removals/spawns are queued and applied between phases by the engine.
         """
         self._current_phase = UpdatePhase.LIFECYCLE
-        
+
         # Remove entities collected during entity_act phase
         for entity in entities_to_remove:
             self.request_remove(entity, reason="entity_act")
@@ -752,7 +737,7 @@ class SimulationEngine:
     def _phase_spawn(self) -> None:
         """SPAWN: Auto-spawn food and update spatial positions."""
         self._current_phase = UpdatePhase.SPAWN
-        
+
         if self.food_spawning_system:
             self.food_spawning_system.update(self.frame_count)
 
@@ -766,12 +751,12 @@ class SimulationEngine:
 
     def _phase_collision(self) -> None:
         """COLLISION: Handle physical collisions between entities.
-        
+
         CollisionSystem handles physical collision logic:
         - Fish-Food collisions (eating)
         - Fish-Crab collisions (predation)
         - Food-Crab collisions
-        
+
         Note: Fish-Fish poker proximity is handled by PokerProximitySystem
         in _phase_interaction().
         """
@@ -782,7 +767,7 @@ class SimulationEngine:
 
     def _phase_interaction(self) -> None:
         """INTERACTION: Handle social interactions between entities.
-        
+
         Systems in this phase:
         - PokerProximitySystem: Detects fish groups and triggers poker games
         - PokerSystem (mixed): Handles fish-plant and plant-plant poker
@@ -823,8 +808,7 @@ class SimulationEngine:
 
         # Record energy snapshot for delta calculations
         total_fish_energy = sum(
-            f.energy + f._reproduction_component.overflow_energy_bank
-            for f in fish_list
+            f.energy + f._reproduction_component.overflow_energy_bank for f in fish_list
         )
         ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
 
@@ -845,21 +829,15 @@ class SimulationEngine:
     # Emergency Spawning
     # =========================================================================
 
-
-
     # =========================================================================
     # Poker Events
     # =========================================================================
-
-
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Delegate event creation to the poker system."""
         self.poker_system.add_poker_event(poker)
 
-    def get_recent_poker_events(
-        self, max_age_frames: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(self, max_age_frames: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
         max_age = max_age_frames or self.config.poker.poker_event_max_age_frames
         return self.poker_system.get_recent_poker_events(max_age)

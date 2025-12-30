@@ -31,4 +31,9 @@ def test_simulate_game_runs_to_showdown_or_fold():
     assert state.player2_current_bet >= 0
 
     # One of the hands should be evaluated or a fold occurred
-    assert state.player1_folded or state.player1_hand is not None or state.player2_folded or state.player2_hand is not None
+    assert (
+        state.player1_folded
+        or state.player1_hand is not None
+        or state.player2_folded
+        or state.player2_hand is not None
+    )

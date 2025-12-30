@@ -79,7 +79,10 @@ def create_initial_population(
     food_positions = [
         (display_config.screen_width * 0.25, display_config.screen_height * 0.3),  # Upper left area
         (display_config.screen_width * 0.5, display_config.screen_height * 0.25),  # Upper middle
-        (display_config.screen_width * 0.75, display_config.screen_height * 0.35),  # Upper right area
+        (
+            display_config.screen_width * 0.75,
+            display_config.screen_height * 0.35,
+        ),  # Upper right area
         (display_config.screen_width * 0.2, display_config.screen_height * 0.5),  # Middle left
         (display_config.screen_width * 0.6, display_config.screen_height * 0.45),  # Middle right
         (display_config.screen_width * 0.3, display_config.screen_height * 0.65),  # Lower left

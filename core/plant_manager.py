@@ -254,7 +254,7 @@ class PlantManager:
             Number of plants created
         """
         from core.plants.plant_strategy_types import get_random_strategy_type
-        
+
         if not self.enabled:
             return 0
 
@@ -266,9 +266,7 @@ class PlantManager:
 
             # Create plant with random baseline strategy type
             strategy_type = get_random_strategy_type(rng=self.rng)
-            genome = PlantGenome.create_from_strategy_type(
-                strategy_type.value, rng=self.rng
-            )
+            genome = PlantGenome.create_from_strategy_type(strategy_type.value, rng=self.rng)
 
             plant = Plant(
                 environment=self.environment,
@@ -305,7 +303,7 @@ class PlantManager:
             True if a plant was spawned, False otherwise
         """
         from core.plants.plant_strategy_types import get_random_strategy_type
-        
+
         if not self.enabled:
             return False
 
@@ -325,9 +323,7 @@ class PlantManager:
 
         # Create plant with random baseline strategy type
         strategy_type = get_random_strategy_type(rng=self.rng)
-        genome = PlantGenome.create_from_strategy_type(
-            strategy_type.value, rng=self.rng
-        )
+        genome = PlantGenome.create_from_strategy_type(strategy_type.value, rng=self.rng)
 
         plant = Plant(
             environment=self.environment,
@@ -344,7 +340,9 @@ class PlantManager:
         if not self._request_spawn(plant, reason="emergency_respawn"):
             return False
         self._last_emergency_respawn_frame = frame_count
-        logger.info(f"Plant respawned (pop={plant_count}, strategy={strategy_type.value}): #{plant.plant_id}")
+        logger.info(
+            f"Plant respawned (pop={plant_count}, strategy={strategy_type.value}): #{plant.plant_id}"
+        )
         return True
 
     def sprout_new_plant(
@@ -396,7 +394,9 @@ class PlantManager:
             return Err(f"Failed to claim root spot at ({spot.x:.0f}, {spot.y:.0f})")
 
         self._request_spawn(plant, reason="sprout_new_plant")
-        strategy_info = f", strategy={parent_genome.strategy_type}" if parent_genome.strategy_type else ""
+        strategy_info = (
+            f", strategy={parent_genome.strategy_type}" if parent_genome.strategy_type else ""
+        )
         logger.debug(
             f"Sprouted new plant #{plant.plant_id} at ({spot.x:.0f}, {spot.y:.0f}){strategy_info}"
         )

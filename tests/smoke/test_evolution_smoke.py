@@ -5,6 +5,7 @@ run a quick sequence of genome crossovers and mutations. The goal is to
 provide a fun, low-friction way to observe evolutionary drift without
 needing rendering or the full game loop.
 """
+
 from __future__ import annotations
 
 import math

@@ -1,6 +1,5 @@
 """GreedyFoodSeeker food-seeking behavior."""
 
-
 import random
 from dataclasses import dataclass
 from typing import Tuple, Optional
@@ -17,6 +16,7 @@ from core.config.food import (
     URGENCY_BOOST_LOW,
 )
 from core.predictive_movement import predict_intercept_point, predict_falling_intercept
+
 
 @dataclass
 class GreedyFoodSeeker(BehaviorAlgorithm):
@@ -77,20 +77,21 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                 # Use predictive interception for moving food
                 # Better prediction_skill = more accurate interception
                 target_pos = nearest_food.pos
-                
+
                 # Check for moving food (falling or swimming)
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
                     is_accelerating = False
                     acceleration = 0.0
-                    
+
                     # Check for acceleration (falling food)
                     if hasattr(nearest_food, "food_properties"):
                         from core.config.food import FOOD_SINK_ACCELERATION
+
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:
                             is_accelerating = True
-                    
+
                     # Calculate optimal intercept point
                     intercept_point = None
                     if is_accelerating:
@@ -101,16 +102,18 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
                         intercept_point, _ = predict_intercept_point(
                             fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
                         )
-                    
+
                     if intercept_point and prediction_skill > 0.3:
                         # Blend toward optimal intercept based on skill
                         # FIX: Changed blending logic to favor intercept more strongly
                         # Even moderate skill should commit to the prediction
-                        skill_factor = 0.2 + (prediction_skill * 0.8) # 0.3 -> 0.44, 0.9 -> 0.92
-                        
+                        skill_factor = 0.2 + (prediction_skill * 0.8)  # 0.3 -> 0.44, 0.9 -> 0.92
+
                         target_pos = Vector2(
-                            nearest_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
-                            nearest_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
+                            nearest_food.pos.x * (1 - skill_factor)
+                            + intercept_point.x * skill_factor,
+                            nearest_food.pos.y * (1 - skill_factor)
+                            + intercept_point.y * skill_factor,
                         )
                 else:
                     target_pos = nearest_food.pos

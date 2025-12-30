@@ -125,10 +125,7 @@ class TestComposablePokerStrategyMutation:
         # High mutation rate to ensure change
         strategy.mutate(mutation_rate=1.0, mutation_strength=0.5, rng=rng)
         # At least one parameter should be different
-        changed = any(
-            original_params[k] != strategy.parameters[k]
-            for k in original_params
-        )
+        changed = any(original_params[k] != strategy.parameters[k] for k in original_params)
         assert changed
 
     def test_mutate_respects_bounds(self):
@@ -159,7 +156,9 @@ class TestComposablePokerStrategyMutation:
         rng = random.Random(1)
         original = ComposablePokerStrategy.create_random(rng)
         # Disable both mutation and sub-behavior switching
-        clone = original.clone_with_mutation(mutation_rate=0.0, sub_behavior_switch_rate=0.0, rng=rng)
+        clone = original.clone_with_mutation(
+            mutation_rate=0.0, sub_behavior_switch_rate=0.0, rng=rng
+        )
         # With no mutation and no switching, should have same sub-behaviors
         assert clone.hand_selection == original.hand_selection
         assert clone.betting_style == original.betting_style
@@ -233,7 +232,7 @@ class TestComposablePokerStrategyDecisions:
         )
         # Set premium threshold to ensure 0.95 triggers raise
         strategy.parameters["premium_threshold"] = 0.90
-        
+
         action, amount = strategy.decide_action(
             hand_strength=0.95,  # Premium hand (above threshold)
             current_bet=0,
@@ -269,7 +268,7 @@ class TestComposablePokerStrategyDecisions:
         # Fixed RNGs for consistency
         rng_ip = random.Random(42)
         rng_oop = random.Random(42)
-        
+
         # Same marginal hand, different position
         # In position should be more likely to play
         ip_action, _ = strategy.decide_action(
@@ -300,9 +299,13 @@ class TestOpponentModeling:
     def test_update_opponent_model(self):
         """Opponent model tracks observations."""
         strategy = ComposablePokerStrategy()
-        strategy.update_opponent_model("opp1", folded=True, raised=False, called=False, aggression=0.3)
-        strategy.update_opponent_model("opp1", folded=False, raised=True, called=False, aggression=0.7)
-        
+        strategy.update_opponent_model(
+            "opp1", folded=True, raised=False, called=False, aggression=0.3
+        )
+        strategy.update_opponent_model(
+            "opp1", folded=False, raised=True, called=False, aggression=0.7
+        )
+
         model = strategy.opponent_models["opp1"]
         assert model.games_played == 2
         assert model.times_folded == 1
@@ -317,8 +320,10 @@ class TestOpponentModeling:
         strategy.parameters["opponent_model_weight"] = 0.5
         # Create opponent who folds a lot
         for _ in range(10):
-            strategy.update_opponent_model("weak_opp", folded=True, raised=False, called=False, aggression=0.2)
-        
+            strategy.update_opponent_model(
+                "weak_opp", folded=True, raised=False, called=False, aggression=0.2
+            )
+
         # Adjustment should be positive (can exploit with bluffs)
         adj = strategy._get_opponent_adjustment("weak_opp")
         assert adj > 0
@@ -331,11 +336,11 @@ class TestStrategyDiversity:
         """Random strategies have variety in sub-behaviors."""
         rng = random.Random(42)  # Deterministic seed
         strategies = [ComposablePokerStrategy.create_random(rng) for _ in range(100)]
-        
+
         # Should see multiple different hand selections
         hand_selections = set(s.hand_selection for s in strategies)
         assert len(hand_selections) >= 3  # At least 3 of 4 options
-        
+
         # Should see multiple bluffing approaches
         bluff_approaches = set(s.bluffing_approach for s in strategies)
         assert len(bluff_approaches) >= 3
@@ -344,7 +349,7 @@ class TestStrategyDiversity:
         """Offspring can have different sub-behaviors than either parent."""
         p1 = ComposablePokerStrategy(hand_selection=HandSelection.TIGHT)
         p2 = ComposablePokerStrategy(hand_selection=HandSelection.TIGHT)
-        
+
         # With mutation, offspring can differ
         different = False
         for seed in range(100):

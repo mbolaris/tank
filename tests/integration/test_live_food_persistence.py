@@ -21,7 +21,7 @@ def _run_live_food_persistence():
     env = Environment(width=800, height=600)
 
     # Create different types of food
-    regular_food = Food(env, x=100, y=200, food_type='algae')
+    regular_food = Food(env, x=100, y=200, food_type="algae")
     live_food = LiveFood(env, x=300, y=400)
 
     print("\n1. Testing food types...")

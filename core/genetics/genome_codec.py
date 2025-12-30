@@ -64,7 +64,11 @@ def genome_to_dict(
         "behavior": behavior_dict,
         # Poker strategy for in-game betting decisions
         "poker_strategy": poker_strategy_dict,
-        "mate_preferences": dict(genome.behavioral.mate_preferences.value) if genome.behavioral.mate_preferences else {},
+        "mate_preferences": (
+            dict(genome.behavioral.mate_preferences.value)
+            if genome.behavioral.mate_preferences
+            else {}
+        ),
         "trait_meta": trait_meta,
     }
 
@@ -100,6 +104,7 @@ def genome_from_dict(
     mate_preferences = data.get("mate_preferences")
     if isinstance(mate_preferences, dict):
         from core.genetics.trait import GeneticTrait
+
         normalized = normalize_mate_preferences(
             {str(key): value for key, value in mate_preferences.items()},
             physical=genome.physical,
@@ -128,8 +133,6 @@ def genome_from_dict(
                 meta = trait_meta.get(name)
                 if isinstance(meta, dict):
                     apply_trait_meta_to_trait(trait, meta)
-
-
 
     # Behavior (new system)
     try:
@@ -195,7 +198,6 @@ def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
     return {
         **values,
         "trait_meta": trait_meta,
-
         "behavior": behavior_info,
         "poker_strategy_type": _algo_name(
             genome.behavioral.poker_strategy.value if genome.behavioral.poker_strategy else None

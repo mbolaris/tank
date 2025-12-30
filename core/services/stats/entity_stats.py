@@ -2,7 +2,7 @@
 
 This module calculates statistics about simulation entities:
 - Fish counts and energy
-- Food counts and energy  
+- Food counts and energy
 - Plant counts and energy
 - Fish health distribution
 """
@@ -28,11 +28,7 @@ def get_simulation_state(engine: "SimulationEngine") -> Dict[str, Any]:
         "frame_count": engine.frame_count,
         "time_string": engine.time_system.get_time_string(),
         "elapsed_real_time": elapsed,
-        "simulation_speed": (
-            engine.frame_count / (FRAME_RATE * elapsed)
-            if elapsed > 0
-            else 0
-        ),
+        "simulation_speed": (engine.frame_count / (FRAME_RATE * elapsed) if elapsed > 0 else 0),
     }
 
 
@@ -49,23 +45,16 @@ def get_entity_stats(engine: "SimulationEngine") -> Dict[str, Any]:
     all_food_list = engine.get_food_list()
 
     # Separate food types
-    live_food_list = [
-        e for e in all_food_list if isinstance(e, entities.LiveFood)
-    ]
-    regular_food_list = [
-        e for e in all_food_list if not isinstance(e, entities.LiveFood)
-    ]
+    live_food_list = [e for e in all_food_list if isinstance(e, entities.LiveFood)]
+    regular_food_list = [e for e in all_food_list if not isinstance(e, entities.LiveFood)]
 
     # Plant lists
-    plants = [
-        e for e in engine.entities_list if isinstance(e, Plant)
-    ]
+    plants = [e for e in engine.entities_list if isinstance(e, Plant)]
 
     return {
         "fish_count": len(fish_list),
         "fish_energy": sum(
-            fish.energy + fish._reproduction_component.overflow_energy_bank
-            for fish in fish_list
+            fish.energy + fish._reproduction_component.overflow_energy_bank for fish in fish_list
         ),
         "food_count": len(regular_food_list),
         "food_energy": sum(food.energy for food in regular_food_list),

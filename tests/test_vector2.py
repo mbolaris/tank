@@ -9,7 +9,9 @@ def test_vector2_inplace_add():
     v1 += v2
     assert v1.x == 4
     assert v1.y == 6
-    assert v1 is not v2  # Ensure it's still the same object (or at least behaves like one in Python, though += on mutable objects modifies in place)
+    assert (
+        v1 is not v2
+    )  # Ensure it's still the same object (or at least behaves like one in Python, though += on mutable objects modifies in place)
 
     # Verify it returns self
     v3 = Vector2(1, 1)

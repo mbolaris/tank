@@ -45,7 +45,9 @@ class SpatialGrid:
 
         # Grid storage: dict of (col, row) -> dict of type -> list of agents
         # Using list instead of set for faster iteration in tight loops
-        self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(lambda: defaultdict(list))
+        self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
 
         # Cache deterministic per-cell type order to avoid sorting on every query.
         # Key: cell tuple, Value: list of types sorted by __name__.
@@ -113,7 +115,7 @@ class SpatialGrid:
         # Update dedicated grids
         # We use string names to avoid circular imports or heavy isinstance checks
         type_name = agent_type.__name__
-        if type_name == 'Fish':
+        if type_name == "Fish":
             self.fish_grid[cell].append(agent)
         elif issubclass(agent_type, self._food_base_type):
             self.food_grid[cell].append(agent)
@@ -137,7 +139,7 @@ class SpatialGrid:
 
             # Remove from dedicated grids
             type_name = agent_type.__name__
-            if type_name == 'Fish':
+            if type_name == "Fish":
                 if agent in self.fish_grid[cell]:
                     self.fish_grid[cell].remove(agent)
                     if not self.fish_grid[cell]:
@@ -174,7 +176,7 @@ class SpatialGrid:
 
                 # Remove from dedicated grids (old cell)
                 type_name = agent_type.__name__
-                if type_name == 'Fish':
+                if type_name == "Fish":
                     if agent in self.fish_grid[old_cell]:
                         self.fish_grid[old_cell].remove(agent)
                         if not self.fish_grid[old_cell]:
@@ -194,7 +196,7 @@ class SpatialGrid:
 
             # Add to dedicated grids (new cell)
             type_name = agent_type.__name__
-            if type_name == 'Fish':
+            if type_name == "Fish":
                 self.fish_grid[new_cell].append(agent)
             elif issubclass(agent_type, self._food_base_type):
                 self.food_grid[new_cell].append(agent)
@@ -211,9 +213,7 @@ class SpatialGrid:
 
         # Pre-allocate list size if possible or just use list comprehension which is faster than append loop
         return [
-            (col, row)
-            for col in range(min_col, max_col + 1)
-            for row in range(min_row, max_row + 1)
+            (col, row) for col in range(min_col, max_col + 1) for row in range(min_row, max_row + 1)
         ]
 
     def query_radius(self, agent: Agent, radius: float) -> List[Agent]:
@@ -350,7 +350,9 @@ class SpatialGrid:
 
         return result
 
-    def query_interaction_candidates(self, agent: Agent, radius: float, crab_type: Type[Agent]) -> List[Agent]:
+    def query_interaction_candidates(
+        self, agent: Agent, radius: float, crab_type: Type[Agent]
+    ) -> List[Agent]:
         """
         Optimized query for collision candidates (Fish, Food, Crabs).
         Performs a single grid traversal to collect all relevant entities.
@@ -500,7 +502,12 @@ class Environment:
     _subclass_cache: Dict[Tuple[Type, Type], bool] = {}
 
     def __init__(
-        self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600, time_system: Optional[Any] = None, rng: Optional[random.Random] = None
+        self,
+        agents: Optional[Iterable[Agent]] = None,
+        width: int = 800,
+        height: int = 600,
+        time_system: Optional[Any] = None,
+        rng: Optional[random.Random] = None,
     ):
         """
         Initialize the environment.
@@ -524,7 +531,9 @@ class Environment:
         self.tank_registry: Any = None  # Set by backend if migrations enabled
         self.tank_id: Optional[str] = None  # Set by backend if migrations enabled
         self.tank_name: Optional[str] = None  # Set by backend for lineage tracking
-        self.migration_handler: Optional[MigrationHandler] = None  # Set by backend if migrations enabled
+        self.migration_handler: Optional[MigrationHandler] = (
+            None  # Set by backend if migrations enabled
+        )
 
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0
@@ -562,7 +571,9 @@ class Environment:
         """
         self._remove_requester = requester
 
-    def request_spawn(self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None) -> bool:
+    def request_spawn(
+        self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """Request an entity spawn via the engine's mutation queue.
 
         Prefer core.util.mutations.request_spawn for entity-owned spawn requests.
@@ -573,7 +584,9 @@ class Environment:
             return False
         return bool(self._spawn_requester(entity, reason=reason, metadata=metadata))
 
-    def request_remove(self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None) -> bool:
+    def request_remove(
+        self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """Request an entity removal via the engine's mutation queue.
 
         Prefer core.util.mutations.request_remove for entity-owned removal requests.
@@ -728,7 +741,7 @@ class Environment:
                 # Iterate over sorted type buckets
                 for type_key in sorted_types:
                     agents = cell_buckets[type_key]
-                    
+
                     # OPTIMIZATION: Use cached issubclass check
                     cache_key = (type_key, agent_class)
                     is_match = subclass_cache.get(cache_key)
@@ -745,26 +758,28 @@ class Environment:
                             other_pos = other.pos
                             dx = other_pos.x - agent_x
                             dy = other_pos.y - agent_y
-                            if dx*dx + dy*dy <= radius_sq:
+                            if dx * dx + dy * dy <= radius_sq:
                                 result_append(other)
 
         return result
 
     def nearby_evolving_agents(self, agent: Agent, radius: int) -> List[Agent]:
         """Get nearby evolving agents (entities that can reproduce).
-        
+
         In the fish tank domain, returns Fish entities.
         """
         return self.spatial_grid.query_fish(agent, radius)
 
     def nearby_resources(self, agent: Agent, radius: int) -> List[Agent]:
         """Get nearby consumable resources.
-        
+
         In the fish tank domain, returns Food entities.
         """
         return self.spatial_grid.query_food(agent, radius)
 
-    def nearby_interaction_candidates(self, agent: Agent, radius: int, crab_type: Type[Agent]) -> List[Agent]:
+    def nearby_interaction_candidates(
+        self, agent: Agent, radius: int, crab_type: Type[Agent]
+    ) -> List[Agent]:
         """
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
@@ -781,7 +796,7 @@ class Environment:
     # =========================================================================
     # Caching Architecture Note
     # =========================================================================
-    # 
+    #
     # Two separate caches exist for different access patterns:
     #
     # 1. CacheManager (in EntityManager): Caches fish_list and food_list for
@@ -795,55 +810,55 @@ class Environment:
     # Both caches are invalidated when entities are added/removed.
     # The SpatialGrid provides O(k) proximity queries and is separate.
     # =========================================================================
-    
+
     # --- World Protocol Implementation ---
     # The following methods/properties implement the World Protocol,
     # making Environment usable as an abstract World in generic simulation code.
-    
+
     @property
     def dimensions(self) -> Tuple[float, ...]:
         """Get environment dimensions (implements World Protocol).
-        
+
         Returns:
             Tuple of (width, height) for 2D environment
         """
         return (float(self.width), float(self.height))
-    
+
     def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """Get environment boundaries (implements World Protocol).
-        
+
         Returns:
             ((min_x, min_y), (max_x, max_y)) for 2D environment
         """
         return ((0.0, 0.0), (float(self.width), float(self.height)))
-    
+
     def get_2d_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """Get 2D boundaries (implements World2D Protocol).
-        
+
         Returns:
             ((min_x, min_y), (max_x, max_y))
         """
         return self.get_bounds()
-    
+
     def is_valid_position(self, position: Tuple[float, float]) -> bool:
         """Check if a position is valid within this environment (implements World Protocol).
-        
+
         Args:
             position: (x, y) tuple to check
-            
+
         Returns:
             True if position is within bounds [0, width) x [0, height)
         """
         if not isinstance(position, (tuple, list)) or len(position) != 2:
             return False
-        
+
         x, y = position
         return 0 <= x < self.width and 0 <= y < self.height
 
     @property
     def rng(self) -> random.Random:
         """Get the shared RNG (implements World Protocol).
-        
+
         Returns:
             Random instance for deterministic simulation
         """

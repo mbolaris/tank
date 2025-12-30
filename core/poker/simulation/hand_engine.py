@@ -312,7 +312,6 @@ def _build_deck_from_deal(deal: Deal, num_players: int) -> Deck:
     return deck
 
 
-
 def _deal_hole_cards(game_state: MultiplayerGameState) -> None:
     """Deal hole cards, preserving heads-up interleaving."""
     num_players = game_state.num_players
@@ -334,9 +333,7 @@ def _blind_positions(num_players: int, button_position: int) -> Tuple[int, int]:
     return (button_position + 1) % num_players, (button_position + 2) % num_players
 
 
-def _starting_player_for_round(
-    num_players: int, button_position: int, round_num: int
-) -> int:
+def _starting_player_for_round(num_players: int, button_position: int, round_num: int) -> int:
     if num_players == 2:
         if round_num == 0:
             return button_position
@@ -357,7 +354,8 @@ def _play_multiplayer_betting_rounds(
             break
 
         active_can_act = [
-            pid for pid, player in game_state.players.items()
+            pid
+            for pid, player in game_state.players.items()
             if not player.folded and not player.all_in
         ]
         if len(active_can_act) <= 1:
@@ -441,8 +439,7 @@ def _is_round_complete(
 ) -> bool:
     """Check if the betting round is complete."""
     active_players = [
-        pid for pid, player in game_state.players.items()
-        if not player.folded and not player.all_in
+        pid for pid, player in game_state.players.items() if not player.folded and not player.all_in
     ]
 
     if len(active_players) <= 1:
@@ -470,14 +467,11 @@ def _decide_multiplayer_action(
     player = game_state.players[player_id]
 
     if player_id not in hand_cache:
-        hand_cache[player_id] = evaluate_hand(
-            player.hole_cards, game_state.community_cards
-        )
+        hand_cache[player_id] = evaluate_hand(player.hole_cards, game_state.community_cards)
     hand = hand_cache[player_id]
 
     active_others = [
-        other for pid, other in game_state.players.items()
-        if pid != player_id and not other.folded
+        other for pid, other in game_state.players.items() if pid != player_id and not other.folded
     ]
     opponent_bet = (
         sum(other.current_bet for other in active_others) / len(active_others)
@@ -489,9 +483,7 @@ def _decide_multiplayer_action(
         is_preflop = len(game_state.community_cards) == 0
         position_on_button = player_id == game_state.button_position
         if is_preflop and player.hole_cards and len(player.hole_cards) == 2:
-            hand_strength = evaluate_starting_hand_strength(
-                player.hole_cards, position_on_button
-            )
+            hand_strength = evaluate_starting_hand_strength(player.hole_cards, position_on_button)
         else:
             hand_strength = evaluate_hand_strength(hand)
         return player.strategy.decide_action(

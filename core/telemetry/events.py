@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class EnergyBurnEvent:
     """Energy spent, recorded by source and scope."""
+
     source: str
     amount: float
     scope: str = "fish"  # "fish" or "plant"
@@ -20,6 +21,7 @@ class EnergyBurnEvent:
 @dataclass(frozen=True)
 class EnergyGainEvent:
     """Energy gained, recorded by source and scope."""
+
     source: str
     amount: float
     scope: str = "fish"  # "fish" or "plant"
@@ -28,6 +30,7 @@ class EnergyGainEvent:
 @dataclass(frozen=True)
 class FoodEatenEvent:
     """Food consumption event for telemetry."""
+
     food_type: str  # "nectar", "live_food", "falling_food"
     algorithm_id: int
     energy_gained: float
@@ -38,6 +41,7 @@ class FoodEatenEvent:
 @dataclass(frozen=True)
 class BirthEvent:
     """Birth event for lineage and energy accounting."""
+
     fish_id: int
     generation: int
     parent_ids: Optional[Sequence[int]]
@@ -52,6 +56,7 @@ class BirthEvent:
 @dataclass(frozen=True)
 class ReproductionEvent:
     """Reproduction event for stats."""
+
     algorithm_id: int
     is_asexual: bool = False
 

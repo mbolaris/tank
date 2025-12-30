@@ -51,8 +51,7 @@ def _hand_state_to_poker_game_state(
     game_state.player1_hand = state.player_hands.get(0)
     game_state.player2_hand = state.player_hands.get(1)
     game_state.betting_history = [
-        (player_id + 1, action, amount)
-        for player_id, action, amount in state.betting_history
+        (player_id + 1, action, amount) for player_id, action, amount in state.betting_history
     ]
 
     return game_state

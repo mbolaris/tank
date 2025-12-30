@@ -48,22 +48,28 @@ class SkillGameConfig:
     inherit_strategy: bool = True
 
     # Game-specific configurations
-    rps_config: Dict[str, Any] = field(default_factory=lambda: {
-        "stake": 10.0,
-    })
+    rps_config: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "stake": 10.0,
+        }
+    )
 
-    number_prediction_config: Dict[str, Any] = field(default_factory=lambda: {
-        "stake": 10.0,
-        "max_error_for_reward": 20.0,
-        "history_length": 5,
-        "pattern_change_frequency": 50,
-    })
+    number_prediction_config: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "stake": 10.0,
+            "max_error_for_reward": 20.0,
+            "history_length": 5,
+            "pattern_change_frequency": 50,
+        }
+    )
 
-    poker_config: Dict[str, Any] = field(default_factory=lambda: {
-        "small_blind": 5.0,
-        "big_blind": 10.0,
-        "max_hands": 10,
-    })
+    poker_config: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "small_blind": 5.0,
+            "big_blind": 10.0,
+            "max_hands": 10,
+        }
+    )
 
 
 # Global configuration instance
@@ -160,18 +166,21 @@ def _auto_register_games() -> None:
     """Auto-register known skill games."""
     try:
         from core.skills.games.rock_paper_scissors import RockPaperScissorsGame
+
         register_skill_game(SkillGameType.ROCK_PAPER_SCISSORS, RockPaperScissorsGame)
     except ImportError:
         pass
 
     try:
         from core.skills.games.number_guessing import NumberGuessingGame
+
         register_skill_game(SkillGameType.NUMBER_GUESSING, NumberGuessingGame)
     except ImportError:
         pass
-    
+
     try:
         from core.skills.games.poker_adapter import PokerSkillGame
+
         register_skill_game(SkillGameType.POKER, PokerSkillGame)
     except ImportError:
         pass

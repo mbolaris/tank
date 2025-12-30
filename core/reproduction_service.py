@@ -67,9 +67,7 @@ class ReproductionService:
             emergency_spawns=emergency,
         )
 
-    def handle_post_poker_reproduction(
-        self, poker: "PokerInteraction"
-    ) -> Optional["Fish"]:
+    def handle_post_poker_reproduction(self, poker: "PokerInteraction") -> Optional["Fish"]:
         """Handle reproduction after a fish-fish poker game."""
         from core.config.fish import POST_POKER_MATING_DISTANCE
         from core.poker_interaction import (
@@ -142,9 +140,7 @@ class ReproductionService:
         self._poker_reproductions += 1
         return baby
 
-    def handle_plant_poker_asexual_reproduction(
-        self, winner_fish: "Fish"
-    ) -> Optional["Fish"]:
+    def handle_plant_poker_asexual_reproduction(self, winner_fish: "Fish") -> Optional["Fish"]:
         """Handle asexual reproduction when fish beats only plants."""
         from core.mixed_poker import should_trigger_plant_poker_asexual_reproduction
 
@@ -186,9 +182,7 @@ class ReproductionService:
         for fish in fish_list:
             fish._reproduction_component.update_cooldown()
 
-    def _handle_banked_asexual_reproduction(
-        self, fish_list: List["Fish"], fish_count: int
-    ) -> int:
+    def _handle_banked_asexual_reproduction(self, fish_list: List["Fish"], fish_count: int) -> int:
         spawned = 0
         ecosystem = self._engine.ecosystem
 
@@ -213,9 +207,7 @@ class ReproductionService:
 
         return spawned
 
-    def _handle_trait_asexual_reproduction(
-        self, fish_list: List["Fish"], fish_count: int
-    ) -> int:
+    def _handle_trait_asexual_reproduction(self, fish_list: List["Fish"], fish_count: int) -> int:
         spawned = 0
         ecosystem = self._engine.ecosystem
 
@@ -277,9 +269,7 @@ class ReproductionService:
                 self._last_emergency_spawn_frame = frame
                 self._emergency_spawns += 1
                 if fish_count < eco_cfg.critical_population_threshold:
-                    logger.info(
-                        "Emergency fish spawned! fish_count now: %d", fish_count + 1
-                    )
+                    logger.info("Emergency fish spawned! fish_count now: %d", fish_count + 1)
                 return 1
 
         return 0
@@ -359,9 +349,7 @@ class ReproductionService:
 
         return None
 
-    def _create_post_poker_offspring(
-        self, winner: "Fish", mate: "Fish"
-    ) -> Optional["Fish"]:
+    def _create_post_poker_offspring(self, winner: "Fish", mate: "Fish") -> Optional["Fish"]:
         from core.entities import Fish
         from core.config.fish import (
             ENERGY_MAX_DEFAULT,
@@ -390,9 +378,7 @@ class ReproductionService:
         )
 
         baby_max_energy = (
-            ENERGY_MAX_DEFAULT
-            * FISH_BABY_SIZE
-            * offspring_genome.physical.size_modifier.value
+            ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
         )
         if baby_max_energy <= 0:
             return None
@@ -455,9 +441,7 @@ class ReproductionService:
         mate.visual_state.set_birth_effect(60)
 
         source_parent = (
-            winner
-            if self._engine.rng.random() < POST_POKER_CROSSOVER_WINNER_WEIGHT
-            else mate
+            winner if self._engine.rng.random() < POST_POKER_CROSSOVER_WINNER_WEIGHT else mate
         )
         baby._skill_game_component.inherit_from_parent(
             source_parent._skill_game_component,

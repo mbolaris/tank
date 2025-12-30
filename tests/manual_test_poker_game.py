@@ -206,8 +206,6 @@ def test_backend_integration():
             genome=genome,
             generation=i,
             ecosystem=runner.world.ecosystem,
-    
-    
         )
         fish.energy = 80 + i * 10
         runner.world.add_entity(fish)

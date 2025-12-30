@@ -60,7 +60,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
-        
+
         call_amount = max(0.0, opponent_bet - current_bet)
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
@@ -111,7 +111,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         # Marginal hands: check when possible, otherwise consider pot odds before folding
         if call_amount == 0:
             return (BettingAction.CHECK, 0.0)
-        
+
         # Calculate pot odds - call if the hand has enough equity
         pot_odds = call_amount / (pot + call_amount) if pot > 0 else 0.5
         # Marginal hands should call if pot odds are favorable (adjusted by risk tolerance)
@@ -119,5 +119,5 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         pot_odds_threshold = pot_odds - (risk_tolerance - 0.3) * 0.15
         if adjusted_strength > pot_odds_threshold and call_amount <= player_energy:
             return (BettingAction.CALL, call_amount)
-        
+
         return (BettingAction.FOLD, 0.0)

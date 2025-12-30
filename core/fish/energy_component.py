@@ -115,7 +115,7 @@ class EnergyComponent:
         existence_cost = (
             EXISTENCE_ENERGY_COST
             * time_modifier
-            * (size ** EXISTENCE_SIZE_EXPONENT)
+            * (size**EXISTENCE_SIZE_EXPONENT)
             * stage_multiplier
         )
 
@@ -129,15 +129,10 @@ class EnergyComponent:
 
         if vel_length > 0 and speed > 0:
             speed_ratio = vel_length / speed
-            size_factor = size ** MOVEMENT_SIZE_EXPONENT
+            size_factor = size**MOVEMENT_SIZE_EXPONENT
 
             # Base movement cost (linear with speed)
-            movement_cost = (
-                MOVEMENT_ENERGY_COST
-                * speed_ratio
-                * size_factor
-                * stage_multiplier
-            )
+            movement_cost = MOVEMENT_ENERGY_COST * speed_ratio * size_factor * stage_multiplier
 
             # -----------------------------------------------------------------
             # 3. SPRINT PENALTY - going above cruise threshold
@@ -146,10 +141,7 @@ class EnergyComponent:
             if speed_ratio > SPRINT_THRESHOLD:
                 excess_speed = speed_ratio - SPRINT_THRESHOLD
                 sprint_cost = (
-                    SPRINT_ENERGY_COST
-                    * (excess_speed ** 2)
-                    * size_factor
-                    * stage_multiplier
+                    SPRINT_ENERGY_COST * (excess_speed**2) * size_factor * stage_multiplier
                 )
 
         # Base metabolism (from genome) - applied separately

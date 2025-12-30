@@ -19,10 +19,12 @@ def test_from_dict_validation():
     # Test 1: Missing sourceId
     print("\n1. Testing missing sourceId...")
     try:
-        TankConnection.from_dict({
-            "destinationId": "tank2-uuid",
-            "probability": 25,
-        })
+        TankConnection.from_dict(
+            {
+                "destinationId": "tank2-uuid",
+                "probability": 25,
+            }
+        )
         print("  ❌ FAILED: Should have raised ValueError")
         return False
     except ValueError as e:
@@ -31,10 +33,12 @@ def test_from_dict_validation():
     # Test 2: Missing destinationId
     print("\n2. Testing missing destinationId...")
     try:
-        TankConnection.from_dict({
-            "sourceId": "tank1-uuid",
-            "probability": 25,
-        })
+        TankConnection.from_dict(
+            {
+                "sourceId": "tank1-uuid",
+                "probability": 25,
+            }
+        )
         print("  ❌ FAILED: Should have raised ValueError")
         return False
     except ValueError as e:
@@ -43,11 +47,13 @@ def test_from_dict_validation():
     # Test 3: Valid connection with both fields
     print("\n3. Testing valid connection data...")
     try:
-        conn = TankConnection.from_dict({
-            "sourceId": "tank1-uuid",
-            "destinationId": "tank2-uuid",
-            "probability": 25,
-        })
+        conn = TankConnection.from_dict(
+            {
+                "sourceId": "tank1-uuid",
+                "destinationId": "tank2-uuid",
+                "probability": 25,
+            }
+        )
         print(f"  ✓ Successfully created connection: {conn.id}")
     except Exception as e:
         print(f"  ❌ FAILED: Should not raise error: {e}")
@@ -56,11 +62,13 @@ def test_from_dict_validation():
     # Test 4: Valid connection with snake_case fields
     print("\n4. Testing valid connection with snake_case...")
     try:
-        conn = TankConnection.from_dict({
-            "source_tank_id": "tank1-uuid",
-            "destination_tank_id": "tank2-uuid",
-            "probability": 50,
-        })
+        conn = TankConnection.from_dict(
+            {
+                "source_tank_id": "tank1-uuid",
+                "destination_tank_id": "tank2-uuid",
+                "probability": 50,
+            }
+        )
         print(f"  ✓ Successfully created connection: {conn.id}")
     except Exception as e:
         print(f"  ❌ FAILED: Should not raise error: {e}")
@@ -166,7 +174,9 @@ def main():
     results.append(("from_dict() validation", test_from_dict_validation()))
 
     # Test 2: validate_connections preserves remote
-    results.append(("validate_connections() remote preservation", test_validate_connections_preserves_remote()))
+    results.append(
+        ("validate_connections() remote preservation", test_validate_connections_preserves_remote())
+    )
 
     # Summary
     print("\n" + "=" * 60)

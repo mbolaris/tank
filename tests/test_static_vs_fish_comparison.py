@@ -59,7 +59,11 @@ class PokerComparisonResults:
     @property
     def average_fish_net_energy(self) -> float:
         """Calculate average net energy across all fish."""
-        return sum(self.fish_net_energies) / len(self.fish_net_energies) if self.fish_net_energies else 0
+        return (
+            sum(self.fish_net_energies) / len(self.fish_net_energies)
+            if self.fish_net_energies
+            else 0
+        )
 
     @property
     def average_fish_win_rate(self) -> float:
@@ -320,9 +324,13 @@ def comprehensive_analysis(all_results: List[PokerComparisonResults]):
     print(f"  Fish Players: {avg_fish_net:+.1f} net energy")
 
     if avg_standard_net > avg_fish_net:
-        print(f"\n  → Standard Algorithm outperformed fish by {avg_standard_net - avg_fish_net:.1f} energy on average")
+        print(
+            f"\n  → Standard Algorithm outperformed fish by {avg_standard_net - avg_fish_net:.1f} energy on average"
+        )
     else:
-        print(f"\n  → Fish outperformed Standard Algorithm by {avg_fish_net - avg_standard_net:.1f} energy on average")
+        print(
+            f"\n  → Fish outperformed Standard Algorithm by {avg_fish_net - avg_standard_net:.1f} energy on average"
+        )
 
     print("\n" + "-" * 80)
     print("KEY INSIGHTS:")
@@ -395,7 +403,8 @@ def comprehensive_analysis(all_results: List[PokerComparisonResults]):
     print("\n" + "=" * 80)
     print("CONCLUSION")
     print("=" * 80)
-    print("""
+    print(
+        """
 The standard evaluation algorithm uses a fixed aggression level (0.5) with hand-strength
 based decision making. Fish players use evolved poker strategy algorithms with diverse
 playstyles and randomized parameters.
@@ -421,7 +430,8 @@ Key Findings:
 
 This test suite validates that the auto-evaluation system correctly compares diverse
 evolved fish poker strategies against a well-calibrated baseline algorithm.
-""")
+"""
+    )
 
 
 def run_all_tests():
@@ -429,7 +439,8 @@ def run_all_tests():
     print("=" * 80)
     print("STANDARD ALGORITHM vs FISH BEHAVIORS: COMPREHENSIVE TEST SUITE")
     print("=" * 80)
-    print("""
+    print(
+        """
 This test suite compares the standard poker evaluation algorithm (used in
 AutoEvaluatePokerGame) against fish using three different behavioral algorithms:
 
@@ -443,7 +454,8 @@ poker strategies (TAG, LAG, Balanced, Maniac, etc.).
 
 IMPORTANT: In tournament format, movement behaviors have NO effect on poker skill.
            Performance differences come from evolved poker strategy algorithms.
-""")
+"""
+    )
 
     # Run all three test matchups
     # Note: We can't easily get the results back from the test functions since they

@@ -120,7 +120,9 @@ def _compute_ci_95(values: List[float]) -> Tuple[float, float]:
     return (mean - margin, mean + margin)
 
 
-def create_standard_strategy(strategy_id: str, rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
+def create_standard_strategy(
+    strategy_id: str, rng: Optional[random.Random] = None
+) -> PokerStrategyAlgorithm:
     """Create a standard benchmark strategy by ID.
 
     Args:
@@ -159,8 +161,7 @@ def create_standard_strategy(strategy_id: str, rng: Optional[random.Random] = No
     strategy_cls = strategy_map.get(strategy_id)
     if not strategy_cls:
         raise ValueError(
-            f"Unknown strategy_id: {strategy_id}. "
-            f"Valid options: {list(strategy_map.keys())}"
+            f"Unknown strategy_id: {strategy_id}. " f"Valid options: {list(strategy_map.keys())}"
         )
 
     return strategy_cls(rng=rng)
@@ -260,9 +261,7 @@ def evaluate_vs_single_benchmark_duplicate(
 
     mean_bb_100 = (total_net_bb / total_hands) * 100.0
     ci_low, ci_high = _compute_ci_95(bb_per_100_samples)
-    variance = (
-        statistics.pvariance(bb_per_100_samples) if len(bb_per_100_samples) > 1 else 0.0
-    )
+    variance = statistics.pvariance(bb_per_100_samples) if len(bb_per_100_samples) > 1 else 0.0
 
     # crude "significance" heuristic: CI excludes 0
     significant = (ci_low > 0.0) or (ci_high < 0.0)

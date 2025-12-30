@@ -86,7 +86,9 @@ class MiniEnvironment:
 
     def nearby_agents_by_type(self, agent: Fish, radius: float, agent_class):
         """Return all other fish; spatial math is unnecessary for this test."""
-        return [other for other in self.agents if other is not agent and isinstance(other, agent_class)]
+        return [
+            other for other in self.agents if other is not agent and isinstance(other, agent_class)
+        ]
 
     def add_entity(self, entity):
         """Add an entity to the environment."""
@@ -129,7 +131,10 @@ class MiniEngine:
 
 # Helper utilities ---------------------------------------------------------
 
-def _make_adult_fish(env: MiniEnvironment, ecosystem: MiniEcosystem, *, generation: int = 0) -> Fish:
+
+def _make_adult_fish(
+    env: MiniEnvironment, ecosystem: MiniEcosystem, *, generation: int = 0
+) -> Fish:
     fish = Fish(
         environment=env,
         movement_strategy=EnergyConserver(),
@@ -155,7 +160,7 @@ def _make_adult_fish(env: MiniEnvironment, ecosystem: MiniEcosystem, *, generati
 
 def _trigger_instant_reproductions(fish_list, env):
     """Trigger asexual reproduction via trait check and collect newborns.
-    
+
     Since reproduction is now instant, we just call update_reproduction()
     which checks if conditions are met and creates baby immediately.
     """
@@ -170,7 +175,7 @@ def _trigger_instant_reproductions(fish_list, env):
             continue
         if fish._reproduction_component.overflow_energy_bank <= 0:
             continue
-            
+
         # Call update_reproduction which will trigger instant birth
         baby = fish.update_reproduction()
         if baby is not None:
@@ -182,6 +187,7 @@ def _trigger_instant_reproductions(fish_list, env):
 
 
 # Tests --------------------------------------------------------------------
+
 
 def test_multi_generation_reproduction(monkeypatch):
     """A baby and then a grandbaby should be produced in quick succession."""
@@ -209,15 +215,21 @@ def test_multi_generation_reproduction(monkeypatch):
 
     # Prepare the baby for rapid reproduction with the second parent
     parent_a.energy = parent_a.max_energy * 0.1  # Keep first parent out of the next mating round
-    parent_a._reproduction_component.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
+    parent_a._reproduction_component.reproduction_cooldown = (
+        ReproductionComponent.REPRODUCTION_COOLDOWN
+    )
 
     baby._lifecycle_component.force_life_stage(LifeStage.ADULT)
     baby._lifecycle_component.age = 200
     baby.energy = baby.max_energy
     baby._reproduction_component.reproduction_cooldown = 0
-    baby._reproduction_component.bank_overflow_energy(baby.max_energy * 0.5, max_bank=baby.max_energy)
+    baby._reproduction_component.bank_overflow_energy(
+        baby.max_energy * 0.5, max_bank=baby.max_energy
+    )
 
-    parent_b._reproduction_component.reproduction_cooldown = ReproductionComponent.REPRODUCTION_COOLDOWN
+    parent_b._reproduction_component.reproduction_cooldown = (
+        ReproductionComponent.REPRODUCTION_COOLDOWN
+    )
     parent_b.energy = parent_b.max_energy * 0.1
 
     helper = _make_adult_fish(env, ecosystem, generation=baby.generation)

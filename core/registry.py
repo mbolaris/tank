@@ -6,6 +6,7 @@ Used by AI tooling and stats exporters to introspect algorithm definitions.
 For runtime algorithm operations (crossover, mutation, instantiation), see:
     core.algorithms.registry
 """
+
 import inspect
 import os
 import pkgutil
@@ -165,4 +166,3 @@ def get_algorithm_metadata() -> Dict[str, Dict[str, str]]:
             continue
 
     return metadata
-

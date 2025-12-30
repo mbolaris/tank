@@ -1,6 +1,5 @@
 """ZigZagForager food-seeking behavior."""
 
-
 import math
 import random
 from dataclasses import dataclass
@@ -10,6 +9,7 @@ from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import (
     FOOD_PURSUIT_RANGE_CLOSE,
 )
+
 
 @dataclass
 class ZigZagForager(BehaviorAlgorithm):

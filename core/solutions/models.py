@@ -68,7 +68,9 @@ class BenchmarkResult:
     confidence_intervals: Dict[str, Tuple[float, float]] = field(default_factory=dict)
 
     # Skill tier classification
-    skill_tier: str = "beginner"  # failing, novice, beginner, intermediate, advanced, expert, master
+    skill_tier: str = (
+        "beginner"  # failing, novice, beginner, intermediate, advanced, expert, master
+    )
 
     # Timestamp of evaluation
     evaluated_at: str = ""
@@ -80,9 +82,7 @@ class BenchmarkResult:
             "weighted_bb_per_100": self.weighted_bb_per_100,
             "total_hands_played": self.total_hands_played,
             "elo_rating": self.elo_rating,
-            "confidence_intervals": {
-                k: list(v) for k, v in self.confidence_intervals.items()
-            },
+            "confidence_intervals": {k: list(v) for k, v in self.confidence_intervals.items()},
             "skill_tier": self.skill_tier,
             "evaluated_at": self.evaluated_at,
         }
@@ -247,9 +247,7 @@ class SolutionComparison:
             "solution_ids": self.solution_ids,
             "rankings": self.rankings,
             "head_to_head": self.head_to_head,
-            "significant_differences": [
-                list(diff) for diff in self.significant_differences
-            ],
+            "significant_differences": [list(diff) for diff in self.significant_differences],
             "compared_at": self.compared_at,
         }
 

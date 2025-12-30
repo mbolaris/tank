@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 class FishVisualState:
     """Transient rendering-only state for fish.
-    
+
     This class encapsulates all visual effects and their timers, separating
     rendering concerns from the main entity logic.
     """
@@ -42,7 +42,7 @@ class FishVisualState:
         amount: float = 0.0,
         duration: int = 15,
         target_id: Optional[int] = None,
-        target_type: Optional[str] = None
+        target_type: Optional[str] = None,
     ) -> None:
         """Set a visual effect for poker status."""
         self.poker_effect_state = {

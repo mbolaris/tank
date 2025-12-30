@@ -100,14 +100,14 @@ class PokerSystem(BaseSystem):
             poker: The completed poker interaction
         """
         self.add_poker_event(poker)
-        
+
         # Delegate post-poker reproduction to the ReproductionService
         reproduction_service = getattr(self._engine, "reproduction_service", None)
         if reproduction_service is not None:
             baby = reproduction_service.handle_post_poker_reproduction(poker)
             if baby is not None:
                 return
-        
+
         # Fallback: check if reproduction was handled elsewhere
         if (
             poker.result is not None
@@ -163,14 +163,22 @@ class PokerSystem(BaseSystem):
 
         result = poker.result
         # Get player count from poker.players (MixedPokerInteraction stores players list)
-        num_players = len(poker.players) if hasattr(poker, 'players') else 2
+        num_players = len(poker.players) if hasattr(poker, "players") else 2
 
         if result.winner_id == -1 or result.is_tie:
             # Tie - use winner_hand or first loser_hand for description
             hand_desc = result.winner_hand.description if result.winner_hand else "Unknown"
             if num_players == 2:
-                p1_id = poker.players[0].get_poker_id() if hasattr(poker.players[0], 'get_poker_id') else 0
-                p2_id = poker.players[1].get_poker_id() if hasattr(poker.players[1], 'get_poker_id') else 0
+                p1_id = (
+                    poker.players[0].get_poker_id()
+                    if hasattr(poker.players[0], "get_poker_id")
+                    else 0
+                )
+                p2_id = (
+                    poker.players[1].get_poker_id()
+                    if hasattr(poker.players[1], "get_poker_id")
+                    else 0
+                )
                 message = f"Fish #{p1_id} vs Fish #{p2_id} - TIE! ({hand_desc})"
             else:
                 player_list = ", ".join(f"#{p.get_poker_id()}" for p in poker.players)
@@ -195,7 +203,11 @@ class PokerSystem(BaseSystem):
 
         # Get winner and loser hand descriptions
         winner_hand_desc = result.winner_hand.description if result.winner_hand else "Unknown"
-        loser_hand_desc = result.loser_hands[0].description if result.loser_hands and result.loser_hands[0] else "Unknown"
+        loser_hand_desc = (
+            result.loser_hands[0].description
+            if result.loser_hands and result.loser_hands[0]
+            else "Unknown"
+        )
 
         self._add_poker_event_to_history(
             result.winner_id,
@@ -441,13 +453,21 @@ class PokerSystem(BaseSystem):
                     # Fish won - find fish winner and plant loser
                     if isinstance(player, Fish) and player_poker_id == result.winner_id:
                         fish_display_id = player.fish_id
-                    elif isinstance(player, Plant) and result.loser_ids and player_poker_id in result.loser_ids:
+                    elif (
+                        isinstance(player, Plant)
+                        and result.loser_ids
+                        and player_poker_id in result.loser_ids
+                    ):
                         plant_display_id = player.plant_id
                 else:
                     # Plant won - find plant winner and fish loser
                     if isinstance(player, Plant) and player_poker_id == result.winner_id:
                         plant_display_id = player.plant_id
-                    elif isinstance(player, Fish) and result.loser_ids and player_poker_id in result.loser_ids:
+                    elif (
+                        isinstance(player, Fish)
+                        and result.loser_ids
+                        and player_poker_id in result.loser_ids
+                    ):
                         fish_display_id = player.fish_id
 
             self._engine.add_plant_poker_event(

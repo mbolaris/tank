@@ -82,9 +82,7 @@ class RectCollisionDetector(CollisionDetector):
 class CircleCollisionDetector(CollisionDetector):
     """Circle-based collision detection (distance-based)."""
 
-    def collides(
-        self, agent1: "Agent", agent2: "Agent", threshold: Optional[float] = None
-    ) -> bool:
+    def collides(self, agent1: "Agent", agent2: "Agent", threshold: Optional[float] = None) -> bool:
         """Check if two agents collide based on distance.
 
         Args:
@@ -500,6 +498,7 @@ class CollisionSystem(BaseSystem):
 
                 # Check sprouting chance (use engine RNG for determinism)
                 from core.util.rng import require_rng
+
                 rng = require_rng(self._engine, "CollisionSystem.handle_fish_food_collision")
                 if rng.random() < PLANT_SPROUTING_CHANCE:
                     self._engine.sprout_new_plant(parent_genome, parent_x, parent_y)

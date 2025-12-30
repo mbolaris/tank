@@ -8,8 +8,6 @@ remains for diagnostics and validation.
 See `docs/ARCHITECTURE.md` for the current phase order and system duties.
 """
 
-
-
 from core.systems.base import BaseSystem, System, SystemResult
 from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
 
@@ -20,4 +18,3 @@ __all__ = [
     "FoodSpawningSystem",
     "SpawnRateConfig",
 ]
-

@@ -79,8 +79,12 @@ def test_skill_game_records_energy_transfer(simulation_env):
     transferred = system._apply_energy_changes(fish1, fish2, result1, None)
     assert transferred > 0
 
-    assert math.isclose(ecosystem.energy_sources.get("skill_game", 0.0), transferred, rel_tol=0, abs_tol=1e-9)
-    assert math.isclose(ecosystem.energy_burn.get("skill_game", 0.0), transferred, rel_tol=0, abs_tol=1e-9)
+    assert math.isclose(
+        ecosystem.energy_sources.get("skill_game", 0.0), transferred, rel_tol=0, abs_tol=1e-9
+    )
+    assert math.isclose(
+        ecosystem.energy_burn.get("skill_game", 0.0), transferred, rel_tol=0, abs_tol=1e-9
+    )
 
 
 def test_single_player_skill_game_records_energy_delta(simulation_env):
@@ -114,7 +118,9 @@ def test_single_player_skill_game_records_energy_delta(simulation_env):
     )
     delta = system._apply_energy_changes(fish, None, win, None)
     assert delta > 0
-    assert math.isclose(ecosystem.energy_sources.get("skill_game_env", 0.0), delta, rel_tol=0, abs_tol=1e-9)
+    assert math.isclose(
+        ecosystem.energy_sources.get("skill_game_env", 0.0), delta, rel_tol=0, abs_tol=1e-9
+    )
 
     loss = SkillGameResult(
         player_id="fish",
@@ -125,13 +131,9 @@ def test_single_player_skill_game_records_energy_delta(simulation_env):
     )
     delta2 = system._apply_energy_changes(fish, None, loss, None)
     assert delta2 < 0
-    assert math.isclose(ecosystem.energy_burn.get("skill_game_env", 0.0), -delta2, rel_tol=0, abs_tol=1e-9)
-
-
-
-
-
-
+    assert math.isclose(
+        ecosystem.energy_burn.get("skill_game_env", 0.0), -delta2, rel_tol=0, abs_tol=1e-9
+    )
 
 
 def test_plant_records_energy_gains_and_spends(simulation_env):
@@ -159,7 +161,9 @@ def test_plant_records_energy_gains_and_spends(simulation_env):
     loss = plant.lose_energy(1.0, source="poker")
     assert loss >= 0.0
     if loss > 0:
-        assert math.isclose(ecosystem.plant_energy_burn.get("poker", 0.0), loss, rel_tol=0, abs_tol=1e-9)
+        assert math.isclose(
+            ecosystem.plant_energy_burn.get("poker", 0.0), loss, rel_tol=0, abs_tol=1e-9
+        )
 
     gain = plant.gain_energy(1.0, source="poker")
     if gain > 0:
@@ -236,8 +240,12 @@ def test_mixed_poker_house_cut_only_hits_fish_when_fish_wins():
 
     engine.poker_system._record_and_apply_mixed_poker_outcome(poker)
 
-    assert math.isclose(engine.ecosystem.energy_sources.get("poker_plant", 0.0), 10.0, rel_tol=0, abs_tol=1e-9)
-    assert math.isclose(engine.ecosystem.energy_burn.get("poker_house_cut", 0.0), 2.0, rel_tol=0, abs_tol=1e-9)
+    assert math.isclose(
+        engine.ecosystem.energy_sources.get("poker_plant", 0.0), 10.0, rel_tol=0, abs_tol=1e-9
+    )
+    assert math.isclose(
+        engine.ecosystem.energy_burn.get("poker_house_cut", 0.0), 2.0, rel_tol=0, abs_tol=1e-9
+    )
     assert engine.ecosystem.plant_energy_burn.get("poker_house_cut", 0.0) == 0.0
 
 
@@ -279,8 +287,14 @@ def test_mixed_poker_house_cut_only_hits_plants_when_plant_wins():
 
     engine.poker_system._record_and_apply_mixed_poker_outcome(poker)
 
-    assert math.isclose(engine.ecosystem.energy_burn.get("poker_plant_loss", 0.0), 10.0, rel_tol=0, abs_tol=1e-9)
+    assert math.isclose(
+        engine.ecosystem.energy_burn.get("poker_plant_loss", 0.0), 10.0, rel_tol=0, abs_tol=1e-9
+    )
     assert engine.ecosystem.energy_burn.get("poker_house_cut", 0.0) == 0.0
 
-    assert math.isclose(engine.ecosystem.plant_energy_sources.get("poker", 0.0), 10.0, rel_tol=0, abs_tol=1e-9)
-    assert math.isclose(engine.ecosystem.plant_energy_burn.get("poker_house_cut", 0.0), 2.0, rel_tol=0, abs_tol=1e-9)
+    assert math.isclose(
+        engine.ecosystem.plant_energy_sources.get("poker", 0.0), 10.0, rel_tol=0, abs_tol=1e-9
+    )
+    assert math.isclose(
+        engine.ecosystem.plant_energy_burn.get("poker_house_cut", 0.0), 2.0, rel_tol=0, abs_tol=1e-9
+    )

@@ -1,6 +1,5 @@
 """OpportunisticFeeder food-seeking behavior."""
 
-
 import math
 import random
 from dataclasses import dataclass
@@ -13,6 +12,7 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
 from core.entities import Crab
+
 
 @dataclass
 class OpportunisticFeeder(BehaviorAlgorithm):
@@ -72,7 +72,7 @@ class OpportunisticFeeder(BehaviorAlgorithm):
 
                 # Hunting traits
                 pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
-                speed *= (1.0 + pursuit_aggression * 0.3)
+                speed *= 1.0 + pursuit_aggression * 0.3
 
                 if distance < FOOD_SPEED_BOOST_DISTANCE:
                     speed *= 1.3

@@ -85,9 +85,7 @@ class EcosystemManager:
         )
 
         # Reproduction statistics tracking
-        self.reproduction_manager = ReproductionStatsManager(
-            self.population.algorithm_stats
-        )
+        self.reproduction_manager = ReproductionStatsManager(self.population.algorithm_stats)
 
         # Genetic diversity statistics tracking
         self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
@@ -253,7 +251,7 @@ class EcosystemManager:
         """Add an event to the log, maintaining max size."""
         self.events.append(event)
         if len(self.events) > self.max_events:
-            self.events = self.events[-self.max_events:]
+            self.events = self.events[-self.max_events :]
 
     def get_recent_events(self, count: int = 10) -> List[EcosystemEvent]:
         """Get the most recent events."""
@@ -426,19 +424,13 @@ class EcosystemManager:
         trait_variances: Dict[str, float] = {}
         if n_fish > 1:
             mean_speed = sum(speed_modifiers) / n_fish
-            trait_variances["speed"] = (
-                sum((s - mean_speed) ** 2 for s in speed_modifiers) / n_fish
-            )
+            trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / n_fish
 
             mean_size = sum(size_modifiers) / n_fish
-            trait_variances["size"] = (
-                sum((s - mean_size) ** 2 for s in size_modifiers) / n_fish
-            )
+            trait_variances["size"] = sum((s - mean_size) ** 2 for s in size_modifiers) / n_fish
 
             mean_vision = sum(vision_ranges) / n_fish
-            trait_variances["vision"] = (
-                sum((v - mean_vision) ** 2 for v in vision_ranges) / n_fish
-            )
+            trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / n_fish
 
         self.genetic_diversity_stats.unique_algorithms = len(algorithms)
         self.genetic_diversity_stats.unique_species = len(species)
@@ -457,9 +449,7 @@ class EcosystemManager:
         """Get total population across all generations."""
         return self.population.get_total_population()
 
-    def get_lineage_data(
-        self, alive_fish_ids: Optional[Set[int]] = None
-    ) -> List[Dict[str, Any]]:
+    def get_lineage_data(self, alive_fish_ids: Optional[Set[int]] = None) -> List[Dict[str, Any]]:
         """Get complete lineage data for phylogenetic tree visualization."""
         return self.lineage.get_lineage_data(alive_fish_ids)
 
@@ -478,20 +468,14 @@ class EcosystemManager:
         poker_summary = self.get_poker_stats_summary()
 
         energy_summary = self.get_energy_source_summary()
-        recent_energy = self.get_recent_energy_breakdown(
-            window_frames=ENERGY_STATS_WINDOW_FRAMES
-        )
-        recent_energy_burn = self.get_recent_energy_burn(
-            window_frames=ENERGY_STATS_WINDOW_FRAMES
-        )
+        recent_energy = self.get_recent_energy_breakdown(window_frames=ENERGY_STATS_WINDOW_FRAMES)
+        recent_energy_burn = self.get_recent_energy_burn(window_frames=ENERGY_STATS_WINDOW_FRAMES)
         energy_delta = self.get_energy_delta(window_frames=ENERGY_STATS_WINDOW_FRAMES)
 
         recent_energy_total = sum(recent_energy.values())
         recent_energy_burn_total = sum(recent_energy_burn.values())
         recent_energy_net = recent_energy_total - recent_energy_burn_total
-        energy_accounting_discrepancy = recent_energy_net - energy_delta.get(
-            "energy_delta", 0.0
-        )
+        energy_accounting_discrepancy = recent_energy_net - energy_delta.get("energy_delta", 0.0)
 
         plant_energy_summary = self.get_plant_energy_source_summary()
         recent_plant_energy = self.get_recent_plant_energy_breakdown(
@@ -508,8 +492,7 @@ class EcosystemManager:
 
             fish_list = [e for e in entities if isinstance(e, Fish)]
             total_energy = sum(
-                e.energy + e._reproduction_component.overflow_energy_bank
-                for e in fish_list
+                e.energy + e._reproduction_component.overflow_energy_bank for e in fish_list
             )
 
         alive_generations = [
@@ -571,9 +554,7 @@ class EcosystemManager:
             "energy_delta": energy_delta,
             "plant_energy_sources": plant_energy_summary,
             "plant_energy_sources_recent": recent_plant_energy,
-            "plant_energy_from_photosynthesis": recent_plant_energy.get(
-                "photosynthesis", 0.0
-            ),
+            "plant_energy_from_photosynthesis": recent_plant_energy.get("photosynthesis", 0.0),
             "plant_energy_burn_recent": recent_plant_energy_burn,
             "plant_energy_burn_total": sum(recent_plant_energy_burn.values()),
             "adult_size_min": adult_size_min,
@@ -597,9 +578,7 @@ class EcosystemManager:
         sort_by: str = "net_energy",
     ) -> List[Dict[str, Any]]:
         """Get poker leaderboard."""
-        return self.poker_manager.get_poker_leaderboard(
-            fish_list, sort_by=sort_by, limit=limit
-        )
+        return self.poker_manager.get_poker_leaderboard(fish_list, sort_by=sort_by, limit=limit)
 
     def get_reproduction_summary(self) -> Dict[str, Any]:
         """Get reproduction statistics summary."""
@@ -669,9 +648,7 @@ class EcosystemManager:
             )
         self.record_energy_gain("live_food", energy_gained)
 
-    def record_falling_food_eaten(
-        self, algorithm_id: int, energy_gained: float = 10.0
-    ) -> None:
+    def record_falling_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
         """Record falling food consumption."""
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
@@ -725,7 +702,7 @@ class EcosystemManager:
         winner_type: str = "",
     ) -> None:
         """Record energy transfer from a mixed poker game.
-        
+
         Args:
             energy_to_fish: Net energy transferred to fish
             is_plant_game: Whether this game involved plants
@@ -834,9 +811,7 @@ class EcosystemManager:
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
     ) -> Dict[str, float]:
         """Get plant energy source breakdown over recent frames."""
-        return self.energy_tracker.get_recent_plant_energy_breakdown(
-            window_frames=window_frames
-        )
+        return self.energy_tracker.get_recent_plant_energy_breakdown(window_frames=window_frames)
 
     def get_recent_energy_burn(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
@@ -854,9 +829,7 @@ class EcosystemManager:
         """Record a snapshot of total fish energy."""
         self.energy_tracker.record_energy_snapshot(total_fish_energy, fish_count)
 
-    def get_energy_delta(
-        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, Any]:
+    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, Any]:
         """Calculate the true change in fish population energy over a time window."""
         return self.energy_tracker.get_energy_delta(window_frames=window_frames)
 
@@ -919,9 +892,7 @@ class EcosystemManager:
             logger.info("Poker Evolution: No fish with poker strategies")
             return
 
-        sorted_strats = sorted(
-            dist["strategy_counts"].items(), key=lambda x: x[1], reverse=True
-        )
+        sorted_strats = sorted(dist["strategy_counts"].items(), key=lambda x: x[1], reverse=True)
 
         strat_str = ", ".join(f"{s}:{c}" for s, c in sorted_strats[:5])
         dominant = dist["dominant_strategy"]

@@ -111,7 +111,7 @@ class ReproductionComponent:
         max_energy: float,
     ) -> bool:
         """Check if the fish can trigger asexual reproduction.
-        
+
         Asexual reproduction requires higher energy than sexual reproduction,
         as the parent must fund the entire offspring alone.
         """
@@ -122,9 +122,7 @@ class ReproductionComponent:
         return energy >= max_energy * self.ASEXUAL_REPRODUCTION_THRESHOLD
 
     def trigger_asexual_reproduction(
-        self, 
-        own_genome: "Genome", 
-        rng: Optional["pyrandom.Random"] = None
+        self, own_genome: "Genome", rng: Optional["pyrandom.Random"] = None
     ) -> Tuple["Genome", float]:
         """Trigger instant asexual reproduction and return offspring genome.
 

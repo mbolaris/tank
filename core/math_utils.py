@@ -96,7 +96,6 @@ class Vector2:
     def __repr__(self) -> str:
         return f"Vector2({self.x}, {self.y})"
 
-
     def add_inplace(self, other: Vector2) -> Vector2:
         """Add another vector to this one in-place."""
         self.x += other.x

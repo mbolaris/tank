@@ -27,7 +27,9 @@ if TYPE_CHECKING:
 # At 10% per frame, it takes ~30 frames (1s) - much better for food pursuit
 ALGORITHMIC_MOVEMENT_SMOOTHING = 0.10
 ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.0  # Cap at base speed (was 0.6)
-ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
+ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = (
+    ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
+)
 
 VelocityComponents = Tuple[float, float]
 
@@ -94,9 +96,7 @@ class AlgorithmicMovement(MovementStrategy):
 
         # Check if fish has a composable behavior
         composable_behavior = (
-            genome.behavioral.behavior.value
-            if genome.behavioral.behavior
-            else None
+            genome.behavioral.behavior.value if genome.behavioral.behavior else None
         )
 
         if composable_behavior is None:

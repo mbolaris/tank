@@ -76,9 +76,7 @@ def test_should_play_hand_position_and_opponent(monkeypatch):
     model.games_played = 5
     model.is_tight = True
     assert (
-        engine.should_play_hand(
-            [("A", "s"), ("K", "h")], position_on_button=False, opponent_id=7
-        )
+        engine.should_play_hand([("A", "s"), ("K", "h")], position_on_button=False, opponent_id=7)
         is True
     )
 
@@ -119,16 +117,22 @@ def test_should_bluff_uses_probabilities():
     engine = PokerStrategyEngine(DummyFish())
     engine.bluff_frequency = 0.2
 
-    assert engine.should_bluff(
-        position_on_button=False,
-        hand_strength=0.5,
-        rng=FixedRng(0.23),
-    ) is True
-    assert engine.should_bluff(
-        position_on_button=False,
-        hand_strength=0.5,
-        rng=FixedRng(0.25),
-    ) is False
+    assert (
+        engine.should_bluff(
+            position_on_button=False,
+            hand_strength=0.5,
+            rng=FixedRng(0.23),
+        )
+        is True
+    )
+    assert (
+        engine.should_bluff(
+            position_on_button=False,
+            hand_strength=0.5,
+            rng=FixedRng(0.25),
+        )
+        is False
+    )
 
 
 def test_learn_from_poker_outcome_updates_on_win():

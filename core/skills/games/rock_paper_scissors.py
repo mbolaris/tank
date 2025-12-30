@@ -93,7 +93,9 @@ class RPSStrategy(SkillStrategy[RPSAction]):
             # Reset to uniform if all zero
             self.prob_rock = self.prob_paper = self.prob_scissors = 1.0 / 3.0
 
-    def choose_action(self, game_state: Dict[str, Any], rng: Optional[random.Random] = None) -> RPSAction:
+    def choose_action(
+        self, game_state: Dict[str, Any], rng: Optional[random.Random] = None
+    ) -> RPSAction:
         """Choose an action based on current probabilities.
 
         Args:
@@ -344,7 +346,7 @@ class RockPaperScissorsGame(SkillGame):
 
         Fish start with slightly non-optimal strategies so evolution
         can improve them toward the Nash equilibrium.
-        
+
         Args:
             rng: Optional random number generator for determinism
         """
@@ -479,14 +481,16 @@ class RockPaperScissorsGame(SkillGame):
 
         # Store action distribution
         metrics.custom_metrics["prob_rock"] = action_counts[RPSAction.ROCK] / max(1, total_actions)
-        metrics.custom_metrics["prob_paper"] = action_counts[RPSAction.PAPER] / max(1, total_actions)
-        metrics.custom_metrics["prob_scissors"] = action_counts[RPSAction.SCISSORS] / max(1, total_actions)
+        metrics.custom_metrics["prob_paper"] = action_counts[RPSAction.PAPER] / max(
+            1, total_actions
+        )
+        metrics.custom_metrics["prob_scissors"] = action_counts[RPSAction.SCISSORS] / max(
+            1, total_actions
+        )
 
         return metrics
 
-    def _calculate_exploitability_from_probs(
-        self, probs: Dict[RPSAction, float]
-    ) -> float:
+    def _calculate_exploitability_from_probs(self, probs: Dict[RPSAction, float]) -> float:
         """Calculate how exploitable a strategy is.
 
         For RPS, exploitability = max expected value an exploiter can achieve.
@@ -517,9 +521,7 @@ class RockPaperScissorsGame(SkillGame):
         max_ev = max(ev_rock, ev_paper, ev_scissors)
         return max(0.0, max_ev)  # Clamp to non-negative
 
-    def _calculate_distance_from_optimal(
-        self, probs: Dict[RPSAction, float]
-    ) -> float:
+    def _calculate_distance_from_optimal(self, probs: Dict[RPSAction, float]) -> float:
         """Calculate distance from optimal strategy.
 
         Uses total variation distance from uniform distribution.
@@ -564,9 +566,7 @@ class RockPaperScissorsGame(SkillGame):
         """RPS is a simple game."""
         return 0.2
 
-    def get_evaluation_summary(
-        self, metrics: SkillEvaluationMetrics
-    ) -> Dict[str, Any]:
+    def get_evaluation_summary(self, metrics: SkillEvaluationMetrics) -> Dict[str, Any]:
         """Get RPS-specific evaluation summary."""
         base = super().get_evaluation_summary(metrics)
         base.update(

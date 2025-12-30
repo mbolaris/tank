@@ -11,6 +11,7 @@ from core.movement_strategy import AlgorithmicMovement
 def make_adult_fish(**kwargs):
     """Helper to create an adult fish for testing."""
     from core.config.fish import LIFE_STAGE_YOUNG_ADULT_MAX
+
     fish = Fish(**kwargs)
     # Age fish to ADULT stage (need age > 1800 frames)
     fish._lifecycle_component.age = LIFE_STAGE_YOUNG_ADULT_MAX + 100
@@ -87,7 +88,6 @@ def _run_reproduction_threshold_logic():
         print("  The 90% threshold is not working correctly!")
 
     return all_passed
-
 
 
 @pytest.mark.manual
@@ -183,7 +183,9 @@ def _run_proximity_vs_poker_reproduction():
     fish2._reproduction_component.reproduction_cooldown = 0
 
     # Test at 50% energy
-    winner_wants = should_offer_post_poker_reproduction(fish1, fish2, is_winner=True, energy_gained=10.0)
+    winner_wants = should_offer_post_poker_reproduction(
+        fish1, fish2, is_winner=True, energy_gained=10.0
+    )
 
     print("\n  At 50% energy:")
     print(f"    Winner wants to reproduce: {winner_wants}")
@@ -231,7 +233,6 @@ def _run_proximity_vs_poker_reproduction():
     return test1_passed and test2_passed
 
 
-
 @pytest.mark.manual
 def test_proximity_vs_poker_reproduction():
     assert _run_proximity_vs_poker_reproduction()
@@ -251,7 +252,9 @@ def _run_energy_threshold_comparison():
 
     for max_e in max_energies:
         genome = Genome.random(use_algorithm=True)
-        genome.physical.size_modifier.value = max_e / 100.0  # Normalize (size determines max energy)
+        genome.physical.size_modifier.value = (
+            max_e / 100.0
+        )  # Normalize (size determines max energy)
 
         fish = make_adult_fish(
             environment=None,
@@ -264,8 +267,6 @@ def _run_energy_threshold_comparison():
             generation=1,
             fish_id=1,
             ecosystem=None,
-    
-    
             initial_energy=50.0,
         )
 
@@ -273,7 +274,9 @@ def _run_energy_threshold_comparison():
         new_threshold = fish.max_energy * 0.9
         difference = new_threshold - 25.0
 
-        print(f"  {fish.max_energy:<12.1f} {old_threshold_percent:<12.1f}% {new_threshold:<12.1f} (+{difference:.1f})")
+        print(
+            f"  {fish.max_energy:<12.1f} {old_threshold_percent:<12.1f}% {new_threshold:<12.1f} (+{difference:.1f})"
+        )
 
     print("\n  Summary:")
     print("    - Old threshold was ABSOLUTE (always 25 energy)")
@@ -282,7 +285,6 @@ def _run_energy_threshold_comparison():
     print("    - This creates STRONG selection pressure across all fish types")
 
     return True
-
 
 
 @pytest.mark.manual
@@ -301,6 +303,7 @@ def _run_realistic_scenario():
     class MockEnvironment:
         def get_bounds(self):
             return ((0.0, 0.0), (800.0, 600.0))
+
         def add_entity(self, entity):
             pass
 
@@ -319,7 +322,9 @@ def _run_realistic_scenario():
     )
 
     print("\nScenario: Fish starts at 50% energy and eats food")
-    print(f"  Initial energy: {fish.energy:.1f}/{fish.max_energy:.1f} ({fish.energy/fish.max_energy*100:.0f}%)")
+    print(
+        f"  Initial energy: {fish.energy:.1f}/{fish.max_energy:.1f} ({fish.energy/fish.max_energy*100:.0f}%)"
+    )
     print(f"  Can reproduce: {fish.can_reproduce()}")
 
     # Simulate eating food
@@ -348,7 +353,6 @@ def _run_realistic_scenario():
         print(f"\n  ⚠ Note: Fish is at {final_percent:.0f}% energy - needs more food to reproduce")
         print(f"  Would need {(fish.max_energy * 0.9 - fish.energy):.1f} more energy")
         return True  # Not a failure, just informational
-
 
 
 @pytest.mark.manual
@@ -391,5 +395,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ TEST ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

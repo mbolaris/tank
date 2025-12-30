@@ -14,4 +14,3 @@ def test_debug_snapshot_is_json_serializable() -> None:
     assert "derived" in snapshot
 
     json.dumps(snapshot)
-

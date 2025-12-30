@@ -61,9 +61,7 @@ class PopulationTracker:
         self._get_frame = frame_provider or (lambda: 0)
 
         # Generation statistics
-        self.generation_stats: Dict[int, GenerationStats] = {
-            0: GenerationStats(generation=0)
-        }
+        self.generation_stats: Dict[int, GenerationStats] = {0: GenerationStats(generation=0)}
 
         # Death cause tracking
         self.death_causes: Dict[str, int] = defaultdict(int)
@@ -86,9 +84,7 @@ class PopulationTracker:
 
             for i, algo_class in enumerate(ALL_ALGORITHMS):
                 algo_name = algo_class.__name__
-                self.algorithm_stats[i] = AlgorithmStats(
-                    algorithm_id=i, algorithm_name=algo_name
-                )
+                self.algorithm_stats[i] = AlgorithmStats(algorithm_id=i, algorithm_name=algo_name)
         except ImportError:
             for i in range(TOTAL_ALGORITHM_COUNT):
                 self.algorithm_stats[i] = AlgorithmStats(
@@ -290,9 +286,9 @@ class PopulationTracker:
 
             fishes_with_genome = [f for f in fishes if hasattr(f, "genome")]
             if fishes_with_genome:
-                stats.avg_speed = sum(
-                    f.genome.speed_modifier for f in fishes_with_genome
-                ) / len(fishes)
+                stats.avg_speed = sum(f.genome.speed_modifier for f in fishes_with_genome) / len(
+                    fishes
+                )
                 stats.avg_size = sum(
                     f.genome.physical.size_modifier.value for f in fishes_with_genome
                 ) / len(fishes)
@@ -313,9 +309,7 @@ class PopulationTracker:
         Args:
             frame: Current frame number
         """
-        alive_generations = [
-            g for g, s in self.generation_stats.items() if s.population > 0
-        ]
+        alive_generations = [g for g, s in self.generation_stats.items() if s.population > 0]
         current_max_gen = max(alive_generations) if alive_generations else 0
 
         if self._last_max_generation > 0 and current_max_gen == 0:

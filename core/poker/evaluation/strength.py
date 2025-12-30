@@ -177,20 +177,20 @@ def evaluate_hand_strength(hand: "PokerHand") -> float:
     # Calculate intra-category strength based on primary ranks
     # Normalized rank 2=0.0, 14=1.0
     bonus = 0.0
-    
+
     # Use primary ranks if available (Pair+), otherwise use kickers (High Card)
     ranks_to_use = hand.primary_ranks if hand.primary_ranks else hand.kickers
-    
+
     if ranks_to_use:
         # Use highest rank
         top_rank = ranks_to_use[0]
         bonus = (top_rank - 2) / 12.0
-        
+
         # Minor adjustment for secondary ranks/kickers if relevant
         if len(ranks_to_use) > 1:
             second_rank = ranks_to_use[1]
             bonus = 0.7 * bonus + 0.3 * ((second_rank - 2) / 12.0)
-    
+
     return base + (width * bonus)
 
 

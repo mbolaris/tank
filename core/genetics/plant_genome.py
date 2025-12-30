@@ -53,13 +53,15 @@ class PlantGenome:
 
     # Variant traits
     type: str = "lsystem"
-    
+
     # Poker strategy type (baseline algorithm) - None means use genome-based traits
     # When set, this determines the poker strategy directly via PlantStrategyType
     strategy_type: Optional[str] = None
 
     # Floral/nectar fractal traits - determines how nectar looks
-    floral_type: str = "spiral"  # spiral, julia, vortex, starburst, hypno, rose, mandelbrot, dahlia, sunflower, chrysanthemum
+    floral_type: str = (
+        "spiral"  # spiral, julia, vortex, starburst, hypno, rose, mandelbrot, dahlia, sunflower, chrysanthemum
+    )
     floral_petals: int = 5  # Number of petals/lobes (3-12)
     floral_layers: int = 3  # Depth/layers of the flower (1-5)
     floral_spin: float = 0.3  # Rotation/spiral factor (0-1)
@@ -177,18 +179,29 @@ class PlantGenome:
             nectar_threshold_ratio=rng.uniform(0.90, 0.98),
             type="lsystem",
             # Random floral traits - favor psychedelic patterns over flowers
-            floral_type=rng.choice([
-                # Psychedelic patterns (common)
-                "spiral", "spiral", "spiral",
-                "julia", "julia",
-                "vortex", "vortex",
-                "starburst", "starburst",
-                "hypno", "hypno",
-                # Classic floral patterns (rare)
-                "rose", "dahlia", "chrysanthemum", "sunflower",
-                # Fractal (rare)
-                "mandelbrot",
-            ]),
+            floral_type=rng.choice(
+                [
+                    # Psychedelic patterns (common)
+                    "spiral",
+                    "spiral",
+                    "spiral",
+                    "julia",
+                    "julia",
+                    "vortex",
+                    "vortex",
+                    "starburst",
+                    "starburst",
+                    "hypno",
+                    "hypno",
+                    # Classic floral patterns (rare)
+                    "rose",
+                    "dahlia",
+                    "chrysanthemum",
+                    "sunflower",
+                    # Fractal (rare)
+                    "mandelbrot",
+                ]
+            ),
             floral_petals=rng.randint(3, 12),
             floral_layers=rng.randint(2, 5),
             floral_spin=rng.uniform(0.3, 1.0),  # More spin for animation
@@ -206,14 +219,14 @@ class PlantGenome:
         rng: Optional[random.Random] = None,
     ) -> "PlantGenome":
         """Create a genome configured for a specific poker strategy type.
-        
+
         Uses the PlantStrategyType visual configuration to determine
         L-system parameters, colors, and production rules.
-        
+
         Args:
             strategy_type_str: String value of PlantStrategyType (e.g., "balanced")
             rng: Random number generator for deterministic variation
-            
+
         Returns:
             PlantGenome configured for the specified strategy type
         """
@@ -221,21 +234,20 @@ class PlantGenome:
             PlantStrategyType,
             get_strategy_visual_config,
         )
-        
+
         from core.util.rng import require_rng_param
 
-        
         rng = require_rng_param(rng, "__init__")
-        
+
         # Get strategy type enum
         try:
             strategy_type = PlantStrategyType(strategy_type_str)
         except ValueError:
             # Fall back to random if invalid
             strategy_type = PlantStrategyType.BALANCED
-        
+
         config = get_strategy_visual_config(strategy_type)
-        
+
         # Generate values within the ranges specified by the visual config
         g = cls(
             axiom=config.axiom,
@@ -264,13 +276,13 @@ class PlantGenome:
             floral_hue=rng.uniform(*config.color_hue_range),
             floral_saturation=rng.uniform(*config.color_saturation_range),
         )
-        
+
         # Use strategy-specific production rules if provided
         if config.production_rules:
             g._production_rules = list(config.production_rules)
         else:
             g._production_rules = g._generate_default_rules()
-        
+
         return g
 
     @classmethod
@@ -466,9 +478,9 @@ class PlantGenome:
         # Complex, multimodal branching rules
         g._production_rules = [
             ("X", "F-[[X]+X]+F[+FX]-X", 0.5),  # Standard fern-like
-            ("X", "F[+X][-X]FX", 0.3),         # Dense cluster
-            ("F", "FF", 0.8),                  # Growth
-            ("F", "F[+F]F[-F]F", 0.2),         # Extra branching on stems
+            ("X", "F[+X][-X]FX", 0.3),  # Dense cluster
+            ("F", "FF", 0.8),  # Growth
+            ("F", "F[+F]F[-F]F", 0.2),  # Extra branching on stems
         ]
         return g
 
@@ -527,7 +539,7 @@ class PlantGenome:
         """Create offspring genome with mutations while preserving variant identity.
 
         Uses core.evolution module for mutation operations.
-        
+
         For baseline strategy plants (strategy_type is set), reproduction creates
         an exact clone with no mutations to preserve the fixed strategy behavior.
         """
@@ -537,10 +549,13 @@ class PlantGenome:
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
+
         def mutate_float(val: float, min_val: float, max_val: float) -> float:
             """Mutate a continuous trait using evolution module."""
             return mutate_continuous_trait(
-                val, min_val, max_val,
+                val,
+                min_val,
+                max_val,
                 mutation_rate=mutation_rate,
                 mutation_strength=mutation_strength,
                 rng=rng,
@@ -560,7 +575,9 @@ class PlantGenome:
         def mutate_int(val: int, min_val: int, max_val: int) -> int:
             """Mutate a discrete trait using evolution module."""
             return mutate_discrete_trait(
-                val, min_val, max_val,
+                val,
+                min_val,
+                max_val,
                 mutation_rate=mutation_rate,
                 rng=rng,
             )
@@ -586,13 +603,25 @@ class PlantGenome:
         # Floral type can rarely mutate to a different type
         floral_type = parent.floral_type
         if rng.random() < mutation_rate * 0.3:
-            floral_type = rng.choice([
-                # Psychedelic patterns
-                "spiral", "julia", "vortex", "starburst", "hypno",
-                "spiral", "julia", "vortex", "starburst", "hypno",
-                # Fractal (mandelbrot only)
-                "mandelbrot", "mandelbrot", "sunflower",
-            ])
+            floral_type = rng.choice(
+                [
+                    # Psychedelic patterns
+                    "spiral",
+                    "julia",
+                    "vortex",
+                    "starburst",
+                    "hypno",
+                    "spiral",
+                    "julia",
+                    "vortex",
+                    "starburst",
+                    "hypno",
+                    # Fractal (mandelbrot only)
+                    "mandelbrot",
+                    "mandelbrot",
+                    "sunflower",
+                ]
+            )
 
         offspring = cls(
             axiom=parent.axiom,
@@ -662,6 +691,7 @@ class PlantGenome:
         if sat == 0:
             r = g = b = int(lightness * 255)
         else:
+
             def hue_to_rgb(p: float, q: float, t: float) -> float:
                 if t < 0:
                     t += 1
@@ -716,18 +746,16 @@ class PlantGenome:
 
     @classmethod
     def from_dict(cls, data: Dict, rng: Optional[random.Random] = None) -> "PlantGenome":
-        rules = [
-            (r["input"], r["output"], r["prob"])
-            for r in data.get("production_rules", [])
-        ]
+        rules = [(r["input"], r["output"], r["prob"]) for r in data.get("production_rules", [])]
         # Get strategy_type, assigning a random one for legacy plants without it
         # Check for both missing key AND explicitly saved null values
         strategy_type = data.get("strategy_type")
         if not strategy_type:  # Handles None, empty string, and missing key
             # Migration: assign a random baseline strategy to legacy plants
             from core.plants.plant_strategy_types import get_random_strategy_type
+
             strategy_type = get_random_strategy_type(rng=rng).value
-        
+
         g = cls(
             axiom=data.get("axiom", "F"),
             angle=data.get("angle", 25.0),

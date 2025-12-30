@@ -1,6 +1,5 @@
 """PatrolFeeder food-seeking behavior."""
 
-
 import math
 import random
 from dataclasses import dataclass
@@ -13,6 +12,7 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_NORMAL,
 )
 from core.entities import Crab
+
 
 @dataclass
 class PatrolFeeder(BehaviorAlgorithm):
@@ -53,7 +53,9 @@ class PatrolFeeder(BehaviorAlgorithm):
 
         # Check for nearby food first - EXPANDED detection
         nearest_food = self._find_nearest_food(fish)
-        detection_range = FOOD_PURSUIT_RANGE_DESPERATE if is_desperate else FOOD_PURSUIT_RANGE_NORMAL
+        detection_range = (
+            FOOD_PURSUIT_RANGE_DESPERATE if is_desperate else FOOD_PURSUIT_RANGE_NORMAL
+        )
         if nearest_food and (nearest_food.pos - fish.pos).length() < detection_range:
             direction = self._safe_normalize(nearest_food.pos - fish.pos)
             # IMPROVEMENT: Faster when desperate
@@ -61,7 +63,7 @@ class PatrolFeeder(BehaviorAlgorithm):
 
             # Hunting traits
             pursuit_aggression = fish.genome.behavioral.pursuit_aggression.value
-            speed *= (1.0 + pursuit_aggression * 0.25)
+            speed *= 1.0 + pursuit_aggression * 0.25
 
             return direction.x * speed, direction.y * speed
 

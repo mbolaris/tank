@@ -47,7 +47,6 @@ AGGRESSION_MEDIUM = POKER_AGGRESSION_MEDIUM
 AGGRESSION_HIGH = POKER_AGGRESSION_HIGH
 
 
-
 def _decide_strong_hand_action(
     call_amount: float, pot: float, player_energy: float, aggression: float, rng: random.Random
 ) -> Tuple[BettingAction, float]:
@@ -146,17 +145,17 @@ def decide_action(
     Decide what action to take based on hand strength and game state.
 
     Enhanced with realistic pre-flop hand evaluation and position awareness.
-    
+
     Args:
         rng: Required seeded Random instance for deterministic behavior.
              Callers must provide this to ensure reproducible simulations.
     """
     if rng is None:
         raise ValueError("rng parameter is required for deterministic behavior")
-    
+
     if aggression is None:
         aggression = AGGRESSION_MEDIUM
-    
+
     _rng = rng
 
     # Calculate how much needs to be called
@@ -204,7 +203,9 @@ def decide_action(
             else:
                 return (BettingAction.CALL, call_amount)
         else:  # raise
-            raise_amount = min(pot * bet_multiplier, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION)
+            raise_amount = min(
+                pot * bet_multiplier, player_energy * POKER_PREFLOP_MAX_ENERGY_FRACTION
+            )
             if call_amount > 0:
                 raise_amount = max(raise_amount, call_amount * POKER_PREFLOP_MIN_RAISE_MULTIPLIER)
             return (BettingAction.RAISE, raise_amount)
@@ -214,14 +215,10 @@ def decide_action(
 
     # Strong hands (flush or better)
     if hand_strength >= HandRank.FLUSH:
-        return _decide_strong_hand_action(
-            call_amount, pot, player_energy, aggression, _rng
-        )
+        return _decide_strong_hand_action(call_amount, pot, player_energy, aggression, _rng)
     # Medium hands (pair through straight)
     elif hand_strength >= HandRank.PAIR:
-        return _decide_medium_hand_action(
-            call_amount, pot, player_energy, aggression, _rng
-        )
+        return _decide_medium_hand_action(call_amount, pot, player_energy, aggression, _rng)
     # Weak hands (high card)
     else:
         return _decide_weak_hand_action(call_amount, pot, player_energy, aggression, _rng)

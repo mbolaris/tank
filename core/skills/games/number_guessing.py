@@ -67,7 +67,7 @@ class PatternGenerator:
     _step: int = 0
     _cycle: List[float] = field(default_factory=lambda: [25.0, 75.0, 50.0])
     _mean: float = 50.0
-    
+
     def __post_init__(self):
         # RNG is required for deterministic pattern generation
         self.rng = require_rng_param(self.rng, "PatternGenerator.__post_init__")
@@ -344,10 +344,7 @@ class NumberGuessingStrategy(SkillStrategy[float]):
 
         # Normalize weights
         total = (
-            self.weight_last_value
-            + self.weight_trend
-            + self.weight_mean
-            + self.weight_alternating
+            self.weight_last_value + self.weight_trend + self.weight_mean + self.weight_alternating
         )
         if total > 0:
             self.weight_last_value /= total
@@ -473,12 +470,14 @@ class NumberGuessingGame(SkillGame):
             "predictor has perfect pattern recognition."
         )
 
-    def create_default_strategy(self, rng: Optional[random.Random] = None) -> NumberGuessingStrategy:
+    def create_default_strategy(
+        self, rng: Optional[random.Random] = None
+    ) -> NumberGuessingStrategy:
         """Create a new strategy with random initial weights.
-        
+
         Args:
             rng: Random number generator for determinism. Falls back to generator.rng.
-        
+
         Raises:
             ValueError: If no RNG available from parameter or generator
         """
@@ -675,9 +674,7 @@ class NumberGuessingGame(SkillGame):
         """Number prediction is moderately difficult."""
         return 0.4
 
-    def get_evaluation_summary(
-        self, metrics: SkillEvaluationMetrics
-    ) -> Dict[str, Any]:
+    def get_evaluation_summary(self, metrics: SkillEvaluationMetrics) -> Dict[str, Any]:
         """Get prediction-specific evaluation summary."""
         base = super().get_evaluation_summary(metrics)
         base.update(

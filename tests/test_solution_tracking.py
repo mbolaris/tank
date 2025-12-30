@@ -278,11 +278,13 @@ class TestSolutionTracker:
             tracker = SolutionTracker(solutions_dir=tmpdir)
 
             # Create solutions with different ratings
-            for i, (name, elo) in enumerate([
-                ("Best", 1600),
-                ("Middle", 1400),
-                ("Worst", 1200),
-            ]):
+            for i, (name, elo) in enumerate(
+                [
+                    ("Best", 1600),
+                    ("Middle", 1400),
+                    ("Worst", 1200),
+                ]
+            ):
                 metadata = SolutionMetadata(
                     solution_id=f"lead_{i}",
                     name=name,

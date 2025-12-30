@@ -66,9 +66,7 @@ class SolutionBenchmarkConfig:
     starting_stack: int = 10_000
 
     # Which opponents to include
-    opponents: List[str] = field(
-        default_factory=lambda: SOLUTION_BENCHMARK_OPPONENTS.copy()
-    )
+    opponents: List[str] = field(default_factory=lambda: SOLUTION_BENCHMARK_OPPONENTS.copy())
 
     # Parallel execution
     max_workers: int = 4
@@ -109,7 +107,9 @@ class SolutionBenchmark:
         # Create strategy from solution
         strategy = self._create_strategy_from_solution(solution)
         if strategy is None:
-            logger.warning(f"Could not create strategy for solution {solution.metadata.solution_id}")
+            logger.warning(
+                f"Could not create strategy for solution {solution.metadata.solution_id}"
+            )
             return BenchmarkResult(evaluated_at=datetime.utcnow().isoformat())
 
         # Create evaluation config
@@ -139,8 +139,7 @@ class SolutionBenchmark:
 
         # Compute Elo rating
         hands_per_benchmark = {
-            opp_id: result.hands_played
-            for opp_id, result in suite_result.per_benchmark.items()
+            opp_id: result.hands_played for opp_id, result in suite_result.per_benchmark.items()
         }
         elo = compute_elo_from_benchmarks(per_opponent, hands_per_benchmark)
 
@@ -177,8 +176,7 @@ class SolutionBenchmark:
         if parallel and len(solutions) > 1:
             with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
                 futures = {
-                    executor.submit(self.evaluate_solution, sol, verbose): sol
-                    for sol in solutions
+                    executor.submit(self.evaluate_solution, sol, verbose): sol for sol in solutions
                 }
 
                 for future in as_completed(futures):
@@ -267,16 +265,18 @@ class SolutionBenchmark:
 
                 if sol1.benchmark_result and sol2.benchmark_result:
                     diff = (
-                        sol1.benchmark_result.weighted_bb_per_100 -
-                        sol2.benchmark_result.weighted_bb_per_100
+                        sol1.benchmark_result.weighted_bb_per_100
+                        - sol2.benchmark_result.weighted_bb_per_100
                     )
                     # Rough significance check: difference > 5 bb/100
                     if abs(diff) > 5.0:
-                        significant_differences.append((
-                            sol1.metadata.solution_id,
-                            sol2.metadata.solution_id,
-                            diff,
-                        ))
+                        significant_differences.append(
+                            (
+                                sol1.metadata.solution_id,
+                                sol2.metadata.solution_id,
+                                diff,
+                            )
+                        )
 
         return SolutionComparison(
             solution_ids=solution_ids,
@@ -318,6 +318,7 @@ class SolutionBenchmark:
             try:
                 if poker_config.get("type") == "ComposablePokerStrategy":
                     from core.poker.strategy.composable import ComposablePokerStrategy
+
                     return ComposablePokerStrategy.from_dict(poker_config)
 
                 # Legacy/monolithic implementations identified by strategy_id + parameters.
@@ -333,6 +334,7 @@ class SolutionBenchmark:
             if poker_config.get("class"):
                 try:
                     from core.poker.strategy import implementations as impl
+
                     strategy_class = getattr(impl, poker_config["class"], None)
                     if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
                         return strategy_class(rng=rng)
@@ -512,9 +514,7 @@ class SolutionBenchmark:
                     f"bb/100: {result.weighted_bb_per_100:>+7.2f}"
                 )
             else:
-                lines.append(
-                    f"#{rank:<2}  {solution.metadata.name:<30} [Not Evaluated]"
-                )
+                lines.append(f"#{rank:<2}  {solution.metadata.name:<30} [Not Evaluated]")
 
         lines.append("")
         lines.append("DETAILED RESULTS")

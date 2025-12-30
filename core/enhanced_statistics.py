@@ -195,9 +195,7 @@ class EnhancedStatisticsTracker:
         # Use average energy as a proxy for success (replaces fitness_score)
         avg_fitness = sum(f.energy / f.max_energy for f in fish_list) / population
         avg_speed = sum(f.genome.speed_modifier for f in fish_list) / population
-        avg_size = sum(
-            f.genome.physical.size_modifier.value for f in fish_list
-        ) / population
+        avg_size = sum(f.genome.physical.size_modifier.value for f in fish_list) / population
         avg_metabolism = sum(f.genome.metabolism_rate for f in fish_list) / population
         avg_energy = sum(f.energy for f in fish_list) / population
         total_energy = sum(f.energy for f in fish_list)
@@ -219,10 +217,8 @@ class EnhancedStatisticsTracker:
             sum((f.genome.speed_modifier - avg_speed) ** 2 for f in fish_list) / population
         )
         size_variance = (
-            sum(
-                (f.genome.physical.size_modifier.value - avg_size) ** 2
-                for f in fish_list
-            ) / population
+            sum((f.genome.physical.size_modifier.value - avg_size) ** 2 for f in fish_list)
+            / population
         )
         diversity_score = min(1.0, (speed_variance + size_variance) / 2.0 * 5.0)  # Normalize
 
@@ -609,9 +605,11 @@ class EnhancedStatisticsTracker:
                 "algorithm_id": leader_id,
                 "algorithm_name": algorithm_snapshot.get("name", "Unknown"),
                 "captures": leader_stats.captures,
-                "avg_energy_per_capture": (leader_stats.total_energy / leader_stats.captures)
-                if leader_stats.captures
-                else 0.0,
+                "avg_energy_per_capture": (
+                    (leader_stats.total_energy / leader_stats.captures)
+                    if leader_stats.captures
+                    else 0.0
+                ),
                 "favored_traits": favored_traits,
                 "behavior_parameters": algorithm_snapshot.get("parameters", {}),
                 "example_generation": algorithm_snapshot.get("generation"),
@@ -666,9 +664,9 @@ class EnhancedStatisticsTracker:
                 algo_id: {
                     "captures": stats.captures,
                     "total_energy": stats.total_energy,
-                    "avg_energy_per_capture": (stats.total_energy / stats.captures)
-                    if stats.captures
-                    else 0.0,
+                    "avg_energy_per_capture": (
+                        (stats.total_energy / stats.captures) if stats.captures else 0.0
+                    ),
                     "avg_traits": stats.averaged_traits,
                 }
                 for algo_id, stats in self.live_food_performance.items()

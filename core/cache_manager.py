@@ -136,11 +136,13 @@ class CacheManager:
     def _compute_fish_list(self) -> List["entities.Fish"]:
         """Compute the fish list from entities."""
         from core import entities as entity_module
+
         return [e for e in self._get_entities() if isinstance(e, entity_module.Fish)]
 
     def _compute_food_list(self) -> List["entities.Food"]:
         """Compute the food list from entities."""
         from core import entities as entity_module
+
         return [e for e in self._get_entities() if isinstance(e, entity_module.Food)]
 
     def get_fish(self) -> List["entities.Fish"]:

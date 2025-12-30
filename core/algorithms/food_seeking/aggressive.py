@@ -1,6 +1,5 @@
 """AggressiveHunter food-seeking behavior."""
 
-
 import math
 import random
 from dataclasses import dataclass
@@ -15,6 +14,7 @@ from core.config.food import (
 from core.entities import Crab
 from core.predictive_movement import predict_intercept_point, predict_falling_intercept
 
+
 @dataclass
 class AggressiveHunter(BehaviorAlgorithm):
     """Aggressively pursue food with high-speed interception.
@@ -28,6 +28,7 @@ class AggressiveHunter(BehaviorAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         from core.util.rng import require_rng_param
+
         _rng = require_rng_param(rng, "AggressiveHunter.__init__")
         super().__init__(
             algorithm_id="aggressive_hunter",
@@ -59,7 +60,8 @@ class AggressiveHunter(BehaviorAlgorithm):
             pred_dist = (nearest_predator.pos - fish.pos).length()
             # Higher aggression = less cautious around predators
             flee_threshold = (
-                PREDATOR_FLEE_DISTANCE_DESPERATE if is_critical
+                PREDATOR_FLEE_DISTANCE_DESPERATE
+                if is_critical
                 else PREDATOR_FLEE_DISTANCE_CAUTIOUS * (1.0 - pursuit_aggression * 0.3)
             )
             if pred_dist < flee_threshold:
@@ -72,22 +74,25 @@ class AggressiveHunter(BehaviorAlgorithm):
             self.last_food_pos = Vector2(nearest_food.pos.x, nearest_food.pos.y)
 
             # Detection range boosted by pursuit_aggression
-            effective_detection = self.parameters["detection_range"] * (1.0 + pursuit_aggression * 0.3)
+            effective_detection = self.parameters["detection_range"] * (
+                1.0 + pursuit_aggression * 0.3
+            )
 
             # High-speed pursuit within detection range
             if distance < effective_detection:
                 # Predict food movement - skill affects prediction accuracy
-                target_pos = nearest_food.pos # Default to current food position
+                target_pos = nearest_food.pos  # Default to current food position
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
                     is_accelerating = False
                     acceleration = 0.0
                     if hasattr(nearest_food, "food_properties"):
                         from core.config.food import FOOD_SINK_ACCELERATION
+
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:
                             is_accelerating = True
-                    
+
                     if is_accelerating:
                         target_pos, _ = predict_falling_intercept(
                             fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
@@ -100,8 +105,10 @@ class AggressiveHunter(BehaviorAlgorithm):
                             # Aggressive hunters commit to prediction based on skill
                             skill_factor = 0.5 + (prediction_skill * 0.5)
                             target_pos = Vector2(
-                                nearest_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
-                                nearest_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
+                                nearest_food.pos.x * (1 - skill_factor)
+                                + intercept_point.x * skill_factor,
+                                nearest_food.pos.y * (1 - skill_factor)
+                                + intercept_point.y * skill_factor,
                             )
 
                 direction = self._safe_normalize(target_pos - fish.pos)
@@ -116,7 +123,11 @@ class AggressiveHunter(BehaviorAlgorithm):
                 else:
                     # Stamina affects how long we can maintain top speed
                     # (simplified: higher stamina = faster sustained speed)
-                    pursuit_speed = self.parameters["pursuit_speed"] * pursuit_boost * (0.8 + hunting_stamina * 0.2)
+                    pursuit_speed = (
+                        self.parameters["pursuit_speed"]
+                        * pursuit_boost
+                        * (0.8 + hunting_stamina * 0.2)
+                    )
                     return (direction.x * pursuit_speed, direction.y * pursuit_speed)
 
         # No food visible - check last known location

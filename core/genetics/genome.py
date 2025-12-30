@@ -42,8 +42,6 @@ class Genome:
     physical: PhysicalTraits
     behavioral: BehavioralTraits
 
-
-
     # =========================================================================
     # Derived Properties (computed from base traits with caching)
     # =========================================================================
@@ -57,9 +55,9 @@ class Genome:
         """Calculate speed modifier based on physical traits (cached)."""
         if self._speed_modifier_cache is not None:
             return self._speed_modifier_cache
-            
+
         result = expression.calculate_speed_modifier(self.physical)
-        object.__setattr__(self, '_speed_modifier_cache', result)
+        object.__setattr__(self, "_speed_modifier_cache", result)
         return result
 
     @property
@@ -72,15 +70,15 @@ class Genome:
         """Calculate metabolism rate based on physical traits (cached)."""
         if self._metabolism_rate_cache is not None:
             return self._metabolism_rate_cache
-            
+
         result = expression.calculate_metabolism_rate(self.physical, self.speed_modifier)
-        object.__setattr__(self, '_metabolism_rate_cache', result)
+        object.__setattr__(self, "_metabolism_rate_cache", result)
         return result
 
     def invalidate_caches(self) -> None:
         """Invalidate cached computed properties when traits change."""
-        object.__setattr__(self, '_speed_modifier_cache', None)
-        object.__setattr__(self, '_metabolism_rate_cache', None)
+        object.__setattr__(self, "_speed_modifier_cache", None)
+        object.__setattr__(self, "_metabolism_rate_cache", None)
 
     def to_dict(
         self,
@@ -126,9 +124,13 @@ class Genome:
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
         issues = []
-        issues.extend(validate_traits_from_specs(PHYSICAL_TRAIT_SPECS, self.physical, path="genome.physical"))
         issues.extend(
-            validate_traits_from_specs(BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral")
+            validate_traits_from_specs(PHYSICAL_TRAIT_SPECS, self.physical, path="genome.physical")
+        )
+        issues.extend(
+            validate_traits_from_specs(
+                BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral"
+            )
         )
 
         return {"ok": not issues, "issues": issues}
@@ -146,9 +148,7 @@ class Genome:
     # =========================================================================
 
     @classmethod
-    def random(
-        cls, use_algorithm: bool = True, rng: Optional[pyrandom.Random] = None
-    ) -> "Genome":
+    def random(cls, use_algorithm: bool = True, rng: Optional[pyrandom.Random] = None) -> "Genome":
         """Create a random genome."""
         from core.util.rng import require_rng_param
 
@@ -345,6 +345,7 @@ class Genome:
             physical=physical,
             behavioral=behavioral,
         )
+
     # =========================================================================
     # Instance Methods
     # =========================================================================
@@ -355,11 +356,7 @@ class Genome:
         Attraction is based on how closely the mate matches this fish's
         preferred physical trait values, plus a bonus for higher pattern intensity.
         """
-        return expression.calculate_mate_attraction(
-            self.physical,
-            self.behavioral,
-            other.physical
-        )
+        return expression.calculate_mate_attraction(self.physical, self.behavioral, other.physical)
 
     def get_color_tint(self) -> Tuple[int, int, int]:
         """Get RGB color tint based on genome."""
