@@ -222,6 +222,206 @@ class TestTankWorldBackendAdapter:
         assert hasattr(adapter.world, "entities_list")
 
 
+class TestTankWorldBackendAdapterCompatibility:
+    """Tests for TankWorldBackendAdapter compatibility layer.
+
+    These tests verify that the adapter can act as a drop-in replacement
+    for TankWorld in existing backend code.
+    """
+
+    def test_entities_list_property(self):
+        """Test entities_list compatibility property."""
+        adapter = TankWorldBackendAdapter(seed=42, max_population=10)
+
+        # Should raise error before initialization
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            _ = adapter.entities_list
+
+        # After reset, should delegate to underlying world
+        adapter.reset(seed=42)
+        assert isinstance(adapter.entities_list, list)
+        assert len(adapter.entities_list) > 0
+
+    def test_frame_count_property(self):
+        """Test frame_count compatibility property."""
+        adapter = TankWorldBackendAdapter(seed=42)
+
+        # Should raise error before initialization
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            _ = adapter.frame_count
+
+        # After reset, should start at 0
+        adapter.reset(seed=42)
+        assert adapter.frame_count == 0
+
+        # Should increment after step
+        adapter.step()
+        assert adapter.frame_count == 1
+
+    def test_paused_property_get_set(self):
+        """Test paused compatibility property (get and set)."""
+        adapter = TankWorldBackendAdapter(seed=42)
+
+        # Should raise error before initialization
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            _ = adapter.paused
+
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            adapter.paused = True
+
+        # After reset, should be able to get and set
+        adapter.reset(seed=42)
+        assert adapter.paused is False
+
+        adapter.paused = True
+        assert adapter.paused is True
+
+        adapter.paused = False
+        assert adapter.paused is False
+
+    def test_engine_property(self):
+        """Test engine compatibility property."""
+        adapter = TankWorldBackendAdapter(seed=42)
+
+        # Should raise error before initialization
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            _ = adapter.engine
+
+        # After reset, should delegate to underlying world
+        adapter.reset(seed=42)
+        assert adapter.engine is not None
+        assert hasattr(adapter.engine, "update")
+        assert hasattr(adapter.engine, "entities_list")
+
+    def test_ecosystem_property(self):
+        """Test ecosystem compatibility property."""
+        adapter = TankWorldBackendAdapter(seed=42)
+
+        # Should raise error before initialization
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            _ = adapter.ecosystem
+
+        # After reset, should delegate to underlying world
+        adapter.reset(seed=42)
+        assert adapter.ecosystem is not None
+
+    def test_config_property(self):
+        """Test config compatibility property."""
+        adapter = TankWorldBackendAdapter(
+            seed=42, max_population=50, screen_width=800, screen_height=600
+        )
+
+        # Should be accessible before initialization
+        config = adapter.config
+        assert config.max_population == 50
+        assert config.screen_width == 800
+        assert config.screen_height == 600
+
+    def test_setup_method(self):
+        """Test setup() compatibility method."""
+        adapter = TankWorldBackendAdapter(seed=42, max_population=10)
+
+        # setup() should create and initialize the world
+        adapter.setup()
+        assert adapter._world is not None
+        assert adapter._world.frame_count == 0
+        assert len(adapter._world.entities_list) > 0
+
+    def test_update_method(self):
+        """Test update() compatibility method."""
+        adapter = TankWorldBackendAdapter(seed=42, max_population=10)
+        adapter.setup()
+
+        initial_frame = adapter.frame_count
+        adapter.update()
+
+        # Frame should advance
+        assert adapter.frame_count == initial_frame + 1
+
+        # Last step result should be stored
+        assert adapter.get_last_step_result() is not None
+
+    def test_get_stats_method(self):
+        """Test get_stats() compatibility method."""
+        adapter = TankWorldBackendAdapter(seed=42, max_population=10)
+
+        # Should raise error before initialization
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            adapter.get_stats()
+
+        # After setup, should return stats
+        adapter.setup()
+        stats = adapter.get_stats()
+        assert isinstance(stats, dict)
+        assert len(stats) > 0
+
+    def test_get_last_step_result(self):
+        """Test get_last_step_result() helper method."""
+        adapter = TankWorldBackendAdapter(seed=42, max_population=10)
+
+        # Before any steps, should be None
+        assert adapter.get_last_step_result() is None
+
+        # After reset, should have a result
+        adapter.reset(seed=42)
+        result = adapter.get_last_step_result()
+        assert result is not None
+        assert isinstance(result, StepResult)
+        assert result.info["frame"] == 0
+        assert result.info["seed"] == 42
+
+        # After step, should have updated result
+        adapter.step()
+        result = adapter.get_last_step_result()
+        assert result is not None
+        assert result.info["frame"] == 1
+
+    def test_adapter_satisfies_legacy_interface(self):
+        """Test that adapter satisfies the legacy TankWorld interface."""
+        adapter = TankWorldBackendAdapter(seed=42, max_population=10)
+        adapter.setup()
+
+        # Check all required properties exist and work
+        assert hasattr(adapter, "entities_list")
+        assert hasattr(adapter, "frame_count")
+        assert hasattr(adapter, "paused")
+        assert hasattr(adapter, "engine")
+        assert hasattr(adapter, "ecosystem")
+        assert hasattr(adapter, "config")
+
+        # Check all required methods exist and work
+        assert hasattr(adapter, "setup")
+        assert hasattr(adapter, "update")
+        assert hasattr(adapter, "get_stats")
+
+        # Verify they actually work
+        entities = adapter.entities_list
+        frame = adapter.frame_count
+        paused = adapter.paused
+        engine = adapter.engine
+        ecosystem = adapter.ecosystem
+        config = adapter.config
+        stats = adapter.get_stats()
+
+        assert isinstance(entities, list)
+        assert isinstance(frame, int)
+        assert isinstance(paused, bool)
+        assert engine is not None
+        assert ecosystem is not None
+        assert config is not None
+        assert isinstance(stats, dict)
+
+    def test_reset_info_contains_frame_and_seed(self):
+        """Test that reset() returns StepResult with frame and seed in info."""
+        adapter = TankWorldBackendAdapter(seed=42)
+        result = adapter.reset(seed=99)
+
+        assert "frame" in result.info
+        assert "seed" in result.info
+        assert result.info["frame"] == 0
+        assert result.info["seed"] == 99
+
+
 class TestStepResult:
     """Tests for StepResult dataclass."""
 
