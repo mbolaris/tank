@@ -17,6 +17,8 @@ import argparse
 import json
 import os
 import subprocess
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -37,6 +39,70 @@ class TournamentConfig:
     json_output_path: Optional[str]
     write_back: bool
     include_all_authors: bool
+    include_live_tank: bool
+    api_base_url: str
+    tank_id: Optional[str]
+    live_name: str
+    live_author: str
+    live_description: Optional[str]
+
+
+def _http_json(
+    url: str,
+    method: str = "GET",
+    data: Optional[Dict[str, Any]] = None,
+    timeout_s: float = 5.0,
+) -> Dict[str, Any]:
+    body = None
+    headers = {}
+    if data is not None:
+        body = json.dumps(data).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+
+    req = Request(url, data=body, headers=headers, method=method)
+    with urlopen(req, timeout=timeout_s) as resp:  # nosec B310 (local trusted URL)
+        payload = resp.read().decode("utf-8")
+        return json.loads(payload)
+
+
+def _resolve_default_tank_id(api_base_url: str) -> Optional[str]:
+    url = api_base_url.rstrip("/") + "/api/tanks"
+    data = _http_json(url, method="GET")
+
+    default_id = data.get("default_tank_id")
+    if isinstance(default_id, str) and default_id:
+        return default_id
+
+    tanks = data.get("tanks", [])
+    if isinstance(tanks, list) and tanks:
+        first = tanks[0]
+        if isinstance(first, dict):
+            tank = first.get("tank", {})
+            if isinstance(tank, dict):
+                tid = tank.get("tank_id")
+                if isinstance(tid, str) and tid:
+                    return tid
+
+    return None
+
+
+def _capture_best_from_live_tank(config: TournamentConfig) -> Optional[str]:
+    tank_id = config.tank_id or _resolve_default_tank_id(config.api_base_url)
+    if not tank_id:
+        raise RuntimeError("Could not determine a tank_id from /api/tanks; pass --tank-id explicitly.")
+
+    url = config.api_base_url.rstrip("/") + f"/api/solutions/capture/{tank_id}"
+    req = {
+        "name": config.live_name,
+        "description": config.live_description,
+        "author": config.live_author,
+        "evaluate": False,
+    }
+    resp = _http_json(url, method="POST", data=req)
+    solution_id = resp.get("solution_id")
+    if isinstance(solution_id, str) and solution_id:
+        return solution_id
+    return None
 
 
 def _git_head_sha() -> Optional[str]:
@@ -127,6 +193,15 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
     head_sha = _git_head_sha()
     branch = _git_branch()
 
+    captured_live_solution_id: Optional[str] = None
+    if config.include_live_tank:
+        try:
+            captured_live_solution_id = _capture_best_from_live_tank(config)
+        except (HTTPError, URLError, TimeoutError) as exc:
+            print(f"Warning: live tank capture failed ({exc}); continuing without live tank solution.")
+        except Exception as exc:
+            print(f"Warning: live tank capture failed ({exc}); continuing without live tank solution.")
+
     solutions = load_solutions(config.solutions_dir)
     if not solutions:
         raise SystemExit(f"No solutions found in {config.solutions_dir!r}.")
@@ -211,6 +286,12 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
         "started_at": started_at,
         "git": {"branch": branch, "commit": head_sha},
         "config": asdict(config),
+        "live_capture": {
+            "enabled": config.include_live_tank,
+            "api_base_url": config.api_base_url,
+            "tank_id": config.tank_id,
+            "captured_solution_id": captured_live_solution_id,
+        },
         "selected_solution_ids": [s.metadata.solution_id for s in selected],
         "selected": [
             {
@@ -257,6 +338,36 @@ def main() -> None:
         action="store_true",
         help="Write updated benchmark results back into solution JSON files and regenerate solutions/benchmark_report.txt",
     )
+    parser.add_argument(
+        "--include-live-tank",
+        action="store_true",
+        help="Capture best fish from a running local tank via API and include it as an extra author",
+    )
+    parser.add_argument(
+        "--api-base-url",
+        default="http://localhost:8000",
+        help="Base URL for TankWorld server API (default: http://localhost:8000)",
+    )
+    parser.add_argument(
+        "--tank-id",
+        default=None,
+        help="Tank ID to capture from (defaults to /api/tanks default_tank_id)",
+    )
+    parser.add_argument(
+        "--live-name",
+        default="Local Tank Best",
+        help="Solution name for captured live tank fish (default: Local Tank Best)",
+    )
+    parser.add_argument(
+        "--live-author",
+        default="LocalSimulation",
+        help="Author name for captured live tank fish (default: LocalSimulation)",
+    )
+    parser.add_argument(
+        "--live-description",
+        default=None,
+        help="Optional description for captured live tank fish",
+    )
     args = parser.parse_args()
 
     cfg = TournamentConfig(
@@ -269,6 +380,12 @@ def main() -> None:
         json_output_path=args.json_output,
         write_back=args.write_back,
         include_all_authors=True,
+        include_live_tank=args.include_live_tank,
+        api_base_url=args.api_base_url,
+        tank_id=args.tank_id,
+        live_name=args.live_name,
+        live_author=args.live_author,
+        live_description=args.live_description,
     )
 
     report_text, artifact = run_tournament(cfg)
@@ -290,4 +407,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

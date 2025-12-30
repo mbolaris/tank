@@ -278,6 +278,9 @@ TankWorld includes a tournament runner that selects the best solution per author
 # Run tournament (does NOT modify solution JSON files)
 python scripts/run_ai_tournament.py
 
+# Include the best fish from your currently-running local tank (requires server running on localhost:8000)
+python scripts/run_ai_tournament.py --include-live-tank --write-back
+
 # Run tournament and write results back into solution files + regenerate solutions/benchmark_report.txt
 python scripts/run_ai_tournament.py --write-back
 
