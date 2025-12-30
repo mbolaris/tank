@@ -66,6 +66,34 @@ class TankSnapshotBuilder:
         snapshots.sort(key=lambda snapshot: z_order.get(snapshot.type, 999))
         return snapshots
 
+    def build(
+        self,
+        step_result: Any,  # StepResult from core.worlds.interfaces
+        world: Any,
+    ) -> List[EntitySnapshot]:
+        """Build snapshots from StepResult.
+
+        For Tank, we still use entities_list from the world since that's
+        the authoritative source of entity data. Future worlds may get
+        entities directly from step_result.snapshot.
+
+        Args:
+            step_result: The StepResult from world.reset() or world.step()
+            world: The world backend (TankWorldBackendAdapter or similar)
+
+        Returns:
+            List of EntitySnapshot DTOs sorted by z-order
+        """
+        # Tank uses entities_list directly - access via adapter's underlying world
+        # TankWorldBackendAdapter exposes .world property for underlying TankWorld
+        if hasattr(world, "world") and world.world is not None:
+            entities = world.world.entities_list
+        elif hasattr(world, "entities_list"):
+            entities = world.entities_list
+        else:
+            entities = []
+        return self.collect(entities)
+
     def _prune_stale_ids(self, current_entity_ids: Set[int]) -> None:
         stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
         for stale_id in stale_ids:

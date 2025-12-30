@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from core.interfaces import WorldBackend
+    from core.worlds.interfaces import MultiAgentWorldBackend
     from backend.snapshots.interfaces import SnapshotBuilder
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class WorldMetadata:
 
 # Type for world factory functions
 # Factory receives kwargs and returns (world, snapshot_builder)
-WorldFactory = Callable[..., Tuple["WorldBackend", "SnapshotBuilder"]]
+WorldFactory = Callable[..., Tuple["MultiAgentWorldBackend", "SnapshotBuilder"]]
 
 # Registry storage
 _WORLD_FACTORIES: Dict[str, WorldFactory] = {}
@@ -72,7 +72,7 @@ def register_world(
     logger.info(f"Registered world type '{world_type}' with view_mode='{view_mode}'")
 
 
-def create_world(world_type: str, **kwargs: Any) -> Tuple["WorldBackend", "SnapshotBuilder"]:
+def create_world(world_type: str, **kwargs: Any) -> Tuple["MultiAgentWorldBackend", "SnapshotBuilder"]:
     """Create a world instance and its snapshot builder.
 
     Args:
@@ -121,27 +121,29 @@ def _create_tank_world(
     seed: Optional[int] = None,
     headless: bool = True,
     **kwargs: Any,
-) -> Tuple["WorldBackend", "SnapshotBuilder"]:
+) -> Tuple["MultiAgentWorldBackend", "SnapshotBuilder"]:
     """Factory function for creating tank world instances.
 
     Args:
         seed: Optional random seed for deterministic behavior
         headless: Whether to run in headless mode (default True for backend)
-        **kwargs: Additional configuration options
+        **kwargs: Additional configuration options passed to TankWorldBackendAdapter
 
     Returns:
-        Tuple of (TankWorld, TankSnapshotBuilder)
+        Tuple of (TankWorldBackendAdapter, TankSnapshotBuilder)
     """
-    from core.tank_world import TankWorld, TankWorldConfig
+    from core.worlds.tank.backend import TankWorldBackendAdapter
     from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
 
-    config = TankWorldConfig(headless=headless)
-    world = TankWorld(config=config, seed=seed)
-    world.setup()
+    # Create adapter with config overrides
+    adapter = TankWorldBackendAdapter(seed=seed, **kwargs)
+    
+    # Initialize the world by calling reset
+    adapter.reset(seed=seed)
 
     snapshot_builder = TankSnapshotBuilder()
 
-    return world, snapshot_builder
+    return adapter, snapshot_builder
 
 
 # Register tank world on module import

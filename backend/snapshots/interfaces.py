@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Protocol, runti
 
 if TYPE_CHECKING:
     from backend.state_payloads import EntitySnapshot
+    from core.worlds.interfaces import StepResult
 
 
 @runtime_checkable
@@ -55,5 +56,24 @@ class SnapshotBuilder(Protocol):
         Returns:
             EntitySnapshot if conversion successful, None if entity type
             is not supported or conversion fails
+        """
+        ...
+
+    def build(
+        self,
+        step_result: "StepResult",
+        world: Any,
+    ) -> List["EntitySnapshot"]:
+        """Build entity snapshots from a StepResult.
+
+        This is the preferred method for StepResult-driven worlds. It allows
+        snapshot builders to access both the StepResult and the world backend.
+
+        Args:
+            step_result: The result from world.reset() or world.step()
+            world: The world backend (for accessing entities_list if needed)
+
+        Returns:
+            List of EntitySnapshot DTOs sorted by z-order for rendering
         """
         ...
