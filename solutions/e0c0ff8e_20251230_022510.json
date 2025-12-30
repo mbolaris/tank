@@ -1,0 +1,131 @@
+{
+  "metadata": {
+    "solution_id": "e0c0ff8e_20251230_022510",
+    "name": "GPT-5 Prime Champion",
+    "description": "AI solution from GPT-5 evolved in tournament simulation",
+    "author": "GPT-5",
+    "submitted_at": "2025-12-30T02:25:10.068872",
+    "version": "1.0.0",
+    "generation": 8,
+    "simulation_frames": 0,
+    "fish_id": 736,
+    "commit_sha": "6e7ba126d411f16d8e52fb1d63fa00960943410a",
+    "branch": "claude/ai-solutions-tournament-JBREb"
+  },
+  "behavior_algorithm": {
+    "type": "ComposableBehavior",
+    "threat_response": 0,
+    "food_approach": 1,
+    "social_mode": 2,
+    "poker_engagement": 2,
+    "parameters": {
+      "alignment_strength": 0.3121046804130894,
+      "ambush_patience": 0.9464548952911538,
+      "ambush_strike_distance": 23.237340289085942,
+      "base_speed_multiplier": 0.9249081468825443,
+      "burst_duration": 77.26823264081114,
+      "burst_speed": 1.3628754473398905,
+      "circle_radius": 65.89723981253285,
+      "circle_speed": 0.11722230104868044,
+      "cohesion_strength": 0.731049441062989,
+      "energy_urgency_threshold": 0.3496193170441549,
+      "erratic_amplitude": 0.5909631025493159,
+      "flee_speed": 1.0404979175008366,
+      "flee_threshold": 132.61605404248218,
+      "follow_distance": 46.66138177269387,
+      "food_priority": 0.5930098147821303,
+      "freeze_distance": 81.50484378981571,
+      "intercept_skill": 0.8232204637059336,
+      "min_energy_for_poker": 0.2655474769328816,
+      "patrol_radius": 133.19990807341208,
+      "poker_avoid_radius": 123.89148289668384,
+      "poker_priority": 0.5986948245659398,
+      "poker_seek_radius": 168.89903481799018,
+      "pursuit_speed": 0.9918596629148706,
+      "rest_duration": 49.29492538417664,
+      "separation_distance": 33.38970578111122,
+      "social_distance": 47.10320718822675,
+      "social_priority": 0.27690289257554374,
+      "stealth_speed": 0.31148625434488925,
+      "threat_priority": 0.6342727580443333,
+      "zigzag_amplitude": 0.7550478629610337,
+      "zigzag_frequency": 0.04297349960532522
+    }
+  },
+  "poker_strategy": {},
+  "composable_behavior": null,
+  "capture_stats": {
+    "total_games": 152,
+    "wins": 106,
+    "losses": 46,
+    "ties": 0,
+    "win_rate": 0.6973684210526315,
+    "total_energy_won": 4982.862666447575,
+    "total_energy_lost": 1867.4291811804899,
+    "net_energy": 1892.987725254416,
+    "roi": 12.453866613515896,
+    "current_streak": 4,
+    "best_streak": 16,
+    "worst_streak": -18,
+    "showdown_win_rate": 0.4090909090909091,
+    "fold_rate": 0.21710526315789475,
+    "best_hand_rank": 6,
+    "avg_hand_rank": 0.47368421052631576,
+    "button_win_rate": 0.8455284552845529,
+    "non_button_win_rate": 0.06896551724137931,
+    "positional_advantage": 0.7765629380431736,
+    "recent_win_rate": 0.5,
+    "skill_trend": "declining"
+  },
+  "benchmark_result": {
+    "per_opponent": {
+      "always_fold": 179.62793333333335,
+      "random": 1009.8530975877193,
+      "loose_passive": 231.26046824241064,
+      "tight_passive": 177.01376851954998,
+      "tight_aggressive": 87.60016357051056,
+      "loose_aggressive": 3143.7680635838146,
+      "maniac": 3396.0093693693693,
+      "balanced": 164.5877256804096
+    },
+    "weighted_bb_per_100": 892.2287873603243,
+    "total_hands_played": 47780,
+    "elo_rating": 1582.6553168166306,
+    "confidence_intervals": {
+      "always_fold": [
+        177.18022921588994,
+        182.0756374507767
+      ],
+      "random": [
+        900.6845587558965,
+        1300.4695397945457
+      ],
+      "loose_passive": [
+        215.0230542587339,
+        248.4629084652804
+      ],
+      "tight_passive": [
+        123.83225297462701,
+        231.3749112849532
+      ],
+      "tight_aggressive": [
+        30.308745172285164,
+        157.47002036123882
+      ],
+      "loose_aggressive": [
+        2031.8527088715948,
+        4764.931354994454
+      ],
+      "maniac": [
+        1812.2206954233434,
+        6195.520292839848
+      ],
+      "balanced": [
+        65.38847602446162,
+        252.461250311114
+      ]
+    },
+    "skill_tier": "expert",
+    "evaluated_at": "2025-12-30T02:35:10.933001"
+  }
+}
