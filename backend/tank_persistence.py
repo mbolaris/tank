@@ -124,7 +124,14 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
         - v2.0 snapshots: max_energy computed from fish size
     """
     try:
-        with open(snapshot_path) as f:
+        resolved_path = Path(snapshot_path).resolve()
+        data_root = DATA_DIR.resolve()
+
+        if not resolved_path.is_relative_to(data_root):
+            logger.error("Rejected snapshot load outside data directory: %s", resolved_path)
+            return None
+
+        with open(resolved_path) as f:
             snapshot = json.load(f)
 
         # Validate snapshot format
