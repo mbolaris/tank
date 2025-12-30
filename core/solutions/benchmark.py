@@ -7,6 +7,7 @@ user-submitted solutions.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import random
@@ -347,7 +348,8 @@ class SolutionBenchmark:
             return (0.5, 0.5)
 
         # Run matches with position rotation
-        seed = hash(sol1.metadata.solution_id + sol2.metadata.solution_id) & 0xFFFFFFFF
+        seed_material = f"{sol1.metadata.solution_id}|{sol2.metadata.solution_id}".encode("utf-8")
+        seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little")
 
         # Position 1: sol1 as player 0
         stats1 = AutoEvaluatePokerGame.run_heads_up(

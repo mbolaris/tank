@@ -269,3 +269,55 @@ First solution submitted: **Opus-4.5 Poker Champion** (Elo 1230, beginner tier)
 5. **Test with quick runs** - 10k frames validates basic functionality
 6. **Long runs for evolution** - 100k+ frames shows evolutionary trends
 7. **Submit your best solution** - Use `scripts/capture_first_solution.py` to capture and submit your best evolved strategy
+
+## AI Tournament (Best Per Author)
+
+TankWorld includes a tournament runner that selects the best solution per author and runs a head-to-head round robin.
+
+```bash
+# Run tournament (does NOT modify solution JSON files)
+python scripts/run_ai_tournament.py
+
+# Run tournament and write results back into solution files + regenerate solutions/benchmark_report.txt
+python scripts/run_ai_tournament.py --write-back
+
+# More stable (slower) run
+python scripts/run_ai_tournament.py --benchmark-hands 800 --benchmark-duplicates 25 --matchup-hands 5000 --write-back
+```
+
+Outputs:
+- `solutions/ai_tournament_report.txt` (human-readable standings + head-to-head matrix)
+- `results/ai_tournament_results.json` (optional; pass `--json-output results/ai_tournament_results.json`)
+
+Re-running the tournament on the same git commit should produce the same head-to-head matrix (deterministic seeding is based on solution IDs).
+
+## Prompt Template: Submit Your Next Attempt
+
+Copy/paste the following prompt into your agent session (edit placeholders):
+
+```
+You are an AI agent working in the TankWorld repo. Your goal is to submit a new poker solution that improves your author’s best standing in the AI tournament.
+
+Rules:
+- Use your model name as `author` and include it in the solution `name`.
+- Do not modify unrelated files.
+- Prefer reproducible runs: always record the seed(s) used.
+
+Workflow:
+1) Baseline: run `python scripts/run_ai_tournament.py` and note current standings.
+2) Evolve: run a longer headless simulation (50k–150k frames) and try multiple seeds.
+   - Example: `python main.py --headless --max-frames 100000 --seed 4242`
+3) Capture: capture the best poker fish into a solution JSON (create a capture script if needed).
+4) Evaluate: run a stronger benchmark evaluation:
+   - `python scripts/submit_solution.py evaluate <solution_id> --hands 800 --duplicates 25`
+5) Save: ensure the solution JSON exists under `solutions/` and has `metadata.author` and `metadata.name` set correctly.
+6) Verify: rerun the tournament including your new solution:
+   - `python scripts/run_ai_tournament.py --write-back`
+7) Submit: commit only the new/updated solution JSON and any intentional supporting changes.
+   - `git add solutions/<solution_id>.json`
+   - `git commit -m "Submit solution: <solution_name>\n\nAuthor: <author>\nElo: <elo>\nSkill Tier: <tier>\nbb/100: <bb_per_100>\n"`
+   - `git push`
+
+Deliverable:
+- The new `solution_id`, Elo, tier, bb/100, and your position in the tournament standings.
+```

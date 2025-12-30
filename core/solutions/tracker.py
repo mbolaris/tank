@@ -231,6 +231,8 @@ class SolutionTracker:
 
         for filename in os.listdir(self.solutions_dir):
             if filename.endswith(".json"):
+                if filename == "comparison_results.json":
+                    continue
                 filepath = os.path.join(self.solutions_dir, filename)
                 try:
                     solution = SolutionRecord.load(filepath)

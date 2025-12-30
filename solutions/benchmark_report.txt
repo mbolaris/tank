@@ -1,185 +1,211 @@
 ============================================================
 TankWorld Solution Benchmark Report
-Generated: 2025-12-29T22:37:47.729404
-Solutions Evaluated: 10
+Generated: 2025-12-30T15:56:47.828050
+Solutions Evaluated: 11
 ============================================================
 
 RANKINGS
 ------------------------------------------------------------
-#1   Opus-4.5 Evolved Master        Elo:   1426  Tier: intermediate bb/100: +827.76
-#2   Gemini 3.0 Poker Supreme       Elo:   1426  Tier: intermediate bb/100: +607.23
-#3   GPT-5.2-Codex-Max Poker Master Elo:   1386  Tier: intermediate bb/100: +804.69
-#4   Sonnet-4.5 Poker Master        Elo:   1385  Tier: intermediate bb/100: +683.89
-#5   Haiku-4.5 Poker Master         Elo:   1361  Tier: intermediate bb/100: +750.54
-#6   Haiku-4.5 Poker Pro            Elo:   1352  Tier: intermediate bb/100: +682.35
-#7   Haiku-4.5 Poker Ace            Elo:   1334  Tier: intermediate bb/100: +418.25
-#8   Opus-4.5 Poker Champion        Elo:   1230  Tier: beginner     bb/100: +101.72
-#9   Haiku-4.5 Poker Stratege       Elo:   1226  Tier: beginner     bb/100: +378.67
-#10  Opus-4.5 Poker Champion        Elo:   1200  Tier: beginner     bb/100:  +80.66
+#1   Opus-4.5 Poker Champion        Elo:   1583  Tier: expert       bb/100: +826.75
+#2   Haiku-4.5 Poker Stratege       Elo:   1583  Tier: expert       bb/100: +480.97
+#3   GPT-5.2-Codex-Max Poker Master Elo:   1583  Tier: expert       bb/100: +496.71
+#4   Haiku-4.5 Poker Master         Elo:   1583  Tier: expert       bb/100: +435.98
+#5   Opus-4.5 Evolved Master        Elo:   1583  Tier: expert       bb/100: +544.33
+#6   Haiku-4.5 Poker Ace            Elo:   1546  Tier: advanced     bb/100: +494.97
+#7   Haiku-4.5 Poker Pro            Elo:   1535  Tier: advanced     bb/100: +492.46
+#8   Opus-4.5 Poker Champion        Elo:   1535  Tier: advanced     bb/100: +480.93
+#9   Sonnet-4.5 Poker Master        Elo:   1519  Tier: advanced     bb/100: +569.05
+#10  Gemini 3.0 Poker Supreme       Elo:   1459  Tier: advanced     bb/100: +742.00
+#11  GPT-5.2-Codex-Prime Poker Overlord Elo:   1433  Tier: intermediate bb/100: +605.99
 
 DETAILED RESULTS
 ------------------------------------------------------------
 
-Opus-4.5 Evolved Master
-  ID: ebdd0fb5_20251229_223153
-  Author: Opus-4.5
-  Elo Rating: 1426
-  Skill Tier: intermediate
-  Total Hands: 128,570
-
-  Performance vs Opponents:
-    always_fold           +164.91 bb/100  [+163.63, +166.19]
-    balanced              +244.90 bb/100  [+97.83, +329.22]
-    loose_aggressive     +2512.59 bb/100  [+1197.42, +4365.35]
-    loose_passive          +50.73 bb/100  [+10.28, +105.49]
-    maniac               +3965.95 bb/100  [+2577.14, +6507.61]
-    random                +862.88 bb/100  [+846.30, +1194.57]
-    tight_aggressive       +56.85 bb/100  [+7.81, +131.40]
-    tight_passive         +332.35 bb/100  [+274.10, +420.87]
-
-Gemini 3.0 Poker Supreme
-  ID: 802f6384_20251229_213007
-  Author: Gemini 3.0
-  Elo Rating: 1426
-  Skill Tier: intermediate
-  Total Hands: 21,559
-
-  Performance vs Opponents:
-    always_fold           +175.72 bb/100  [+172.01, +179.44]
-    balanced               +70.72 bb/100  [-69.56, +163.25]
-    loose_aggressive     +2225.42 bb/100  [+1817.42, +2858.40]
-    loose_passive         +264.07 bb/100  [+234.17, +296.25]
-    maniac               +1255.54 bb/100  [-1796.53, +3245.33]
-    random                +998.64 bb/100  [+910.31, +1190.36]
-    tight_aggressive       +83.74 bb/100  [+15.79, +181.05]
-    tight_passive         +108.16 bb/100  [+86.79, +129.53]
-
-GPT-5.2-Codex-Max Poker Master
-  ID: 603bca97_20251229_185408
-  Author: GPT-5.2-Codex-Max
-  Elo Rating: 1386
-  Skill Tier: intermediate
-  Total Hands: 24,411
-
-  Performance vs Opponents:
-    always_fold           +138.22 bb/100  [+134.54, +141.90]
-    balanced               +43.55 bb/100  [-72.74, +115.62]
-    loose_aggressive     +2599.52 bb/100  [+2398.88, +3960.90]
-    loose_passive          -14.36 bb/100  [-47.44, +12.15]
-    maniac               +5404.30 bb/100  [+1214.24, +8817.49]
-    random                +284.92 bb/100  [-129.04, +1391.15]
-    tight_aggressive      +120.58 bb/100  [-87.35, +310.22]
-    tight_passive         +160.62 bb/100  [+43.24, +278.00]
-
-Sonnet-4.5 Poker Master
-  ID: 603bca97_20251229_182751
-  Author: Sonnet-4.5
-  Elo Rating: 1385
-  Skill Tier: intermediate
-  Total Hands: 17,613
-
-  Performance vs Opponents:
-    always_fold           +175.01 bb/100  [+167.22, +182.80]
-    balanced              +288.67 bb/100  [-629.67, +476.07]
-    loose_aggressive     +2887.39 bb/100  [+955.14, +4382.19]
-    loose_passive        -1065.55 bb/100  [-1262.81, -959.95]
-    maniac                +846.95 bb/100  [-3073.60, +5547.21]
-    random                +830.44 bb/100  [+533.31, +1147.78]
-    tight_aggressive      +884.80 bb/100  [-130.49, +1167.37]
-    tight_passive         +704.95 bb/100  [+660.37, +749.53]
-
-Haiku-4.5 Poker Master
-  ID: 9e4229f4_20251229_190007
-  Author: Haiku-4.5
-  Elo Rating: 1361
-  Skill Tier: intermediate
-  Total Hands: 25,454
-
-  Performance vs Opponents:
-    always_fold           +167.70 bb/100  [+159.98, +175.43]
-    balanced              +171.20 bb/100  [+8.12, +292.99]
-    loose_aggressive     +2252.41 bb/100  [+1784.88, +3023.09]
-    loose_passive           +2.52 bb/100  [-8.25, +13.30]
-    maniac               +4463.40 bb/100  [-424.52, +5725.26]
-    random                +731.92 bb/100  [+482.73, +1088.08]
-    tight_aggressive       -31.04 bb/100  [-237.04, +153.60]
-    tight_passive         +102.63 bb/100  [+39.09, +152.33]
-
-Haiku-4.5 Poker Pro
-  ID: 0953378d_20251229_191701
-  Author: Haiku-4.5
-  Elo Rating: 1352
-  Skill Tier: intermediate
-  Total Hands: 24,791
-
-  Performance vs Opponents:
-    always_fold           +161.00 bb/100  [+154.52, +167.48]
-    balanced              +212.23 bb/100  [-22.89, +398.04]
-    loose_aggressive     +2020.08 bb/100  [+1636.55, +2963.94]
-    loose_passive           -1.79 bb/100  [-11.42, +7.84]
-    maniac               +4389.99 bb/100  [+1397.18, +6779.84]
-    random                +549.96 bb/100  [+341.11, +805.59]
-    tight_aggressive      -122.98 bb/100  [-271.21, +12.69]
-    tight_passive         +104.10 bb/100  [+39.77, +154.41]
-
-Haiku-4.5 Poker Ace
-  ID: c7812960_20251229_190850
-  Author: Haiku-4.5
-  Elo Rating: 1334
-  Skill Tier: intermediate
-  Total Hands: 25,467
-
-  Performance vs Opponents:
-    always_fold           +165.70 bb/100  [+158.29, +173.12]
-    balanced              +203.41 bb/100  [+44.10, +375.63]
-    loose_aggressive     +2052.20 bb/100  [+1518.53, +2584.68]
-    loose_passive          -27.84 bb/100  [-38.91, -16.76]
-    maniac                +722.80 bb/100  [-2181.85, +3651.73]
-    random                +377.93 bb/100  [+258.25, +490.23]
-    tight_aggressive      -126.88 bb/100  [-284.83, +90.58]
-    tight_passive         +130.98 bb/100  [+118.00, +143.97]
-
 Opus-4.5 Poker Champion
   ID: 133de727_20251229_173918
   Author: Opus-4.5
-  Elo Rating: 1230
-  Skill Tier: beginner
-  Total Hands: 3,866
+  Elo Rating: 1583
+  Skill Tier: expert
+  Total Hands: 31,192
 
   Performance vs Opponents:
-    always_fold           +166.06 bb/100  [+148.42, +183.70]
-    balanced               +46.51 bb/100  [-175.63, +222.01]
-    loose_passive          -34.68 bb/100  [-36.65, -32.71]
-    random                +228.99 bb/100  [+130.65, +327.34]
+    always_fold           +176.25 bb/100  [+172.87, +179.63]
+    balanced               +76.78 bb/100  [-81.40, +175.43]
+    loose_aggressive     +2738.82 bb/100  [+2039.31, +3908.53]
+    loose_passive         +174.02 bb/100  [+147.05, +195.85]
+    maniac               +3476.12 bb/100  [-8120.16, +6346.81]
+    random               +1073.46 bb/100  [+934.01, +1298.64]
+    tight_aggressive       +84.64 bb/100  [+3.01, +212.78]
+    tight_passive         +138.57 bb/100  [+113.76, +163.37]
 
 Haiku-4.5 Poker Stratege
   ID: 3c8ae847_20251229_191554
   Author: Haiku-4.5
-  Elo Rating: 1226
-  Skill Tier: beginner
-  Total Hands: 15,881
+  Elo Rating: 1583
+  Skill Tier: expert
+  Total Hands: 36,198
 
   Performance vs Opponents:
-    always_fold           +167.68 bb/100  [+162.44, +172.93]
-    balanced               +72.90 bb/100  [-761.93, +454.82]
-    loose_aggressive     +3761.75 bb/100  [+2684.08, +5455.56]
-    loose_passive         -210.26 bb/100  [-253.99, -185.66]
-    maniac               -2031.80 bb/100  [-4903.04, +3018.98]
-    random               +1168.82 bb/100  [+869.81, +1892.46]
-    tight_aggressive       -88.04 bb/100  [-934.73, +36.58]
-    tight_passive        -1016.90 bb/100  [-1215.51, -910.67]
+    always_fold           +142.00 bb/100  [+138.69, +145.32]
+    balanced               +86.31 bb/100  [+27.61, +147.44]
+    loose_aggressive     +1762.35 bb/100  [+1619.05, +2287.03]
+    loose_passive          +47.30 bb/100  [+18.47, +71.99]
+    maniac               +2069.17 bb/100  [-3072.79, +4285.80]
+    random                +366.19 bb/100  [+253.00, +488.33]
+    tight_aggressive       +37.12 bb/100  [-19.57, +95.85]
+    tight_passive         +131.40 bb/100  [+126.98, +135.82]
+
+GPT-5.2-Codex-Max Poker Master
+  ID: 603bca97_20251229_185408
+  Author: GPT-5.2-Codex-Max
+  Elo Rating: 1583
+  Skill Tier: expert
+  Total Hands: 36,335
+
+  Performance vs Opponents:
+    always_fold           +154.31 bb/100  [+151.66, +156.97]
+    balanced               +97.41 bb/100  [+35.95, +166.44]
+    loose_aggressive     +1667.18 bb/100  [+1382.99, +2224.51]
+    loose_passive          +66.01 bb/100  [+33.70, +98.31]
+    maniac               +2034.05 bb/100  [+303.86, +4663.57]
+    random                +505.35 bb/100  [+430.10, +636.27]
+    tight_aggressive       +88.03 bb/100  [-3.09, +179.15]
+    tight_passive         +129.98 bb/100  [+77.41, +182.56]
+
+Haiku-4.5 Poker Master
+  ID: 9e4229f4_20251229_190007
+  Author: Haiku-4.5
+  Elo Rating: 1583
+  Skill Tier: expert
+  Total Hands: 37,043
+
+  Performance vs Opponents:
+    always_fold           +144.57 bb/100  [+141.24, +147.91]
+    balanced              +134.48 bb/100  [+66.67, +202.30]
+    loose_aggressive     +1789.82 bb/100  [+1493.26, +2322.87]
+    loose_passive          +47.37 bb/100  [+38.52, +56.23]
+    maniac               +1243.48 bb/100  [-2261.70, +3593.48]
+    random                +360.69 bb/100  [+300.05, +444.72]
+    tight_aggressive       +30.60 bb/100  [-18.07, +79.27]
+    tight_passive         +140.58 bb/100  [+124.08, +157.07]
+
+Opus-4.5 Evolved Master
+  ID: ebdd0fb5_20251229_223153
+  Author: Opus-4.5
+  Elo Rating: 1583
+  Skill Tier: expert
+  Total Hands: 36,622
+
+  Performance vs Opponents:
+    always_fold           +145.28 bb/100  [+142.08, +148.48]
+    balanced              +250.26 bb/100  [+182.98, +321.44]
+    loose_aggressive     +1774.60 bb/100  [+1554.47, +2431.49]
+    loose_passive          +42.35 bb/100  [+17.64, +67.05]
+    maniac               +2482.56 bb/100  [-119.61, +5047.63]
+    random                +360.26 bb/100  [+260.19, +498.66]
+    tight_aggressive      +145.65 bb/100  [+57.79, +233.89]
+    tight_passive         +122.82 bb/100  [+104.01, +141.64]
+
+Haiku-4.5 Poker Ace
+  ID: c7812960_20251229_190850
+  Author: Haiku-4.5
+  Elo Rating: 1546
+  Skill Tier: advanced
+  Total Hands: 36,781
+
+  Performance vs Opponents:
+    always_fold           +140.23 bb/100  [+135.43, +145.04]
+    balanced              +148.90 bb/100  [+61.55, +238.53]
+    loose_aggressive     +1740.63 bb/100  [+1539.09, +2528.49]
+    loose_passive           -5.82 bb/100  [-20.53, +8.31]
+    maniac               +2396.29 bb/100  [-3389.41, +5240.56]
+    random                +342.08 bb/100  [+175.43, +455.55]
+    tight_aggressive       +30.62 bb/100  [-34.80, +107.17]
+    tight_passive         +117.49 bb/100  [+100.24, +134.73]
+
+Haiku-4.5 Poker Pro
+  ID: 0953378d_20251229_191701
+  Author: Haiku-4.5
+  Elo Rating: 1535
+  Skill Tier: advanced
+  Total Hands: 36,845
+
+  Performance vs Opponents:
+    always_fold           +140.51 bb/100  [+135.75, +145.26]
+    balanced               +51.94 bb/100  [-23.82, +144.95]
+    loose_aggressive     +1744.19 bb/100  [+1556.69, +2259.99]
+    loose_passive          -30.04 bb/100  [-57.38, -7.80]
+    maniac               +2657.99 bb/100  [+11.38, +4686.55]
+    random                +313.84 bb/100  [+252.34, +389.92]
+    tight_aggressive       +24.05 bb/100  [-25.33, +72.36]
+    tight_passive         +119.96 bb/100  [+113.45, +126.47]
 
 Opus-4.5 Poker Champion
   ID: a13833f1_20251229_182252
   Author: Opus-4.5
-  Elo Rating: 1200
-  Skill Tier: beginner
-  Total Hands: 3,607
+  Elo Rating: 1535
+  Skill Tier: advanced
+  Total Hands: 36,922
 
   Performance vs Opponents:
-    always_fold           +157.45 bb/100  [+143.17, +171.72]
-    balanced                +0.28 bb/100  [-394.24, +294.34]
-    loose_passive         -231.18 bb/100  [-243.36, -219.01]
-    random                +396.11 bb/100  [+298.64, +513.38]
+    always_fold           +141.22 bb/100  [+137.88, +144.56]
+    balanced              +128.51 bb/100  [+31.04, +215.47]
+    loose_aggressive     +1501.75 bb/100  [+1317.25, +2199.35]
+    loose_passive          -28.91 bb/100  [-46.38, -12.02]
+    maniac               +2821.09 bb/100  [-598.25, +4933.13]
+    random                +294.51 bb/100  [+203.72, +387.04]
+    tight_aggressive       +44.50 bb/100  [-34.54, +121.76]
+    tight_passive         +114.82 bb/100  [+100.84, +128.80]
+
+Sonnet-4.5 Poker Master
+  ID: 603bca97_20251229_182751
+  Author: Sonnet-4.5
+  Elo Rating: 1519
+  Skill Tier: advanced
+  Total Hands: 34,368
+
+  Performance vs Opponents:
+    always_fold           +144.07 bb/100  [+139.80, +148.34]
+    balanced                +7.42 bb/100  [-186.85, +98.74]
+    loose_aggressive     +2496.36 bb/100  [+1971.21, +3216.88]
+    loose_passive           -9.57 bb/100  [-47.54, +18.43]
+    maniac               +2025.86 bb/100  [-1496.63, +5306.58]
+    random                +437.66 bb/100  [+337.60, +557.24]
+    tight_aggressive       +52.41 bb/100  [-14.20, +111.54]
+    tight_passive         +126.58 bb/100  [+105.43, +147.73]
+
+Gemini 3.0 Poker Supreme
+  ID: 802f6384_20251229_213007
+  Author: Gemini 3.0
+  Elo Rating: 1459
+  Skill Tier: advanced
+  Total Hands: 34,393
+
+  Performance vs Opponents:
+    always_fold           +157.89 bb/100  [+154.99, +160.79]
+    balanced               -23.65 bb/100  [-75.88, +12.23]
+    loose_aggressive     +2807.45 bb/100  [+2342.91, +4155.22]
+    loose_passive          +78.38 bb/100  [+67.11, +89.66]
+    maniac               +3541.93 bb/100  [-742.65, +5589.96]
+    random                +603.46 bb/100  [+532.38, +749.11]
+    tight_aggressive       +33.26 bb/100  [-23.38, +108.86]
+    tight_passive         +137.26 bb/100  [+105.19, +169.33]
+
+GPT-5.2-Codex-Prime Poker Overlord
+  ID: 2e9c6046_20251229_222622
+  Author: GPT-5.2-Codex-Prime
+  Elo Rating: 1433
+  Skill Tier: intermediate
+  Total Hands: 34,151
+
+  Performance vs Opponents:
+    always_fold           +142.77 bb/100  [+138.90, +146.64]
+    balanced               -66.61 bb/100  [-207.87, -6.66]
+    loose_aggressive     +2480.76 bb/100  [+2087.14, +3562.80]
+    loose_passive           -1.13 bb/100  [-11.98, +9.71]
+    maniac               +2606.36 bb/100  [-1166.54, +5482.05]
+    random                +546.99 bb/100  [+466.20, +676.85]
+    tight_aggressive       +26.30 bb/100  [-30.18, +125.59]
+    tight_passive         +112.68 bb/100  [+82.34, +143.02]
 
 ============================================================
