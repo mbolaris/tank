@@ -24,8 +24,8 @@ from core.entities import Fish
 from core.solutions import SolutionRecord, SolutionTracker
 from core.tank_world import TankWorld, TankWorldConfig
 
-AUTHOR = "GPT-5.2"
-DEFAULT_NAME = "GPT-5.2 Tournament Hunter"
+AUTHOR = "GPT-5.2-Codex-Max"
+DEFAULT_NAME = "GPT-5.2-Codex-Max Tournament Hunter"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -121,10 +121,11 @@ def main() -> int:
     parser.add_argument(
         "--tournament-json",
         default=os.path.join(".tmp", f"{AUTHOR}_baseline.json"),
-        help="Tournament JSON artifact (default: .tmp/GPT-5.2_baseline.json)",
+        help=f"Tournament JSON artifact (default: .tmp/{AUTHOR}_baseline.json)",
     )
     parser.add_argument("--solutions-dir", default="solutions", help="Solutions directory (default: solutions)")
     parser.add_argument("--name", default=DEFAULT_NAME, help=f"Solution name (default: {DEFAULT_NAME!r})")
+    parser.add_argument("--author", default=AUTHOR, help=f"Solution author (default: {AUTHOR!r})")
     parser.add_argument("--frames", type=int, default=100_000, help="Frames per simulation seed (default: 100000)")
     parser.add_argument(
         "--seeds",
@@ -148,7 +149,7 @@ def main() -> int:
     parser.add_argument(
         "--output-json",
         default=os.path.join(".tmp", f"{AUTHOR}_capture.json"),
-        help="Optional capture summary JSON path (default: .tmp/GPT-5.2_capture.json)",
+        help=f"Optional capture summary JSON path (default: .tmp/{AUTHOR}_capture.json)",
     )
 
     args = parser.parse_args()
@@ -204,7 +205,7 @@ def main() -> int:
             fish,
             name=args.name,
             description=description,
-            author=AUTHOR,
+            author=args.author,
         )
 
         results.append(
@@ -236,10 +237,15 @@ def main() -> int:
 
     filepath = tracker.save_solution(best.solution)
     logger.info("Saved best solution to %s", filepath)
-    logger.info("solution_id=%s author=%s name=%s", best.solution.metadata.solution_id, AUTHOR, best.solution.metadata.name)
+    logger.info(
+        "solution_id=%s author=%s name=%s",
+        best.solution.metadata.solution_id,
+        best.solution.metadata.author,
+        best.solution.metadata.name,
+    )
 
     out_payload: Dict[str, Any] = {
-        "author": AUTHOR,
+        "author": best.solution.metadata.author,
         "name": best.solution.metadata.name,
         "solution_id": best.solution.metadata.solution_id,
         "saved_path": filepath,
@@ -280,4 +286,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
