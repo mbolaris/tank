@@ -71,14 +71,8 @@ export class TankSideRenderer implements Renderer {
 
             // Render entities
             if (state.entities) {
-                // Determine if we should show effects (default true if not specified in snapshot, 
-                // but usually passed via props in Canvas.tsx. Here we might need to assume true 
-                // or pass it in frame? purely visual toggles might belong in RenderContext or Frame options)
-                // For now, assume true or extract from somewhere if needed.
-                // The prompt said "No new assumptions about snapshot; just pass through."
-                // But `showEffects` was a React prop. 
-                // Let's assume true for now as the prompt implies "zero behavior change" for the renderer itself.
-                const showEffects = true;
+                // Read showEffects from frame options (defaults to true if not specified)
+                const showEffects = frame.options?.showEffects ?? true;
 
                 state.entities.forEach((entity: EntityData) => {
                     r.renderEntity(entity, state.elapsed_time || 0, state.entities, showEffects);

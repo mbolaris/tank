@@ -86,13 +86,15 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const imagesLoadedRef = useRef(imagesLoaded);
     const selectedEntityIdRef = useRef(selectedEntityId);
     const showEffectsRef = useRef(showEffects);
+    const viewModeRef = useRef(viewMode);
 
     useEffect(() => {
         stateRef.current = state;
         imagesLoadedRef.current = imagesLoaded;
         selectedEntityIdRef.current = selectedEntityId;
         showEffectsRef.current = showEffects;
-    }, [state, imagesLoaded, selectedEntityId, showEffects]);
+        viewModeRef.current = viewMode;
+    }, [state, imagesLoaded, selectedEntityId, showEffects, viewMode]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -132,16 +134,20 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
             if (currentState && !error) {
                 try {
-                    // Get fresh renderer for the current mode
+                    // Get fresh renderer for the current mode (use ref to avoid stale closure)
                     const worldType = 'tank';
-                    const effectiveViewMode = viewMode || 'side';
+                    const effectiveViewMode = viewModeRef.current || 'side';
                     const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
                     rendererRef.current = renderer;
 
                     renderer.render({
                         worldType,
                         viewMode: effectiveViewMode,
-                        snapshot: currentState
+                        snapshot: currentState,
+                        options: {
+                            showEffects: showEffectsRef.current,
+                            selectedEntityId: selectedEntityIdRef.current,
+                        },
                     }, {
                         canvas,
                         ctx,
