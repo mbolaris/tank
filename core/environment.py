@@ -47,6 +47,10 @@ class SpatialGrid:
         # Using list instead of set for faster iteration in tight loops
         self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(lambda: defaultdict(list))
 
+        # Cache deterministic per-cell type order to avoid sorting on every query.
+        # Key: cell tuple, Value: list of types sorted by __name__.
+        self._cell_type_order: Dict[Tuple[int, int], List[Type[Agent]]] = {}
+
         # Dedicated grids for high-frequency types to avoid dictionary lookups and issubclass checks
         # These contain the SAME agent objects as self.grid, just indexed differently for speed
         self.fish_grid: Dict[Tuple[int, int], List[Agent]] = defaultdict(list)
@@ -54,6 +58,35 @@ class SpatialGrid:
 
         # Agent to cell mapping for quick updates
         self.agent_cells: Dict[Agent, Tuple[int, int]] = {}
+
+    def _insert_type_order(self, cell: Tuple[int, int], agent_type: Type[Agent]) -> None:
+        """Insert a type into the cached order list for a cell."""
+        order = self._cell_type_order.get(cell)
+        if order is None:
+            self._cell_type_order[cell] = [agent_type]
+            return
+
+        type_name = agent_type.__name__
+        # Insert into sorted position by name (small list; linear insert is fine).
+        for index, existing in enumerate(order):
+            if type_name < existing.__name__:
+                order.insert(index, agent_type)
+                return
+        order.append(agent_type)
+
+    def _remove_type_order(self, cell: Tuple[int, int], agent_type: Type[Agent]) -> None:
+        """Remove a type from the cached order list for a cell if present."""
+        order = self._cell_type_order.get(cell)
+        if not order:
+            return
+
+        try:
+            order.remove(agent_type)
+        except ValueError:
+            return
+
+        if not order:
+            del self._cell_type_order[cell]
 
     def _get_cell(self, x: float, y: float) -> Tuple[int, int]:
         """Get the grid cell coordinates for a position."""
@@ -71,7 +104,11 @@ class SpatialGrid:
         # But we need to be careful about inheritance if we query by base class
         # For now, we'll store by exact type
         agent_type = type(agent)
-        self.grid[cell][agent_type].append(agent)
+        cell_map = self.grid[cell]
+        is_new_type = agent_type not in cell_map
+        cell_map[agent_type].append(agent)
+        if is_new_type:
+            self._insert_type_order(cell, agent_type)
 
         # Update dedicated grids
         # We use string names to avoid circular imports or heavy isinstance checks
@@ -94,6 +131,7 @@ class SpatialGrid:
                     # Clean up empty lists to keep iteration fast
                     if not self.grid[cell][agent_type]:
                         del self.grid[cell][agent_type]
+                        self._remove_type_order(cell, agent_type)
                 except ValueError:
                     pass  # Agent might not be in the list if something went wrong
 
@@ -130,6 +168,7 @@ class SpatialGrid:
                         self.grid[old_cell][agent_type].remove(agent)
                         if not self.grid[old_cell][agent_type]:
                             del self.grid[old_cell][agent_type]
+                            self._remove_type_order(old_cell, agent_type)
                     except ValueError:
                         pass
 
@@ -147,7 +186,11 @@ class SpatialGrid:
                             del self.food_grid[old_cell]
 
             # Add to new cell
-            self.grid[new_cell][agent_type].append(agent)
+            new_cell_map = self.grid[new_cell]
+            is_new_type = agent_type not in new_cell_map
+            new_cell_map[agent_type].append(agent)
+            if is_new_type:
+                self._insert_type_order(new_cell, agent_type)
 
             # Add to dedicated grids (new cell)
             type_name = agent_type.__name__
@@ -201,14 +244,18 @@ class SpatialGrid:
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference to append
         grid = self.grid
+        type_order = self._cell_type_order
 
         # Iterate ranges directly - OPTIMIZATION: Filter inline
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
-                cell_agents = grid.get((col, row))
+                cell = (col, row)
+                cell_agents = grid.get(cell)
                 if cell_agents:
-                    # Sort keys to ensure deterministic iteration order
-                    sorted_types = sorted(cell_agents.keys(), key=lambda t: t.__name__)
+                    sorted_types = type_order.get(cell)
+                    if sorted_types is None:
+                        sorted_types = sorted(cell_agents.keys(), key=lambda t: t.__name__)
+                        type_order[cell] = sorted_types
                     for type_key in sorted_types:
                         type_list = cell_agents[type_key]
                         for other in type_list:
@@ -433,6 +480,7 @@ class SpatialGrid:
         self.fish_grid.clear()
         self.food_grid.clear()
         self.agent_cells.clear()
+        self._cell_type_order.clear()
 
     def rebuild(self, agents: Iterable[Agent]):
         """Rebuild the entire grid from scratch."""
@@ -659,6 +707,7 @@ class Environment:
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference
         grid_dict = grid.grid
+        type_order = grid._cell_type_order
         subclass_cache = Environment._subclass_cache
 
         # Iterate cells
@@ -670,9 +719,11 @@ class Environment:
                 if not cell_buckets:
                     continue
 
-                # Sort keys to ensure deterministic iteration order
-                # Using type name as sort key
-                sorted_types = sorted(cell_buckets.keys(), key=lambda t: t.__name__)
+                # Use cached deterministic order per cell to avoid sorting repeatedly
+                sorted_types = type_order.get((col, row))
+                if sorted_types is None:
+                    sorted_types = sorted(cell_buckets.keys(), key=lambda t: t.__name__)
+                    type_order[(col, row)] = sorted_types
 
                 # Iterate over sorted type buckets
                 for type_key in sorted_types:
