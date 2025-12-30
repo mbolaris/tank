@@ -1,0 +1,461 @@
+{
+  "metadata": {
+    "solution_id": "live_2594_g119_05ab8b4d",
+    "name": "GPT-5.2 Tournament Hunter v2",
+    "description": "GPT-5.2 Tournament Hunter v2 captured from headless TankWorld poker evolution.\nSelected via tournament-aware head-to-head vs 9 opponents loaded from .tmp\\GPT-5.2_baseline.json.\nSelection score: avg_wr=0.2724 with hands_per_matchup=400 candidate_pool=12 min_games=100.\nRepro: frames_per_seed=100000 seeds_tried=[4242] chosen_seed=4242.\nFish: id=2594 generation=119 poker_games=231.",
+    "author": "GPT-5.2",
+    "submitted_at": "2025-12-30T18:58:22.573501",
+    "version": "1.0.0",
+    "generation": 119,
+    "simulation_frames": 0,
+    "fish_id": 2594,
+    "commit_sha": "efbc4152e835f1bb286d8220fbc27de4ac7638ba",
+    "branch": "master"
+  },
+  "behavior_algorithm": {
+    "type": "ComposableBehavior",
+    "threat_response": 2,
+    "food_approach": 3,
+    "social_mode": 3,
+    "poker_engagement": 2,
+    "parameters": {
+      "alignment_strength": 0.33426802565827524,
+      "ambush_patience": 0.8557099075468935,
+      "ambush_strike_distance": 45.766091839568524,
+      "base_speed_multiplier": 0.5418273707168514,
+      "burst_duration": 53.29978986119523,
+      "burst_speed": 1.2573463707748551,
+      "circle_radius": 31.146795341750472,
+      "circle_speed": 0.06544259325229528,
+      "cohesion_strength": 0.7350136200251232,
+      "energy_urgency_threshold": 0.4375367333653552,
+      "erratic_amplitude": 0.6190056818734793,
+      "flee_speed": 0.928447086542677,
+      "flee_threshold": 146.58270909148422,
+      "follow_distance": 39.71777066093494,
+      "food_priority": 0.6239269083092956,
+      "freeze_distance": 40.0,
+      "intercept_skill": 0.6972698817349501,
+      "min_energy_for_poker": 0.3481434726587085,
+      "patrol_radius": 86.25664001057942,
+      "poker_avoid_radius": 136.73294970494499,
+      "poker_priority": 0.648046677226247,
+      "poker_seek_radius": 178.427865713125,
+      "pursuit_speed": 0.9000000000000001,
+      "rest_duration": 96.6443714254013,
+      "separation_distance": 19.673522671002285,
+      "social_distance": 74.52449034097722,
+      "social_priority": 0.30272123823428426,
+      "stealth_speed": 0.3157736497173952,
+      "threat_priority": 0.6418988589559845,
+      "zigzag_amplitude": 0.40323431582124125,
+      "zigzag_frequency": 0.08
+    }
+  },
+  "poker_strategy": {
+    "type": "ComposablePokerStrategy",
+    "strategy_id": "composable",
+    "hand_selection": 2,
+    "betting_style": 1,
+    "bluffing_approach": 0,
+    "position_awareness": 2,
+    "showdown_tendency": 0,
+    "parameters": {
+      "bluff_frequency": 0.37259301889153806,
+      "bluff_sizing": 0.6433924475305473,
+      "continuation_bet_freq": 0.5310910708842269,
+      "desperation_threshold": 0.1902322296874973,
+      "ip_aggression_boost": 0.15360691713742894,
+      "oop_tightening": 0.13957714333268778,
+      "opponent_model_weight": 0.3497503741584887,
+      "playable_threshold": 0.3853000454911403,
+      "position_range_expand": 0.17760864393727624,
+      "pot_odds_sensitivity": 1.6,
+      "premium_threshold": 0.944748068549679,
+      "risk_tolerance": 0.5042017409444505,
+      "semibluff_threshold": 0.4,
+      "value_bet_sizing": 0.8129075317891167
+    },
+    "learning_rate": 1.0,
+    "regret": {
+      "1:1:IP:0": {
+        "call": -5.397109441143685,
+        "fold": -88.05001584086862,
+        "raise_big": 18.93630944114367,
+        "raise_small": 6.7696
+      },
+      "1:1:OOP:0": {
+        "call": 39.0,
+        "fold": -62.41080000000001,
+        "raise_big": 124.00216,
+        "raise_small": 81.50108000000002
+      },
+      "1:2:OOP:0": {
+        "call": 12.799999999999999,
+        "fold": 0.0,
+        "raise_big": 38.4,
+        "raise_small": 25.6
+      },
+      "2:0:OOP:0": {
+        "call": 99.0893593821683,
+        "fold": 0.0,
+        "raise_big": 297.26807814650516,
+        "raise_small": 198.1787187643366
+      },
+      "2:1:IP:0": {
+        "call": -37.507737576369145,
+        "fold": -1272.1320340336254,
+        "raise_big": 42.42209757636906,
+        "raise_small": 2.4571800000000037
+      },
+      "2:1:OOP:0": {
+        "call": 69.92991173600339,
+        "fold": -59.11319041111223,
+        "raise_big": 218.5181789403406,
+        "raise_small": 144.2240453381719
+      },
+      "2:2:OOP:0": {
+        "call": 23.728259035080463,
+        "fold": -141.37427929927514,
+        "raise_big": 94.01451937409244,
+        "raise_small": 58.87138920458647
+      },
+      "1:0:OOP:0": {
+        "fold": -52.23200000000002,
+        "call": 21.0051784365186,
+        "raise_small": 46.843556873037215,
+        "raise_big": 72.68193530955581
+      },
+      "0:1:OOP:0": {
+        "fold": 0.0,
+        "call": 14.999999999999998,
+        "raise_small": 30.0,
+        "raise_big": 45.0
+      },
+      "0:0:OOP:0": {
+        "fold": -23.377999999999986,
+        "call": 14.232986826198488,
+        "raise_small": 32.05377365239698,
+        "raise_big": 49.874560478595455
+      },
+      "4:0:IP:0": {
+        "fold": -138.97587676811196,
+        "call": -4.225879252534247,
+        "raise_small": 0.0,
+        "raise_big": 4.225879252534234
+      },
+      "3:1:IP:0": {
+        "fold": -379.3371427807308,
+        "call": -11.396833464980054,
+        "raise_small": 1.4454000000000011,
+        "raise_big": 14.287633464980024
+      },
+      "3:1:OOP:0": {
+        "fold": -66.5747163351429,
+        "call": 3.433399999999999,
+        "raise_small": 10.4,
+        "raise_big": 17.3666
+      },
+      "2:0:IP:0": {
+        "fold": -311.9567426404084,
+        "call": -5.205983513451216,
+        "raise_small": 5.78160000000001,
+        "raise_big": 16.76918351345121
+      },
+      "0:2:OOP:0": {
+        "fold": 16.15602070760678,
+        "call": 9.27025023201971,
+        "raise_small": 20.84850342226897,
+        "raise_big": 32.42675661251822
+      },
+      "1:2:IP:0": {
+        "fold": -295.0341313019549,
+        "call": -9.129927743919282,
+        "raise_small": 0.0,
+        "raise_big": 9.129927743919254
+      },
+      "1:0:IP:0": {
+        "fold": -119.84000000000003,
+        "call": 0.0,
+        "raise_small": 9.62400000000001,
+        "raise_big": 19.248000000000005
+      },
+      "2:3:OOP:0": {
+        "fold": 0.0,
+        "call": 4.6,
+        "raise_small": 9.2,
+        "raise_big": 13.8
+      },
+      "0:1:IP:0": {
+        "fold": -44.345578726114994,
+        "call": -6.21434641683992,
+        "raise_small": 1.299999999999999,
+        "raise_big": 8.814346416839916
+      },
+      "0:3:OOP:0": {
+        "fold": 0.0,
+        "call": 3.6901217966004705,
+        "raise_small": 7.380243593200941,
+        "raise_big": 11.070365389801411
+      },
+      "3:0:IP:0": {
+        "fold": -60.681000000000004,
+        "call": 0.0,
+        "raise_small": 2.1681000000000035,
+        "raise_big": 4.336200000000002
+      },
+      "1:4:OOP:0": {
+        "fold": 40.37382622218516,
+        "call": -3.92897103703086,
+        "raise_small": 5.6000000000000005,
+        "raise_big": 15.12897103703086
+      },
+      "2:2:IP:0": {
+        "fold": -98.75046336852827,
+        "call": -2.569600000000001,
+        "raise_small": 1.171478840004653,
+        "raise_big": 4.912557680009302
+      }
+    },
+    "strategy_sum": {
+      "1:1:IP:0": {
+        "call": 0.05116398055768739,
+        "fold": 0.0,
+        "raise_big": 5.071531978292896,
+        "raise_small": 2.0773040411494166
+      },
+      "1:1:OOP:0": {
+        "call": 3.6300104875541264,
+        "fold": 0.0,
+        "raise_big": 11.836656179112538,
+        "raise_small": 7.733333333333332
+      },
+      "1:2:OOP:0": {
+        "call": 1.0666666666666664,
+        "fold": 0.0,
+        "raise_big": 3.2,
+        "raise_small": 2.1333333333333337
+      },
+      "2:0:OOP:0": {
+        "call": 8.76666666666667,
+        "fold": 0.0,
+        "raise_big": 26.3,
+        "raise_small": 17.53333333333334
+      },
+      "2:1:IP:0": {
+        "call": 0.0,
+        "fold": 0.0,
+        "raise_big": 21.037460441705782,
+        "raise_small": 2.962539558294221
+      },
+      "2:1:OOP:0": {
+        "call": 6.8310735666137665,
+        "fold": 0.0,
+        "raise_big": 21.271631811529122,
+        "raise_small": 14.051352689071454
+      },
+      "2:2:OOP:0": {
+        "call": 2.6574945051718113,
+        "fold": 0.0,
+        "raise_big": 8.472131094828189,
+        "raise_small": 5.5648127999999994
+      },
+      "1:0:OOP:0": {
+        "fold": 1.5075904968495761,
+        "call": 1.9206484691049486,
+        "raise_small": 4.497469834383476,
+        "raise_big": 7.074291199662
+      },
+      "0:1:OOP:0": {
+        "fold": 0.0,
+        "call": 1.1666666666666665,
+        "raise_small": 2.3333333333333335,
+        "raise_big": 3.5
+      },
+      "0:0:OOP:0": {
+        "fold": 0.25044246589932245,
+        "call": 1.5673670253256362,
+        "raise_small": 3.2498525113668935,
+        "raise_big": 4.9323379974081485
+      },
+      "4:0:IP:0": {
+        "fold": 0.0,
+        "call": 0.0,
+        "raise_small": 0.0,
+        "raise_big": 3.0
+      },
+      "3:1:IP:0": {
+        "fold": 0.0,
+        "call": 0.0,
+        "raise_small": 0.7403739714093808,
+        "raise_big": 7.25962602859062
+      },
+      "3:1:OOP:0": {
+        "fold": 0.0,
+        "call": 0.4433782051282051,
+        "raise_small": 1.0,
+        "raise_big": 1.5566217948717949
+      },
+      "2:0:IP:0": {
+        "fold": 0.0,
+        "call": 0.0,
+        "raise_small": 2.071376441714676,
+        "raise_big": 8.928623558285324
+      },
+      "0:2:OOP:0": {
+        "fold": 0.46131431652610677,
+        "call": 0.3901632579699745,
+        "raise_small": 0.8462285611579645,
+        "raise_big": 1.302293864345954
+      },
+      "1:2:IP:0": {
+        "fold": 0.0,
+        "call": 0.0,
+        "raise_small": 0.0,
+        "raise_big": 3.0
+      },
+      "1:0:IP:0": {
+        "fold": 0.0,
+        "call": 0.0,
+        "raise_small": 2.6666666666666683,
+        "raise_big": 5.333333333333332
+      },
+      "2:3:OOP:0": {
+        "fold": 0.0,
+        "call": 0.5,
+        "raise_small": 1.0,
+        "raise_big": 1.5
+      },
+      "0:1:IP:0": {
+        "fold": 1.4986698290954188,
+        "call": 0.0,
+        "raise_small": 0.26574041080797783,
+        "raise_big": 1.2355897600966035
+      },
+      "0:3:OOP:0": {
+        "fold": 0.0,
+        "call": 0.5,
+        "raise_small": 1.0,
+        "raise_big": 1.5
+      },
+      "3:0:IP:0": {
+        "fold": 0.0,
+        "call": 0.0,
+        "raise_small": 1.0000000000000009,
+        "raise_big": 1.9999999999999991
+      },
+      "1:4:OOP:0": {
+        "fold": 2.2927832421740386,
+        "call": 0.0,
+        "raise_small": 0.13003448698544856,
+        "raise_big": 0.5771822708405127
+      },
+      "2:2:IP:0": {
+        "fold": 0.0,
+        "call": 0.0,
+        "raise_small": 0.8592162735191199,
+        "raise_big": 2.1407837264808802
+      }
+    },
+    "visit_count": {
+      "2:1:OOP:0": 24,
+      "2:0:OOP:0": 47,
+      "1:0:OOP:0": 15,
+      "2:1:IP:0": 20,
+      "0:1:OOP:0": 7,
+      "0:0:OOP:0": 10,
+      "4:0:IP:0": 3,
+      "3:1:IP:0": 8,
+      "3:1:OOP:0": 3,
+      "1:1:OOP:0": 20,
+      "2:0:IP:0": 11,
+      "2:2:OOP:0": 5,
+      "0:2:OOP:0": 3,
+      "1:2:IP:0": 3,
+      "1:2:OOP:0": 4,
+      "1:0:IP:0": 8,
+      "1:1:IP:0": 4,
+      "2:3:OOP:0": 3,
+      "0:1:IP:0": 3,
+      "0:3:OOP:0": 3,
+      "3:0:IP:0": 3,
+      "1:4:OOP:0": 3,
+      "2:2:IP:0": 3
+    }
+  },
+  "composable_behavior": null,
+  "capture_stats": {
+    "total_games": 231,
+    "wins": 73,
+    "losses": 158,
+    "ties": 0,
+    "win_rate": 0.31601731601731603,
+    "total_energy_won": 1391.8717059049452,
+    "total_energy_lost": 1687.467998512573,
+    "net_energy": -637.0641955506843,
+    "roi": -2.757853660392573,
+    "current_streak": -3,
+    "best_streak": 3,
+    "worst_streak": -16,
+    "showdown_win_rate": 0.44,
+    "fold_rate": 0.6233766233766234,
+    "best_hand_rank": 5,
+    "avg_hand_rank": 0.2077922077922078,
+    "button_win_rate": 0.31351351351351353,
+    "non_button_win_rate": 0.32608695652173914,
+    "positional_advantage": -0.012573443008225604,
+    "recent_win_rate": 0.3,
+    "skill_trend": "stable"
+  },
+  "benchmark_result": {
+    "per_opponent": {
+      "always_fold": 208.05664,
+      "random": 2120.2641061130334,
+      "loose_passive": 557.8949488491048,
+      "tight_passive": 108.62312047471285,
+      "tight_aggressive": 161.59619230632356,
+      "loose_aggressive": 4577.679809286898,
+      "balanced": 83.23204891712781,
+      "maniac": 8048.25578635015
+    },
+    "weighted_bb_per_100": 1578.8633012163034,
+    "total_hands_played": 153465,
+    "elo_rating": 1582.6553168166306,
+    "confidence_intervals": {
+      "always_fold": [
+        206.59337597863387,
+        209.51990402136616
+      ],
+      "random": [
+        1895.0837964239354,
+        2934.1005014959937
+      ],
+      "loose_passive": [
+        488.7851576170377,
+        985.0511544713851
+      ],
+      "tight_passive": [
+        26.59116268579953,
+        468.8530397071816
+      ],
+      "tight_aggressive": [
+        86.3670482037669,
+        488.99167587814475
+      ],
+      "loose_aggressive": [
+        2467.3095735327556,
+        6360.5636295722
+      ],
+      "balanced": [
+        -6572.538690860807,
+        3227.362885264025
+      ],
+      "maniac": [
+        3951.5942391745,
+        11586.939626966854
+      ]
+    },
+    "skill_tier": "expert",
+    "evaluated_at": "2025-12-30T19:04:05.699636"
+  }
+}
