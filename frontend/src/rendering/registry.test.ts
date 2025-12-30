@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { rendererRegistry } from './registry';
-import { Renderer, RenderFrame, RenderContext } from './types';
+import type { Renderer } from './types';
 
 class MockRenderer implements Renderer {
     id = "mock";

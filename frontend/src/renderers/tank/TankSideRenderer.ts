@@ -1,7 +1,7 @@
 
-import { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
+import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
 import { Renderer as LegacyRenderer } from '../../utils/renderer';
-import { EntityData } from '../../types/simulation';
+import type { EntityData } from '../../types/simulation';
 
 export class TankSideRenderer implements Renderer {
     id = "tank-side";

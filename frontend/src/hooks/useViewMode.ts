@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { ViewMode } from '../rendering/types';
 
 const STORAGE_KEY = 'tank_view_mode_override';

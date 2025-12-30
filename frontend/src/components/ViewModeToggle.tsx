@@ -1,8 +1,6 @@
 
 import { Button } from './ui';
 import type { ViewMode, WorldType } from '../rendering/types';
-import { rendererRegistry } from '../rendering/registry';
-import { useMemo } from 'react';
 
 interface ViewModeToggleProps {
     worldType?: WorldType;

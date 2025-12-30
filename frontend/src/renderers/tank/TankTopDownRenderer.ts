@@ -1,6 +1,6 @@
 
-import { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
-import { buildTankScene, TankScene, TankEntity } from './tankScene';
+import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
+import { buildTankScene, type TankEntity } from './tankScene';
 
 export class TankTopDownRenderer implements Renderer {
     id = "tank-topdown";

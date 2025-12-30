@@ -4,7 +4,7 @@
 
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
-import { Renderer } from '../rendering/types';
+import type { Renderer } from '../rendering/types';
 import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { clearAllPlantCaches } from '../utils/plant';
@@ -129,125 +129,108 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
         const renderLoop = () => {
             const currentState = stateRef.current;
-            const currentImagesLoaded = imagesLoadedRef.current;
-            const currentSelectedEntityId = selectedEntityIdRef.current;
-            const currentShowEffects = showEffectsRef.current;
 
             if (currentState && !error) {
+                try {
+                    // Get fresh renderer for the current mode
+                    const worldType = 'tank';
+                    const effectiveViewMode = viewMode || 'side';
+                    const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
+                    rendererRef.current = renderer;
 
-                // Get fresh renderer for the current mode
-                // We do this every frame to support hot-switching
-                // Optimization: store last used mode and only getRenderer if changed
-                const worldType = 'tank';
-                const effectiveViewMode = viewMode || 'side';
-                const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
-                rendererRef.current = renderer; // Keep ref updated
-
-                const r = renderer;
-
-                // Standardize RenderFrame
-                renderer.render({
-                    worldType,
-                    viewMode: effectiveViewMode,
-                    snapshot: currentState
-                }, {
-                    canvas,
-                    ctx,
-                    dpr: window.devicePixelRatio || 1,
-                    nowMs: performance.now()
-                });
-
-            } catch (err) {
-                console.error("Render loop error:", err);
-            } finally {
-                // ctx.restore() is handled by renderer if needed, 
-                // but we did save/restore around the whole block in legacy,
-                // new interface expects renderer to handle its own state mostly.
-                // But wait, the legacy renderer expected clean state or managed it?
-                // Legacy code: r.ctx.save(); try{...} finally {r.ctx.restore();}
-                // My TankSideRenderer wrapper does save/restore.
-                // So I don't need to do it here for the interface call.
+                    renderer.render({
+                        worldType,
+                        viewMode: effectiveViewMode,
+                        snapshot: currentState
+                    }, {
+                        canvas,
+                        ctx,
+                        dpr: window.devicePixelRatio || 1,
+                        nowMs: performance.now()
+                    });
+                } catch (err) {
+                    console.error("Render loop error:", err);
+                }
             }
-        }
+            animationFrameId = requestAnimationFrame(renderLoop);
+        };
+
+        // Start loop
         animationFrameId = requestAnimationFrame(renderLoop);
-    };
 
-    // Start loop
-    animationFrameId = requestAnimationFrame(renderLoop);
-
-    return () => {
-        cancelAnimationFrame(animationFrameId);
-        if (rendererRef.current) {
-            if (import.meta.env.DEV) {
-                console.debug('[Canvas] Disposing Renderer');
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+            if (rendererRef.current) {
+                if (import.meta.env.DEV) {
+                    console.debug('[Canvas] Disposing Renderer');
+                }
+                rendererRef.current.dispose();
+                rendererRef.current = null;
             }
-            rendererRef.current.dispose();
-            rendererRef.current = null;
-        }
-    };
-}, [width, height, setErrorOnce, error]); // Stable dependencies only
+        };
+    }, [width, height, setErrorOnce, error]); // Stable dependencies only
 
 
-// Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
-// This clears plant texture caches and path caches every 30 seconds.
-// Caches will be regenerated on demand - plants may briefly flicker but memory stays bounded.
-useEffect(() => {
-    const CLEANUP_INTERVAL_MS = 30_000; // 30 seconds
+    // Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
+    // This clears plant texture caches and path caches every 30 seconds.
+    // Caches will be regenerated on demand - plants may briefly flicker but memory stays bounded.
+    useEffect(() => {
+        const CLEANUP_INTERVAL_MS = 30_000; // 30 seconds
 
-    const interval = setInterval(() => {
-        try {
-            // Clear all plant texture and geometry caches
-            clearAllPlantCaches();
+        const interval = setInterval(() => {
+            try {
+                // Clear all plant texture and geometry caches
+                clearAllPlantCaches();
 
-            // Clear the renderer's path cache
-            if (rendererRef.current && (rendererRef.current as any).clearPathCache) {
-                (rendererRef.current as any).clearPathCache();
+                // Clear the renderer's path cache
+                if (rendererRef.current && (rendererRef.current as any).clearPathCache) {
+                    (rendererRef.current as any).clearPathCache();
+                }
+
+                if (import.meta.env.DEV) {
+                    console.debug('[Memory Cleanup] Cleared plant caches and path cache');
+                }
+            } catch {
+                // Ignore cleanup errors
             }
+        }, CLEANUP_INTERVAL_MS);
 
-            if (import.meta.env.DEV) {
-                console.debug('[Memory Cleanup] Cleared plant caches and path cache');
-            }
-        } catch {
-            // Ignore cleanup errors
-        }
-    }, CLEANUP_INTERVAL_MS);
+        return () => clearInterval(interval);
+    }, []);
 
-    return () => clearInterval(interval);
-}, []);
+    if (error) {
+        return (
+            <div style={{
+                width,
+                height,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#1a0000',
+                color: '#ff5555',
+                flexDirection: 'column',
+                padding: 20,
+                border: '1px solid #ff5555',
+                borderRadius: 8,
+                boxSizing: 'border-box'
+            }}>
+                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>Canvas Error</div>
+                <div style={{ fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{error}</div>
+            </div>
+        );
+    }
 
-if (error) {
     return (
-        <div style={{
-            width,
-            height,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#1a0000',
-            color: '#ff5555',
-            flexDirection: 'column',
-            padding: 20,
-            border: '1px solid #ff5555',
-            borderRadius: 8,
-            boxSizing: 'border-box'
-        }}>
-            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>Canvas Error</div>
-            <div style={{ fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{error}</div>
-        </div>
+        <canvas
+            ref={canvasRef}
+            width={width}
+            height={height}
+            className="tank-canvas"
+            onClick={handleCanvasClick}
+            style={{
+                cursor: onEntityClick ? 'pointer' : 'default',
+                ...style,
+            }}
+        />
     );
-}
-
-return (
-    <canvas
-        ref={canvasRef}
-        width={width}
-        height={height}
-        className="tank-canvas"
-        onClick={handleCanvasClick}
-        style={{
-            cursor: onEntityClick ? 'pointer' : 'default',
-            ...style,
-        }}
-    />
-);
 }

@@ -1,5 +1,5 @@
 
-import { EntityData } from '../../types/simulation';
+import type { EntityData } from '../../types/simulation';
 
 export interface TankEntity {
     id: number;

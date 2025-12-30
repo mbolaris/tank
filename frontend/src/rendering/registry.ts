@@ -1,5 +1,5 @@
 
-import { Renderer, ViewMode, WorldType, RenderFrame, RenderContext } from './types';
+import type { Renderer, ViewMode, WorldType, RenderFrame, RenderContext } from './types';
 
 // Fallback renderer for unsupported views
 class FallbackRenderer implements Renderer {
