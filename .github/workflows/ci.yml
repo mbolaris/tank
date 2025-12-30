@@ -33,17 +33,14 @@ jobs:
     - name: Check code formatting with black
       run: |
         black --check core/ tests/ *.py --exclude="frontend|backend|node_modules|.venv|venv"
-      continue-on-error: true
 
     - name: Lint with ruff
       run: |
         ruff check core/ tests/ *.py --exclude frontend --exclude backend
-      continue-on-error: true
 
     - name: Type check with mypy
       run: |
         mypy core/ --exclude frontend --exclude backend
-      continue-on-error: true
 
   test-headless:
     runs-on: ubuntu-latest
@@ -84,9 +81,7 @@ jobs:
     - name: Check formatting
       run: |
         black --check . --exclude="frontend|backend|node_modules|.venv|venv"
-      continue-on-error: true
 
     - name: Lint
       run: |
         ruff check . --exclude frontend --exclude backend
-      continue-on-error: true

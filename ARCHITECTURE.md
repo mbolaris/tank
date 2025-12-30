@@ -224,3 +224,86 @@ def test_system_returns_result():
 - **Determinism:** See `tests/test_determinism.py` for enforcement patterns
 - **Protocols:** Python docs on [Protocol](https://peps.python.org/pep-0544/)
 - **Component Design:** Fish class uses `EnergyComponent`, `LifecycleComponent`, etc.
+
+---
+
+## World Backends Plugin Model
+
+**Location:** [`core/worlds/`](file:///c:/shared/bolaris/tank/core/worlds/) + [`backend/world_registry.py`](file:///c:/shared/bolaris/tank/backend/world_registry.py)
+
+The simulation supports multiple world types (Tank, Petri, Soccer) through a registry pattern:
+
+```python
+# Register a world type
+register_world(
+    world_type="tank",
+    factory=_create_tank_world,
+    view_mode="side",
+    display_name="Fish Tank",
+)
+
+# Create worlds via registry (NOT direct imports)
+world, snapshot_builder = create_world("tank", seed=42)
+```
+
+**Import Boundaries:**
+- `core/worlds/*` must not import `backend/*` or `frontend/*`
+- `backend/*` uses registry to access worlds, not direct `core/worlds/tank/*` imports
+- Only `backend/world_registry.py` may import world implementations for registration
+
+**Why this matters:** Keeps `core/` portable and testable without server dependencies.
+
+---
+
+## Renderer Consumes Snapshot Only
+
+**Principle:** The frontend receives serialized JSON snapshots, never imports Python modules.
+
+```
+┌─────────────┐     step()      ┌──────────────────┐
+│ WorldBackend│────────────────▶│  SnapshotBuilder │
+└─────────────┘                 └────────┬─────────┘
+                                         │ build_snapshot()
+                                         ▼
+                               ┌──────────────────┐
+                               │   JSON Snapshot  │
+                               └────────┬─────────┘
+                                WebSocket broadcast
+                                         │
+                                         ▼
+                               ┌──────────────────┐
+                               │  React Frontend  │
+                               └──────────────────┘
+```
+
+**Benefits:**
+- Frontend is language-agnostic (could be any renderer)
+- Snapshots are serializable for replay/persistence
+- No circular dependencies between core and rendering
+
+---
+
+## Policies Are Pure
+
+**Principle:** Behavior algorithms (policies) are pure functions of observable state.
+
+```python
+# ✅ GOOD - Pure policy, uses only observation
+class GreedyFoodSeeker(BehaviorAlgorithm):
+    def decide(self, fish: Fish, env: Environment) -> Vector2:
+        nearest_food = env.get_nearest_food(fish.position)
+        return (nearest_food.position - fish.position).normalized()
+
+# ❌ BAD - Policy calls engine/ecosystem methods
+class BadPolicy(BehaviorAlgorithm):
+    def decide(self, fish: Fish, env: Environment) -> Vector2:
+        self.engine.spawn_food()  # Side effect!
+        self.ecosystem.log_event()  # Coupling to ecosystem!
+        return Vector2.zero()
+```
+
+**Rules:**
+- Policies receive observations, return actions
+- No `engine.X()` or `ecosystem.X()` calls inside policies
+- Side effects happen in systems, not policies
+- This enables policy replay, testing, and ML training
