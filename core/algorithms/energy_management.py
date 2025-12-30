@@ -14,7 +14,10 @@ This module contains 8 algorithms focused on managing energy expenditure:
 import math
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.entities import Crab, Food

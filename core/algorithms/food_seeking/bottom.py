@@ -2,7 +2,10 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.display import SCREEN_HEIGHT

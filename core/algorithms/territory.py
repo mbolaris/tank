@@ -14,7 +14,10 @@ This module contains 8 algorithms focused on spatial behavior and exploration:
 import math
 import random
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.display import (
