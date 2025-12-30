@@ -369,22 +369,40 @@ class SolutionBenchmark:
         """
         from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
+        if sol1.metadata.solution_id == sol2.metadata.solution_id:
+            return (0.5, 0.5)
+
         strategy1 = self._create_strategy_from_solution(sol1)
         strategy2 = self._create_strategy_from_solution(sol2)
 
         if strategy1 is None or strategy2 is None:
             return (0.5, 0.5)
 
-        # Run matches with position rotation
-        seed_material = f"{sol1.metadata.solution_id}|{sol2.metadata.solution_id}".encode("utf-8")
+        # Run matches with position rotation.
+        #
+        # Important: seed must be invariant to solution list ordering so that
+        # the same pair produces the same match (boards/deals) regardless of
+        # where the solutions appear in a tournament bracket.
+        a_id, b_id = sorted([sol1.metadata.solution_id, sol2.metadata.solution_id])
+        seed_material = f"{a_id}|{b_id}".encode("utf-8")
         seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little")
+
+        hands_total = num_hands - (num_hands % 4)
+        if hands_total >= 4:
+            hands_orientation = hands_total // 2
+            hands_seat = hands_orientation // 2
+        else:
+            hands_total = num_hands - (num_hands % 2)
+            if hands_total < 2:
+                return (0.5, 0.5)
+            hands_seat = hands_total // 2
 
         # Position 1: sol1 as player 0
         stats1 = AutoEvaluatePokerGame.run_heads_up(
             candidate_algo=strategy1,
             benchmark_algo=strategy2,
             candidate_seat=0,
-            num_hands=num_hands // 2,
+            num_hands=hands_seat,
             small_blind=self.config.small_blind,
             big_blind=self.config.big_blind,
             starting_stack=self.config.starting_stack,
@@ -396,27 +414,60 @@ class SolutionBenchmark:
             candidate_algo=strategy1,
             benchmark_algo=strategy2,
             candidate_seat=1,
-            num_hands=num_hands // 2,
+            num_hands=hands_seat,
             small_blind=self.config.small_blind,
             big_blind=self.config.big_blind,
             starting_stack=self.config.starting_stack,
             rng_seed=seed + 1,
         )
 
-        total_hands = stats1.hands_played + stats2.hands_played
-        total_net_bb = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
+        if hands_total >= 4:
+            # Reverse roles (sol2 as candidate) using the same deals/seed so the
+            # matchup is invariant to solution ordering.
+            stats3 = AutoEvaluatePokerGame.run_heads_up(
+                candidate_algo=strategy2,
+                benchmark_algo=strategy1,
+                candidate_seat=0,
+                num_hands=hands_seat,
+                small_blind=self.config.small_blind,
+                big_blind=self.config.big_blind,
+                starting_stack=self.config.starting_stack,
+                rng_seed=seed,
+            )
+
+            stats4 = AutoEvaluatePokerGame.run_heads_up(
+                candidate_algo=strategy2,
+                benchmark_algo=strategy1,
+                candidate_seat=1,
+                num_hands=hands_seat,
+                small_blind=self.config.small_blind,
+                big_blind=self.config.big_blind,
+                starting_stack=self.config.starting_stack,
+                rng_seed=seed + 1,
+            )
+
+            total_hands = (
+                stats1.hands_played
+                + stats2.hands_played
+                + stats3.hands_played
+                + stats4.hands_played
+            )
+            net_bb_sol1_candidate = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
+            net_bb_sol2_candidate = stats3.net_bb_for_candidate + stats4.net_bb_for_candidate
+            total_net_bb_sol1 = net_bb_sol1_candidate - net_bb_sol2_candidate
+        else:
+            total_hands = stats1.hands_played + stats2.hands_played
+            total_net_bb_sol1 = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
 
         if total_hands == 0:
             return (0.5, 0.5)
 
         # Convert bb/hand to win rate approximation
-        bb_per_hand = total_net_bb / total_hands
+        bb_per_hand = total_net_bb_sol1 / total_hands
         # Rough conversion: +1 bb/hand ≈ 60% win rate
         win_rate_1 = 0.5 + bb_per_hand * 0.1
         win_rate_1 = max(0.0, min(1.0, win_rate_1))
-        win_rate_2 = 1.0 - win_rate_1
-
-        return (win_rate_1, win_rate_2)
+        return (win_rate_1, 1.0 - win_rate_1)
 
     def generate_report(
         self,
