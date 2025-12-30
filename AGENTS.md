@@ -251,6 +251,7 @@ git push
 Solutions are stored in `solutions/` directory as JSON files containing:
 - **metadata**: Author, timestamp, fish ID, generation
 - **behavior_algorithm**: The evolved behavioral strategy
+- **poker_strategy**: The evolved poker betting strategy (serialized)
 - **capture_stats**: Performance metrics when captured
 - **benchmark_result**: Evaluation against standard opponents
 
@@ -280,6 +281,9 @@ python scripts/run_ai_tournament.py
 
 # Include the best fish from your currently-running local tank (requires server running on localhost:8000)
 python scripts/run_ai_tournament.py --include-live-tank --write-back
+
+# Stronger live-tank capture: select the fish most likely to win the tournament field
+python scripts/run_ai_tournament.py --include-live-tank --live-selection tournament --live-candidate-pool 20 --live-hands-per-matchup 800 --write-back
 
 # Run tournament and write results back into solution files + regenerate solutions/benchmark_report.txt
 python scripts/run_ai_tournament.py --write-back

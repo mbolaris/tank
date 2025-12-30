@@ -9,7 +9,7 @@ This router provides endpoints for:
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Literal
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse
@@ -29,6 +29,16 @@ class CaptureRequest(BaseModel):
     description: Optional[str] = None
     author: Optional[str] = None
     evaluate: bool = False
+
+    # How to choose the fish to capture from the live tank.
+    # - heuristic_elo: existing fast heuristic (default)
+    # - tournament: evaluate a candidate pool head-to-head vs best submitted solutions
+    selection_mode: Literal["heuristic_elo", "tournament"] = "heuristic_elo"
+
+    # Tournament selection tuning (only used when selection_mode="tournament")
+    candidate_pool_size: int = 12
+    hands_per_matchup: int = 500
+    opponent_limit: int = 8
 
 
 class SubmitRequest(BaseModel):
@@ -149,14 +159,62 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
             if not fish_list:
                 raise HTTPException(status_code=400, detail="No fish in tank")
 
-            best_fish = tracker.identify_best_fish(fish_list, metric="elo", top_n=1)
-            if not best_fish:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No fish with sufficient games for capture"
-                )
+            selection_detail = {}
 
-            fish, score = best_fish[0]
+            if request.selection_mode == "tournament":
+                # Select opponents: best solution per author (by existing Elo), limited to top-N.
+                all_solutions = tracker.load_all_solutions()
+                by_author = {}
+                for sol in all_solutions:
+                    author = (sol.metadata.author or "unknown").strip() or "unknown"
+                    current = by_author.get(author)
+                    current_elo = current.benchmark_result.elo_rating if current and current.benchmark_result else 0.0
+                    sol_elo = sol.benchmark_result.elo_rating if sol.benchmark_result else 0.0
+                    if current is None or sol_elo > current_elo:
+                        by_author[author] = sol
+
+                opponents = list(by_author.values())
+                opponents.sort(
+                    key=lambda s: s.benchmark_result.elo_rating if s.benchmark_result else 0.0,
+                    reverse=True,
+                )
+                opponents = opponents[: max(1, request.opponent_limit)]
+
+                best_fish = tracker.identify_best_fish_for_tournament(
+                    fish_list,
+                    opponents,
+                    candidate_pool_size=request.candidate_pool_size,
+                    hands_per_matchup=request.hands_per_matchup,
+                    top_n=1,
+                    verbose=False,
+                )
+                if not best_fish:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="No fish with sufficient games for capture"
+                    )
+
+                fish, score = best_fish[0]
+                selection_detail = {
+                    "selection_mode": "tournament",
+                    "tournament_avg_win_rate": score,
+                    "candidate_pool_size": request.candidate_pool_size,
+                    "hands_per_matchup": request.hands_per_matchup,
+                    "opponents_used": len(opponents),
+                }
+            else:
+                best_fish = tracker.identify_best_fish(fish_list, metric="elo", top_n=1)
+                if not best_fish:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="No fish with sufficient games for capture"
+                    )
+
+                fish, score = best_fish[0]
+                selection_detail = {
+                    "selection_mode": "heuristic_elo",
+                    "estimated_elo": score,
+                }
 
             # Capture the solution
             solution = tracker.capture_solution(
@@ -183,7 +241,7 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
                 "solution_id": solution.metadata.solution_id,
                 "filepath": filepath,
                 "fish_id": fish.fish_id,
-                "estimated_elo": score,
+                **selection_detail,
                 "evaluating": request.evaluate,
             })
 

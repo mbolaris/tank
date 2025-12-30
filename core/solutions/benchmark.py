@@ -286,6 +286,16 @@ class SolutionBenchmark:
             compared_at=datetime.utcnow().isoformat(),
         )
 
+    def run_head_to_head(
+        self,
+        sol1: SolutionRecord,
+        sol2: SolutionRecord,
+        num_hands: int,
+        verbose: bool = False,
+    ) -> Tuple[float, float]:
+        """Run a deterministic head-to-head match between two solutions."""
+        return self._run_head_to_head(sol1, sol2, num_hands, verbose)
+
     def _create_strategy_from_solution(self, solution: SolutionRecord):
         """Create a poker strategy from a solution record.
 
@@ -296,20 +306,38 @@ class SolutionBenchmark:
             PokerStrategyAlgorithm,
         )
 
-        # Create a deterministic RNG based on solution ID
-        rng = random.Random(hash(solution.metadata.solution_id))
+        # Create a deterministic RNG based on solution ID (avoid Python's salted hash()).
+        seed_material = f"strategy|{solution.metadata.solution_id}".encode("utf-8")
+        seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little")
+        rng = random.Random(seed)
 
         # If the solution has poker strategy config, use it
         poker_config = solution.poker_strategy
-        if poker_config and poker_config.get("class"):
-            # Try to reconstruct the specific strategy
+        if poker_config:
+            # Newer format: full strategy dict.
             try:
-                from core.poker.strategy import implementations as impl
-                strategy_class = getattr(impl, poker_config["class"], None)
-                if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
-                    return strategy_class(rng=rng)
+                if poker_config.get("type") == "ComposablePokerStrategy":
+                    from core.poker.strategy.composable import ComposablePokerStrategy
+                    return ComposablePokerStrategy.from_dict(poker_config)
+
+                # Legacy/monolithic implementations identified by strategy_id + parameters.
+                if "strategy_id" in poker_config:
+                    strategy = PokerStrategyAlgorithm.from_dict(poker_config)
+                    if hasattr(strategy, "_rng"):
+                        strategy._rng = rng
+                    return strategy
             except Exception:
                 pass
+
+            # Oldest format: class name only.
+            if poker_config.get("class"):
+                try:
+                    from core.poker.strategy import implementations as impl
+                    strategy_class = getattr(impl, poker_config["class"], None)
+                    if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
+                        return strategy_class(rng=rng)
+                except Exception:
+                    pass
 
         # If we have behavior algorithm, try to create a strategy from its parameters
         behavior = solution.behavior_algorithm

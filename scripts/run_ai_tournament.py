@@ -45,6 +45,10 @@ class TournamentConfig:
     live_name: str
     live_author: str
     live_description: Optional[str]
+    live_selection_mode: str
+    live_candidate_pool_size: int
+    live_hands_per_matchup: int
+    live_opponent_limit: int
 
 
 def _http_json(
@@ -97,6 +101,10 @@ def _capture_best_from_live_tank(config: TournamentConfig) -> Optional[str]:
         "description": config.live_description,
         "author": config.live_author,
         "evaluate": False,
+        "selection_mode": config.live_selection_mode,
+        "candidate_pool_size": config.live_candidate_pool_size,
+        "hands_per_matchup": config.live_hands_per_matchup,
+        "opponent_limit": config.live_opponent_limit,
     }
     resp = _http_json(url, method="POST", data=req)
     solution_id = resp.get("solution_id")
@@ -368,6 +376,30 @@ def main() -> None:
         default=None,
         help="Optional description for captured live tank fish",
     )
+    parser.add_argument(
+        "--live-selection",
+        choices=["heuristic_elo", "tournament"],
+        default="heuristic_elo",
+        help="How to select the live tank fish to capture (default: heuristic_elo)",
+    )
+    parser.add_argument(
+        "--live-candidate-pool",
+        type=int,
+        default=12,
+        help="Candidate pool size for live selection_mode=tournament (default: 12)",
+    )
+    parser.add_argument(
+        "--live-hands-per-matchup",
+        type=int,
+        default=500,
+        help="Hands per matchup for live selection_mode=tournament (default: 500)",
+    )
+    parser.add_argument(
+        "--live-opponent-limit",
+        type=int,
+        default=8,
+        help="How many top opponent solutions to use for live selection_mode=tournament (default: 8)",
+    )
     args = parser.parse_args()
 
     cfg = TournamentConfig(
@@ -386,6 +418,10 @@ def main() -> None:
         live_name=args.live_name,
         live_author=args.live_author,
         live_description=args.live_description,
+        live_selection_mode=args.live_selection,
+        live_candidate_pool_size=args.live_candidate_pool,
+        live_hands_per_matchup=args.live_hands_per_matchup,
+        live_opponent_limit=args.live_opponent_limit,
     )
 
     report_text, artifact = run_tournament(cfg)
