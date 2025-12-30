@@ -4,7 +4,9 @@
 
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
-import { Renderer } from '../utils/renderer';
+import { Renderer } from '../rendering/types';
+import { rendererRegistry } from '../rendering/registry';
+import { initRenderers } from '../renderers/init';
 import { clearAllPlantCaches } from '../utils/plant';
 import { ImageLoader } from '../utils/ImageLoader';
 
@@ -16,13 +18,14 @@ interface CanvasProps {
     selectedEntityId?: number | null;
     showEffects?: boolean;
     style?: CSSProperties;
+    viewMode?: "side" | "topdown";
 }
 
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
 
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style, viewMode = "side" }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -101,11 +104,13 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             return;
         }
 
-        // Initialize renderer
-        if (import.meta.env.DEV) {
-            console.debug('[Canvas] Creating new Renderer instance');
-        }
-        const renderer = new Renderer(ctx);
+        // Initialize renderers (idempotent)
+        initRenderers();
+
+        const worldType = 'tank'; // Hardcoded for now, or derive from state/props if passed
+        const effectiveViewMode = viewMode || 'side';
+
+        const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
         rendererRef.current = renderer;
 
         // Preload images
@@ -128,139 +133,121 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             const currentSelectedEntityId = selectedEntityIdRef.current;
             const currentShowEffects = showEffectsRef.current;
 
-            if (currentState && !error && rendererRef.current) {
-                const r = rendererRef.current;
+            if (currentState && !error) {
 
-                // Calculate scale
-                const scaleX = width / WORLD_WIDTH;
-                const scaleY = height / WORLD_HEIGHT;
+                // Get fresh renderer for the current mode
+                // We do this every frame to support hot-switching
+                // Optimization: store last used mode and only getRenderer if changed
+                const worldType = 'tank';
+                const effectiveViewMode = viewMode || 'side';
+                const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
+                rendererRef.current = renderer; // Keep ref updated
 
-                // Collect active poker effect IDs for cleanup
-                const pokerActiveIds = new Set<number>();
-                currentState.entities.forEach(e => {
-                    // Check if entity has any active poker status
-                    if (e.poker_effect_state && (e.poker_effect_state.status === 'lost' || e.poker_effect_state.status === 'won')) {
-                        pokerActiveIds.add(e.id);
-                    }
+                const r = renderer;
+
+                // Standardize RenderFrame
+                renderer.render({
+                    worldType,
+                    viewMode: effectiveViewMode,
+                    snapshot: currentState
+                }, {
+                    canvas,
+                    ctx,
+                    dpr: window.devicePixelRatio || 1,
+                    nowMs: performance.now()
                 });
 
-                // Prune caches
-                r.pruneEntityFacingCache(currentState.entities.map(e => e.id), pokerActiveIds);
-                r.prunePlantCaches(
-                    currentState.entities
-                        .filter(e => e.type === 'plant')
-                        .map(e => e.id)
-                );
-
-                r.ctx.save();
-                try {
-                    r.ctx.scale(scaleX, scaleY);
-                    r.clear(WORLD_WIDTH, WORLD_HEIGHT, currentState.stats?.time);
-
-                    if (currentImagesLoaded) {
-                        currentState.entities.forEach(entity => {
-                            r.renderEntity(entity, currentState.elapsed_time || 0, currentState.entities, currentShowEffects);
-
-                            // Highlight selection
-                            if (currentSelectedEntityId === entity.id) {
-                                r.ctx.strokeStyle = '#3b82f6';
-                                r.ctx.lineWidth = 3;
-                                r.ctx.setLineDash([5, 5]);
-                                r.ctx.strokeRect(
-                                    entity.x - entity.width / 2 - 5,
-                                    entity.y - entity.height / 2 - 5,
-                                    entity.width + 10,
-                                    entity.height + 10
-                                );
-                                r.ctx.setLineDash([]);
-                            }
-                        });
-                    }
-                } catch (err) {
-                    console.error("Render loop error:", err);
-                } finally {
-                    r.ctx.restore();
-                }
+            } catch (err) {
+                console.error("Render loop error:", err);
+            } finally {
+                // ctx.restore() is handled by renderer if needed, 
+                // but we did save/restore around the whole block in legacy,
+                // new interface expects renderer to handle its own state mostly.
+                // But wait, the legacy renderer expected clean state or managed it?
+                // Legacy code: r.ctx.save(); try{...} finally {r.ctx.restore();}
+                // My TankSideRenderer wrapper does save/restore.
+                // So I don't need to do it here for the interface call.
             }
-            animationFrameId = requestAnimationFrame(renderLoop);
-        };
-
-        // Start loop
+        }
         animationFrameId = requestAnimationFrame(renderLoop);
+    };
 
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-            if (rendererRef.current) {
-                if (import.meta.env.DEV) {
-                    console.debug('[Canvas] Disposing Renderer');
-                }
-                rendererRef.current.dispose();
-                rendererRef.current = null;
+    // Start loop
+    animationFrameId = requestAnimationFrame(renderLoop);
+
+    return () => {
+        cancelAnimationFrame(animationFrameId);
+        if (rendererRef.current) {
+            if (import.meta.env.DEV) {
+                console.debug('[Canvas] Disposing Renderer');
             }
-        };
-    }, [width, height, setErrorOnce, error]); // Stable dependencies only
+            rendererRef.current.dispose();
+            rendererRef.current = null;
+        }
+    };
+}, [width, height, setErrorOnce, error]); // Stable dependencies only
 
 
-    // Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
-    // This clears plant texture caches and path caches every 30 seconds.
-    // Caches will be regenerated on demand - plants may briefly flicker but memory stays bounded.
-    useEffect(() => {
-        const CLEANUP_INTERVAL_MS = 30_000; // 30 seconds
+// Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
+// This clears plant texture caches and path caches every 30 seconds.
+// Caches will be regenerated on demand - plants may briefly flicker but memory stays bounded.
+useEffect(() => {
+    const CLEANUP_INTERVAL_MS = 30_000; // 30 seconds
 
-        const interval = setInterval(() => {
-            try {
-                // Clear all plant texture and geometry caches
-                clearAllPlantCaches();
+    const interval = setInterval(() => {
+        try {
+            // Clear all plant texture and geometry caches
+            clearAllPlantCaches();
 
-                // Clear the renderer's path cache
-                if (rendererRef.current) {
-                    rendererRef.current.clearPathCache();
-                }
-
-                if (import.meta.env.DEV) {
-                    console.debug('[Memory Cleanup] Cleared plant caches and path cache');
-                }
-            } catch {
-                // Ignore cleanup errors
+            // Clear the renderer's path cache
+            if (rendererRef.current && (rendererRef.current as any).clearPathCache) {
+                (rendererRef.current as any).clearPathCache();
             }
-        }, CLEANUP_INTERVAL_MS);
 
-        return () => clearInterval(interval);
-    }, []);
+            if (import.meta.env.DEV) {
+                console.debug('[Memory Cleanup] Cleared plant caches and path cache');
+            }
+        } catch {
+            // Ignore cleanup errors
+        }
+    }, CLEANUP_INTERVAL_MS);
 
-    if (error) {
-        return (
-            <div style={{
-                width,
-                height,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#1a0000',
-                color: '#ff5555',
-                flexDirection: 'column',
-                padding: 20,
-                border: '1px solid #ff5555',
-                borderRadius: 8,
-                boxSizing: 'border-box'
-            }}>
-                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>Canvas Error</div>
-                <div style={{ fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{error}</div>
-            </div>
-        );
-    }
+    return () => clearInterval(interval);
+}, []);
 
+if (error) {
     return (
-        <canvas
-            ref={canvasRef}
-            width={width}
-            height={height}
-            className="tank-canvas"
-            onClick={handleCanvasClick}
-            style={{
-                cursor: onEntityClick ? 'pointer' : 'default',
-                ...style,
-            }}
-        />
+        <div style={{
+            width,
+            height,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#1a0000',
+            color: '#ff5555',
+            flexDirection: 'column',
+            padding: 20,
+            border: '1px solid #ff5555',
+            borderRadius: 8,
+            boxSizing: 'border-box'
+        }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>Canvas Error</div>
+            <div style={{ fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{error}</div>
+        </div>
     );
+}
+
+return (
+    <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        className="tank-canvas"
+        onClick={handleCanvasClick}
+        style={{
+            cursor: onEntityClick ? 'pointer' : 'default',
+            ...style,
+        }}
+    />
+);
 }

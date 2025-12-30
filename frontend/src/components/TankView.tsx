@@ -14,6 +14,8 @@ import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
+import { ViewModeToggle } from './ViewModeToggle';
+import { useViewMode } from '../hooks/useViewMode';
 import { CollapsibleSection, Button } from './ui';
 
 import type { PokerGameState } from '../types/simulation';
@@ -37,6 +39,9 @@ export function TankView({ tankId }: TankViewProps) {
 
     // Error handling state
     const [pokerError, setPokerError] = useState<string | null>(null);
+
+    const { effectiveViewMode, setOverrideViewMode } = useViewMode(state?.view_mode as any);
+
 
     const handlePokerError = (message: string, error?: unknown) => {
         const errorDetail = error instanceof Error ? error.message : String(error ?? '');
@@ -204,6 +209,12 @@ export function TankView({ tankId }: TankViewProps) {
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
+
+                <ViewModeToggle
+                    worldType="tank" // Hardcoded for now as per requirements
+                    viewMode={effectiveViewMode}
+                    onChange={setOverrideViewMode}
+                />
             </div>
 
             {/* Simulation Stats Panel - Moved Above Tank */}
@@ -273,6 +284,7 @@ export function TankView({ tankId }: TankViewProps) {
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
+                        viewMode={effectiveViewMode}
                     />
                     <div className="canvas-glow" aria-hidden />
                 </div>
