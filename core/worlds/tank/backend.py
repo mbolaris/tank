@@ -57,6 +57,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._base_config = config
         self._world: Optional[TankWorld] = None
         self._current_frame = 0
+        self._last_step_result: Optional[StepResult] = None
 
     def reset(
         self, seed: Optional[int] = None, scenario: Optional[Dict[str, Any]] = None
@@ -85,7 +86,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         )
 
         # Return initial state
-        return StepResult(
+        self._last_step_result = StepResult(
             obs_by_agent={},  # No agent observations yet
             snapshot=self._build_snapshot(),
             events=[],
@@ -93,6 +94,39 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             done=False,
             info={"frame": self._current_frame, "seed": reset_seed},
         )
+        return self._last_step_result
+
+    @property
+    def frame_count(self) -> int:
+        """Current frame count for compatibility with legacy world runners."""
+        if self._world is None:
+            return 0
+        return self._world.frame_count
+
+    @property
+    def paused(self) -> bool:
+        """Whether the simulation is paused (compatibility shim)."""
+        if self._world is None:
+            return False
+        return self._world.paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set paused state on the underlying TankWorld when available."""
+        if self._world is None:
+            return
+        self._world.paused = value
+
+    @property
+    def entities_list(self) -> List[Any]:
+        """Expose entities list for snapshot builders."""
+        if self._world is None:
+            return []
+        return self._world.entities_list
+
+    def setup(self) -> None:
+        """Initialize the world using the backend reset."""
+        self.reset(seed=self._seed)
 
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
         """Advance the tank world by one time step.
@@ -116,7 +150,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Check if simulation is done (for now, never terminates automatically)
         done = False
 
-        return StepResult(
+        self._last_step_result = StepResult(
             obs_by_agent={},  # No agent observations yet
             snapshot=self._build_snapshot(),
             events=events,
@@ -124,6 +158,15 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             done=done,
             info={"frame": self._current_frame},
         )
+        return self._last_step_result
+
+    def update(self) -> None:
+        """Advance the simulation by one step (compatibility shim)."""
+        self.step()
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Return current metrics for legacy callers."""
+        return self.get_current_metrics()
 
     def get_current_snapshot(self) -> Dict[str, Any]:
         """Get current world state snapshot.
@@ -278,3 +321,141 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def world(self) -> Optional[TankWorld]:
         """Access underlying TankWorld instance (for debugging/testing)."""
         return self._world
+
+    # ========================================================================
+    # Legacy compatibility layer
+    # ========================================================================
+    # These properties and methods make TankWorldBackendAdapter a drop-in
+    # replacement for TankWorld in existing backend code.
+
+    @property
+    def entities_list(self) -> List[Any]:
+        """Get list of all entities (compatibility property).
+
+        Returns:
+            List of entities from underlying TankWorld
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() or setup() first.")
+        return self._world.entities_list
+
+    @property
+    def frame_count(self) -> int:
+        """Get current frame count (compatibility property).
+
+        Returns:
+            Current frame number
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() or setup() first.")
+        return self._world.frame_count
+
+    @property
+    def paused(self) -> bool:
+        """Get pause state (compatibility property).
+
+        Returns:
+            True if simulation is paused, False otherwise
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() or setup() first.")
+        return self._world.paused
+
+    @paused.setter
+    def paused(self, value: bool):
+        """Set pause state (compatibility property).
+
+        Args:
+            value: True to pause, False to resume
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() or setup() first.")
+        self._world.paused = value
+
+    @property
+    def engine(self):
+        """Get simulation engine (compatibility property).
+
+        Returns:
+            SimulationEngine instance
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() or setup() first.")
+        return self._world.engine
+
+    @property
+    def ecosystem(self):
+        """Get ecosystem manager (compatibility property).
+
+        Returns:
+            Ecosystem instance
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() or setup() first.")
+        return self._world.ecosystem
+
+    @property
+    def config(self) -> TankWorldConfig:
+        """Get world configuration (compatibility property).
+
+        Returns:
+            TankWorldConfig instance
+        """
+        return self._base_config
+
+    def setup(self) -> None:
+        """Setup the simulation (compatibility method).
+
+        Creates a fresh underlying TankWorld and initializes it.
+        This is equivalent to calling reset() without returning the StepResult.
+        """
+        self.reset(seed=self._seed)
+
+    def update(self) -> None:
+        """Update simulation by one frame (compatibility method).
+
+        Advances the simulation and stores the StepResult internally.
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        self._last_step_result = self.step()
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get simulation statistics (compatibility method).
+
+        Returns:
+            Dictionary with simulation stats
+
+        Raises:
+            RuntimeError: If world not initialized
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() or setup() first.")
+        return self._world.get_stats()
+
+    def get_last_step_result(self) -> Optional[StepResult]:
+        """Get the last StepResult from reset() or step().
+
+        Returns:
+            Last StepResult, or None if no step has occurred yet
+        """
+        return self._last_step_result

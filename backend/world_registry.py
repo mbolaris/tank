@@ -130,20 +130,18 @@ def _create_tank_world(
         **kwargs: Additional configuration options passed to TankWorldBackendAdapter
 
     Returns:
-        Tuple of (TankWorldBackendAdapter, TankSnapshotBuilder)
+        Tuple of (MultiAgentWorldBackend, TankSnapshotBuilder)
     """
-    from core.worlds.tank.backend import TankWorldBackendAdapter
     from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
+    from core.worlds.registry import WorldRegistry
 
-    # Create adapter with config overrides
-    adapter = TankWorldBackendAdapter(seed=seed, **kwargs)
-    
-    # Initialize the world by calling reset
-    adapter.reset(seed=seed)
+    # Use the core WorldRegistry to create the world (returns MultiAgentWorldBackend)
+    world = WorldRegistry.create_world("tank", seed=seed, headless=headless, **kwargs)
+    world.reset(seed=seed)
 
     snapshot_builder = TankSnapshotBuilder()
 
-    return adapter, snapshot_builder
+    return world, snapshot_builder
 
 
 # Register tank world on module import
