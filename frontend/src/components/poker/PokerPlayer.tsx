@@ -8,7 +8,7 @@ import { ChipStack } from './PokerChip';
 import styles from './PokerPlayer.module.css';
 import cardStyles from './PlayingCard.module.css';
 import type { FishGenomeData } from '../../types/simulation';
-import { getEyePosition, getFishPath, getPatternOpacity, type FishParams } from '../../utils/fishTemplates';
+import { getEyePosition, getFishPath, getFishFrontPath, getFishFrontEyePositions, getPatternOpacity, type FishParams } from '../../utils/fishTemplates';
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
@@ -124,8 +124,8 @@ function FishAvatar({
     const baseSize = 90;
     const padding = 15;
     const viewBoxSize = baseSize + padding * 2;
-    const fishPath = getFishPath(fishParams, baseSize);
-    const eyePos = getEyePosition(fishParams, baseSize);
+    const fishPath = getFishFrontPath(fishParams, baseSize);
+    const eyePositions = getFishFrontEyePositions(fishParams, baseSize);
     const eyeRadius = 3 * fishParams.eye_size;
     const hueDegrees = (fishParams.color_hue ?? 0) * 360;
     const baseColor = `hsl(${hueDegrees}deg 70% 60%)`;
@@ -140,8 +140,19 @@ function FishAvatar({
                 <path d={fishPath} fill={baseColor} stroke={strokeColor} strokeWidth={2} />
                 {patternOpacity > 0 &&
                     renderPattern(fishParams, patternColor, baseSize, gradientId, patternOpacity)}
-                <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius} fill="#ffffff" />
-                <circle cx={eyePos.x} cy={eyePos.y} r={eyeRadius * 0.5} fill="#0f172a" />
+                {/* Left eye */}
+                <circle cx={eyePositions.left.x} cy={eyePositions.left.y} r={eyeRadius} fill="#ffffff" />
+                <circle cx={eyePositions.left.x} cy={eyePositions.left.y} r={eyeRadius * 0.5} fill="#0f172a" />
+                {/* Right eye */}
+                <circle cx={eyePositions.right.x} cy={eyePositions.right.y} r={eyeRadius} fill="#ffffff" />
+                <circle cx={eyePositions.right.x} cy={eyePositions.right.y} r={eyeRadius * 0.5} fill="#0f172a" />
+                {/* Mouth - small curved line centered below eyes */}
+                <path
+                    d={`M ${baseSize * 0.4} ${baseSize * 0.6} Q ${baseSize * 0.5} ${baseSize * 0.65}, ${baseSize * 0.6} ${baseSize * 0.6}`}
+                    stroke={strokeColor}
+                    strokeWidth={1.5}
+                    fill="none"
+                />
             </svg>
         </div>
     );

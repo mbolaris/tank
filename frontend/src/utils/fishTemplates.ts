@@ -248,7 +248,7 @@ function template5(params: FishParams, baseSize: number): string {
 }
 
 /**
- * Get the SVG path for a fish based on its genetic parameters
+ * Get the SVG path for a fish based on its genetic parameters (side view)
  */
 export function getFishPath(params: FishParams, baseSize: number = 50): string {
     const templateFunctions = [
@@ -262,6 +262,109 @@ export function getFishPath(params: FishParams, baseSize: number = 50): string {
 
     const templateId = Math.max(0, Math.min(5, params.template_id));
     return templateFunctions[templateId](params, baseSize);
+}
+
+/**
+ * Get SVG path for front view of fish (facing the viewer)
+ * Shows the fish head-on with two eyes visible
+ * Centered in a square viewBox for proper display
+ */
+export function getFishFrontPath(params: FishParams, baseSize: number = 50): string {
+    // Use baseSize for both dimensions to ensure centering
+    const size = baseSize;
+    const finScale = params.fin_size;
+    // Apply body_aspect to make fish wider/narrower but still centered
+    const bodyWidth = size * 0.8 * Math.min(params.body_aspect, 1.2);
+    const bodyHeight = size * 0.75;
+    const centerX = size * 0.5;
+    const centerY = size * 0.5;
+
+    // Oval body shape for front view - centered in the viewBox
+    const bodyPath = `
+        M ${centerX} ${centerY - bodyHeight * 0.5}
+        Q ${centerX + bodyWidth * 0.5} ${centerY - bodyHeight * 0.45}, ${centerX + bodyWidth * 0.5} ${centerY}
+        Q ${centerX + bodyWidth * 0.5} ${centerY + bodyHeight * 0.45}, ${centerX} ${centerY + bodyHeight * 0.5}
+        Q ${centerX - bodyWidth * 0.5} ${centerY + bodyHeight * 0.45}, ${centerX - bodyWidth * 0.5} ${centerY}
+        Q ${centerX - bodyWidth * 0.5} ${centerY - bodyHeight * 0.45}, ${centerX} ${centerY - bodyHeight * 0.5}
+    `;
+
+    // Dorsal fin (top) - pointing up from center
+    const dorsalFin = `
+        M ${centerX} ${centerY - bodyHeight * 0.5}
+        L ${centerX} ${centerY - bodyHeight * 0.5 - size * 0.12 * finScale}
+        Q ${centerX + size * 0.04} ${centerY - bodyHeight * 0.5 - size * 0.08 * finScale}, ${centerX + size * 0.04} ${centerY - bodyHeight * 0.48}
+    `;
+
+    // Left pectoral fin
+    const leftFin = `
+        M ${centerX - bodyWidth * 0.48} ${centerY}
+        Q ${centerX - bodyWidth * 0.48 - size * 0.1 * finScale} ${centerY + size * 0.05}, ${centerX - bodyWidth * 0.48 - size * 0.08 * finScale} ${centerY + size * 0.12}
+        Q ${centerX - bodyWidth * 0.5} ${centerY + size * 0.08}, ${centerX - bodyWidth * 0.48} ${centerY + size * 0.04}
+    `;
+
+    // Right pectoral fin
+    const rightFin = `
+        M ${centerX + bodyWidth * 0.48} ${centerY}
+        Q ${centerX + bodyWidth * 0.48 + size * 0.1 * finScale} ${centerY + size * 0.05}, ${centerX + bodyWidth * 0.48 + size * 0.08 * finScale} ${centerY + size * 0.12}
+        Q ${centerX + bodyWidth * 0.5} ${centerY + size * 0.08}, ${centerX + bodyWidth * 0.48} ${centerY + size * 0.04}
+    `;
+
+    return `${bodyPath} ${dorsalFin} ${leftFin} ${rightFin}`;
+}
+
+/**
+ * Get eye positions for front view (two eyes visible)
+ * Centered relative to baseSize
+ */
+export function getFishFrontEyePositions(params: FishParams, baseSize: number): { left: { x: number; y: number }; right: { x: number; y: number } } {
+    const size = baseSize;
+    const centerX = size * 0.5;
+    const centerY = size * 0.5;
+    const bodyWidth = size * 0.8 * Math.min(params.body_aspect, 1.2);
+    const eyeSpread = bodyWidth * 0.35;
+
+    return {
+        left: { x: centerX - eyeSpread, y: centerY - size * 0.08 },
+        right: { x: centerX + eyeSpread, y: centerY - size * 0.08 },
+    };
+}
+
+/**
+ * Get SVG path for rear view of fish (swimming away from viewer)
+ * Shows the fish tail from behind
+ */
+export function getFishRearPath(params: FishParams, baseSize: number = 50): string {
+    const width = baseSize * params.body_aspect;
+    const height = baseSize;
+    const tailScale = params.tail_size;
+    const finScale = params.fin_size;
+
+    // Smaller body shape for rear view (seeing the back of the fish)
+    const bodyPath = `
+        M ${width * 0.5} ${height * 0.2}
+        Q ${width * 0.75} ${height * 0.22}, ${width * 0.8} ${height * 0.5}
+        Q ${width * 0.75} ${height * 0.78}, ${width * 0.5} ${height * 0.8}
+        Q ${width * 0.25} ${height * 0.78}, ${width * 0.2} ${height * 0.5}
+        Q ${width * 0.25} ${height * 0.22}, ${width * 0.5} ${height * 0.2}
+    `;
+
+    // Tail fin (prominent since we're looking at the back)
+    const tailFin = `
+        M ${width * 0.35} ${height * 0.5}
+        Q ${width * (0.35 - 0.25 * tailScale)} ${height * 0.25}, ${width * (0.35 - 0.3 * tailScale)} ${height * 0.15}
+        L ${width * (0.35 - 0.2 * tailScale)} ${height * 0.5}
+        L ${width * (0.35 - 0.3 * tailScale)} ${height * 0.85}
+        Q ${width * (0.35 - 0.25 * tailScale)} ${height * 0.75}, ${width * 0.35} ${height * 0.5}
+    `;
+
+    // Dorsal fin (top) - visible from behind
+    const dorsalFin = `
+        M ${width * 0.5} ${height * 0.2}
+        L ${width * 0.52} ${height * (0.2 - 0.15 * finScale)}
+        Q ${width * 0.55} ${height * (0.2 - 0.1 * finScale)}, ${width * 0.55} ${height * 0.22}
+    `;
+
+    return `${bodyPath} ${tailFin} ${dorsalFin}`;
 }
 
 const PATTERN_INTENSITY_THRESHOLD = 0.05;
@@ -364,7 +467,7 @@ export function getFishPattern(
 }
 
 /**
- * Get eye position based on template
+ * Get eye position based on template (for side view)
  */
 export function getEyePosition(params: FishParams, baseSize: number): { x: number; y: number } {
     const width = baseSize * params.body_aspect;

@@ -14,7 +14,7 @@ from core.poker.simulation.hand_engine import (
     MultiplayerGameState,
     MultiplayerPlayerContext,
     apply_action,
-    decide_action,
+    decide_action_for_player,
     determine_payouts,
     start_hand_from_players,
 )
@@ -727,7 +727,7 @@ class HumanPokerGame:
         state_player = self._hand_state.players[self.current_player_index]
         before_bet = state_player.current_bet
 
-        action, bet_amount = decide_action(
+        action, bet_amount = decide_action_for_player(
             game_state=self._hand_state,
             player_id=self.current_player_index,
             hand_cache=self._hand_cache,
