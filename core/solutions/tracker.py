@@ -461,7 +461,7 @@ class SolutionTracker:
         Returns:
             The best solution, or None if none captured
         """
-        if metric == "elo":
+        if metric == "elo":  # noqa: SIM116
             return self._best_by_elo
         elif metric == "win_rate":
             return self._best_by_winrate

@@ -27,9 +27,9 @@ from core.math_utils import Vector2
 # Import LifeStage from state_machine for centralized definition with transition validation
 from core.state_machine import (
     EntityState,
-    LifeStage,
+    LifeStage,  # noqa: F401 - re-exported via core.entities.__init__
     create_entity_state_machine,
-)  # noqa: F401 - re-exported
+)
 from core.world import World
 
 

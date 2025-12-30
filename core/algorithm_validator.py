@@ -224,7 +224,9 @@ class AlgorithmValidator:
         backup_file = None
         try:
             # Backup original file
-            backup_file = tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False)
+            backup_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
+                mode="w", suffix=".py", delete=False
+            )
             with open(source_file) as f:
                 original_code = f.read()
             backup_file.write(original_code)
