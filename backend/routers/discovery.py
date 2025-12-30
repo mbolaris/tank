@@ -29,6 +29,9 @@ def _validate_server_host(server_info: ServerInfo) -> None:
     allow_private = os.getenv("ALLOW_PRIVATE_SERVER_REGISTRATION", "false").lower() == "true"
     host = server_info.host.strip().lower()
 
+    if server_info.is_local:
+        return
+
     if host in {"localhost", "localhost.localdomain"} and not allow_private:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
