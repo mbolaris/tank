@@ -4,7 +4,9 @@
 
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
-import { Renderer } from '../utils/renderer';
+import type { Renderer } from '../rendering/types';
+import { rendererRegistry } from '../rendering/registry';
+import { initRenderers } from '../renderers/init';
 import { clearAllPlantCaches } from '../utils/plant';
 import { ImageLoader } from '../utils/ImageLoader';
 
@@ -16,13 +18,14 @@ interface CanvasProps {
     selectedEntityId?: number | null;
     showEffects?: boolean;
     style?: CSSProperties;
+    viewMode?: "side" | "topdown";
 }
 
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
 
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style, viewMode = "side" }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -83,13 +86,15 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const imagesLoadedRef = useRef(imagesLoaded);
     const selectedEntityIdRef = useRef(selectedEntityId);
     const showEffectsRef = useRef(showEffects);
+    const viewModeRef = useRef(viewMode);
 
     useEffect(() => {
         stateRef.current = state;
         imagesLoadedRef.current = imagesLoaded;
         selectedEntityIdRef.current = selectedEntityId;
         showEffectsRef.current = showEffects;
-    }, [state, imagesLoaded, selectedEntityId, showEffects]);
+        viewModeRef.current = viewMode;
+    }, [state, imagesLoaded, selectedEntityId, showEffects, viewMode]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -101,11 +106,14 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             return;
         }
 
-        // Initialize renderer
-        if (import.meta.env.DEV) {
-            console.debug('[Canvas] Creating new Renderer instance');
-        }
-        const renderer = new Renderer(ctx);
+        // Initialize renderers (idempotent)
+        initRenderers();
+
+        // Initial renderer setup - will be updated in render loop based on state
+        const initialWorldType = 'tank'; // Default until state arrives
+        const effectiveViewMode = viewMode || 'side';
+
+        const renderer = rendererRegistry.getRenderer(initialWorldType, effectiveViewMode);
         rendererRef.current = renderer;
 
         // Preload images
@@ -124,62 +132,32 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
         const renderLoop = () => {
             const currentState = stateRef.current;
-            const currentImagesLoaded = imagesLoadedRef.current;
-            const currentSelectedEntityId = selectedEntityIdRef.current;
-            const currentShowEffects = showEffectsRef.current;
 
-            if (currentState && !error && rendererRef.current) {
-                const r = rendererRef.current;
-
-                // Calculate scale
-                const scaleX = width / WORLD_WIDTH;
-                const scaleY = height / WORLD_HEIGHT;
-
-                // Collect active poker effect IDs for cleanup
-                const pokerActiveIds = new Set<number>();
-                currentState.entities.forEach(e => {
-                    // Check if entity has any active poker status
-                    if (e.poker_effect_state && (e.poker_effect_state.status === 'lost' || e.poker_effect_state.status === 'won')) {
-                        pokerActiveIds.add(e.id);
-                    }
-                });
-
-                // Prune caches
-                r.pruneEntityFacingCache(currentState.entities.map(e => e.id), pokerActiveIds);
-                r.prunePlantCaches(
-                    currentState.entities
-                        .filter(e => e.type === 'plant')
-                        .map(e => e.id)
-                );
-
-                r.ctx.save();
+            if (currentState && !error) {
                 try {
-                    r.ctx.scale(scaleX, scaleY);
-                    r.clear(WORLD_WIDTH, WORLD_HEIGHT, currentState.stats?.time);
+                    // Get fresh renderer for the current mode (use ref to avoid stale closure)
+                    // Derive worldType from state, defaulting to 'tank' for backwards compatibility
+                    const worldType = (currentState as any)?.world_type ?? 'tank';
+                    const effectiveViewMode = viewModeRef.current || 'side';
+                    const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
+                    rendererRef.current = renderer;
 
-                    if (currentImagesLoaded) {
-                        currentState.entities.forEach(entity => {
-                            r.renderEntity(entity, currentState.elapsed_time || 0, currentState.entities, currentShowEffects);
-
-                            // Highlight selection
-                            if (currentSelectedEntityId === entity.id) {
-                                r.ctx.strokeStyle = '#3b82f6';
-                                r.ctx.lineWidth = 3;
-                                r.ctx.setLineDash([5, 5]);
-                                r.ctx.strokeRect(
-                                    entity.x - entity.width / 2 - 5,
-                                    entity.y - entity.height / 2 - 5,
-                                    entity.width + 10,
-                                    entity.height + 10
-                                );
-                                r.ctx.setLineDash([]);
-                            }
-                        });
-                    }
+                    renderer.render({
+                        worldType,
+                        viewMode: effectiveViewMode,
+                        snapshot: currentState,
+                        options: {
+                            showEffects: showEffectsRef.current,
+                            selectedEntityId: selectedEntityIdRef.current,
+                        },
+                    }, {
+                        canvas,
+                        ctx,
+                        dpr: window.devicePixelRatio || 1,
+                        nowMs: performance.now()
+                    });
                 } catch (err) {
                     console.error("Render loop error:", err);
-                } finally {
-                    r.ctx.restore();
                 }
             }
             animationFrameId = requestAnimationFrame(renderLoop);
@@ -213,8 +191,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                 clearAllPlantCaches();
 
                 // Clear the renderer's path cache
-                if (rendererRef.current) {
-                    rendererRef.current.clearPathCache();
+                if (rendererRef.current && (rendererRef.current as any).clearPathCache) {
+                    (rendererRef.current as any).clearPathCache();
                 }
 
                 if (import.meta.env.DEV) {

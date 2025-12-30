@@ -346,18 +346,19 @@ class SimulationRunner(CommandHandlerMixin):
                         if migrations_in > 0 or migrations_out > 0:
                             migration_str = f", Migrations=+{migrations_in}/-{migrations_out}"
                         
-                        # Get poker score (confidence vs strong and expert opponents), formatted as percentage
+                        # Get poker skill snapshot; show Elo + vs-expert bb/100 to avoid saturated 99% confidence
                         poker_str = ""
                         if self.evolution_benchmark_tracker is not None:
                             latest = self.evolution_benchmark_tracker.get_latest_snapshot()
                             if latest is not None:
-                                # Prioritize expert confidence if available (new system), otherwise fallback to strong
-                                score = latest.confidence_vs_strong
-                                if hasattr(latest, "confidence_vs_expert") and latest.confidence_vs_expert > 0:
-                                    score = latest.confidence_vs_expert
-                                    poker_str = f", Poker(Exp)={score:.0%}"
-                                else:
-                                    poker_str = f", Poker(Str)={score:.0%}"
+                                mean_elo = getattr(latest, "pop_mean_elo", None)
+                                best_elo = getattr(latest, "best_elo", None)
+                                vs_expert_bb = getattr(latest, "pop_bb_vs_expert", None)
+
+                                if mean_elo is not None and best_elo is not None:
+                                    poker_str = f", Poker(Elo)={mean_elo:.0f}/{best_elo:.0f}"
+                                if vs_expert_bb is not None:
+                                    poker_str += f", vsExp={vs_expert_bb:.1f}bb/100"
                         
                         logger.info(
                             f"{tank_label} Simulation Status "

@@ -14,6 +14,10 @@ import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
+import { ViewModeToggle } from './ViewModeToggle';
+import { useViewMode } from '../hooks/useViewMode';
+import { rendererRegistry } from '../rendering/registry';
+import { initRenderers } from '../renderers/init';
 import { CollapsibleSection, Button } from './ui';
 
 import type { PokerGameState } from '../types/simulation';
@@ -37,6 +41,18 @@ export function TankView({ tankId }: TankViewProps) {
 
     // Error handling state
     const [pokerError, setPokerError] = useState<string | null>(null);
+
+    const { effectiveViewMode, setOverrideViewMode } = useViewMode(state?.view_mode as any);
+
+    // Derive worldType from state (default to 'tank' for backwards compatibility)
+    const worldType = state?.world_type ?? 'tank';
+
+    // Ensure renderers are initialized so hasRenderer works
+    initRenderers();
+
+    // Only show view mode toggle if top-down renderer exists for this world
+    const hasTopDownRenderer = rendererRegistry.hasRenderer(worldType, 'topdown');
+
 
     const handlePokerError = (message: string, error?: unknown) => {
         const errorDetail = error instanceof Error ? error.message : String(error ?? '');
@@ -204,6 +220,14 @@ export function TankView({ tankId }: TankViewProps) {
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
+
+                {hasTopDownRenderer && (
+                    <ViewModeToggle
+                        worldType={worldType}
+                        viewMode={effectiveViewMode}
+                        onChange={setOverrideViewMode}
+                    />
+                )}
             </div>
 
             {/* Simulation Stats Panel - Moved Above Tank */}
@@ -273,6 +297,7 @@ export function TankView({ tankId }: TankViewProps) {
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
+                        viewMode={effectiveViewMode}
                     />
                     <div className="canvas-glow" aria-hidden />
                 </div>

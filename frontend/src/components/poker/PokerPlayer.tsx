@@ -8,7 +8,7 @@ import { ChipStack } from './PokerChip';
 import styles from './PokerPlayer.module.css';
 import cardStyles from './PlayingCard.module.css';
 import type { FishGenomeData } from '../../types/simulation';
-import { getEyePosition, getFishPath, getFishFrontPath, getFishFrontEyePositions, getPatternOpacity, type FishParams } from '../../utils/fishTemplates';
+import { getFishPath, getFishFrontPath, getFishFrontEyePositions, getPatternOpacity, type FishParams } from '../../utils/fishTemplates';
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 

@@ -32,11 +32,11 @@ jobs:
 
     - name: Check code formatting with black
       run: |
-        black --check core/ tests/ *.py --exclude="frontend|backend|node_modules|.venv|venv"
+        black --check core/ tests/ tools/ --exclude="frontend|backend|node_modules|.venv|venv"
 
     - name: Lint with ruff
       run: |
-        ruff check core/ tests/ *.py --exclude frontend --exclude backend
+        ruff check core/ tests/ tools/ --exclude frontend --exclude backend
 
     - name: Type check with mypy
       run: |
@@ -80,8 +80,8 @@ jobs:
 
     - name: Check formatting
       run: |
-        black --check . --exclude="frontend|backend|node_modules|.venv|venv"
+        black --check core/ tests/ tools/ --exclude="frontend|backend|node_modules|.venv|venv"
 
     - name: Lint
       run: |
-        ruff check . --exclude frontend --exclude backend
+        ruff check core/ tests/ tools/ --exclude frontend --exclude backend
