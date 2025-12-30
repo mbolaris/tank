@@ -298,7 +298,12 @@ class MixedPokerInteraction:
         # Create game state
         small_blind = bet_amount / 2
         big_blind = bet_amount
-        button_position = 0  # First player has the button
+
+        # Randomize button position for fairness
+        # This ensures all players get equal positional advantage over many games
+        from core.util.rng import require_rng_param
+        rng = require_rng_param(self.rng, "play_poker")
+        button_position = rng.randint(0, self.num_players - 1)
 
         game_state = MultiplayerGameState(
             num_players=self.num_players,
