@@ -565,6 +565,8 @@ class FullStatePayload:
     auto_evaluation: Optional[AutoEvaluateStatsPayload] = None
     type: str = "update"
     tank_id: Optional[str] = None  # Tank World Net identifier
+    world_type: Optional[str] = "tank"
+    view_mode: Optional[str] = "side"
 
     def to_dict(self) -> Dict[str, Any]:
         data = {
@@ -578,6 +580,10 @@ class FullStatePayload:
         }
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
+        if self.world_type is not None:
+            data["world_type"] = self.world_type
+        if self.view_mode is not None:
+            data["view_mode"] = self.view_mode
         if self.auto_evaluation:
             data["auto_evaluation"] = self.auto_evaluation.to_dict()
         return data
@@ -602,6 +608,8 @@ class DeltaStatePayload:
     stats: Optional[StatsPayload] = None
     type: str = "delta"
     tank_id: Optional[str] = None  # Tank World Net identifier
+    world_type: Optional[str] = "tank"
+    view_mode: Optional[str] = "side"
 
     def to_dict(self) -> Dict[str, Any]:
         data = {
@@ -616,6 +624,10 @@ class DeltaStatePayload:
              data["poker_events"] = [e.to_dict() for e in self.poker_events]
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
+        if self.world_type is not None:
+            data["world_type"] = self.world_type
+        if self.view_mode is not None:
+            data["view_mode"] = self.view_mode
         if self.stats:
             data["stats"] = self.stats.to_dict()
         return data

@@ -207,6 +207,8 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
     return {
         ...state,
         tank_id: delta.tank_id ?? state.tank_id,
+        world_type: delta.world_type ?? state.world_type,
+        view_mode: delta.view_mode ?? state.view_mode,
         frame: delta.frame,
         elapsed_time: delta.elapsed_time,
         entities,
