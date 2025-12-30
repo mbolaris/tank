@@ -15,10 +15,10 @@ from core.config.ecosystem import (
 from core.ecosystem_stats import (
     EcosystemEvent,
     GeneticDiversityStats,
-    PokerStats,
-    PokerOutcomeRecord,
-    PlantPokerOutcomeRecord,
     MixedPokerOutcomeRecord,
+    PlantPokerOutcomeRecord,
+    PokerOutcomeRecord,
+    PokerStats,
 )
 from core.lineage_tracker import LineageTracker
 from core.poker_stats_manager import PokerStatsManager

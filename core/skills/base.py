@@ -199,7 +199,6 @@ class SkillStrategy(ABC, Generic[ActionType]):
             mutation_rate: Probability and magnitude of mutations
             rng: Optional random number generator for deterministic mutations
         """
-        import random
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")

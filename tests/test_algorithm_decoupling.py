@@ -1,12 +1,10 @@
-import pytest
+from typing import Any, List, Tuple, Type
 from unittest.mock import MagicMock
-from typing import List, Type, Tuple, Any
 
-from core.math_utils import Vector2
-from core.world import World
-from core.entities import Fish, Food, Agent
-from core.algorithms.food_seeking import GreedyFoodSeeker
 from core.algorithms.base import BehaviorAlgorithm
+from core.algorithms.food_seeking import GreedyFoodSeeker
+from core.entities import Agent, Fish, Food
+from core.math_utils import Vector2
 
 
 class MockWorld:
@@ -111,8 +109,8 @@ def test_find_nearest_helper_works_with_mock_world():
         def execute(self, f):
             return 0, 0
 
-        def random_instance(cls):
-            return cls()
+        def random_instance(self):
+            return self()
 
     algo = TestAlgo("test_id")
 

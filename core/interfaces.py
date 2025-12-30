@@ -84,16 +84,16 @@ __all__ = [
 if TYPE_CHECKING:
     import random as pyrandom
 
+    from core.ecosystem_stats import (
+        MixedPokerOutcomeRecord,
+        PlantPokerOutcomeRecord,
+        PokerOutcomeRecord,
+    )
     from core.entities import Agent
     from core.genetics import Genome
     from core.poker.core import PokerHand
     from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
     from core.telemetry.events import TelemetryEvent
-    from core.ecosystem_stats import (
-        PokerOutcomeRecord,
-        PlantPokerOutcomeRecord,
-        MixedPokerOutcomeRecord,
-    )
 
 
 @runtime_checkable

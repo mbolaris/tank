@@ -39,16 +39,14 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 
-from core import entities, environment, movement_strategy
+from core import entities, environment
 from core.agents_wrapper import AgentsWrapper
 from core.collision_system import CollisionSystem
 from core.config.simulation_config import SimulationConfig
 from core.ecosystem import EcosystemManager
 from core.entities.plant import Plant, PlantNectar
-from core.simulation import diagnostics
-
 from core.entity_factory import create_initial_population
-from core.genetics import Genome, PlantGenome
+from core.genetics import PlantGenome
 from core.plant_manager import PlantManager
 from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
 from core.poker_interaction import PokerInteraction
@@ -57,11 +55,10 @@ from core.reproduction_service import ReproductionService
 from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
 from core.services.stats_calculator import StatsCalculator
+from core.simulation import diagnostics
 from core.simulation.entity_manager import EntityManager
-from core.simulation.system_registry import SystemRegistry
 from core.simulation.entity_mutation_queue import EntityMutationQueue
-
-
+from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
 from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig

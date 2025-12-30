@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -30,7 +30,7 @@ class ReproductionFrameStats:
 class ReproductionService:
     """Single owner of reproduction rules (asexual, emergency, post-poker)."""
 
-    def __init__(self, engine: "SimulationEngine") -> None:
+    def __init__(self, engine: SimulationEngine) -> None:
         self._engine = engine
 
         self._asexual_checks: int = 0
@@ -67,7 +67,7 @@ class ReproductionService:
             emergency_spawns=emergency,
         )
 
-    def handle_post_poker_reproduction(self, poker: "PokerInteraction") -> Optional["Fish"]:
+    def handle_post_poker_reproduction(self, poker: PokerInteraction) -> Fish | None:
         """Handle reproduction after a fish-fish poker game."""
         from core.config.fish import POST_POKER_MATING_DISTANCE
         from core.poker_interaction import (
@@ -140,7 +140,7 @@ class ReproductionService:
         self._poker_reproductions += 1
         return baby
 
-    def handle_plant_poker_asexual_reproduction(self, winner_fish: "Fish") -> Optional["Fish"]:
+    def handle_plant_poker_asexual_reproduction(self, winner_fish: Fish) -> Fish | None:
         """Handle asexual reproduction when fish beats only plants."""
         from core.mixed_poker import should_trigger_plant_poker_asexual_reproduction
 
@@ -170,7 +170,7 @@ class ReproductionService:
             "plant_asexual_reproductions": self._plant_asexual_reproductions,
         }
 
-    def _get_fish_list(self) -> List["Fish"]:
+    def _get_fish_list(self) -> list[Fish]:
         if hasattr(self._engine, "get_fish_list"):
             return self._engine.get_fish_list()
 
@@ -178,11 +178,11 @@ class ReproductionService:
 
         return [e for e in self._engine.get_all_entities() if isinstance(e, Fish)]
 
-    def _update_cooldowns(self, fish_list: List["Fish"]) -> None:
+    def _update_cooldowns(self, fish_list: list[Fish]) -> None:
         for fish in fish_list:
             fish._reproduction_component.update_cooldown()
 
-    def _handle_banked_asexual_reproduction(self, fish_list: List["Fish"], fish_count: int) -> int:
+    def _handle_banked_asexual_reproduction(self, fish_list: list[Fish], fish_count: int) -> int:
         spawned = 0
         ecosystem = self._engine.ecosystem
 
@@ -207,7 +207,7 @@ class ReproductionService:
 
         return spawned
 
-    def _handle_trait_asexual_reproduction(self, fish_list: List["Fish"], fish_count: int) -> int:
+    def _handle_trait_asexual_reproduction(self, fish_list: list[Fish], fish_count: int) -> int:
         spawned = 0
         ecosystem = self._engine.ecosystem
 
@@ -332,7 +332,7 @@ class ReproductionService:
         return bool(self._engine.request_spawn(new_fish, reason="emergency_spawn"))
 
     @staticmethod
-    def maybe_create_banked_offspring(fish: "Fish") -> Optional["Fish"]:
+    def maybe_create_banked_offspring(fish: Fish) -> Fish | None:
         """Attempt a bank-funded asexual reproduction for a single fish."""
         from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE
         from core.entities.base import LifeStage
@@ -349,8 +349,7 @@ class ReproductionService:
 
         return None
 
-    def _create_post_poker_offspring(self, winner: "Fish", mate: "Fish") -> Optional["Fish"]:
-        from core.entities import Fish
+    def _create_post_poker_offspring(self, winner: Fish, mate: Fish) -> Fish | None:
         from core.config.fish import (
             ENERGY_MAX_DEFAULT,
             FISH_BABY_SIZE,
@@ -361,6 +360,7 @@ class ReproductionService:
             POST_POKER_PARENT_ENERGY_CONTRIBUTION,
             REPRODUCTION_COOLDOWN,
         )
+        from core.entities import Fish
         from core.genetics import Genome, ReproductionParams
 
         if winner.environment is None:

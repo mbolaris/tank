@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from backend.simulation_runner import SimulationRunner
 
 
@@ -11,7 +13,6 @@ class TestSimulationRunnerCommands:
         with patch("backend.simulation_runner.create_world") as mock_create_world, patch(
             "backend.simulation_runner.get_world_metadata"
         ) as mock_get_metadata:
-            import random
 
             # Configure mock world
             mock_world = MagicMock()

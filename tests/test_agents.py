@@ -227,8 +227,9 @@ class TestPlant:
 
     def test_plant_initialization(self, simulation_env):
         """Test that plant initializes correctly."""
-        from core.genetics import PlantGenome
         from unittest.mock import MagicMock
+
+        from core.genetics import PlantGenome
 
         env, _ = simulation_env
         # Create a mock root spot
@@ -244,8 +245,9 @@ class TestPlant:
 
     def test_plant_does_not_move(self, simulation_env):
         """Test that plant stays in place."""
-        from core.genetics import PlantGenome
         from unittest.mock import MagicMock
+
+        from core.genetics import PlantGenome
 
         env, _ = simulation_env
         # Create a mock root spot

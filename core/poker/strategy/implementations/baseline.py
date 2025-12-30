@@ -1,8 +1,8 @@
 """Baseline poker strategies (AlwaysFold, Random)."""
 
 import random
-from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm

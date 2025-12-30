@@ -16,19 +16,19 @@ Performance optimizations:
 """
 
 import math
+
 import pytest
 
-from core.entities.plant import Plant
-from core.entities import Fish
-from core.simulation.engine import SimulationEngine
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE
 from core.config.plants import (
     PLANT_POKER_MAX_DISTANCE,
     PLANT_POKER_MIN_DISTANCE,
 )
 from core.config.poker import POKER_MAX_PLAYERS
+from core.entities import Fish
+from core.entities.plant import Plant
 from core.mixed_poker import MixedPokerInteraction, check_poker_proximity
-
+from core.simulation.engine import SimulationEngine
 
 # ============================================================================
 # Fixtures for shared setup
@@ -132,7 +132,7 @@ class TestPlantPokerDetection:
         # Check spatial grid contains Plant type
         grid = engine.environment.spatial_grid
         types_in_grid = {
-            type_key.__name__ for buckets in grid.grid.values() for type_key in buckets.keys()
+            type_key.__name__ for buckets in grid.grid.values() for type_key in buckets
         }
 
         assert "Plant" in types_in_grid, "Plant should be in spatial grid"
@@ -248,7 +248,7 @@ class TestPokerPlayerLimits:
 
     def test_fish_poker_max_players_enforced(self, engine_with_entities):
         """Verify PokerInteraction enforces MAX_PLAYERS limit."""
-        from core.poker_interaction import PokerInteraction, MAX_PLAYERS
+        from core.poker_interaction import MAX_PLAYERS, PokerInteraction
 
         fish = engine_with_entities["fish"]
 
@@ -272,7 +272,7 @@ class TestPokerPlayerLimits:
 
     def test_deck_has_enough_cards_for_max_players(self):
         """Verify a 52-card deck can handle MAX_PLAYERS."""
-        from core.poker_interaction import PokerInteraction, MAX_PLAYERS
+        from core.poker_interaction import MAX_PLAYERS
 
         # With 52 cards:
         # - Each player needs 2 hole cards
@@ -283,7 +283,7 @@ class TestPokerPlayerLimits:
         max_theoretical = (52 - cards_for_community) // cards_per_player
 
         assert (
-            MAX_PLAYERS <= max_theoretical
+            max_theoretical >= MAX_PLAYERS
         ), f"MAX_PLAYERS ({MAX_PLAYERS}) exceeds deck capacity ({max_theoretical})"
 
 
@@ -637,21 +637,21 @@ def run_manual_test():
     fish_list = [e for e in all_entities if isinstance(e, Fish)]
     plant_list = [e for e in all_entities if isinstance(e, Plant)]
 
-    print(f"\nInitial state:")
+    print("\nInitial state:")
     print(f"  Fish: {len(fish_list)}")
     print(f"  Plants: {len(plant_list)}")
 
-    print(f"\nPlant positions:")
+    print("\nPlant positions:")
     for i, p in enumerate(plant_list):
         print(f"  Plant {i}: ({p.pos.x:.1f}, {p.pos.y:.1f}), energy={p.energy:.1f}")
 
-    print(f"\nProximity settings:")
+    print("\nProximity settings:")
     print(f"  FISH_POKER_MAX_DISTANCE: {FISH_POKER_MAX_DISTANCE}")
     print(f"  PLANT_POKER_MAX_DISTANCE: {PLANT_POKER_MAX_DISTANCE}")
 
     # Calculate plant distances using helper
     if len(plant_list) >= 2:
-        print(f"\nPlant-plant distances:")
+        print("\nPlant-plant distances:")
         for i, p1 in enumerate(plant_list):
             for j, p2 in enumerate(plant_list[i + 1 :], i + 1):
                 dist = distance(p1, p2)
@@ -660,7 +660,7 @@ def run_manual_test():
                     f"  Plant {i} <-> Plant {j}: {dist:.1f}px {'(in range)' if in_range else '(out of range)'}"
                 )
 
-    print(f"\nRunning simulation for 600 frames...")
+    print("\nRunning simulation for 600 frames...")
     for frame in range(600):
         engine.update()
 
@@ -669,7 +669,7 @@ def run_manual_test():
             games_played = sum(p.poker_wins + p.poker_losses for p in plants)
             print(f"  Frame {frame + 1}: {games_played} total plant poker games")
 
-    print(f"\nFinal plant poker stats:")
+    print("\nFinal plant poker stats:")
     final_plants = [e for e in engine.get_all_entities() if isinstance(e, Plant)]
     for p in final_plants:
         print(

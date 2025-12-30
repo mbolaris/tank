@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Test script to verify visual genetics inheritance"""
 
+import random
+
 from core.config.fish import (
+    BODY_ASPECT_MAX,
+    BODY_ASPECT_MIN,
+    EYE_SIZE_MAX,
+    EYE_SIZE_MIN,
     FISH_PATTERN_COUNT,
     FISH_TEMPLATE_COUNT,
 )
-from core.config.fish import (
-    EYE_SIZE_MIN,
-    EYE_SIZE_MAX,
-    BODY_ASPECT_MIN,
-    BODY_ASPECT_MAX,
-)
-import random
 from core.genetics import Genome
 
 

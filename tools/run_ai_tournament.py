@@ -13,9 +13,9 @@ from datetime import datetime
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.tank_world import TankWorld, TankWorldConfig
-from core.solutions import SolutionTracker, SolutionBenchmark, SolutionRecord
+from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
+from core.tank_world import TankWorld, TankWorldConfig
 
 logging.basicConfig(
     level=logging.INFO,
@@ -131,7 +131,7 @@ def run_tournament():
         solution = capture_solution_from_world(world, model["name"], model["author"])
 
         # Save the solution
-        filepath = tracker.save_solution(solution)
+        tracker.save_solution(solution)
         all_solutions.append(solution)
         print(f"  Captured: {solution.metadata.name} (ID: {solution.metadata.solution_id[:8]})")
 
@@ -184,7 +184,7 @@ def run_tournament():
 
     print("\n" + "=" * 70)
     print(f"Tournament completed at {datetime.now().isoformat()}")
-    print(f"Report saved to: solutions/tournament_report.txt")
+    print("Report saved to: solutions/tournament_report.txt")
     print("=" * 70)
 
     return sorted_solutions

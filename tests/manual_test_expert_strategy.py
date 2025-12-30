@@ -1,6 +1,7 @@
 """Verification tests for GTOExpertStrategy."""
 
 import random
+
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.expert import GTOExpertStrategy
 

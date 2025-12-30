@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """Capture Antigravity v3 poker solution from an aggressive extended simulation."""
 
-import json
 import logging
 import os
 import sys
-from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.tank_world import TankWorld, TankWorldConfig
-from core.solutions import SolutionTracker, SolutionBenchmark, SolutionRecord
-from core.solutions.models import SolutionMetadata, BenchmarkResult
+from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
+from core.tank_world import TankWorld, TankWorldConfig
 
 # from core.solutions.tracker import BENCHMARK_OPPONENTS
 
@@ -108,7 +105,7 @@ def capture_best_solution(
             solution = tracker.capture_solution(
                 best_fish,
                 name=name,
-                description=f"Antigravity v3 solution evolved from aggressive 150k frame simulation",
+                description="Antigravity v3 solution evolved from aggressive 150k frame simulation",
                 author=author,
             )
             return solution
@@ -147,7 +144,7 @@ def evaluate_solution(solution: SolutionRecord):
 
     solution.benchmark_result = result
 
-    logger.info(f"Evaluation complete:")
+    logger.info("Evaluation complete:")
     logger.info(f"  Elo Rating: {result.elo_rating:.0f}")
     logger.info(f"  Skill Tier: {result.skill_tier}")
     logger.info(f"  bb/100: {result.weighted_bb_per_100:+.2f}")

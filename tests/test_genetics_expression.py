@@ -6,9 +6,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from core.genetics.genome import Genome
-from core.genetics.physical import PhysicalTraits
 from core.genetics import expression
+from core.genetics.genome import Genome
 
 
 class TestGenomeExpressionRefactor(unittest.TestCase):

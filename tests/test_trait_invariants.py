@@ -10,22 +10,23 @@ Key invariants tested:
 - Meta-mutation keeps parameters within valid ranges
 """
 
-import pytest
 import random
 
+import pytest
+
 from core.genetics import (
-    PhysicalTraits,
     BehavioralTraits,
-    Genome,
     GeneticTrait,
+    Genome,
+    PhysicalTraits,
 )
-from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.genetics.trait import (
-    META_MUTATION_RATE_MIN,
     META_MUTATION_RATE_MAX,
-    META_MUTATION_STRENGTH_MIN,
+    META_MUTATION_RATE_MIN,
     META_MUTATION_STRENGTH_MAX,
+    META_MUTATION_STRENGTH_MIN,
 )
 
 

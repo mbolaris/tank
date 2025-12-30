@@ -21,7 +21,6 @@ from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_tra
 
 if TYPE_CHECKING:
     from core.algorithms.base import BehaviorAlgorithm
-    from core.genetics import Genome
 
 
 def inherit_trait(

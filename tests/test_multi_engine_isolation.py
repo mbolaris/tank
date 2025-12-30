@@ -3,7 +3,6 @@ from typing import Tuple
 
 from core.simulation.engine import SimulationEngine
 
-
 NON_DETERMINISTIC_FIELDS = {
     "elapsed_real_time",
     "simulation_speed",

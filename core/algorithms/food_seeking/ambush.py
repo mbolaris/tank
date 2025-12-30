@@ -2,10 +2,10 @@
 
 import random
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.predictive_movement import predict_intercept_point, predict_falling_intercept
+from core.predictive_movement import predict_falling_intercept, predict_intercept_point
 
 
 @dataclass

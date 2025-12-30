@@ -15,17 +15,15 @@ Design Decisions:
 """
 
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List
 
 from core import entities
 from core.cache_manager import CacheManager
-from core.entities.plant import Plant, PlantNectar
+from core.entities.plant import Plant
 from core.object_pool import FoodPool
 
 if TYPE_CHECKING:
     import random
-    from core.environment import Environment
-    from core.root_spots import RootSpotManager
 
 
 logger = logging.getLogger(__name__)

@@ -6,23 +6,22 @@ definitions from definitions.py and opponent models from opponent.py.
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, Set
+from typing import Any, Dict, Optional, Set, Tuple
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.composable.definitions import (
-    HandSelection,
-    BettingStyle,
-    BluffingApproach,
-    PositionAwareness,
-    ShowdownTendency,
-    SUB_BEHAVIOR_COUNTS,
-    POKER_SUB_BEHAVIOR_PARAMS,
     CFR_ACTIONS,
+    CFR_HAND_STRENGTH_BUCKETS,
     CFR_INHERITANCE_DECAY,
     CFR_MAX_INFO_SETS,
     CFR_MIN_VISITS_FOR_INHERITANCE,
-    CFR_HAND_STRENGTH_BUCKETS,
     CFR_POT_RATIO_BUCKETS,
+    POKER_SUB_BEHAVIOR_PARAMS,
+    BettingStyle,
+    BluffingApproach,
+    HandSelection,
+    PositionAwareness,
+    ShowdownTendency,
 )
 from core.poker.strategy.composable.opponent import SimpleOpponentModel
 
@@ -599,9 +598,9 @@ class ComposablePokerStrategy:
             action_values: Dict mapping each action -> counterfactual value
         """
         if info_set not in self.regret:
-            self.regret[info_set] = {a: 0.0 for a in CFR_ACTIONS}
+            self.regret[info_set] = dict.fromkeys(CFR_ACTIONS, 0.0)
         if info_set not in self.strategy_sum:
-            self.strategy_sum[info_set] = {a: 0.0 for a in CFR_ACTIONS}
+            self.strategy_sum[info_set] = dict.fromkeys(CFR_ACTIONS, 0.0)
 
         # Update visit count
         self.visit_count[info_set] = self.visit_count.get(info_set, 0) + 1

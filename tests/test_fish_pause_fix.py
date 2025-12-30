@@ -72,7 +72,7 @@ def test_algorithm_parameters_genetic():
     behavior = genome1.behavioral.behavior
     if behavior and behavior.value:
         behavior = behavior.value
-        print(f"  Random genome created with composable behavior:")
+        print("  Random genome created with composable behavior:")
         print(
             f"    - Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}"
         )

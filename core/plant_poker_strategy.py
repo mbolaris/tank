@@ -9,7 +9,7 @@ interface used throughout the fish poker code.
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -55,7 +55,7 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: random.Random = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         # Use provided RNG or create a fallback for backward compatibility
         from core.util.rng import require_rng_param
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
-from typing import Dict, List
 
 from core.config.display import (
     FILES,
@@ -66,8 +65,8 @@ class DisplayConfig:
     screen_height: int = SCREEN_HEIGHT
     frame_rate: int = FRAME_RATE
     separator_width: int = SEPARATOR_WIDTH
-    files: Dict[str, List[str]] = field(default_factory=lambda: deepcopy(FILES))
-    init_pos: Dict[str, tuple] = field(default_factory=lambda: deepcopy(INIT_POS))
+    files: dict[str, list[str]] = field(default_factory=lambda: deepcopy(FILES))
+    init_pos: dict[str, tuple] = field(default_factory=lambda: deepcopy(INIT_POS))
 
 
 @dataclass
@@ -127,12 +126,12 @@ class SimulationConfig:
             raise ValueError("; ".join(errors))
 
     @classmethod
-    def production(cls, *, headless: bool = False) -> "SimulationConfig":
+    def production(cls, *, headless: bool = False) -> SimulationConfig:
         """Preset matching production defaults."""
         return cls(headless=headless)
 
     @classmethod
-    def headless_fast(cls) -> "SimulationConfig":
+    def headless_fast(cls) -> SimulationConfig:
         """Preset optimized for fast, deterministic tests."""
         return cls(
             headless=True,
@@ -168,7 +167,7 @@ class SimulationConfig:
         )
 
     @classmethod
-    def debug_trace(cls) -> "SimulationConfig":
+    def debug_trace(cls) -> SimulationConfig:
         """Preset for deep debugging and tracing."""
         return cls(
             headless=True,
@@ -186,6 +185,6 @@ class SimulationConfig:
             ),
         )
 
-    def with_overrides(self, **kwargs) -> "SimulationConfig":
+    def with_overrides(self, **kwargs) -> SimulationConfig:
         """Return a copy of the config with updated fields."""
         return replace(self, **kwargs)

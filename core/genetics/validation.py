@@ -7,17 +7,16 @@ They help catch subtle bugs (out-of-range traits, wrong types) close to the sour
 from __future__ import annotations
 
 import math
-from typing import List
 
 from core.genetics.trait import GeneticTrait, TraitSpec
 
 
-def validate_traits_from_specs(specs: List[TraitSpec], traits: object, *, path: str) -> List[str]:
+def validate_traits_from_specs(specs: list[TraitSpec], traits: object, *, path: str) -> list[str]:
     """Validate a trait container against TraitSpec definitions.
 
     Returns a list of human-readable issues; empty means valid.
     """
-    issues: List[str] = []
+    issues: list[str] = []
     for spec in specs:
         if not hasattr(traits, spec.name):
             issues.append(f"{path}.{spec.name}: missing attribute")

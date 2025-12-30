@@ -2,7 +2,6 @@ import json
 
 from core.simulation.engine import SimulationEngine
 
-
 # Fields that depend on wall-clock time or other non-deterministic factors
 NON_DETERMINISTIC_FIELDS = {
     "elapsed_real_time",

@@ -139,24 +139,24 @@ def test_validate_connections_preserves_remote():
 
     # Local connection with invalid destination should be removed
     if "local-conn" in remaining_ids:
-        print(f"  ❌ FAILED: Local connection should have been removed (tank2-local is not valid)")
+        print("  ❌ FAILED: Local connection should have been removed (tank2-local is not valid)")
         return False
     else:
-        print(f"  ✓ Local connection was removed (tank2-local is not valid)")
+        print("  ✓ Local connection was removed (tank2-local is not valid)")
 
     # Remote connection should be preserved (can't validate remote tanks)
     if "remote-conn" not in remaining_ids:
-        print(f"  ❌ FAILED: Remote connection should have been preserved")
+        print("  ❌ FAILED: Remote connection should have been preserved")
         return False
     else:
-        print(f"  ✓ Remote connection was preserved")
+        print("  ✓ Remote connection was preserved")
 
     # Hybrid connection should be preserved (destination is remote)
     if "hybrid-conn" not in remaining_ids:
-        print(f"  ❌ FAILED: Hybrid connection should have been preserved")
+        print("  ❌ FAILED: Hybrid connection should have been preserved")
         return False
     else:
-        print(f"  ✓ Hybrid connection was preserved")
+        print("  ✓ Hybrid connection was preserved")
 
     print("\n✅ All validation preservation tests passed!")
     return True

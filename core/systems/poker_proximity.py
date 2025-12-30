@@ -24,6 +24,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
 from core.poker_interaction import (
     MAX_PLAYERS as POKER_MAX_PLAYERS,
+)
+from core.poker_interaction import (
     PokerInteraction,
     filter_mutually_proximate,
     get_ready_players,
@@ -113,7 +115,7 @@ class PokerProximitySystem(BaseSystem):
             fish within poker range
         """
 
-        fish_poker_contacts: Dict["Fish", Set["Fish"]] = {fish: set() for fish in fish_list}
+        fish_poker_contacts: Dict[Fish, Set[Fish]] = {fish: set() for fish in fish_list}
 
         # Pre-compute squared distance constants
         poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE
@@ -176,8 +178,8 @@ class PokerProximitySystem(BaseSystem):
             Number of poker games triggered
         """
         games_triggered = 0
-        visited: Set["Fish"] = set()
-        processed_fish: Set["Fish"] = set()
+        visited: Set[Fish] = set()
+        processed_fish: Set[Fish] = set()
 
         # Sort key for deterministic processing
         def fish_key(f: "Fish") -> int:
@@ -188,7 +190,7 @@ class PokerProximitySystem(BaseSystem):
                 continue
 
             # DFS to find connected component
-            group: List["Fish"] = []
+            group: List[Fish] = []
             stack = [fish]
 
             while stack:
@@ -218,13 +220,13 @@ class PokerProximitySystem(BaseSystem):
 
                 # Build sub-groups of mutually proximate ready fish
                 ready_set = set(ready_fish)
-                ready_visited: Set["Fish"] = set()
+                ready_visited: Set[Fish] = set()
 
                 for start in sorted(ready_fish, key=fish_key):
                     if start in ready_visited:
                         continue
 
-                    sub_group: List["Fish"] = []
+                    sub_group: List[Fish] = []
                     sub_stack = [start]
 
                     while sub_stack:

@@ -20,16 +20,23 @@ Usage:
 from typing import Optional
 
 # Re-export the unified poker classes
+# Also export utility types
 from core.mixed_poker import (
     MixedPokerInteraction,
+    Player,
+)
+from core.mixed_poker import (
     MixedPokerResult as PokerResult,
+)
+from core.mixed_poker import (
     MultiplayerBettingRound as BettingRound,
+)
+from core.mixed_poker import (
     MultiplayerGameState as GameState,
+)
+from core.mixed_poker import (
     MultiplayerPlayerContext as PlayerContext,
 )
-
-# Also export utility types
-from core.mixed_poker import Player
 
 # Re-export participant manager for get_ready_players
 from core.poker_participant_manager import get_ready_players

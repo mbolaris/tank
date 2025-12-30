@@ -3,7 +3,7 @@
 
 import pytest
 
-from core.algorithms.registry import crossover_algorithms, get_random_algorithm
+from core.algorithms.registry import crossover_algorithms
 from core.genetics import Genome
 
 

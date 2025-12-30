@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import math
 import random
-from typing import List, Tuple
 
 from core.telemetry.events import EnergyBurnEvent
 
 
 class _EnvironmentStub:
     def __init__(self) -> None:
-        self.added: List[object] = []
+        self.added: list[object] = []
         self.rng = random.Random(42)  # Deterministic RNG for tests
 
     def add_entity(self, entity: object) -> None:
@@ -20,7 +19,7 @@ class _EnvironmentStub:
         self.added.append(entity)
         return True
 
-    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Return default environment bounds."""
         return ((0.0, 0.0), (500.0, 500.0))
 
@@ -32,7 +31,7 @@ class _ReproductionManagerStub:
 
 class _EcosystemStub:
     def __init__(self) -> None:
-        self.burns: List[Tuple[str, float]] = []
+        self.burns: list[tuple[str, float]] = []
         self.reproduction_manager = _ReproductionManagerStub()
         self._next_fish_id = 100
 

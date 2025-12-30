@@ -2,13 +2,13 @@
 
 import random
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
+from core.config.display import SCREEN_HEIGHT
 from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
 )
-from core.config.display import SCREEN_HEIGHT
 from core.entities import Crab
 from core.predictive_movement import predict_falling_intercept
 

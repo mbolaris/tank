@@ -1,15 +1,15 @@
 import math
-import random
 from typing import TYPE_CHECKING, List, Tuple
 
-from core.math_utils import Vector2
 from core.config.food import FOOD_SINK_ACCELERATION
+from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
+
 from .definitions import (
-    ThreatResponse,
     FoodApproach,
-    SocialMode,
     PokerEngagement,
+    SocialMode,
+    ThreatResponse,
 )
 
 if TYPE_CHECKING:

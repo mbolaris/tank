@@ -5,16 +5,15 @@ for the simulation, extracting this logic from the main StatsCalculator.
 """
 
 import statistics
-from typing import Any, Dict, List, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Dict, List
 
-from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
-from core.statistics_utils import create_histogram, compute_meta_stats
+from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.services.stats.utils import humanize_gene_label
+from core.statistics_utils import compute_meta_stats, create_histogram
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.genetics.trait import GeneticTrait
 
 
 def get_genetic_distribution_stats(fish_list: List["Fish"]) -> Dict[str, Any]:

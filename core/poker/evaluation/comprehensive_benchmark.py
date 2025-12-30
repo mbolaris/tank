@@ -19,7 +19,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,
@@ -51,10 +51,10 @@ class FishBenchmarkResult:
     fish_id: int
     fish_generation: int
     strategy_id: str
-    strategy_params: Dict[str, float]
+    strategy_params: dict[str, float]
 
     # Per-baseline results
-    vs_baselines: Dict[str, SingleBenchmarkResult] = field(default_factory=dict)
+    vs_baselines: dict[str, SingleBenchmarkResult] = field(default_factory=dict)
 
     # Aggregate scores by difficulty tier
     avg_bb_per_100_vs_trivial: float = 0.0  # vs always_fold, random
@@ -66,7 +66,7 @@ class FishBenchmarkResult:
     weighted_bb_per_100: float = 0.0  # Weighted by baseline difficulty
 
     # Elo rating (more stable than raw bb/100)
-    elo_rating: Optional[EloRating] = None
+    elo_rating: EloRating | None = None
     elo_skill_tier: str = "unknown"
 
     # Confidence-based assessments
@@ -76,7 +76,7 @@ class FishBenchmarkResult:
     confidence_vs_expert: float = 0.0  # Probability of beating expert opponents
 
     # Fish-vs-fish results (if available)
-    bb_per_100_vs_fish: Optional[float] = None
+    bb_per_100_vs_fish: float | None = None
 
     # Total hands played across all benchmarks
     total_hands: int = 0
@@ -90,7 +90,7 @@ class FishBenchmarkResult:
         strong_ids = ["balanced", "maniac"]
         expert_ids = ["gto_expert"]
 
-        def avg_bb(baseline_ids: List[str]) -> Tuple[float, int]:
+        def avg_bb(baseline_ids: list[str]) -> tuple[float, int]:
             """Get average bb/100 and total hands for a set of baselines."""
             results = [self.vs_baselines[bid] for bid in baseline_ids if bid in self.vs_baselines]
             if not results:
@@ -135,7 +135,7 @@ class FishBenchmarkResult:
         self.confidence_vs_strong = self._compute_win_confidence(strong_ids)
         self.confidence_vs_expert = self._compute_win_confidence(expert_ids)
 
-    def _compute_win_confidence(self, baseline_ids: List[str]) -> float:
+    def _compute_win_confidence(self, baseline_ids: list[str]) -> float:
         """Compute probability of winning against a tier based on CI.
 
         Uses the confidence interval to estimate probability that true skill
@@ -191,7 +191,7 @@ class PopulationBenchmarkResult:
 
     # Population averages
     pop_avg_bb_per_100: float = 0.0
-    pop_avg_bb_per_100_ci_95: Tuple[float, float] = (0.0, 0.0)
+    pop_avg_bb_per_100_ci_95: tuple[float, float] = (0.0, 0.0)
     pop_weighted_bb_per_100: float = 0.0
 
     # Per-difficulty tier population averages
@@ -202,13 +202,13 @@ class PopulationBenchmarkResult:
     pop_bb_vs_expert: float = 0.0
 
     # Per-baseline population averages
-    pop_vs_baseline: Dict[str, float] = field(default_factory=dict)
+    pop_vs_baseline: dict[str, float] = field(default_factory=dict)
 
     # Elo rating statistics (more stable than raw bb/100)
-    pop_elo_stats: Optional[PopulationEloStats] = None
+    pop_elo_stats: PopulationEloStats | None = None
     pop_mean_elo: float = 1200.0
     pop_median_elo: float = 1200.0
-    elo_tier_distribution: Dict[str, int] = field(default_factory=dict)
+    elo_tier_distribution: dict[str, int] = field(default_factory=dict)
 
     # Confidence-based skill assessments (population average)
     pop_confidence_vs_weak: float = 0.5
@@ -217,24 +217,24 @@ class PopulationBenchmarkResult:
     pop_confidence_vs_expert: float = 0.5
 
     # Strategy-type breakdown
-    strategy_avg_bb_per_100: Dict[str, float] = field(default_factory=dict)
-    strategy_weighted_bb: Dict[str, float] = field(default_factory=dict)
-    strategy_count: Dict[str, int] = field(default_factory=dict)
+    strategy_avg_bb_per_100: dict[str, float] = field(default_factory=dict)
+    strategy_weighted_bb: dict[str, float] = field(default_factory=dict)
+    strategy_count: dict[str, int] = field(default_factory=dict)
 
     # Best performers
-    best_fish_id: Optional[int] = None
+    best_fish_id: int | None = None
     best_bb_per_100: float = 0.0
     best_weighted_bb: float = 0.0
     best_elo: float = 1200.0
     best_strategy: str = ""
 
     # Individual results (for detailed analysis)
-    individual_results: List[FishBenchmarkResult] = field(default_factory=list)
+    individual_results: list[FishBenchmarkResult] = field(default_factory=list)
 
     # Total hands across all evaluations
     total_hands: int = 0
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary suitable for logging/display."""
         return {
             "frame": self.frame,
@@ -267,10 +267,10 @@ class PopulationBenchmarkResult:
 
 
 def _evaluate_single_fish(
-    fish: "Fish",
+    fish: Fish,
     config: ComprehensiveBenchmarkConfig,
     eval_config: BenchmarkEvalConfig,
-) -> Optional[FishBenchmarkResult]:
+) -> FishBenchmarkResult | None:
     """Evaluate a single fish against all baselines.
 
     Args:
@@ -321,12 +321,12 @@ def _evaluate_single_fish(
 
 
 def run_comprehensive_benchmark(
-    fish_population: List["Fish"],
-    config: Optional[ComprehensiveBenchmarkConfig] = None,
+    fish_population: list[Fish],
+    config: ComprehensiveBenchmarkConfig | None = None,
     frame: int = 0,
     parallel: bool = True,
     max_workers: int = 4,
-    rng: Optional[pyrandom.Random] = None,
+    rng: pyrandom.Random | None = None,
 ) -> PopulationBenchmarkResult:
     """Run comprehensive benchmark suite on fish population.
 
@@ -361,7 +361,7 @@ def run_comprehensive_benchmark(
         config = ComprehensiveBenchmarkConfig()
 
     # Select fish to evaluate using stratified sampling for better representation
-    def get_poker_winnings(f: "Fish") -> float:
+    def get_poker_winnings(f: Fish) -> float:
         if hasattr(f, "components") and hasattr(f.components, "poker_stats"):
             ps = f.components.poker_stats
             if ps is not None:
@@ -375,7 +375,7 @@ def run_comprehensive_benchmark(
     # Stratified sampling: divide population into tiers and sample from each
     # This ensures we get a representative view of the entire population
     # instead of just top performers
-    selected_fish: List["Fish"] = []
+    selected_fish: list[Fish] = []
 
     if total_fish <= config.top_n_fish + config.random_sample_fish:
         # Small population - evaluate all
@@ -445,7 +445,7 @@ def run_comprehensive_benchmark(
         benchmark_opponents=config.fish_vs_baselines.baseline_opponents,
     )
 
-    fish_results: List[FishBenchmarkResult] = []
+    fish_results: list[FishBenchmarkResult] = []
 
     # Run evaluations
     if parallel and len(top_fish) > 1 and config.parallel_evaluation:
@@ -508,8 +508,8 @@ def run_comprehensive_benchmark(
                 result.pop_vs_baseline[baseline_id] = sum(baseline_bbs) / len(baseline_bbs)
 
         # Strategy-type breakdown
-        strategy_bbs: Dict[str, List[float]] = defaultdict(list)
-        strategy_weighted: Dict[str, List[float]] = defaultdict(list)
+        strategy_bbs: dict[str, list[float]] = defaultdict(list)
+        strategy_weighted: dict[str, list[float]] = defaultdict(list)
         for r in fish_results:
             strategy_bbs[r.strategy_id].append(r.overall_bb_per_100)
             strategy_weighted[r.strategy_id].append(r.weighted_bb_per_100)
@@ -565,9 +565,9 @@ def run_comprehensive_benchmark(
 
 
 def run_quick_benchmark(
-    fish_population: List["Fish"],
+    fish_population: list[Fish],
     frame: int = 0,
-    rng: Optional[pyrandom.Random] = None,
+    rng: pyrandom.Random | None = None,
 ) -> PopulationBenchmarkResult:
     """Run a quick benchmark with reduced sample size.
 
@@ -586,9 +586,9 @@ def run_quick_benchmark(
 
 
 def run_full_benchmark(
-    fish_population: List["Fish"],
+    fish_population: list[Fish],
     frame: int = 0,
-    rng: Optional[pyrandom.Random] = None,
+    rng: pyrandom.Random | None = None,
 ) -> PopulationBenchmarkResult:
     """Run a full benchmark with high sample size.
 

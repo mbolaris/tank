@@ -7,18 +7,17 @@ These tests verify that:
 """
 
 import random
-import pytest
 from typing import List
+
+import pytest
 
 from core.genetics import Genome
 from core.genetics.behavioral import _inherit_poker_strategy
 from core.poker.strategy.implementations import (
-    ALL_POKER_STRATEGIES,
     POKER_EVOLUTION_CONFIG,
+    LooseAggressiveStrategy,
     PokerStrategyAlgorithm,
     TightAggressiveStrategy,
-    LooseAggressiveStrategy,
-    BalancedStrategy,
     crossover_poker_strategies,
     get_random_poker_strategy,
 )
@@ -254,7 +253,7 @@ class TestEvolutionSimulation:
             get_random_poker_strategy(rng=rng) for _ in range(population_size)
         ]
 
-        initial_types = len(set(s.strategy_id for s in population))
+        len({s.strategy_id for s in population})
 
         # Simulate evolution with selection (fittest reproduce more)
         # We'll use a simple fitness function: strategies with certain IDs
@@ -291,7 +290,7 @@ class TestEvolutionSimulation:
             population = next_gen
 
         # After selection, population should have converged
-        final_types = len(set(s.strategy_id for s in population))
+        len({s.strategy_id for s in population})
 
         # Count fitter strategies
         fitter_count = sum(1 for s in population if s.strategy_id in FITTER_STRATEGIES)

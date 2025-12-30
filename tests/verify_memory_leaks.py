@@ -1,15 +1,12 @@
-import sys
-import os
 import logging
-from typing import Set
+import os
+import sys
 
 # Add project root to path
 sys.path.append(os.getcwd())
 
 from core.ecosystem import EcosystemManager
-from core.entities.fish import Fish
 from core.simulation.engine import SimulationEngine
-from core.poker_stats_manager import PokerStatsManager
 
 # Configure logging to errors only for cleaner output
 logging.basicConfig(level=logging.ERROR)

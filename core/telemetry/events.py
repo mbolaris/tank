@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence, Union
 
 if TYPE_CHECKING:
     from core.genetics import Genome
@@ -34,8 +34,8 @@ class FoodEatenEvent:
     food_type: str  # "nectar", "live_food", "falling_food"
     algorithm_id: int
     energy_gained: float
-    genome: Optional["Genome"] = None
-    generation: Optional[int] = None
+    genome: Genome | None = None
+    generation: int | None = None
 
 
 @dataclass(frozen=True)
@@ -44,13 +44,13 @@ class BirthEvent:
 
     fish_id: int
     generation: int
-    parent_ids: Optional[Sequence[int]]
-    algorithm_id: Optional[int]
+    parent_ids: Sequence[int] | None
+    algorithm_id: int | None
     color_hex: str
     energy: float
     is_soup_spawn: bool
-    algorithm_name: Optional[str] = None  # Direct algorithm name (avoids lookup)
-    tank_name: Optional[str] = None  # Tank where fish was born
+    algorithm_name: str | None = None  # Direct algorithm name (avoids lookup)
+    tank_name: str | None = None  # Tank where fish was born
 
 
 @dataclass(frozen=True)

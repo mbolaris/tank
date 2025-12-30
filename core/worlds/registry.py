@@ -7,7 +7,7 @@ Currently supports:
 - "soccer": Soccer game simulation (not yet implemented)
 """
 
-from typing import Any, Dict, Optional
+from typing import Dict
 
 from core.worlds.interfaces import MultiAgentWorldBackend
 

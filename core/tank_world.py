@@ -12,20 +12,20 @@ import random
 from dataclasses import dataclass, replace
 from typing import Any, Dict, List, Optional
 
-from core.config.simulation_config import SimulationConfig
-from core.config.food import (
-    AUTO_FOOD_ENABLED,
-    AUTO_FOOD_SPAWN_RATE,
-)
-from core.config.ecosystem import (
-    CRITICAL_POPULATION_THRESHOLD,
-    MAX_POPULATION,
-)
 from core.config.display import (
     FRAME_RATE,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
+from core.config.ecosystem import (
+    CRITICAL_POPULATION_THRESHOLD,
+    MAX_POPULATION,
+)
+from core.config.food import (
+    AUTO_FOOD_ENABLED,
+    AUTO_FOOD_SPAWN_RATE,
+)
+from core.config.simulation_config import SimulationConfig
 
 logger = logging.getLogger(__name__)
 

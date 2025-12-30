@@ -66,7 +66,7 @@ class SystemRegistry:
 
     def __init__(self) -> None:
         """Initialize an empty system registry."""
-        self._systems: List["BaseSystem"] = []
+        self._systems: List[BaseSystem] = []
 
     def register(self, system: "BaseSystem") -> None:
         """Register a system for execution.

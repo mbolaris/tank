@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Test seed 2024 with 75k frames."""
-import logging, os, sys
+import logging
+import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from core.tank_world import TankWorld, TankWorldConfig
-from core.solutions import SolutionTracker, SolutionBenchmark
+from core.solutions import SolutionBenchmark, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
+from core.tank_world import TankWorld, TankWorldConfig
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

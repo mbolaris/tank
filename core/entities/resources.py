@@ -12,9 +12,8 @@ from core.entities.fish import Fish
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
-    from core.environment import Environment
-    from core.world import World
     from core.entities.plant import Plant
+    from core.world import World
 
 
 class Food(Agent):
@@ -72,7 +71,7 @@ class Food(Agent):
         self.is_stationary: bool = self.food_properties.get("stationary", False)
 
         super().__init__(environment, x, y, speed)
-        self.source_plant: Optional["Plant"] = source_plant
+        self.source_plant: Optional[Plant] = source_plant
 
         # Energy tracking for partial consumption
         self.max_energy: float = self.food_properties["energy"]

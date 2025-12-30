@@ -11,6 +11,17 @@ from core.algorithms.base import (
     Vector2,
 )
 
+# Import composable behavior system
+from core.algorithms.composable import (
+    SUB_BEHAVIOR_COUNTS,
+    SUB_BEHAVIOR_PARAMS,
+    ComposableBehavior,
+    FoodApproach,
+    PokerEngagement,
+    SocialMode,
+    ThreatResponse,
+)
+
 # Import all energy management algorithms
 from core.algorithms.energy_management import (
     AdaptivePacer,
@@ -51,17 +62,6 @@ from core.algorithms.poker import (
     PokerOpportunist,
     PokerStrategist,
     SelectivePoker,
-)
-
-# Import composable behavior system
-from core.algorithms.composable import (
-    ComposableBehavior,
-    ThreatResponse,
-    FoodApproach,
-    SocialMode,
-    PokerEngagement,
-    SUB_BEHAVIOR_COUNTS,
-    SUB_BEHAVIOR_PARAMS,
 )
 
 # Import all predator avoidance algorithms

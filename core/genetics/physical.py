@@ -9,16 +9,16 @@ from dataclasses import dataclass
 from typing import List
 
 from core.config.fish import (
+    BODY_ASPECT_MAX,
+    BODY_ASPECT_MIN,
+    EYE_SIZE_MAX,
+    EYE_SIZE_MIN,
     FISH_PATTERN_COUNT,
     FISH_SIZE_MODIFIER_MAX,
     FISH_SIZE_MODIFIER_MIN,
     FISH_TEMPLATE_COUNT,
-    BODY_ASPECT_MIN,
-    BODY_ASPECT_MAX,
-    EYE_SIZE_MIN,
-    EYE_SIZE_MAX,
-    LIFESPAN_MODIFIER_MIN,
     LIFESPAN_MODIFIER_MAX,
+    LIFESPAN_MODIFIER_MIN,
 )
 from core.genetics.trait import (
     GeneticTrait,

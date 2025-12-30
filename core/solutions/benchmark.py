@@ -9,23 +9,16 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
 
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,
-    BenchmarkSuiteResult,
-    SingleBenchmarkResult,
-    create_standard_strategy,
     evaluate_vs_benchmark_suite,
-    evaluate_vs_single_benchmark_duplicate,
 )
 from core.poker.evaluation.elo_rating import (
-    EloRating,
     compute_elo_from_benchmarks,
     rating_to_skill_tier,
 )
@@ -66,7 +59,7 @@ class SolutionBenchmarkConfig:
     starting_stack: int = 10_000
 
     # Which opponents to include
-    opponents: List[str] = field(default_factory=lambda: SOLUTION_BENCHMARK_OPPONENTS.copy())
+    opponents: list[str] = field(default_factory=lambda: SOLUTION_BENCHMARK_OPPONENTS.copy())
 
     # Parallel execution
     max_workers: int = 4
@@ -82,7 +75,7 @@ class SolutionBenchmark:
     4. Elo rating computation and skill tier classification
     """
 
-    def __init__(self, config: Optional[SolutionBenchmarkConfig] = None):
+    def __init__(self, config: SolutionBenchmarkConfig | None = None):
         """Initialize the benchmark system.
 
         Args:
@@ -157,10 +150,10 @@ class SolutionBenchmark:
 
     def evaluate_all_solutions(
         self,
-        solutions: List[SolutionRecord],
+        solutions: list[SolutionRecord],
         parallel: bool = True,
         verbose: bool = False,
-    ) -> Dict[str, BenchmarkResult]:
+    ) -> dict[str, BenchmarkResult]:
         """Evaluate all solutions and update their benchmark results.
 
         Args:
@@ -205,7 +198,7 @@ class SolutionBenchmark:
 
     def compare_solutions(
         self,
-        solutions: List[SolutionRecord],
+        solutions: list[SolutionRecord],
         hands_per_matchup: int = 500,
         verbose: bool = False,
     ) -> SolutionComparison:
@@ -232,7 +225,7 @@ class SolutionBenchmark:
 
         # Build head-to-head matrix
         solution_ids = [s.metadata.solution_id for s in solutions]
-        head_to_head: Dict[str, Dict[str, float]] = {sid: {} for sid in solution_ids}
+        head_to_head: dict[str, dict[str, float]] = {sid: {} for sid in solution_ids}
 
         for i, sol1 in enumerate(solutions):
             for j, sol2 in enumerate(solutions):
@@ -292,7 +285,7 @@ class SolutionBenchmark:
         sol2: SolutionRecord,
         num_hands: int,
         verbose: bool = False,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Run a deterministic head-to-head match between two solutions."""
         return self._run_head_to_head(sol1, sol2, num_hands, verbose)
 
@@ -307,7 +300,7 @@ class SolutionBenchmark:
         )
 
         # Create a deterministic RNG based on solution ID (avoid Python's salted hash()).
-        seed_material = f"strategy|{solution.metadata.solution_id}".encode("utf-8")
+        seed_material = f"strategy|{solution.metadata.solution_id}".encode()
         seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little")
         rng = random.Random(seed)
 
@@ -364,7 +357,7 @@ class SolutionBenchmark:
         sol2: SolutionRecord,
         num_hands: int,
         verbose: bool = False,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Run a head-to-head match between two solutions.
 
         Returns (win_rate_1, win_rate_2) tuple.
@@ -386,7 +379,7 @@ class SolutionBenchmark:
         # the same pair produces the same match (boards/deals) regardless of
         # where the solutions appear in a tournament bracket.
         a_id, b_id = sorted([sol1.metadata.solution_id, sol2.metadata.solution_id])
-        seed_material = f"{a_id}|{b_id}".encode("utf-8")
+        seed_material = f"{a_id}|{b_id}".encode()
         seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little")
 
         hands_total = num_hands - (num_hands % 4)
@@ -473,8 +466,8 @@ class SolutionBenchmark:
 
     def generate_report(
         self,
-        solutions: List[SolutionRecord],
-        output_path: Optional[str] = None,
+        solutions: list[SolutionRecord],
+        output_path: str | None = None,
     ) -> str:
         """Generate a comprehensive benchmark report.
 

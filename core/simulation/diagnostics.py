@@ -7,7 +7,7 @@ It separates the concerns of "running the simulation" from "reporting on the sim
 import json
 import logging
 import time
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine

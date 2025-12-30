@@ -151,7 +151,7 @@ class HumanPokerGame:
 
     def _start_hand(self):
         """Start a new hand: deal cards and post blinds."""
-        num_players = len(self.players)
+        len(self.players)
 
         self.deck.reset()
         contexts: Dict[int, MultiplayerPlayerContext] = {}

@@ -2,7 +2,6 @@ import ast
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
-
 ALLOWED_RANDOM_ATTRS = {"Random", "SystemRandom"}
 
 

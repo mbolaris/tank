@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
+
 from core.entities.fish import Fish
 from core.entities.plant import Plant
 from core.serializers import FishSerializer, PlantSerializer

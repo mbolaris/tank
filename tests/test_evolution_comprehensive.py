@@ -13,38 +13,28 @@ import random
 
 import pytest
 
-from core.evolution.mutation import (
-    mutate_continuous_trait,
-    mutate_discrete_trait,
-    calculate_adaptive_mutation_rate,
-    should_switch_algorithm,
-    MutationConfig,
+from core.algorithms.food_seeking import GreedyFoodSeeker
+from core.algorithms.registry import (
+    crossover_algorithms,
 )
 from core.evolution.crossover import (
     CrossoverMode,
-    blend_values,
     blend_discrete,
-    crossover_dict_values,
+    blend_values,
 )
-from core.evolution.inheritance import (
-    inherit_trait,
-    inherit_discrete_trait,
-    inherit_algorithm,
+from core.evolution.mutation import (
+    MutationConfig,
+    calculate_adaptive_mutation_rate,
+    mutate_continuous_trait,
+    mutate_discrete_trait,
+    should_switch_algorithm,
 )
-from core.genetics import Genome, GeneticTrait, PhysicalTraits, BehavioralTraits
-from core.genetics import PlantGenome
-from core.algorithms.base import BehaviorAlgorithm
-from core.algorithms.food_seeking import GreedyFoodSeeker
-from core.algorithms.poker import PokerChallenger
-from core.algorithms.registry import (
-    crossover_algorithms,
-    crossover_algorithms_weighted,
-)
+from core.genetics import BehavioralTraits, GeneticTrait, Genome, PhysicalTraits, PlantGenome
 from core.poker.strategy.implementations import (
-    crossover_poker_strategies,
-    TightAggressiveStrategy,
     LooseAggressiveStrategy,
     ManiacStrategy,
+    TightAggressiveStrategy,
+    crossover_poker_strategies,
 )
 
 
@@ -326,7 +316,7 @@ class TestPokerEvolution:
             offspring_algos.append(child_algo)
 
         # Should get a mix of strategy types
-        strategy_types = set(type(algo).__name__ for algo in offspring_algos)
+        strategy_types = {type(algo).__name__ for algo in offspring_algos}
         assert len(strategy_types) > 1, "Should inherit different strategy types from parents"
 
     def test_poker_weighted_genome_crossover(self):
@@ -471,7 +461,7 @@ class TestPlantGenetics:
             offspring.append(child)
 
         # Discrete traits should sometimes mutate
-        floral_types = set(o.floral_type for o in offspring)
+        floral_types = {o.floral_type for o in offspring}
         assert len(floral_types) > 1, "Floral type should mutate"
 
         # Continuous traits should vary

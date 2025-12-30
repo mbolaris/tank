@@ -19,13 +19,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional, Set, Union
 
 from core.config.server import POKER_ACTIVITY_ENABLED
-from core.mixed_poker import MixedPokerInteraction
 
 if TYPE_CHECKING:
+    import random
+
     from core.entities import Fish
     from core.entities.plant import Plant
     from core.environment import Environment
-    import random
 
 # Type alias
 PokerPlayer = Union["Fish", "Plant"]
@@ -118,9 +118,6 @@ class MixedPokerTablePlanner:
         """
         if not POKER_ACTIVITY_ENABLED:
             return []
-
-        from core.entities import Fish
-        from core.entities.plant import Plant
 
         # Collect eligible fish initiators
         eligible_fish = [f for f in fish_list if self._is_eligible_initiator(f)]

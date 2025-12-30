@@ -6,9 +6,8 @@ including the WorldRegistry and TankWorldBackendAdapter.
 
 import pytest
 
-from core.worlds import WorldRegistry, StepResult, MultiAgentWorldBackend
+from core.worlds import MultiAgentWorldBackend, StepResult, WorldRegistry
 from core.worlds.tank.backend import TankWorldBackendAdapter
-from core.tank_world import TankWorldConfig
 
 
 class TestWorldRegistry:
@@ -75,7 +74,7 @@ class TestTankWorldBackendAdapter:
     def test_reset_creates_world(self):
         """Test that reset() creates and initializes TankWorld."""
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)
-        result = adapter.reset(seed=42)
+        adapter.reset(seed=42)
 
         assert adapter._world is not None
         assert adapter._world.frame_count == 0

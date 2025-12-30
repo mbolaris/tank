@@ -5,9 +5,9 @@ characteristics from genetic traits. Separating this logic from the data storage
 (Genome) allows for easier testing, tuning, and clearer separation of concerns.
 """
 
-from typing import Dict, Tuple
+from typing import Tuple
 
-from core.color import hue_to_rgb, FISH_COLOR_SATURATION
+from core.color import FISH_COLOR_SATURATION, hue_to_rgb
 from core.genetics.behavioral import (
     MATE_PREFERENCE_SPECS,
     BehavioralTraits,

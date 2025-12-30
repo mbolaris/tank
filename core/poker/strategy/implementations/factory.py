@@ -3,25 +3,25 @@
 import random
 from typing import List, Optional, Type
 
-from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
-from core.poker.strategy.implementations.standard import (
-    TightAggressiveStrategy,
-    LooseAggressiveStrategy,
-    TightPassiveStrategy,
-    BalancedStrategy,
-    ManiacStrategy,
-    LoosePassiveStrategy,
-)
 from core.poker.strategy.implementations.advanced import (
     AdaptiveStrategy,
+    MathematicalStrategy,
     PositionalExploiter,
     TrapSetterStrategy,
-    MathematicalStrategy,
 )
-from core.poker.strategy.implementations.expert import GTOExpertStrategy
+from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.poker.strategy.implementations.baseline import (
     AlwaysFoldStrategy,
     RandomStrategy,
+)
+from core.poker.strategy.implementations.expert import GTOExpertStrategy
+from core.poker.strategy.implementations.standard import (
+    BalancedStrategy,
+    LooseAggressiveStrategy,
+    LoosePassiveStrategy,
+    ManiacStrategy,
+    TightAggressiveStrategy,
+    TightPassiveStrategy,
 )
 
 # Registry of all EVOLVING strategy classes

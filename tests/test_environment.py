@@ -1,6 +1,7 @@
+import random
+
 from core.environment import Environment
 from core.math_utils import Vector2
-import random
 
 
 def make_agent(x, y):

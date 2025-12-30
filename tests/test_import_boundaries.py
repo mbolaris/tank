@@ -8,7 +8,6 @@ Uses AST-based import analysis with no external dependencies.
 """
 
 import ast
-import os
 from pathlib import Path
 from typing import List, Set, Tuple
 
@@ -31,7 +30,7 @@ def extract_imports(file_path: Path) -> Set[str]:
     Returns set of module names (e.g., 'backend.world_registry', 'core.worlds.interfaces').
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return set()

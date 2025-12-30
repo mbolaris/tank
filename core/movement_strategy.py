@@ -7,7 +7,6 @@ This module provides movement behaviors for fish:
 from __future__ import annotations
 
 import math
-import random
 from typing import TYPE_CHECKING, Tuple
 
 from core.collision_system import default_collision_detector

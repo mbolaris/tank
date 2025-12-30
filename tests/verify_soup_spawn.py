@@ -4,12 +4,12 @@ import sys
 
 sys.path.insert(0, ".")
 
-from core.tank_world import TankWorld
-from core.entities import Fish
 from core.config.ecosystem import (
     CRITICAL_POPULATION_THRESHOLD,
     EMERGENCY_SPAWN_COOLDOWN,
 )
+from core.entities import Fish
+from core.tank_world import TankWorld
 
 
 def count_fish(world):

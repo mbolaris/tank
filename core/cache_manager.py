@@ -121,11 +121,11 @@ class CacheManager:
         self._get_entities = get_entities_fn
 
         # Entity type caches
-        self._fish_cache: CachedList["entities.Fish"] = CachedList(
+        self._fish_cache: CachedList[entities.Fish] = CachedList(
             name="fish_list",
             compute_fn=self._compute_fish_list,
         )
-        self._food_cache: CachedList["entities.Food"] = CachedList(
+        self._food_cache: CachedList[entities.Food] = CachedList(
             name="food_list",
             compute_fn=self._compute_food_list,
         )

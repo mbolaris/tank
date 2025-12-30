@@ -3,13 +3,14 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from core.algorithms.base import BehaviorHelpersMixin
+
 from .actions import BehaviorActionsMixin
 from .definitions import (
-    ThreatResponse,
-    FoodApproach,
-    SocialMode,
-    PokerEngagement,
     SUB_BEHAVIOR_PARAMS,
+    FoodApproach,
+    PokerEngagement,
+    SocialMode,
+    ThreatResponse,
     _random_params,
 )
 

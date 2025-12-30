@@ -22,16 +22,15 @@ from core.config.poker import (
 from core.mixed_poker.betting_round import play_betting_round
 from core.mixed_poker.cfr_learning import update_cfr_learning
 from core.mixed_poker.state import (
+    MultiplayerBettingRound,
     MultiplayerGameState,
     MultiplayerPlayerContext,
-    MultiplayerBettingRound,
 )
 from core.mixed_poker.types import MixedPokerResult, Player
 from core.poker.core import PokerHand
 
 if TYPE_CHECKING:
-    from core.entities import Fish
-    from core.entities.plant import Plant
+    pass
 
 logger = logging.getLogger(__name__)
 

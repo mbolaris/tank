@@ -272,7 +272,6 @@ class PokerSkillGame(SkillGame):
         Returns:
             Game result with score change
         """
-        import random
 
         if opponent_strategy is None:
             opponent_strategy = self.create_optimal_strategy()
@@ -349,12 +348,16 @@ class PokerSkillGame(SkillGame):
         # Determine if play was "optimal" (folded weak hands, bet strong hands)
         if isinstance(player_strategy, PokerSkillStrategy):
             # Good play: fold weak, bet/raise strong
-            if player_strength < 0.3 and player_action == BettingAction.FOLD:
-                was_optimal = True
-            elif player_strength > 0.7 and player_action in (
-                BettingAction.BET,
-                BettingAction.RAISE,
-                BettingAction.ALL_IN,
+            if (
+                player_strength < 0.3
+                and player_action == BettingAction.FOLD
+                or player_strength > 0.7
+                and player_action
+                in (
+                    BettingAction.BET,
+                    BettingAction.RAISE,
+                    BettingAction.ALL_IN,
+                )
             ):
                 was_optimal = True
             else:
@@ -402,7 +405,7 @@ class PokerSkillGame(SkillGame):
         metrics = SkillEvaluationMetrics()
 
         # Track action frequencies
-        action_counts = {action: 0 for action in BettingAction}
+        action_counts = dict.fromkeys(BettingAction, 0)
 
         # Use a consistent seed for benchmarking stability
         import random

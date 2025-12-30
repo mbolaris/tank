@@ -20,8 +20,7 @@ Plant sprouting logic is included here for simplicity (triggered when nectar is 
 """
 
 import logging
-import random
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
 from core.config.server import PLANTS_ENABLED
@@ -31,7 +30,7 @@ from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
-    from core.entities import Agent, Crab, Fish, Food
+    from core.entities import Agent, Crab, Fish
     from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -245,7 +244,7 @@ class CollisionSystem(BaseSystem):
             return
 
         # Track which fish have been removed (e.g. eaten) to avoid processing them further
-        removed_fish: Set["Fish"] = set()
+        removed_fish: Set[Fish] = set()
 
         # Performance: Cache environment and check_collision references
         environment = self._engine.environment
@@ -327,8 +326,8 @@ class CollisionSystem(BaseSystem):
             nearby_entities = sorted(nearby_entities, key=collision_sort_key)
 
             # Cache fish position for inner loop
-            fish_cx = fish.pos.x + fish.width * 0.5
-            fish_cy = fish.pos.y + fish.height * 0.5
+            fish.pos.x + fish.width * 0.5
+            fish.pos.y + fish.height * 0.5
 
             for other in nearby_entities:
                 if other is fish:

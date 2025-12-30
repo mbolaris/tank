@@ -8,10 +8,10 @@ forcing fish to evolve strategies to beat them. Successful plants
 (those that win poker and accumulate energy) reproduce as exact clones.
 """
 
-from enum import Enum
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional
 import random
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
 
 class PlantStrategyType(Enum):
@@ -406,21 +406,21 @@ def get_poker_strategy_for_type(
     """
     from core.poker.strategy.implementations import (
         AlwaysFoldStrategy,
-        RandomStrategy,
-        LoosePassiveStrategy,
-        TightPassiveStrategy,
-        TightAggressiveStrategy,
-        LooseAggressiveStrategy,
         BalancedStrategy,
+        LooseAggressiveStrategy,
+        LoosePassiveStrategy,
         ManiacStrategy,
+        RandomStrategy,
+        TightAggressiveStrategy,
+        TightPassiveStrategy,
     )
-    from core.poker.strategy.implementations.expert import GTOExpertStrategy
     from core.poker.strategy.implementations.advanced import (
         AdaptiveStrategy,
+        MathematicalStrategy,
         PositionalExploiter,
         TrapSetterStrategy,
-        MathematicalStrategy,
     )
+    from core.poker.strategy.implementations.expert import GTOExpertStrategy
 
     strategy_map = {
         PlantStrategyType.ALWAYS_FOLD: AlwaysFoldStrategy,

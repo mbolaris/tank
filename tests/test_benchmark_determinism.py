@@ -1,7 +1,7 @@
 """Simple smoke tests for benchmark evaluation determinism."""
 
-import unittest
 import random
+import unittest
 
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.core.cards import Deck

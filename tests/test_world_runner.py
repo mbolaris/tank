@@ -10,14 +10,13 @@ from __future__ import annotations
 
 import pytest
 
+from backend.snapshots import TankSnapshotBuilder
 from backend.world_registry import (
     create_world,
-    get_world_metadata,
     get_registered_world_types,
+    get_world_metadata,
 )
 from backend.world_runner import WorldRunner
-from backend.snapshots import SnapshotBuilder, TankSnapshotBuilder
-from core.interfaces import WorldBackend
 
 
 def test_tank_world_is_registered() -> None:

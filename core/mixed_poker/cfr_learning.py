@@ -16,7 +16,6 @@ CFR learning is separated from the core interaction logic because:
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List
 
-
 from core.poker.betting.actions import BettingAction
 from core.poker.core import evaluate_hand
 from core.poker.evaluation.strength import (

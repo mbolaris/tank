@@ -18,21 +18,20 @@ Design Notes:
 
 import logging
 import random
-from typing import Callable, Dict, List, Optional, Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional, Protocol
 
-from core.config.plants import (
-    PLANT_CULL_INTERVAL,
-    PLANT_CRITICAL_POPULATION,
-    PLANT_EMERGENCY_RESPAWN_COOLDOWN,
-    PLANT_INITIAL_COUNT,
-    PLANT_INITIAL_ENERGY,
-    PLANT_MATURE_ENERGY,
-)
-from core.config.server import PLANTS_ENABLED
 from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
+from core.config.plants import (
+    PLANT_CRITICAL_POPULATION,
+    PLANT_CULL_INTERVAL,
+    PLANT_EMERGENCY_RESPAWN_COOLDOWN,
+    PLANT_INITIAL_COUNT,
+    PLANT_MATURE_ENERGY,
+)
+from core.config.server import PLANTS_ENABLED
 from core.entities.plant import Plant
 from core.genetics import PlantGenome
 from core.result import Err, Ok, Result

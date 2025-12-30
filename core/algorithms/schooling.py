@@ -16,7 +16,7 @@ This module contains 10 algorithms focused on group behavior and social interact
 import math
 import random
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.entities import Crab

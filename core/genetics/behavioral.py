@@ -20,11 +20,9 @@ from core.genetics.trait import (
 )
 
 if TYPE_CHECKING:
-    from core.algorithms.base import BehaviorAlgorithm
     from core.algorithms.composable import ComposableBehavior
-    from core.poker.strategy.implementations import PokerStrategyAlgorithm
-    from core.poker.strategy.composable import ComposablePokerStrategy
     from core.genetics.physical import PhysicalTraits
+    from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 # Type alias for poker strategy (can be monolithic or composable)
 PokerStrategyType = "PokerStrategyAlgorithm | ComposablePokerStrategy"
@@ -250,7 +248,6 @@ class BehavioralTraits:
             mutation_strength: Mutation magnitude
             rng: Random number generator
         """
-        from core.algorithms.composable import ComposableBehavior
 
         # Inherit numeric traits using specs
         inherited = inherit_traits_from_specs(

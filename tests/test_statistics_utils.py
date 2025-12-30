@@ -4,10 +4,7 @@ Tests the core statistical functions to ensure they handle
 edge cases correctly and provide consistent results.
 """
 
-import pytest
-
 from core.statistics_utils import (
-    DescriptiveStats,
     GeneDistribution,
     MetaStats,
     compute_meta_stats,

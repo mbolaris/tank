@@ -1,6 +1,6 @@
 """Utility functions for mixed poker interactions."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish

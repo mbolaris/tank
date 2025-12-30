@@ -1,5 +1,6 @@
-import json
 import difflib
+import json
+
 from core.simulation.engine import SimulationEngine
 from tests.test_determinism import remove_non_deterministic_fields
 

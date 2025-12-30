@@ -3,10 +3,9 @@
 This module provides shared helper functions used across stat calculators.
 """
 
-from statistics import median
 from typing import Any, Dict, List
 
-from core.statistics_utils import compute_meta_stats, create_histogram
+from core.statistics_utils import compute_meta_stats
 
 
 def calculate_meta_stats(traits: List[Any], prefix: str) -> Dict[str, Any]:

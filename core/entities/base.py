@@ -14,24 +14,22 @@ This hierarchy ensures decorative entities don't inherit unnecessary
 movement methods while maintaining backward compatibility.
 """
 
-import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
+from core.config.display import DEFAULT_AGENT_SIZE
 from core.config.fish import (
     ALIGNMENT_SPEED_CHANGE,
     AVOIDANCE_SPEED_CHANGE,
 )
-from core.config.display import DEFAULT_AGENT_SIZE
 from core.math_utils import Vector2
-from core.world import World
 
 # Import LifeStage from state_machine for centralized definition with transition validation
 from core.state_machine import (
-    LifeStage,
     EntityState,
     create_entity_state_machine,
 )  # noqa: F401 - re-exported
+from core.world import World
 
 
 @dataclass

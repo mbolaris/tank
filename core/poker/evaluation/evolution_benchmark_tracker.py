@@ -19,7 +19,7 @@ import statistics
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -45,7 +45,7 @@ class BenchmarkSnapshot:
     pop_bb_vs_expert: float = 0.0  # Elo rating metrics (more stable than raw bb/100)
     pop_mean_elo: float = 1200.0
     pop_median_elo: float = 1200.0
-    elo_tier_distribution: Dict[str, int] = field(default_factory=dict)
+    elo_tier_distribution: dict[str, int] = field(default_factory=dict)
 
     # Confidence-based skill assessments
     confidence_vs_weak: float = 0.5
@@ -54,17 +54,17 @@ class BenchmarkSnapshot:
     confidence_vs_expert: float = 0.5
 
     # Strategy distribution
-    strategy_distribution: Dict[str, int] = field(default_factory=dict)
+    strategy_distribution: dict[str, int] = field(default_factory=dict)
     dominant_strategy: str = ""
 
     # Best performer
-    best_fish_id: Optional[int] = None
+    best_fish_id: int | None = None
     best_bb_per_100: float = 0.0
     best_elo: float = 1200.0
     best_strategy: str = ""
 
     # Per-baseline breakdown
-    per_baseline_bb_per_100: Dict[str, float] = field(default_factory=dict)
+    per_baseline_bb_per_100: dict[str, float] = field(default_factory=dict)
 
     # Evaluation metadata
     fish_evaluated: int = 0
@@ -75,36 +75,36 @@ class BenchmarkSnapshot:
 class EvolutionBenchmarkHistory:
     """Complete history of benchmark snapshots over time."""
 
-    snapshots: List[BenchmarkSnapshot] = field(default_factory=list)
+    snapshots: list[BenchmarkSnapshot] = field(default_factory=list)
 
     # Raw trends (updated on each snapshot)
-    bb_per_100_trend: List[float] = field(default_factory=list)
-    weighted_bb_trend: List[float] = field(default_factory=list)
-    vs_trivial_trend: List[float] = field(default_factory=list)
-    vs_weak_trend: List[float] = field(default_factory=list)
-    vs_moderate_trend: List[float] = field(default_factory=list)
-    vs_strong_trend: List[float] = field(default_factory=list)
-    best_performer_trend: List[float] = field(default_factory=list)
+    bb_per_100_trend: list[float] = field(default_factory=list)
+    weighted_bb_trend: list[float] = field(default_factory=list)
+    vs_trivial_trend: list[float] = field(default_factory=list)
+    vs_weak_trend: list[float] = field(default_factory=list)
+    vs_moderate_trend: list[float] = field(default_factory=list)
+    vs_strong_trend: list[float] = field(default_factory=list)
+    best_performer_trend: list[float] = field(default_factory=list)
 
     # Elo-based trends (more stable)
-    elo_trend: List[float] = field(default_factory=list)
-    elo_median_trend: List[float] = field(default_factory=list)
-    best_elo_trend: List[float] = field(default_factory=list)
+    elo_trend: list[float] = field(default_factory=list)
+    elo_median_trend: list[float] = field(default_factory=list)
+    best_elo_trend: list[float] = field(default_factory=list)
 
     # Confidence-based trends
-    confidence_weak_trend: List[float] = field(default_factory=list)
-    confidence_moderate_trend: List[float] = field(default_factory=list)
-    confidence_strong_trend: List[float] = field(default_factory=list)
+    confidence_weak_trend: list[float] = field(default_factory=list)
+    confidence_moderate_trend: list[float] = field(default_factory=list)
+    confidence_strong_trend: list[float] = field(default_factory=list)
 
     # EMA smoothed trends (reduces noise for clearer improvement signals)
     # Using alpha=0.3 for moderate smoothing (higher = more responsive, lower = smoother)
     ema_alpha: float = 0.3
-    elo_ema: List[float] = field(default_factory=list)
-    bb_per_100_ema: List[float] = field(default_factory=list)
-    vs_strong_ema: List[float] = field(default_factory=list)
-    confidence_strong_ema: List[float] = field(default_factory=list)
+    elo_ema: list[float] = field(default_factory=list)
+    bb_per_100_ema: list[float] = field(default_factory=list)
+    vs_strong_ema: list[float] = field(default_factory=list)
+    confidence_strong_ema: list[float] = field(default_factory=list)
 
-    def _compute_ema(self, new_value: float, ema_list: List[float]) -> float:
+    def _compute_ema(self, new_value: float, ema_list: list[float]) -> float:
         """Compute exponential moving average for a new value."""
         if not ema_list:
             return new_value
@@ -142,7 +142,7 @@ class EvolutionBenchmarkHistory:
             self._compute_ema(snapshot.confidence_vs_strong, self.confidence_strong_ema)
         )
 
-    def get_improvement_metrics(self) -> Dict[str, Any]:
+    def get_improvement_metrics(self) -> dict[str, Any]:
         """Calculate improvement metrics over time.
 
         Uses Elo ratings and EMA smoothing for more stable trend analysis.
@@ -157,7 +157,7 @@ class EvolutionBenchmarkHistory:
         last = self.snapshots[-1]
 
         # Calculate trend slope using linear regression
-        def trend_slope(values: List[float]) -> float:
+        def trend_slope(values: list[float]) -> float:
             """Simple linear regression slope."""
             if len(values) < 2:
                 return 0.0
@@ -169,7 +169,7 @@ class EvolutionBenchmarkHistory:
             return numerator / denominator if denominator != 0 else 0.0
 
         # Calculate moving averages for smoother comparison
-        def moving_avg(values: List[float], window: int = 3) -> float:
+        def moving_avg(values: list[float], window: int = 3) -> float:
             """Get average of last N values."""
             if len(values) < window:
                 return sum(values) / len(values) if values else 0.0
@@ -252,7 +252,7 @@ class EvolutionBenchmarkHistory:
             "elo_tier_distribution": last.elo_tier_distribution,
         }
 
-    def get_variance_metrics(self) -> Dict[str, float]:
+    def get_variance_metrics(self) -> dict[str, float]:
         """Get variance/stability metrics for the population."""
         if len(self.bb_per_100_trend) < 3:
             return {}
@@ -270,7 +270,7 @@ class EvolutionBenchmarkTracker:
     def __init__(
         self,
         eval_interval_frames: int = 15_000,  # ~8 minutes at 30fps
-        export_path: Optional[Path] = None,
+        export_path: Path | None = None,
         use_quick_benchmark: bool = True,
     ):
         """Initialize the evolution benchmark tracker.
@@ -294,8 +294,8 @@ class EvolutionBenchmarkTracker:
 
     def _assign_rewards(
         self,
-        results: "PopulationBenchmarkResult",
-        fish_population: List["Fish"],
+        results: PopulationBenchmarkResult,
+        fish_population: list[Fish],
         reward_callback: Callable[[Fish, float], None],
     ) -> None:
         """Assign energy rewards to high-performing fish."""
@@ -341,11 +341,11 @@ class EvolutionBenchmarkTracker:
 
     def run_and_record(
         self,
-        fish_population: List["Fish"],
+        fish_population: list[Fish],
         current_frame: int,
         force: bool = False,
-        reward_callback: Optional[Callable[[Fish, float], None]] = None,
-    ) -> Optional[BenchmarkSnapshot]:
+        reward_callback: Callable[[Fish, float], None] | None = None,
+    ) -> BenchmarkSnapshot | None:
         """Run benchmark and record results if it's time.
 
         Args:
@@ -361,12 +361,12 @@ class EvolutionBenchmarkTracker:
             return None
 
         # Import here to avoid circular imports
+        import time as time_module
+
         from core.poker.evaluation.comprehensive_benchmark import (
             run_full_benchmark,
             run_quick_benchmark,
-            PopulationBenchmarkResult,  # Needed for type hint if we moved _assign_rewards out
         )
-        import time as time_module
 
         # Run the appropriate benchmark with timing
         start_time = time_module.time()
@@ -529,7 +529,7 @@ class EvolutionBenchmarkTracker:
         except Exception as e:
             logger.warning(f"Failed to export benchmark history: {e}")
 
-    def get_api_data(self) -> Dict[str, Any]:
+    def get_api_data(self) -> dict[str, Any]:
         """Get data formatted for API/frontend consumption."""
         return {
             "history": [
@@ -617,21 +617,21 @@ class EvolutionBenchmarkTracker:
             ),
         }
 
-    def get_latest_snapshot(self) -> Optional[BenchmarkSnapshot]:
+    def get_latest_snapshot(self) -> BenchmarkSnapshot | None:
         """Get the most recent benchmark snapshot."""
         return self.history.snapshots[-1] if self.history.snapshots else None
 
-    def get_history(self) -> List[BenchmarkSnapshot]:
+    def get_history(self) -> list[BenchmarkSnapshot]:
         """Get the full history of benchmark snapshots."""
         return self.history.snapshots
 
 
 # Global tracker instance
-_global_tracker: Optional[EvolutionBenchmarkTracker] = None
+_global_tracker: EvolutionBenchmarkTracker | None = None
 
 
 def get_global_benchmark_tracker(
-    export_path: Optional[Path] = None,
+    export_path: Path | None = None,
 ) -> EvolutionBenchmarkTracker:
     """Get or create the global benchmark tracker.
 

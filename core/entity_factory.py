@@ -8,8 +8,8 @@ import random
 from typing import List, Optional
 
 from core import entities, environment, movement_strategy
-from core.config.simulation_config import DisplayConfig, EcosystemConfig
 from core.config.fish import FISH_BASE_SPEED
+from core.config.simulation_config import DisplayConfig, EcosystemConfig
 from core.ecosystem import EcosystemManager
 from core.genetics import Genome
 

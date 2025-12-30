@@ -23,8 +23,8 @@ Test Categories:
 
 import pytest
 
-from core.environment import Environment
 from core.entities.base import Agent
+from core.environment import Environment
 
 
 class TestBehaviorStrategyProtocol:
@@ -221,8 +221,8 @@ class TestEnergyHolderProtocol:
 
     def test_fish_implements_energy_holder(self):
         """Fish should implement EnergyHolder protocol."""
-        from core.interfaces import EnergyHolder
         from core.entities.fish import Fish
+        from core.interfaces import EnergyHolder
         from core.movement_strategy import AlgorithmicMovement
 
         env = Environment(agents=[], width=800, height=600)
@@ -276,7 +276,6 @@ class TestWorldProtocolConformance:
 
     def test_environment_has_all_world_methods(self):
         """Environment should have all World protocol methods."""
-        from core.world import World
 
         env = Environment(width=800, height=600)
 
@@ -371,7 +370,7 @@ class TestProtocolEvolution:
 
     def test_algorithm_count_matches_registry(self):
         """Number of algorithms should match registry count."""
-        from core.algorithms.registry import ALL_ALGORITHMS, ALGORITHM_REGISTRY
+        from core.algorithms.registry import ALGORITHM_REGISTRY, ALL_ALGORITHMS
 
         assert len(ALL_ALGORITHMS) == len(
             ALGORITHM_REGISTRY

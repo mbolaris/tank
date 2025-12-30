@@ -1,6 +1,5 @@
 """Predator entity logic for crabs."""
 
-import random
 from typing import TYPE_CHECKING, Optional
 
 from core.config.entities import (
@@ -15,7 +14,6 @@ from core.entities.resources import Food
 from core.genetics import Genome
 
 if TYPE_CHECKING:
-    from core.environment import Environment
     from core.world import World
 
 

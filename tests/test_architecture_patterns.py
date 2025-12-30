@@ -4,11 +4,8 @@ These tests verify the new architectural improvements work correctly
 and provide good examples of how to use them.
 """
 
-import pytest
-from typing import List
-
-from core.systems.base import SystemResult, BaseSystem
-from core.cache_manager import CacheManager, CachedList
+from core.cache_manager import CachedList, CacheManager
+from core.systems.base import BaseSystem, SystemResult
 
 
 class TestSystemResult:
@@ -278,7 +275,6 @@ class TestCollisionSystemWithSystemResult:
 
     def test_collision_system_returns_system_result(self):
         """CollisionSystem._do_update should return a SystemResult."""
-        from core.collision_system import CollisionSystem
         from core.simulation.engine import SimulationEngine
 
         # Create engine and collision system
@@ -298,9 +294,8 @@ class TestCollisionSystemWithSystemResult:
 
     def test_collision_system_tracks_per_frame_stats(self):
         """CollisionSystem should track per-frame collision statistics."""
-        from core.collision_system import CollisionSystem
-        from core.simulation.engine import SimulationEngine
         from core.math_utils import Vector2
+        from core.simulation.engine import SimulationEngine
 
         # Create engine
         engine = SimulationEngine(headless=True)
@@ -352,7 +347,6 @@ class TestBaseSystemWithResult:
 
     def test_base_system_returns_result_from_subclass(self):
         """BaseSystem.update should return the result from _do_update."""
-        from core.systems.base import BaseSystem
 
         class TestSystem(BaseSystem):
             def __init__(self):
@@ -373,7 +367,6 @@ class TestBaseSystemWithResult:
 
     def test_base_system_returns_skipped_when_disabled(self):
         """BaseSystem.update should return skipped result when disabled."""
-        from core.systems.base import BaseSystem
 
         class TestSystem(BaseSystem):
             def __init__(self):
@@ -393,7 +386,6 @@ class TestBaseSystemWithResult:
 
     def test_base_system_handles_legacy_none_return(self):
         """BaseSystem.update should handle legacy systems returning None."""
-        from core.systems.base import BaseSystem
 
         class LegacySystem(BaseSystem):
             def __init__(self):

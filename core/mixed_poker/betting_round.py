@@ -14,7 +14,6 @@ Betting logic is separated from the main interaction class because:
 """
 
 import logging
-import random
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND

@@ -1,7 +1,8 @@
 import random
-from core.genetics import Genome
-from core.evolution.mutation import calculate_adaptive_mutation_rate
 import statistics
+
+from core.evolution.mutation import calculate_adaptive_mutation_rate
+from core.genetics import Genome
 
 R = random.Random(123)
 

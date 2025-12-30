@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import random as pyrandom
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, normalize_mate_preferences
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
@@ -29,7 +29,7 @@ def genome_to_dict(
     genome: Any,
     *,
     schema_version: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Serialize a genome into JSON-compatible primitives."""
     behavior = genome.behavioral.behavior.value if genome.behavioral.behavior else None
     behavior_dict = behavior.to_dict() if behavior is not None else None
@@ -38,11 +38,11 @@ def genome_to_dict(
     )
     poker_strategy_dict = poker_strategy.to_dict() if poker_strategy is not None else None
 
-    values: Dict[str, Any] = {}
+    values: dict[str, Any] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
     values.update(trait_values_to_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral))
 
-    trait_meta: Dict[str, Dict[str, float]] = {}
+    trait_meta: dict[str, dict[str, float]] = {}
     trait_meta.update(trait_meta_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
     trait_meta.update(trait_meta_to_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral))
 
@@ -74,11 +74,11 @@ def genome_to_dict(
 
 
 def genome_from_dict(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     *,
     schema_version_expected: int,
     genome_factory: Callable[[], Any],
-    rng: Optional[pyrandom.Random] = None,
+    rng: pyrandom.Random | None = None,
 ) -> Any:
     """Deserialize a genome from JSON-compatible primitives.
 
@@ -153,8 +153,8 @@ def genome_from_dict(
     try:
         strat_data = data.get("poker_strategy")
         if strat_data:
-            from core.poker.strategy.implementations import PokerStrategyAlgorithm
             from core.genetics.trait import GeneticTrait
+            from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
             strat = PokerStrategyAlgorithm.from_dict(strat_data)
             if genome.behavioral.poker_strategy is None:
@@ -170,17 +170,17 @@ def genome_from_dict(
     return genome
 
 
-def genome_debug_snapshot(genome: Any) -> Dict[str, Any]:
+def genome_debug_snapshot(genome: Any) -> dict[str, Any]:
     """Return a compact, stable dict for logging/debugging."""
-    trait_meta: Dict[str, Dict[str, float]] = {}
+    trait_meta: dict[str, dict[str, float]] = {}
     trait_meta.update(trait_meta_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
     trait_meta.update(trait_meta_to_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral))
 
-    values: Dict[str, Any] = {}
+    values: dict[str, Any] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
     values.update(trait_values_to_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral))
 
-    def _algo_name(algo: Any) -> Optional[str]:
+    def _algo_name(algo: Any) -> str | None:
         if algo is None:
             return None
         return type(algo).__name__

@@ -4,7 +4,6 @@ This module tests the core functionality of the solution tracking system,
 including solution creation, serialization, benchmarking, and comparison.
 """
 
-import json
 import os
 import tempfile
 from datetime import datetime
@@ -213,7 +212,7 @@ class TestSolutionTracker:
     def test_tracker_initialization(self):
         """Test tracker initialization."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            tracker = SolutionTracker(solutions_dir=tmpdir)
+            SolutionTracker(solutions_dir=tmpdir)
             assert os.path.exists(tmpdir)
 
     def test_save_and_load_solutions(self):

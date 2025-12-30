@@ -4,10 +4,9 @@ import random
 from core.ecosystem import EcosystemManager
 from core.entities import Fish
 from core.entities.plant import Plant
-from core.poker_interaction import PokerInteraction
+from core.genetics import PlantGenome
 from core.mixed_poker import MixedPokerInteraction, MixedPokerResult
 from core.movement_strategy import AlgorithmicMovement
-from core.genetics import PlantGenome
 from core.simulation.engine import SimulationEngine
 from core.skill_game_system import SkillGameSystem
 from core.skills.base import SkillGameResult

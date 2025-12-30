@@ -48,7 +48,7 @@ def test_genome_with_algorithm():
     assert genome.behavioral.behavior.value is not None, "Genome should have a composable behavior"
 
     behavior = genome.behavioral.behavior.value
-    print(f"✓ Genome created with composable behavior")
+    print("✓ Genome created with composable behavior")
     print(
         f"  Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}"
     )
@@ -75,12 +75,12 @@ def test_algorithm_inheritance():
     behavior1 = parent1.behavioral.behavior.value
     behavior2 = parent2.behavioral.behavior.value
 
-    print(f"Parent 1 composable behavior:")
+    print("Parent 1 composable behavior:")
     print(
         f"  Threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}"
     )
     print(f"  Food approach: {behavior1.food_approach.name if behavior1.food_approach else 'None'}")
-    print(f"Parent 2 composable behavior:")
+    print("Parent 2 composable behavior:")
     print(
         f"  Threat response: {behavior2.threat_response.name if behavior2.threat_response else 'None'}"
     )
@@ -97,7 +97,7 @@ def test_algorithm_inheritance():
     ), "Offspring should have a composable behavior"
 
     offspring_behavior = offspring.behavioral.behavior.value
-    print(f"\nOffspring composable behavior:")
+    print("\nOffspring composable behavior:")
     print(
         f"  Threat response: {offspring_behavior.threat_response.name if offspring_behavior.threat_response else 'None'}"
     )

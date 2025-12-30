@@ -1,14 +1,12 @@
-import sys
 import os
-import random
+import sys
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from core.genetics.genome import Genome
-from core.genetics.physical import PhysicalTraits
-from core.entities.fish import Fish
 from core.config.fish import LIFE_STAGE_MATURE_MAX
+from core.entities.fish import Fish
+from core.genetics.genome import Genome
 
 
 def verify_genetic_age():

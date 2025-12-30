@@ -95,10 +95,7 @@ class MultiplayerGameState:
         if self.current_round == BettingRound.FLOP:
             self.deck.deal(1)
             self.community_cards.extend(self.deck.deal(3))
-        elif self.current_round == BettingRound.TURN:
-            self.deck.deal(1)
-            self.community_cards.append(self.deck.deal_one())
-        elif self.current_round == BettingRound.RIVER:
+        elif self.current_round == BettingRound.TURN or self.current_round == BettingRound.RIVER:
             self.deck.deal(1)
             self.community_cards.append(self.deck.deal_one())
 
@@ -627,7 +624,7 @@ def determine_payouts(game_state: MultiplayerGameState) -> Dict[int, float]:
         return {}
 
     split_amount = game_state.pot / len(winners)
-    return {player_id: split_amount for player_id in winners}
+    return dict.fromkeys(winners, split_amount)
 
 
 # =============================================================================

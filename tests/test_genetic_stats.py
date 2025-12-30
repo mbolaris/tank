@@ -1,6 +1,7 @@
 """Unit tests for genetic_stats module."""
 
 from unittest.mock import MagicMock
+
 from core.services.stats.genetic_stats import get_genetic_distribution_stats
 
 
@@ -75,10 +76,10 @@ def test_empty_list():
 def test_composable_strategy_stats():
     """Test that composable poker strategy stats are correctly extracted."""
     from core.poker.strategy.composable import (
-        ComposablePokerStrategy,
         BettingStyle,
-        HandSelection,
         BluffingApproach,
+        ComposablePokerStrategy,
+        HandSelection,
     )
 
     fish = MockFish()

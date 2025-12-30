@@ -4,9 +4,7 @@ This function is used by CollisionSystem and PokerSystem to ensure
 poker game participants are all within mutual proximity (no chain connections).
 """
 
-import pytest
 from types import SimpleNamespace
-
 
 from core.poker_interaction import filter_mutually_proximate
 

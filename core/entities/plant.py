@@ -8,19 +8,17 @@ This replaces the old 'Plant' and 'FractalPlant' classes with a single unified '
 """
 
 import logging
-import random
 from typing import TYPE_CHECKING, Optional
 
 from core.entities.base import Agent
-from core.entity_ids import PlantId
-from core.state_machine import EntityState
-from core.genetics import PlantGenome
 from core.entities.resources import Food
+from core.entity_ids import PlantId
+from core.genetics import PlantGenome
+from core.state_machine import EntityState
 from core.telemetry.events import EnergyBurnEvent, EnergyGainEvent
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
-    from core.environment import Environment
     from core.root_spots import RootSpot
     from core.world import World
 
@@ -29,8 +27,8 @@ if TYPE_CHECKING:
 from core.config.plants import (
     PLANT_BASE_HEIGHT,
     PLANT_BASE_WIDTH,
-    PLANT_DAY_MODIFIER,
     PLANT_DAWN_DUSK_MODIFIER,
+    PLANT_DAY_MODIFIER,
     PLANT_DEATH_ENERGY,
     PLANT_ENERGY_GAIN_MULTIPLIER,
     PLANT_INITIAL_ENERGY,

@@ -1,7 +1,6 @@
 import logging
 import random
 import sys
-from typing import List
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -127,7 +126,7 @@ def run_simulation():
                 # Tie
                 pass
 
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"Plant Wins: {plant_wins}")
     print(f"Fish Wins: {fish_wins}")
     print(f"Plant Win Rate: {plant_wins/total_games*100:.1f}%")
@@ -141,5 +140,5 @@ if __name__ == "__main__":
 
     try:
         run_simulation()
-    except Exception as e:
+    except Exception:
         logger.exception("Simulation failed")

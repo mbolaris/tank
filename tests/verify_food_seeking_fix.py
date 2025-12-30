@@ -1,13 +1,11 @@
-import math
 import sys
 import unittest
-from dataclasses import dataclass
 
 # Add project root to path
 sys.path.append(".")
 
 from core.algorithms.base import Vector2
-from core.predictive_movement import predict_intercept_point, predict_falling_intercept
+from core.predictive_movement import predict_falling_intercept, predict_intercept_point
 
 
 class TestFoodPrediction(unittest.TestCase):
@@ -29,7 +27,7 @@ class TestFoodPrediction(unittest.TestCase):
 
         # Verification
         fish_time = (intercept - fish_pos).length() / fish_speed
-        target_time = (intercept - target_pos).length() / target_vel.length()
+        (intercept - target_pos).length() / target_vel.length()
 
         # Times should match
         self.assertAlmostEqual(fish_time, time, places=1)

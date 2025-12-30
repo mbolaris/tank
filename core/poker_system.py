@@ -14,24 +14,23 @@ Architecture Notes:
 import logging
 from collections import deque
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 from core.config.ecosystem import (
     FISH_POKER_MAX_DISTANCE,
-    FISH_POKER_MIN_DISTANCE,
 )
 from core.config.plants import (
     PLANT_POKER_MAX_DISTANCE,
-    PLANT_POKER_MIN_DISTANCE,
 )
 from core.config.server import POKER_ACTIVITY_ENABLED
 from core.mixed_poker import (
     MixedPokerInteraction,
-    should_trigger_plant_poker_asexual_reproduction,
+)
+from core.poker_interaction import (
+    MAX_PLAYERS as POKER_MAX_PLAYERS,
 )
 from core.poker_interaction import (
     PokerInteraction,
-    MAX_PLAYERS as POKER_MAX_PLAYERS,
 )
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase

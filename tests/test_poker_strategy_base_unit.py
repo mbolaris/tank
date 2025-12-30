@@ -1,7 +1,5 @@
 import math
 
-import pytest
-
 from core.poker.strategy.base import OpponentModel, PokerStrategyEngine
 
 
@@ -20,11 +18,46 @@ class FixedRng:
 def test_opponent_model_update_and_style():
     model = OpponentModel(fish_id=1)
     updates = [
-        dict(won=True, folded=False, raised=True, called=False, aggression=0.8, frame=10),
-        dict(won=False, folded=False, raised=False, called=True, aggression=0.4, frame=11),
-        dict(won=True, folded=False, raised=False, called=True, aggression=0.6, frame=12),
-        dict(won=False, folded=False, raised=False, called=True, aggression=0.3, frame=13),
-        dict(won=False, folded=True, raised=False, called=False, aggression=0.2, frame=14),
+        {
+            "won": True,
+            "folded": False,
+            "raised": True,
+            "called": False,
+            "aggression": 0.8,
+            "frame": 10,
+        },
+        {
+            "won": False,
+            "folded": False,
+            "raised": False,
+            "called": True,
+            "aggression": 0.4,
+            "frame": 11,
+        },
+        {
+            "won": True,
+            "folded": False,
+            "raised": False,
+            "called": True,
+            "aggression": 0.6,
+            "frame": 12,
+        },
+        {
+            "won": False,
+            "folded": False,
+            "raised": False,
+            "called": True,
+            "aggression": 0.3,
+            "frame": 13,
+        },
+        {
+            "won": False,
+            "folded": True,
+            "raised": False,
+            "called": False,
+            "aggression": 0.2,
+            "frame": 14,
+        },
     ]
 
     for update in updates:

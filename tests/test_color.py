@@ -1,7 +1,6 @@
 """Tests for core.color module."""
 
-import pytest
-from core.color import hue_to_rgb, FISH_COLOR_SATURATION
+from core.color import FISH_COLOR_SATURATION, hue_to_rgb
 
 
 class TestHueToRgb:

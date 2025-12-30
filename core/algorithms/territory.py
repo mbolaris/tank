@@ -14,7 +14,7 @@ This module contains 8 algorithms focused on spatial behavior and exploration:
 import math
 import random
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.display import (

@@ -7,14 +7,15 @@ These tests verify that:
 4. Protocol-based type checking works correctly
 """
 
-import pytest
 import random
-from typing import List, Tuple
+from typing import List
 
-from core.world import World, World2D, is_2d_world, get_2d_dimensions
-from core.interfaces import SkillfulAgent
-from core.environment import Environment
+import pytest
+
 from core.entities.base import Agent
+from core.environment import Environment
+from core.interfaces import SkillfulAgent
+from core.world import World, World2D, get_2d_dimensions, is_2d_world
 
 
 class TestWorldProtocol:
@@ -137,7 +138,7 @@ class TestSkillfulAgentProtocol:
 
     def test_protocol_is_runtime_checkable(self):
         """SkillfulAgent Protocol should be runtime checkable."""
-        from core.skills.base import SkillGameType, SkillStrategy, SkillGameResult
+        from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 
         # Create a mock class that implements the protocol
         class MockSkillfulAgent:

@@ -14,12 +14,11 @@ import random
 from types import SimpleNamespace
 from typing import List
 
-from core.telemetry.events import BirthEvent, ReproductionEvent
-
 from core.algorithms.energy_management import EnergyConserver
 from core.entities import Fish, LifeStage
 from core.fish.reproduction_component import ReproductionComponent
 from core.reproduction_system import ReproductionSystem
+from core.telemetry.events import BirthEvent, ReproductionEvent
 
 
 class MiniEcosystem:

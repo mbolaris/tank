@@ -5,13 +5,13 @@ This module contains the data structures used by the mixed poker system.
 
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 if TYPE_CHECKING:
-    from core.poker_interaction import PokerHand
-    from core.poker.betting.actions import BettingAction
     from core.entities import Fish
     from core.entities.plant import Plant
+    from core.poker.betting.actions import BettingAction
+    from core.poker_interaction import PokerHand
 
 Player = Union["Fish", "Plant"]
 

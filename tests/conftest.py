@@ -14,12 +14,12 @@ def seeded_rng():
 @pytest.fixture
 def simulation_env(seeded_rng):
     """Provide a clean simulation environment for each test."""
+    from core.agents_wrapper import AgentsWrapper
     from core.config.display import (
         SCREEN_HEIGHT,
         SCREEN_WIDTH,
     )
     from core.environment import Environment
-    from core.agents_wrapper import AgentsWrapper
 
     entities_list = []
     env = Environment(entities_list, SCREEN_WIDTH, SCREEN_HEIGHT, rng=seeded_rng)

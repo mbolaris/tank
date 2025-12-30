@@ -7,7 +7,7 @@ building phylogenetic trees in the frontend.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +26,13 @@ class LineageTracker:
 
     def __init__(self):
         """Initialize the lineage tracker."""
-        self.lineage_log: List[Dict[str, Any]] = []
-        self._alive_fish_ids: Set[int] = set()
-        self._fixed_orphans: Set[str] = (
+        self.lineage_log: list[dict[str, Any]] = []
+        self._alive_fish_ids: set[int] = set()
+        self._fixed_orphans: set[str] = (
             set()
         )  # Track already-fixed orphans to avoid repeat warnings
 
-    def update_alive_fish(self, alive_fish_ids: Set[int]) -> None:
+    def update_alive_fish(self, alive_fish_ids: set[int]) -> None:
         """Update the set of alive fish IDs and trigger smart pruning.
 
         Args:
@@ -44,12 +44,12 @@ class LineageTracker:
     def record_birth(
         self,
         fish_id: int,
-        parent_id: Optional[int],
+        parent_id: int | None,
         generation: int,
         algorithm_name: str,
         color: str,
         birth_frame: int,
-        tank_name: Optional[str] = None,
+        tank_name: str | None = None,
     ) -> None:
         """Record a fish birth in the lineage log.
 
@@ -76,7 +76,7 @@ class LineageTracker:
         # Add to alive set
         self._alive_fish_ids.add(fish_id)
 
-    def _build_ancestor_set(self, alive_ids: Set[int]) -> Set[str]:
+    def _build_ancestor_set(self, alive_ids: set[int]) -> set[str]:
         """Build the complete set of ancestor IDs for all living fish.
 
         Traces the ancestry chain for each living fish back to root,
@@ -89,9 +89,9 @@ class LineageTracker:
             Set of all ancestor IDs (as strings) that must be preserved
         """
         # Build ID -> record lookup for fast parent traversal
-        id_to_record: Dict[str, Dict[str, Any]] = {rec["id"]: rec for rec in self.lineage_log}
+        id_to_record: dict[str, dict[str, Any]] = {rec["id"]: rec for rec in self.lineage_log}
 
-        ancestors: Set[str] = set()
+        ancestors: set[str] = set()
         alive_str_ids = {str(fid) for fid in alive_ids}
 
         # For each living fish, trace back to root
@@ -128,7 +128,7 @@ class LineageTracker:
 
         # Find prunable records: not in ancestor set and not alive
         alive_str_ids = {str(fid) for fid in self._alive_fish_ids}
-        prunable_indices: List[int] = []
+        prunable_indices: list[int] = []
 
         for i, rec in enumerate(self.lineage_log):
             rec_id = rec["id"]
@@ -183,7 +183,7 @@ class LineageTracker:
 
         return orphan_count
 
-    def get_lineage_data(self, alive_fish_ids: Optional[Set[int]] = None) -> List[Dict[str, Any]]:
+    def get_lineage_data(self, alive_fish_ids: set[int] | None = None) -> list[dict[str, Any]]:
         """Get complete lineage data for phylogenetic tree visualization.
 
         Args:
@@ -207,7 +207,7 @@ class LineageTracker:
                 orphan_count,
             )
 
-        enriched_lineage: List[Dict[str, Any]] = []
+        enriched_lineage: list[dict[str, Any]] = []
 
         for record in self.lineage_log:
             sanitized = dict(record)

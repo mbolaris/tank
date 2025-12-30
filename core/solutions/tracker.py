@@ -12,10 +12,9 @@ import logging
 import os
 import subprocess
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from core.solutions.models import (
-    BenchmarkResult,
     SolutionMetadata,
     SolutionRecord,
 )
@@ -55,9 +54,9 @@ class SolutionTracker:
         self.auto_capture_enabled = auto_capture_enabled
 
         # Track best solutions seen
-        self._best_by_elo: Optional[SolutionRecord] = None
-        self._best_by_winrate: Optional[SolutionRecord] = None
-        self._best_by_roi: Optional[SolutionRecord] = None
+        self._best_by_elo: SolutionRecord | None = None
+        self._best_by_winrate: SolutionRecord | None = None
+        self._best_by_roi: SolutionRecord | None = None
 
         # History of captured solutions
         self._captured_hashes: set = set()
@@ -66,10 +65,10 @@ class SolutionTracker:
 
     def identify_best_fish(
         self,
-        fish_list: List["Fish"],
+        fish_list: list[Fish],
         metric: str = "elo",
         top_n: int = 5,
-    ) -> List[Tuple["Fish", float]]:
+    ) -> list[tuple[Fish, float]]:
         """Identify the best performing fish by a given metric.
 
         Args:
@@ -110,14 +109,14 @@ class SolutionTracker:
 
     def identify_best_fish_for_tournament(
         self,
-        fish_list: List["Fish"],
-        opponent_solutions: List[SolutionRecord],
+        fish_list: list[Fish],
+        opponent_solutions: list[SolutionRecord],
         *,
         candidate_pool_size: int = 12,
         hands_per_matchup: int = 500,
         top_n: int = 1,
         verbose: bool = False,
-    ) -> List[Tuple["Fish", float]]:
+    ) -> list[tuple[Fish, float]]:
         """Identify fish most likely to win a solution tournament.
 
         This method selects a pool of promising candidates using cheap heuristics,
@@ -146,7 +145,7 @@ class SolutionTracker:
 
         pool_per_metric = max(3, candidate_pool_size // 4)
         candidate_ids: set[int] = set()
-        candidates: List["Fish"] = []
+        candidates: list[Fish] = []
 
         def _add_top(metric: str) -> None:
             nonlocal candidates
@@ -188,7 +187,7 @@ class SolutionTracker:
 
         bench = SolutionBenchmark(SolutionBenchmarkConfig())
 
-        tournament_scores: List[Tuple["Fish", float]] = []
+        tournament_scores: list[tuple[Fish, float]] = []
         for fish in candidates:
             candidate_solution = self._build_solution_record_from_fish(
                 fish,
@@ -196,7 +195,7 @@ class SolutionTracker:
                 include_timestamp=False,
             )
 
-            win_rates: List[float] = []
+            win_rates: list[float] = []
             for opp in opponent_solutions:
                 wr, _ = bench.run_head_to_head(
                     candidate_solution, opp, hands_per_matchup, verbose=verbose
@@ -233,9 +232,9 @@ class SolutionTracker:
 
     def capture_solution(
         self,
-        fish: "Fish",
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        fish: Fish,
+        name: str | None = None,
+        description: str | None = None,
         author: str = "TankWorld",
     ) -> SolutionRecord:
         """Capture a fish's strategy as a SolutionRecord.
@@ -264,18 +263,18 @@ class SolutionTracker:
 
     def _build_solution_record_from_fish(
         self,
-        fish: "Fish",
+        fish: Fish,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        name: str | None = None,
+        description: str | None = None,
         author: str = "TankWorld",
         include_timestamp: bool = True,
     ) -> SolutionRecord:
         now = datetime.utcnow()
         submitted_at = now.isoformat()
 
-        behavior_data: Dict[str, Any] = {}
-        composable_data: Optional[Dict[str, Any]] = None
+        behavior_data: dict[str, Any] = {}
+        composable_data: dict[str, Any] | None = None
 
         if hasattr(fish, "genome") and fish.genome is not None:
             behavioral = fish.genome.behavioral
@@ -286,7 +285,7 @@ class SolutionTracker:
                 if hasattr(composable, "to_dict"):
                     composable_data = composable.to_dict()
 
-        poker_strategy: Dict[str, Any] = {}
+        poker_strategy: dict[str, Any] = {}
         strategy = getattr(fish, "get_poker_strategy", None)
         if callable(strategy):
             try:
@@ -298,7 +297,7 @@ class SolutionTracker:
             except Exception:
                 poker_strategy = {}
 
-        capture_stats: Dict[str, Any] = {}
+        capture_stats: dict[str, Any] = {}
         if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
             capture_stats = fish.poker_stats.get_stats_dict()
 
@@ -355,7 +354,7 @@ class SolutionTracker:
         logger.info(f"Saved solution to {filepath}")
         return filepath
 
-    def load_all_solutions(self) -> List[SolutionRecord]:
+    def load_all_solutions(self) -> list[SolutionRecord]:
         """Load all solutions from the solutions directory.
 
         Returns:
@@ -382,7 +381,7 @@ class SolutionTracker:
     def submit_to_git(
         self,
         solution: SolutionRecord,
-        commit_message: Optional[str] = None,
+        commit_message: str | None = None,
         push: bool = True,
     ) -> bool:
         """Submit a solution to git for sharing.
@@ -453,7 +452,7 @@ class SolutionTracker:
             logger.error(f"Failed to submit solution to git: {e}")
             return False
 
-    def get_best_solution(self, metric: str = "elo") -> Optional[SolutionRecord]:
+    def get_best_solution(self, metric: str = "elo") -> SolutionRecord | None:
         """Get the best solution by a given metric.
 
         Args:
@@ -472,9 +471,9 @@ class SolutionTracker:
 
     def update_best_if_improved(
         self,
-        fish: "Fish",
+        fish: Fish,
         author: str = "TankWorld",
-    ) -> Optional[SolutionRecord]:
+    ) -> SolutionRecord | None:
         """Update best solution if the fish is an improvement.
 
         Args:
@@ -523,7 +522,7 @@ class SolutionTracker:
         """
         return solution.compute_hash() in self._captured_hashes
 
-    def _get_git_commit(self) -> Optional[str]:
+    def _get_git_commit(self) -> str | None:
         """Get the current git commit SHA."""
         try:
             result = subprocess.run(
@@ -536,7 +535,7 @@ class SolutionTracker:
         except Exception:
             return None
 
-    def _get_git_branch(self) -> Optional[str]:
+    def _get_git_branch(self) -> str | None:
         """Get the current git branch name."""
         try:
             result = subprocess.run(
@@ -551,8 +550,8 @@ class SolutionTracker:
 
     def generate_leaderboard(
         self,
-        solutions: Optional[List[SolutionRecord]] = None,
-    ) -> List[Dict[str, Any]]:
+        solutions: list[SolutionRecord] | None = None,
+    ) -> list[dict[str, Any]]:
         """Generate a leaderboard from solutions.
 
         Args:

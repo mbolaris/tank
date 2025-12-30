@@ -31,8 +31,8 @@ from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
-    from core.simulation import SimulationEngine
     from core.config.simulation_config import DisplayConfig
+    from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
 

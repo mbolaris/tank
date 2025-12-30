@@ -14,16 +14,13 @@ import pytest
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.composable import (
+    POKER_SUB_BEHAVIOR_PARAMS,
     BettingStyle,
     BluffingApproach,
-    CFR_ACTIONS,
-    CFR_INHERITANCE_DECAY,
     ComposablePokerStrategy,
     HandSelection,
     PositionAwareness,
     ShowdownTendency,
-    SimpleOpponentModel,
-    POKER_SUB_BEHAVIOR_PARAMS,
 )
 from core.poker.strategy.implementations import crossover_poker_strategies
 
@@ -338,11 +335,11 @@ class TestStrategyDiversity:
         strategies = [ComposablePokerStrategy.create_random(rng) for _ in range(100)]
 
         # Should see multiple different hand selections
-        hand_selections = set(s.hand_selection for s in strategies)
+        hand_selections = {s.hand_selection for s in strategies}
         assert len(hand_selections) >= 3  # At least 3 of 4 options
 
         # Should see multiple bluffing approaches
-        bluff_approaches = set(s.bluffing_approach for s in strategies)
+        bluff_approaches = {s.bluffing_approach for s in strategies}
         assert len(bluff_approaches) >= 3
 
     def test_offspring_can_differ_from_parents(self):
