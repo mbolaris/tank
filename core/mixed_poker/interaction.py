@@ -586,8 +586,8 @@ class MixedPokerInteraction:
         for player in self.players:
             self._set_player_cooldown(player)
 
-        # Update poker stats
-        self._update_poker_stats(best_hand_idx, tied_players, game_state.player_total_bets)
+        # Update poker stats (pass actual button position for correct stats)
+        self._update_poker_stats(best_hand_idx, tied_players, game_state.player_total_bets, game_state.button_position)
 
         # Update CFR learning for fish with composable strategies (delegated)
         update_cfr_learning(
@@ -610,7 +610,7 @@ class MixedPokerInteraction:
         return True
 
     def _update_poker_stats(
-        self, winner_idx: int, tied_players: List[int], player_bets: List[float]
+        self, winner_idx: int, tied_players: List[int], player_bets: List[float], button_position: int = 0
     ) -> None:
         """Update poker statistics for fish players."""
         from core.entities import Fish
@@ -646,8 +646,8 @@ class MixedPokerInteraction:
                 if self.player_hands[i]:
                     hand_rank = self.player_hands[i].rank_value
                 
-                # Button position is fixed at 0 in play_poker()
-                on_button = (i == 0)
+                # Use actual button position from the game state
+                on_button = (i == button_position)
                 
                 if is_winner and not is_tie:
                     # Winner
