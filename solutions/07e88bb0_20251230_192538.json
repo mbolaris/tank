@@ -277,5 +277,55 @@
     "recent_win_rate": 0.5,
     "skill_trend": "stable"
   },
-  "benchmark_result": null
+  "benchmark_result": {
+    "per_opponent": {
+      "always_fold": 208.0,
+      "random": 1171.8793914246194,
+      "loose_passive": 224.5185213414634,
+      "tight_passive": 151.08995482327933,
+      "tight_aggressive": 263.18880952380954,
+      "loose_aggressive": 3074.2993273542606,
+      "balanced": 90.75082248115146,
+      "maniac": 1360.9837719298248
+    },
+    "weighted_bb_per_100": 781.8958283884662,
+    "total_hands_played": 19677,
+    "elo_rating": 1582.6553168166306,
+    "confidence_intervals": {
+      "always_fold": [
+        205.31715366738152,
+        210.68284633261848
+      ],
+      "random": [
+        1022.0723790647388,
+        1597.6244910629966
+      ],
+      "loose_passive": [
+        157.2998253381695,
+        296.8670425132962
+      ],
+      "tight_passive": [
+        50.499785745023075,
+        301.9327722159587
+      ],
+      "tight_aggressive": [
+        92.67034378007133,
+        514.1384695578107
+      ],
+      "loose_aggressive": [
+        2690.7249421856977,
+        4202.568739530385
+      ],
+      "balanced": [
+        20.971567261940322,
+        306.9728538185238
+      ],
+      "maniac": [
+        -1888.5646425450952,
+        5351.717236682783
+      ]
+    },
+    "skill_tier": "expert",
+    "evaluated_at": "2025-12-30T20:35:15.662190"
+  }
 }
