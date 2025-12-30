@@ -167,21 +167,40 @@ export function useWebSocket(tankId?: string) {
 }
 
 function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
-    const entityMap = new Map(state.entities.map((e) => [e.id, { ...e }]));
+    // Optimization: Only create copies of entities that are actually modified.
+    // Previously we spread-copied ALL entities every frame, creating ~45 objects x 30fps = 1350 allocations/sec.
 
-    delta.removed.forEach((id) => entityMap.delete(id));
-    delta.added.forEach((entity) => entityMap.set(entity.id, entity));
+    // Build a set of IDs to remove for O(1) lookup
+    const removedIds = new Set(delta.removed);
 
-    delta.updates.forEach((update) => {
-        const existing = entityMap.get(update.id);
-        if (existing) {
-            existing.x = update.x;
-            existing.y = update.y;
-            existing.vel_x = update.vel_x;
-            existing.vel_y = update.vel_y;
-            if (update.poker_effect_state !== undefined) {
-                existing.poker_effect_state = update.poker_effect_state;
+    // Build a map of updates for O(1) lookup
+    const updateMap = new Map(delta.updates.map(u => [u.id, u]));
+
+    // Filter out removed entities and update existing ones IN PLACE where possible
+    const entities = state.entities
+        .filter(e => !removedIds.has(e.id))
+        .map(e => {
+            const update = updateMap.get(e.id);
+            if (update) {
+                // Only create a new object if there's actually an update
+                return {
+                    ...e,
+                    x: update.x,
+                    y: update.y,
+                    vel_x: update.vel_x,
+                    vel_y: update.vel_y,
+                    ...(update.poker_effect_state !== undefined && { poker_effect_state: update.poker_effect_state }),
+                };
             }
+            // No update - reuse the same object reference
+            return e;
+        });
+
+    // Add new entities
+    delta.added.forEach(entity => {
+        // Only add if not already in the list (shouldn't happen but defensive)
+        if (!entities.some(e => e.id === entity.id)) {
+            entities.push(entity);
         }
     });
 
@@ -190,7 +209,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         tank_id: delta.tank_id ?? state.tank_id,
         frame: delta.frame,
         elapsed_time: delta.elapsed_time,
-        entities: Array.from(entityMap.values()),
+        entities,
         poker_events: (delta.poker_events && delta.poker_events.length > 0) ? delta.poker_events.slice(-100) : state.poker_events,
         stats: delta.stats ?? state.stats,
     };

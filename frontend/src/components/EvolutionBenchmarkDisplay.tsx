@@ -716,7 +716,11 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
     }, [tankId]);
 
     const latest = data?.latest ?? null;
-    const history = useMemo(() => data?.history ?? [], [data?.history]);
+    const history = useMemo(() => {
+        const fullHistory = data?.history ?? [];
+        // Limit to most recent 200 snapshots to prevent memory growth
+        return fullHistory.length > 200 ? fullHistory.slice(-200) : fullHistory;
+    }, [data?.history]);
     const improvementValue = data?.improvement ?? {};
     const improvement: BenchmarkImprovementMetrics = isImprovementMetrics(improvementValue)
         ? (improvementValue as BenchmarkImprovementMetrics)
