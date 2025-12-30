@@ -60,7 +60,7 @@ def capture_solution_from_world(world: TankWorld, name: str, author: str) -> Sol
 
     for fish in fish_list:
         score = fish.energy
-        if hasattr(fish, 'poker_stats') and fish.poker_stats:
+        if hasattr(fish, "poker_stats") and fish.poker_stats:
             score += fish.poker_stats.total_games * 10
             if fish.poker_stats.wins > 0:
                 score += fish.poker_stats.wins * 5
@@ -96,14 +96,22 @@ def run_tournament():
     print()
 
     tracker = SolutionTracker()
-    benchmark = SolutionBenchmark(SolutionBenchmarkConfig(
-        hands_per_opponent=300,
-        num_duplicate_sets=15,
-        opponents=[
-            "always_fold", "random", "loose_passive", "tight_passive",
-            "tight_aggressive", "loose_aggressive", "maniac", "balanced"
-        ],
-    ))
+    benchmark = SolutionBenchmark(
+        SolutionBenchmarkConfig(
+            hands_per_opponent=300,
+            num_duplicate_sets=15,
+            opponents=[
+                "always_fold",
+                "random",
+                "loose_passive",
+                "tight_passive",
+                "tight_aggressive",
+                "loose_aggressive",
+                "maniac",
+                "balanced",
+            ],
+        )
+    )
 
     # Load existing solutions
     existing_solutions = tracker.load_all_solutions()
@@ -119,8 +127,8 @@ def run_tournament():
         print(f"\nSimulating {model['name']}...")
         print(f"  Running {model['frames']} frames with seed {model['seed']}")
 
-        world = run_simulation(model['seed'], model['frames'])
-        solution = capture_solution_from_world(world, model['name'], model['author'])
+        world = run_simulation(model["seed"], model["frames"])
+        solution = capture_solution_from_world(world, model["name"], model["author"])
 
         # Save the solution
         filepath = tracker.save_solution(solution)
@@ -138,7 +146,9 @@ def run_tournament():
             print(f"\n[{i}/{len(all_solutions)}] Evaluating {solution.metadata.name}...")
             result = evaluate_solution(solution, benchmark)
             tracker.save_solution(solution)
-            print(f"  Elo: {result.elo_rating:.0f} | Tier: {result.skill_tier} | bb/100: {result.weighted_bb_per_100:+.2f}")
+            print(
+                f"  Elo: {result.elo_rating:.0f} | Tier: {result.skill_tier} | bb/100: {result.weighted_bb_per_100:+.2f}"
+            )
         else:
             print(f"\n[{i}/{len(all_solutions)}] {solution.metadata.name} (already evaluated)")
             print(f"  Elo: {solution.benchmark_result.elo_rating:.0f}")
@@ -159,7 +169,7 @@ def run_tournament():
     sorted_solutions = sorted(
         all_solutions,
         key=lambda s: s.benchmark_result.elo_rating if s.benchmark_result else 0,
-        reverse=True
+        reverse=True,
     )
 
     print(f"\n{'Rank':<6} {'AI Model':<30} {'Elo':<8} {'Tier':<14} {'bb/100':<10}")
@@ -167,8 +177,10 @@ def run_tournament():
 
     for rank, sol in enumerate(sorted_solutions, 1):
         if sol.benchmark_result:
-            print(f"#{rank:<5} {sol.metadata.name:<30} {sol.benchmark_result.elo_rating:<8.0f} "
-                  f"{sol.benchmark_result.skill_tier:<14} {sol.benchmark_result.weighted_bb_per_100:>+.2f}")
+            print(
+                f"#{rank:<5} {sol.metadata.name:<30} {sol.benchmark_result.elo_rating:<8.0f} "
+                f"{sol.benchmark_result.skill_tier:<14} {sol.benchmark_result.weighted_bb_per_100:>+.2f}"
+            )
 
     print("\n" + "=" * 70)
     print(f"Tournament completed at {datetime.now().isoformat()}")

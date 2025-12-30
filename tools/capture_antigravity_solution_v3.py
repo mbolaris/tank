@@ -14,6 +14,7 @@ from core.tank_world import TankWorld, TankWorldConfig
 from core.solutions import SolutionTracker, SolutionBenchmark, SolutionRecord
 from core.solutions.models import SolutionMetadata, BenchmarkResult
 from core.solutions.benchmark import SolutionBenchmarkConfig
+
 # from core.solutions.tracker import BENCHMARK_OPPONENTS
 
 BENCHMARK_OPPONENTS = [
@@ -24,7 +25,7 @@ BENCHMARK_OPPONENTS = [
     "tight_aggressive",
     "loose_aggressive",
     "maniac",
-    "balanced"
+    "balanced",
 ]
 
 logging.basicConfig(
@@ -58,24 +59,29 @@ def run_simulation_for_poker(max_frames: int = 150000, seed: int = 12345):
         if frame > 0 and frame % stats_interval == 0:
             # Check poker activity
             from core.entities import Fish
+
             fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
 
             poker_games = 0
             for fish in fish_list:
-                if hasattr(fish, 'poker_stats') and fish.poker_stats:
+                if hasattr(fish, "poker_stats") and fish.poker_stats:
                     poker_games += fish.poker_stats.total_games
 
             logger.info(f"Frame {frame}: {len(fish_list)} fish, {poker_games} total poker games")
-            
+
             # Safety check for extinction
             if len(fish_list) < 5:
-                logger.warning("Population critical! Evolution might be failing due to harsh conditions.")
+                logger.warning(
+                    "Population critical! Evolution might be failing due to harsh conditions."
+                )
 
     logger.info(f"Simulation complete at frame {max_frames}")
     return world
 
 
-def capture_best_solution(world, author: str = "Antigravity", name: str = "Antigravity Poker Supreme"):
+def capture_best_solution(
+    world, author: str = "Antigravity", name: str = "Antigravity Poker Supreme"
+):
     """Capture the best performing fish as a solution."""
     from core.entities import Fish
 
@@ -87,7 +93,7 @@ def capture_best_solution(world, author: str = "Antigravity", name: str = "Antig
     # Find fish with poker experience
     poker_fish = []
     for fish in fish_list:
-        if hasattr(fish, 'poker_stats') and fish.poker_stats:
+        if hasattr(fish, "poker_stats") and fish.poker_stats:
             games = fish.poker_stats.total_games
             if games > 0:
                 poker_fish.append((fish, games))
@@ -133,7 +139,7 @@ def evaluate_solution(solution: SolutionRecord):
     config = SolutionBenchmarkConfig(
         hands_per_opponent=200,
         num_duplicate_sets=10,
-        opponents=BENCHMARK_OPPONENTS, # Use all available opponents
+        opponents=BENCHMARK_OPPONENTS,  # Use all available opponents
     )
 
     benchmark = SolutionBenchmark(config)
@@ -158,11 +164,7 @@ def main():
     world = run_simulation_for_poker(max_frames=150000, seed=12345)
 
     # Capture best solution
-    solution = capture_best_solution(
-        world,
-        author="Antigravity",
-        name="Antigravity Poker Supreme"
-    )
+    solution = capture_best_solution(world, author="Antigravity", name="Antigravity Poker Supreme")
 
     if solution is None:
         logger.error("Failed to capture solution - no fish found!")
@@ -177,6 +179,7 @@ def main():
     except Exception as e:
         logger.error(f"Evaluation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return
 

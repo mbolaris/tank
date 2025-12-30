@@ -91,7 +91,9 @@ def evaluate_candidates(
     from core.entities import Fish
 
     if not candidates:
-        logger.warning("No candidates met the poker games threshold; falling back to highest energy fish.")
+        logger.warning(
+            "No candidates met the poker games threshold; falling back to highest energy fish."
+        )
         fallback_list = [f for f in fish_list if isinstance(f, Fish)]
         if not fallback_list:
             return None, None, None, None
@@ -154,15 +156,21 @@ def evaluate_candidates(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Capture GPT-5.2 poker solutions with extended simulation.")
-    parser.add_argument("--frames", type=int, default=100000, help="Frames per simulation run (default: 100000)")
+    parser = argparse.ArgumentParser(
+        description="Capture GPT-5.2 poker solutions with extended simulation."
+    )
+    parser.add_argument(
+        "--frames", type=int, default=100000, help="Frames per simulation run (default: 100000)"
+    )
     parser.add_argument(
         "--seeds",
         type=str,
         default="8888",
         help="Comma-separated list of seeds to try (default: 8888)",
     )
-    parser.add_argument("--min-games", type=int, default=100, help="Minimum poker games to consider a fish")
+    parser.add_argument(
+        "--min-games", type=int, default=100, help="Minimum poker games to consider a fish"
+    )
     parser.add_argument("--hands", type=int, default=200, help="Hands per opponent for benchmark")
     parser.add_argument("--duplicates", type=int, default=10, help="Duplicate sets for benchmark")
 

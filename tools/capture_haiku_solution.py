@@ -46,11 +46,12 @@ def run_simulation_for_poker(max_frames: int = 75000, seed: int = 4545):
         if frame > 0 and frame % stats_interval == 0:
             # Check poker activity
             from core.entities import Fish
+
             fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
 
             poker_games = 0
             for fish in fish_list:
-                if hasattr(fish, 'poker_stats') and fish.poker_stats:
+                if hasattr(fish, "poker_stats") and fish.poker_stats:
                     poker_games += fish.poker_stats.total_games
 
             logger.info(f"Frame {frame}: {len(fish_list)} fish, {poker_games} total poker games")
@@ -71,7 +72,7 @@ def capture_best_solution(world, author: str = "Haiku-4.5", name: str = "Haiku-4
     # Find fish with poker experience
     poker_fish = []
     for fish in fish_list:
-        if hasattr(fish, 'poker_stats') and fish.poker_stats:
+        if hasattr(fish, "poker_stats") and fish.poker_stats:
             games = fish.poker_stats.total_games
             if games > 0:
                 poker_fish.append((fish, games))
@@ -125,7 +126,7 @@ def evaluate_solution(solution: SolutionRecord):
             "tight_aggressive",
             "loose_aggressive",
             "maniac",
-            "balanced"
+            "balanced",
         ],
     )
 
@@ -151,11 +152,7 @@ def main():
     world = run_simulation_for_poker(max_frames=75000, seed=4545)
 
     # Capture best solution
-    solution = capture_best_solution(
-        world,
-        author="Haiku-4.5",
-        name="Haiku-4.5 Poker Master"
-    )
+    solution = capture_best_solution(world, author="Haiku-4.5", name="Haiku-4.5 Poker Master")
 
     if solution is None:
         logger.error("Failed to capture solution - no fish found!")
@@ -170,6 +167,7 @@ def main():
     except Exception as e:
         logger.error(f"Evaluation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return
 

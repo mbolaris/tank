@@ -14,19 +14,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.solutions import SolutionBenchmark, SolutionRecord
 
+
 def find_latest_solution():
     """Find the most recently created solution file."""
     solutions_dir = Path("solutions")
     solution_files = sorted(
         [f for f in solutions_dir.glob("*_*.json") if f.is_file()],
         key=lambda x: x.stat().st_mtime,
-        reverse=True
+        reverse=True,
     )
 
     if not solution_files:
         return None
 
     return solution_files[0]
+
 
 def evaluate_solution(solution_path):
     """Evaluate a solution and print detailed report."""
@@ -76,13 +78,12 @@ def evaluate_solution(solution_path):
     print(f"Total Hands: {result.total_hands_played}")
 
     print(f"\nPer-Opponent Performance:")
-    for opponent, bb100 in sorted(result.per_opponent.items(),
-                                   key=lambda x: x[1], reverse=True):
+    for opponent, bb100 in sorted(result.per_opponent.items(), key=lambda x: x[1], reverse=True):
         print(f"  {opponent:20s}: {bb100:+8.2f} bb/100")
 
     # Save updated solution with benchmark results
     output_path = solution_path
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(solution.to_dict(), f, indent=2)
 
     print(f"\n{'='*70}")
@@ -102,6 +103,7 @@ def evaluate_solution(solution_path):
     print(f"{'─'*70}")
 
     return solution
+
 
 if __name__ == "__main__":
     latest = find_latest_solution()
