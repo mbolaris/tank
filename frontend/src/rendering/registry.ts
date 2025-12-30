@@ -53,6 +53,12 @@ class RendererRegistry {
         this.instances.clear();
     }
 
+    // Check if a renderer is registered for this world/view combination
+    hasRenderer(worldType: WorldType, viewMode: ViewMode): boolean {
+        const key = this.getKey(worldType, viewMode);
+        return this.factories.has(key);
+    }
+
     private getKey(worldType: WorldType, viewMode: ViewMode): string {
         return `${worldType}:${viewMode}`;
     }

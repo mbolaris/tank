@@ -109,10 +109,11 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         // Initialize renderers (idempotent)
         initRenderers();
 
-        const worldType = 'tank'; // Hardcoded for now, or derive from state/props if passed
+        // Initial renderer setup - will be updated in render loop based on state
+        const initialWorldType = 'tank'; // Default until state arrives
         const effectiveViewMode = viewMode || 'side';
 
-        const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
+        const renderer = rendererRegistry.getRenderer(initialWorldType, effectiveViewMode);
         rendererRef.current = renderer;
 
         // Preload images
@@ -135,7 +136,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             if (currentState && !error) {
                 try {
                     // Get fresh renderer for the current mode (use ref to avoid stale closure)
-                    const worldType = 'tank';
+                    // Derive worldType from state, defaulting to 'tank' for backwards compatibility
+                    const worldType = (currentState as any)?.world_type ?? 'tank';
                     const effectiveViewMode = viewModeRef.current || 'side';
                     const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
                     rendererRef.current = renderer;
