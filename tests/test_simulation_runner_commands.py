@@ -6,22 +6,32 @@ from backend.simulation_runner import SimulationRunner
 class TestSimulationRunnerCommands:
     @pytest.fixture
     def runner(self):
-        """Create a SimulationRunner with mocked world."""
-        with patch('backend.simulation_runner.TankWorld') as MockWorld:
+        """Create a SimulationRunner with mocked world via registry."""
+        # Patch create_world to return mock world and snapshot builder
+        with patch('backend.simulation_runner.create_world') as mock_create_world, \
+             patch('backend.simulation_runner.get_world_metadata') as mock_get_metadata:
             import random
+            
             # Configure mock world
-            mock_world_instance = MockWorld.return_value
-            # Use MagicMock for rng but configure choices() for Food creation
-            mock_world_instance.rng = MagicMock()
-            mock_world_instance.rng.randint.return_value = 100
-            mock_world_instance.rng.choices.return_value = ["algae"]  # Valid food type
-            mock_world_instance.environment = MagicMock()
-            # Alias environment.rng to world.rng so mocks are shared
-            mock_world_instance.environment.rng = mock_world_instance.rng
-            # Configure default return values for rng
-            mock_world_instance.rng.choices.return_value = ["algae"]
-            mock_world_instance.ecosystem = MagicMock()
-            mock_world_instance.entities_list = []
+            mock_world = MagicMock()
+            mock_snapshot_builder = MagicMock()
+            mock_create_world.return_value = (mock_world, mock_snapshot_builder)
+            
+            # Configure mock metadata
+            mock_metadata = MagicMock()
+            mock_metadata.view_mode = "side"
+            mock_get_metadata.return_value = mock_metadata
+            
+            # Configure mock world properties
+            mock_world.rng = MagicMock()
+            mock_world.rng.randint.return_value = 100
+            mock_world.rng.choices.return_value = ["algae"]  # Valid food type
+            mock_world.environment = MagicMock()
+            mock_world.environment.rng = mock_world.rng
+            mock_world.ecosystem = MagicMock()
+            mock_world.entities_list = []
+            mock_world.paused = False
+            mock_world.frame_count = 0
 
             runner = SimulationRunner(seed=123)
             # Mock the invalidate_state_cache method to avoid side effects

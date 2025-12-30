@@ -31,6 +31,7 @@ from backend.state_payloads import (
     StatsPayload,
 )
 from backend.entity_snapshot_builder import EntitySnapshotBuilder
+from backend.world_registry import create_world, get_world_metadata
 from core import entities, movement_strategy
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.config.display import (
@@ -46,9 +47,6 @@ from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
 from core.plant_poker_strategy import PlantPokerStrategyAdapter
 
-# Use absolute imports assuming tank/ is in PYTHONPATH
-from core.tank_world import TankWorld, TankWorldConfig
-
 logger = logging.getLogger(__name__)
 
 
@@ -63,6 +61,7 @@ class SimulationRunner(CommandHandlerMixin):
         seed: Optional[int] = None,
         tank_id: Optional[str] = None,
         tank_name: Optional[str] = None,
+        world_type: str = "tank",
     ):
         """Initialize the simulation runner.
 
@@ -70,15 +69,17 @@ class SimulationRunner(CommandHandlerMixin):
             seed: Optional random seed for deterministic behavior
             tank_id: Optional unique identifier for the tank
             tank_name: Optional human-readable name for the tank
+            world_type: Type of world to create (default "tank")
         """
-        # Create TankWorld configuration
-        config = TankWorldConfig(headless=True)
+        # Create world via registry (world-agnostic)
+        self.world, self._entity_snapshot_builder = create_world(world_type, seed=seed)
 
-        # Create TankWorld instance
-        self.world = TankWorld(config=config, seed=seed)
-        self.world.setup()
+        # Store world metadata for payloads
+        metadata = get_world_metadata(world_type)
+        self.world_type = world_type
+        self.view_mode = metadata.view_mode if metadata else "side"
 
-        # Tanks start unpaused by default - they run as soon as the server starts
+        # Worlds start unpaused by default - they run as soon as the server starts
         self.world.paused = False
 
         self.running = False
@@ -148,8 +149,7 @@ class SimulationRunner(CommandHandlerMixin):
         self._migration_handler_deps = (None, None)  # (connection_manager, tank_registry)
         self.migration_lock = threading.Lock()
 
-        # Entity snapshot conversion (stable IDs, DTO mapping, z-order sort)
-        self._entity_snapshot_builder = EntitySnapshotBuilder()
+        # Note: _entity_snapshot_builder is created by create_world() above
 
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
@@ -568,7 +568,9 @@ class SimulationRunner(CommandHandlerMixin):
                     poker_events=poker_events, # Include events in full update
                     auto_evaluation=self._collect_auto_eval(), # Re-using existing _collect_auto_eval
                     tank_id=self.tank_id,
-                    poker_leaderboard=self._collect_poker_leaderboard() # Re-using existing _collect_poker_leaderboard
+                    poker_leaderboard=self._collect_poker_leaderboard(), # Re-using existing _collect_poker_leaderboard
+                    world_type=self.world_type,
+                    view_mode=self.view_mode,
                 )
             else:
                 # Delta update
@@ -591,7 +593,9 @@ class SimulationRunner(CommandHandlerMixin):
                     removed=removed,
                     stats=stats,
                     # poker_events=poker_events, # REMOVED from delta to prevent leak/bloat
-                    tank_id=self.tank_id
+                    tank_id=self.tank_id,
+                    world_type=self.world_type,
+                    view_mode=self.view_mode,
                 )
                 self._last_entities = current_entities
 
@@ -641,6 +645,8 @@ class SimulationRunner(CommandHandlerMixin):
             poker_events=poker_events,
             poker_leaderboard=poker_leaderboard,
             auto_evaluation=auto_eval,
+            world_type=self.world_type,
+            view_mode=self.view_mode,
         )
 
     def _collect_entities(self) -> List[EntitySnapshot]:

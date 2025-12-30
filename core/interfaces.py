@@ -54,7 +54,7 @@ Use isinstance() checks with @runtime_checkable protocols:
         entity.modify_energy(-10.0)
 """
 
-from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
 # Explicit public API for this module
 __all__ = [
@@ -77,6 +77,8 @@ __all__ = [
     "MigrationHandler",
     "MigrationCapable",
     "TelemetrySink",
+    # World protocols
+    "WorldBackend",
 ]
 
 if TYPE_CHECKING:
@@ -635,3 +637,62 @@ class MigrationCapable(Protocol):
     def tank_id(self) -> Optional[str]:
         """Get the tank identifier for migration tracking."""
         ...
+
+
+@runtime_checkable
+class WorldBackend(Protocol):
+    """Generic world backend that can be stepped and queried.
+
+    This protocol defines the interface that any world (Tank, Petri, Soccer, etc.)
+    must implement to be driven by the generic `WorldRunner`. TankWorld already
+    satisfies this protocol.
+
+    Design Philosophy:
+        - Worlds are self-contained simulations with entities
+        - Worlds support pause/resume and reset
+        - Worlds provide statistics for UI display
+        - The protocol abstracts away world-specific details
+
+    Example:
+        class PetriWorld:
+            def setup(self) -> None: ...
+            def update(self) -> None: ...
+            # ... other required methods
+    """
+
+    @property
+    def frame_count(self) -> int:
+        """Current frame/step number."""
+        ...
+
+    @property
+    def paused(self) -> bool:
+        """Whether the simulation is paused."""
+        ...
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set pause state."""
+        ...
+
+    @property
+    def entities_list(self) -> List[Any]:
+        """Get list of all entities in the world."""
+        ...
+
+    def setup(self) -> None:
+        """Initialize the world (create initial entities, etc.)."""
+        ...
+
+    def update(self) -> None:
+        """Advance the simulation by one frame/step."""
+        ...
+
+    def reset(self) -> None:
+        """Reset the world to initial state."""
+        ...
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get current simulation statistics."""
+        ...
+
