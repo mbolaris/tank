@@ -13,9 +13,7 @@ def test_adapter_update_avoids_expensive_calls():
 
     # Mock the underlying world's expensive methods
     # We want to ensure these are NOT called during update()
-    with patch.object(
-        TankWorld, "get_stats", wraps=adapter._world.get_stats
-    ) as mock_get_stats:
+    with patch.object(TankWorld, "get_stats", wraps=adapter._world.get_stats) as mock_get_stats:
         with patch.object(
             TankWorld, "get_recent_poker_events", wraps=adapter._world.get_recent_poker_events
         ) as mock_get_events:

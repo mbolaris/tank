@@ -94,9 +94,7 @@ class WorldRegistry:
 
         factory = _WORLD_FACTORIES.get(mode_pack.world_type)
         if factory is None:
-            raise NotImplementedError(
-                f"World type '{mode_pack.world_type}' not yet implemented."
-            )
+            raise NotImplementedError(f"World type '{mode_pack.world_type}' not yet implemented.")
 
         return factory(seed=seed, **normalized)
 
@@ -116,9 +114,7 @@ class WorldRegistry:
         statuses: Dict[str, str] = {}
         for mode_id, mode_pack in _MODE_PACKS.items():
             status = (
-                "implemented"
-                if mode_pack.world_type in _WORLD_FACTORIES
-                else "not_implemented"
+                "implemented" if mode_pack.world_type in _WORLD_FACTORIES else "not_implemented"
             )
             statuses[mode_id] = status
         return statuses
@@ -129,9 +125,7 @@ class WorldRegistry:
         statuses: Dict[str, str] = {}
         for mode_pack in _MODE_PACKS.values():
             status = (
-                "implemented"
-                if mode_pack.world_type in _WORLD_FACTORIES
-                else "not_implemented"
+                "implemented" if mode_pack.world_type in _WORLD_FACTORIES else "not_implemented"
             )
             if status == "implemented" or mode_pack.world_type not in statuses:
                 statuses[mode_pack.world_type] = status
