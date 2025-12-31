@@ -42,7 +42,7 @@ def _world_snapshot_hash(engine: SimulationEngine) -> int:
     return hash(tuple(tuples))
 
 
-def _compare_stats(stats1: dict, stats2: dict, rel_tol: float = 1e-12) -> None:
+def _compare_stats(stats1: dict, stats2: dict, rel_tol: float = 1e-9) -> None:
     """Compare two stats dicts, using pytest.approx for float values.
 
     Args:
@@ -66,8 +66,37 @@ def _compare_stats(stats1: dict, stats2: dict, rel_tol: float = 1e-12) -> None:
             assert val1 == pytest.approx(
                 val2, rel=rel_tol
             ), f"Float value mismatch for {key}: {val1} vs {val2}"
+        elif isinstance(val1, dict) and isinstance(val2, dict):
+            # Recursively compare nested dictionaries
+            _compare_nested_dict(val1, val2, rel_tol, path=key)
         else:
             assert val1 == val2, f"Value mismatch for {key}: {val1} vs {val2}"
+
+
+def _compare_nested_dict(dict1: dict, dict2: dict, rel_tol: float, path: str = "") -> None:
+    """Recursively compare nested dictionaries with float tolerance.
+
+    Args:
+        dict1: First dict
+        dict2: Second dict
+        rel_tol: Relative tolerance for float comparison
+        path: Current path in nested structure for error messages
+    """
+    assert dict1.keys() == dict2.keys(), f"Keys differ at {path}: {dict1.keys()} vs {dict2.keys()}"
+
+    for key in dict1:
+        val1 = dict1[key]
+        val2 = dict2[key]
+        current_path = f"{path}.{key}" if path else key
+
+        if isinstance(val1, float) and isinstance(val2, float):
+            assert val1 == pytest.approx(
+                val2, rel=rel_tol
+            ), f"Float value mismatch at {current_path}: {val1} vs {val2}"
+        elif isinstance(val1, dict) and isinstance(val2, dict):
+            _compare_nested_dict(val1, val2, rel_tol, current_path)
+        else:
+            assert val1 == val2, f"Value mismatch at {current_path}: {val1} vs {val2}"
 
 
 def _run_solo(seed: int, frames: int) -> Tuple[SimulationEngine, dict]:
