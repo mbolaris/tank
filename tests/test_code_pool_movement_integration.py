@@ -1,4 +1,5 @@
 import random
+from typing import Tuple
 
 import pytest
 
@@ -15,7 +16,7 @@ class StubBehavior:
         self._vx = vx
         self._vy = vy
 
-    def execute(self, fish: Fish) -> tuple[float, float]:
+    def execute(self, fish: Fish) -> Tuple[float, float]:
         return self._vx, self._vy
 
 
