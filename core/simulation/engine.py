@@ -3,6 +3,31 @@
 This module provides the core simulation loop without any embedded logic.
 It coordinates systems and managers but delegates all actual work.
 
+LIFECYCLE INVARIANT (Critical for Future Game Modes)
+=====================================================
+**All spawns and removals MUST go through lifecycle queues.**
+
+During the update loop, mutations are locked. No system may directly mutate
+the entity collection. Instead:
+
+  - Use engine.request_spawn(entity, reason="...") to queue a spawn
+  - Use engine.request_remove(entity, reason="...") to queue a removal
+  - The engine applies mutations at safe points via _apply_entity_mutations()
+
+This invariant ensures:
+  - Entity collection remains stable during system iteration
+  - No iterator invalidation bugs
+  - Deterministic execution order
+  - Future game modes can rely on predictable entity state
+
+Violations raise MutationLockError with guidance on the correct approach.
+
+Example - WRONG (will raise MutationLockError during update):
+    engine._entity_manager.add(food)  # Direct mutation!
+
+Example - CORRECT:
+    engine.request_spawn(food, reason="overflow_food")  # Queued for safe application
+
 Design Decisions:
 -----------------
 1. The engine is a COORDINATOR, not a DOER. It owns managers and systems
@@ -427,7 +452,8 @@ class SimulationEngine:
         """
         if hasattr(entity, "add_internal"):
             entity.add_internal(self.agents)
-        self._entity_manager.add(entity)
+        # _internal=True bypasses mutation lock check
+        self._entity_manager.add(entity, _internal=True)
 
     def _remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation (INTERNAL USE ONLY).
@@ -436,7 +462,8 @@ class SimulationEngine:
         queued mutations from _apply_entity_mutations(). External code
         should use request_remove() to queue removals for safe processing.
         """
-        self._entity_manager.remove(entity)
+        # _internal=True bypasses mutation lock check
+        self._entity_manager.remove(entity, _internal=True)
 
     def add_entity(self, entity: entities.Agent) -> None:
         """Add an entity to the simulation (PRIVILEGED API).
@@ -581,6 +608,13 @@ class SimulationEngine:
         The update loop executes in well-defined phases (see UpdatePhase enum).
         Each phase is implemented as a separate method for readability and testability.
 
+        LIFECYCLE INVARIANT:
+        -------------------
+        During the update loop, mutations are locked. No system may directly
+        mutate entity collections - all spawns/removals MUST go through the
+        lifecycle queues (request_spawn/request_remove). The engine applies
+        queued mutations at safe points via _apply_entity_mutations().
+
         Phase Order:
             1. FRAME_START: Reset counters, increment frame
             2. TIME_UPDATE: Advance day/night cycle
@@ -595,18 +629,26 @@ class SimulationEngine:
         if self.paused:
             return
 
-        # Execute each phase in order
-        # Time values are returned from TIME_UPDATE and passed to ENTITY_ACT
-        self._phase_frame_start()
-        time_modifier, time_of_day = self._phase_time_update()
-        self._phase_environment()
-        new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
-        self._phase_lifecycle(new_entities, entities_to_remove)
-        self._phase_spawn()
-        self._phase_collision()
-        self._phase_interaction()
-        self._phase_reproduction()
-        self._phase_frame_end()
+        # Lock mutations for the entire update loop
+        # Systems must use request_spawn/request_remove to queue mutations
+        self._entity_manager.lock_mutations("update")
+
+        try:
+            # Execute each phase in order
+            # Time values are returned from TIME_UPDATE and passed to ENTITY_ACT
+            self._phase_frame_start()
+            time_modifier, time_of_day = self._phase_time_update()
+            self._phase_environment()
+            new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
+            self._phase_lifecycle(new_entities, entities_to_remove)
+            self._phase_spawn()
+            self._phase_collision()
+            self._phase_interaction()
+            self._phase_reproduction()
+            self._phase_frame_end()
+        finally:
+            # Always unlock mutations at end of frame
+            self._entity_manager.unlock_mutations()
 
     # -------------------------------------------------------------------------
     # Phase Implementations

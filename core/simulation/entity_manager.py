@@ -29,6 +29,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class MutationLockError(RuntimeError):
+    """Raised when attempting to mutate entities while mutations are locked.
+
+    This error indicates a violation of the lifecycle invariant: all spawns
+    and removals must go through the lifecycle queues (request_spawn/request_remove),
+    not direct mutations to the entity collection.
+
+    To fix this error:
+    1. Use engine.request_spawn(entity, reason="...") instead of direct add
+    2. Use engine.request_remove(entity, reason="...") instead of direct remove
+    3. The engine will apply mutations at safe points between phases
+    """
+
+    pass
+
+
 class EntityManager:
     """Manages entity creation, deletion, and caching.
 
@@ -38,9 +54,23 @@ class EntityManager:
     - Maintaining cached entity lists by type
     - Keeping entities within screen bounds
 
+    LIFECYCLE INVARIANT:
+    --------------------
+    During system updates (when mutation_locked=True), no system may directly
+    mutate the entity collection. All spawns/removals MUST go through the
+    lifecycle queues via request_spawn()/request_remove(). The engine applies
+    queued mutations at safe points between phases.
+
+    This invariant ensures:
+    - Entity collection remains stable during system iteration
+    - Deterministic execution order
+    - No iterator invalidation bugs
+    - Future game modes can rely on predictable entity state
+
     Attributes:
         entities_list: The master list of all entities
         food_pool: Object pool for Food entity reuse
+        mutation_locked: Whether direct mutations are currently forbidden
 
     Example:
         manager = EntityManager(engine)
@@ -73,6 +103,11 @@ class EntityManager:
         self._get_ecosystem = get_ecosystem
         self._get_root_spot_manager = get_root_spot_manager
 
+        # Mutation lock: when True, direct add/remove calls will raise
+        # The engine sets this during system update phases
+        self._mutation_locked: bool = False
+        self._mutation_lock_phase: str = ""
+
     @property
     def entities_list(self) -> List[entities.Agent]:
         """Get the master entities list.
@@ -92,7 +127,50 @@ class EntityManager:
         """Check if caches need rebuilding."""
         return self._cache_manager.is_dirty
 
-    def add(self, entity: entities.Agent) -> bool:
+    @property
+    def mutation_locked(self) -> bool:
+        """Check if mutations are currently locked."""
+        return self._mutation_locked
+
+    def lock_mutations(self, phase: str) -> None:
+        """Lock mutations during a system update phase.
+
+        When locked, direct add/remove calls will raise MutationLockError.
+        This enforces the lifecycle invariant that all spawns/removals
+        must go through the lifecycle queues.
+
+        Args:
+            phase: Name of the phase for error messages
+        """
+        self._mutation_locked = True
+        self._mutation_lock_phase = phase
+
+    def unlock_mutations(self) -> None:
+        """Unlock mutations, allowing direct add/remove calls.
+
+        Called by the engine when applying queued mutations or
+        outside the update loop.
+        """
+        self._mutation_locked = False
+        self._mutation_lock_phase = ""
+
+    def _check_mutation_lock(self, operation: str) -> None:
+        """Check if mutations are locked and raise if so.
+
+        Args:
+            operation: 'add' or 'remove' for the error message
+
+        Raises:
+            MutationLockError: If mutations are currently locked
+        """
+        if self._mutation_locked:
+            raise MutationLockError(
+                f"Cannot {operation} entity during {self._mutation_lock_phase} phase. "
+                f"Use engine.request_spawn() or engine.request_remove() instead. "
+                f"The engine will apply mutations at safe points between phases."
+            )
+
+    def add(self, entity: entities.Agent, *, _internal: bool = False) -> bool:
         """Add an entity to the simulation.
 
         For Fish entities, this respects population limits (max_population).
@@ -100,10 +178,17 @@ class EntityManager:
 
         Args:
             entity: The entity to add
+            _internal: If True, bypass mutation lock (engine use only)
 
         Returns:
             True if entity was added, False if rejected (e.g., at capacity)
+
+        Raises:
+            MutationLockError: If mutations are locked and _internal is False
         """
+        if not _internal:
+            self._check_mutation_lock("add")
+
         ecosystem = self._get_ecosystem()
         environment = self._get_environment()
         root_spot_manager = self._get_root_spot_manager()
@@ -136,7 +221,7 @@ class EntityManager:
         self._cache_manager.invalidate_entity_caches("entity added")
         return True
 
-    def remove(self, entity: entities.Agent) -> None:
+    def remove(self, entity: entities.Agent, *, _internal: bool = False) -> None:
         """Remove an entity from the simulation.
 
         Handles cleanup for different entity types:
@@ -145,7 +230,14 @@ class EntityManager:
 
         Args:
             entity: The entity to remove
+            _internal: If True, bypass mutation lock (engine use only)
+
+        Raises:
+            MutationLockError: If mutations are locked and _internal is False
         """
+        if not _internal:
+            self._check_mutation_lock("remove")
+
         if entity not in self._entities:
             return
 

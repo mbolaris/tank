@@ -436,6 +436,9 @@ class Fish(Agent):
     def _spawn_overflow_food(self, overflow: float) -> None:
         """Convert overflow energy into a food drop near the fish.
 
+        This method uses the lifecycle spawn queue (request_spawn) to ensure
+        deterministic spawning and stable entity iteration.
+
         Args:
             overflow: Amount of energy to convert to food
         """
@@ -444,7 +447,7 @@ class Fish(Agent):
 
         try:
             from core.entities.resources import Food
-            from core.util.mutations import request_spawn
+            from core.util.mutations import request_spawn  # lifecycle-spawn-queue
             from core.util.rng import require_rng
 
             rng = require_rng(self.environment, "Fish._spawn_overflow_food")
@@ -457,6 +460,7 @@ class Fish(Agent):
             food.energy = min(overflow, food.max_energy)
             food.max_energy = food.energy
 
+            # lifecycle-spawn-queue: queued for safe application between phases
             if not request_spawn(food, reason="overflow_food"):
                 logger.warning("spawn requester unavailable, overflow food lost")
 

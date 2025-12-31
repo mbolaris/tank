@@ -40,7 +40,13 @@ class AgentsWrapper:
             self._entities = entities_or_engine
 
     def add(self, *entities: Any) -> None:
-        """Add entities to the list or engine-aware collection."""
+        """Add entities to the list or engine-aware collection.
+
+        When connected to an engine, this delegates to the EntityManager
+        which will enforce the mutation lock during the update loop.
+        Use engine.request_spawn() instead if you need to add entities
+        during system updates.
+        """
         for entity in entities:
             if entity in self._entities:
                 if hasattr(entity, "add_internal"):
@@ -48,19 +54,27 @@ class AgentsWrapper:
                 continue
 
             if self._engine is not None:
-                self._engine._add_entity(entity)
+                # EntityManager.add() will check mutation lock
+                self._engine._entity_manager.add(entity)
             else:
                 self._entities.append(entity)
             if hasattr(entity, "add_internal"):
                 entity.add_internal(self)
 
     def remove(self, *entities: Any) -> None:
-        """Remove entities from the list or engine-aware collection."""
+        """Remove entities from the list or engine-aware collection.
+
+        When connected to an engine, this delegates to the EntityManager
+        which will enforce the mutation lock during the update loop.
+        Use engine.request_remove() instead if you need to remove entities
+        during system updates.
+        """
         for entity in entities:
             if entity not in self._entities:
                 continue
             if self._engine is not None:
-                self._engine._remove_entity(entity)
+                # EntityManager.remove() will check mutation lock
+                self._engine._entity_manager.remove(entity)
             else:
                 self._entities.remove(entity)
 
