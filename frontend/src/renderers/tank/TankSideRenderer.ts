@@ -24,6 +24,11 @@ export class TankSideRenderer implements Renderer {
         const { ctx, canvas } = rc;
         const state = frame.snapshot;
 
+        // Extract entities from nested snapshot structure (new format) or top-level (legacy)
+        const entities: EntityData[] = state?.snapshot?.entities ?? state?.entities ?? [];
+        const stats = state?.snapshot?.stats ?? state?.stats;
+        const elapsedTime = state?.snapshot?.elapsed_time ?? state?.elapsed_time ?? 0;
+
         // Initialize or re-initialize legacy renderer if context changes
         if (!this.legacyRenderer || this.currentCtx !== ctx) {
             if (this.legacyRenderer) {
@@ -43,41 +48,34 @@ export class TankSideRenderer implements Renderer {
         // Collect active poker effect IDs for cleanup
         // Matches Canvas.tsx logic
         const pokerActiveIds = new Set<number>();
-        if (state.entities) {
-            state.entities.forEach((e: EntityData) => {
-                if (e.poker_effect_state && (e.poker_effect_state.status === 'lost' || e.poker_effect_state.status === 'won')) {
-                    pokerActiveIds.add(e.id);
-                }
-            });
-        }
-
+        entities.forEach((e: EntityData) => {
+            if (e.poker_effect_state && (e.poker_effect_state.status === 'lost' || e.poker_effect_state.status === 'won')) {
+                pokerActiveIds.add(e.id);
+            }
+        });
 
         // Prune caches
-        if (state.entities) {
-            r.pruneEntityFacingCache(state.entities.map((e: EntityData) => e.id), pokerActiveIds);
-            r.prunePlantCaches(
-                state.entities
-                    .filter((e: EntityData) => e.type === 'plant')
-                    .map((e: EntityData) => e.id)
-            );
-        }
+        r.pruneEntityFacingCache(entities.map((e: EntityData) => e.id), pokerActiveIds);
+        r.prunePlantCaches(
+            entities
+                .filter((e: EntityData) => e.type === 'plant')
+                .map((e: EntityData) => e.id)
+        );
 
         ctx.save();
         try {
             ctx.scale(scaleX, scaleY);
 
             // Clear background & draw environment
-            r.clear(this.WORLD_WIDTH, this.WORLD_HEIGHT, state.stats?.time);
+            r.clear(this.WORLD_WIDTH, this.WORLD_HEIGHT, stats?.time);
 
             // Render entities
-            if (state.entities) {
-                // Read showEffects from frame options (defaults to true if not specified)
-                const showEffects = frame.options?.showEffects ?? true;
+            // Read showEffects from frame options (defaults to true if not specified)
+            const showEffects = frame.options?.showEffects ?? true;
 
-                state.entities.forEach((entity: EntityData) => {
-                    r.renderEntity(entity, state.elapsed_time || 0, state.entities, showEffects);
-                });
-            }
+            entities.forEach((entity: EntityData) => {
+                r.renderEntity(entity, elapsedTime, entities, showEffects);
+            });
 
         } finally {
             ctx.restore();

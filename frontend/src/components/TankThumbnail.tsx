@@ -37,8 +37,9 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
                 }
                 if (mounted) {
                     const data = await response.json();
-                    // Validate data has required fields
-                    if (data && data.entities && Array.isArray(data.entities)) {
+                    // Validate data has required fields (check both nested and legacy locations)
+                    const entities = data?.snapshot?.entities ?? data?.entities;
+                    if (data && entities && Array.isArray(entities)) {
                         setState(data);
                         setError(null);
                     } else {
