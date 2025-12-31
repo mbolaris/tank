@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import importlib
 import logging
-import pkgutil
 from pathlib import Path
 from typing import Callable
 
@@ -161,19 +160,26 @@ def _register_builtin_modes() -> None:
         mode_pack=create_petri_mode_pack(),
     )
 
-    soccer_mode_pack = ModePackDefinition(
-        mode_id="soccer",
-        world_type="soccer",
-        default_view_mode="topdown",
-        display_name="Soccer Pitch",
-        normalizer=_identity_config,
-    )
+    core_dir = Path(__file__).resolve().parents[1]
+    modes_dir = core_dir / "modes"
+    soccer_mode_pack_factory = None
+    if (modes_dir / "soccer.py").exists():
+        soccer_mode_module = importlib.import_module("core.modes.soccer")
+        soccer_mode_pack_factory = getattr(soccer_mode_module, "create_soccer_mode_pack", None)
+
+    if soccer_mode_pack_factory is not None:
+        soccer_mode_pack = soccer_mode_pack_factory()
+    else:
+        soccer_mode_pack = ModePackDefinition(
+            mode_id="soccer",
+            world_type="soccer",
+            default_view_mode="topdown",
+            display_name="Soccer Pitch",
+            normalizer=_identity_config,
+        )
     soccer_backend: type[MultiAgentWorldBackend] | None = None
     worlds_dir = Path(__file__).parent
-    has_soccer = any(
-        module.name == "soccer" for module in pkgutil.iter_modules([str(worlds_dir)])
-    )
-    if has_soccer:
+    if (worlds_dir / "soccer" / "backend.py").exists():
         soccer_module = importlib.import_module("core.worlds.soccer.backend")
         soccer_backend = getattr(soccer_module, "SoccerWorldBackendAdapter", None)
 
