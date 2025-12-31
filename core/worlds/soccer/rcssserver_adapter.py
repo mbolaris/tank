@@ -69,7 +69,7 @@ Command Format Examples:
     (say "Hello")           # Communication between players
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from core.policies.soccer_interfaces import SoccerAction, SoccerObservation
 from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
@@ -160,9 +160,7 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         """
         raise NotImplementedError("rcssserver integration not yet implemented")
 
-    def step(
-        self, actions_by_agent: Optional[Dict[str, Any]] = None
-    ) -> StepResult:
+    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
         """Execute one simulation step by communicating with rcssserver.
 
         Future implementation will:
@@ -226,7 +224,8 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
 
 # Future: Utility functions for rcssserver protocol
 
-def parse_init_response(response: str) -> tuple[str, int]:
+
+def parse_init_response(response: str) -> Tuple[str, int]:
     """Parse server response to init command.
 
     Example:

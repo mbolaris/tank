@@ -564,12 +564,14 @@ class TestSoccerModePackIntegration:
         assert mode_pack is not None
 
         # Test legacy key aliases
-        normalized = mode_pack.configure({
-            "width": 120,
-            "height": 80,
-            "fps": 30,
-            "players_per_team": 5,
-        })
+        normalized = mode_pack.configure(
+            {
+                "width": 120,
+                "height": 80,
+                "fps": 30,
+                "players_per_team": 5,
+            }
+        )
 
         assert normalized["field_width"] == 120
         assert normalized["field_height"] == 80

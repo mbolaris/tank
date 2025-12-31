@@ -179,9 +179,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             info={"frame": self._frame, "seed": reset_seed},
         )
 
-    def step(
-        self, actions_by_agent: Optional[Dict[str, Any]] = None
-    ) -> StepResult:
+    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
         """Advance the simulation by one timestep.
 
         Args:
@@ -286,16 +284,16 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
                 )
                 if success:
                     # Consume stamina for kick
-                    player.stamina = max(
-                        0.0, player.stamina - self._config.stamina_kick_cost
+                    player.stamina = max(0.0, player.stamina - self._config.stamina_kick_cost)
+                    self._recent_events.append(
+                        {
+                            "type": "kick",
+                            "player_id": player_id,
+                            "team": player.team,
+                            "power": action.kick_power,
+                            "frame": self._frame,
+                        }
                     )
-                    self._recent_events.append({
-                        "type": "kick",
-                        "player_id": player_id,
-                        "team": player.team,
-                        "power": action.kick_power,
-                        "frame": self._frame,
-                    })
 
     def _update_physics(self) -> None:
         """Update ball and player physics."""
@@ -314,9 +312,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
 
             if is_sprinting:
                 # Consume stamina
-                player.stamina = max(
-                    0.0, player.stamina - self._config.stamina_sprint_cost
-                )
+                player.stamina = max(0.0, player.stamina - self._config.stamina_sprint_cost)
             else:
                 # Recover stamina
                 player.stamina = min(
@@ -336,13 +332,15 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
 
         scorer_id = result[0].player_id if result else "unknown"
 
-        self._recent_events.append({
-            "type": "goal",
-            "team": scoring_team,
-            "scorer": scorer_id,
-            "frame": self._frame,
-            "score": self._score.copy(),
-        })
+        self._recent_events.append(
+            {
+                "type": "goal",
+                "team": scoring_team,
+                "scorer": scorer_id,
+                "frame": self._frame,
+                "score": self._score.copy(),
+            }
+        )
 
         # Reset to center for kickoff
         self._ball.position = self._field.get_initial_ball_position()
@@ -359,9 +357,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
 
     def _update_possession(self) -> None:
         """Track which team has possession of the ball."""
-        result = self._physics.find_closest_player_to_ball(
-            self._ball, list(self._players.values())
-        )
+        result = self._physics.find_closest_player_to_ball(self._ball, list(self._players.values()))
 
         if result:
             closest_player, distance = result
@@ -376,13 +372,9 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         for player_id, player in self._players.items():
             # Get teammates and opponents
             teammates = [
-                p for pid, p in self._players.items()
-                if p.team == player.team and pid != player_id
+                p for pid, p in self._players.items() if p.team == player.team and pid != player_id
             ]
-            opponents = [
-                p for p in self._players.values()
-                if p.team != player.team
-            ]
+            opponents = [p for p in self._players.values() if p.team != player.team]
 
             # Build observation
             obs = SoccerObservation(
@@ -494,9 +486,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
                         reward.shot_on_goal = self._config.shot_reward
 
             # Possession reward
-            result = self._physics.find_closest_player_to_ball(
-                self._ball, [player]
-            )
+            result = self._physics.find_closest_player_to_ball(self._ball, [player])
             if result and result[1] < 2.0:
                 reward.ball_possession = self._config.possession_reward
 
