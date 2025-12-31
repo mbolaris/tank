@@ -196,9 +196,24 @@ class BehavioralTraits:
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
     mate_preferences: Optional[GeneticTrait[Dict[str, float]]] = None
 
-    # Optional code policy overrides (non-genetic, opt-in)
-    code_policy_kind: Optional[str] = None
-    code_policy_component_id: Optional[str] = None
+    # ========================================================================
+    # Code Policy Traits (for linking to CodePool components)
+    # ========================================================================
+    # These traits allow a genome to carry references into the CodePool,
+    # enabling fish to use evolved code policies. This is purely data plumbing;
+    # the actual code execution happens elsewhere.
+
+    # The kind of policy this genome references (e.g. "movement_policy", "foraging_policy")
+    # Must be set if code policy component id is set.
+    code_policy_kind: Optional[GeneticTrait[Optional[str]]] = None
+
+    # The component ID from the CodePool. This references an existing component;
+    # genetics does NOT generate new component IDs (that's CodePool's job).
+    code_policy_component_id: Optional[GeneticTrait[Optional[str]]] = None
+
+    # Optional tuning parameters for the code policy.
+    # Keys are parameter names, values are floats in [-10.0, 10.0] range.
+    code_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
 
     @classmethod
     def random(

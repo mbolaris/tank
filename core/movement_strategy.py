@@ -163,6 +163,10 @@ class AlgorithmicMovement(MovementStrategy):
     def _execute_policy_if_present(self, fish: Fish) -> Optional[VelocityComponents]:
         policy_kind = getattr(fish.genome.behavioral, "code_policy_kind", None)
         component_id = getattr(fish.genome.behavioral, "code_policy_component_id", None)
+        if hasattr(policy_kind, "value"):
+            policy_kind = policy_kind.value
+        if hasattr(component_id, "value"):
+            component_id = component_id.value
         if policy_kind != "movement_policy" or not component_id:
             return None
 
