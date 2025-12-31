@@ -163,11 +163,19 @@ class Entity:
         self._groups.clear()
 
     def _emit_event(self, event: object) -> None:
-        """Emit a telemetry event if a sink is available.
+        """Emit a telemetry event via EventBus or direct ecosystem recording.
 
-        Subclasses that have an ecosystem attribute (Fish, Plant) can use this
-        to emit events. Entities without ecosystem will silently skip emission.
+        Prefers EventBus if available (enables decoupled telemetry subscribers).
+        Falls back to direct ecosystem.record_event() for backward compatibility.
+        Silently skips if neither is available.
         """
+        # Try EventBus first (preferred path for decoupled telemetry)
+        event_bus = getattr(self.environment, "event_bus", None)
+        if event_bus is not None:
+            event_bus.emit(event)
+            return
+
+        # Fallback to direct ecosystem recording (backward compatibility)
         telemetry = getattr(self, "ecosystem", None)
         if telemetry is None:
             return

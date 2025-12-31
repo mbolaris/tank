@@ -237,19 +237,28 @@ class SimulationEngine:
         display = self.config.display
         eco_config = self.config.ecosystem
 
-        # Initialize environment
+        # Create EventBus for domain event dispatch
+        from core.events import EventBus
+
+        self.event_bus = EventBus()
+
+        # Initialize environment with EventBus for decoupled telemetry
         self.environment = environment.Environment(
             self._entity_manager.entities_list,
             display.screen_width,
             display.screen_height,
             self.time_system,
             rng=self.rng,
+            event_bus=self.event_bus,
         )
         self.environment.set_spawn_requester(self.request_spawn)
         self.environment.set_remove_requester(self.request_remove)
 
-        # Initialize ecosystem manager
-        self.ecosystem = EcosystemManager(max_population=eco_config.max_population)
+        # Initialize ecosystem manager with EventBus for telemetry subscriptions
+        self.ecosystem = EcosystemManager(
+            max_population=eco_config.max_population,
+            event_bus=self.event_bus,
+        )
 
         # Initialize plant management
         if self.config.server.plants_enabled:

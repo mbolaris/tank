@@ -507,6 +507,7 @@ class Environment:
         height: int = 600,
         time_system: Optional[Any] = None,
         rng: Optional[random.Random] = None,
+        event_bus: Optional[Any] = None,
     ):
         """
         Initialize the environment.
@@ -516,11 +517,14 @@ class Environment:
             width (int): Width of the environment in pixels. Defaults to 800.
             height (int): Height of the environment in pixels. Defaults to 600.
             time_system (TimeSystem, optional): Time system for day/night cycle effects
+            rng: Random number generator for deterministic behavior
+            event_bus: Optional EventBus for domain event dispatch
         """
         self.agents = agents
         self.width = width
         self.height = height
         self.time_system = time_system
+        self.event_bus = event_bus  # Domain event dispatch
         from core.util.rng import require_rng_param
 
         self._rng = require_rng_param(rng, "__init__")

@@ -36,6 +36,7 @@ from core.telemetry.events import (
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.events import EventBus
     from core.genetics import Genome
 
 
@@ -57,11 +58,16 @@ class EcosystemManager:
         max_population: Maximum number of fish allowed (carrying capacity)
     """
 
-    def __init__(self, max_population: int = 75):
+    def __init__(
+        self,
+        max_population: int = 75,
+        event_bus: Optional["EventBus"] = None,
+    ):
         """Initialize the ecosystem manager.
 
         Args:
             max_population: Maximum number of fish (carrying capacity)
+            event_bus: Optional EventBus for domain event subscriptions
         """
         self.frame_count: int = 0
 
@@ -99,6 +105,80 @@ class EcosystemManager:
 
         # Energy tracking
         self.energy_tracker = EnergyTracker()
+
+        # Subscribe to domain events if EventBus is provided
+        self.event_bus = event_bus
+        if event_bus is not None:
+            self._subscribe_to_events(event_bus)
+
+    def _subscribe_to_events(self, event_bus: "EventBus") -> None:
+        """Subscribe handlers to domain events on the EventBus.
+
+        This enables decoupled telemetry where entities emit events and
+        EcosystemManager receives them without direct coupling.
+        """
+        from core.telemetry.events import (
+            BirthEvent,
+            EnergyBurnEvent,
+            EnergyGainEvent,
+            FoodEatenEvent,
+            ReproductionEvent,
+        )
+
+        # Subscribe to existing telemetry event types
+        event_bus.subscribe(EnergyGainEvent, self._on_energy_gain_event)
+        event_bus.subscribe(EnergyBurnEvent, self._on_energy_burn_event)
+        event_bus.subscribe(FoodEatenEvent, self._on_food_eaten_event)
+        event_bus.subscribe(BirthEvent, self._on_birth_event)
+        event_bus.subscribe(ReproductionEvent, self._on_reproduction_event)
+
+    def _on_energy_gain_event(self, event: "EnergyGainEvent") -> None:
+        """Handle energy gain events."""
+        if event.scope == "plant":
+            self.record_plant_energy_gain(event.source, event.amount)
+        else:
+            self.record_energy_gain(event.source, event.amount)
+
+    def _on_energy_burn_event(self, event: "EnergyBurnEvent") -> None:
+        """Handle energy burn events."""
+        if event.scope == "plant":
+            self.record_plant_energy_burn(event.source, event.amount)
+        else:
+            self.record_energy_burn(event.source, event.amount)
+
+    def _on_food_eaten_event(self, event: "FoodEatenEvent") -> None:
+        """Handle food consumption events."""
+        if event.food_type == "nectar":
+            self.record_nectar_eaten(event.algorithm_id, event.energy_gained)
+        elif event.food_type == "live_food":
+            self.record_live_food_eaten(
+                event.algorithm_id,
+                event.energy_gained,
+                genome=event.genome,
+                generation=event.generation,
+            )
+        elif event.food_type == "falling_food":
+            self.record_falling_food_eaten(event.algorithm_id, event.energy_gained)
+        else:
+            self.record_food_eaten(event.algorithm_id, event.energy_gained)
+
+    def _on_birth_event(self, event: "BirthEvent") -> None:
+        """Handle entity birth events."""
+        self.record_birth(
+            event.fish_id,
+            event.generation,
+            parent_ids=list(event.parent_ids) if event.parent_ids else None,
+            algorithm_id=event.algorithm_id,
+            color=event.color_hex,
+            algorithm_name=event.algorithm_name,
+            tank_name=event.tank_name,
+        )
+        if event.is_soup_spawn:
+            self.record_energy_gain("soup_spawn", event.energy)
+
+    def _on_reproduction_event(self, event: "ReproductionEvent") -> None:
+        """Handle reproduction events."""
+        self.record_reproduction(event.algorithm_id, is_asexual=event.is_asexual)
 
     # =========================================================================
     # Backward-compatible property aliases (delegate to PopulationTracker)
