@@ -569,8 +569,8 @@ class FullStatePayload:
     view_mode: Optional[str] = "side"
 
     def to_dict(self) -> Dict[str, Any]:
-        data = {
-            "type": self.type,
+        # Build snapshot containing all simulation state
+        snapshot = {
             "frame": self.frame,
             "elapsed_time": self.elapsed_time,
             "entities": [e.to_full_dict() for e in self.entities],
@@ -578,14 +578,20 @@ class FullStatePayload:
             "poker_events": [e.to_dict() for e in self.poker_events],
             "poker_leaderboard": [e.to_dict() for e in self.poker_leaderboard],
         }
+        if self.auto_evaluation:
+            snapshot["auto_evaluation"] = self.auto_evaluation.to_dict()
+
+        # Top-level payload with metadata and nested snapshot
+        data: Dict[str, Any] = {
+            "type": self.type,
+            "snapshot": snapshot,
+        }
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
         if self.world_type is not None:
             data["world_type"] = self.world_type
         if self.view_mode is not None:
             data["view_mode"] = self.view_mode
-        if self.auto_evaluation:
-            data["auto_evaluation"] = self.auto_evaluation.to_dict()
         return data
 
     def to_json(self) -> str:
@@ -612,8 +618,8 @@ class DeltaStatePayload:
     view_mode: Optional[str] = "side"
 
     def to_dict(self) -> Dict[str, Any]:
-        data = {
-            "type": self.type,
+        # Build snapshot containing delta simulation state
+        snapshot: Dict[str, Any] = {
             "frame": self.frame,
             "elapsed_time": self.elapsed_time,
             "updates": self.updates,
@@ -621,15 +627,21 @@ class DeltaStatePayload:
             "removed": self.removed,
         }
         if self.poker_events is not None:
-             data["poker_events"] = [e.to_dict() for e in self.poker_events]
+            snapshot["poker_events"] = [e.to_dict() for e in self.poker_events]
+        if self.stats:
+            snapshot["stats"] = self.stats.to_dict()
+
+        # Top-level payload with metadata and nested snapshot
+        data: Dict[str, Any] = {
+            "type": self.type,
+            "snapshot": snapshot,
+        }
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
         if self.world_type is not None:
             data["world_type"] = self.world_type
         if self.view_mode is not None:
             data["view_mode"] = self.view_mode
-        if self.stats:
-            data["stats"] = self.stats.to_dict()
         return data
 
     def to_json(self) -> str:

@@ -317,6 +317,21 @@ class TestTankWorldBackendAdapterCompatibility:
         assert config.screen_width == 800
         assert config.screen_height == 600
 
+    def test_rng_property(self):
+        """Test rng compatibility property."""
+        adapter = TankWorldBackendAdapter(seed=42)
+
+        # Should raise error before initialization
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            _ = adapter.rng
+
+        # After reset, should delegate to underlying world
+        adapter.reset(seed=42)
+        assert adapter.rng is not None
+        # Check that it behaves like a random.Random instance
+        assert hasattr(adapter.rng, "random")
+        assert hasattr(adapter.rng, "randint")
+
     def test_setup_method(self):
         """Test setup() compatibility method."""
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)

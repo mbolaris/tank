@@ -141,27 +141,27 @@ class TankSnapshotBuilder:
 
             base_data = {
                 "id": stable_id,
-                "x": entity.pos.x,
-                "y": entity.pos.y,
-                "width": entity.width,
-                "height": entity.height,
-                "vel_x": entity.vel.x if hasattr(entity, "vel") else 0,
-                "vel_y": entity.vel.y if hasattr(entity, "vel") else 0,
+                "x": round(entity.pos.x, 2),
+                "y": round(entity.pos.y, 2),
+                "width": round(entity.width, 2),
+                "height": round(entity.height, 2),
+                "vel_x": round(entity.vel.x, 2) if hasattr(entity, "vel") else 0,
+                "vel_y": round(entity.vel.y, 2) if hasattr(entity, "vel") else 0,
             }
 
             if isinstance(entity, entities.Fish):
                 genome_data = None
                 if hasattr(entity, "genome"):
                     genome_data = {
-                        "speed": entity.genome.speed_modifier,
-                        "size": entity._lifecycle_component.size,  # Includes baby stage growth
-                        "color_hue": entity.genome.physical.color_hue.value,
+                        "speed": round(entity.genome.speed_modifier, 2),
+                        "size": round(entity._lifecycle_component.size, 2),  # Includes baby stage growth
+                        "color_hue": round(entity.genome.physical.color_hue.value, 3),
                         "template_id": entity.genome.physical.template_id.value,
-                        "fin_size": entity.genome.physical.fin_size.value,
-                        "tail_size": entity.genome.physical.tail_size.value,
-                        "body_aspect": entity.genome.physical.body_aspect.value,
-                        "eye_size": entity.genome.physical.eye_size.value,
-                        "pattern_intensity": entity.genome.physical.pattern_intensity.value,
+                        "fin_size": round(entity.genome.physical.fin_size.value, 2),
+                        "tail_size": round(entity.genome.physical.tail_size.value, 2),
+                        "body_aspect": round(entity.genome.physical.body_aspect.value, 2),
+                        "eye_size": round(entity.genome.physical.eye_size.value, 2),
+                        "pattern_intensity": round(entity.genome.physical.pattern_intensity.value, 2),
                         "pattern_type": entity.genome.physical.pattern_type.value,
                     }
 
@@ -184,7 +184,7 @@ class TankSnapshotBuilder:
 
                 return EntitySnapshot(
                     type="fish",
-                    energy=entity.energy,
+                    energy=round(entity.energy, 1),
                     generation=entity.generation if hasattr(entity, "generation") else 0,
                     age=entity._lifecycle_component.age,
                     species=species_label,
@@ -198,7 +198,7 @@ class TankSnapshotBuilder:
                     death_effect_state=entity.visual_state.death_effect_state
                     if hasattr(entity, "visual_state")
                     else None,
-                    max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100.0,
+                    max_energy=round(entity.max_energy, 1) if hasattr(entity, "max_energy") else 100.0,
                     **base_data,
                 )
 
@@ -228,16 +228,16 @@ class TankSnapshotBuilder:
 
                 return EntitySnapshot(
                     type="plant_nectar",
-                    energy=entity.energy if hasattr(entity, "energy") else 50,
+                    energy=round(entity.energy, 1) if hasattr(entity, "energy") else 50,
                     source_plant_id=source_plant_id,
-                    source_plant_x=source_plant_x,
-                    source_plant_y=source_plant_y,
+                    source_plant_x=round(source_plant_x, 2),
+                    source_plant_y=round(source_plant_y, 2),
                     floral_type=floral_type,
                     floral_petals=floral_petals,
                     floral_layers=floral_layers,
-                    floral_spin=floral_spin,
-                    floral_hue=floral_hue,
-                    floral_saturation=floral_saturation,
+                    floral_spin=round(floral_spin, 2),
+                    floral_hue=round(floral_hue, 3),
+                    floral_saturation=round(floral_saturation, 2),
                     **base_data,
                 )
 
@@ -249,11 +249,38 @@ class TankSnapshotBuilder:
                 )
 
             if isinstance(entity, entities.Plant):
-                genome_dict = entity.genome.to_dict() if hasattr(entity, "genome") else None
+                genome_dict = None
+                if hasattr(entity, "genome"):
+                    g = entity.genome
+                    # Optimize: Send only visual traits and use compact rule format
+                    genome_dict = {
+                        "axiom": g.axiom,
+                        "angle": round(g.angle, 2),
+                        "length_ratio": round(g.length_ratio, 2),
+                        "branch_probability": round(g.branch_probability, 2),
+                        "curve_factor": round(g.curve_factor, 2),
+                        "color_hue": round(g.color_hue, 3),
+                        "color_saturation": round(g.color_saturation, 2),
+                        "stem_thickness": round(g.stem_thickness, 2),
+                        "leaf_density": round(g.leaf_density, 2),
+                        "type": g.type,
+                        # Floral traits
+                        "floral_type": g.floral_type,
+                        "floral_petals": g.floral_petals,
+                        "floral_layers": g.floral_layers,
+                        "floral_spin": round(g.floral_spin, 2),
+                        "floral_hue": round(g.floral_hue, 3),
+                        "floral_saturation": round(g.floral_saturation, 2),
+                        # Compact rules: [[inp, out, prob], ...] instead of list of dicts
+                        "production_rules": [
+                            [inp, out, prob] for inp, out, prob in g._production_rules
+                        ],
+                    }
+
                 return EntitySnapshot(
                     type="plant",
-                    energy=entity.energy if hasattr(entity, "energy") else 0,
-                    max_energy=entity.max_energy if hasattr(entity, "max_energy") else 100,
+                    energy=round(entity.energy, 1) if hasattr(entity, "energy") else 0,
+                    max_energy=round(entity.max_energy, 1) if hasattr(entity, "max_energy") else 100,
                     genome=genome_dict,
                     size_multiplier=entity.get_size_multiplier()
                     if hasattr(entity, "get_size_multiplier")

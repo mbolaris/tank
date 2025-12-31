@@ -13,14 +13,21 @@ interface PokerDashboardProps {
 export const PokerDashboard: React.FC<PokerDashboardProps> = ({ state }) => {
     if (!state) return null;
 
-    const { stats, poker_events, poker_leaderboard, auto_evaluation } = state;
+    const snapshot = state.snapshot;
+    // Prefer snapshot data, fallback to legacy fields (which are now optional)
+    const stats = snapshot?.stats ?? state.stats;
+    const poker_events = snapshot?.poker_events ?? state.poker_events;
+    const poker_leaderboard = snapshot?.poker_leaderboard ?? state.poker_leaderboard;
+    const auto_evaluation = snapshot?.auto_evaluation ?? state.auto_evaluation;
+
     const pokerStats = stats?.poker_stats;
 
     // Calculate Games Per Minute (Activity Metric)
     // Assuming 30 FPS for frame count calculation if time isn't available directly
     // But we have total games. We can try to estimate rate if we had previous state, 
     // but for now let's use total games / (frames / 30 / 60)
-    const minutesElapsed = state.frame / 30 / 60;
+    const frame = snapshot?.frame ?? state.frame ?? 0;
+    const minutesElapsed = frame / 30 / 60;
     const gamesPerMinute = minutesElapsed > 0 && pokerStats
         ? (pokerStats.total_games / minutesElapsed).toFixed(1)
         : "0.0";
@@ -99,7 +106,7 @@ export const PokerDashboard: React.FC<PokerDashboardProps> = ({ state }) => {
                 <div className="section-container">
                     <PokerEvents
                         events={poker_events ?? []}
-                        currentFrame={state.frame}
+                        currentFrame={frame}
                     />
                 </div>
             </div>

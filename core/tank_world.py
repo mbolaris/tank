@@ -183,13 +183,13 @@ class TankWorld:
             "stats": self.engine.get_stats(),
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Get current simulation statistics.
 
         Returns:
             Dictionary with simulation stats
         """
-        return self.engine.get_stats()
+        return self.engine.get_stats(include_distributions)
 
     def export_stats_json(self, filename: str) -> None:
         """Export comprehensive statistics to JSON file.

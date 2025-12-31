@@ -481,7 +481,7 @@ export function TankView({ tankId }: TankViewProps) {
                                         padding: '16px',
                                         border: '1px solid #334155'
                                     }}>
-                                        <PokerEvents events={state.poker_events ?? []} currentFrame={state.frame} />
+                                        <PokerEvents events={state.poker_events ?? []} currentFrame={state.snapshot?.frame ?? state.frame ?? 0} />
                                     </div>
                                 </div>
                             </div>

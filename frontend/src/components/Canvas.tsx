@@ -62,8 +62,9 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         const worldY = clickY * worldScaleY;
 
         // Find clicked entity (check in reverse order to prioritize entities rendered on top)
-        for (let i = state.entities.length - 1; i >= 0; i--) {
-            const entity = state.entities[i];
+        const entities = state.snapshot?.entities ?? state.entities ?? [];
+        for (let i = entities.length - 1; i >= 0; i--) {
+            const entity = entities[i];
 
             // Skip food items (only allow transferring fish and plants)
             if (entity.type === 'food' || entity.type === 'plant_nectar') continue;

@@ -180,6 +180,10 @@ class PokerProximitySystem(BaseSystem):
         games_triggered = 0
         visited: Set[Fish] = set()
         processed_fish: Set[Fish] = set()
+        
+        # PERF: Limit to 1 game per frame to prevent CPU spikes
+        # (poker.play_poker() is expensive - can take 10-50ms)
+        MAX_GAMES_PER_FRAME = 1
 
         # Sort key for deterministic processing
         def fish_key(f: "Fish") -> int:
@@ -225,6 +229,10 @@ class PokerProximitySystem(BaseSystem):
                 for start in sorted(ready_fish, key=fish_key):
                     if start in ready_visited:
                         continue
+                    
+                    # PERF: Stop if we've hit the game limit
+                    if games_triggered >= MAX_GAMES_PER_FRAME:
+                        break
 
                     sub_group: List[Fish] = []
                     sub_stack = [start]
@@ -269,6 +277,10 @@ class PokerProximitySystem(BaseSystem):
                                 self._engine.record_fish_death(f)
 
                         processed_fish.update(sub_group)
+            
+            # PERF: Early exit if game limit reached
+            if games_triggered >= MAX_GAMES_PER_FRAME:
+                break
 
         return games_triggered
 
