@@ -193,30 +193,47 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         return self._world.get_stats(include_distributions=include_distributions)
 
     def _build_snapshot(self) -> Dict[str, Any]:
-        """Build a stable snapshot of current world state.
+        """Build a minimal snapshot of current world state.
 
-        This snapshot includes all data needed to render the current UI.
-        The format is designed to be stable and backward-compatible.
+        Returns only cheap metadata. Entity data is built separately by the
+        TankSnapshotBuilder for websocket payloads, avoiding duplicate iteration.
 
         Returns:
-            Dictionary with frame, dimensions, entities, and paused state
+            Dictionary with frame, dimensions, and paused state (no entities)
         """
         if self._world is None:
             return {}
 
-        # Build simplified entity snapshot
-        entities_snapshot = self._build_entities_snapshot()
-
         return {
             "frame": self._world.frame_count,
+            "world_type": "tank",
             "paused": self._world.paused,
             "width": self._world.config.screen_width,
             "height": self._world.config.screen_height,
-            "entities": entities_snapshot,
         }
 
-    def _build_entities_snapshot(self) -> List[Dict[str, Any]]:
-        """Build snapshot of all entities in minimal format.
+    def get_debug_snapshot(self) -> Dict[str, Any]:
+        """Build a full snapshot including all entities (for debugging/testing).
+
+        This method builds a complete snapshot with entity data. It should NOT
+        be called in the main simulation loop as it performs O(N_entities) work.
+
+        Returns:
+            Dictionary with frame, dimensions, paused state, and entities list
+        """
+        if self._world is None:
+            return {}
+
+        # Start with minimal snapshot
+        snapshot = self._build_snapshot()
+        # Add full entity data
+        snapshot["entities"] = self._build_entities_list()
+        return snapshot
+
+    def _build_entities_list(self) -> List[Dict[str, Any]]:
+        """Build list of all entities in minimal format.
+
+        Internal helper for get_debug_snapshot(). NOT called in the hot path.
 
         Returns:
             List of entity dictionaries with essential attributes

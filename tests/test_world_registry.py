@@ -68,7 +68,7 @@ class TestTankWorldBackendAdapter:
         assert result.obs_by_agent == {}  # No observations yet
         assert result.done is False
         assert "frame" in result.snapshot
-        assert "entities" in result.snapshot
+        assert "entities" not in result.snapshot
         assert "metrics" in result.__dict__
 
     def test_reset_creates_world(self):
@@ -105,7 +105,7 @@ class TestTankWorldBackendAdapter:
         assert result.obs_by_agent == {}
         assert result.done is False
         assert "frame" in result.snapshot
-        assert "entities" in result.snapshot
+        assert "entities" not in result.snapshot
         assert result.info["frame"] == 1  # Should be frame 1 after one step
 
     def test_step_advances_simulation(self):
@@ -130,8 +130,7 @@ class TestTankWorldBackendAdapter:
         assert "paused" in snapshot
         assert "width" in snapshot
         assert "height" in snapshot
-        assert "entities" in snapshot
-        assert isinstance(snapshot["entities"], list)
+        assert "entities" not in snapshot
 
     def test_get_current_metrics(self):
         """Test get_current_metrics() returns valid metrics."""
@@ -144,7 +143,7 @@ class TestTankWorldBackendAdapter:
         assert len(metrics) > 0
 
     def test_snapshot_has_stable_structure(self):
-        """Test that snapshot has a stable structure for UI rendering."""
+        """Test that snapshot has a stable structure."""
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)
         result = adapter.reset(seed=42)
 
@@ -153,11 +152,15 @@ class TestTankWorldBackendAdapter:
         assert snapshot["paused"] is False
         assert snapshot["width"] > 0
         assert snapshot["height"] > 0
-        assert isinstance(snapshot["entities"], list)
+        assert "entities" not in snapshot
 
-        # Each entity should have essential attributes
-        if snapshot["entities"]:
-            entity = snapshot["entities"][0]
+        # Check debug snapshot for full data
+        debug_snapshot = adapter.get_debug_snapshot()
+        assert "entities" in debug_snapshot
+        assert isinstance(debug_snapshot["entities"], list)
+
+        if debug_snapshot["entities"]:
+            entity = debug_snapshot["entities"][0]
             assert "type" in entity
             assert "x" in entity
             assert "y" in entity
@@ -203,8 +206,10 @@ class TestTankWorldBackendAdapter:
         result1 = adapter1.reset(seed=42)
         result2 = adapter2.reset(seed=42)
 
-        # Should have same number of initial entities
-        assert len(result1.snapshot["entities"]) == len(result2.snapshot["entities"])
+        # Should have same number of initial entities (check via debug snapshot)
+        debug_snap1 = adapter1.get_debug_snapshot()
+        debug_snap2 = adapter2.get_debug_snapshot()
+        assert len(debug_snap1["entities"]) == len(debug_snap2["entities"])
 
         # Frame and dimensions should match
         assert result1.snapshot["frame"] == result2.snapshot["frame"]
