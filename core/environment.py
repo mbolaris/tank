@@ -512,6 +512,7 @@ class Environment:
         rng: Optional[random.Random] = None,
         event_bus: Optional[Any] = None,
         code_pool: Optional["CodePool"] = None,
+        simulation_config: Optional[Any] = None,
     ):
         """
         Initialize the environment.
@@ -523,12 +524,14 @@ class Environment:
             time_system (TimeSystem, optional): Time system for day/night cycle effects
             rng: Random number generator for deterministic behavior
             event_bus: Optional EventBus for domain event dispatch
+            simulation_config: Optional SimulationConfig for runtime parameters
         """
         self.agents = agents
         self.width = width
         self.height = height
         self.time_system = time_system
         self.event_bus = event_bus  # Domain event dispatch
+        self.simulation_config = simulation_config  # Runtime config access
         from core.util.rng import require_rng_param
 
         self._rng = require_rng_param(rng, "__init__")

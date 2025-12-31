@@ -353,3 +353,35 @@ class CommandHandlerMixin:
         except Exception as e:
             logger.error(f"Error running benchmark series: {e}", exc_info=True)
             return self._create_error_response(f"Failed to run benchmark series: {str(e)}")
+
+    def _cmd_set_plant_energy_input(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Handle 'set_plant_energy_input' command.
+        
+        Adjusts the runtime plant energy input rate (minimum energy gain per frame).
+        
+        Args:
+            data: Dictionary with 'rate' key (float, 0.0-1.0 suggested range)
+        """
+        if not data or "rate" not in data:
+            return self._create_error_response("Missing 'rate' parameter")
+        
+        rate = float(data["rate"])
+        
+        # Clamp to reasonable range (0.0 to 2.0)
+        rate = max(0.0, min(2.0, rate))
+        
+        # Access the simulation config through the world's engine
+        if hasattr(self.world, "engine") and hasattr(self.world.engine, "config"):
+            config = self.world.engine.config
+            if hasattr(config, "plant"):
+                config.plant.plant_energy_input_rate = rate
+                logger.info(f"Plant energy input rate set to {rate:.3f}")
+                return {"success": True, "rate": rate}
+        elif hasattr(self.world, "simulation_config"):
+            config = self.world.simulation_config
+            if hasattr(config, "plant"):
+                config.plant.plant_energy_input_rate = rate
+                logger.info(f"Plant energy input rate set to {rate:.3f}")
+                return {"success": True, "rate": rate}
+        
+        return self._create_error_response("Could not access plant configuration")

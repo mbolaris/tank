@@ -40,8 +40,17 @@ from core.config.food import (
     LIVE_FOOD_SPAWN_CHANCE,
 )
 from core.config.poker import MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES
+from core.config.plants import PLANT_MIN_ENERGY_GAIN
 from core.config.server import DEFAULT_API_PORT, PLANTS_ENABLED, POKER_ACTIVITY_ENABLED
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
+
+
+@dataclass
+class PlantConfig:
+    """Configuration for plant energy and growth."""
+
+    # Minimum energy gain per frame - adjustable at runtime by user
+    plant_energy_input_rate: float = PLANT_MIN_ENERGY_GAIN
 
 
 @dataclass
@@ -112,6 +121,7 @@ class SimulationConfig:
     server: ServerConfig = field(default_factory=ServerConfig)
     poker: PokerConfig = field(default_factory=PokerConfig)
     food: FoodConfig = field(default_factory=FoodConfig)
+    plant: PlantConfig = field(default_factory=PlantConfig)
     headless: bool = True
     enable_phase_debug: bool = False
 
