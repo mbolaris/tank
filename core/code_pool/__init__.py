@@ -25,4 +25,3 @@ __all__ = [
     "ValidationError",
     "seek_nearest_food_policy",
 ]
-

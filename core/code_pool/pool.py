@@ -187,4 +187,3 @@ def seek_nearest_food_policy(observation: dict[str, Any], rng: Any) -> tuple[flo
             length = math.sqrt(length_sq)
             return (dx / length, dy / length)
     return (0.0, 0.0)
-
