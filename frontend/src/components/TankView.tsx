@@ -1,8 +1,4 @@
-/**
- * TankView component - displays a single tank simulation with controls
- */
-
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { Canvas } from './Canvas';
 import { ControlPanel } from './ControlPanel';
@@ -32,6 +28,15 @@ export function TankView({ tankId }: TankViewProps) {
     const [showPokerGame, setShowPokerGame] = useState(false);
     const [pokerLoading, setPokerLoading] = useState(false);
     const [showEffects, setShowEffects] = useState(true); // Toggle for energy bars and poker effects
+
+    // Plant energy input control
+    const [plantEnergyInput, setPlantEnergyInput] = useState(0.15); // Default from PLANT_MIN_ENERGY_GAIN
+
+    const handlePlantEnergyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const rate = parseFloat(e.target.value);
+        setPlantEnergyInput(rate);
+        sendCommand({ command: 'set_plant_energy_input', data: { rate } });
+    }, [sendCommand]);
 
     // Entity transfer state
     const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
@@ -228,6 +233,46 @@ export function TankView({ tankId }: TankViewProps) {
                         onChange={setOverrideViewMode}
                     />
                 )}
+
+                {/* Plant Energy Input Control */}
+                <div className="glass-panel" style={{
+                    padding: '8px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                }}>
+                    <span style={{
+                        color: 'var(--color-text-dim)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        letterSpacing: '0.05em',
+                        whiteSpace: 'nowrap'
+                    }}>
+                        🌱 PLANT ENERGY
+                    </span>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={plantEnergyInput}
+                        onChange={handlePlantEnergyChange}
+                        disabled={!isConnected}
+                        style={{
+                            width: '80px',
+                            accentColor: '#4ade80',
+                            cursor: isConnected ? 'pointer' : 'not-allowed',
+                        }}
+                    />
+                    <span style={{
+                        color: 'var(--color-text-main)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12px',
+                        minWidth: '40px',
+                    }}>
+                        {plantEnergyInput.toFixed(2)}
+                    </span>
+                </div>
             </div>
 
             {/* Simulation Stats Panel - Moved Above Tank */}

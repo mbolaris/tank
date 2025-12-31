@@ -301,8 +301,15 @@ class Plant(Agent):
         if getattr(self.genome, "type", "lsystem") == "cosmic_fern":
             energy_gain *= 1.1
 
-        # Apply minimum energy gain floor to prevent small plants from growing too slowly
-        energy_gain = max(energy_gain, PLANT_MIN_ENERGY_GAIN)
+        # Apply minimum energy gain floor - read from runtime config if available
+        min_energy_gain = PLANT_MIN_ENERGY_GAIN  # Default from constants
+        config = getattr(self.environment, "simulation_config", None)
+        if config is not None:
+            plant_config = getattr(config, "plant", None)
+            if plant_config is not None:
+                min_energy_gain = getattr(plant_config, "plant_energy_input_rate", PLANT_MIN_ENERGY_GAIN)
+        
+        energy_gain = max(energy_gain, min_energy_gain)
 
         before = self.energy
         self.energy = min(self.max_energy, self.energy + energy_gain)

@@ -260,6 +260,7 @@ class SimulationEngine:
             rng=self.rng,
             event_bus=self.event_bus,
             code_pool=self.code_pool,
+            simulation_config=self.config,
         )
         self.environment.set_spawn_requester(self.request_spawn)
         self.environment.set_remove_requester(self.request_remove)

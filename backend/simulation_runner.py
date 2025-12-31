@@ -881,6 +881,7 @@ class SimulationRunner(CommandHandlerMixin):
             "poker_new_round": self._cmd_poker_new_round,
             "poker_autopilot_action": self._cmd_poker_autopilot_action,
             "standard_poker_series": self._cmd_standard_poker_series,
+            "set_plant_energy_input": self._cmd_set_plant_energy_input,
         }
 
         with self.lock:
