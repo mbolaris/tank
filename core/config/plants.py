@@ -50,7 +50,7 @@ PLANT_INITIAL_COUNT = 13  # Number of plants to start with (one per strategy typ
 
 # Plant Energy Collection (Passive Growth)
 PLANT_BASE_ENERGY_RATE = 0.08  # Base energy gain per frame - 4x original to offset poker losses
-PLANT_MIN_ENERGY_GAIN = 0.10  # Minimum energy gain per frame (lower bound for small plants)
+PLANT_MIN_ENERGY_GAIN = 0.15  # Minimum energy gain per frame (lower bound for small plants)
 PLANT_GROWTH_FACTOR = 0.3  # Compound growth rate modifier
 PLANT_DAY_MODIFIER = 1.0  # Energy collection during day
 PLANT_DAWN_DUSK_MODIFIER = 0.7  # Energy collection at dawn/dusk
