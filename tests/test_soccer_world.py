@@ -4,7 +4,6 @@ This module tests the SoccerWorldBackendAdapter, physics engine,
 and soccer-specific interfaces.
 """
 
-
 import pytest
 
 from core.policies.soccer_interfaces import (

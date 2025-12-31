@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from core.policies.soccer_interfaces import PlayerID, TeamID, Vector2D
+from core.util.rng import require_rng_param
 
 
 @dataclass
@@ -202,7 +203,7 @@ class SoccerPhysics:
         self.player_max_speed = player_max_speed
         self.player_acceleration = player_acceleration
         self.ball_kick_power_max = ball_kick_power_max
-        self.rng = rng or random.Random()
+        self.rng = require_rng_param(rng, "SoccerPhysics.__init__")
 
     def update_player_movement(
         self,
