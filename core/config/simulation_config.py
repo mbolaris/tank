@@ -39,8 +39,8 @@ from core.config.food import (
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     LIVE_FOOD_SPAWN_CHANCE,
 )
-from core.config.poker import MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES
 from core.config.plants import PLANT_MIN_ENERGY_GAIN
+from core.config.poker import MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES
 from core.config.server import DEFAULT_API_PORT, PLANTS_ENABLED, POKER_ACTIVITY_ENABLED
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 
