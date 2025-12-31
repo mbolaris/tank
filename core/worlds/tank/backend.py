@@ -154,15 +154,24 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             obs_by_agent={},  # No agent observations yet
             snapshot=self._build_snapshot(),
             events=events,
-            metrics=self.get_current_metrics(),
+            # Use lightweight metrics by default (no distributions) to minimize per-step cost
+            metrics=self.get_current_metrics(include_distributions=False),
             done=done,
             info={"frame": self._current_frame},
         )
         return self._last_step_result
 
     def update(self) -> None:
-        """Advance the simulation by one step (compatibility shim)."""
-        self.step()
+        """Advance the simulation by one step (compatibility shim).
+
+        This is the hot path for the simulation loop. It deliberately skips
+        computing StepResult, collecting events, or building snapshots to
+        keep the FPS high.
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() before update().")
+        self._world.update()
+        self._current_frame = self._world.frame_count
 
     def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Return current metrics for legacy callers."""
