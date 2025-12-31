@@ -46,7 +46,7 @@ class CodeComponent:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CodeComponent":
+    def from_dict(cls, data: dict[str, Any]) -> CodeComponent:
         metadata = data.get("metadata") or {}
         return cls(
             component_id=data["component_id"],
