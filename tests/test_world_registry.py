@@ -59,7 +59,7 @@ class TestWorldRegistry:
         types = WorldRegistry.list_world_types()
         assert types["tank"] == "implemented"
         assert types["petri"] == "implemented"
-        assert types["soccer"] == "not_implemented"
+        assert types["soccer"] == "implemented"
 
     def test_tank_mode_pack_config_normalization(self):
         """Mode pack should normalize legacy keys and fill defaults."""
