@@ -271,9 +271,10 @@ class TankSnapshotBuilder:
                         "floral_spin": round(g.floral_spin, 2),
                         "floral_hue": round(g.floral_hue, 3),
                         "floral_saturation": round(g.floral_saturation, 2),
-                        # Compact rules: [[inp, out, prob], ...] instead of list of dicts
+                        # Production rules as list of dicts for frontend compatibility
                         "production_rules": [
-                            [inp, out, prob] for inp, out, prob in g._production_rules
+                            {"input": inp, "output": out, "prob": prob}
+                            for inp, out, prob in g._production_rules
                         ],
                     }
 
