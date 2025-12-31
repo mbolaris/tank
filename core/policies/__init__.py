@@ -1,6 +1,6 @@
 """Policy interfaces and code pools for runtime behavior overrides."""
 
-from core.policies.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID, CodePool, seek_nearest_food_policy
+from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID, CodePool, seek_nearest_food_policy
 from core.policies.interfaces import MovementAction, Observation, build_movement_observation
 
 __all__ = [

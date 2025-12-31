@@ -9,14 +9,14 @@ This router provides endpoints for:
 """
 
 import logging
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from backend.tank_registry import TankRegistry
-from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
+from core.solutions import SolutionBenchmark, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
 
 logger = logging.getLogger(__name__)

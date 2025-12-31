@@ -6,7 +6,7 @@ from typing import Any, Optional
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from backend.tank_registry import CreateTankRequest, TankRegistry
+from backend.tank_registry import TankRegistry
 
 logger = logging.getLogger(__name__)
 

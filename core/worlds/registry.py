@@ -141,6 +141,8 @@ class WorldRegistry:
 
 
 def _register_builtin_modes() -> None:
+    from core.modes.soccer import create_soccer_mode_pack
+    from core.worlds.soccer.backend import SoccerWorldBackendAdapter
     from core.worlds.tank.backend import TankWorldBackendAdapter
     from core.worlds.petri.backend import PetriWorldBackendAdapter
 

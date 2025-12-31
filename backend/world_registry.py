@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
 
 from core.modes.interfaces import ModePack
 from core.modes.petri import create_petri_mode_pack
@@ -16,8 +16,8 @@ from core.modes.tank import create_tank_mode_pack
 from core.worlds.registry import WorldRegistry
 
 if TYPE_CHECKING:
-    from core.worlds.interfaces import MultiAgentWorldBackend
     from backend.snapshots.interfaces import SnapshotBuilder
+    from core.worlds.interfaces import MultiAgentWorldBackend
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def create_world(
     config: Optional[Dict[str, Any]] = None,
     headless: bool = True,
     **kwargs: Any,
-) -> Tuple["MultiAgentWorldBackend", "SnapshotBuilder"]:
+) -> Tuple[MultiAgentWorldBackend, SnapshotBuilder]:
     """Create a world instance and its snapshot builder.
 
     Args:

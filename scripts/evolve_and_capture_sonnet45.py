@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 """Evolve and capture improved Sonnet-4.5 solution with better positional balance."""
 
-import json
 import logging
 import os
 import sys
-from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.tank_world import TankWorld, TankWorldConfig
-from core.solutions import SolutionTracker
 from core.entities import Fish
+from core.solutions import SolutionTracker
+from core.tank_world import TankWorld, TankWorldConfig
 
 logging.basicConfig(
     level=logging.INFO,

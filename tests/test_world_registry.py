@@ -41,10 +41,13 @@ class TestWorldRegistry:
         assert isinstance(world, MultiAgentWorldBackend)
         assert isinstance(world, PetriWorldBackendAdapter)
 
-    def test_create_soccer_world_not_implemented(self):
-        """Test that soccer world raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="World type 'soccer' not yet implemented"):
-            WorldRegistry.create_world("soccer")
+    def test_create_soccer_world(self):
+        """Test creating a soccer world through the registry."""
+        world = WorldRegistry.create_world("soccer", seed=42, team_size=3)
+        assert isinstance(world, MultiAgentWorldBackend)
+        from core.worlds.soccer.backend import SoccerWorldBackendAdapter
+
+        assert isinstance(world, SoccerWorldBackendAdapter)
 
     def test_create_unknown_world(self):
         """Test that unknown world type raises ValueError."""

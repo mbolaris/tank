@@ -8,9 +8,9 @@ fixed version. Changes are logged.
 
 Run with: python scripts/batch_fix_lineage.py
 """
+import importlib.util
 import json
 import logging
-import importlib.util
 from pathlib import Path
 
 
@@ -22,7 +22,7 @@ def load_scan_function() -> callable:
     loader = spec.loader
     assert loader is not None
     loader.exec_module(module)
-    return getattr(module, "scan_and_fix_lineage")
+    return module.scan_and_fix_lineage
 
 scan_and_fix_lineage = load_scan_function()
 

@@ -8,24 +8,22 @@ Usage:
     python scripts/test_skill_games_headless.py
 """
 
-import sys
-import os
-import time
-import random
 import logging
-from typing import Dict, Any, List
+import os
+import sys
+import time
+from typing import Any, Dict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.skill_game_system import SkillGameSystem
 from core.skills.base import SkillGameType
 from core.skills.config import (
     SkillGameConfig,
-    set_skill_game_config,
     get_active_skill_game,
-    set_active_skill_game,
+    set_skill_game_config,
 )
-from core.skill_game_system import SkillGameSystem
 from core.tank_world import TankWorld, TankWorldConfig
 
 # Configure logging

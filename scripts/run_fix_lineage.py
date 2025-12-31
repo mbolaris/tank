@@ -1,4 +1,7 @@
-import urllib.request, subprocess, sys
+import subprocess
+import sys
+import urllib.request
+
 url='http://localhost:8000/api/lineage'
 print('fetching',url)
 with urllib.request.urlopen(url) as r:

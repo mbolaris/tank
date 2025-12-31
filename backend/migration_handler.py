@@ -143,7 +143,7 @@ class MigrationHandler:
                 if new_entity_outcome.error and new_entity_outcome.error.code == "no_root_spots":
                      # Silent fail for plants
                      return False
-                
+
                 log_transfer(
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,

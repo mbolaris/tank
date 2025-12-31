@@ -186,10 +186,31 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
              engine = target_world.world.engine
         elif hasattr(target_world, "engine"):
              engine = target_world.engine
-             
+
         if engine is None:
              logger.error("Failed to resolve engine for restoration")
              return False
+
+        # Restore code pool components FIRST (before entities that reference them)
+        if "code_pool" in snapshot:
+            from core.code_pool import (
+                BUILTIN_SEEK_NEAREST_FOOD_ID,
+                CodePool,
+                seek_nearest_food_policy,
+            )
+            try:
+                restored_pool = CodePool.from_dict(snapshot["code_pool"])
+                # Re-register builtin policies (not serialized)
+                restored_pool.register(BUILTIN_SEEK_NEAREST_FOOD_ID, seek_nearest_food_policy)
+                engine.code_pool = restored_pool
+                # Wire into environment
+                if engine.environment:
+                    engine.environment.code_pool = engine.code_pool
+                component_count = len(restored_pool.list_components())
+                if component_count > 0:
+                    logger.info(f"Restored {component_count} code pool components")
+            except Exception as e:
+                logger.warning(f"Failed to restore code pool: {e}")
 
         # Clear existing entities
         engine.entities_list.clear()
@@ -212,7 +233,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         # Pass 1: Restore non-nectar entities
         for entity_data in snapshot["entities"]:
             entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
-            
+
             if entity_type and "type" not in entity_data:
                 entity_data["type"] = entity_type
 

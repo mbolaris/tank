@@ -19,9 +19,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.solutions import (
-    SolutionTracker,
     SolutionBenchmark,
     SolutionRecord,
+    SolutionTracker,
 )
 from core.solutions.benchmark import SolutionBenchmarkConfig
 
@@ -49,6 +49,7 @@ def cmd_submit(args):
         # Create a placeholder solution for manual specification
         # In practice, this would capture from a running simulation
         from datetime import datetime
+
         from core.solutions.models import SolutionMetadata
 
         now = datetime.utcnow()
@@ -68,11 +69,11 @@ def cmd_submit(args):
 
     # Evaluate the solution
     if args.evaluate:
-        print(f"\nEvaluating solution against benchmark opponents...")
+        print("\nEvaluating solution against benchmark opponents...")
         benchmark = SolutionBenchmark()
         result = benchmark.evaluate_solution(solution, verbose=True)
         solution.benchmark_result = result
-        print(f"\nResults:")
+        print("\nResults:")
         print(f"  Elo Rating: {result.elo_rating:.0f}")
         print(f"  Skill Tier: {result.skill_tier}")
         print(f"  bb/100: {result.weighted_bb_per_100:+.2f}")

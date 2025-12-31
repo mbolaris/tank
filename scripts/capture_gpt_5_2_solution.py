@@ -15,8 +15,8 @@ import json
 import logging
 import os
 import sys
-from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -50,7 +50,7 @@ def _load_opponents_from_tournament_json(
     *,
     solutions_dir: str,
 ) -> List[SolutionRecord]:
-    with open(tournament_json_path, "r", encoding="utf-8") as f:
+    with open(tournament_json_path, encoding="utf-8") as f:
         payload = json.load(f)
 
     ids = payload.get("selected_solution_ids", [])

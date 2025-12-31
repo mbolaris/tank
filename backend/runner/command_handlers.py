@@ -12,15 +12,14 @@ Command handlers are responsible for:
 
 import logging
 import uuid
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core import entities, movement_strategy
-from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.auto_evaluate_poker import AutoEvaluatePokerGame
+from core.config.display import FILES, SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.entities import Fish
-from core.config.display import FILES
 from core.genetics import Genome
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.human_poker_game import HumanPokerGame
 
 if TYPE_CHECKING:
