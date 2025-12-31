@@ -239,8 +239,17 @@ class SimulationEngine:
 
         # Create EventBus for domain event dispatch
         from core.events import EventBus
+        from core.policies.code_pool import (
+            BUILTIN_SEEK_NEAREST_FOOD_ID,
+            CodePool,
+            seek_nearest_food_policy,
+        )
 
         self.event_bus = EventBus()
+
+        # Initialize code pool (per-engine for isolation)
+        self.code_pool = CodePool()
+        self.code_pool.register(BUILTIN_SEEK_NEAREST_FOOD_ID, seek_nearest_food_policy)
 
         # Initialize environment with EventBus for decoupled telemetry
         self.environment = environment.Environment(
@@ -250,6 +259,7 @@ class SimulationEngine:
             self.time_system,
             rng=self.rng,
             event_bus=self.event_bus,
+            code_pool=self.code_pool,
         )
         self.environment.set_spawn_requester(self.request_spawn)
         self.environment.set_remove_requester(self.request_remove)

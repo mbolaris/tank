@@ -7,10 +7,13 @@ for agents in the simulation.
 import math
 import random
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
 from core.interfaces import MigrationHandler
+
+if TYPE_CHECKING:
+    from core.policies.code_pool import CodePool
 
 
 class SpatialGrid:
@@ -508,6 +511,7 @@ class Environment:
         time_system: Optional[Any] = None,
         rng: Optional[random.Random] = None,
         event_bus: Optional[Any] = None,
+        code_pool: Optional["CodePool"] = None,
     ):
         """
         Initialize the environment.
@@ -528,6 +532,12 @@ class Environment:
         from core.util.rng import require_rng_param
 
         self._rng = require_rng_param(rng, "__init__")
+        if code_pool is None:
+            from core.policies.code_pool import CodePool
+
+            self.code_pool = CodePool()
+        else:
+            self.code_pool = code_pool
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled
