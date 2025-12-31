@@ -136,10 +136,10 @@ def test_world_runner_uses_snapshot_builder_build() -> None:
     runner = WorldRunner(world, snapshot_builder, world_type="tank")
 
     runner.reset(seed=42)
-    
+
     # After reset, _last_step_result should be set
     assert runner.last_step_result is not None
-    
+
     # get_entities_snapshot should work
     snapshots = runner.get_entities_snapshot()
     assert isinstance(snapshots, list)
