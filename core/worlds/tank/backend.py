@@ -100,28 +100,28 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def frame_count(self) -> int:
         """Current frame count for compatibility with legacy world runners."""
         if self._world is None:
-            return 0
+            raise RuntimeError("World not initialized. Call reset() before accessing frame_count.")
         return self._world.frame_count
 
     @property
     def paused(self) -> bool:
         """Whether the simulation is paused (compatibility shim)."""
         if self._world is None:
-            return False
+            raise RuntimeError("World not initialized. Call reset() before accessing paused.")
         return self._world.paused
 
     @paused.setter
     def paused(self, value: bool) -> None:
         """Set paused state on the underlying TankWorld when available."""
         if self._world is None:
-            return
+            raise RuntimeError("World not initialized. Call reset() before setting paused.")
         self._world.paused = value
 
     @property
     def entities_list(self) -> List[Any]:
         """Expose entities list for snapshot builders."""
         if self._world is None:
-            return []
+            raise RuntimeError("World not initialized. Call reset() before accessing entities_list.")
         return self._world.entities_list
 
     def setup(self) -> None:
@@ -164,9 +164,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Advance the simulation by one step (compatibility shim)."""
         self.step()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Return current metrics for legacy callers."""
-        return self.get_current_metrics()
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() before get_stats().")
+        return self.get_current_metrics(include_distributions=include_distributions)
 
     def get_current_snapshot(self) -> Dict[str, Any]:
         """Get current world state snapshot.
@@ -179,7 +181,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return self._build_snapshot()
 
-    def get_current_metrics(self) -> Dict[str, Any]:
+    def get_current_metrics(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Get current simulation metrics/statistics.
 
         Returns:
@@ -188,7 +190,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if self._world is None:
             return {}
 
-        return self._world.get_stats()
+        return self._world.get_stats(include_distributions=include_distributions)
 
     def _build_snapshot(self) -> Dict[str, Any]:
         """Build a stable snapshot of current world state.
@@ -335,3 +337,36 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             Last StepResult, or None if no step has occurred yet
         """
         return self._last_step_result
+
+    @property
+    def engine(self) -> Any:
+        """Access underlying simulation engine for legacy compatibility.
+        
+        This allows existing backend code to access adapter.engine just like
+        it accessed tank_world.engine.
+        """
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() before accessing engine.")
+        return getattr(self._world, "engine", None)
+
+    @property
+    def ecosystem(self) -> Any:
+        """Access underlying ecosystem for legacy compatibility."""
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() before accessing ecosystem.")
+        return getattr(self._world, "ecosystem", None)
+
+    @property
+    def config(self) -> TankWorldConfig:
+        """Access configuration for legacy compatibility."""
+        # Config is available before reset
+        if self._world is not None:
+             return self._world.config
+        return self._base_config
+
+    @property
+    def rng(self) -> Any:
+        """Access random number generator for legacy compatibility."""
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() before accessing rng.")
+        return getattr(self._world, "rng", None)

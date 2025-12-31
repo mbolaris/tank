@@ -300,7 +300,18 @@ class SimulationManager:
                 from core.entities.predators import Crab
 
                 world = self.world
-                engine = world.engine
+                
+                # Resolve engine from world, handling adapter layer if present
+                engine = None
+                if hasattr(world, "world") and hasattr(world.world, "engine"):
+                     # TankWorldBackendAdapter wraps TankWorld which has engine
+                     engine = world.world.engine
+                elif hasattr(world, "engine"):
+                     # TankWorld has engine directly
+                     engine = world.engine
+                else:
+                     logger.error(f"Could not resolve engine for tank {self.tank_id} - save aborted")
+                     return None
 
                 # 1. Capture metadata
                 captured_data["version"] = "2.0"

@@ -41,10 +41,13 @@ class StatsCalculator:
         """Delegate to utils module."""
         return humanize_gene_label(key)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Get comprehensive simulation statistics.
 
         This is the main entry point that aggregates all stat categories.
+
+        Args:
+            include_distributions: Whether to calculate expensive genetic distributions
 
         Returns:
             Dictionary with all simulation statistics
@@ -67,8 +70,9 @@ class StatsCalculator:
         # Add fish health distribution (delegated to entity_stats module)
         stats.update(entity_stats.get_fish_health_stats(self._engine))
 
-        # Add genetic distribution stats
-        stats.update(self._get_genetic_distribution_stats())
+        if include_distributions:
+            # Add genetic distribution stats
+            stats.update(self._get_genetic_distribution_stats())
 
         return stats
 

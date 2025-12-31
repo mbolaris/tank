@@ -31,8 +31,9 @@ export function buildTankScene(snapshot: any): TankScene {
 
     const entities: TankEntity[] = [];
 
-    if (snapshot.entities && Array.isArray(snapshot.entities)) {
-        snapshot.entities.forEach((e: EntityData) => {
+    const rawEntities = snapshot.snapshot?.entities ?? snapshot.entities;
+    if (rawEntities && Array.isArray(rawEntities)) {
+        rawEntities.forEach((e: EntityData) => {
             // Calculate heading from velocity if available
             let headingRad = undefined;
             if (e.vel_x !== undefined && e.vel_y !== undefined && (e.vel_x !== 0 || e.vel_y !== 0)) {
@@ -52,10 +53,12 @@ export function buildTankScene(snapshot: any): TankScene {
         });
     }
 
+    const stats = snapshot.snapshot?.stats ?? snapshot.stats;
+
     return {
         width: 1088, // Constant for now, or read from snapshot if available
         height: 612,
         entities,
-        time: snapshot.stats?.time || 0
+        time: stats?.time || 0
     };
 }

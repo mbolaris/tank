@@ -253,9 +253,9 @@ class CollisionSystem(BaseSystem):
         # PERF: Simple sort key for determinism - uses id() which is stable within a frame
         # This is much faster than the complex key that was doing multiple getattr/isinstance calls
         Fish_type = Fish
-        Food_type = Food  
+        Food_type = Food
         Crab_type = Crab
-        
+
         def collision_sort_key(entity: "Agent") -> tuple:
             # Fast type ranking using identity comparison
             e_type = type(entity)

@@ -180,14 +180,25 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 return "plant"
             return None
 
+        # Resolve engine from target_world (which might be an adapter)
+        engine = None
+        if hasattr(target_world, "world") and hasattr(target_world.world, "engine"):
+             engine = target_world.world.engine
+        elif hasattr(target_world, "engine"):
+             engine = target_world.engine
+             
+        if engine is None:
+             logger.error("Failed to resolve engine for restoration")
+             return False
+
         # Clear existing entities
-        target_world.engine.entities_list.clear()
-        if target_world.engine.environment:
-            target_world.engine.environment.spatial_grid.clear()
+        engine.entities_list.clear()
+        if engine.environment:
+            engine.environment.spatial_grid.clear()
 
         # Reset root spots
-        if hasattr(target_world.engine, "root_spot_manager") and target_world.engine.root_spot_manager:
-            for spot in target_world.engine.root_spot_manager.spots:
+        if hasattr(engine, "root_spot_manager") and engine.root_spot_manager:
+            for spot in engine.root_spot_manager.spots:
                 spot.release()
 
         # Restore entities
@@ -217,12 +228,12 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                     if isinstance(entity, Plant) and "id" in entity_data:
                         entity.plant_id = entity_data["id"]
                         # Ensure plant_manager's ID counter is higher than this ID to avoid collisions
-                        plant_manager = getattr(target_world.engine, "plant_manager", None)
+                        plant_manager = getattr(engine, "plant_manager", None)
                         if plant_manager is not None and hasattr(plant_manager, "_next_plant_id"):
                             if entity.plant_id >= plant_manager._next_plant_id:
                                 plant_manager._next_plant_id = entity.plant_id + 1
 
-                    target_world.engine.add_entity(entity)
+                    engine.add_entity(entity)
                     restored_count += 1
                     if isinstance(entity, Plant):
                         plants_by_id[entity.plant_id] = entity
@@ -238,7 +249,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 if food_type == "live":
                     # Create LiveFood instance to preserve movement behavior
                     food = LiveFood(
-                        environment=target_world.engine.environment,
+                        environment=engine.environment,
                         x=x,
                         y=y,
                     )
@@ -248,11 +259,11 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                         x=x,
                         y=y,
                         food_type=food_type,
-                        environment=target_world.engine.environment,
+                        environment=engine.environment,
                     )
 
                 food.energy = entity_data["energy"]
-                target_world.engine.add_entity(food)
+                engine.add_entity(food)
                 restored_count += 1
 
             elif entity_type == "castle":
@@ -260,14 +271,14 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 from core.entities.base import Castle
 
                 castle = Castle(
-                    environment=target_world.engine.environment,
+                    environment=engine.environment,
                     x=entity_data["x"],
                     y=entity_data["y"],
                 )
                 # Restore size if it was saved
                 if "width" in entity_data and "height" in entity_data:
                     castle.set_size(entity_data["width"], entity_data["height"])
-                target_world.engine.add_entity(castle)
+                engine.add_entity(castle)
                 restored_count += 1
 
             elif entity_type == "crab":
@@ -286,7 +297,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 genome.physical.color_hue.value = genome_data.get("color_hue", 0.5)
 
                 crab = Crab(
-                    environment=target_world.engine.environment,
+                    environment=engine.environment,
                     genome=genome,
                     x=entity_data["x"],
                     y=entity_data["y"],
@@ -294,7 +305,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 crab.energy = entity_data.get("energy", crab.max_energy)
                 crab.max_energy = entity_data.get("max_energy", crab.max_energy)
                 crab.hunt_cooldown = entity_data.get("hunt_cooldown", 0)
-                target_world.engine.add_entity(crab)
+                engine.add_entity(crab)
                 restored_count += 1
 
         # Pass 2: Restore nectar
@@ -307,20 +318,20 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                     x=entity_data["x"],
                     y=entity_data["y"],
                     source_plant=source_plant,
-                    environment=target_world.engine.environment,
+                    environment=engine.environment,
                 )
                 nectar.energy = entity_data["energy"]
-                target_world.engine.add_entity(nectar)
+                engine.add_entity(nectar)
                 restored_count += 1
             else:
                 logger.warning(f"Skipping nectar restoration: missing source plant {source_plant_id}")
 
         # Restore frame number
-        target_world.engine.frame_count = snapshot["frame"]
+        engine.frame_count = snapshot["frame"]
 
         # Restore ecosystem statistics
         if "ecosystem" in snapshot:
-            eco = target_world.engine.ecosystem
+            eco = engine.ecosystem
             eco_data = snapshot["ecosystem"]
             eco.total_births = eco_data.get("total_births", 0)
             eco.total_deaths = eco_data.get("total_deaths", 0)

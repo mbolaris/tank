@@ -635,4 +635,3 @@ class MigrationCapable(Protocol):
     def tank_id(self) -> Optional[str]:
         """Get the tank identifier for migration tracking."""
         ...
-

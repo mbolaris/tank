@@ -238,22 +238,18 @@ class ComprehensiveBenchmarkConfig:
 QUICK_BENCHMARK_CONFIG = ComprehensiveBenchmarkConfig(
     fish_vs_baselines=SubTournamentConfig(
         category=BenchmarkCategory.FISH_VS_BASELINES,
-        hands_per_match=100,
-        num_duplicate_sets=10,
+        hands_per_match=20,  # 20 hands per side = 40 hands per set
+        num_duplicate_sets=2,  # 2 sets = 80 hands total per opponent
         replicates=1,
         baseline_opponents=[
-            "always_fold",
             "random",
             "loose_passive",
-            "tight_passive",
             "tight_aggressive",
-            "loose_aggressive",
-            "balanced",
             "gto_expert",
         ],
     ),
-    top_n_fish=5,
-    random_sample_fish=3,
+    top_n_fish=5,  # Evaluate top 5 fish
+    random_sample_fish=3,  # Plus 3 randoms
 )
 
 # Full benchmark config for detailed analysis (higher sample size)

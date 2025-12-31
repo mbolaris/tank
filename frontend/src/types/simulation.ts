@@ -383,12 +383,25 @@ export interface SimulationUpdate {
     tank_id?: string;  // Tank World Net identifier
     world_type?: string;
     view_mode?: string;
-    frame: number;
-    elapsed_time: number;
-    entities: EntityData[];
-    stats: StatsData;
-    poker_events: PokerEventData[];
-    poker_leaderboard: PokerLeaderboardEntry[];
+
+    // New nested snapshot
+    snapshot?: {
+        frame: number;
+        elapsed_time: number;
+        entities: EntityData[];
+        stats: StatsData;
+        poker_events: PokerEventData[];
+        poker_leaderboard: PokerLeaderboardEntry[];
+        auto_evaluation?: AutoEvaluateStats;
+    };
+
+    // Legacy fields (optional for backward compatibility)
+    frame?: number;
+    elapsed_time?: number;
+    entities?: EntityData[];
+    stats?: StatsData;
+    poker_events?: PokerEventData[];
+    poker_leaderboard?: PokerLeaderboardEntry[];
     auto_evaluation?: AutoEvaluateStats;
 }
 
@@ -397,12 +410,25 @@ export interface DeltaUpdate {
     tank_id?: string;  // Tank World Net identifier
     world_type?: string;
     view_mode?: string;
-    frame: number;
-    elapsed_time: number;
-    updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
-    added: EntityData[];
-    removed: number[];
-    poker_events: PokerEventData[];
+
+    // New nested snapshot
+    snapshot?: {
+        frame: number;
+        elapsed_time: number;
+        updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
+        added: EntityData[];
+        removed: number[];
+        poker_events: PokerEventData[];
+        stats?: StatsData;
+    };
+
+    // Legacy fields (optional for backward compatibility)
+    frame?: number;
+    elapsed_time?: number;
+    updates?: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
+    added?: EntityData[];
+    removed?: number[];
+    poker_events?: PokerEventData[];
     stats?: StatsData;
 }
 
