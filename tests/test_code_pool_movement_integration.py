@@ -3,8 +3,8 @@ from typing import Tuple
 
 import pytest
 
-from core.environment import Environment
 from core.entities.fish import Fish
+from core.environment import Environment
 from core.genetics.trait import GeneticTrait
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement

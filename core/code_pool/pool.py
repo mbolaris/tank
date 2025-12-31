@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from typing import Any, Callable
-import uuid
 
 from .models import (
     CodeComponent,
@@ -106,7 +106,7 @@ class CodePool:
         return {"components": components}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CodePool":
+    def from_dict(cls, data: dict[str, Any]) -> CodePool:
         components_data = data.get("components", [])
         components = {
             entry["component_id"]: CodeComponent.from_dict(entry) for entry in components_data
