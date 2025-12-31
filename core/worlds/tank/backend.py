@@ -125,7 +125,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def entities_list(self) -> List[Any]:
         """Expose entities list for snapshot builders."""
         if self._world is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing entities_list.")
+            raise RuntimeError(
+                "World not initialized. Call reset() before accessing entities_list."
+            )
         return self._world.entities_list
 
     def setup(self) -> None:
@@ -391,7 +393,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Access configuration for legacy compatibility."""
         # Config is available before reset
         if self._world is not None:
-             return self._world.config
+            return self._world.config
         return self._base_config
 
     @property

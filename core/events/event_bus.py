@@ -12,7 +12,7 @@ Design goals:
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Callable, Dict, List, Type, TypeVar
+from typing import Callable, TypeVar
 
 T = TypeVar("T")
 
@@ -31,8 +31,8 @@ class EventBus:
 
     def __init__(self) -> None:
         """Initialize an empty event bus."""
-        self._handlers: Dict[Type, List[Callable]] = defaultdict(list)
-        self._pending: List[object] = []
+        self._handlers: dict[type, list[Callable]] = defaultdict(list)
+        self._pending: list[object] = []
 
     def emit(self, event: object) -> None:
         """Emit an event to all registered handlers.
@@ -49,7 +49,7 @@ class EventBus:
             for handler in handlers:
                 handler(event)
 
-    def subscribe(self, event_type: Type[T], handler: Callable[[T], None]) -> None:
+    def subscribe(self, event_type: type[T], handler: Callable[[T], None]) -> None:
         """Register a handler for a specific event type.
 
         Handlers are called in registration order when events of this
@@ -61,7 +61,7 @@ class EventBus:
         """
         self._handlers[event_type].append(handler)
 
-    def unsubscribe(self, event_type: Type[T], handler: Callable[[T], None]) -> bool:
+    def unsubscribe(self, event_type: type[T], handler: Callable[[T], None]) -> bool:
         """Remove a handler for a specific event type.
 
         Args:
@@ -84,7 +84,7 @@ class EventBus:
         """
         self._handlers.clear()
 
-    def has_subscribers(self, event_type: Type) -> bool:
+    def has_subscribers(self, event_type: type) -> bool:
         """Check if any handlers are registered for an event type.
 
         Args:
@@ -95,7 +95,7 @@ class EventBus:
         """
         return bool(self._handlers.get(event_type))
 
-    def subscriber_count(self, event_type: Type) -> int:
+    def subscriber_count(self, event_type: type) -> int:
         """Get the number of handlers registered for an event type.
 
         Args:
