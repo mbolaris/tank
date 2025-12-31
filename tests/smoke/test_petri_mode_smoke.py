@@ -16,6 +16,5 @@ def test_petri_mode_smoke() -> None:
     assert isinstance(snapshots, list)
     if snapshots:
         assert any(
-            getattr(snapshot, "render_hint", {}).get("style") == "petri"
-            for snapshot in snapshots
+            getattr(snapshot, "render_hint", {}).get("style") == "petri" for snapshot in snapshots
         )
