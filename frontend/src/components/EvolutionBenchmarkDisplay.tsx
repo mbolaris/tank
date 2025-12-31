@@ -763,7 +763,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
                 >
                     <div style={styles.noData}>
                         {data?.status === 'not_available'
-                            ? 'Benchmark is disabled on the server.'
+                            ? 'Benchmark is disabled on the server (TANK_EVOLUTION_BENCHMARK_ENABLED=0).'
                             : (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{

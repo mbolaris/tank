@@ -135,10 +135,9 @@ class SimulationRunner(CommandHandlerMixin):
         self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
 
         # Evolution benchmark tracker for longitudinal skill measurement
-        # DISABLED BY DEFAULT: ThreadPoolExecutor causes GIL contention, blocking asyncio
-        # Set TANK_EVOLUTION_BENCHMARK_ENABLED=1 to enable (will cause FPS drops during benchmark)
+        # Enabled by default (can cause FPS drops during benchmark); set TANK_EVOLUTION_BENCHMARK_ENABLED=0 to disable.
         self.evolution_benchmark_tracker = None
-        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "0").strip().lower() in (
+        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
             "1",
             "true",
             "yes",
