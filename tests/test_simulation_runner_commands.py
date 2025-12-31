@@ -21,6 +21,8 @@ class TestSimulationRunnerCommands:
 
             # Configure mock metadata
             mock_metadata = MagicMock()
+            mock_metadata.mode_id = "tank"
+            mock_metadata.world_type = "tank"
             mock_metadata.view_mode = "side"
             mock_get_metadata.return_value = mock_metadata
 

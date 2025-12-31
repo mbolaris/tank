@@ -8,6 +8,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+FAST_STEP_ACTION = "__fast_step__"
+# Reserved meta-action key for internal fast stepping (non-gameplay).
+
 
 @dataclass
 class StepResult:
@@ -37,7 +40,7 @@ class MultiAgentWorldBackend(ABC):
 
     This interface is implemented by specific world backends (Tank, Petri, Soccer).
     It provides a consistent API for:
-    - Resetting the world with a seed and scenario
+    - Resetting the world with a seed and config
     - Stepping the simulation with agent actions
     - Accessing observations, snapshots, events, and metrics
 
@@ -46,13 +49,13 @@ class MultiAgentWorldBackend(ABC):
 
     @abstractmethod
     def reset(
-        self, seed: Optional[int] = None, scenario: Optional[Dict[str, Any]] = None
+        self, seed: Optional[int] = None, config: Optional[Dict[str, Any]] = None
     ) -> StepResult:
         """Reset the world to initial state.
 
         Args:
             seed: Random seed for deterministic initialization
-            scenario: World-specific configuration (e.g., initial population, map layout)
+            config: World-specific configuration (e.g., initial population, map layout)
 
         Returns:
             StepResult with initial observations, snapshot, and metrics

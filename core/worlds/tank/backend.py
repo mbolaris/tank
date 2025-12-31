@@ -9,7 +9,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.tank_world import TankWorld, TankWorldConfig
-from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
+from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 
 logger = logging.getLogger(__name__)
 
@@ -58,21 +58,25 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._world: Optional[TankWorld] = None
         self._current_frame = 0
         self._last_step_result: Optional[StepResult] = None
+        self.supports_fast_step = True
 
     def reset(
-        self, seed: Optional[int] = None, scenario: Optional[Dict[str, Any]] = None
+        self, seed: Optional[int] = None, config: Optional[Dict[str, Any]] = None
     ) -> StepResult:
         """Reset the tank world to initial state.
 
         Args:
             seed: Random seed (overrides constructor seed if provided)
-            scenario: Tank-specific configuration (not used for now)
+            config: Tank-specific configuration overrides
 
         Returns:
             StepResult with initial snapshot and metrics
         """
         # Use provided seed or fall back to constructor seed
         reset_seed = seed if seed is not None else self._seed
+        if config:
+            merged = {**self._base_config.to_dict(), **config}
+            self._base_config = TankWorldConfig.from_dict(merged)
 
         # Create fresh TankWorld instance
         self._world = TankWorld(config=self._base_config, seed=reset_seed)
@@ -140,12 +144,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before step().")
 
+        fast_step = bool(actions_by_agent and actions_by_agent.get(FAST_STEP_ACTION))
+
         # Run one simulation tick
         self._world.update()
         self._current_frame = self._world.frame_count
 
         # Collect recent events (e.g., poker games)
-        events = self._collect_recent_events()
+        events = [] if fast_step else self._collect_recent_events()
 
         # Check if simulation is done (for now, never terminates automatically)
         done = False
@@ -155,7 +161,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             snapshot=self._build_snapshot(),
             events=events,
             # Use lightweight metrics by default (no distributions) to minimize per-step cost
-            metrics=self.get_current_metrics(include_distributions=False),
+            metrics={} if fast_step else self.get_current_metrics(include_distributions=False),
             done=done,
             info={"frame": self._current_frame},
         )
@@ -164,14 +170,12 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def update(self) -> None:
         """Advance the simulation by one step (compatibility shim).
 
-        This is the hot path for the simulation loop. It deliberately skips
-        computing StepResult, collecting events, or building snapshots to
-        keep the FPS high.
+        This is the hot path for the simulation loop. It uses a fast step
+        path that avoids expensive metrics/event collection.
         """
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before update().")
-        self._world.update()
-        self._current_frame = self._world.frame_count
+        self.step({FAST_STEP_ACTION: True})
 
     def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Return current metrics for legacy callers."""

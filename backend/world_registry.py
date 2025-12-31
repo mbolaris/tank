@@ -1,18 +1,7 @@
-"""World registry for creating world instances by type.
+"""Mode-aware world registry for backend runtime.
 
-This module provides a factory registry pattern for creating world instances.
-Each world type (tank, petri, soccer) registers a factory function that
-creates the world and its associated snapshot builder.
-
-Usage:
-    from backend.world_registry import create_world, get_world_metadata
-
-    # Create a tank world with its snapshot builder
-    world, snapshot_builder = create_world("tank", seed=42)
-
-    # Get metadata about a world type
-    metadata = get_world_metadata("tank")
-    print(metadata["view_mode"])  # "side"
+This module bridges core mode packs with backend snapshot builders.
+It creates worlds via core WorldRegistry and pairs them with snapshot builders.
 """
 
 from __future__ import annotations
@@ -20,6 +9,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple, TYPE_CHECKING
+
+from core.modes.interfaces import ModePack
+from core.modes.tank import create_tank_mode_pack
+from core.worlds.registry import WorldRegistry
 
 if TYPE_CHECKING:
     from core.worlds.interfaces import MultiAgentWorldBackend
@@ -30,124 +23,108 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class WorldMetadata:
-    """Metadata for a registered world type."""
+    """Metadata for a registered mode pack."""
 
+    mode_id: str
     world_type: str
-    view_mode: str  # "side", "top", etc.
+    view_mode: str
     display_name: str
 
 
-# Type for world factory functions
-# Factory receives kwargs and returns (world, snapshot_builder)
-WorldFactory = Callable[..., Tuple["MultiAgentWorldBackend", "SnapshotBuilder"]]
+SnapshotBuilderFactory = Callable[[], "SnapshotBuilder"]
 
-# Registry storage
-_WORLD_FACTORIES: Dict[str, WorldFactory] = {}
-_WORLD_METADATA: Dict[str, WorldMetadata] = {}
+_MODE_PACKS: Dict[str, ModePack] = {}
+_SNAPSHOT_BUILDERS: Dict[str, SnapshotBuilderFactory] = {}
 
 
-def register_world(
-    world_type: str,
-    factory: WorldFactory,
-    view_mode: str = "side",
-    display_name: Optional[str] = None,
+def register_mode_pack(
+    mode_pack: ModePack,
+    snapshot_builder_factory: SnapshotBuilderFactory,
 ) -> None:
-    """Register a world type with its factory function.
+    """Register a mode pack with its snapshot builder factory."""
+    if mode_pack.mode_id in _MODE_PACKS:
+        logger.warning("Overwriting mode pack '%s' in backend registry", mode_pack.mode_id)
 
-    Args:
-        world_type: Unique identifier for the world type (e.g., "tank", "petri")
-        factory: Factory function that creates (world, snapshot_builder) tuple
-        view_mode: Default view mode for the frontend ("side", "top", etc.)
-        display_name: Human-readable name for the world type
-    """
-    if world_type in _WORLD_FACTORIES:
-        logger.warning(f"Overwriting existing world factory for '{world_type}'")
+    mode_pack.snapshot_builder_factory = snapshot_builder_factory
+    _MODE_PACKS[mode_pack.mode_id] = mode_pack
+    _SNAPSHOT_BUILDERS[mode_pack.mode_id] = snapshot_builder_factory
 
-    _WORLD_FACTORIES[world_type] = factory
-    _WORLD_METADATA[world_type] = WorldMetadata(
-        world_type=world_type,
-        view_mode=view_mode,
-        display_name=display_name or world_type.title(),
-    )
-    logger.info(f"Registered world type '{world_type}' with view_mode='{view_mode}'")
+    # Ensure core registry uses the same mode pack definition.
+    WorldRegistry.register_mode_pack(mode_pack)
+    logger.info("Registered mode pack '%s' for world_type '%s'", mode_pack.mode_id, mode_pack.world_type)
 
 
-def create_world(world_type: str, **kwargs: Any) -> Tuple["MultiAgentWorldBackend", "SnapshotBuilder"]:
-    """Create a world instance and its snapshot builder.
-
-    Args:
-        world_type: The type of world to create
-        **kwargs: Arguments passed to the world factory (seed, config, etc.)
-
-    Returns:
-        Tuple of (world, snapshot_builder)
-
-    Raises:
-        ValueError: If world_type is not registered
-    """
-    if world_type not in _WORLD_FACTORIES:
-        available = list(_WORLD_FACTORIES.keys())
-        raise ValueError(
-            f"Unknown world type '{world_type}'. Available types: {available}"
-        )
-
-    factory = _WORLD_FACTORIES[world_type]
-    return factory(**kwargs)
-
-
-def get_world_metadata(world_type: str) -> Optional[WorldMetadata]:
-    """Get metadata for a registered world type.
-
-    Args:
-        world_type: The type of world
-
-    Returns:
-        WorldMetadata if registered, None otherwise
-    """
-    return _WORLD_METADATA.get(world_type)
-
-
-def get_registered_world_types() -> list[str]:
-    """Get list of all registered world types."""
-    return list(_WORLD_FACTORIES.keys())
-
-
-# =============================================================================
-# Tank World Registration
-# =============================================================================
-
-
-def _create_tank_world(
+def create_world(
+    mode_id: str,
+    *,
     seed: Optional[int] = None,
+    config: Optional[Dict[str, Any]] = None,
     headless: bool = True,
     **kwargs: Any,
 ) -> Tuple["MultiAgentWorldBackend", "SnapshotBuilder"]:
-    """Factory function for creating tank world instances.
+    """Create a world instance and its snapshot builder.
 
     Args:
+        mode_id: The mode to create (e.g., "tank")
         seed: Optional random seed for deterministic behavior
+        config: Optional config dict (normalized by the mode pack)
         headless: Whether to run in headless mode (default True for backend)
-        **kwargs: Additional configuration options passed to TankWorldBackendAdapter
-
-    Returns:
-        Tuple of (MultiAgentWorldBackend, TankSnapshotBuilder)
+        **kwargs: Additional config overrides
     """
-    from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
-    from core.worlds.registry import WorldRegistry
+    mode_pack = _MODE_PACKS.get(mode_id) or WorldRegistry.get_mode_pack(mode_id)
+    if mode_pack is None:
+        available = list(WorldRegistry.list_mode_packs().keys())
+        raise ValueError(f"Unknown mode '{mode_id}'. Available modes: {available}")
 
-    # Use the core WorldRegistry to create the world (returns MultiAgentWorldBackend)
-    world = WorldRegistry.create_world("tank", seed=seed, headless=headless, **kwargs)
-    world.reset(seed=seed)
+    combined: Dict[str, Any] = {}
+    if config:
+        combined.update(config)
+    combined.update(kwargs)
+    combined.setdefault("headless", headless)
 
-    snapshot_builder = TankSnapshotBuilder()
+    world = WorldRegistry.create_world(mode_pack.mode_id, seed=seed, config=combined)
+    world.reset(seed=seed, config=combined)
+
+    builder_factory = _SNAPSHOT_BUILDERS.get(mode_pack.mode_id)
+    if builder_factory is None:
+        raise ValueError(f"No snapshot builder registered for mode '{mode_pack.mode_id}'")
+    snapshot_builder = builder_factory()
 
     return world, snapshot_builder
 
 
-# Register tank world on module import
-register_world(
-    world_type="tank",
-    factory=_create_tank_world,
-    view_mode="side",
-    display_name="Fish Tank",
-)
+def get_world_metadata(mode_id: str) -> Optional[WorldMetadata]:
+    """Get metadata for a registered mode pack."""
+    mode_pack = _MODE_PACKS.get(mode_id) or WorldRegistry.get_mode_pack(mode_id)
+    if mode_pack is None:
+        return None
+    return WorldMetadata(
+        mode_id=mode_pack.mode_id,
+        world_type=mode_pack.world_type,
+        view_mode=mode_pack.default_view_mode,
+        display_name=mode_pack.display_name,
+    )
+
+
+def get_registered_world_types() -> list[str]:
+    """Get list of registered mode ids (legacy compatibility)."""
+    if _MODE_PACKS:
+        return list(_MODE_PACKS.keys())
+    return list(WorldRegistry.list_mode_packs().keys())
+
+
+# =============================================================================
+# Tank Mode Registration
+# =============================================================================
+
+
+def _register_tank_mode() -> None:
+    from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
+
+    register_mode_pack(
+        create_tank_mode_pack(snapshot_builder_factory=TankSnapshotBuilder),
+        TankSnapshotBuilder,
+    )
+
+
+_register_tank_mode()

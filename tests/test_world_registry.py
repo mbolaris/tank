@@ -6,6 +6,7 @@ including the WorldRegistry and TankWorldBackendAdapter.
 
 import pytest
 
+from core.config.display import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH
 from core.worlds import MultiAgentWorldBackend, StepResult, WorldRegistry
 from core.worlds.tank.backend import TankWorldBackendAdapter
 
@@ -19,6 +20,13 @@ class TestWorldRegistry:
         assert isinstance(world, MultiAgentWorldBackend)
         assert isinstance(world, TankWorldBackendAdapter)
 
+    def test_create_world_from_mode_pack(self):
+        """WorldRegistry should create a world from a mode pack."""
+        mode_pack = WorldRegistry.get_mode_pack("tank")
+        assert mode_pack is not None
+        world = WorldRegistry.create_world(mode_pack.mode_id, seed=42)
+        assert isinstance(world, TankWorldBackendAdapter)
+
     def test_create_tank_world_with_config(self):
         """Test creating tank world with custom configuration."""
         world = WorldRegistry.create_world(
@@ -28,17 +36,17 @@ class TestWorldRegistry:
 
     def test_create_petri_world_not_implemented(self):
         """Test that petri world raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="Petri world backend not yet implemented"):
+        with pytest.raises(NotImplementedError, match="World type 'petri' not yet implemented"):
             WorldRegistry.create_world("petri")
 
     def test_create_soccer_world_not_implemented(self):
         """Test that soccer world raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="Soccer world backend not yet implemented"):
+        with pytest.raises(NotImplementedError, match="World type 'soccer' not yet implemented"):
             WorldRegistry.create_world("soccer")
 
     def test_create_unknown_world(self):
         """Test that unknown world type raises ValueError."""
-        with pytest.raises(ValueError, match="Unknown world type: unknown"):
+        with pytest.raises(ValueError, match="Unknown mode 'unknown'"):
             WorldRegistry.create_world("unknown")
 
     def test_list_world_types(self):
@@ -47,6 +55,22 @@ class TestWorldRegistry:
         assert types["tank"] == "implemented"
         assert types["petri"] == "not_implemented"
         assert types["soccer"] == "not_implemented"
+
+    def test_tank_mode_pack_config_normalization(self):
+        """Mode pack should normalize legacy keys and fill defaults."""
+        mode_pack = WorldRegistry.get_mode_pack("tank")
+        assert mode_pack is not None
+
+        normalized = mode_pack.configure({"width": 900, "height": 500, "fps": 40})
+        assert normalized["screen_width"] == 900
+        assert normalized["screen_height"] == 500
+        assert normalized["frame_rate"] == 40
+        assert normalized["headless"] is True
+
+        defaults_only = mode_pack.configure({})
+        assert defaults_only["screen_width"] == SCREEN_WIDTH
+        assert defaults_only["screen_height"] == SCREEN_HEIGHT
+        assert defaults_only["frame_rate"] == FRAME_RATE
 
 
 class TestTankWorldBackendAdapter:

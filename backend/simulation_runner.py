@@ -46,6 +46,7 @@ from core.entities.plant import Plant
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
 from core.plant_poker_strategy import PlantPokerStrategyAdapter
+from core.worlds.interfaces import FAST_STEP_ACTION
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,8 @@ class SimulationRunner(CommandHandlerMixin):
 
         # Store world metadata for payloads
         metadata = get_world_metadata(world_type)
-        self.world_type = world_type
+        self.mode_id = metadata.mode_id if metadata else world_type
+        self.world_type = metadata.world_type if metadata else world_type
         self.view_mode = metadata.view_mode if metadata else "side"
 
         # Worlds start unpaused by default - they run as soon as the server starts
@@ -336,7 +338,10 @@ class SimulationRunner(CommandHandlerMixin):
                     with self.lock:
                         try:
                             start_time = time.perf_counter()
-                            self.world.update()
+                            if getattr(self.world, "supports_fast_step", False):
+                                self.world.step({FAST_STEP_ACTION: True})
+                            else:
+                                self.world.step()
                             duration_ms = (time.perf_counter() - start_time) * 1000
                             if self._enable_perf_logging:
                                 mst = self._perf_stats["update"]
@@ -416,7 +421,7 @@ class SimulationRunner(CommandHandlerMixin):
                             f"{migration_str}{poker_str}{perf_log}"
                         )
 
-                    # Check for mode switch that happened during update() or async
+                    # Check for mode switch that happened during step() or async
                     # If we switched from Fast Forward -> Normal, we must reset the clock
                     # to "now" to avoid sleeping for the accumulated drift.
                     if was_fast_forward and not self.fast_forward:
@@ -649,6 +654,7 @@ class SimulationRunner(CommandHandlerMixin):
                     auto_evaluation=self._collect_auto_eval(), # Re-using existing _collect_auto_eval
                     tank_id=self.tank_id,
                     poker_leaderboard=self._collect_poker_leaderboard(), # Re-using existing _collect_poker_leaderboard
+                    mode_id=self.mode_id,
                     world_type=self.world_type,
                     view_mode=self.view_mode,
                 )
@@ -674,6 +680,7 @@ class SimulationRunner(CommandHandlerMixin):
                     stats=stats,
                     # poker_events=poker_events, # REMOVED from delta to prevent leak/bloat
                     tank_id=self.tank_id,
+                    mode_id=self.mode_id,
                     world_type=self.world_type,
                     view_mode=self.view_mode,
                 )
@@ -734,6 +741,7 @@ class SimulationRunner(CommandHandlerMixin):
             poker_events=poker_events,
             poker_leaderboard=poker_leaderboard,
             auto_evaluation=auto_eval,
+            mode_id=self.mode_id,
             world_type=self.world_type,
             view_mode=self.view_mode,
         )

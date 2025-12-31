@@ -565,6 +565,7 @@ class FullStatePayload:
     auto_evaluation: Optional[AutoEvaluateStatsPayload] = None
     type: str = "update"
     tank_id: Optional[str] = None  # Tank World Net identifier
+    mode_id: Optional[str] = "tank"
     world_type: Optional[str] = "tank"
     view_mode: Optional[str] = "side"
 
@@ -588,6 +589,8 @@ class FullStatePayload:
         }
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
+        if self.mode_id is not None:
+            data["mode_id"] = self.mode_id
         if self.world_type is not None:
             data["world_type"] = self.world_type
         if self.view_mode is not None:
@@ -614,6 +617,7 @@ class DeltaStatePayload:
     stats: Optional[StatsPayload] = None
     type: str = "delta"
     tank_id: Optional[str] = None  # Tank World Net identifier
+    mode_id: Optional[str] = "tank"
     world_type: Optional[str] = "tank"
     view_mode: Optional[str] = "side"
 
@@ -638,6 +642,8 @@ class DeltaStatePayload:
         }
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
+        if self.mode_id is not None:
+            data["mode_id"] = self.mode_id
         if self.world_type is not None:
             data["world_type"] = self.world_type
         if self.view_mode is not None:

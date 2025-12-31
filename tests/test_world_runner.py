@@ -58,10 +58,11 @@ def test_tank_snapshot_builder_satisfies_protocol() -> None:
 
 
 def test_world_metadata() -> None:
-    """World metadata should include view_mode."""
+    """World metadata should include mode_id and view_mode."""
     metadata = get_world_metadata("tank")
 
     assert metadata is not None
+    assert metadata.mode_id == "tank"
     assert metadata.world_type == "tank"
     assert metadata.view_mode == "side"
     assert metadata.display_name == "Fish Tank"
@@ -108,12 +109,13 @@ def test_world_runner_frame_count_from_step_result() -> None:
 
 
 def test_world_runner_exposes_world_info() -> None:
-    """WorldRunner should expose world_type and view_mode."""
+    """WorldRunner should expose mode_id, world_type, and view_mode."""
     world, snapshot_builder = create_world("tank", seed=42)
     runner = WorldRunner(world, snapshot_builder, world_type="tank", view_mode="side")
 
     info = runner.get_world_info()
 
+    assert info["mode_id"] == "tank"
     assert info["world_type"] == "tank"
     assert info["view_mode"] == "side"
 
@@ -158,7 +160,7 @@ def test_world_runner_get_stats() -> None:
 
 def test_unknown_world_type_raises() -> None:
     """create_world should raise ValueError for unknown world type."""
-    with pytest.raises(ValueError, match="Unknown world type"):
+    with pytest.raises(ValueError, match="Unknown mode"):
         create_world("nonexistent_world")
 
 

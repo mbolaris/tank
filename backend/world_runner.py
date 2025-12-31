@@ -60,6 +60,7 @@ class WorldRunner:
         world: "MultiAgentWorldBackend",
         snapshot_builder: "SnapshotBuilder",
         world_type: str = "tank",
+        mode_id: Optional[str] = None,
         view_mode: str = "side",
     ) -> None:
         """Initialize the world runner.
@@ -73,6 +74,7 @@ class WorldRunner:
         self.world = world
         self.snapshot_builder = snapshot_builder
         self.world_type = world_type
+        self.mode_id = mode_id or world_type
         self.view_mode = view_mode
         self._last_step_result: Optional["StepResult"] = None
 
@@ -120,18 +122,18 @@ class WorldRunner:
     def reset(
         self,
         seed: Optional[int] = None,
-        scenario: Optional[Dict[str, Any]] = None,
+        config: Optional[Dict[str, Any]] = None,
     ) -> "StepResult":
         """Reset the world to initial state.
 
         Args:
             seed: Random seed for deterministic initialization
-            scenario: World-specific configuration
+            config: World-specific configuration
 
         Returns:
             StepResult with initial observations, snapshot, and metrics
         """
-        self._last_step_result = self.world.reset(seed, scenario)
+        self._last_step_result = self.world.reset(seed, config)
         return self._last_step_result
 
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> None:
@@ -175,9 +177,11 @@ class WorldRunner:
         """Get world metadata for frontend.
 
         Returns:
-            Dictionary with world_type and view_mode
+            Dictionary with mode_id, world_type, and view_mode
         """
+        mode_id = getattr(self, "mode_id", self.world_type)
         return {
+            "mode_id": mode_id,
             "world_type": self.world_type,
             "view_mode": self.view_mode,
         }
