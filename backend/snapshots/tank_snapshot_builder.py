@@ -204,7 +204,8 @@ class TankSnapshotBuilder:
 
             if isinstance(entity, entities.PlantNectar):
                 source_plant = getattr(entity, "source_plant", None)
-                source_plant_id = id(source_plant) if source_plant is not None else None
+                # Use plant_id (stable across save/load) instead of id() (ephemeral)
+                source_plant_id = source_plant.plant_id if source_plant is not None else None
 
                 # Default to nectar position if a source plant is unavailable.
                 source_plant_x = (

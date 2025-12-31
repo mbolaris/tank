@@ -13,7 +13,7 @@ from core.entities import Agent, Food
 from core.interfaces import MigrationHandler
 
 if TYPE_CHECKING:
-    from core.policies.code_pool import CodePool
+    from core.code_pool import CodePool
 
 
 class SpatialGrid:
@@ -533,7 +533,7 @@ class Environment:
 
         self._rng = require_rng_param(rng, "__init__")
         if code_pool is None:
-            from core.policies.code_pool import CodePool
+            from core.code_pool import CodePool
 
             self.code_pool = CodePool()
         else:

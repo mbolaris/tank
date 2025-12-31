@@ -239,7 +239,7 @@ class SimulationEngine:
 
         # Create EventBus for domain event dispatch
         from core.events import EventBus
-        from core.policies.code_pool import (
+        from core.code_pool import (
             BUILTIN_SEEK_NEAREST_FOOD_ID,
             CodePool,
             seek_nearest_food_policy,

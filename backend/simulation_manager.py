@@ -352,6 +352,10 @@ class SimulationManager:
                         # For simple entities, we can just capture them directly or copy needed data
                         # Since they are small/few, full copy here is fine
                         captured_entities.append(("other", entity, None))
+
+                # 4. Capture code pool components (for policy persistence)
+                if hasattr(engine, "code_pool") and engine.code_pool is not None:
+                    captured_data["code_pool"] = engine.code_pool.to_dict()
             finally:
                 self._runner.lock.release()
 
@@ -376,15 +380,17 @@ class SimulationManager:
                     else:
                         # Manual serialization for other types (same as before)
                         if isinstance(entity, PlantNectar):
+                            source_plant = getattr(entity, "source_plant", None)
                             entities_data.append({
                                 "type": "plant_nectar",
                                 "id": id(entity),
                                 "x": entity.pos.x,
                                 "y": entity.pos.y,
                                 "energy": entity.energy,
-                                "source_plant_id": getattr(entity, "source_plant_id", None),
-                                "source_plant_x": getattr(entity, "source_plant_x", entity.pos.x),
-                                "source_plant_y": getattr(entity, "source_plant_y", entity.pos.y),
+                                # Use plant_id (stable) instead of ephemeral id()
+                                "source_plant_id": source_plant.plant_id if source_plant else None,
+                                "source_plant_x": source_plant.pos.x + source_plant.width / 2 if source_plant else entity.pos.x,
+                                "source_plant_y": source_plant.pos.y + source_plant.height if source_plant else entity.pos.y,
                             })
                         elif isinstance(entity, Food):
                             entities_data.append({

@@ -8,7 +8,7 @@ from core.environment import Environment
 from core.genetics.trait import GeneticTrait
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement
-from core.policies.code_pool import CodePool
+from core.code_pool import CodePool
 
 
 class StubBehavior:
