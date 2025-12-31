@@ -139,6 +139,8 @@ class WorldRegistry:
 
 def _register_builtin_modes() -> None:
     from core.worlds.tank.backend import TankWorldBackendAdapter
+    from core.worlds.soccer.backend import SoccerWorldBackendAdapter
+    from core.modes.soccer import create_soccer_mode_pack
 
     # Implemented tank mode
     WorldRegistry.register_world_type(
@@ -149,22 +151,22 @@ def _register_builtin_modes() -> None:
         display_name="Fish Tank",
     )
 
-    # Placeholders for future modes
+    # Implemented soccer mode
+    WorldRegistry.register_world_type(
+        world_type="soccer",
+        factory=lambda **kwargs: SoccerWorldBackendAdapter(**kwargs),
+        mode_pack=create_soccer_mode_pack(),
+        default_view_mode="topdown",
+        display_name="Soccer Pitch",
+    )
+
+    # Placeholder for future petri mode
     WorldRegistry.register_mode_pack(
         ModePackDefinition(
             mode_id="petri",
             world_type="petri",
             default_view_mode="topdown",
             display_name="Petri Dish",
-            normalizer=_identity_config,
-        )
-    )
-    WorldRegistry.register_mode_pack(
-        ModePackDefinition(
-            mode_id="soccer",
-            world_type="soccer",
-            default_view_mode="topdown",
-            display_name="Soccer Pitch",
             normalizer=_identity_config,
         )
     )

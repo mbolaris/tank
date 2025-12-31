@@ -39,10 +39,12 @@ class TestWorldRegistry:
         with pytest.raises(NotImplementedError, match="World type 'petri' not yet implemented"):
             WorldRegistry.create_world("petri")
 
-    def test_create_soccer_world_not_implemented(self):
-        """Test that soccer world raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="World type 'soccer' not yet implemented"):
-            WorldRegistry.create_world("soccer")
+    def test_create_soccer_world(self):
+        """Test creating a soccer world through the registry."""
+        world = WorldRegistry.create_world("soccer", seed=42, team_size=3)
+        assert isinstance(world, MultiAgentWorldBackend)
+        from core.worlds.soccer.backend import SoccerWorldBackendAdapter
+        assert isinstance(world, SoccerWorldBackendAdapter)
 
     def test_create_unknown_world(self):
         """Test that unknown world type raises ValueError."""
@@ -54,7 +56,7 @@ class TestWorldRegistry:
         types = WorldRegistry.list_world_types()
         assert types["tank"] == "implemented"
         assert types["petri"] == "not_implemented"
-        assert types["soccer"] == "not_implemented"
+        assert types["soccer"] == "implemented"
 
     def test_tank_mode_pack_config_normalization(self):
         """Mode pack should normalize legacy keys and fill defaults."""
