@@ -467,7 +467,7 @@ class SimulationManager:
                 if runner_lock:
                     lock_acquired = runner_lock.acquire(timeout=0.1)
 
-                world_stats = self.world.get_stats()
+                world_stats = self.world.get_stats(include_distributions=False)
                 stats = {
                     "fish_count": world_stats.get("fish_count", 0),
                     "generation": world_stats.get("current_generation", 0),

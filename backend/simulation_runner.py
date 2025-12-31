@@ -86,6 +86,15 @@ class SimulationRunner(CommandHandlerMixin):
         self.thread: Optional[threading.Thread] = None
         self.lock = threading.Lock()
 
+        # Performance instrumentation
+        self._enable_perf_logging = True
+        self._perf_stats = {
+            "update": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
+            "snapshot": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
+            "stats": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
+            "serialize": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
+        }
+
         # Tank identity (used for persistence, migration context, and UI attribution)
         self.tank_id = tank_id or str(uuid.uuid4())
         self.tank_name = tank_name or f"Tank {self.tank_id[:8]}"
@@ -316,7 +325,15 @@ class SimulationRunner(CommandHandlerMixin):
 
                     with self.lock:
                         try:
+                            start_time = time.perf_counter()
                             self.world.update()
+                            duration_ms = (time.perf_counter() - start_time) * 1000
+                            if self._enable_perf_logging:
+                                mst = self._perf_stats["update"]
+                                mst["count"] += 1
+                                mst["total_ms"] += duration_ms
+                                if duration_ms > mst["max_ms"]:
+                                    mst["max_ms"] = duration_ms
                         except Exception as e:
                             logger.error(
                                 f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",
@@ -338,8 +355,25 @@ class SimulationRunner(CommandHandlerMixin):
                         self.fps_frame_count = 0
                         self.last_fps_time = current_time
                         # Log stats periodically
-                        stats = self.world.get_stats()
+                        stats = self.world.get_stats(include_distributions=False)
+                        
+                        # Format perf stats if enabled
+                        perf_log = ""
+                        if self._enable_perf_logging:
+                            parts = []
+                            for key, mst in self._perf_stats.items():
+                                if mst["count"] > 0:
+                                    avg_ms = mst["total_ms"] / mst["count"]
+                                    parts.append(f"{key}={avg_ms:.1f}ms(max {mst['max_ms']:.1f})")
+                                    # Reset
+                                    mst["count"] = 0
+                                    mst["total_ms"] = 0.0
+                                    mst["max_ms"] = 0.0
+                            if parts:
+                                perf_log = " | " + " ".join(parts)
+                                
                         tank_label = self.tank_name or self.tank_id or "Unknown Tank"
+
                         
                         # Get migration counts since last report
                         from backend.transfer_history import get_and_reset_migration_counts
@@ -369,7 +403,7 @@ class SimulationRunner(CommandHandlerMixin):
                             f"Plants={stats.get('plant_count', 0)}, "
                             f"Gen={stats.get('max_generation', 0)}, "
                             f"Energy={stats.get('total_energy', 0.0):.0f}"
-                            f"{migration_str}{poker_str}"
+                            f"{migration_str}{poker_str}{perf_log}"
                         )
 
                     # Check for mode switch that happened during update() or async
@@ -561,12 +595,28 @@ class SimulationRunner(CommandHandlerMixin):
                 or (current_frame - self._last_full_frame) >= self.delta_sync_interval
             )
             
+            start_stats = time.perf_counter()
             stats = self._collect_stats(
                 current_frame, include_distributions=include_distributions
             )
+            if self._enable_perf_logging:
+                duration_ms = (time.perf_counter() - start_stats) * 1000
+                mst = self._perf_stats["stats"]
+                mst["count"] += 1
+                mst["total_ms"] += duration_ms
+                if duration_ms > mst["max_ms"]:
+                    mst["max_ms"] = duration_ms
 
             # Collect entities once
+            start_snap = time.perf_counter()
             entity_snapshots = self._collect_entities()
+            if self._enable_perf_logging:
+                duration_ms = (time.perf_counter() - start_snap) * 1000
+                mst = self._perf_stats["snapshot"]
+                mst["count"] += 1
+                mst["total_ms"] += duration_ms
+                if duration_ms > mst["max_ms"]:
+                    mst["max_ms"] = duration_ms
 
             send_full = (
                 force_full
@@ -640,6 +690,13 @@ class SimulationRunner(CommandHandlerMixin):
         payload = state.to_dict() if hasattr(state, "to_dict") else state
         serialized = orjson.dumps(payload)
         duration_ms = (time.perf_counter() - start) * 1000
+        
+        if self._enable_perf_logging:
+            mst = self._perf_stats["serialize"]
+            mst["count"] += 1
+            mst["total_ms"] += duration_ms
+            if duration_ms > mst["max_ms"]:
+                mst["max_ms"] = duration_ms
         
         # Only log if serialization itself is slow (> 50ms), not just large payloads
         if duration_ms > 50:
