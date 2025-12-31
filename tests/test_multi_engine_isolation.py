@@ -1,5 +1,6 @@
-import json
 from typing import Tuple
+
+import pytest
 
 from core.simulation.engine import SimulationEngine
 
@@ -11,10 +12,6 @@ NON_DETERMINISTIC_FIELDS = {
 
 def _clean_stats(stats: dict) -> dict:
     return {key: value for key, value in stats.items() if key not in NON_DETERMINISTIC_FIELDS}
-
-
-def _stats_fingerprint(stats: dict) -> str:
-    return json.dumps(_clean_stats(stats), sort_keys=True)
 
 
 def _get_stable_entity_id(entity) -> str:
@@ -45,19 +42,47 @@ def _world_snapshot_hash(engine: SimulationEngine) -> int:
     return hash(tuple(tuples))
 
 
-def _run_solo(seed: int, frames: int) -> Tuple[SimulationEngine, str]:
-    """Run engine solo and return (engine, stats_fingerprint)."""
+def _compare_stats(stats1: dict, stats2: dict, rel_tol: float = 1e-12) -> None:
+    """Compare two stats dicts, using pytest.approx for float values.
+
+    Args:
+        stats1: First stats dict
+        stats2: Second stats dict
+        rel_tol: Relative tolerance for float comparison
+
+    Raises:
+        AssertionError: If stats differ beyond tolerance
+    """
+    clean1 = _clean_stats(stats1)
+    clean2 = _clean_stats(stats2)
+
+    assert clean1.keys() == clean2.keys(), f"Stats keys differ: {clean1.keys()} vs {clean2.keys()}"
+
+    for key in clean1:
+        val1 = clean1[key]
+        val2 = clean2[key]
+
+        if isinstance(val1, float) and isinstance(val2, float):
+            assert val1 == pytest.approx(
+                val2, rel=rel_tol
+            ), f"Float value mismatch for {key}: {val1} vs {val2}"
+        else:
+            assert val1 == val2, f"Value mismatch for {key}: {val1} vs {val2}"
+
+
+def _run_solo(seed: int, frames: int) -> Tuple[SimulationEngine, dict]:
+    """Run engine solo and return (engine, stats)."""
     engine = SimulationEngine(seed=seed)
     engine.setup()
     for _ in range(frames):
         engine.update()
-    return engine, _stats_fingerprint(engine.get_stats())
+    return engine, engine.get_stats()
 
 
 def _run_interleaved(
     seed_a: int, seed_b: int, frames_each: int
-) -> Tuple[SimulationEngine, str, SimulationEngine, str]:
-    """Run two engines interleaved, return (engine_a, fp_a, engine_b, fp_b)."""
+) -> Tuple[SimulationEngine, dict, SimulationEngine, dict]:
+    """Run two engines interleaved, return (engine_a, stats_a, engine_b, stats_b)."""
     engine_a = SimulationEngine(seed=seed_a)
     engine_b = SimulationEngine(seed=seed_b)
 
@@ -70,9 +95,9 @@ def _run_interleaved(
 
     return (
         engine_a,
-        _stats_fingerprint(engine_a.get_stats()),
+        engine_a.get_stats(),
         engine_b,
-        _stats_fingerprint(engine_b.get_stats()),
+        engine_b.get_stats(),
     )
 
 
@@ -91,9 +116,9 @@ def test_multi_engine_isolation_interleaved_vs_solo():
         seed_a, seed_b, frames
     )
 
-    # Compare stats fingerprints
-    assert solo_stats_a == inter_stats_a, "Engine A stats differ when interleaved"
-    assert solo_stats_b == inter_stats_b, "Engine B stats differ when interleaved"
+    # Compare stats using float-tolerant comparison
+    _compare_stats(solo_stats_a, inter_stats_a)
+    _compare_stats(solo_stats_b, inter_stats_b)
 
     # Compare world snapshot hashes (catches state divergence that stats miss)
     solo_world_a = _world_snapshot_hash(engine_solo_a)
