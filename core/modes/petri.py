@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from core.modes.interfaces import ModeConfig, ModePackDefinition
+from core.modes.interfaces import ModePackDefinition
 from core.modes.tank import normalize_tank_config
 
 

@@ -141,8 +141,8 @@ class WorldRegistry:
 
 
 def _register_builtin_modes() -> None:
-    from core.worlds.tank.backend import TankWorldBackendAdapter
     from core.worlds.petri.backend import PetriWorldBackendAdapter
+    from core.worlds.tank.backend import TankWorldBackendAdapter
 
     # Implemented tank mode
     WorldRegistry.register_world_type(

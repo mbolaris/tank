@@ -7,7 +7,6 @@ from typing import Any, Iterable, List, Optional
 from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
 from backend.state_payloads import EntitySnapshot
 
-
 _PETRI_HINTS = {
     "fish": {"style": "petri", "sprite": "microbe"},
     "food": {"style": "petri", "sprite": "nutrient"},
