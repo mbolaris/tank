@@ -11,7 +11,6 @@ while being translatable to low-level rcssserver commands (dash, turn, kick).
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-
 # Type aliases for clarity
 Observation = Dict[str, Any]
 TeamID = Literal["left", "right"]

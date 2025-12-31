@@ -43,31 +43,31 @@ for rel_path in files:
         continue
 
     print(f"Processing {path}...")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         content = f.read()
 
     original = content
-    
+
     # 1. Imports
     content = content.replace("from core.entities.fractal_plant import FractalPlant", "from core.entities.plant import Plant")
     content = content.replace("from core.entities.fractal_plant import PlantNectar", "from core.entities.plant import PlantNectar")
     content = content.replace("from core.entities.fractal_plant import", "from core.entities.plant import")
     content = content.replace("import core.entities.fractal_plant", "import core.entities.plant")
-    
+
     # 2. Class usage
     content = content.replace("FractalPlant", "Plant")
-    
+
     # 3. Module usage (if any)
     content = content.replace("core.entities.fractal_plant", "core.entities.plant")
-    
+
     # 4. String literals for entity type
     content = content.replace('"fractal_plant"', '"plant"')
     content = content.replace("'fractal_plant'", "'plant'")
-    
+
     # 5. Variable names (safe ones)
     content = content.replace("fractal_plants", "plants")
     content = content.replace("fractal_plant_count", "plant_count")
-    
+
     if content != original:
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)

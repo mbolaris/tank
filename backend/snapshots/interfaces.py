@@ -36,7 +36,7 @@ class SnapshotBuilder(Protocol):
                 ...
     """
 
-    def collect(self, live_entities: Iterable[Any]) -> List["EntitySnapshot"]:
+    def collect(self, live_entities: Iterable[Any]) -> List[EntitySnapshot]:
         """Collect and sort snapshots for all live entities.
 
         Args:
@@ -47,7 +47,7 @@ class SnapshotBuilder(Protocol):
         """
         ...
 
-    def to_snapshot(self, entity: Any) -> Optional["EntitySnapshot"]:
+    def to_snapshot(self, entity: Any) -> Optional[EntitySnapshot]:
         """Convert a single entity to an EntitySnapshot.
 
         Args:
@@ -61,9 +61,9 @@ class SnapshotBuilder(Protocol):
 
     def build(
         self,
-        step_result: "StepResult",
+        step_result: StepResult,
         world: Any,
-    ) -> List["EntitySnapshot"]:
+    ) -> List[EntitySnapshot]:
         """Build entity snapshots from a StepResult.
 
         This is the preferred method for StepResult-driven worlds. It allows

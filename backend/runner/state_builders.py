@@ -4,18 +4,14 @@ This module contains functions for building state payloads for WebSocket broadca
 Extracted from SimulationRunner to reduce class size.
 """
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from backend.state_payloads import (
-    AutoEvaluateStatsPayload,
-    PokerEventPayload,
-    PokerLeaderboardEntryPayload,
     PokerStatsPayload,
-    StatsPayload,
 )
 
 if TYPE_CHECKING:
-    from backend.simulation_runner import SimulationRunner
+    pass
 
 
 def collect_poker_stats_payload(stats: Dict[str, Any]) -> PokerStatsPayload:

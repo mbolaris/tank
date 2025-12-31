@@ -17,12 +17,12 @@ import argparse
 import json
 import os
 import subprocess
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from core.solutions import SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmark, SolutionBenchmarkConfig

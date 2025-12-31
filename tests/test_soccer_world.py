@@ -4,13 +4,11 @@ This module tests the SoccerWorldBackendAdapter, physics engine,
 and soccer-specific interfaces.
 """
 
-import math
 
 import pytest
 
 from core.policies.soccer_interfaces import (
     SoccerAction,
-    SoccerObservation,
     Vector2D,
 )
 from core.worlds import StepResult, WorldRegistry

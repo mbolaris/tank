@@ -7,9 +7,9 @@ and kicks. Deterministic and lightweight for fast training.
 import math
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
-from core.policies.soccer_interfaces import Vector2D, TeamID, PlayerID
+from core.policies.soccer_interfaces import PlayerID, TeamID, Vector2D
 
 
 @dataclass

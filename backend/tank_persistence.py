@@ -186,7 +186,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
              engine = target_world.world.engine
         elif hasattr(target_world, "engine"):
              engine = target_world.engine
-             
+
         if engine is None:
              logger.error("Failed to resolve engine for restoration")
              return False
@@ -233,7 +233,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         # Pass 1: Restore non-nectar entities
         for entity_data in snapshot["entities"]:
             entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
-            
+
             if entity_type and "type" not in entity_data:
                 entity_data["type"] = entity_type
 

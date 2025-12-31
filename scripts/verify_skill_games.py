@@ -11,26 +11,23 @@ Usage:
     python scripts/verify_skill_games.py
 """
 
-import sys
-import os
-import time
-import random
 import logging
+import os
+import sys
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.skills.base import SkillGameType, SkillGameResult
+from core.fish.skill_game_component import SkillGameComponent
+from core.skill_game_system import SkillGameSystem
+from core.skills.base import SkillGameType
 from core.skills.config import (
     SkillGameConfig,
-    set_skill_game_config,
-    get_active_skill_game,
     set_active_skill_game,
+    set_skill_game_config,
 )
-from core.skills.games.rock_paper_scissors import RPSStrategy, RockPaperScissorsGame
-from core.skills.games.number_guessing import NumberGuessingStrategy, NumberGuessingGame
-from core.skill_game_system import SkillGameSystem
-from core.fish.skill_game_component import SkillGameComponent
+from core.skills.games.number_guessing import NumberGuessingGame, NumberGuessingStrategy
+from core.skills.games.rock_paper_scissors import RockPaperScissorsGame, RPSStrategy
 from core.tank_world import TankWorld, TankWorldConfig
 
 # Configure logging
@@ -88,7 +85,7 @@ def test_strategy_inheritance():
         child_num = child.get_strategy(SkillGameType.NUMBER_GUESSING)
         assert child_num is not None, f"Child {i} should have Number Guessing strategy"
 
-    logger.info(f"  Created 10 children from biased parent (60% rock)")
+    logger.info("  Created 10 children from biased parent (60% rock)")
     logger.info(f"  {children_similar}/10 children inherited similar bias (within 15%)")
     assert children_similar >= 5, "Most children should inherit similar strategy"
     logger.info("  PASSED: Strategies inherit with mutation")

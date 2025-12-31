@@ -56,13 +56,13 @@ for rel_path in files:
     if not os.path.exists(path):
         continue
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         content = f.read()
 
     original = content
     for old, new in replacements:
         content = content.replace(old, new)
-    
+
     if content != original:
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)

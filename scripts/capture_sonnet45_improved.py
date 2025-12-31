@@ -5,19 +5,15 @@ This script loads a completed simulation and finds the best poker fish
 with emphasis on positional balance (not just button-dependent performance).
 """
 
-import json
 import logging
 import os
 import sys
-from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.solutions import SolutionTracker
 from core.tank_world import TankWorld, TankWorldConfig
-from core.solutions import SolutionTracker, SolutionBenchmark, SolutionRecord
-from core.solutions.models import SolutionMetadata, BenchmarkResult
-from core.solutions.benchmark import SolutionBenchmarkConfig
 
 logging.basicConfig(
     level=logging.INFO,
