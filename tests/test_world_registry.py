@@ -44,6 +44,7 @@ class TestWorldRegistry:
         world = WorldRegistry.create_world("soccer", seed=42, team_size=3)
         assert isinstance(world, MultiAgentWorldBackend)
         from core.worlds.soccer.backend import SoccerWorldBackendAdapter
+
         assert isinstance(world, SoccerWorldBackendAdapter)
 
     def test_create_unknown_world(self):

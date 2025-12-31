@@ -15,6 +15,7 @@ from core.policies.soccer_interfaces import Vector2D, TeamID, PlayerID
 @dataclass
 class Ball:
     """Ball entity with physics state."""
+
     position: Vector2D
     velocity: Vector2D
     radius: float = 0.085  # meters
@@ -41,6 +42,7 @@ class Ball:
 @dataclass
 class Player:
     """Player entity with physics and game state."""
+
     player_id: PlayerID
     team: TeamID
     position: Vector2D
@@ -64,6 +66,7 @@ class Player:
 @dataclass
 class FieldBounds:
     """Soccer field boundaries and goal positions."""
+
     width: float  # Total field width
     height: float  # Total field height
     goal_width: float = 7.32  # Standard goal width (meters)
@@ -319,7 +322,7 @@ class SoccerPhysics:
     def check_player_collisions(self, players: List[Player]) -> None:
         """Handle player-player collisions (simple separation)."""
         for i, p1 in enumerate(players):
-            for p2 in players[i + 1:]:
+            for p2 in players[i + 1 :]:
                 dx = p2.position.x - p1.position.x
                 dy = p2.position.y - p1.position.y
                 dist = math.sqrt(dx * dx + dy * dy)

@@ -9,7 +9,7 @@ while being translatable to low-level rcssserver commands (dash, turn, kick).
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any, Literal
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 
 # Type aliases for clarity
@@ -21,12 +21,13 @@ PlayerID = str  # e.g., "left_1", "right_5"
 @dataclass(frozen=True)
 class Vector2D:
     """2D vector for positions, velocities, directions."""
+
     x: float
     y: float
 
     def magnitude(self) -> float:
         """Calculate the magnitude of the vector."""
-        return (self.x**2 + self.y**2)**0.5
+        return (self.x**2 + self.y**2) ** 0.5
 
     def normalized(self) -> "Vector2D":
         """Return a unit vector in the same direction."""
@@ -39,6 +40,7 @@ class Vector2D:
 @dataclass(frozen=True)
 class PlayerState:
     """State information for a single player."""
+
     player_id: PlayerID
     team: TeamID
     position: Vector2D
@@ -50,6 +52,7 @@ class PlayerState:
 @dataclass(frozen=True)
 class BallState:
     """State information for the ball."""
+
     position: Vector2D
     velocity: Vector2D
 
@@ -70,13 +73,14 @@ class SoccerObservation:
         play_mode: Current play mode (e.g., "play_on", "kick_off_left", "goal_left")
         field_bounds: (width, height) of the field in meters
     """
+
     self_state: PlayerState
     ball: BallState
     teammates: List[PlayerState]
     opponents: List[PlayerState]
     game_time: float
     play_mode: str
-    field_bounds: tuple[float, float]
+    field_bounds: Tuple[float, float]
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for policy input."""
@@ -126,6 +130,7 @@ class SoccerAction:
         kick_power: Kick power [0.0, 1.0] (0 = no kick)
         kick_angle: Kick direction relative to facing angle in radians
     """
+
     move_target: Optional[Vector2D] = None
     face_angle: Optional[float] = None
     kick_power: float = 0.0
@@ -154,10 +159,7 @@ class SoccerAction:
         """Create action from dictionary format."""
         move_target = None
         if "move_target" in data and data["move_target"] is not None:
-            move_target = Vector2D(
-                x=data["move_target"]["x"],
-                y=data["move_target"]["y"]
-            )
+            move_target = Vector2D(x=data["move_target"]["x"], y=data["move_target"]["y"])
 
         face_angle = data.get("face_angle")
 
@@ -176,6 +178,7 @@ class SoccerReward:
     These are used in the training environment to provide learning signals.
     Not used in rcssserver evaluation mode.
     """
+
     goal_scored: float = 0.0
     goal_conceded: float = 0.0
     shot_on_goal: float = 0.0
@@ -189,15 +192,15 @@ class SoccerReward:
     def total(self) -> float:
         """Calculate total reward."""
         return (
-            self.goal_scored +
-            self.goal_conceded +
-            self.shot_on_goal +
-            self.pass_completed +
-            self.pass_failed +
-            self.ball_possession +
-            self.distance_to_ball_delta +
-            self.spacing_quality +
-            self.stamina_efficiency
+            self.goal_scored
+            + self.goal_conceded
+            + self.shot_on_goal
+            + self.pass_completed
+            + self.pass_failed
+            + self.ball_possession
+            + self.distance_to_ball_delta
+            + self.spacing_quality
+            + self.stamina_efficiency
         )
 
     def to_dict(self) -> Dict[str, float]:
