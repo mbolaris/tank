@@ -228,6 +228,11 @@ class SimulationEngine:
 
     def setup(self) -> None:
         """Setup the simulation."""
+        # Clear global poker participant state to prevent cross-engine contamination
+        # when running multiple engines (e.g., in isolation tests)
+        from core.poker_participant_manager import _global_manager
+        _global_manager.clear_all()
+
         display = self.config.display
         eco_config = self.config.ecosystem
 
