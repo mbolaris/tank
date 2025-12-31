@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import TYPE_CHECKING, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Tuple
 
 from core.collision_system import default_collision_detector
 from core.config.fish import (
@@ -90,7 +90,7 @@ class AlgorithmicMovement(MovementStrategy):
     """
 
     _policy_error_log_interval = 60
-    _policy_error_last_log: Dict[int, int] = {}
+    _policy_error_last_log: dict[int, int] = {}
 
     def move(self, sprite: Fish) -> None:
         """Move using the fish's composable behavior.
@@ -160,7 +160,7 @@ class AlgorithmicMovement(MovementStrategy):
 
         super().move(sprite_entity)
 
-    def _execute_policy_if_present(self, fish: Fish) -> Optional[VelocityComponents]:
+    def _execute_policy_if_present(self, fish: Fish) -> VelocityComponents | None:
         policy_kind = getattr(fish.genome.behavioral, "code_policy_kind", None)
         component_id = getattr(fish.genome.behavioral, "code_policy_component_id", None)
         if hasattr(policy_kind, "value"):
@@ -192,7 +192,7 @@ class AlgorithmicMovement(MovementStrategy):
 
         return parsed
 
-    def _parse_policy_output(self, output: object) -> Optional[VelocityComponents]:
+    def _parse_policy_output(self, output: object) -> VelocityComponents | None:
         if isinstance(output, MovementAction):
             vx, vy = output.vx, output.vy
         elif isinstance(output, Vector2):
@@ -223,7 +223,7 @@ class AlgorithmicMovement(MovementStrategy):
         fish: Fish,
         component_id: str,
         message: str,
-        exc: Optional[Exception] = None,
+        exc: Exception | None = None,
     ) -> None:
         fish_id = getattr(fish, "fish_id", id(fish))
         lifecycle = getattr(fish, "_lifecycle_component", None)
