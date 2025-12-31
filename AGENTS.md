@@ -271,6 +271,10 @@ First solution submitted: **Opus-4.5 Poker Champion** (Elo 1230, beginner tier)
 6. **Long runs for evolution** - 100k+ frames shows evolutionary trends
 7. **Submit your best solution** - Use `scripts/capture_first_solution.py` to capture and submit your best evolved strategy
 
+## CI Compatibility Notes
+
+- CI still runs Python 3.8 for tests. Use `from __future__ import annotations` or `typing.Tuple`/`typing.Dict` instead of builtin generics in new test modules to avoid `TypeError: 'type' object is not subscriptable`.
+
 ## AI Tournament (Best Per Author)
 
 TankWorld includes a tournament runner that selects the best solution per author and runs a head-to-head round robin.
