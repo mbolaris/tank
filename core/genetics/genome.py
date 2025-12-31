@@ -137,9 +137,7 @@ class Genome:
 
         # Validate code policy fields
         cp_kind = (
-            self.behavioral.code_policy_kind.value
-            if self.behavioral.code_policy_kind
-            else None
+            self.behavioral.code_policy_kind.value if self.behavioral.code_policy_kind else None
         )
         cp_id = (
             self.behavioral.code_policy_component_id.value
@@ -147,9 +145,7 @@ class Genome:
             else None
         )
         cp_params = (
-            self.behavioral.code_policy_params.value
-            if self.behavioral.code_policy_params
-            else None
+            self.behavioral.code_policy_params.value if self.behavioral.code_policy_params else None
         )
         cp_issues = validate_code_policy(cp_kind, cp_id, cp_params)
         for issue in cp_issues:

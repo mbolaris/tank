@@ -77,9 +77,7 @@ class CodePool:
 
         func = exec_locals.get(component.entrypoint) or exec_globals.get(component.entrypoint)
         if not callable(func):
-            raise CompilationError(
-                f"Entrypoint '{component.entrypoint}' not found or not callable"
-            )
+            raise CompilationError(f"Entrypoint '{component.entrypoint}' not found or not callable")
 
         return CompiledComponent(
             component_id=component.component_id,
@@ -111,7 +109,6 @@ class CodePool:
     def from_dict(cls, data: dict[str, Any]) -> "CodePool":
         components_data = data.get("components", [])
         components = {
-            entry["component_id"]: CodeComponent.from_dict(entry)
-            for entry in components_data
+            entry["component_id"]: CodeComponent.from_dict(entry) for entry in components_data
         }
         return cls(components=components)

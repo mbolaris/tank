@@ -52,9 +52,7 @@ def test_rejects_loops_and_comprehensions(source: str) -> None:
 
 
 def test_allows_basic_policy() -> None:
-    pool, component_id = _make_component(
-        "def policy(obs, rng):\n    return (1.0, 0.0)\n"
-    )
+    pool, component_id = _make_component("def policy(obs, rng):\n    return (1.0, 0.0)\n")
     func = pool.get_callable(component_id)
     assert func({}, None) == (1.0, 0.0)
 
@@ -70,9 +68,7 @@ def test_determinism_with_seeded_rng() -> None:
 
 
 def test_compile_cache_per_version() -> None:
-    pool, component_id = _make_component(
-        "def policy(obs, rng):\n    return (1.0, 0.0)\n"
-    )
+    pool, component_id = _make_component("def policy(obs, rng):\n    return (1.0, 0.0)\n")
     calls = 0
     original = pool._compile_component
 
@@ -88,9 +84,7 @@ def test_compile_cache_per_version() -> None:
 
 
 def test_round_trip_serialization_preserves_ids_and_versions() -> None:
-    pool, component_id = _make_component(
-        "def policy(obs, rng):\n    return (1.0, 0.0)\n"
-    )
+    pool, component_id = _make_component("def policy(obs, rng):\n    return (1.0, 0.0)\n")
     data = pool.to_dict()
     restored = CodePool.from_dict(data)
     component = restored.get_component(component_id)

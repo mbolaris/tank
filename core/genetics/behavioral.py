@@ -6,7 +6,7 @@ including aggression, social tendencies, and algorithm selection.
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -629,7 +629,7 @@ def _inherit_code_policy(
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
-) -> tuple[Optional[str], Optional[str], Optional[Dict[str, float]]]:
+) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, float]]]:
     """Inherit code policy traits from parents.
 
     Rules:
@@ -769,9 +769,7 @@ def validate_code_policy(
 
     # If component_id is set, kind must also be set
     if component_id is not None and kind is None:
-        issues.append(
-            "code_policy_component_id is set but code_policy_kind is not set"
-        )
+        issues.append("code_policy_component_id is set but code_policy_kind is not set")
 
     # Validate params if present
     if params is not None:

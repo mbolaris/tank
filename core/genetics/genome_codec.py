@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import random as pyrandom
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, normalize_mate_preferences
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
@@ -286,8 +286,7 @@ def genome_debug_snapshot(genome: Any) -> dict[str, Any]:
             "kind": cp_kind.value if cp_kind else None,
             "component_id": cp_id.value,
             "has_params": bool(
-                genome.behavioral.code_policy_params
-                and genome.behavioral.code_policy_params.value
+                genome.behavioral.code_policy_params and genome.behavioral.code_policy_params.value
             ),
         }
 

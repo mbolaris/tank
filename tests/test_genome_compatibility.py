@@ -132,7 +132,9 @@ def test_code_policy_validation():
     g.behavioral.code_policy_kind = GeneticTrait(None)
     result = g.validate()
     assert not result["ok"]
-    assert any("code_policy_component_id is set but code_policy_kind is not" in i for i in result["issues"])
+    assert any(
+        "code_policy_component_id is set but code_policy_kind is not" in i for i in result["issues"]
+    )
 
     # Valid: both set
     g.behavioral.code_policy_kind = GeneticTrait("foraging_policy")
@@ -147,6 +149,7 @@ def test_code_policy_validation():
 
     # Invalid: param is NaN
     import math
+
     g.behavioral.code_policy_params = GeneticTrait({"nan_param": math.nan})
     result = g.validate()
     assert not result["ok"]
