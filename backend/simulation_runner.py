@@ -118,6 +118,15 @@ class SimulationRunner(CommandHandlerMixin):
         self.delta_sync_interval = 90  # Full sync every 3 seconds (was 1 second)
         self._last_full_frame: Optional[int] = None
         self._last_entities: Dict[int, EntitySnapshot] = {}
+        self._cached_gene_distributions: Dict[str, Any] = {}
+        self._last_distribution_time = 0.0
+        raw_distribution_interval = os.getenv("BROADCAST_DISTRIBUTIONS_INTERVAL_SECONDS", "10")
+        try:
+            self._distribution_interval_seconds = float(raw_distribution_interval)
+        except ValueError:
+            self._distribution_interval_seconds = 10.0
+        if self._distribution_interval_seconds < 0:
+            self._distribution_interval_seconds = 0.0
 
         # Human poker game management
         self.human_poker_game: Optional[HumanPokerGame] = None
@@ -244,6 +253,8 @@ class SimulationRunner(CommandHandlerMixin):
         self.frames_since_websocket_update = 0
         self._last_full_frame = None
         self._last_entities.clear()
+        self._cached_gene_distributions = {}
+        self._last_distribution_time = 0.0
 
     def invalidate_state_cache(self) -> None:
         """Public wrapper to invalidate cached websocket state.
@@ -739,11 +750,25 @@ class SimulationRunner(CommandHandlerMixin):
         """Collect and organize simulation statistics."""
         # Use getattr/call to handle potential interface mismatches if world hasn't been updated
         get_stats = self.world.get_stats
+        compute_distributions = include_distributions
+        if include_distributions and self._distribution_interval_seconds > 0:
+            now = time.perf_counter()
+            if (now - self._last_distribution_time) < self._distribution_interval_seconds:
+                compute_distributions = False
+        else:
+            now = time.perf_counter()
         try:
-            stats = get_stats(include_distributions=include_distributions)
+            stats = get_stats(include_distributions=compute_distributions)
         except TypeError:
             # Fallback for worlds that don't support include_distributions yet
             stats = get_stats()
+            compute_distributions = True
+
+        if compute_distributions:
+            self._cached_gene_distributions = stats.get("gene_distributions", {})
+            self._last_distribution_time = now
+        elif self._cached_gene_distributions:
+            stats["gene_distributions"] = self._cached_gene_distributions
 
         # Get Poker Score from evolution benchmark tracker
         poker_score = None

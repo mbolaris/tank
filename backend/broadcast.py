@@ -1,9 +1,10 @@
 
 import asyncio
 import logging
+import os
 import time
 from contextlib import suppress
-from typing import Dict
+from typing import Dict, Tuple
 
 from backend.simulation_manager import SimulationManager
 from core.config.display import FRAME_RATE
@@ -26,6 +27,30 @@ def _handle_task_exception(task: asyncio.Task) -> None:
         logger.error(f"Error getting task exception: {e}", exc_info=True)
 
 
+def _get_env_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def _get_env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "0").strip().lower() in ("1", "true", "yes", "on")
+
+
 async def broadcast_updates_for_tank(manager: SimulationManager):
     """Broadcast simulation updates to all clients connected to a specific tank.
 
@@ -41,98 +66,182 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
 
     frame_count = 0
     last_sent_frame = -1
+    last_sent_at = 0.0
+    last_debug_log = time.perf_counter()
+    slow_send_windows: Dict[object, Tuple[int, float]] = {}
+    send_time_total_ms = 0.0
+    send_time_count = 0
+    timeout_count = 0
+    dropped_frames = 0
+
+    broadcast_hz = _get_env_float("BROADCAST_HZ", 15.0)
+    if broadcast_hz <= 0:
+        broadcast_hz = 15.0
+    broadcast_interval = 1.0 / broadcast_hz
+    idle_sleep = max(0.05, _get_env_float("BROADCAST_IDLE_SLEEP", 0.35))
+    send_timeout = max(0.05, _get_env_float("BROADCAST_SEND_TIMEOUT", 0.15))
+    slow_send_strikes = max(1, _get_env_int("BROADCAST_SLOW_SEND_STRIKES", 10))
+    slow_send_window = max(1.0, _get_env_float("BROADCAST_SLOW_SEND_WINDOW_SECONDS", 30.0))
+    debug_enabled = _env_flag("BROADCAST_DEBUG")
 
     try:
         while True:
             try:
                 frame_count += 1
                 clients = manager.connected_clients
+                if not clients:
+                    await asyncio.sleep(idle_sleep)
+                    continue
 
-                if clients:
-                    # PERF: Only broadcast every 2nd frame to reduce CPU load
-                    # Frontend will interpolate between updates for smooth animation
-                    if frame_count % 2 != 0:
-                        await asyncio.sleep(1 / FRAME_RATE)
-                        continue
-                        
-                    if frame_count % 60 == 0:  # Log every 60 frames (~2 seconds)
-                        logger.debug(
-                            "broadcast_updates[%s]: Frame %d, clients: %d",
-                            tank_id[:8],
-                            frame_count,
-                            len(clients),
-                        )
+                for client in list(slow_send_windows):
+                    if client not in clients:
+                        slow_send_windows.pop(client, None)
 
+                now = time.perf_counter()
+                time_since_last = now - last_sent_at
+                if time_since_last < broadcast_interval:
+                    dropped_frames += 1
+                    await asyncio.sleep(min(broadcast_interval - time_since_last, 1 / FRAME_RATE))
+                    continue
+
+                if frame_count % 60 == 0:  # Log every 60 frames (~2 seconds)
+                    logger.debug(
+                        "broadcast_updates[%s]: Frame %d, clients: %d",
+                        tank_id[:8],
+                        frame_count,
+                        len(clients),
+                    )
+
+                try:
+                    # Get current state (delta compression handled by manager)
+                    get_start = time.perf_counter()
+                    state = await manager.get_state_async(force_full=False, allow_delta=True)
+                    get_ms = (time.perf_counter() - get_start) * 1000
+                except Exception as e:
+                    logger.error(
+                        "broadcast_updates[%s]: Error getting simulation state: %s",
+                        tank_id[:8],
+                        e,
+                        exc_info=True,
+                    )
+                    await asyncio.sleep(1 / FRAME_RATE)
+                    continue
+
+                if state.frame == last_sent_frame:
+                    dropped_frames += 1
+                    await asyncio.sleep(1 / FRAME_RATE)
+                    continue
+
+                last_sent_frame = state.frame
+
+                try:
+                    serialize_start = time.perf_counter()
+                    state_payload = manager.serialize_state(state)
+                    serialize_ms = (time.perf_counter() - serialize_start) * 1000
+                except Exception as e:
+                    logger.error(
+                        "broadcast_updates[%s]: Error serializing state to JSON: %s",
+                        tank_id[:8],
+                        e,
+                        exc_info=True,
+                    )
+                    await asyncio.sleep(1 / FRAME_RATE)
+                    continue
+
+                async def _send_with_timeout(client):
                     try:
-                        # Get current state (delta compression handled by manager)
-                        get_start = time.perf_counter()
-                        state = await manager.get_state_async()
-                        get_ms = (time.perf_counter() - get_start) * 1000
-                    except Exception as e:
-                        logger.error(
-                            "broadcast_updates[%s]: Error getting simulation state: %s",
-                            tank_id[:8],
-                            e,
-                            exc_info=True,
+                        await asyncio.wait_for(
+                            client.send_bytes(state_payload),
+                            timeout=send_timeout,
                         )
-                        await asyncio.sleep(1 / FRAME_RATE)
+                        return None
+                    except asyncio.TimeoutError:
+                        return "timeout"
+                    except Exception as exc:
+                        return exc
+
+                # Broadcast to all clients of this tank
+                disconnected = set()
+                send_start = time.perf_counter()
+                clients_snapshot = list(clients)
+                send_results = await asyncio.gather(
+                    *(_send_with_timeout(client) for client in clients_snapshot),
+                    return_exceptions=False,
+                )
+                send_ms = (time.perf_counter() - send_start) * 1000
+                last_sent_at = time.perf_counter()
+
+                now = time.perf_counter()
+                for client, result in zip(clients_snapshot, send_results):
+                    if result is None:
+                        if client in slow_send_windows:
+                            strikes, window_start = slow_send_windows[client]
+                            if (now - window_start) > slow_send_window:
+                                slow_send_windows.pop(client, None)
                         continue
 
-                    if state.frame == last_sent_frame:
-                        await asyncio.sleep(1 / FRAME_RATE)
-                        continue
-
-                    last_sent_frame = state.frame
-
-                    try:
-                        serialize_start = time.perf_counter()
-                        state_payload = manager.serialize_state(state)
-                        serialize_ms = (time.perf_counter() - serialize_start) * 1000
-                    except Exception as e:
-                        logger.error(
-                            "broadcast_updates[%s]: Error serializing state to JSON: %s",
-                            tank_id[:8],
-                            e,
-                            exc_info=True,
-                        )
-                        await asyncio.sleep(1 / FRAME_RATE)
-                        continue
-
-                    # Broadcast to all clients of this tank
-                    disconnected = set()
-                    send_start = time.perf_counter()
-                    for client in list(clients):  # Copy to avoid modification during iteration
-                        try:
-                            await client.send_bytes(state_payload)
-                        except Exception as e:
-                            logger.warning(
-                                "broadcast_updates[%s]: Error sending to client, marking for removal: %s",
-                                tank_id[:8],
-                                e,
-                            )
+                    if result == "timeout":
+                        timeout_count += 1
+                        strikes, window_start = slow_send_windows.get(client, (0, now))
+                        if (now - window_start) > slow_send_window:
+                            window_start = now
+                            strikes = 0
+                        strikes += 1
+                        slow_send_windows[client] = (strikes, window_start)
+                        if strikes >= slow_send_strikes:
                             disconnected.add(client)
+                        continue
 
-                    send_ms = (time.perf_counter() - send_start) * 1000
-                    total_ms = get_ms + serialize_ms + send_ms
-                    if total_ms > 50:
-                        logger.warning(
-                            "broadcast_updates[%s]: SLOW get=%.0fms ser=%.0fms send=%.0fms (payload: %d bytes)",
-                            tank_id[:8],
-                            get_ms,
-                            serialize_ms,
-                            send_ms,
-                            len(state_payload),
-                        )
+                    logger.warning(
+                        "broadcast_updates[%s]: Error sending to client, marking for removal: %s",
+                        tank_id[:8],
+                        result,
+                    )
+                    disconnected.add(client)
 
-                    # Remove disconnected clients
-                    if disconnected:
-                        logger.info(
-                            "broadcast_updates[%s]: Removing %d disconnected clients",
-                            tank_id[:8],
-                            len(disconnected),
-                        )
-                        for client in disconnected:
-                            manager.remove_client(client)
+                send_time_total_ms += send_ms
+                send_time_count += 1
+
+                total_ms = get_ms + serialize_ms + send_ms
+                if total_ms > 50:
+                    logger.warning(
+                        "broadcast_updates[%s]: SLOW get=%.0fms ser=%.0fms send=%.0fms (payload: %d bytes, clients: %d)",
+                        tank_id[:8],
+                        get_ms,
+                        serialize_ms,
+                        send_ms,
+                        len(state_payload),
+                        len(clients),
+                    )
+
+                if debug_enabled and (now - last_debug_log) >= 5.0:
+                    avg_send_ms = send_time_total_ms / send_time_count if send_time_count else 0.0
+                    logger.info(
+                        "broadcast_updates[%s]: perf avg_send=%.1fms timeouts=%d dropped_frames=%d clients=%d",
+                        tank_id[:8],
+                        avg_send_ms,
+                        timeout_count,
+                        dropped_frames,
+                        len(clients),
+                    )
+                    last_debug_log = now
+                    send_time_total_ms = 0.0
+                    send_time_count = 0
+                    timeout_count = 0
+                    dropped_frames = 0
+
+                # Remove disconnected clients
+                if disconnected:
+                    logger.info(
+                        "broadcast_updates[%s]: Removing %d disconnected clients",
+                        tank_id[:8],
+                        len(disconnected),
+                    )
+                    for client in disconnected:
+                        manager.remove_client(client)
+                        slow_send_windows.pop(client, None)
+                        close_task = asyncio.create_task(client.close())
+                        close_task.add_done_callback(_handle_task_exception)
 
             except asyncio.CancelledError:
                 logger.info("broadcast_updates[%s]: Task cancelled", tank_id[:8])
