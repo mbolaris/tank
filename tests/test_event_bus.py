@@ -1,12 +1,9 @@
 """Tests for the EventBus domain event dispatch system."""
 
-import pytest
-
 from core.events import EventBus
 from core.events.domain_events import (
     EntityAteFoodEvent,
     EntityDiedEvent,
-    EnergyTransferredEvent,
 )
 
 

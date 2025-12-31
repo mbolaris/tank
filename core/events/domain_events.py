@@ -13,7 +13,6 @@ Design principles:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -67,8 +66,8 @@ class PokerHandResolvedEvent:
         frame: Simulation frame when this occurred
     """
 
-    participant_ids: Tuple[int, ...]
-    delta_by_participant: Dict[int, float]
+    participant_ids: tuple[int, ...]
+    delta_by_participant: dict[int, float]
     winner_id: int
     winner_type: str
     house_cut: float
@@ -93,7 +92,7 @@ class EntityDiedEvent:
     generation: int
     age: int
     reason: str
-    algorithm_id: Optional[int]
+    algorithm_id: int | None
     remaining_energy: float
     frame: int
 
@@ -115,11 +114,11 @@ class EntitySpawnedEvent:
     """
 
     entity_id: int
-    parent_id: Optional[int]
+    parent_id: int | None
     kind: str
     generation: int
-    algorithm_id: Optional[int]
-    algorithm_name: Optional[str]
+    algorithm_id: int | None
+    algorithm_name: str | None
     energy: float
     is_soup_spawn: bool
     frame: int
