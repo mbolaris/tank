@@ -18,7 +18,7 @@ from core.genetics.reproduction import ReproductionParams
 from core.genetics.validation import validate_traits_from_specs
 
 logger = logging.getLogger(__name__)
-GENOME_SCHEMA_VERSION = 1
+GENOME_SCHEMA_VERSION = 2  # Bumped from 1: added code_policy_{kind,component_id,params}
 
 
 class GeneticCrossoverMode(Enum):
@@ -119,7 +119,10 @@ class Genome:
 
     def validate(self) -> Dict[str, Any]:
         """Validate trait ranges/types; returns a dict with any issues found."""
-        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+        from core.genetics.behavioral import (
+            BEHAVIORAL_TRAIT_SPECS,
+            validate_code_policy,
+        )
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
         issues = []
@@ -131,6 +134,26 @@ class Genome:
                 BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral"
             )
         )
+
+        # Validate code policy fields
+        cp_kind = (
+            self.behavioral.code_policy_kind.value
+            if self.behavioral.code_policy_kind
+            else None
+        )
+        cp_id = (
+            self.behavioral.code_policy_component_id.value
+            if self.behavioral.code_policy_component_id
+            else None
+        )
+        cp_params = (
+            self.behavioral.code_policy_params.value
+            if self.behavioral.code_policy_params
+            else None
+        )
+        cp_issues = validate_code_policy(cp_kind, cp_id, cp_params)
+        for issue in cp_issues:
+            issues.append(f"genome.behavioral.{issue}")
 
         return {"ok": not issues, "issues": issues}
 

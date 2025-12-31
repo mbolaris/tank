@@ -57,6 +57,35 @@ def genome_to_dict(
             if meta:
                 trait_meta[name] = meta
 
+    # Serialize code policy fields
+    code_policy_kind = (
+        genome.behavioral.code_policy_kind.value
+        if genome.behavioral.code_policy_kind and genome.behavioral.code_policy_kind.value
+        else None
+    )
+    code_policy_component_id = (
+        genome.behavioral.code_policy_component_id.value
+        if genome.behavioral.code_policy_component_id
+        and genome.behavioral.code_policy_component_id.value
+        else None
+    )
+    code_policy_params = (
+        dict(genome.behavioral.code_policy_params.value)
+        if genome.behavioral.code_policy_params and genome.behavioral.code_policy_params.value
+        else None
+    )
+
+    # Collect trait metadata for code policy traits
+    for name, trait in (
+        ("code_policy_kind", genome.behavioral.code_policy_kind),
+        ("code_policy_component_id", genome.behavioral.code_policy_component_id),
+        ("code_policy_params", genome.behavioral.code_policy_params),
+    ):
+        if trait is not None:
+            meta = trait_meta_for_trait(trait)
+            if meta:
+                trait_meta[name] = meta
+
     return {
         "schema_version": schema_version,
         **values,
@@ -69,6 +98,10 @@ def genome_to_dict(
             if genome.behavioral.mate_preferences
             else {}
         ),
+        # Code policy fields (optional, for linking to CodePool components)
+        "code_policy_kind": code_policy_kind,
+        "code_policy_component_id": code_policy_component_id,
+        "code_policy_params": code_policy_params,
         "trait_meta": trait_meta,
     }
 
@@ -164,6 +197,55 @@ def genome_from_dict(
     except Exception:
         logger.debug("Failed deserializing poker_strategy; keeping default", exc_info=True)
 
+    # Code policy fields (optional, for linking to CodePool components)
+    try:
+        from core.genetics.trait import GeneticTrait
+
+        # code_policy_kind
+        cp_kind = data.get("code_policy_kind")
+        if cp_kind is not None:
+            if genome.behavioral.code_policy_kind is None:
+                genome.behavioral.code_policy_kind = GeneticTrait(str(cp_kind))
+            else:
+                genome.behavioral.code_policy_kind.value = str(cp_kind)
+
+        # code_policy_component_id
+        cp_id = data.get("code_policy_component_id")
+        if cp_id is not None:
+            if genome.behavioral.code_policy_component_id is None:
+                genome.behavioral.code_policy_component_id = GeneticTrait(str(cp_id))
+            else:
+                genome.behavioral.code_policy_component_id.value = str(cp_id)
+
+        # code_policy_params
+        cp_params = data.get("code_policy_params")
+        if cp_params is not None and isinstance(cp_params, dict):
+            # Validate and coerce param values to floats
+            validated_params = {}
+            for key, val in cp_params.items():
+                try:
+                    validated_params[str(key)] = float(val)
+                except (TypeError, ValueError):
+                    logger.debug("Invalid code_policy_params[%s]=%r, skipping", key, val)
+            if genome.behavioral.code_policy_params is None:
+                genome.behavioral.code_policy_params = GeneticTrait(validated_params)
+            else:
+                genome.behavioral.code_policy_params.value = validated_params
+
+        # Apply trait metadata for code policy traits
+        if isinstance(trait_meta, dict):
+            for name, trait in (
+                ("code_policy_kind", genome.behavioral.code_policy_kind),
+                ("code_policy_component_id", genome.behavioral.code_policy_component_id),
+                ("code_policy_params", genome.behavioral.code_policy_params),
+            ):
+                if trait is not None:
+                    meta = trait_meta.get(name)
+                    if isinstance(meta, dict):
+                        apply_trait_meta_to_trait(trait, meta)
+    except Exception:
+        logger.debug("Failed deserializing code_policy; keeping defaults", exc_info=True)
+
     invalidate = getattr(genome, "invalidate_caches", None)
     if callable(invalidate):
         invalidate()
@@ -195,6 +277,20 @@ def genome_debug_snapshot(genome: Any) -> dict[str, Any]:
             "short_description": cb.short_description,
         }
 
+    # Get code policy info (if present)
+    code_policy_info = None
+    cp_kind = genome.behavioral.code_policy_kind
+    cp_id = genome.behavioral.code_policy_component_id
+    if cp_id and cp_id.value:
+        code_policy_info = {
+            "kind": cp_kind.value if cp_kind else None,
+            "component_id": cp_id.value,
+            "has_params": bool(
+                genome.behavioral.code_policy_params
+                and genome.behavioral.code_policy_params.value
+            ),
+        }
+
     return {
         **values,
         "trait_meta": trait_meta,
@@ -202,6 +298,7 @@ def genome_debug_snapshot(genome: Any) -> dict[str, Any]:
         "poker_strategy_type": _algo_name(
             genome.behavioral.poker_strategy.value if genome.behavioral.poker_strategy else None
         ),
+        "code_policy": code_policy_info,
         "derived": {
             "speed_modifier": getattr(genome, "speed_modifier", None),
             "metabolism_rate": getattr(genome, "metabolism_rate", None),
