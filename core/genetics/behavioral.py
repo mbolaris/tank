@@ -196,6 +196,10 @@ class BehavioralTraits:
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
     mate_preferences: Optional[GeneticTrait[Dict[str, float]]] = None
 
+    # Optional code policy overrides (non-genetic, opt-in)
+    code_policy_kind: Optional[str] = None
+    code_policy_component_id: Optional[str] = None
+
     @classmethod
     def random(
         cls,
