@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple, TYPE_CHECKING
 
 from core.modes.interfaces import ModePack
+from core.modes.petri import create_petri_mode_pack
 from core.modes.tank import create_tank_mode_pack
 from core.worlds.registry import WorldRegistry
 
@@ -128,3 +129,15 @@ def _register_tank_mode() -> None:
 
 
 _register_tank_mode()
+
+
+def _register_petri_mode() -> None:
+    from backend.snapshots.petri_snapshot_builder import PetriSnapshotBuilder
+
+    register_mode_pack(
+        create_petri_mode_pack(snapshot_builder_factory=PetriSnapshotBuilder),
+        PetriSnapshotBuilder,
+    )
+
+
+_register_petri_mode()

@@ -27,7 +27,7 @@ TANK_MODE_DEFAULTS = {
 }
 
 
-def _normalize_tank_config(config: ModeConfig) -> ModeConfig:
+def normalize_tank_config(config: ModeConfig) -> ModeConfig:
     normalized: dict[str, Any] = dict(config)
 
     for legacy_key, canonical_key in LEGACY_KEY_ALIASES.items():
@@ -51,5 +51,5 @@ def create_tank_mode_pack(
         default_view_mode="side",
         display_name="Fish Tank",
         snapshot_builder_factory=snapshot_builder_factory,
-        normalizer=_normalize_tank_config,
+        normalizer=normalize_tank_config,
     )

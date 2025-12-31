@@ -10,6 +10,7 @@ import logging
 from typing import Callable
 
 from core.modes.interfaces import ModeConfig, ModePack, ModePackDefinition
+from core.modes.petri import create_petri_mode_pack
 from core.modes.tank import create_tank_mode_pack
 from core.worlds.interfaces import MultiAgentWorldBackend
 
@@ -139,6 +140,7 @@ class WorldRegistry:
 
 def _register_builtin_modes() -> None:
     from core.worlds.tank.backend import TankWorldBackendAdapter
+    from core.worlds.petri.backend import PetriWorldBackendAdapter
 
     # Implemented tank mode
     WorldRegistry.register_world_type(
@@ -149,16 +151,14 @@ def _register_builtin_modes() -> None:
         display_name="Fish Tank",
     )
 
-    # Placeholders for future modes
-    WorldRegistry.register_mode_pack(
-        ModePackDefinition(
-            mode_id="petri",
-            world_type="petri",
-            default_view_mode="topdown",
-            display_name="Petri Dish",
-            normalizer=_identity_config,
-        )
+    # Implemented petri mode (reuses tank backend)
+    WorldRegistry.register_world_type(
+        world_type="petri",
+        factory=lambda **kwargs: PetriWorldBackendAdapter(**kwargs),
+        mode_pack=create_petri_mode_pack(),
     )
+
+    # Placeholder for future modes
     WorldRegistry.register_mode_pack(
         ModePackDefinition(
             mode_id="soccer",
