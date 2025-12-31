@@ -15,7 +15,7 @@ Modes may accept additional keys specific to their worlds.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Protocol
+from typing import Any, Callable, Dict, Protocol
 
 ModeConfig = Dict[str, Any]
 
@@ -34,9 +34,9 @@ class ModePack(Protocol):
     world_type: str
     default_view_mode: str
     display_name: str
-    snapshot_builder_factory: Optional[Callable[[], Any]]
+    snapshot_builder_factory: Callable[[], Any] | None
 
-    def configure(self, config: Optional[ModeConfig]) -> ModeConfig:
+    def configure(self, config: ModeConfig | None) -> ModeConfig:
         """Normalize config keys and fill defaults for the mode."""
 
 
@@ -48,10 +48,10 @@ class ModePackDefinition:
     world_type: str
     default_view_mode: str
     display_name: str
-    snapshot_builder_factory: Optional[Callable[[], Any]] = None
-    normalizer: Optional[Callable[[ModeConfig], ModeConfig]] = None
+    snapshot_builder_factory: Callable[[], Any] | None = None
+    normalizer: Callable[[ModeConfig], ModeConfig] | None = None
 
-    def configure(self, config: Optional[ModeConfig]) -> ModeConfig:
+    def configure(self, config: ModeConfig | None) -> ModeConfig:
         normalized = dict(config or {})
         if self.normalizer is None:
             return normalized

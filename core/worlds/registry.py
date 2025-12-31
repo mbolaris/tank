@@ -7,7 +7,7 @@ and associating them with high-level mode packs.
 from __future__ import annotations
 
 import logging
-from typing import Callable, Dict, Optional
+from typing import Callable
 
 from core.modes.interfaces import ModeConfig, ModePack, ModePackDefinition
 from core.modes.tank import create_tank_mode_pack
@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 # Factory receives seed + config overrides and returns a world backend.
 WorldFactory = Callable[..., MultiAgentWorldBackend]
 
-_WORLD_FACTORIES: Dict[str, WorldFactory] = {}
-_MODE_PACKS: Dict[str, ModePack] = {}
+_WORLD_FACTORIES: dict[str, WorldFactory] = {}
+_MODE_PACKS: dict[str, ModePack] = {}
 
 
 def _identity_config(config: ModeConfig) -> ModeConfig:
@@ -41,9 +41,9 @@ class WorldRegistry:
         world_type: str,
         factory: WorldFactory,
         *,
-        mode_pack: Optional[ModePack] = None,
+        mode_pack: ModePack | None = None,
         default_view_mode: str = "side",
-        display_name: Optional[str] = None,
+        display_name: str | None = None,
     ) -> None:
         """Register a world backend factory and its default mode pack."""
         if world_type in _WORLD_FACTORIES:
@@ -66,8 +66,8 @@ class WorldRegistry:
     def create_world(
         mode_id: str,
         *,
-        seed: Optional[int] = None,
-        config: Optional[ModeConfig] = None,
+        seed: int | None = None,
+        config: ModeConfig | None = None,
         **kwargs,
     ) -> MultiAgentWorldBackend:
         """Create a world backend for the given mode.
@@ -99,19 +99,19 @@ class WorldRegistry:
         return factory(seed=seed, **normalized)
 
     @staticmethod
-    def get_mode_pack(mode_id: str) -> Optional[ModePack]:
+    def get_mode_pack(mode_id: str) -> ModePack | None:
         """Return a registered mode pack by id."""
         return _MODE_PACKS.get(mode_id)
 
     @staticmethod
-    def list_mode_packs() -> Dict[str, ModePack]:
+    def list_mode_packs() -> dict[str, ModePack]:
         """Return all registered mode packs."""
         return dict(_MODE_PACKS)
 
     @staticmethod
-    def list_modes() -> Dict[str, str]:
+    def list_modes() -> dict[str, str]:
         """List all available modes and their status."""
-        statuses: Dict[str, str] = {}
+        statuses: dict[str, str] = {}
         for mode_id, mode_pack in _MODE_PACKS.items():
             status = (
                 "implemented" if mode_pack.world_type in _WORLD_FACTORIES else "not_implemented"
@@ -120,9 +120,9 @@ class WorldRegistry:
         return statuses
 
     @staticmethod
-    def list_world_types() -> Dict[str, str]:
+    def list_world_types() -> dict[str, str]:
         """List world types (legacy compatibility)."""
-        statuses: Dict[str, str] = {}
+        statuses: dict[str, str] = {}
         for mode_pack in _MODE_PACKS.values():
             status = (
                 "implemented" if mode_pack.world_type in _WORLD_FACTORIES else "not_implemented"
