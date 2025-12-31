@@ -106,7 +106,7 @@ class SimulationRunner(CommandHandlerMixin):
         self.frames_since_websocket_update = 0
         self._cached_state: Optional[Union[FullStatePayload, DeltaStatePayload]] = None
         self._cached_state_frame: Optional[int] = None
-        self.delta_sync_interval = 30
+        self.delta_sync_interval = 90  # Full sync every 3 seconds (was 1 second)
         self._last_full_frame: Optional[int] = None
         self._last_entities: Dict[int, EntitySnapshot] = {}
 
@@ -117,8 +117,10 @@ class SimulationRunner(CommandHandlerMixin):
         self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
 
         # Evolution benchmark tracker for longitudinal skill measurement
+        # DISABLED BY DEFAULT: ThreadPoolExecutor causes GIL contention, blocking asyncio
+        # Set TANK_EVOLUTION_BENCHMARK_ENABLED=1 to enable (will cause FPS drops during benchmark)
         self.evolution_benchmark_tracker = None
-        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
+        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "0").strip().lower() in (
             "1",
             "true",
             "yes",
@@ -128,15 +130,15 @@ class SimulationRunner(CommandHandlerMixin):
                 EvolutionBenchmarkTracker,
             )
             self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
-                eval_interval_frames=int(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "900")),
+                eval_interval_frames=int(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "27000")),
                 export_path=self._get_evolution_benchmark_export_path(),
                 use_quick_benchmark=True,
             )
             self._evolution_benchmark_guard = threading.Lock()
-            # Initialize to (now - interval + 2 seconds) so first benchmark runs after ~2 seconds of startup
+            # Initialize to (now - interval + 60 seconds) so first benchmark runs after ~60 seconds of startup
             # This gives the simulation time to populate fish before the first evaluation
-            initial_delay = 2.0
-            interval = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "30"))
+            initial_delay = 60.0
+            interval = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "900"))
             self._evolution_benchmark_last_completed_time = time.time() - interval + initial_delay
         else:
             self._evolution_benchmark_guard = None
@@ -433,7 +435,7 @@ class SimulationRunner(CommandHandlerMixin):
         if paused_only and not getattr(self.world, "paused", False):
             return
 
-        interval_seconds = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "30"))
+        interval_seconds = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "900"))
         now = time.time()
         last_completed = float(getattr(self, "_evolution_benchmark_last_completed_time", 0.0) or 0.0)
         if now - last_completed < interval_seconds:
@@ -499,11 +501,15 @@ class SimulationRunner(CommandHandlerMixin):
         """
 
         current_frame = self.world.frame_count
-        elapsed_time = (
-            self.world.engine.elapsed_time
-            if hasattr(self.world.engine, "elapsed_time")
-            else self.world.frame_count * 33
-        )
+        # Try to get precise elapsed time, falling back to frame count approximation
+        elapsed_time = self.world.frame_count * 33
+        
+        # Check if we can access the engine's elapsed_time directly or via adapter
+        if hasattr(self.world, "engine") and hasattr(self.world.engine, "elapsed_time"):
+            elapsed_time = self.world.engine.elapsed_time
+        elif hasattr(self.world, "world") and hasattr(self.world.world, "engine") and hasattr(self.world.world.engine, "elapsed_time"):
+            # Handle TankWorldBackendAdapter
+            elapsed_time = self.world.world.engine.elapsed_time
 
         # Fast path: identical frame reuse
         if self._cached_state is not None and current_frame == self._cached_state_frame:
@@ -517,15 +523,17 @@ class SimulationRunner(CommandHandlerMixin):
 
         self.frames_since_websocket_update = 0
 
-        # Try to acquire lock with timeout to prevent blocking indefinitely.
-        # If we don't have any cached state yet (fresh server start / first client),
-        # wait longer so the frontend can render an initial snapshot even if the
-        # simulation update is slow.
-        lock_timeout = 5.0 if self._cached_state is None else 0.5
-        lock_acquired = self.lock.acquire(timeout=lock_timeout)
+        # PERF: Use non-blocking lock acquisition to avoid waiting for simulation.
+        # If we have cached state, return it immediately if lock is busy.
+        # This eliminates the lock contention that was causing 100-1000ms delays.
+        if self._cached_state is not None:
+            lock_acquired = self.lock.acquire(blocking=False)
+        else:
+            # First frame: must wait to get initial state
+            lock_acquired = self.lock.acquire(timeout=5.0)
+        
         if not lock_acquired:
-            # If we can't get the lock, return cached state to avoid blocking
-            logger.debug("get_state: Lock acquisition timed out, returning cached state")
+            # Lock is busy (simulation running), return cached state immediately
             if self._cached_state is not None:
                 return self._cached_state
             # No cached state, create minimal emergency state
@@ -544,7 +552,18 @@ class SimulationRunner(CommandHandlerMixin):
             poker_events = self._collect_poker_events()
             
             # Calculate derived stats properly
-            stats = self._collect_stats(current_frame) # Re-using existing _collect_stats
+            # Calculate derived stats properly
+            # For delta frames, skip expensive genetic distribution calculations
+            include_distributions = send_full = (
+                force_full
+                or not allow_delta
+                or self._last_full_frame is None
+                or (current_frame - self._last_full_frame) >= self.delta_sync_interval
+            )
+            
+            stats = self._collect_stats(
+                current_frame, include_distributions=include_distributions
+            )
 
             # Collect entities once
             entity_snapshots = self._collect_entities()
@@ -621,12 +640,14 @@ class SimulationRunner(CommandHandlerMixin):
         payload = state.to_dict() if hasattr(state, "to_dict") else state
         serialized = orjson.dumps(payload)
         duration_ms = (time.perf_counter() - start) * 1000
-
-        if duration_ms > 10:
+        
+        # Only log if serialization itself is slow (> 50ms), not just large payloads
+        if duration_ms > 50:
             logger.warning(
-                "serialize_state: Slow serialization %.2f ms for frame %s",
-                duration_ms,
+                "serialize_state: Frame %s slow serialization: %.2f ms, Size: %d bytes",
                 getattr(state, "frame", "unknown"),
+                duration_ms,
+                len(serialized),
             )
 
         return serialized
@@ -657,9 +678,15 @@ class SimulationRunner(CommandHandlerMixin):
         """Delegate to state_builders module."""
         return collect_poker_stats_payload(stats)
 
-    def _collect_stats(self, frame: int) -> StatsPayload:
+    def _collect_stats(self, frame: int, include_distributions: bool = True) -> StatsPayload:
         """Collect and organize simulation statistics."""
-        stats = self.world.get_stats()
+        # Use getattr/call to handle potential interface mismatches if world hasn't been updated
+        get_stats = self.world.get_stats
+        try:
+            stats = get_stats(include_distributions=include_distributions)
+        except TypeError:
+            # Fallback for worlds that don't support include_distributions yet
+            stats = get_stats()
 
         # Get Poker Score from evolution benchmark tracker
         poker_score = None

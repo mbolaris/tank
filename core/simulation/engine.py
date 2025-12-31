@@ -862,9 +862,9 @@ class SimulationEngine:
     # Statistics
     # =========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Get current simulation statistics."""
-        return self.stats_calculator.get_stats()
+        return self.stats_calculator.get_stats(include_distributions=include_distributions)
 
     def export_stats_json(self, filename: str) -> None:
         """Export comprehensive simulation statistics to JSON file."""

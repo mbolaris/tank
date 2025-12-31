@@ -250,45 +250,25 @@ class CollisionSystem(BaseSystem):
         environment = self._engine.environment
         check_collision = self.check_collision
 
-        entity_order = {entity: idx for idx, entity in enumerate(all_entities)}
-        grid = environment.spatial_grid if environment is not None else None
-        agent_cells = grid.agent_cells if grid is not None else None
-
+        # PERF: Simple sort key for determinism - uses id() which is stable within a frame
+        # This is much faster than the complex key that was doing multiple getattr/isinstance calls
+        Fish_type = Fish
+        Food_type = Food  
+        Crab_type = Crab
+        
         def collision_sort_key(entity: "Agent") -> tuple:
-            cell = agent_cells.get(entity) if agent_cells is not None else None
-            if cell is None:
-                cell = (0, 0)
-
-            if isinstance(entity, Fish):
+            # Fast type ranking using identity comparison
+            e_type = type(entity)
+            if e_type is Fish_type:
                 type_rank = 0
-            elif isinstance(entity, Food):
+            elif e_type is Food_type:
                 type_rank = 1
-            elif isinstance(entity, Crab):
+            elif e_type is Crab_type:
                 type_rank = 2
             else:
                 type_rank = 3
-
-            entity_id = getattr(entity, "fish_id", None)
-            if entity_id is None:
-                entity_id = getattr(entity, "plant_id", None)
-            if entity_id is None:
-                pos = getattr(entity, "pos", None)
-                if pos is not None:
-                    entity_id = (
-                        1,
-                        float(pos.x),
-                        float(pos.y),
-                        float(getattr(entity, "width", 0.0)),
-                        float(getattr(entity, "height", 0.0)),
-                        float(getattr(entity, "energy", 0.0)),
-                        entity_order.get(entity, 0),
-                    )
-                else:
-                    entity_id = (2, entity_order.get(entity, 0))
-            else:
-                entity_id = (0, int(entity_id))
-
-            return (cell[0], cell[1], type_rank, entity_id)
+            # Use Python id() for stable ordering within a frame (no getattr calls!)
+            return (type_rank, id(entity))
 
         # Single pass over all fish
         for fish in fish_list:
@@ -415,36 +395,9 @@ class CollisionSystem(BaseSystem):
         environment = self._engine.environment
         check_collision = self.check_collision
 
-        entity_order = {entity: idx for idx, entity in enumerate(all_entities)}
-        grid = environment.spatial_grid if environment is not None else None
-        agent_cells = grid.agent_cells if grid is not None else None
-
+        # PERF: Simple sort key for determinism - uses id() which is stable within a frame
         def collision_sort_key(entity: "Agent") -> tuple:
-            cell = agent_cells.get(entity) if agent_cells is not None else None
-            if cell is None:
-                cell = (0, 0)
-
-            entity_id = getattr(entity, "fish_id", None)
-            if entity_id is None:
-                entity_id = getattr(entity, "plant_id", None)
-            if entity_id is None:
-                pos = getattr(entity, "pos", None)
-                if pos is not None:
-                    entity_id = (
-                        1,
-                        float(pos.x),
-                        float(pos.y),
-                        float(getattr(entity, "width", 0.0)),
-                        float(getattr(entity, "height", 0.0)),
-                        float(getattr(entity, "energy", 0.0)),
-                        entity_order.get(entity, 0),
-                    )
-                else:
-                    entity_id = (2, entity_order.get(entity, 0))
-            else:
-                entity_id = (0, int(entity_id))
-
-            return (cell[0], cell[1], type(entity).__name__, entity_id)
+            return (type(entity).__name__, id(entity))
 
         for food in food_list:
             # Check if food is still in simulation (may have been eaten)

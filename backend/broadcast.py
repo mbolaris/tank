@@ -49,6 +49,12 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
                 clients = manager.connected_clients
 
                 if clients:
+                    # PERF: Only broadcast every 2nd frame to reduce CPU load
+                    # Frontend will interpolate between updates for smooth animation
+                    if frame_count % 2 != 0:
+                        await asyncio.sleep(1 / FRAME_RATE)
+                        continue
+                        
                     if frame_count % 60 == 0:  # Log every 60 frames (~2 seconds)
                         logger.debug(
                             "broadcast_updates[%s]: Frame %d, clients: %d",
@@ -59,7 +65,9 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
 
                     try:
                         # Get current state (delta compression handled by manager)
+                        get_start = time.perf_counter()
                         state = await manager.get_state_async()
+                        get_ms = (time.perf_counter() - get_start) * 1000
                     except Exception as e:
                         logger.error(
                             "broadcast_updates[%s]: Error getting simulation state: %s",
@@ -80,13 +88,6 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
                         serialize_start = time.perf_counter()
                         state_payload = manager.serialize_state(state)
                         serialize_ms = (time.perf_counter() - serialize_start) * 1000
-                        if serialize_ms > 10:
-                            logger.warning(
-                                "broadcast_updates[%s]: Serialization exceeded budget %.2f ms (frame %s)",
-                                tank_id[:8],
-                                serialize_ms,
-                                state.frame,
-                            )
                     except Exception as e:
                         logger.error(
                             "broadcast_updates[%s]: Error serializing state to JSON: %s",
@@ -112,12 +113,15 @@ async def broadcast_updates_for_tank(manager: SimulationManager):
                             disconnected.add(client)
 
                     send_ms = (time.perf_counter() - send_start) * 1000
-                    if send_ms > 100:
+                    total_ms = get_ms + serialize_ms + send_ms
+                    if total_ms > 50:
                         logger.warning(
-                            "broadcast_updates[%s]: Broadcasting to %s clients took %.2f ms",
+                            "broadcast_updates[%s]: SLOW get=%.0fms ser=%.0fms send=%.0fms (payload: %d bytes)",
                             tank_id[:8],
-                            len(clients),
+                            get_ms,
+                            serialize_ms,
                             send_ms,
+                            len(state_payload),
                         )
 
                     # Remove disconnected clients
