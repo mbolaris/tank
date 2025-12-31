@@ -4,9 +4,8 @@ This module defines the configuration for the soccer training environment.
 Configuration is independent of whether training locally or evaluating with rcssserver.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict
-
 
 # Default soccer field dimensions (RoboCup standard is 105m x 68m, scaled down)
 DEFAULT_FIELD_WIDTH = 105.0  # meters

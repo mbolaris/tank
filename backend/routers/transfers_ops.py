@@ -6,7 +6,11 @@ from typing import Any, Dict
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer, try_deserialize_entity
+from backend.entity_transfer import (
+    deserialize_entity,
+    serialize_entity_for_transfer,
+    try_deserialize_entity,
+)
 from backend.models import RemoteTransferRequest
 from backend.tank_registry import TankRegistry
 

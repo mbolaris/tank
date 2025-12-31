@@ -12,11 +12,11 @@ from typing import Any, Optional
 
 from fastapi import APIRouter
 
-from backend.tank_registry import TankRegistry
 from backend.routers.tanks_crud import setup_crud_subrouter
+from backend.routers.tanks_inspection import setup_inspection_subrouter
 from backend.routers.tanks_lifecycle import setup_lifecycle_subrouter
 from backend.routers.tanks_persistence import setup_persistence_subrouter
-from backend.routers.tanks_inspection import setup_inspection_subrouter
+from backend.tank_registry import TankRegistry
 
 logger = logging.getLogger(__name__)
 

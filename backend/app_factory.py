@@ -28,7 +28,7 @@ import os
 import platform
 import socket
 import time
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine, Dict, Optional
 
@@ -58,13 +58,13 @@ class AppContext:
     This replaces module-level globals, making dependencies explicit
     and enabling clean testing without cross-test pollution.
     """
-    
+
     # Core services (created at construction)
     tank_registry: TankRegistry = field(default_factory=lambda: TankRegistry(create_default=False))
     connection_manager: ConnectionManager = field(default_factory=ConnectionManager)
     discovery_service: DiscoveryService = field(default_factory=DiscoveryService)
     server_client: ServerClient = field(default_factory=ServerClient)
-    
+
     # Configuration
     server_id: str = field(default_factory=lambda: os.getenv("TANK_SERVER_ID", "local-server"))
     server_version: str = "1.0.0"
@@ -72,31 +72,31 @@ class AppContext:
     discovery_server_url: Optional[str] = field(default_factory=lambda: os.getenv("DISCOVERY_SERVER_URL"))
     production_mode: bool = field(default_factory=lambda: os.getenv("PRODUCTION", "false").lower() == "true")
     allowed_origins: list = field(default_factory=lambda: os.getenv("ALLOWED_ORIGINS", "*").split(","))
-    
+
     # Runtime state (initialized during lifespan)
     startup_manager: Optional[StartupManager] = None
     auto_save_service: Optional[AutoSaveService] = None
     migration_scheduler: Optional[MigrationScheduler] = None
-    
+
     # Timing
     server_start_time: float = field(default_factory=time.time)
-    
+
     # Logging
     logger: logging.Logger = field(default_factory=lambda: logging.getLogger("backend"))
-    
+
     # Broadcast task management
     broadcast_tasks: Dict[str, asyncio.Task] = field(default_factory=dict)
     broadcast_locks: Dict[str, asyncio.Lock] = field(default_factory=dict)
-    
+
     def get_server_info(self) -> ServerInfo:
         """Get information about the current server."""
         uptime = time.time() - self.server_start_time
-        
+
         cpu_percent = None
         memory_mb = None
         logical_cpus = os.cpu_count()
         physical_cpus = None
-        
+
         try:
             import psutil
             process = psutil.Process()
@@ -109,7 +109,7 @@ class AppContext:
             pass
         except Exception as e:
             self.logger.debug(f"Could not get resource usage: {e}")
-        
+
         return ServerInfo(
             server_id=self.server_id,
             hostname=socket.gethostname(),
@@ -146,11 +146,11 @@ def _configure_windows_event_loop(logger: logging.Logger) -> None:
     """Configure asyncio event loop policy on Windows."""
     if platform.system() != "Windows":
         return
-        
+
     loop_policy = os.getenv("TANK_WINDOWS_EVENT_LOOP", "selector").strip().lower()
     if not loop_policy or loop_policy == "default":
         return
-        
+
     logger.info("Windows detected - configuring asyncio event loop policy: %s", loop_policy)
     try:
         if loop_policy == "proactor":
@@ -189,14 +189,14 @@ def create_app(
     """
     # Configure logging (idempotent)
     logger = configure_logging(extra_loggers=("backend",))
-    
+
     # Configure Windows event loop
     _configure_windows_event_loop(logger)
-    
+
     # Create or use provided context
     if context is None:
         context = AppContext()
-        
+
     # Apply overrides
     if server_id is not None:
         context.server_id = server_id
@@ -204,19 +204,19 @@ def create_app(
         context.discovery_server_url = discovery_server_url
     if production_mode is not None:
         context.production_mode = production_mode
-    
+
     context.logger = logger
-    
+
     # Create lifespan with context closure
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         """Lifespan context manager for startup and shutdown."""
         ctx = app.state.context
-        
+
         try:
             # Import broadcast functions from broadcast module
             from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
-            
+
             # Create and initialize startup manager
             ctx.startup_manager = StartupManager(
                 tank_registry=ctx.tank_registry,
@@ -228,21 +228,21 @@ def create_app(
                 start_broadcast_callback=start_broadcast_for_tank,
                 stop_broadcast_callback=stop_broadcast_for_tank,
             )
-            
+
             await ctx.startup_manager.initialize(get_server_info_callback=ctx.get_server_info)
-            
+
             ctx.auto_save_service = ctx.startup_manager.auto_save_service
             ctx.migration_scheduler = ctx.startup_manager.migration_scheduler
-            
+
             # Setup API routers
             ctx.logger.info("Setting up API routers...")
             _setup_routers(app, ctx)
             ctx.logger.info("API routers configured successfully")
-            
+
             ctx.logger.info("LIFESPAN: Startup complete - yielding control to app")
             yield
             ctx.logger.info("LIFESPAN: Received shutdown signal")
-            
+
         except Exception as e:
             ctx.logger.error(f"Exception in lifespan startup: {e}", exc_info=True)
             raise
@@ -252,10 +252,10 @@ def create_app(
                 request_shutdown()
             except Exception:
                 pass
-            
+
             if ctx.startup_manager:
                 await ctx.startup_manager.shutdown()
-    
+
     # Create the FastAPI app
     app = FastAPI(
         title="Fish Tank Simulation API",
@@ -263,10 +263,10 @@ def create_app(
         docs_url=None if context.production_mode else "/docs",
         redoc_url=None if context.production_mode else "/redoc",
     )
-    
+
     # Attach context to app state for access in routes
     app.state.context = context
-    
+
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
@@ -275,18 +275,18 @@ def create_app(
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
-    
+
     # Add security middleware
     setup_security_middleware(app, enable_rate_limiting=context.production_mode)
-    
+
     return app
 
 
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
+    from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
     from backend.routers import discovery, servers, tanks, transfers, websocket
     from backend.routers.solutions import create_solutions_router
-    from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
 
     # Setup discovery router
     discovery_router = discovery.setup_router(ctx.discovery_service)

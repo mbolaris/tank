@@ -1,8 +1,8 @@
 """Background simulation runner thread."""
 
 import asyncio
-import os
 import logging
+import os
 import threading
 import time
 import uuid
@@ -19,7 +19,6 @@ from backend.runner.state_builders import (
     build_physical_stats,
     collect_poker_stats_payload,
 )
-
 from backend.state_payloads import (
     AutoEvaluateStatsPayload,
     DeltaStatePayload,
@@ -30,22 +29,15 @@ from backend.state_payloads import (
     PokerStatsPayload,
     StatsPayload,
 )
-from backend.entity_snapshot_builder import EntitySnapshotBuilder
 from backend.world_registry import create_world, get_world_metadata
-from core import entities, movement_strategy
+from core import entities
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.config.display import (
-    FILES,
     FRAME_RATE,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
 )
-from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.entities import Fish
 from core.entities.plant import Plant
-from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
-from core.plant_poker_strategy import PlantPokerStrategyAdapter
 from core.worlds.interfaces import FAST_STEP_ACTION
 
 logger = logging.getLogger(__name__)
@@ -371,7 +363,7 @@ class SimulationRunner(CommandHandlerMixin):
                         self.last_fps_time = current_time
                         # Log stats periodically
                         stats = self.world.get_stats(include_distributions=False)
-                        
+
                         # Format perf stats if enabled
                         perf_log = ""
                         if self._enable_perf_logging:
@@ -386,17 +378,17 @@ class SimulationRunner(CommandHandlerMixin):
                                     mst["max_ms"] = 0.0
                             if parts:
                                 perf_log = " | " + " ".join(parts)
-                                
+
                         tank_label = self.tank_name or self.tank_id or "Unknown Tank"
 
-                        
+
                         # Get migration counts since last report
                         from backend.transfer_history import get_and_reset_migration_counts
                         migrations_in, migrations_out = get_and_reset_migration_counts(self.tank_id)
                         migration_str = ""
                         if migrations_in > 0 or migrations_out > 0:
                             migration_str = f", Migrations=+{migrations_in}/-{migrations_out}"
-                        
+
                         # Get poker skill snapshot; show Elo + vs-expert bb/100 to avoid saturated 99% confidence
                         poker_str = ""
                         if self.evolution_benchmark_tracker is not None:
@@ -410,7 +402,7 @@ class SimulationRunner(CommandHandlerMixin):
                                     poker_str = f", Poker(Elo)={mean_elo:.0f}/{best_elo:.0f}"
                                 if vs_expert_bb is not None:
                                     poker_str += f", vsExp={vs_expert_bb:.1f}bb/100"
-                        
+
                         logger.info(
                             f"{tank_label} Simulation Status "
                             f"FPS={self.current_actual_fps:.1f}, "
@@ -427,7 +419,7 @@ class SimulationRunner(CommandHandlerMixin):
                     if was_fast_forward and not self.fast_forward:
                         logger.info("Simulation loop: Fast forward disabled, resetting clock sync")
                         next_frame_start_time = time.time()
-                    
+
                     was_fast_forward = self.fast_forward
 
                     # Maintain frame rate with drift correction
@@ -502,7 +494,7 @@ class SimulationRunner(CommandHandlerMixin):
                 try:
                     with self.lock:
                         fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
-                    
+
                     def apply_reward(fish: "Fish", amount: float) -> None:
                         with self.lock:
                             # Ensure fish is still valid/alive in the simulation
@@ -552,7 +544,7 @@ class SimulationRunner(CommandHandlerMixin):
         current_frame = self.world.frame_count
         # Try to get precise elapsed time, falling back to frame count approximation
         elapsed_time = self.world.frame_count * 33
-        
+
         # Check if we can access the engine's elapsed_time directly or via adapter
         if hasattr(self.world, "engine") and hasattr(self.world.engine, "elapsed_time"):
             elapsed_time = self.world.engine.elapsed_time
@@ -580,7 +572,7 @@ class SimulationRunner(CommandHandlerMixin):
         else:
             # First frame: must wait to get initial state
             lock_acquired = self.lock.acquire(timeout=5.0)
-        
+
         if not lock_acquired:
             # Lock is busy (simulation running), return cached state immediately
             if self._cached_state is not None:
@@ -599,7 +591,7 @@ class SimulationRunner(CommandHandlerMixin):
         try:
             # Helper to get recent poker events
             poker_events = self._collect_poker_events()
-            
+
             # Calculate derived stats properly
             # Calculate derived stats properly
             # For delta frames, skip expensive genetic distribution calculations
@@ -609,7 +601,7 @@ class SimulationRunner(CommandHandlerMixin):
                 or self._last_full_frame is None
                 or (current_frame - self._last_full_frame) >= self.delta_sync_interval
             )
-            
+
             start_stats = time.perf_counter()
             stats = self._collect_stats(
                 current_frame, include_distributions=include_distributions
@@ -644,7 +636,7 @@ class SimulationRunner(CommandHandlerMixin):
                 # Full state update
                 self._last_full_frame = current_frame
                 self._last_entities = {e.id: e for e in entity_snapshots}
-                
+
                 state = FullStatePayload(
                     frame=current_frame, # Using current_frame as self.world.step_count
                     elapsed_time=elapsed_time, # Using elapsed_time as self.world.time
@@ -660,17 +652,17 @@ class SimulationRunner(CommandHandlerMixin):
                 )
             else:
                 # Delta update
-                # optimization: only send poker events if changed? 
+                # optimization: only send poker events if changed?
                 # For now, we only send them on full updates (every 30 frames ~ 1 sec)
                 # AND if explicitly requested or if we detect a change (TODO).
                 # Current decision: Exclude from delta to save massive bandwidth/memory.
                 # Frontend will persist the last known list.
-                
+
                 current_entities = {entity.id: entity for entity in entity_snapshots}
                 added = [entity.to_full_dict() for eid, entity in current_entities.items() if eid not in self._last_entities]
                 removed = [eid for eid in self._last_entities if eid not in current_entities]
                 updates = [entity.to_delta_dict() for entity in entity_snapshots]
-                
+
                 state = DeltaStatePayload(
                     frame=current_frame, # Using current_frame as self.world.step_count
                     elapsed_time=elapsed_time, # Using elapsed_time as self.world.time
@@ -707,14 +699,14 @@ class SimulationRunner(CommandHandlerMixin):
         payload = state.to_dict() if hasattr(state, "to_dict") else state
         serialized = orjson.dumps(payload)
         duration_ms = (time.perf_counter() - start) * 1000
-        
+
         if self._enable_perf_logging:
             mst = self._perf_stats["serialize"]
             mst["count"] += 1
             mst["total_ms"] += duration_ms
             if duration_ms > mst["max_ms"]:
                 mst["max_ms"] = duration_ms
-        
+
         # Only log if serialization itself is slow (> 50ms), not just large payloads
         if duration_ms > 50:
             logger.warning(
@@ -895,7 +887,7 @@ class SimulationRunner(CommandHandlerMixin):
             handler = handlers.get(command)
             if handler:
                 return handler(data or {})
-            
+
             # Log unknown command
             logger.warning(f"Unknown command received: {command}")
             return self._create_error_response(f"Unknown command: {command}")

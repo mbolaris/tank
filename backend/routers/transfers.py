@@ -10,9 +10,9 @@ import logging
 from fastapi import APIRouter
 
 from backend.connection_manager import ConnectionManager
-from backend.tank_registry import TankRegistry
-from backend.routers.transfers_ops import setup_transfer_ops_subrouter
 from backend.routers.transfers_connections import setup_connections_subrouter
+from backend.routers.transfers_ops import setup_transfer_ops_subrouter
+from backend.tank_registry import TankRegistry
 
 logger = logging.getLogger(__name__)
 

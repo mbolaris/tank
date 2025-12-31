@@ -5,13 +5,12 @@ This script fetches `/api/evaluation-history` and `/api/lineage` from the
 local backend and prints a short report: top performers over time and
 lineage/clade stats for poker-related algorithms.
 """
+import csv
 import json
 import sys
 from collections import Counter, defaultdict
-from urllib.request import urlopen
-import csv
 from pathlib import Path
-
+from urllib.request import urlopen
 
 BASE = "http://localhost:8000"
 

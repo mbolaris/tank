@@ -11,29 +11,25 @@ Key hypotheses to test:
 4. Algorithm inheritance vs. parameter tuning mismatch
 """
 
-import json
 import random
 import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.genetics import Genome
-from core.genetics.behavioral import BehavioralTraits
 from core.poker.strategy.implementations import (
     ALL_POKER_STRATEGIES,
-    PokerStrategyAlgorithm,
-    TightAggressiveStrategy,
     LooseAggressiveStrategy,
-    BalancedStrategy,
+    TightAggressiveStrategy,
     crossover_poker_strategies,
     get_random_poker_strategy,
 )
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
 
 @dataclass
@@ -97,14 +93,14 @@ def test_poker_strategy_inheritance_bias():
                 p2_param_sum += 1
 
     print(f"\nRan {n_trials} crossover trials between:")
-    print(f"  Parent1: TightAggressive (fold=0.1, bluff=0.9)")
-    print(f"  Parent2: LooseAggressive (fold=0.9, bluff=0.1)")
-    print(f"\nStrategy type inheritance:")
+    print("  Parent1: TightAggressive (fold=0.1, bluff=0.9)")
+    print("  Parent2: LooseAggressive (fold=0.9, bluff=0.1)")
+    print("\nStrategy type inheritance:")
     print(f"  Same type as Parent1: {same_as_parent1} ({100*same_as_parent1/n_trials:.1f}%)")
     print(f"  Same type as Parent2: {same_as_parent2} ({100*same_as_parent2/n_trials:.1f}%)")
     print(f"  New random strategy: {new_random} ({100*new_random/n_trials:.1f}%)")
 
-    print(f"\nParameter inheritance (fold_threshold closer to):")
+    print("\nParameter inheritance (fold_threshold closer to):")
     print(f"  Parent1: {p1_param_sum} ({100*p1_param_sum/n_trials:.1f}%)")
     print(f"  Parent2: {p2_param_sum} ({100*p2_param_sum/n_trials:.1f}%)")
 
@@ -137,10 +133,10 @@ def test_mutation_destroying_adaptations():
     n_generations = 10
     n_offspring = 100
 
-    print(f"\nStarting with optimized parameters:")
-    print(f"  fold_threshold: 0.35")
-    print(f"  raise_threshold: 0.70")
-    print(f"  bluff_frequency: 0.12")
+    print("\nStarting with optimized parameters:")
+    print("  fold_threshold: 0.35")
+    print("  raise_threshold: 0.70")
+    print("  bluff_frequency: 0.12")
 
     current_pop = [optimal]
 
@@ -415,7 +411,7 @@ def diagnose_behavioral_inheritance():
         mutation_strength=0.1,
     )
 
-    print(f"\nOffspring (from_winner_choice with parent1 as winner):")
+    print("\nOffspring (from_winner_choice with parent1 as winner):")
     offspring_strategy = offspring.behavioral.poker_strategy_algorithm.value
     print(f"  Poker strategy: {offspring_strategy.strategy_id if offspring_strategy else 'None'}")
 
@@ -449,9 +445,9 @@ def diagnose_behavioral_inheritance():
 
     expected_winner_pct = 70  # Should be close to 80% due to 0.8 weight
     if same_as_winner > n_trials * 0.6:
-        print(f"\n  ✓ Winner's strategy is favored as expected")
+        print("\n  ✓ Winner's strategy is favored as expected")
     else:
-        print(f"\n  ❌ Winner's strategy NOT favored - inheritance may be broken!")
+        print("\n  ❌ Winner's strategy NOT favored - inheritance may be broken!")
         print(f"     Expected ~{expected_winner_pct}% winner strategy, got {100*same_as_winner/n_trials:.1f}%")
 
 

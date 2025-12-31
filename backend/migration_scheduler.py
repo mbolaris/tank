@@ -180,7 +180,10 @@ class MigrationScheduler:
 
         # Perform the migration
         try:
-            from backend.entity_transfer import try_deserialize_entity, serialize_entity_for_transfer
+            from backend.entity_transfer import (
+                serialize_entity_for_transfer,
+                try_deserialize_entity,
+            )
             from backend.transfer_history import log_transfer
 
             # Serialize entity
@@ -359,12 +362,12 @@ class MigrationScheduler:
                     source_manager.world.engine.request_spawn(restored, reason="remote_migration_restore")
 
                 error_msg = result.get("error", "Unknown error") if result else "No response from remote server"
-                
+
                 # SILENT FAIL check
                 if error_msg == "no_root_spots":
                     # Restore silently
                     return
-                
+
                 logger.warning(f"Remote migration failed: {error_msg}")
 
                 log_transfer(

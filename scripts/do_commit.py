@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import subprocess
 import os
+import subprocess
 from pathlib import Path
 
 os.chdir(str(Path(__file__).parent.parent))

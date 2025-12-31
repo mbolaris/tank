@@ -300,7 +300,7 @@ class SimulationManager:
                 from core.entities.predators import Crab
 
                 world = self.world
-                
+
                 # Resolve engine from world, handling adapter layer if present
                 engine = None
                 if hasattr(world, "world") and hasattr(world.world, "engine"):
@@ -486,7 +486,7 @@ class SimulationManager:
                     "plant_energy": world_stats.get("plant_energy", 0.0),
                     "poker_stats": world_stats.get("poker_stats", {}),
                 }
-            
+
                 # Add poker score from evolution benchmark tracker
                 tracker = getattr(self._runner, "evolution_benchmark_tracker", None)
                 if tracker is not None:

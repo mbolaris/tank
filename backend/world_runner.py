@@ -29,9 +29,9 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
     from backend.snapshots.interfaces import SnapshotBuilder
     from backend.state_payloads import EntitySnapshot
+    from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +57,8 @@ class WorldRunner:
 
     def __init__(
         self,
-        world: "MultiAgentWorldBackend",
-        snapshot_builder: "SnapshotBuilder",
+        world: MultiAgentWorldBackend,
+        snapshot_builder: SnapshotBuilder,
         world_type: str = "tank",
         mode_id: Optional[str] = None,
         view_mode: str = "side",
@@ -76,7 +76,7 @@ class WorldRunner:
         self.world_type = world_type
         self.mode_id = mode_id or world_type
         self.view_mode = view_mode
-        self._last_step_result: Optional["StepResult"] = None
+        self._last_step_result: Optional[StepResult] = None
 
     @property
     def frame_count(self) -> int:
@@ -123,7 +123,7 @@ class WorldRunner:
         self,
         seed: Optional[int] = None,
         config: Optional[Dict[str, Any]] = None,
-    ) -> "StepResult":
+    ) -> StepResult:
         """Reset the world to initial state.
 
         Args:
@@ -159,7 +159,7 @@ class WorldRunner:
             return self._last_step_result.metrics
         return self.world.get_current_metrics()
 
-    def get_entities_snapshot(self) -> List["EntitySnapshot"]:
+    def get_entities_snapshot(self) -> List[EntitySnapshot]:
         """Build entity snapshots for frontend rendering.
 
         Uses the snapshot builder's build() method with the last StepResult.
@@ -187,7 +187,7 @@ class WorldRunner:
         }
 
     @property
-    def last_step_result(self) -> Optional["StepResult"]:
+    def last_step_result(self) -> Optional[StepResult]:
         """Get the last StepResult from reset() or step().
         
         Returns:

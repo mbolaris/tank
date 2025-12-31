@@ -7,26 +7,27 @@ Analyzes whether fish are efficiently gathering energy from:
 This helps identify if the issue is energy availability vs energy gathering efficiency.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.getcwd())
 
 import logging
+
 logging.basicConfig(level=logging.WARNING)
 
-from core.tank_world import TankWorld, TankWorldConfig
 from core.entities import Fish, Food
 from core.entities.plant import Plant, PlantNectar
-from core.entities.base import LifeStage
+from core.tank_world import TankWorld, TankWorldConfig
 
 
 def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
     """Analyze energy sources and consumption."""
-    
+
     print("\n" + "="*70)
     print("ENERGY ECONOMY ANALYSIS")
     print("="*70)
-    
+
     # Tracking
     food_eaten_count = 0
     poker_games_fish_vs_fish = 0
@@ -34,43 +35,43 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
     total_energy_gained_food = 0.0
     total_energy_gained_poker = 0.0
     total_energy_consumed = 0.0
-    
+
     # Track per-frame stats
     samples = []
-    
+
     initial_births = tank.ecosystem.total_births if tank.ecosystem else 0
     initial_deaths = tank.ecosystem.total_deaths if tank.ecosystem else 0
-    
+
     for frame in range(frames):
         # Snapshot before update
         entities = tank.engine.get_all_entities()
         fish_list = [e for e in entities if isinstance(e, Fish)]
         food_list = [e for e in entities if isinstance(e, Food) or isinstance(e, PlantNectar)]
         plant_list = [e for e in entities if isinstance(e, Plant)]
-        
+
         # Track energy before update
         energy_before = sum(f.energy for f in fish_list)
-        
+
         tank.update()
-        
+
         # Track energy after update
         entities_after = tank.engine.get_all_entities()
         fish_list_after = [e for e in entities_after if isinstance(e, Fish)]
         energy_after = sum(f.energy for f in fish_list_after)
-        
+
         # Sample every 300 frames
         if frame % 300 == 0:
             food_count = len([e for e in entities_after if isinstance(e, Food)])
             nectar_count = len([e for e in entities_after if isinstance(e, PlantNectar)])
             plant_count = len([e for e in entities_after if isinstance(e, Plant)])
-            
+
             # Average fish energy
             avg_energy = 0
             avg_energy_pct = 0
             if fish_list_after:
                 avg_energy = sum(f.energy for f in fish_list_after) / len(fish_list_after)
                 avg_energy_pct = sum(f.energy / f.max_energy for f in fish_list_after) / len(fish_list_after) * 100
-            
+
             sample = {
                 'frame': frame,
                 'fish': len(fish_list_after),
@@ -81,61 +82,61 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
                 'avg_energy_pct': avg_energy_pct,
             }
             samples.append(sample)
-            
+
             print(f"Frame {frame:4d}: Fish={len(fish_list_after):2d}, Food={food_count:2d}, "
                   f"Nectar={nectar_count:2d}, Plants={plant_count:2d}, "
                   f"AvgEnergy={avg_energy_pct:.0f}%")
-    
+
     # Final stats
     ecosystem = tank.ecosystem
-    
+
     print("\n" + "-"*70)
     print("ECOSYSTEM ENERGY STATS")
     print("-"*70)
-    
+
     if ecosystem:
         energy_summary = ecosystem.get_energy_source_summary()
-        print(f"\nEnergy Sources (lifetime):")
+        print("\nEnergy Sources (lifetime):")
         for source, amount in energy_summary.items():
             print(f"  {source}: {amount:.1f}")
-        
-        print(f"\nPoker Stats:")
+
+        print("\nPoker Stats:")
         print(f"  Fish vs Fish games: {ecosystem.total_fish_poker_games}")
         poker_summary = ecosystem.get_poker_stats_summary()
         for key, value in poker_summary.items():
             if 'plant' in key.lower() or 'mixed' in key.lower():
                 print(f"  {key}: {value}")
-        
+
         final_births = ecosystem.total_births
         final_deaths = ecosystem.total_deaths
-        
-        print(f"\nPopulation Changes:")
+
+        print("\nPopulation Changes:")
         print(f"  Births during analysis: {final_births - initial_births}")
         print(f"  Deaths during analysis: {final_deaths - initial_deaths}")
         print(f"  Death causes: {dict(ecosystem.death_causes)}")
-    
+
     # Calculate averages
     if samples:
         print("\n" + "-"*70)
         print("AVERAGES OVER SIMULATION")
         print("-"*70)
-        
+
         avg_fish = sum(s['fish'] for s in samples) / len(samples)
         avg_food = sum(s['food'] for s in samples) / len(samples)
         avg_nectar = sum(s['nectar'] for s in samples) / len(samples)
         avg_plants = sum(s['plants'] for s in samples) / len(samples)
         avg_energy_pct = sum(s['avg_energy_pct'] for s in samples) / len(samples)
-        
+
         print(f"  Average fish count: {avg_fish:.1f}")
         print(f"  Average food available: {avg_food:.1f}")
         print(f"  Average nectar available: {avg_nectar:.1f}")
         print(f"  Average plants: {avg_plants:.1f}")
         print(f"  Average fish energy: {avg_energy_pct:.1f}%")
-        
+
         # Food-to-fish ratio
         food_per_fish = (avg_food + avg_nectar) / avg_fish if avg_fish > 0 else 0
         print(f"\n  Food items per fish: {food_per_fish:.2f}")
-        
+
         if food_per_fish > 1:
             print("  [OK] Plenty of food available - fish may not be catching it efficiently")
         elif food_per_fish > 0.5:
@@ -146,23 +147,23 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
 
 def main():
     print("Initializing simulation for energy analysis...")
-    
+
     config = TankWorldConfig(
         max_population=100,
         auto_food_enabled=True,
     )
-    
+
     tank = TankWorld(config=config)
     tank.setup()
-    
+
     # Spawn initial population
     for _ in range(20):
         tank.engine.spawn_emergency_fish()
-    
+
     fish_count = len([e for e in tank.engine.get_all_entities() if isinstance(e, Fish)])
     print(f"Starting with {fish_count} fish")
     print("\nRunning 100 seconds of simulation...")
-    
+
     analyze_energy_economy(tank, frames=3000)
 
 
