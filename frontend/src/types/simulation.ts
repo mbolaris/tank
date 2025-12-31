@@ -111,6 +111,9 @@ export interface EntityData {
 
     // Crab-specific
     can_hunt?: boolean;  // True if crab can kill fish (not on cooldown)
+
+    // Rendering hints (used by alternative modes like Petri)
+    render_hint?: Record<string, unknown>;
 }
 
 export interface PokerEventData {

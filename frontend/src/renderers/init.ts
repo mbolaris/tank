@@ -11,6 +11,7 @@ export function initRenderers() {
 
     rendererRegistry.register('tank', 'side', () => new TankSideRenderer());
     rendererRegistry.register('tank', 'topdown', () => new TankTopDownRenderer());
+    rendererRegistry.register('petri', 'topdown', () => new TankTopDownRenderer());
 
     console.debug('[Renderer] Registered default renderers');
 }
