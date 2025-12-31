@@ -54,7 +54,7 @@ Use isinstance() checks with @runtime_checkable protocols:
         entity.modify_energy(-10.0)
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
 
 # Explicit public API for this module
 __all__ = [

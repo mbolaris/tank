@@ -367,7 +367,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     @property
     def engine(self) -> Any:
         """Access underlying simulation engine for legacy compatibility.
-        
+
         This allows existing backend code to access adapter.engine just like
         it accessed tank_world.engine.
         """
