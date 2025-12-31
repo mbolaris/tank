@@ -8,6 +8,7 @@ import pytest
 
 from core.config.display import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH
 from core.worlds import MultiAgentWorldBackend, StepResult, WorldRegistry
+from core.worlds.petri.backend import PetriWorldBackendAdapter
 from core.worlds.tank.backend import TankWorldBackendAdapter
 
 
@@ -34,10 +35,11 @@ class TestWorldRegistry:
         )
         assert isinstance(world, TankWorldBackendAdapter)
 
-    def test_create_petri_world_not_implemented(self):
-        """Test that petri world raises NotImplementedError."""
-        with pytest.raises(NotImplementedError, match="World type 'petri' not yet implemented"):
-            WorldRegistry.create_world("petri")
+    def test_create_petri_world(self):
+        """Test creating a petri world through the registry."""
+        world = WorldRegistry.create_world("petri", seed=42)
+        assert isinstance(world, MultiAgentWorldBackend)
+        assert isinstance(world, PetriWorldBackendAdapter)
 
     def test_create_soccer_world(self):
         """Test creating a soccer world through the registry."""
@@ -56,8 +58,8 @@ class TestWorldRegistry:
         """Test listing available world types."""
         types = WorldRegistry.list_world_types()
         assert types["tank"] == "implemented"
-        assert types["petri"] == "not_implemented"
-        assert types["soccer"] == "implemented"
+        assert types["petri"] == "implemented"
+        assert types["soccer"] == "not_implemented"
 
     def test_tank_mode_pack_config_normalization(self):
         """Mode pack should normalize legacy keys and fill defaults."""

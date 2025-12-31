@@ -74,6 +74,8 @@ class EntitySnapshot:
     death_effect_state: Optional[Dict[str, Any]] = None
     # Crab hunt state
     can_hunt: Optional[bool] = None
+    # Rendering metadata hints
+    render_hint: Optional[Dict[str, Any]] = None
 
     def to_full_dict(self) -> Dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -139,6 +141,8 @@ class EntitySnapshot:
             data["death_effect_state"] = self.death_effect_state
         if self.can_hunt is not None:
             data["can_hunt"] = self.can_hunt
+        if self.render_hint is not None:
+            data["render_hint"] = self.render_hint
 
         return data
 
