@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Callable, Dict, Optional
+from typing import Callable
+
 from core.policies.interfaces import MovementAction, Observation
 
 MovementPolicyCallable = Callable[[Observation, random.Random], object]
@@ -16,12 +17,12 @@ class CodePool:
     """Stores callable policy components keyed by ID."""
 
     def __init__(self) -> None:
-        self._components: Dict[str, MovementPolicyCallable] = {}
+        self._components: dict[str, MovementPolicyCallable] = {}
 
     def register(self, component_id: str, func: MovementPolicyCallable) -> None:
         self._components[str(component_id)] = func
 
-    def get_callable(self, component_id: str) -> Optional[MovementPolicyCallable]:
+    def get_callable(self, component_id: str) -> MovementPolicyCallable | None:
         return self._components.get(str(component_id))
 
 

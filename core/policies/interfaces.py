@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -19,7 +19,7 @@ class MovementAction:
     vy: float
 
 
-def build_movement_observation(fish: "Fish") -> Observation:
+def build_movement_observation(fish: Fish) -> Observation:
     """Build a minimal observation payload for movement policies."""
     from core.config.food import BASE_FOOD_DETECTION_RANGE
     from core.entities import Crab, Food
@@ -45,12 +45,12 @@ def build_movement_observation(fish: "Fish") -> Observation:
 
 
 def _nearest_vector(
-    fish: "Fish",
-    agent_type: Type,
+    fish: Fish,
+    agent_type: type,
     *,
-    max_distance: Optional[float],
+    max_distance: float | None,
     use_resources: bool,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     environment = fish.environment
     fish_x = fish.pos.x
     fish_y = fish.pos.y

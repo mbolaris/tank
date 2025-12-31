@@ -8,7 +8,6 @@ from typing import Any
 
 from .models import ValidationError
 
-
 DISALLOWED_CALL_NAMES = {
     "__import__",
     "compile",
