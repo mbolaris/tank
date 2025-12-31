@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable
 
 from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
 from backend.state_payloads import EntitySnapshot
@@ -23,17 +23,17 @@ class PetriSnapshotBuilder:
     def __init__(self) -> None:
         self._tank_builder = TankSnapshotBuilder()
 
-    def collect(self, live_entities: Iterable[Any]) -> List[EntitySnapshot]:
+    def collect(self, live_entities: Iterable[Any]) -> list[EntitySnapshot]:
         snapshots = self._tank_builder.collect(live_entities)
         self._apply_hints(snapshots)
         return snapshots
 
-    def build(self, step_result: Any, world: Any) -> List[EntitySnapshot]:
+    def build(self, step_result: Any, world: Any) -> list[EntitySnapshot]:
         snapshots = self._tank_builder.build(step_result, world)
         self._apply_hints(snapshots)
         return snapshots
 
-    def to_snapshot(self, entity: Any) -> Optional[EntitySnapshot]:
+    def to_snapshot(self, entity: Any) -> EntitySnapshot | None:
         snapshot = self._tank_builder.to_snapshot(entity)
         if snapshot is None:
             return None
