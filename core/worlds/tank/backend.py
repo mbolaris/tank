@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 
 from core.tank_world import TankWorld, TankWorldConfig
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
+from core.worlds.tank.legacy_brain_adapter import apply_actions
+from core.worlds.tank.observation_builder import build_tank_observations
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +60,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._world: Optional[TankWorld] = None
         self._current_frame = 0
         self._last_step_result: Optional[StepResult] = None
+        self._cached_brain_mode: Optional[str] = None  # Cached brain mode for hot path
         self.supports_fast_step = True
 
     def reset(
@@ -153,11 +156,36 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Initialize the world using the backend reset."""
         self.reset(seed=self._seed)
 
+    def _get_brain_mode(self) -> str:
+        """Get brain mode with caching for hot path optimization."""
+        if self._cached_brain_mode is not None:
+            return self._cached_brain_mode
+
+        brain_mode = "legacy"
+        if self._world is not None:
+            engine = getattr(self._world, "engine", None)
+            if engine is not None:
+                config = getattr(engine, "config", None)
+                if config is not None:
+                    tank_config = getattr(config, "tank", None)
+                    if tank_config is not None:
+                        brain_mode = getattr(tank_config, "brain_mode", "legacy")
+
+        self._cached_brain_mode = brain_mode
+        return brain_mode
+
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
         """Advance the tank world by one time step.
 
+        The step now follows an action pipeline internally:
+        1. Get brain mode (cached)
+        2. Build observations if external mode
+        3. Apply external actions if provided
+        4. Run physics/collision/lifecycle
+        5. Return result
+
         Args:
-            actions_by_agent: Agent actions (not used in Tank - autonomous simulation)
+            actions_by_agent: Agent actions. Pass {FAST_STEP_ACTION: True} for fast stepping.
 
         Returns:
             StepResult with updated snapshot, events, metrics
@@ -167,24 +195,46 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         fast_step = bool(actions_by_agent and actions_by_agent.get(FAST_STEP_ACTION))
 
-        # Run one simulation tick
+        # Get brain mode (cached)
+        brain_mode = self._get_brain_mode()
+
+        # External brain mode: build observations and apply actions
+        obs_by_agent: Dict[str, Any] = {}
+        if brain_mode == "external" and not fast_step:
+            observations = build_tank_observations(self._world)
+            obs_by_agent = {str(k): v.__dict__ for k, v in observations.items()}
+
+            if actions_by_agent:
+                external_actions = {
+                    k: v for k, v in actions_by_agent.items()
+                    if k != FAST_STEP_ACTION
+                }
+                if external_actions:
+                    from core.sim.contracts import Action
+                    action_map = {}
+                    for entity_id, action_data in external_actions.items():
+                        if isinstance(action_data, Action):
+                            action_map[entity_id] = action_data
+                        elif isinstance(action_data, dict):
+                            action_map[entity_id] = Action(
+                                entity_id=entity_id,
+                                target_velocity=action_data.get("target_velocity", (0, 0)),
+                                extra=action_data.get("extra", {}),
+                            )
+                    apply_actions(action_map, self._world)
+
+        # Run simulation tick
         self._world.update()
         self._current_frame = self._world.frame_count
 
-        # Collect recent events (e.g., poker games)
-        events = [] if fast_step else self._collect_recent_events()
-
-        # Check if simulation is done (for now, never terminates automatically)
-        done = False
-
+        # Build result
         self._last_step_result = StepResult(
-            obs_by_agent={},  # No agent observations yet
+            obs_by_agent=obs_by_agent,
             snapshot=self._build_snapshot(),
-            events=events,
-            # Use lightweight metrics by default (no distributions) to minimize per-step cost
+            events=[] if fast_step else self._collect_recent_events(),
             metrics={} if fast_step else self.get_current_metrics(include_distributions=False),
-            done=done,
-            info={"frame": self._current_frame},
+            done=False,
+            info={"frame": self._current_frame, "brain_mode": brain_mode},
         )
         return self._last_step_result
 

@@ -113,6 +113,19 @@ class FoodConfig:
 
 
 @dataclass
+class TankConfig:
+    """Tank-specific configuration.
+
+    Attributes:
+        brain_mode: Control how fish decisions are made.
+            - "legacy": Fish use their built-in movement strategies (default)
+            - "external": Fish receive actions from an external brain
+    """
+
+    brain_mode: str = "legacy"  # "legacy" | "external"
+
+
+@dataclass
 class SimulationConfig:
     """Aggregate configuration for running a simulation."""
 
@@ -122,6 +135,7 @@ class SimulationConfig:
     poker: PokerConfig = field(default_factory=PokerConfig)
     food: FoodConfig = field(default_factory=FoodConfig)
     plant: PlantConfig = field(default_factory=PlantConfig)
+    tank: TankConfig = field(default_factory=TankConfig)
     headless: bool = True
     enable_phase_debug: bool = False
 
