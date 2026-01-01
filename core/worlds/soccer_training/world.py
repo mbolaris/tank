@@ -12,7 +12,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.code_pool import CodePool
+from core.code_pool import CodePool, GenomeCodePool, GenomePolicySet
 from core.entities.base import LifeStage
 from core.fish.energy_component import EnergyComponent
 from core.genetics import Genome
@@ -130,6 +130,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         seed: int | None = None,
         config: SoccerTrainingConfig | None = None,
         code_pool: CodePool | None = None,
+        genome_code_pool: GenomeCodePool | None = None,
         **config_overrides: Any,
     ) -> None:
         self._seed = seed
@@ -148,7 +149,9 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self._last_touch: tuple[PlayerID, TeamID, int] | None = None
         self._prev_touch: tuple[PlayerID, TeamID, int] | None = None
 
+        # Support both old CodePool and new GenomeCodePool
         self.code_pool = code_pool
+        self.genome_code_pool = genome_code_pool
         self.supports_fast_step = True
 
     def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
@@ -309,6 +312,13 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         return actions
 
     def _action_from_policy(self, player: SoccerPlayer) -> SoccerAction:
+        # Try GenomeCodePool first (preferred for safety + determinism)
+        if self.genome_code_pool is not None:
+            action = self._action_from_genome_pool(player)
+            if action is not None:
+                return action
+
+        # Fall back to legacy CodePool approach
         policy_kind = player.genome.behavioral.code_policy_kind
         component_id = player.genome.behavioral.code_policy_component_id
         kind_val = policy_kind.value if policy_kind else None
@@ -331,6 +341,54 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         action = self._coerce_action(output, player)
         if action is None or not action.is_valid():
             return self._default_policy(player)
+        return action
+
+    def _action_from_genome_pool(self, player: SoccerPlayer) -> SoccerAction | None:
+        """Execute soccer policy via GenomeCodePool with safety + determinism.
+
+        Returns None if no valid policy is found, falling back to default/CodePool.
+        """
+        from core.genetics.code_policy_traits import extract_policy_set_from_behavioral
+
+        # Extract policy set from genome
+        policy_set = extract_policy_set_from_behavioral(player.genome.behavioral)
+
+        # Check if player has a soccer policy
+        component_id = policy_set.get_component_id("soccer_policy")
+        if component_id is None:
+            return None  # No soccer policy, use fallback
+
+        # Build observation with dt for determinism
+        observation = self._build_observation(player)
+        dt = self._config.physics_timestep
+
+        # Execute policy with safety checks
+        params = policy_set.get_params("soccer_policy")
+        result = self.genome_code_pool.execute_policy(
+            component_id=component_id,
+            observation=observation,
+            rng=self._rng,
+            dt=dt,
+            params=params,
+        )
+
+        if not result.success:
+            logger.warning(
+                "Soccer policy %s failed for %s: %s",
+                component_id,
+                player.player_id,
+                result.error_message,
+            )
+            return None
+
+        # Coerce output to SoccerAction
+        action = self._coerce_action(result.output, player)
+        if action is None or not action.is_valid():
+            logger.warning(
+                "Soccer policy %s returned invalid action for %s", component_id, player.player_id
+            )
+            return None
+
         return action
 
     def _default_policy(self, player: SoccerPlayer) -> SoccerAction:

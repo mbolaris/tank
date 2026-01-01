@@ -12,8 +12,12 @@ from .models import (
 )
 from .sandbox import build_restricted_globals, parse_and_validate
 
-# Builtin component ID for backward compatibility
+# Builtin component IDs for backward compatibility and default policies
 BUILTIN_SEEK_NEAREST_FOOD_ID = "builtin_seek_nearest_food"
+BUILTIN_FLEE_FROM_THREAT_ID = "builtin_flee_from_threat"
+BUILTIN_CHASE_BALL_SOCCER_ID = "builtin_chase_ball_soccer"
+BUILTIN_DEFENSIVE_SOCCER_ID = "builtin_defensive_soccer"
+BUILTIN_STRIKER_SOCCER_ID = "builtin_striker_soccer"
 
 
 @dataclass(frozen=True)
@@ -187,3 +191,192 @@ def seek_nearest_food_policy(observation: dict[str, Any], rng: Any) -> tuple[flo
             length = math.sqrt(length_sq)
             return (dx / length, dy / length)
     return (0.0, 0.0)
+
+
+def flee_from_threat_policy(observation: dict[str, Any], rng: Any) -> tuple[float, float]:
+    """Built-in movement policy that flees from the nearest threat.
+
+    Args:
+        observation: Dictionary containing 'nearest_threat_vector'
+        rng: Random number generator (unused but required for policy signature)
+
+    Returns:
+        Tuple of (vx, vy) normalized direction away from threat, or (0, 0) if no threat
+    """
+    _ = rng
+    threat_vector = observation.get("nearest_threat_vector")
+    if isinstance(threat_vector, dict):
+        try:
+            dx = float(threat_vector.get("x", 0.0))
+            dy = float(threat_vector.get("y", 0.0))
+        except (TypeError, ValueError):
+            dx = 0.0
+            dy = 0.0
+        length_sq = dx * dx + dy * dy
+        if length_sq > 0:
+            length = math.sqrt(length_sq)
+            # Flee in opposite direction
+            return (-dx / length, -dy / length)
+    return (0.0, 0.0)
+
+
+def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
+    """Built-in soccer policy that chases the ball and kicks toward opponent goal.
+
+    Args:
+        observation: Soccer observation with position, ball_position, field dimensions
+        rng: Random number generator for slight variations
+
+    Returns:
+        Dict representing SoccerAction
+    """
+    _ = rng
+    try:
+        # Extract agent and ball positions
+        self_x = float(observation.get("position", {}).get("x", 0.0))
+        self_y = float(observation.get("position", {}).get("y", 0.0))
+        ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
+        ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
+        field_width = float(observation.get("field_width", 100.0))
+
+        # Move toward ball
+        move_target = {"x": ball_x, "y": ball_y}
+
+        # Calculate distance to ball
+        dx = ball_x - self_x
+        dy = ball_y - self_y
+        dist_sq = dx * dx + dy * dy
+        dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+
+        # Kick if close to ball (within 2 units)
+        kick_power = 0.0
+        kick_angle = 0.0
+        if dist < 2.0:
+            # Kick toward opponent goal (right side)
+            goal_x = field_width / 2.0
+            goal_y = 0.0
+            goal_dx = goal_x - ball_x
+            goal_dy = goal_y - ball_y
+            kick_angle = math.atan2(goal_dy, goal_dx)
+            kick_power = 0.8
+
+        return {
+            "move_target": move_target,
+            "face_angle": None,
+            "kick_power": kick_power,
+            "kick_angle": kick_angle,
+        }
+    except (TypeError, ValueError, KeyError):
+        # Fallback: do nothing
+        return {"move_target": None, "face_angle": None, "kick_power": 0.0, "kick_angle": 0.0}
+
+
+def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
+    """Built-in soccer policy that plays defensively near own goal.
+
+    Args:
+        observation: Soccer observation with position, ball_position, field dimensions
+        rng: Random number generator
+
+    Returns:
+        Dict representing SoccerAction
+    """
+    _ = rng
+    try:
+        # Extract positions
+        self_x = float(observation.get("position", {}).get("x", 0.0))
+        self_y = float(observation.get("position", {}).get("y", 0.0))
+        ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
+        ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
+        field_width = float(observation.get("field_width", 100.0))
+        field_height = float(observation.get("field_height", 60.0))
+
+        # Own goal is on left side
+        own_goal_x = -field_width / 2.0
+        defensive_line_x = own_goal_x + field_width * 0.25  # Stay in defensive quarter
+
+        # If ball is in defensive zone, move toward it
+        if ball_x < defensive_line_x:
+            move_target = {"x": ball_x, "y": ball_y}
+        else:
+            # Otherwise, patrol defensive line aligned with ball's y
+            move_target = {"x": defensive_line_x, "y": ball_y}
+
+        # Calculate distance to ball for kicking
+        dx = ball_x - self_x
+        dy = ball_y - self_y
+        dist_sq = dx * dx + dy * dy
+        dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+
+        # Clear ball away if close
+        kick_power = 0.0
+        kick_angle = 0.0
+        if dist < 2.0:
+            # Kick toward opponent's side
+            kick_angle = 0.0  # Kick toward positive x
+            kick_power = 1.0
+
+        return {
+            "move_target": move_target,
+            "face_angle": None,
+            "kick_power": kick_power,
+            "kick_angle": kick_angle,
+        }
+    except (TypeError, ValueError, KeyError):
+        return {"move_target": None, "face_angle": None, "kick_power": 0.0, "kick_angle": 0.0}
+
+
+def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
+    """Built-in soccer policy that plays as a striker, staying in offensive zone.
+
+    Args:
+        observation: Soccer observation with position, ball_position, field dimensions
+        rng: Random number generator
+
+    Returns:
+        Dict representing SoccerAction
+    """
+    _ = rng
+    try:
+        # Extract positions
+        self_x = float(observation.get("position", {}).get("x", 0.0))
+        self_y = float(observation.get("position", {}).get("y", 0.0))
+        ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
+        ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
+        field_width = float(observation.get("field_width", 100.0))
+        field_height = float(observation.get("field_height", 60.0))
+
+        # Opponent goal is on right side
+        opp_goal_x = field_width / 2.0
+        offensive_line_x = opp_goal_x - field_width * 0.25  # Stay in offensive quarter
+
+        # If ball is in offensive zone or nearby, chase it
+        dx = ball_x - self_x
+        dy = ball_y - self_y
+        dist_sq = dx * dx + dy * dy
+        dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+
+        if ball_x > offensive_line_x or dist < 10.0:
+            move_target = {"x": ball_x, "y": ball_y}
+        else:
+            # Otherwise, position in offensive zone
+            move_target = {"x": offensive_line_x, "y": 0.0}
+
+        # Shoot on goal if close to ball
+        kick_power = 0.0
+        kick_angle = 0.0
+        if dist < 2.0:
+            # Aim for goal
+            goal_dx = opp_goal_x - ball_x
+            goal_dy = 0.0 - ball_y
+            kick_angle = math.atan2(goal_dy, goal_dx)
+            kick_power = 1.0
+
+        return {
+            "move_target": move_target,
+            "face_angle": None,
+            "kick_power": kick_power,
+            "kick_angle": kick_angle,
+        }
+    except (TypeError, ValueError, KeyError):
+        return {"move_target": None, "face_angle": None, "kick_power": 0.0, "kick_angle": 0.0}

@@ -589,3 +589,56 @@ class GenomeCodePool:
         instance = cls(code_pool=pool, safety_config=safety_config)
         instance._defaults = dict(data.get("defaults", {}))
         return instance
+
+
+# =============================================================================
+# Factory Functions
+# =============================================================================
+
+
+def create_default_genome_code_pool() -> GenomeCodePool:
+    """Create a GenomeCodePool pre-registered with all builtin policies.
+
+    This is the recommended way to create a GenomeCodePool for production use,
+    as it includes sensible defaults for all policy kinds.
+
+    Returns:
+        GenomeCodePool with all builtin policies registered and defaults set
+    """
+    from .pool import (
+        BUILTIN_CHASE_BALL_SOCCER_ID,
+        BUILTIN_DEFENSIVE_SOCCER_ID,
+        BUILTIN_FLEE_FROM_THREAT_ID,
+        BUILTIN_SEEK_NEAREST_FOOD_ID,
+        BUILTIN_STRIKER_SOCCER_ID,
+        chase_ball_soccer_policy,
+        defensive_soccer_policy,
+        flee_from_threat_policy,
+        seek_nearest_food_policy,
+        striker_soccer_policy,
+    )
+
+    pool = GenomeCodePool()
+
+    # Register movement policies
+    pool.register_builtin(
+        BUILTIN_SEEK_NEAREST_FOOD_ID, "movement_policy", seek_nearest_food_policy
+    )
+    pool.register_builtin(BUILTIN_FLEE_FROM_THREAT_ID, "movement_policy", flee_from_threat_policy)
+
+    # Register soccer policies
+    pool.register_builtin(
+        BUILTIN_CHASE_BALL_SOCCER_ID, "soccer_policy", chase_ball_soccer_policy
+    )
+    pool.register_builtin(
+        BUILTIN_DEFENSIVE_SOCCER_ID, "soccer_policy", defensive_soccer_policy
+    )
+    pool.register_builtin(BUILTIN_STRIKER_SOCCER_ID, "soccer_policy", striker_soccer_policy)
+
+    # Set defaults for required policy kinds
+    pool.register_default("movement_policy", BUILTIN_SEEK_NEAREST_FOOD_ID)
+
+    # Optional: Set a default for soccer (chase ball is a reasonable default)
+    pool.register_default("soccer_policy", BUILTIN_CHASE_BALL_SOCCER_ID)
+
+    return pool

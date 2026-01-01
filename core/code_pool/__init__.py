@@ -7,6 +7,7 @@ from .genome_code_pool import (
     GenomeCodePool,
     GenomePolicySet,
     PolicyExecutionResult,
+    create_default_genome_code_pool,
 )
 from .models import (
     CodeComponent,
@@ -16,10 +17,18 @@ from .models import (
     ValidationError,
 )
 from .pool import (
+    BUILTIN_CHASE_BALL_SOCCER_ID,
+    BUILTIN_DEFENSIVE_SOCCER_ID,
+    BUILTIN_FLEE_FROM_THREAT_ID,
     BUILTIN_SEEK_NEAREST_FOOD_ID,
+    BUILTIN_STRIKER_SOCCER_ID,
     CodePool,
     CompiledComponent,
+    chase_ball_soccer_policy,
+    defensive_soccer_policy,
+    flee_from_threat_policy,
     seek_nearest_food_policy,
+    striker_soccer_policy,
 )
 from .safety import (
     ASTComplexityChecker,
@@ -47,8 +56,13 @@ __all__ = [
     "GenomeCodePool",
     "GenomePolicySet",
     "PolicyExecutionResult",
+    "create_default_genome_code_pool",
     # CodePool
+    "BUILTIN_CHASE_BALL_SOCCER_ID",
+    "BUILTIN_DEFENSIVE_SOCCER_ID",
+    "BUILTIN_FLEE_FROM_THREAT_ID",
     "BUILTIN_SEEK_NEAREST_FOOD_ID",
+    "BUILTIN_STRIKER_SOCCER_ID",
     "CodeComponent",
     "CodePool",
     "CodePoolError",
@@ -56,7 +70,11 @@ __all__ = [
     "CompiledComponent",
     "ComponentNotFoundError",
     "ValidationError",
+    "chase_ball_soccer_policy",
+    "defensive_soccer_policy",
+    "flee_from_threat_policy",
     "seek_nearest_food_policy",
+    "striker_soccer_policy",
     # Safety
     "ASTComplexityChecker",
     "ASTTooComplexError",
