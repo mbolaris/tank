@@ -13,13 +13,11 @@ import pytest
 
 from core.code_pool import (
     CodePool,
-    GenomeCodePool,
-    SafetyConfig,
     ValidationError,
     create_default_genome_code_pool,
     validate_source_safety,
 )
-from core.code_pool.safety import SafetyViolationError, SourceTooLongError
+from core.code_pool.safety import SourceTooLongError
 
 
 class TestSandboxValidation:

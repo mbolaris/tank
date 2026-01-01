@@ -5,12 +5,11 @@ as the codebase grows.
 """
 
 from pathlib import Path
-from typing import List, Tuple
-
+from typing import List, Set, Tuple
 
 # Files that currently exceed the limit.
 # As we refactor these, remove them from the list.
-LEGACY_EXCEEDS: set[str] = {
+LEGACY_EXCEEDS: Set[str] = {
     "fish.py",  # 1201 lines - needs component extraction
     "engine.py",  # 991 lines - orchestrator, hard to split safely
     "ecosystem.py",  # 987 lines - facade for trackers
@@ -62,11 +61,7 @@ MAX_LINES_FOR_NEW_FILES = 500
 def _get_core_python_files() -> List[Path]:
     """Get all Python files in the core directory."""
     core_root = Path(__file__).resolve().parents[1] / "core"
-    return [
-        path
-        for path in core_root.rglob("*.py")
-        if "__pycache__" not in path.parts
-    ]
+    return [path for path in core_root.rglob("*.py") if "__pycache__" not in path.parts]
 
 
 def test_no_new_god_classes() -> None:
@@ -93,9 +88,7 @@ def test_no_new_god_classes() -> None:
             violations.append((str(path.relative_to(path.parents[2])), line_count))
 
     if violations:
-        violation_list = "\n".join(
-            f"  {path}: {lines} lines" for path, lines in sorted(violations)
-        )
+        violation_list = "\n".join(f"  {path}: {lines} lines" for path, lines in sorted(violations))
         raise AssertionError(
             f"Files exceeding {MAX_LINES_FOR_NEW_FILES} lines (not in legacy list):\n"
             f"{violation_list}\n\n"

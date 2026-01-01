@@ -6,8 +6,6 @@ genome-based policy construction mechanism via GenomeCodePool.
 
 import random
 
-import pytest
-
 from core.code_pool import (
     BUILTIN_CHASE_BALL_SOCCER_ID,
     BUILTIN_DEFENSIVE_SOCCER_ID,
@@ -20,7 +18,6 @@ from core.code_pool import (
 from core.environment import Environment
 from core.genetics import Genome
 from core.genetics.code_policy_traits import apply_policy_set_to_behavioral
-from core.genetics.trait import GeneticTrait
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement
 from core.worlds.soccer_training.config import SoccerTrainingConfig
@@ -319,7 +316,7 @@ class TestGenomePolicySetOperations:
 
     def test_multi_policy_genome(self):
         """Genome can hold both movement and soccer policies simultaneously."""
-        pool = create_default_genome_code_pool()
+        create_default_genome_code_pool()
         rng = random.Random(444)
 
         # Create policy set with both movement and soccer policies

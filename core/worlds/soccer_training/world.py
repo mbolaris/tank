@@ -12,7 +12,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.code_pool import CodePool, GenomeCodePool, GenomePolicySet
+from core.code_pool import CodePool, GenomeCodePool
 from core.entities.base import LifeStage
 from core.fish.energy_component import EnergyComponent
 from core.genetics import Genome
@@ -825,4 +825,3 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         Soccer training matches are ephemeral and don't support restoration.
         """
         pass
-

@@ -860,9 +860,7 @@ class Fish(Agent):
             # Get only valid movement policies
             components = self.environment.code_pool.list_components()
             available_policies = [
-                comp.component_id
-                for comp in components
-                if comp.kind == "movement_policy"
+                comp.component_id for comp in components if comp.kind == "movement_policy"
             ]
 
         # Generate offspring genome (also sets cooldown)

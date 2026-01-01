@@ -6,12 +6,12 @@ used by CLI, tests, and backend to ensure consistent config handling.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from core.worlds.registry import WorldRegistry
 
 
-def normalize_config(mode_id: str, config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def normalize_config(mode_id: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Normalize configuration for a world type.
 
     This is the canonical entry point for config normalization across CLI,

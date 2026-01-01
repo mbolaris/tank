@@ -13,10 +13,9 @@ References:
 import math
 import re
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from core.policies.soccer_interfaces import PlayerState, SoccerAction, Vector2D
-
 
 # ============================================================================
 # Structured output models for parsed messages

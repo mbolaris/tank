@@ -289,7 +289,7 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
         ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
         ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
         field_width = float(observation.get("field_width", 100.0))
-        field_height = float(observation.get("field_height", 60.0))
+        float(observation.get("field_height", 60.0))
 
         # Own goal is on left side
         own_goal_x = -field_width / 2.0
@@ -344,7 +344,7 @@ def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, An
         ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
         ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
         field_width = float(observation.get("field_width", 100.0))
-        field_height = float(observation.get("field_height", 60.0))
+        float(observation.get("field_height", 60.0))
 
         # Opponent goal is on right side
         opp_goal_x = field_width / 2.0

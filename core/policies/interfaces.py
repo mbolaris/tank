@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Protocol
+from typing import TYPE_CHECKING, Any, Dict, Protocol
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -103,9 +103,7 @@ class SoccerPolicy(Protocol):
     actions (movement, turning, kicking).
     """
 
-    def __call__(
-        self, observation: dict[str, Any], rng: pyrandom.Random
-    ) -> dict[str, Any]:
+    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> dict[str, Any]:
         """Decide on soccer action.
 
         Args:
@@ -131,9 +129,7 @@ class PokerPolicy(Protocol):
     betting decisions.
     """
 
-    def __call__(
-        self, observation: dict[str, Any], rng: pyrandom.Random
-    ) -> dict[str, Any]:
+    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> dict[str, Any]:
         """Decide on poker action.
 
         Args:
