@@ -315,40 +315,81 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         return snapshot
 
     def _build_entities_list(self) -> List[Dict[str, Any]]:
-        """Build list of all entities in minimal format.
+        """Build list of all entities for persistence/debugging.
 
-        Internal helper for get_debug_snapshot(). NOT called in the hot path.
+        Uses the proper entity transfer codecs to ensure full serialization
+        compatible with restore_tank_from_snapshot.
 
         Returns:
-            List of entity dictionaries with essential attributes
+            List of fully serialized entity dictionaries
         """
         if self._world is None:
             return []
 
+        # Import locally to avoid circular imports
+        from backend.entity_transfer import serialize_entity_for_transfer
+        from core.entities import Fish, Plant, PlantNectar, Food
+        from core.entities.predators import Crab
+        from core.entities.base import Castle
+
         entities_snapshot = []
 
         for entity in self._world.entities_list:
-            # Build minimal entity snapshot with essential attributes
-            entity_dict = {
-                "type": entity.__class__.__name__,
-                "x": getattr(entity, "x", 0),
-                "y": getattr(entity, "y", 0),
-            }
+            entity_dict = None
 
-            # Add entity-specific attributes
-            if hasattr(entity, "fish_id"):
-                entity_dict["fish_id"] = entity.fish_id
-            if hasattr(entity, "energy"):
-                entity_dict["energy"] = entity.energy
-            if hasattr(entity, "generation"):
-                entity_dict["generation"] = entity.generation
-            if hasattr(entity, "plant_id"):
-                entity_dict["plant_id"] = entity.plant_id
-            if hasattr(entity, "genome"):
-                # Include minimal genome data for rendering
-                entity_dict["genome"] = self._extract_genome_data(entity)
+            # Use transfer codecs for Fish and Plant (full serialization)
+            if isinstance(entity, Fish):
+                entity_dict = serialize_entity_for_transfer(entity)
+            elif isinstance(entity, Plant):
+                entity_dict = serialize_entity_for_transfer(entity)
+            elif isinstance(entity, PlantNectar):
+                # PlantNectar needs special handling - include source_plant_id
+                entity_dict = {
+                    "type": "plant_nectar",
+                    "x": entity.pos.x,
+                    "y": entity.pos.y,
+                    "energy": entity.energy,
+                    "source_plant_id": entity.source_plant.plant_id if entity.source_plant else None,
+                }
+            elif isinstance(entity, Food):
+                entity_dict = {
+                    "type": "food",
+                    "x": entity.pos.x,
+                    "y": entity.pos.y,
+                    "energy": entity.energy,
+                    "food_type": getattr(entity, "food_type", "regular"),
+                }
+            elif isinstance(entity, Crab):
+                entity_dict = {
+                    "type": "crab",
+                    "x": entity.pos.x,
+                    "y": entity.pos.y,
+                    "energy": entity.energy,
+                    "max_energy": entity.max_energy,
+                    "hunt_cooldown": getattr(entity, "hunt_cooldown", 0),
+                    "genome": {
+                        "size_modifier": entity.genome.physical.size_modifier.value if entity.genome else 1.0,
+                        "color_hue": entity.genome.physical.color_hue.value if entity.genome else 0.5,
+                    },
+                }
+            elif isinstance(entity, Castle):
+                entity_dict = {
+                    "type": "castle",
+                    "x": entity.pos.x,
+                    "y": entity.pos.y,
+                    "width": entity.width,
+                    "height": entity.height,
+                }
+            else:
+                # Fallback for unknown entity types
+                entity_dict = {
+                    "type": entity.__class__.__name__.lower(),
+                    "x": getattr(entity, "x", getattr(entity.pos, "x", 0) if hasattr(entity, "pos") else 0),
+                    "y": getattr(entity, "y", getattr(entity.pos, "y", 0) if hasattr(entity, "pos") else 0),
+                }
 
-            entities_snapshot.append(entity_dict)
+            if entity_dict:
+                entities_snapshot.append(entity_dict)
 
         return entities_snapshot
 
@@ -490,11 +531,20 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if self._world is None:
             return {}
 
+        # Import locally to avoid circular imports (backend -> core)
+        try:
+            from backend.tank_persistence import SCHEMA_VERSION
+        except ImportError:
+            SCHEMA_VERSION = "2.0"
+
         return {
+            "version": SCHEMA_VERSION,
+            "tank_id": getattr(self, "tank_id", "unknown"),
             "frame": self._world.frame_count,
             "paused": self._world.paused,
             "config": self._base_config.to_dict(),
             "seed": self._seed,
+            "entities": self._build_entities_list(),
         }
 
     def restore_state_from_save(self, state: Dict[str, Any]) -> None:

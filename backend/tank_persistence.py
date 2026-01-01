@@ -332,6 +332,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 restored_count += 1
 
         # Pass 2: Restore nectar
+        orphaned_nectar_count = 0
         for entity_data in nectar_data_list:
             source_plant_id = entity_data.get("source_plant_id")
             source_plant = plants_by_id.get(source_plant_id)
@@ -347,7 +348,12 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 engine.add_entity(nectar)
                 restored_count += 1
             else:
-                logger.warning(f"Skipping nectar restoration: missing source plant {source_plant_id}")
+                orphaned_nectar_count += 1
+
+        # Log orphaned nectar once (not per-nectar spam)
+        if orphaned_nectar_count > 0:
+            logger.warning(f"Skipped {orphaned_nectar_count} nectar(s) with missing source plants")
+
 
         # Restore frame number
         engine.frame_count = snapshot["frame"]
