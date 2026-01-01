@@ -19,7 +19,7 @@ def test_client():
         tank_registry=TankRegistry(create_default=False),
     )
     app = create_app(context=context, server_id="test-server")
-    
+
     with TestClient(app) as client:
         yield client
 
@@ -31,11 +31,11 @@ class TestWorldTypesEndpoint:
         """Test that world_types endpoint returns tank, petri, and soccer."""
         response = test_client.get("/api/worlds/types")
         assert response.status_code == 200
-        
+
         types = response.json()
         assert isinstance(types, list)
         assert len(types) >= 3
-        
+
         mode_ids = {t["mode_id"] for t in types}
         assert "tank" in mode_ids
         assert "petri" in mode_ids
@@ -45,7 +45,7 @@ class TestWorldTypesEndpoint:
         """Test that each world type has all required metadata fields."""
         response = test_client.get("/api/worlds/types")
         types = response.json()
-        
+
         for world_type in types:
             assert "mode_id" in world_type
             assert "world_type" in world_type
@@ -58,7 +58,7 @@ class TestWorldTypesEndpoint:
         """Test that tank world supports persistence."""
         response = test_client.get("/api/worlds/types")
         types = {t["mode_id"]: t for t in response.json()}
-        
+
         assert types["tank"]["supports_persistence"] is True
         assert types["tank"]["view_mode"] == "side"
 
@@ -66,7 +66,7 @@ class TestWorldTypesEndpoint:
         """Test that soccer world does not support persistence."""
         response = test_client.get("/api/worlds/types")
         types = {t["mode_id"]: t for t in response.json()}
-        
+
         assert types["soccer"]["supports_persistence"] is False
         assert types["soccer"]["supports_actions"] is True
         assert types["soccer"]["view_mode"] == "topdown"
@@ -87,7 +87,7 @@ class TestCreatePetriWorld:
             },
         )
         assert response.status_code == 201
-        
+
         data = response.json()
         assert data["world_type"] == "petri"
         assert data["name"] == "Test Petri"
@@ -106,16 +106,16 @@ class TestCreatePetriWorld:
         )
         assert create_response.status_code == 201
         world_id = create_response.json()["world_id"]
-        
+
         # Get initial frame count
         get_response = test_client.get(f"/api/worlds/{world_id}")
         assert get_response.status_code == 200
         initial_frame = get_response.json()["frame_count"]
-        
+
         # Step the world
         step_response = test_client.post(f"/api/worlds/{world_id}/step")
         assert step_response.status_code == 200
-        
+
         # Verify frame advanced
         assert step_response.json()["frame_count"] == initial_frame + 1
 
@@ -135,7 +135,7 @@ class TestCreateSoccerWorld:
             },
         )
         assert response.status_code == 201
-        
+
         data = response.json()
         assert data["world_type"] == "soccer"
         assert data["name"] == "Test Soccer"
@@ -155,7 +155,7 @@ class TestCreateSoccerWorld:
         )
         assert create_response.status_code == 201
         world_id = create_response.json()["world_id"]
-        
+
         # Step the world
         step_response = test_client.post(f"/api/worlds/{world_id}/step")
         assert step_response.status_code == 200
@@ -176,11 +176,11 @@ class TestWorldOperations:
             "/api/worlds",
             json={"world_type": "soccer", "name": "List Test 2", "seed": 2},
         )
-        
+
         # List all worlds
         response = test_client.get("/api/worlds")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "worlds" in data
         assert "count" in data
@@ -194,11 +194,11 @@ class TestWorldOperations:
             json={"world_type": "petri", "name": "Delete Test", "seed": 42},
         )
         world_id = create_response.json()["world_id"]
-        
+
         # Delete it
         delete_response = test_client.delete(f"/api/worlds/{world_id}")
         assert delete_response.status_code == 200
-        
+
         # Verify it's gone
         get_response = test_client.get(f"/api/worlds/{world_id}")
         assert get_response.status_code == 404
