@@ -112,3 +112,29 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
             done=result.done,
             info=result.info,
         )
+
+    # ========================================================================
+    # Protocol methods for world-agnostic backend support
+    # ========================================================================
+
+    @property
+    def is_paused(self) -> bool:
+        """Whether the simulation is paused (protocol method)."""
+        return self._tank_backend.is_paused
+
+    def set_paused(self, value: bool) -> None:
+        """Set the simulation paused state (protocol method)."""
+        self._tank_backend.set_paused(value)
+
+    def get_entities_for_snapshot(self) -> list[Any]:
+        """Get entities for snapshot building (protocol method)."""
+        return self._tank_backend.get_entities_for_snapshot()
+
+    def capture_state_for_save(self) -> dict[str, Any]:
+        """Capture complete world state for persistence (protocol method)."""
+        return self._tank_backend.capture_state_for_save()
+
+    def restore_state_from_save(self, state: dict[str, Any]) -> None:
+        """Restore world state from a saved snapshot (protocol method)."""
+        self._tank_backend.restore_state_from_save(state)
+

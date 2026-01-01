@@ -87,37 +87,28 @@ class WorldRunner:
 
     @property
     def paused(self) -> bool:
-        """Whether the world is paused."""
-        if self._last_step_result is not None:
-            return self._last_step_result.snapshot.get("paused", False)
-        return False
+        """Whether the world is paused.
+        
+        Uses the protocol's is_paused property for world-agnostic access.
+        """
+        return self.world.is_paused
 
     @paused.setter
     def paused(self, value: bool) -> None:
         """Set the world's paused state.
         
-        Note: This currently accesses the underlying world directly.
-        Future versions may use actions_by_agent to control pause state.
+        Uses the protocol's set_paused method for world-agnostic access.
         """
-        # Access underlying world for pause control (temporary bridge)
-        if hasattr(self.world, "world") and self.world.world is not None:
-            self.world.world.paused = value
-        elif hasattr(self.world, "paused"):
-            self.world.paused = value
+        self.world.set_paused(value)
 
     @property
     def entities_list(self) -> List[Any]:
         """Get all entities from the world.
         
-        Note: This is a compatibility bridge. Prefer using get_entities_snapshot()
-        which goes through the StepResult-driven build() method.
+        Uses the protocol's get_entities_for_snapshot method.
+        Prefer using get_entities_snapshot() for frontend rendering.
         """
-        # Access underlying world for entities (temporary bridge)
-        if hasattr(self.world, "world") and self.world.world is not None:
-            return self.world.world.entities_list
-        elif hasattr(self.world, "entities_list"):
-            return self.world.entities_list
-        return []
+        return self.world.get_entities_for_snapshot()
 
     def reset(
         self,

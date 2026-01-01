@@ -92,3 +92,57 @@ class MultiAgentWorldBackend(ABC):
             Current aggregate metrics
         """
         pass
+
+    # =========================================================================
+    # Extended protocol methods for world-agnostic backend support
+    # =========================================================================
+
+    @property
+    @abstractmethod
+    def is_paused(self) -> bool:
+        """Whether the simulation is paused.
+
+        This provides a world-agnostic way to check pause state without
+        the backend needing to know about world.world.paused.
+        """
+        pass
+
+    @abstractmethod
+    def set_paused(self, value: bool) -> None:
+        """Set the simulation paused state.
+
+        Args:
+            value: True to pause, False to resume
+        """
+        pass
+
+    @abstractmethod
+    def get_entities_for_snapshot(self) -> List[Any]:
+        """Get entities for snapshot building.
+
+        This provides a world-agnostic way to access entities without
+        the backend needing to know about world.world.entities_list.
+
+        Returns:
+            List of entities suitable for snapshot serialization
+        """
+        pass
+
+    @abstractmethod
+    def capture_state_for_save(self) -> Dict[str, Any]:
+        """Capture complete world state for persistence.
+
+        Returns:
+            Serializable dictionary containing all state needed to restore.
+            Returns empty dict if persistence is not supported.
+        """
+        pass
+
+    @abstractmethod
+    def restore_state_from_save(self, state: Dict[str, Any]) -> None:
+        """Restore world state from a saved snapshot.
+
+        Args:
+            state: Previously captured state dictionary
+        """
+        pass

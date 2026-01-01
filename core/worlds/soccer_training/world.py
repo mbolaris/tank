@@ -726,3 +726,45 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         while angle < -math.pi:
             angle += 2.0 * math.pi
         return angle
+
+    # =========================================================================
+    # Protocol methods for world-agnostic backend support
+    # =========================================================================
+
+    @property
+    def is_paused(self) -> bool:
+        """Whether the simulation is paused (protocol method).
+
+        Soccer training matches don't support pausing - always returns False.
+        """
+        return False
+
+    def set_paused(self, value: bool) -> None:
+        """Set the simulation paused state (protocol method).
+
+        Soccer training matches don't support pausing - this is a no-op.
+        """
+        pass  # Soccer training matches are not pausable
+
+    def get_entities_for_snapshot(self) -> list[Any]:
+        """Get entities for snapshot building (protocol method).
+
+        Soccer training uses a different rendering model (players/ball in snapshot),
+        not entities. Returns empty list.
+        """
+        return []
+
+    def capture_state_for_save(self) -> dict[str, Any]:
+        """Capture complete world state for persistence (protocol method).
+
+        Soccer training matches are ephemeral and don't support saving.
+        """
+        return {}
+
+    def restore_state_from_save(self, state: dict[str, Any]) -> None:
+        """Restore world state from a saved snapshot (protocol method).
+
+        Soccer training matches are ephemeral and don't support restoration.
+        """
+        pass
+

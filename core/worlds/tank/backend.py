@@ -109,7 +109,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     @property
     def paused(self) -> bool:
-        """Whether the simulation is paused (compatibility shim)."""
+        """Whether the simulation is paused (legacy compatibility)."""
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before accessing paused.")
         return self._world.paused
@@ -122,12 +122,31 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._world.paused = value
 
     @property
+    def is_paused(self) -> bool:
+        """Whether the simulation is paused (protocol method)."""
+        if self._world is None:
+            return False
+        return self._world.paused
+
+    def set_paused(self, value: bool) -> None:
+        """Set the simulation paused state (protocol method)."""
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() before setting paused.")
+        self._world.paused = value
+
+    @property
     def entities_list(self) -> List[Any]:
-        """Expose entities list for snapshot builders."""
+        """Expose entities list for snapshot builders (legacy compatibility)."""
         if self._world is None:
             raise RuntimeError(
                 "World not initialized. Call reset() before accessing entities_list."
             )
+        return self._world.entities_list
+
+    def get_entities_for_snapshot(self) -> List[Any]:
+        """Get entities for snapshot building (protocol method)."""
+        if self._world is None:
+            return []
         return self._world.entities_list
 
     def setup(self) -> None:
@@ -402,3 +421,46 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before accessing rng.")
         return getattr(self._world, "rng", None)
+
+    # ========================================================================
+    # Protocol methods for state persistence
+    # ========================================================================
+
+    def capture_state_for_save(self) -> Dict[str, Any]:
+        """Capture complete world state for persistence.
+
+        This provides a lightweight snapshot that can be serialized.
+        For full save functionality including entity serialization,
+        use SimulationManager.capture_state_for_save() which handles
+        lock acquisition and entity serialization.
+
+        Returns:
+            Serializable dictionary containing world metadata.
+        """
+        if self._world is None:
+            return {}
+
+        return {
+            "frame": self._world.frame_count,
+            "paused": self._world.paused,
+            "config": self._base_config.to_dict(),
+            "seed": self._seed,
+        }
+
+    def restore_state_from_save(self, state: Dict[str, Any]) -> None:
+        """Restore world state from a saved snapshot.
+
+        Note: Full restoration including entities is handled by
+        tank_persistence.restore_tank_state(). This method restores
+        basic world metadata.
+
+        Args:
+            state: Previously captured state dictionary
+        """
+        if self._world is None:
+            return
+
+        # Restore pause state if present
+        if "paused" in state:
+            self._world.paused = state["paused"]
+

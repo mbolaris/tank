@@ -73,25 +73,18 @@ class TankSnapshotBuilder:
     ) -> List[EntitySnapshot]:
         """Build snapshots from StepResult.
 
-        For Tank, we still use entities_list from the world since that's
-        the authoritative source of entity data. Future worlds may get
-        entities directly from step_result.snapshot.
+        For Tank, we use the world's get_entities_for_snapshot() protocol
+        method to access entity data in a world-agnostic way.
 
         Args:
             step_result: The StepResult from world.reset() or world.step()
-            world: The world backend (TankWorldBackendAdapter or similar)
+            world: The MultiAgentWorldBackend (uses get_entities_for_snapshot())
 
         Returns:
             List of EntitySnapshot DTOs sorted by z-order
         """
-        # Tank uses entities_list directly - access via adapter's underlying world
-        # TankWorldBackendAdapter exposes .world property for underlying TankWorld
-        if hasattr(world, "world") and world.world is not None:
-            entities = world.world.entities_list
-        elif hasattr(world, "entities_list"):
-            entities = world.entities_list
-        else:
-            entities = []
+        # Use the protocol method for world-agnostic entity access
+        entities = world.get_entities_for_snapshot()
         return self.collect(entities)
 
     def _prune_stale_ids(self, current_entity_ids: Set[int]) -> None:

@@ -41,6 +41,7 @@ class ModePack(Protocol):
     supports_actions: bool
     supports_websocket: bool
     supports_transfer: bool
+    has_fish: bool
 
     def configure(self, config: ModeConfig | None) -> ModeConfig:
         """Normalize config keys and fill defaults for the mode."""
@@ -56,6 +57,7 @@ class ModePackDefinition:
     - supports_actions: Requires agent actions each step (vs autonomous)
     - supports_websocket: Supports real-time websocket updates
     - supports_transfer: Supports entity transfer between worlds
+    - has_fish: World contains fish entities and related systems
     """
 
     mode_id: str
@@ -67,6 +69,7 @@ class ModePackDefinition:
     supports_actions: bool = False
     supports_websocket: bool = True
     supports_transfer: bool = False
+    has_fish: bool = False
     # Optional customization
     snapshot_builder_factory: Callable[[], Any] | None = None
     normalizer: Callable[[ModeConfig], ModeConfig] | None = None
