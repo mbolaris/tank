@@ -39,6 +39,7 @@ class DiscoveryService:
     HEARTBEAT_INTERVAL = 2.0  # Send heartbeat every 2 seconds (was 30.0)
     HEARTBEAT_TIMEOUT = 6.0   # Mark offline after 6 seconds without heartbeat (was 90.0)
     CLEANUP_INTERVAL = 5.0    # Check for stale servers every 5 seconds (was 60.0)
+    PRUNE_TIMEOUT = 3600.0    # Remove servers offline for > 1 hour
 
     def __init__(self, data_dir: Path = Path("data")):
         """Initialize the discovery service.
@@ -85,6 +86,24 @@ class DiscoveryService:
         """
         async with self._lock:
             server_id = server_info.server_id
+
+            # Check for existing servers with same host:port but different ID
+            # This handles the case where a server restarts with a new ID
+            to_remove = []
+            for existing_id, existing_server in self._servers.items():
+                if existing_id != server_id and \
+                   existing_server.host == server_info.host and \
+                   existing_server.port == server_info.port:
+                    
+                    logger.info(
+                        "Found duplicate server %s at %s:%d. Removing in favor of new registration %s.",
+                        existing_id, existing_server.host, existing_server.port, server_id
+                    )
+                    to_remove.append(existing_id)
+            
+            for stale_id in to_remove:
+                del self._servers[stale_id]
+                self._last_heartbeat.pop(stale_id, None)
 
             # Check if this is an update to existing server
             was_offline = False
@@ -242,17 +261,21 @@ class DiscoveryService:
                 logger.error("Error in cleanup loop: %s", e, exc_info=True)
 
     async def _check_stale_servers(self) -> None:
-        """Check for servers that haven't sent heartbeats and mark them offline."""
+        """Check for servers that haven't sent heartbeats and mark them offline or prune them."""
         async with self._lock:
             current_time = time.time()
             changes = []
+            to_prune = []
 
             for server_id, server_info in self._servers.items():
                 last_heartbeat = self._last_heartbeat.get(server_id, 0)
                 time_since_heartbeat = current_time - last_heartbeat
 
                 # Determine new status
-                if time_since_heartbeat > self.HEARTBEAT_TIMEOUT:
+                if time_since_heartbeat > self.PRUNE_TIMEOUT:
+                    to_prune.append(server_id)
+                    continue
+                elif time_since_heartbeat > self.HEARTBEAT_TIMEOUT:
                     new_status = "offline"
                 elif time_since_heartbeat > self.HEARTBEAT_INTERVAL * 2:
                     new_status = "degraded"
@@ -264,10 +287,18 @@ class DiscoveryService:
                     server_info.status = new_status
                     changes.append((server_id, new_status))
 
+            # Prune very old servers
+            for server_id in to_prune:
+                del self._servers[server_id]
+                self._last_heartbeat.pop(server_id, None)
+                logger.info("Pruned stale server: %s (inactive for > %.0fs)", server_id, self.PRUNE_TIMEOUT)
+                changes.append((server_id, "pruned"))
+
             # Log changes
             if changes:
                 for server_id, new_status in changes:
-                    logger.info("Server %s status changed to %s", server_id, new_status)
+                    if new_status != "pruned":
+                        logger.info("Server %s status changed to %s", server_id, new_status)
                 self._save_registry()
 
     def _load_registry(self) -> None:
