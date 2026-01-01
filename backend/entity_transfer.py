@@ -478,6 +478,8 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             logger.error("Cannot deserialize fish: genome_data must be an object")
             return None
         rng = getattr(target_world, "rng", None)
+        if rng is None and hasattr(target_world, "engine"):
+            rng = getattr(target_world.engine, "rng", None)
         genome = Genome.from_dict(genome_data, rng=rng, use_algorithm=True)
 
         # Migration: Ensure legacy fish have a default movement policy
@@ -588,6 +590,8 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             logger.error("Cannot deserialize plant: genome_data must be an object")
             return None
         rng = getattr(target_world, "rng", None)
+        if rng is None and hasattr(target_world, "engine"):
+            rng = getattr(target_world.engine, "rng", None)
         genome = PlantGenome.from_dict(genome_data, rng=rng)
 
         # Get plant_id from serialized data (preserve identity across migration)

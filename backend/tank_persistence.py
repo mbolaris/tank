@@ -509,7 +509,10 @@ def find_all_tank_snapshots() -> Dict[str, str]:
         Dictionary mapping tank_id to latest snapshot path
     """
     if not DATA_DIR.exists():
+        logger.warning(f"DATA_DIR not found at {DATA_DIR.resolve()} (CWD: {Path.cwd()})")
         return {}
+    
+    logger.info(f"Scanning for snapshots in {DATA_DIR.resolve()}")
 
     tank_snapshots = {}
 

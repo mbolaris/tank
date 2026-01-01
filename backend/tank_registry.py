@@ -137,6 +137,7 @@ class TankRegistry:
         server_id: str = "local-server",
         persistent: bool = True,
         auto_save_interval: float = 300.0,
+        tank_id: Optional[str] = None,
     ) -> SimulationManager:
         """Create a new tank and add it to the registry.
 
@@ -160,6 +161,7 @@ class TankRegistry:
             seed=seed,
             persistent=persistent,
             auto_save_interval=auto_save_interval,
+            tank_id=tank_id,
         )
 
         # Update tank info with additional fields
@@ -362,6 +364,7 @@ class TankRegistry:
             seed=metadata.get("seed"),
             persistent=True,  # Restored tanks are persistent by default
             auto_save_interval=300.0,
+            tank_id=tank_id,
         )
 
         # Override the tank_id to match the snapshot
@@ -377,6 +380,10 @@ class TankRegistry:
         except Exception:
             # Restoration should still succeed even if runner identity update fails
             logger.exception("Failed to update runner tank identity during restore for %s", tank_id[:8])
+
+        # Initialize world backend to ensure engine and RNG are available for restoration
+        if hasattr(manager.world, "setup"):
+            manager.world.setup()
 
         # Restore state into the tank
         if not restore_tank_from_snapshot(snapshot, manager.world):

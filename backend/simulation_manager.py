@@ -76,6 +76,7 @@ class SimulationManager:
         seed: Optional[int] = None,
         persistent: bool = True,
         auto_save_interval: float = 300.0,
+        tank_id: Optional[str] = None,
     ):
         """Initialize the simulation manager.
 
@@ -88,7 +89,7 @@ class SimulationManager:
         """
         # Generate unique tank ID
         self.tank_info = TankInfo(
-            tank_id=str(uuid.uuid4()),
+            tank_id=tank_id if tank_id else str(uuid.uuid4()),
             name=tank_name,
             description=tank_description,
             seed=seed,

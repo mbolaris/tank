@@ -89,7 +89,15 @@ def setup_persistence_subrouter(
             allow_transfers=metadata.get("allow_transfers", True),
         )
 
-        new_manager = tank_registry.create_tank(create_request)
+        new_manager = tank_registry.create_tank(
+            name=create_request.name,
+            description=create_request.description,
+            seed=create_request.seed,
+            owner=create_request.owner,
+            is_public=create_request.is_public,
+            allow_transfers=create_request.allow_transfers,
+            tank_id=create_request.tank_id,
+        )
         if new_manager is None:
             return JSONResponse({"error": "Failed to create tank"}, status_code=500)
 

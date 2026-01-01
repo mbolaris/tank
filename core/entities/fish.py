@@ -49,6 +49,8 @@ from core.telemetry.events import (
     FoodEatenEvent,
     ReproductionEvent,
 )
+from core.sim.events import AteFood, EnergyBurned
+from core.sim.energy_ledger import EnergyDelta
 
 
 class Fish(Agent):
@@ -353,19 +355,59 @@ class Fish(Agent):
         """
         return 20.0 * self._lifecycle_component.size
 
+    def apply_energy_delta(self, delta: EnergyDelta) -> None:
+        """Apply an energy delta from the EnergyLedger."""
+        if delta.reason == "ate_food":
+            # Delegate to internal logic which handles overflow banking
+            self._apply_energy_gain_internal(delta.delta)
+        elif delta.reason in ("movement", "metabolism", "existence", "trait_maintenance", "poker_game"):
+             # Direct modification for consumption/loss
+             self.modify_energy(delta.delta)
+        else:
+             # Fallback
+             self.modify_energy(delta.delta)
+
     def gain_energy(self, amount: float) -> float:
-        """Gain energy from consuming food, routing overflow productively.
-
-        Uses the fish's dynamic max_energy (based on current size) rather than
-        the static value in EnergyComponent. Any overflow is banked for
-        reproduction or dropped as food.
-
-        Args:
-            amount: Amount of energy to gain.
-
-        Returns:
-            float: Actual energy gained by the fish (capped by max_energy)
+        """Gain energy from consuming food.
+        
+        Emits AteFood event. Energy is applied later via apply_energy_delta.
+        Returns the amount requested to satisfy legacy callers (like Food) 
+        that need to know how much was taken.
         """
+        # Emit domain event for Ledger
+        # Note: We need food info for the event. 
+        # But this method signature only has `amount`.
+        # The caller usually knows the context.
+        # Ideally caller emits the event. 
+        # But for "Mission: Pick 2-3 high-value energy paths", we are putting it here.
+        # We'll use a generic "unknown" food type if locally missing, 
+        # but AteFood requires food_type. 
+        # We might need to guess or change method signature.
+        # Existing callers: Food.be_eaten_by calls this.
+        
+        # We will assume generic food for now or use a default.
+        # Ideally, we refactor `Food.be_eaten_by` to emit the event, but that's outside "Fish" scope.
+        # Let's emit a specific event if we can't context. 
+        # Actually, let's keep it simple: 
+        # We emit AteFood with essential info.
+        
+        behavior_id = None
+        if self.genome.behavioral.behavior and self.genome.behavioral.behavior.value:
+            behavior_id = hash(self.genome.behavioral.behavior.value.behavior_id) % 1000
+
+        self._emit_event(AteFood(
+            entity_id=self.fish_id,
+            food_id=0, # Unknown here
+            food_type="unknown", 
+            energy_gained=amount,
+            algorithm_id=behavior_id
+        ))
+        
+        # Return amount so Food dies immediately (preserving game logic)
+        return amount
+
+    def _apply_energy_gain_internal(self, amount: float) -> float:
+        """Internal logic to apply energy gain and route overflow."""
         old_energy = self._energy_component.energy
         new_energy = old_energy + amount
 
@@ -460,17 +502,18 @@ class Fish(Agent):
             if not request_spawn(food, reason="overflow_food"):
                 logger.warning("spawn requester unavailable, overflow food lost")
 
-            self._emit_event(EnergyBurnEvent("overflow_food", food.energy))
+            self._emit_event(EnergyBurned(
+                entity_id=self.fish_id,
+                amount=food.energy,
+                reason="overflow_food"
+            ))
         except Exception:
             pass  # Energy lost on failure is acceptable
 
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
-
-        Delegates to EnergyComponent and reports breakdown to ecosystem.
-
-        Args:
-            time_modifier: Modifier for time-based effects (e.g., day/night)
+        
+        Calculates burn and emits events. Energy is reduced later via apply_energy_delta.
         """
         energy_breakdown = self._energy_component.consume_energy(
             self.vel,
@@ -480,14 +523,20 @@ class Fish(Agent):
             self._lifecycle_component.size,
         )
 
-        if self._energy_component.energy <= 0:
-            if self.state.state == EntityState.ACTIVE:
-                self.state.transition(EntityState.DEAD, reason="starvation")
-            self._cached_is_dead = True
-
-        self._emit_event(EnergyBurnEvent("existence", energy_breakdown["existence"]))
-        self._emit_event(EnergyBurnEvent("movement", energy_breakdown["movement"]))
-
+        # Emit new Ledger events
+        self._emit_event(EnergyBurned(
+            entity_id=self.fish_id,
+            amount=energy_breakdown["existence"],
+            reason="existence"
+        ))
+        
+        self._emit_event(EnergyBurned(
+            entity_id=self.fish_id,
+            amount=energy_breakdown["movement"],
+            reason="movement"
+        ))
+        
+        # Calculate trait cost for telemetry/ledger
         metabolism_total = energy_breakdown["metabolism"]
         rate = self.genome.metabolism_rate
         if rate > 0:
@@ -498,8 +547,17 @@ class Fish(Agent):
             trait_cost = 0.0
             base_cost = metabolism_total
 
-        self._emit_event(EnergyBurnEvent("metabolism", base_cost))
-        self._emit_event(EnergyBurnEvent("trait_maintenance", trait_cost))
+        self._emit_event(EnergyBurned(
+            entity_id=self.fish_id,
+            amount=base_cost,
+            reason="metabolism"
+        ))
+        
+        self._emit_event(EnergyBurned(
+            entity_id=self.fish_id,
+            amount=trait_cost,
+            reason="trait_maintenance"
+        ))
 
     def is_starving(self) -> bool:
         """Check if fish is starving (low energy)."""

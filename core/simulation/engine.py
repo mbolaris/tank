@@ -65,6 +65,8 @@ from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
 from core.systems.poker_proximity import PokerProximitySystem
 from core.time_system import TimeSystem
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
+from core.sim.energy_ledger import EnergyLedger, EnergyDelta
+from core.sim.events import SimEvent, AteFood, Moved, EnergyBurned, PokerGamePlayed
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +203,10 @@ class SimulationEngine:
         self._current_phase: Optional[UpdatePhase] = None
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
 
+        # Energy Ledger integration
+        self.energy_ledger = EnergyLedger()
+        self.pending_sim_events: List[SimEvent] = []
+
     # =========================================================================
     # Properties for Backward Compatibility
     # =========================================================================
@@ -250,6 +256,12 @@ class SimulationEngine:
         # Initialize code pool (per-engine for isolation)
         self.code_pool = CodePool()
         self.code_pool.register(BUILTIN_SEEK_NEAREST_FOOD_ID, seek_nearest_food_policy)
+
+        # Subscribe EnergyLedger queue to energy events
+        self.event_bus.subscribe(AteFood, self._queue_sim_event)
+        self.event_bus.subscribe(Moved, self._queue_sim_event)
+        self.event_bus.subscribe(EnergyBurned, self._queue_sim_event)
+        self.event_bus.subscribe(PokerGamePlayed, self._queue_sim_event)
 
         # Initialize environment with EventBus for decoupled telemetry
         self.environment = environment.Environment(
@@ -621,6 +633,10 @@ class SimulationEngine:
         time_modifier, time_of_day = self._phase_time_update()
         self._phase_environment()
         new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
+        
+        # Resolve energy deltas before lifecycle so starvation is caught immediately
+        self._resolve_energy()
+        
         self._phase_lifecycle(new_entities, entities_to_remove)
         self._phase_spawn()
         self._phase_collision()
@@ -798,6 +814,66 @@ class SimulationEngine:
         self._current_phase = UpdatePhase.INTERACTION
         # Fish-fish poker proximity detection
         self.poker_proximity_system.update(self.frame_count)
+
+    # =========================================================================
+    # Energy Ledger Methods
+    # =========================================================================
+
+    def _queue_sim_event(self, event: Any) -> None:
+        """Queue a simulation event for processing."""
+        if isinstance(event, SimEvent):
+            self.pending_sim_events.append(event)
+
+    def _resolve_energy(self) -> None:
+        """Process pending energy events and apply deltas."""
+        if not self.pending_sim_events:
+            return
+
+        deltas = []
+        for event in self.pending_sim_events:
+            deltas.extend(self.energy_ledger.apply(event))
+        
+        self.pending_sim_events.clear()
+        
+        if deltas:
+            self._apply_energy_deltas(deltas)
+
+    def _apply_energy_deltas(self, deltas: List[EnergyDelta]) -> None:
+        """Apply energy deltas to entities."""
+        # Map entity_id to entity for fast lookup
+        # Currently we iterate list, which is O(N).
+        # Optimization: use entity_manager map if available or build temp map?
+        # EntityManager doesn't expose ID map cleanly yet. 
+        # But we can assume entity existence from ID?
+        # Let's iterate linearly for now or rely on EntityManager get_by_id if it existed.
+        
+        # Build temp map for this batch
+        # Note: Assuming only Fish act on the ledger for now. 
+        # TODO: Implement globally unique IDs or type-aware ledger for Plants.
+        entity_map = {e.fish_id: e for e in self.get_fish_list()}
+        
+        for delta in deltas:
+            entity = entity_map.get(delta.entity_id)
+            if entity:
+                # We need a standard way to apply energy delta.
+                # If entity has `apply_energy_delta`, use it.
+                if hasattr(entity, "apply_energy_delta"):
+                    entity.apply_energy_delta(delta)
+                else:
+                    # Fallback for entities without specific handler
+                    # Use gain/lose methods ?
+                    # Caution: calling gain_energy might re-emit events!
+                    # So we need "internal" methods or property set.
+                    # Safe fallback: direct property modification (blind application)
+                    current = getattr(entity, "energy", 0.0)
+                    new_val = current + delta.delta
+                    
+                    # Basic clamping if max_energy exists
+                    max_e = getattr(entity, "max_energy", float('inf'))
+                    new_val = max(0.0, min(new_val, max_e))
+                    
+                    # Set checking for property setter logic (e.g. death check)
+                    setattr(entity, "energy", new_val)
         # PokerSystem is event-driven but still participates in phase accounting
         self.poker_system.update(self.frame_count)
         # Mixed poker (fish-plant, plant-plant) handled by PokerSystem
