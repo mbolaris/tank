@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import ast
 import math
-from typing import Any
+from typing import Any, Optional
 
 from .models import ValidationError
+
+# Default limits for source validation (can be overridden via SafetyConfig)
+DEFAULT_MAX_SOURCE_LENGTH = 10_000
+DEFAULT_MAX_AST_NODES = 500
+DEFAULT_MAX_FUNCTION_DEPTH = 5
 
 DISALLOWED_CALL_NAMES = {
     "__import__",
@@ -120,15 +125,85 @@ class ASTValidator(ast.NodeVisitor):
         super().generic_visit(node)
 
 
-def parse_and_validate(source: str) -> ast.AST:
-    """Parse and validate Python source for the restricted sandbox."""
+def parse_and_validate(
+    source: str,
+    *,
+    max_source_length: Optional[int] = None,
+    max_ast_nodes: Optional[int] = None,
+    max_function_depth: Optional[int] = None,
+) -> ast.AST:
+    """Parse and validate Python source for the restricted sandbox.
+
+    Args:
+        source: Python source code to validate
+        max_source_length: Maximum source length (default: DEFAULT_MAX_SOURCE_LENGTH)
+        max_ast_nodes: Maximum AST node count (default: DEFAULT_MAX_AST_NODES)
+        max_function_depth: Maximum function nesting depth (default: DEFAULT_MAX_FUNCTION_DEPTH)
+
+    Returns:
+        The parsed and validated AST
+
+    Raises:
+        ValidationError: If source fails any validation check
+    """
+    max_source_length = max_source_length or DEFAULT_MAX_SOURCE_LENGTH
+    max_ast_nodes = max_ast_nodes or DEFAULT_MAX_AST_NODES
+    max_function_depth = max_function_depth or DEFAULT_MAX_FUNCTION_DEPTH
+
+    # Check source length
+    if len(source) > max_source_length:
+        raise ValidationError(
+            f"Source too long: {len(source)} characters (max {max_source_length})"
+        )
+
     try:
         tree = ast.parse(source, mode="exec")
     except SyntaxError as exc:
         raise ValidationError(f"Syntax error: {exc.msg}") from exc
 
+    # Validate syntax rules
     ASTValidator().validate(tree)
+
+    # Check complexity limits
+    node_count, max_depth = _count_ast_complexity(tree)
+    if node_count > max_ast_nodes:
+        raise ValidationError(
+            f"AST too complex: {node_count} nodes (max {max_ast_nodes})"
+        )
+    if max_depth > max_function_depth:
+        raise ValidationError(
+            f"Function nesting too deep: {max_depth} levels (max {max_function_depth})"
+        )
+
     return tree
+
+
+def _count_ast_complexity(tree: ast.AST) -> tuple[int, int]:
+    """Count AST nodes and maximum function nesting depth.
+
+    Returns:
+        Tuple of (node_count, max_function_depth)
+    """
+    node_count = 0
+    max_depth = 0
+    current_depth = 0
+
+    class ComplexityCounter(ast.NodeVisitor):
+        def generic_visit(self, node: ast.AST) -> None:
+            nonlocal node_count
+            node_count += 1
+            super().generic_visit(node)
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            nonlocal node_count, current_depth, max_depth
+            node_count += 1
+            current_depth += 1
+            max_depth = max(max_depth, current_depth)
+            super().generic_visit(node)
+            current_depth -= 1
+
+    ComplexityCounter().visit(tree)
+    return node_count, max_depth
 
 
 def build_restricted_globals(extra_globals: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -20,6 +20,7 @@ from core.math_utils import Vector2
 from core.policies.interfaces import MovementAction, build_movement_observation
 
 if TYPE_CHECKING:
+    from core.code_pool import GenomeCodePool
     from core.entities import Fish
 
 logger = logging.getLogger(__name__)
@@ -163,13 +164,24 @@ class AlgorithmicMovement(MovementStrategy):
     def _execute_policy_if_present(self, fish: Fish) -> VelocityComponents | None:
         policy_kind = getattr(fish.genome.behavioral, "code_policy_kind", None)
         component_id = getattr(fish.genome.behavioral, "code_policy_component_id", None)
+        policy_params = getattr(fish.genome.behavioral, "code_policy_params", None)
         if hasattr(policy_kind, "value"):
             policy_kind = policy_kind.value
         if hasattr(component_id, "value"):
             component_id = component_id.value
+        if hasattr(policy_params, "value"):
+            policy_params = policy_params.value
         if policy_kind != "movement_policy" or not component_id:
             return None
 
+        # Try GenomeCodePool first (preferred), then fall back to CodePool
+        genome_code_pool = getattr(fish.environment, "genome_code_pool", None)
+        if genome_code_pool is not None:
+            return self._execute_via_genome_pool(
+                fish, genome_code_pool, component_id, policy_params
+            )
+
+        # Fall back to basic CodePool
         code_pool = getattr(fish.environment, "code_pool", None)
         if code_pool is None:
             return None
@@ -191,6 +203,46 @@ class AlgorithmicMovement(MovementStrategy):
             return None
 
         return parsed
+
+    def _execute_via_genome_pool(
+        self,
+        fish: Fish,
+        genome_pool: "GenomeCodePool",
+        component_id: str,
+        params: dict | None,
+    ) -> VelocityComponents | None:
+        """Execute policy via GenomeCodePool with safety and determinism.
+
+        The GenomeCodePool provides:
+        - Explicit dt (delta time) for determinism
+        - Output clamping for safety
+        - Error handling and logging
+        """
+        from core.code_pool import GenomePolicySet
+
+        # Build policy set from genome
+        policy_set = GenomePolicySet()
+        policy_set.set_policy("movement_policy", component_id, params)
+
+        # Build observation with dt for determinism
+        observation = build_movement_observation(fish)
+
+        # Get dt from environment if available (default to 1.0)
+        dt = getattr(fish.environment, "dt", 1.0)
+
+        # Execute with safety checks
+        vx, vy = genome_pool.execute_movement_policy(
+            policy_set=policy_set,
+            observation=observation,
+            rng=fish.environment.rng,
+            dt=dt,
+        )
+
+        if vx == 0.0 and vy == 0.0:
+            # Check if this was an error (policy returned nothing useful)
+            return None
+
+        return (vx, vy)
 
     def _parse_policy_output(self, output: object) -> VelocityComponents | None:
         if isinstance(output, MovementAction):
