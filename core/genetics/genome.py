@@ -8,7 +8,7 @@ import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.genetics import expression
 from core.genetics.behavioral import BehavioralTraits
@@ -135,10 +135,12 @@ class Genome:
             )
         )
 
-        # Validate code policy fields
-        cp_kind = (
-            self.behavioral.code_policy_kind.value if self.behavioral.code_policy_kind else None
-        )
+        # Validate code policy fields only if they exist
+        if (
+            self.behavioral.code_policy_kind is not None
+            and self.behavioral.code_policy_kind.value is not None
+        ):
+            cp_kind = self.behavioral.code_policy_kind.value
         cp_id = (
             self.behavioral.code_policy_component_id.value
             if self.behavioral.code_policy_component_id
@@ -186,6 +188,7 @@ class Genome:
         *,
         params: ReproductionParams,
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Create offspring genome using a parameter object for mutation inputs."""
         return cls.from_parents_weighted(
@@ -195,6 +198,7 @@ class Genome:
             mutation_rate=params.mutation_rate,
             mutation_strength=params.mutation_strength,
             rng=rng,
+            available_policies=available_policies,
         )
 
     @classmethod
@@ -206,6 +210,7 @@ class Genome:
         mutation_rate: float = 0.15,  # Increased from 0.1
         mutation_strength: float = 0.15,  # Increased from 0.1
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
 
@@ -239,6 +244,7 @@ class Genome:
             mutation_rate=adaptive_rate,
             mutation_strength=adaptive_strength,
             rng=rng,
+            available_policies=available_policies,
         )
 
         return cls._assemble_offspring(
@@ -253,6 +259,7 @@ class Genome:
         cls,
         parent: "Genome",
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
         return cls.from_parents_weighted_params(
@@ -261,6 +268,7 @@ class Genome:
             parent1_weight=1.0,
             params=ReproductionParams(),
             rng=rng,
+            available_policies=available_policies,
         )
 
     @classmethod
@@ -272,6 +280,7 @@ class Genome:
         mutation_strength: float = 0.15,  # Increased from 0.1
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
         from core.util.rng import require_rng_param
@@ -289,6 +298,7 @@ class Genome:
                 parent1_weight=0.5,
                 params=params,
                 rng=rng,
+                available_policies=available_policies,
             )
 
         if crossover_mode is GeneticCrossoverMode.DOMINANT_RECESSIVE:

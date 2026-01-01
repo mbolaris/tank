@@ -24,6 +24,8 @@ if TYPE_CHECKING:
     from core.genetics.physical import PhysicalTraits
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
+from core.code_pool.pool import BUILTIN_SEEK_NEAREST_FOOD_ID
+
 # Type alias for poker strategy (can be monolithic or composable)
 PokerStrategyType = "PokerStrategyAlgorithm | ComposablePokerStrategy"
 
@@ -243,11 +245,8 @@ class BehavioralTraits:
         mate_preferences = normalize_mate_preferences({}, physical=physical, rng=rng)
         traits["mate_preferences"] = random_genetic_trait(mate_preferences, rng)
 
-        # Code policy traits default to None (no code policy assigned)
-        # New fish don't inherit code policies; they must come from parents
-        # or be explicitly assigned.
-        traits["code_policy_kind"] = random_genetic_trait(None, rng)
-        traits["code_policy_component_id"] = random_genetic_trait(None, rng)
+        traits["code_policy_kind"] = random_genetic_trait("movement_policy", rng)
+        traits["code_policy_component_id"] = random_genetic_trait(BUILTIN_SEEK_NEAREST_FOOD_ID, rng)
         traits["code_policy_params"] = random_genetic_trait(None, rng)
 
         return cls(**traits)
@@ -262,6 +261,7 @@ class BehavioralTraits:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
+        available_policies: Optional[List[str]] = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits from two parents.
 
@@ -337,6 +337,7 @@ class BehavioralTraits:
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
             rng=rng,
+            available_policies=available_policies,
         )
         inherited["code_policy_kind"] = _inherit_trait_meta(
             parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
@@ -360,6 +361,7 @@ class BehavioralTraits:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
+        available_policies: Optional[List[str]] = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits by choosing a parent per trait (recombination)."""
         inherited = inherit_traits_from_specs_recombination(
@@ -432,6 +434,7 @@ class BehavioralTraits:
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
             rng=rng,
+            available_policies=available_policies,
         )
         inherited["code_policy_kind"] = _inherit_trait_meta(
             parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
@@ -629,6 +632,7 @@ def _inherit_code_policy(
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
+    available_policies: Optional[List[str]] = None,
 ) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, float]]]:
     """Inherit code policy traits from parents.
 
@@ -636,8 +640,8 @@ def _inherit_code_policy(
     - If both parents have code policies, inherit one based on weight1 probability.
     - If only one parent has a code policy, child may inherit it with probability.
     - Mutation can drop the code policy (set to None) with small probability.
-    - Mutation can slightly mutate code_policy_params if present.
-    - Genetics does NOT generate new component IDs; only inherits/swaps existing.
+    - Mutation can duplicate params if not swapping policy.
+    - If available_policies is provided, small chance to swap to a random policy from the list.
 
     Returns:
         Tuple of (code_policy_kind, code_policy_component_id, code_policy_params)
@@ -712,6 +716,13 @@ def _inherit_code_policy(
     # Mutation: chance to drop the code policy entirely
     if rng.random() < CODE_POLICY_DROP_PROBABILITY * mutation_rate:
         return None, None, None
+
+    # Mutation: chance to swap to a different available policy
+    if available_policies and rng.random() < mutation_rate * 0.1:  # 10% of mutation rate
+         # Pick a random policy from available ones
+        new_id = rng.choice(available_policies)
+        # If we swapped, reset params or keep? Let's reset to None for fresh start
+        return "movement_policy", new_id, None
 
     # Mutation: mutate params if present
     mutated_params = _mutate_code_policy_params(params, mutation_rate, mutation_strength, rng)

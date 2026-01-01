@@ -854,9 +854,22 @@ class Fish(Agent):
 
         rng = require_rng(self.environment, "Fish._create_asexual_offspring")
 
+        # Get available policies for mutation
+        available_policies = None
+        if hasattr(self.environment, "code_pool"):
+            # Get only valid movement policies
+            components = self.environment.code_pool.list_components()
+            available_policies = [
+                comp.component_id
+                for comp in components
+                if comp.kind == "movement_policy"
+            ]
+
         # Generate offspring genome (also sets cooldown)
         offspring_genome, _unused_fraction = (
-            self._reproduction_component.trigger_asexual_reproduction(self.genome, rng=rng)
+            self._reproduction_component.trigger_asexual_reproduction(
+                self.genome, rng=rng, available_policies=available_policies
+            )
         )
 
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)

@@ -480,6 +480,20 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         rng = getattr(target_world, "rng", None)
         genome = Genome.from_dict(genome_data, rng=rng, use_algorithm=True)
 
+        # Migration: Ensure legacy fish have a default movement policy
+        # If code_policy_component_id is missing/None, assign BUILTIN_SEEK_NEAREST_FOOD_ID
+        if (
+            genome.behavioral.code_policy_component_id is None
+            or genome.behavioral.code_policy_component_id.value is None
+        ):
+            from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
+            from core.genetics.trait import GeneticTrait
+
+            genome.behavioral.code_policy_kind = GeneticTrait("movement_policy")
+            genome.behavioral.code_policy_component_id = GeneticTrait(BUILTIN_SEEK_NEAREST_FOOD_ID)
+            # Leave params as None/empty
+            # logger.info("Migrated legacy fish genome to use default movement policy")
+
         # Create movement strategy (AlgorithmicMovement uses genome from fish directly)
         movement = AlgorithmicMovement()
 
