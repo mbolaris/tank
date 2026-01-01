@@ -825,4 +825,3 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         Soccer training matches are ephemeral and don't support restoration.
         """
         pass
-

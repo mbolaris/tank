@@ -85,7 +85,7 @@ def create_soccer_training_mode_pack(
         default_view_mode="topdown",
         display_name="Soccer Training",
         supports_persistence=False,  # Training sessions are ephemeral
-        supports_actions=True,       # Requires agent actions
+        supports_actions=True,  # Requires agent actions
         supports_websocket=True,
         supports_transfer=False,
         has_fish=False,

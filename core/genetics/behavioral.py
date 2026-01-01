@@ -719,7 +719,7 @@ def _inherit_code_policy(
 
     # Mutation: chance to swap to a different available policy
     if available_policies and rng.random() < mutation_rate * 0.1:  # 10% of mutation rate
-         # Pick a random policy from available ones
+        # Pick a random policy from available ones
         new_id = rng.choice(available_policies)
         # If we swapped, reset params or keep? Let's reset to None for fresh start
         return "movement_policy", new_id, None

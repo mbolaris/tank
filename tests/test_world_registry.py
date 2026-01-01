@@ -515,17 +515,17 @@ class TestWorldTypeRegistryCanonical:
         mode_packs = WorldRegistry.list_mode_packs()
         world_types = [mp.world_type for mp in mode_packs.values()]
         # No duplicates - each world_type should appear exactly once
-        assert len(world_types) == len(set(world_types)), (
-            f"Duplicate world types found: {world_types}"
-        )
+        assert len(world_types) == len(
+            set(world_types)
+        ), f"Duplicate world types found: {world_types}"
 
     def test_factories_build_in_headless_mode(self):
         """All factories create valid backends in headless mode."""
         for mode_id in WorldRegistry.list_mode_packs():
             world = WorldRegistry.create_world(mode_id, seed=42, headless=True)
-            assert isinstance(world, MultiAgentWorldBackend), (
-                f"Mode '{mode_id}' did not return a MultiAgentWorldBackend"
-            )
+            assert isinstance(
+                world, MultiAgentWorldBackend
+            ), f"Mode '{mode_id}' did not return a MultiAgentWorldBackend"
 
     def test_capability_flags_match_expectations(self):
         """Capability flags are correctly set for each world type."""
@@ -558,9 +558,9 @@ class TestWorldTypeRegistryCanonical:
 
         backend_types = {m.mode_id for m in get_all_world_metadata()}
         core_types = set(WorldRegistry.list_mode_packs().keys())
-        assert backend_types == core_types, (
-            f"Registry mismatch: backend={backend_types}, core={core_types}"
-        )
+        assert (
+            backend_types == core_types
+        ), f"Registry mismatch: backend={backend_types}, core={core_types}"
 
     def test_backend_metadata_matches_core_mode_pack(self):
         """Backend metadata mirrors core mode pack definitions."""
@@ -588,21 +588,19 @@ class TestWorldTypeRegistryCanonical:
             assert hasattr(mode_pack, "display_name")
 
             # Check capability fields
-            assert hasattr(mode_pack, "supports_persistence"), (
-                f"Mode '{mode_id}' missing supports_persistence"
-            )
-            assert hasattr(mode_pack, "supports_actions"), (
-                f"Mode '{mode_id}' missing supports_actions"
-            )
-            assert hasattr(mode_pack, "supports_websocket"), (
-                f"Mode '{mode_id}' missing supports_websocket"
-            )
-            assert hasattr(mode_pack, "supports_transfer"), (
-                f"Mode '{mode_id}' missing supports_transfer"
-            )
-            assert hasattr(mode_pack, "has_fish"), (
-                f"Mode '{mode_id}' missing has_fish"
-            )
+            assert hasattr(
+                mode_pack, "supports_persistence"
+            ), f"Mode '{mode_id}' missing supports_persistence"
+            assert hasattr(
+                mode_pack, "supports_actions"
+            ), f"Mode '{mode_id}' missing supports_actions"
+            assert hasattr(
+                mode_pack, "supports_websocket"
+            ), f"Mode '{mode_id}' missing supports_websocket"
+            assert hasattr(
+                mode_pack, "supports_transfer"
+            ), f"Mode '{mode_id}' missing supports_transfer"
+            assert hasattr(mode_pack, "has_fish"), f"Mode '{mode_id}' missing has_fish"
 
     def test_config_normalization_works(self):
         """Config normalization helper works for all modes."""

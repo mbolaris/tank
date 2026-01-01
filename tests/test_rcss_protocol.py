@@ -128,7 +128,7 @@ class TestSeeMessageParser:
         """Test that invalid messages return None."""
         assert parse_see_message("") is None
         assert parse_see_message("(invalid message)") is None
-        assert parse_see_message("(hear 0 referee \"test\")") is None
+        assert parse_see_message('(hear 0 referee "test")') is None
 
 
 class TestSenseBodyMessageParser:
