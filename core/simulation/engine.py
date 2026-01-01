@@ -54,7 +54,7 @@ from core.poker_system import PokerSystem
 from core.reproduction_service import ReproductionService
 from core.reproduction_system import ReproductionSystem
 from core.root_spots import RootSpotManager
-from core.services.stats_calculator import StatsCalculator
+from core.services.stats.calculator import StatsCalculator
 from core.simulation import diagnostics
 from core.simulation.entity_manager import EntityManager
 from core.simulation.entity_mutation_queue import EntityMutationQueue

@@ -5,7 +5,7 @@ import sys
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from core.services.stats_calculator import StatsCalculator
+from core.services.stats.calculator import StatsCalculator
 from core.simulation.engine import SimulationEngine
 
 
