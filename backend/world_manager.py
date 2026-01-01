@@ -24,6 +24,7 @@ from backend.world_runner import WorldRunner
 if TYPE_CHECKING:
     from backend.tank_registry import TankRegistry
     from backend.tank_world_adapter import TankWorldAdapter
+    from backend.world_broadcast_adapter import WorldBroadcastAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class WorldInstance:
     persistent: bool = True
     view_mode: str = "side"
     description: str = ""
+    broadcast_adapter: Optional["WorldBroadcastAdapter"] = None
 
     def is_tank(self) -> bool:
         """Check if this is a tank world."""
@@ -382,6 +384,32 @@ class WorldManager:
                 return instance
 
         return None
+
+    def get_broadcast_adapter(self, world_id: str) -> Optional["WorldBroadcastAdapter"]:
+        """Get or create the broadcast adapter for a world."""
+        instance = self.get_world(world_id)
+        if instance is None:
+            return None
+
+        if instance.broadcast_adapter is not None:
+            return instance.broadcast_adapter
+
+        from backend.world_broadcast_adapter import WorldSnapshotAdapter
+
+        step_on_access = not instance.is_tank()
+        use_runner_state = instance.is_tank()
+
+        adapter = WorldSnapshotAdapter(
+            world_id=instance.world_id,
+            runner=instance.runner,
+            world_type=instance.world_type,
+            mode_id=instance.mode_id,
+            view_mode=instance.view_mode,
+            step_on_access=step_on_access,
+            use_runner_state=use_runner_state,
+        )
+        instance.broadcast_adapter = adapter
+        return adapter
 
     def get_tank_adapter(self, world_id: str) -> Optional["TankWorldAdapter"]:
         """Get the TankWorldAdapter for a tank world.

@@ -169,3 +169,12 @@ def _register_soccer_mode() -> None:
 
 
 _register_soccer_mode()
+
+
+def _register_soccer_training_mode() -> None:
+    from backend.snapshots.soccer_snapshot_builder import SoccerSnapshotBuilder
+
+    register_snapshot_builder("soccer_training", SoccerSnapshotBuilder)
+
+
+_register_soccer_training_mode()

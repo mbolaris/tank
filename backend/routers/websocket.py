@@ -20,7 +20,7 @@ from backend.security import websocket_limiter
 
 if TYPE_CHECKING:
     from backend.tank_registry import TankRegistry
-    from backend.tank_world_adapter import TankWorldAdapter
+    from backend.world_broadcast_adapter import WorldBroadcastAdapter
     from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
@@ -43,17 +43,17 @@ def _get_client_ip(websocket: WebSocket) -> str:
 
 async def _handle_websocket_for_adapter(
     websocket: WebSocket,
-    adapter: "TankWorldAdapter",
+    adapter: "WorldBroadcastAdapter",
     world_id: str,
 ) -> None:
     """Handle WebSocket connection using TankWorldAdapter interface.
 
     This is the core handler that works with any world type through
-    the TankWorldAdapter interface.
+    the broadcast adapter interface.
 
     Args:
         websocket: The WebSocket connection
-        adapter: The TankWorldAdapter for the world
+        adapter: The broadcast adapter for the world
         world_id: The world ID for logging
     """
     client_ip = _get_client_ip(websocket)
@@ -178,7 +178,6 @@ async def _handle_websocket_for_world(
         world_manager: The WorldManager to get worlds from
         world_id: The world ID to connect to
     """
-    # Get the world instance
     instance = world_manager.get_world(world_id)
     if instance is None:
         try:
@@ -189,24 +188,23 @@ async def _handle_websocket_for_world(
             pass
         return
 
-    # For tank worlds, use the TankWorldAdapter
-    if instance.is_tank():
-        from backend.tank_world_adapter import TankWorldAdapter
-        if isinstance(instance.runner, TankWorldAdapter):
-            await _handle_websocket_for_adapter(websocket, instance.runner, world_id)
-            return
+    adapter = world_manager.get_broadcast_adapter(world_id)
+    if adapter is None:
+        try:
+            await websocket.accept()
+            await websocket.send_json({
+                "success": False,
+                "error": f"World type '{instance.world_type}' does not support WebSocket connections."
+            })
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        except Exception:
+            pass
+        return
 
-    # For other world types, we'd need a different handler
-    # Currently only tank worlds support WebSocket connections
-    try:
-        await websocket.accept()
-        await websocket.send_json({
-            "success": False,
-            "error": f"World type '{instance.world_type}' does not support WebSocket connections yet."
-        })
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-    except Exception:
-        pass
+    from backend.broadcast import start_broadcast_for_world
+
+    await start_broadcast_for_world(adapter, world_id=world_id, stream_id="world")
+    await _handle_websocket_for_adapter(websocket, adapter, world_id)
 
 
 def setup_router(

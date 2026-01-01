@@ -1,8 +1,7 @@
 """Unified broadcast system for all world types.
 
 This module provides broadcast functionality for sending real-time updates
-to connected WebSocket clients. It works with both tank worlds (through
-TankWorldAdapter) and other world types (through WorldRunner).
+to connected WebSocket clients using world-aware broadcast adapters.
 
 The broadcast system uses a single loop pattern for all world types,
 with world-type-specific behavior delegated to the adapter/runner.
@@ -19,7 +18,7 @@ from core.config.display import FRAME_RATE
 
 if TYPE_CHECKING:
     from backend.simulation_manager import SimulationManager
-    from backend.tank_world_adapter import TankWorldAdapter
+    from backend.world_broadcast_adapter import WorldBroadcastAdapter
 
 logger = logging.getLogger("backend.broadcast")
 
@@ -64,26 +63,30 @@ def _env_flag(name: str) -> bool:
 
 
 # =============================================================================
-# Unified broadcast for TankWorldAdapter (works with SimulationManager via adapter)
+# Unified broadcast for world adapters
 # =============================================================================
 
 
 async def broadcast_updates_for_world(
-    adapter: "TankWorldAdapter",
+    adapter: "WorldBroadcastAdapter",
     world_id: Optional[str] = None,
+    stream_id: str = "default",
 ) -> None:
     """Broadcast simulation updates to all clients connected to a world.
 
-    This is the unified broadcast function that works with TankWorldAdapter.
-    It provides the same functionality as the legacy broadcast_updates_for_tank
-    but through the adapter interface.
+    This is the unified broadcast function that works with any broadcast adapter.
 
     Args:
-        adapter: The TankWorldAdapter to broadcast updates for
-        world_id: Optional world ID for logging (defaults to adapter.tank_id)
+        adapter: The broadcast adapter to send updates for
+        world_id: Optional world ID for logging
+        stream_id: Identifier for the broadcast stream (default "default")
     """
-    world_id = world_id or adapter.tank_id
-    logger.info("broadcast_updates[%s]: Task started", world_id[:8])
+    resolved_world_id = world_id or getattr(adapter, "world_id", None) or "unknown"
+    logger.info(
+        "broadcast_updates[%s:%s]: Task started",
+        resolved_world_id[:8],
+        stream_id,
+    )
 
     frame_count = 0
     last_sent_frame = -1
@@ -128,7 +131,7 @@ async def broadcast_updates_for_world(
                 if frame_count % 60 == 0:
                     logger.debug(
                         "broadcast_updates[%s]: Frame %d, clients: %d",
-                        world_id[:8],
+                        resolved_world_id[:8],
                         frame_count,
                         len(clients),
                     )
@@ -140,7 +143,7 @@ async def broadcast_updates_for_world(
                 except Exception as e:
                     logger.error(
                         "broadcast_updates[%s]: Error getting simulation state: %s",
-                        world_id[:8],
+                        resolved_world_id[:8],
                         e,
                         exc_info=True,
                     )
@@ -161,7 +164,7 @@ async def broadcast_updates_for_world(
                 except Exception as e:
                     logger.error(
                         "broadcast_updates[%s]: Error serializing state to JSON: %s",
-                        world_id[:8],
+                        resolved_world_id[:8],
                         e,
                         exc_info=True,
                     )
@@ -213,7 +216,7 @@ async def broadcast_updates_for_world(
 
                     logger.warning(
                         "broadcast_updates[%s]: Error sending to client, marking for removal: %s",
-                        world_id[:8],
+                        resolved_world_id[:8],
                         result,
                     )
                     disconnected.add(client)
@@ -225,7 +228,7 @@ async def broadcast_updates_for_world(
                 if total_ms > 50:
                     logger.warning(
                         "broadcast_updates[%s]: SLOW get=%.0fms ser=%.0fms send=%.0fms (payload: %d bytes, clients: %d)",
-                        world_id[:8],
+                        resolved_world_id[:8],
                         get_ms,
                         serialize_ms,
                         send_ms,
@@ -237,7 +240,7 @@ async def broadcast_updates_for_world(
                     avg_send_ms = send_time_total_ms / send_time_count if send_time_count else 0.0
                     logger.info(
                         "broadcast_updates[%s]: perf avg_send=%.1fms timeouts=%d dropped_frames=%d clients=%d",
-                        world_id[:8],
+                        resolved_world_id[:8],
                         avg_send_ms,
                         timeout_count,
                         dropped_frames,
@@ -252,7 +255,7 @@ async def broadcast_updates_for_world(
                 if disconnected:
                     logger.info(
                         "broadcast_updates[%s]: Removing %d disconnected clients",
-                        world_id[:8],
+                        resolved_world_id[:8],
                         len(disconnected),
                     )
                     for client in disconnected:
@@ -262,12 +265,12 @@ async def broadcast_updates_for_world(
                         close_task.add_done_callback(_handle_task_exception)
 
             except asyncio.CancelledError:
-                logger.info("broadcast_updates[%s]: Task cancelled", world_id[:8])
+                logger.info("broadcast_updates[%s]: Task cancelled", resolved_world_id[:8])
                 raise
             except Exception as e:
                 logger.error(
                     "broadcast_updates[%s]: Unexpected error in main loop: %s",
-                    world_id[:8],
+                    resolved_world_id[:8],
                     e,
                     exc_info=True,
                 )
@@ -277,22 +280,22 @@ async def broadcast_updates_for_world(
             try:
                 await asyncio.sleep(1 / FRAME_RATE)
             except asyncio.CancelledError:
-                logger.info("broadcast_updates[%s]: Task cancelled during sleep", world_id[:8])
+                logger.info("broadcast_updates[%s]: Task cancelled during sleep", resolved_world_id[:8])
                 raise
 
     except asyncio.CancelledError:
-        logger.info("broadcast_updates[%s]: Task cancelled (outer handler)", world_id[:8])
+        logger.info("broadcast_updates[%s]: Task cancelled (outer handler)", resolved_world_id[:8])
         raise
     except Exception as e:
         logger.error(
             "broadcast_updates[%s]: Fatal error, task exiting: %s",
-            world_id[:8],
+            resolved_world_id[:8],
             e,
             exc_info=True,
         )
         raise
     finally:
-        logger.info("broadcast_updates[%s]: Task ended", world_id[:8])
+        logger.info("broadcast_updates[%s]: Task ended", resolved_world_id[:8])
 
 
 # =============================================================================
@@ -320,40 +323,47 @@ async def broadcast_updates_for_tank(manager: "SimulationManager") -> None:
 # Broadcast task management
 # =============================================================================
 
-# Track broadcast tasks per world
-_broadcast_tasks: Dict[str, asyncio.Task] = {}
+# Track broadcast tasks per world/stream
+_broadcast_tasks: Dict[Tuple[str, str], asyncio.Task] = {}
 # Locks to prevent race conditions when creating broadcast tasks
-_broadcast_locks: Dict[str, asyncio.Lock] = {}
+_broadcast_locks: Dict[Tuple[str, str], asyncio.Lock] = {}
 
 
 async def start_broadcast_for_world(
-    adapter: "TankWorldAdapter",
+    adapter: "WorldBroadcastAdapter",
     world_id: Optional[str] = None,
+    stream_id: str = "default",
 ) -> asyncio.Task:
     """Start a broadcast task for a world.
 
     Args:
-        adapter: The TankWorldAdapter to broadcast for
-        world_id: Optional world ID (defaults to adapter.tank_id)
+        adapter: The broadcast adapter to send updates for
+        world_id: Optional world ID
+        stream_id: Identifier for the broadcast stream (default "default")
 
     Returns:
         The asyncio Task for the broadcast loop
     """
-    world_id = world_id or adapter.tank_id
+    resolved_world_id = world_id or getattr(adapter, "world_id", None) or "unknown"
+    key = (resolved_world_id, stream_id)
 
-    if world_id not in _broadcast_locks:
-        _broadcast_locks[world_id] = asyncio.Lock()
+    if key not in _broadcast_locks:
+        _broadcast_locks[key] = asyncio.Lock()
 
-    async with _broadcast_locks[world_id]:
-        if world_id in _broadcast_tasks and not _broadcast_tasks[world_id].done():
-            return _broadcast_tasks[world_id]
+    async with _broadcast_locks[key]:
+        if key in _broadcast_tasks and not _broadcast_tasks[key].done():
+            return _broadcast_tasks[key]
 
         task = asyncio.create_task(
-            broadcast_updates_for_world(adapter, world_id=world_id),
-            name=f"broadcast_{world_id[:8]}",
+            broadcast_updates_for_world(
+                adapter,
+                world_id=resolved_world_id,
+                stream_id=stream_id,
+            ),
+            name=f"broadcast_{resolved_world_id[:8]}_{stream_id}",
         )
         task.add_done_callback(_handle_task_exception)
-        _broadcast_tasks[world_id] = task
+        _broadcast_tasks[key] = task
         return task
 
 
@@ -374,17 +384,24 @@ async def start_broadcast_for_tank(manager: "SimulationManager") -> asyncio.Task
     return await start_broadcast_for_world(adapter, world_id=manager.tank_id)
 
 
-async def stop_broadcast_for_world(world_id: str) -> None:
+async def stop_broadcast_for_world(world_id: str, stream_id: Optional[str] = None) -> None:
     """Stop the broadcast task for a world.
 
     Args:
         world_id: The world ID to stop broadcasting for
+        stream_id: Optional stream ID (stops all streams if omitted)
     """
-    task = _broadcast_tasks.pop(world_id, None)
-    if task:
-        task.cancel()
-        with suppress(asyncio.CancelledError):
-            await task
+    if stream_id is None:
+        keys = [key for key in _broadcast_tasks if key[0] == world_id]
+    else:
+        keys = [(world_id, stream_id)]
+
+    for key in keys:
+        task = _broadcast_tasks.pop(key, None)
+        if task:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
 
 
 async def stop_broadcast_for_tank(tank_id: str) -> None:
@@ -398,16 +415,23 @@ async def stop_broadcast_for_tank(tank_id: str) -> None:
     await stop_broadcast_for_world(tank_id)
 
 
-def get_broadcast_task(world_id: str) -> Optional[asyncio.Task]:
+def get_broadcast_task(world_id: str, stream_id: Optional[str] = None) -> Optional[asyncio.Task]:
     """Get the broadcast task for a world if it exists.
 
     Args:
         world_id: The world ID
+        stream_id: Optional stream ID
 
     Returns:
         The broadcast task if exists and running, None otherwise
     """
-    task = _broadcast_tasks.get(world_id)
+    if stream_id is None:
+        for key, task in _broadcast_tasks.items():
+            if key[0] == world_id and not task.done():
+                return task
+        return None
+
+    task = _broadcast_tasks.get((world_id, stream_id))
     if task and not task.done():
         return task
     return None

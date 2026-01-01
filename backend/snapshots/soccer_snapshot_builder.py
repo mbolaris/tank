@@ -8,83 +8,60 @@ from backend.state_payloads import EntitySnapshot
 
 
 class SoccerSnapshotBuilder:
-    """Snapshot builder that converts soccer entities to EntitySnapshot DTOs.
-    
-    This builder handles:
-    - Ball: converted to a simple circle entity
-    - Players: converted to positioned entities with team color hints
-    """
+    """Snapshot builder that converts soccer snapshots to EntitySnapshot DTOs."""
+
+    def __init__(self) -> None:
+        self._entity_ids: dict[str, int] = {}
+        self._next_id = 1
 
     def collect(self, live_entities: Iterable[Any]) -> List[EntitySnapshot]:
-        """Collect and sort snapshots for all live entities.
-        
-        For soccer, entities come from the step result snapshot, not a raw list.
-        This method is provided for interface compatibility.
-        """
-        # Soccer doesn't use this method - entities come from build()
+        # Soccer snapshot data comes from build(), not live entity lists.
+        _ = live_entities
         return []
 
     def to_snapshot(self, entity: Any) -> Optional[EntitySnapshot]:
-        """Convert a single entity dict to an EntitySnapshot.
-        
-        Args:
-            entity: Dict with entity data (player or ball)
-            
-        Returns:
-            EntitySnapshot if conversion successful
-        """
         if not isinstance(entity, dict):
             return None
-            
+
         entity_type = entity.get("type", "unknown")
-        entity_id = entity.get("id", "unknown")
-        
+        entity_id = entity.get("id", entity_type)
+        stable_id = self._get_stable_id(f"{entity_type}:{entity_id}")
+        radius = entity.get("radius", 0.3)
         return EntitySnapshot(
-            id=entity_id,
+            id=stable_id,
             type=entity_type,
             x=entity.get("x", 0.0),
             y=entity.get("y", 0.0),
-            width=entity.get("radius", 0.3) * 2,
-            height=entity.get("radius", 0.3) * 2,
-            rotation=entity.get("facing_angle", 0.0),
-            z_order=1 if entity_type == "ball" else 0,
+            width=radius * 2,
+            height=radius * 2,
+            vel_x=entity.get("vx", 0.0),
+            vel_y=entity.get("vy", 0.0),
             render_hint={
                 "style": "soccer",
                 "sprite": entity_type,
                 "team": entity.get("team"),
                 "stamina": entity.get("stamina"),
+                "facing_angle": entity.get("facing", entity.get("facing_angle", 0.0)),
             },
         )
 
-    def build(
-        self,
-        step_result: Any,
-        world: Any,
-    ) -> List[EntitySnapshot]:
-        """Build entity snapshots from a StepResult.
-        
-        Args:
-            step_result: The result from world.reset() or world.step()
-            world: The world backend (SoccerWorldBackendAdapter)
-            
-        Returns:
-            List of EntitySnapshot DTOs sorted by z-order for rendering
-        """
+    def build(self, step_result: Any, world: Any) -> List[EntitySnapshot]:
+        _ = world
         snapshots: List[EntitySnapshot] = []
-        snapshot_data = step_result.snapshot
-        
-        # Convert ball
+        snapshot_data = getattr(step_result, "snapshot", {}) or {}
+
         ball_data = snapshot_data.get("ball")
         if ball_data:
+            radius = ball_data.get("radius", 0.2)
             ball_snapshot = EntitySnapshot(
-                id="ball",
+                id=self._get_stable_id("ball"),
                 type="ball",
                 x=ball_data.get("x", 0.0),
                 y=ball_data.get("y", 0.0),
-                width=ball_data.get("radius", 0.2) * 2,
-                height=ball_data.get("radius", 0.2) * 2,
-                rotation=0.0,
-                z_order=10,  # Ball on top
+                width=radius * 2,
+                height=radius * 2,
+                vel_x=ball_data.get("vx", 0.0),
+                vel_y=ball_data.get("vy", 0.0),
                 render_hint={
                     "style": "soccer",
                     "sprite": "ball",
@@ -93,30 +70,45 @@ class SoccerSnapshotBuilder:
                 },
             )
             snapshots.append(ball_snapshot)
-        
-        # Convert players
+
         players_data = snapshot_data.get("players", [])
         for player_data in players_data:
+            player_id = player_data.get("id", "player")
+            radius = player_data.get("radius", 0.3)
+            facing_angle = player_data.get("facing", player_data.get("facing_angle", 0.0))
+            stamina = player_data.get("stamina")
+            energy = player_data.get("energy")
+
             player_snapshot = EntitySnapshot(
-                id=player_data.get("id", "unknown"),
+                id=self._get_stable_id(f"player:{player_id}"),
                 type="player",
                 x=player_data.get("x", 0.0),
                 y=player_data.get("y", 0.0),
-                width=player_data.get("radius", 0.3) * 2,
-                height=player_data.get("radius", 0.3) * 2,
-                rotation=player_data.get("facing_angle", 0.0),
-                z_order=5,
+                width=radius * 2,
+                height=radius * 2,
+                vel_x=player_data.get("vx", 0.0),
+                vel_y=player_data.get("vy", 0.0),
+                energy=energy if energy is not None else stamina,
                 render_hint={
                     "style": "soccer",
                     "sprite": "player",
                     "team": player_data.get("team"),
                     "jersey_number": player_data.get("jersey_number", 1),
-                    "stamina": player_data.get("stamina", 100.0),
+                    "stamina": stamina,
+                    "facing_angle": facing_angle,
                     "has_ball": player_data.get("has_ball", False),
                 },
             )
             snapshots.append(player_snapshot)
-        
-        # Sort by z_order
-        snapshots.sort(key=lambda s: s.z_order)
+
+        z_order = {"player": 5, "ball": 10}
+        snapshots.sort(key=lambda s: z_order.get(s.type, 0))
         return snapshots
+
+    def _get_stable_id(self, key: str) -> int:
+        stable = self._entity_ids.get(key)
+        if stable is None:
+            stable = self._next_id
+            self._next_id += 1
+            self._entity_ids[key] = stable
+        return stable

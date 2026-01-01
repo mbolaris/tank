@@ -76,6 +76,11 @@ class TankWorldAdapter:
         return self._manager.tank_id
 
     @property
+    def world_id(self) -> str:
+        """Get the world ID (alias for tank ID)."""
+        return self._manager.tank_id
+
+    @property
     def tank_info(self) -> Any:
         """Get the TankInfo for this tank."""
         return self._manager.tank_info
