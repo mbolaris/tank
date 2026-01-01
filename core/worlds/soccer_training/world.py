@@ -10,7 +10,7 @@ import logging
 import math
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from core.code_pool import CodePool
 from core.entities.base import LifeStage
@@ -113,7 +113,7 @@ class FieldBounds:
     def y_max(self) -> float:
         return self.height / 2.0
 
-    def is_goal(self, position: Vector2) -> Optional[TeamID]:
+    def is_goal(self, position: Vector2) -> TeamID | None:
         goal_half = self.goal_width / 2.0
         if position.x < self.x_min and abs(position.y) <= goal_half:
             return RIGHT_TEAM
@@ -127,9 +127,9 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
 
     def __init__(
         self,
-        seed: Optional[int] = None,
-        config: Optional[SoccerTrainingConfig] = None,
-        code_pool: Optional[CodePool] = None,
+        seed: int | None = None,
+        config: SoccerTrainingConfig | None = None,
+        code_pool: CodePool | None = None,
         **config_overrides: Any,
     ) -> None:
         self._seed = seed
@@ -139,20 +139,20 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self._config.validate()
 
         self._rng = random.Random(seed)
-        self._players: Dict[PlayerID, SoccerPlayer] = {}
-        self._ball: Optional[SoccerBall] = None
-        self._field: Optional[FieldBounds] = None
+        self._players: dict[PlayerID, SoccerPlayer] = {}
+        self._ball: SoccerBall | None = None
+        self._field: FieldBounds | None = None
         self._frame = 0
         self._score = {LEFT_TEAM: 0, RIGHT_TEAM: 0}
-        self._recent_events: List[Dict[str, Any]] = []
-        self._last_touch: Optional[Tuple[PlayerID, TeamID, int]] = None
-        self._prev_touch: Optional[Tuple[PlayerID, TeamID, int]] = None
+        self._recent_events: list[dict[str, Any]] = []
+        self._last_touch: tuple[PlayerID, TeamID, int] | None = None
+        self._prev_touch: tuple[PlayerID, TeamID, int] | None = None
 
         self.code_pool = code_pool
         self.supports_fast_step = True
 
     def reset(
-        self, seed: Optional[int] = None, config: Optional[Dict[str, Any]] = None
+        self, seed: int | None = None, config: dict[str, Any] | None = None
     ) -> StepResult:
         reset_seed = seed if seed is not None else self._seed
         self._rng = random.Random(reset_seed)
@@ -188,7 +188,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             info={"frame": self._frame, "seed": reset_seed},
         )
 
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> StepResult:
         fast_step = bool(actions_by_agent and actions_by_agent.get(FAST_STEP_ACTION))
         self._recent_events = []
 
@@ -224,10 +224,10 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             info={"frame": self._frame},
         )
 
-    def get_current_snapshot(self) -> Dict[str, Any]:
+    def get_current_snapshot(self) -> dict[str, Any]:
         return self._build_snapshot()
 
-    def get_current_metrics(self) -> Dict[str, Any]:
+    def get_current_metrics(self) -> dict[str, Any]:
         return {
             "frame": self._frame,
             "score_left": self._score[LEFT_TEAM],
@@ -236,8 +236,8 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             "ball_speed": self._ball.velocity.length() if self._ball else 0.0,
         }
 
-    def get_fitness_summary(self) -> Dict[str, Any]:
-        per_agent: Dict[str, Any] = {}
+    def get_fitness_summary(self) -> dict[str, Any]:
+        per_agent: dict[str, Any] = {}
         for player_id, player in self._players.items():
             per_agent[player_id] = {
                 "team": player.team,
@@ -267,8 +267,8 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             player.genome.behavioral.code_policy_kind = GeneticTrait(SOCCER_POLICY_KIND)
             player.genome.behavioral.code_policy_component_id = GeneticTrait(component_id)
 
-    def _spawn_players(self) -> Dict[PlayerID, SoccerPlayer]:
-        players: Dict[PlayerID, SoccerPlayer] = {}
+    def _spawn_players(self) -> dict[PlayerID, SoccerPlayer]:
+        players: dict[PlayerID, SoccerPlayer] = {}
         if self._field is None:
             return players
 
@@ -295,7 +295,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
                 )
         return players
 
-    def _evenly_spaced_positions(self, count: int) -> List[float]:
+    def _evenly_spaced_positions(self, count: int) -> list[float]:
         if self._field is None or count <= 0:
             return []
         usable_height = self._field.height * 0.8
@@ -303,8 +303,8 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         spacing = usable_height / max(1, count)
         return [start + spacing * (i + 0.5) for i in range(count)]
 
-    def _actions_from_policies(self) -> Dict[str, Any]:
-        actions: Dict[str, Any] = {}
+    def _actions_from_policies(self) -> dict[str, Any]:
+        actions: dict[str, Any] = {}
         for player_id, player in self._players.items():
             action = self._action_from_policy(player)
             actions[player_id] = action.to_dict()
@@ -346,7 +346,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         kick = 1.0 if to_ball.length() <= self._config.kick_range else 0.0
         return SoccerAction(turn=turn_command, dash=dash, kick_power=kick, kick_angle=0.0)
 
-    def _coerce_action(self, output: Any, player: SoccerPlayer) -> Optional[SoccerAction]:
+    def _coerce_action(self, output: Any, player: SoccerPlayer) -> SoccerAction | None:
         if isinstance(output, SoccerAction):
             return output
         if LegacySoccerAction is not None and isinstance(output, LegacySoccerAction):
@@ -394,7 +394,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             kick_angle=legacy_action.kick_angle,
         )
 
-    def _process_actions(self, actions_by_agent: Dict[str, Any]) -> None:
+    def _process_actions(self, actions_by_agent: dict[str, Any]) -> None:
         if self._ball is None:
             return
 
@@ -568,7 +568,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
                 player.velocity.update(0.0, 0.0)
                 player.facing_angle = 0.0 if team == LEFT_TEAM else math.pi
 
-    def _kickoff_positions(self, team: TeamID) -> List[Vector2]:
+    def _kickoff_positions(self, team: TeamID) -> list[Vector2]:
         if self._field is None:
             return []
         x_pos = -self._field.width / 4.0 if team == LEFT_TEAM else self._field.width / 4.0
@@ -593,13 +593,13 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             if delta > 0:
                 closest.stats.energy_gained += delta
 
-    def _build_observations(self) -> Dict[PlayerID, Dict[str, Any]]:
-        observations: Dict[PlayerID, Dict[str, Any]] = {}
+    def _build_observations(self) -> dict[PlayerID, dict[str, Any]]:
+        observations: dict[PlayerID, dict[str, Any]] = {}
         for player_id, player in self._players.items():
             observations[player_id] = self._build_observation(player)
         return observations
 
-    def _build_observation(self, player: SoccerPlayer) -> Dict[str, Any]:
+    def _build_observation(self, player: SoccerPlayer) -> dict[str, Any]:
         ball = self._ball
         if ball is None:
             ball_rel_pos = Vector2(0.0, 0.0)
@@ -626,7 +626,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         }
         return observation
 
-    def _nearest_player(self, player: SoccerPlayer, *, same_team: bool) -> Optional[Dict[str, Any]]:
+    def _nearest_player(self, player: SoccerPlayer, *, same_team: bool) -> dict[str, Any] | None:
         closest = None
         closest_dist_sq = float("inf")
         for other in self._players.values():
@@ -672,7 +672,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             player.position.y = max_y
             player.velocity.y = -abs(player.velocity.y)
 
-    def _build_snapshot(self) -> Dict[str, Any]:
+    def _build_snapshot(self) -> dict[str, Any]:
         if self._ball is None or self._field is None:
             return {}
         return {
