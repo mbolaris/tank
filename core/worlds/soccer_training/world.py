@@ -151,9 +151,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self.code_pool = code_pool
         self.supports_fast_step = True
 
-    def reset(
-        self, seed: int | None = None, config: dict[str, Any] | None = None
-    ) -> StepResult:
+    def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
         reset_seed = seed if seed is not None else self._seed
         self._rng = random.Random(reset_seed)
 
