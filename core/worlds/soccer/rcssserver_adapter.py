@@ -1,93 +1,122 @@
-"""RoboCup Soccer Simulator (rcssserver) adapter stub.
+"""RoboCup Soccer Simulator (rcssserver) adapter with testable socket abstraction.
 
-This module provides a documented interface for future integration with rcssserver.
-The rcssserver is a real-time UDP-based soccer simulator used in RoboCup competitions.
+This module provides an adapter for connecting to rcssserver with clean separation of:
+- Transport layer (UDP sockets with dependency injection for testing)
+- Protocol layer (message parsing and command building)
+- Policy layer (action decision making)
 
-IMPORTANT: This is currently a STUB for documentation purposes only.
-The actual implementation will be added when rcssserver integration is needed.
+The adapter can run in two modes:
+1. Fake socket mode (for testing without server)
+2. Real socket mode (for actual rcssserver connection)
 
 References:
 - RoboCup Soccer Simulator: https://github.com/rcsoccersim/rcssserver
 - Default server port: UDP 6000
 - Protocol: text-based commands over UDP
-
-Integration Architecture:
---------------------------
-
-The SoccerTrainingWorld (pure Python) is used for:
-- Fast evolution of policies
-- Headless training at scale
-- Deterministic replay and testing
-
-The RCSSServerAdapter will be used for:
-- Evaluation of trained policies
-- Testing against other teams
-- Official RoboCup competition scenarios
-
-Translation Strategy:
---------------------
-
-SoccerAction (high-level) -> rcssserver commands (low-level):
-
-1. move_target: Vector2D -> (dash power angle)
-   - Calculate desired heading and speed
-   - Convert to dash command with power and direction
-
-2. face_angle: float -> (turn angle)
-   - Calculate angle delta from current facing
-   - Send turn command
-
-3. kick_power/kick_angle -> (kick power direction)
-   - Map normalized kick_power [0,1] to rcssserver power [0,100]
-   - Convert kick_angle to absolute direction
-
-rcssserver observations -> SoccerObservation:
-- Parse visual/sensory messages
-- Estimate positions from noisy/partial info
-- Build consistent observation structure
-
-
-Protocol Overview:
------------------
-
-Client Connection:
-    1. Client sends: (init TeamName (version 15))
-    2. Server responds with player ID and assigned port
-    3. Client switches to assigned port for game communication
-
-Game Loop (each timestep):
-    1. Server sends sense_body and see messages (visual input)
-    2. Client processes observations
-    3. Client sends actions: (dash power), (turn angle), (kick power dir)
-    4. Server updates simulation and sends next observations
-
-Command Format Examples:
-    (init LeftTeam (version 15))
-    (dash 100)              # Dash forward at 100% power
-    (turn 45)               # Turn 45 degrees
-    (kick 80 0)             # Kick at 80% power, 0 degrees
-    (say "Hello")           # Communication between players
 """
 
-from typing import Any, Dict, Optional, Tuple
+import logging
+from typing import Any, Callable, Dict, List, Optional, Protocol
 
-from core.policies.soccer_interfaces import SoccerAction, SoccerObservation
+from core.policies.soccer_interfaces import (
+    BallState,
+    PlayerID,
+    PlayerState,
+    SoccerAction,
+    SoccerObservation,
+    TeamID,
+    Vector2D,
+)
 from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
 from core.worlds.soccer.config import SoccerWorldConfig
+from core.worlds.soccer.rcss_protocol import (
+    SeeInfo,
+    SenseBodyInfo,
+    action_to_commands,
+    build_init_command,
+    estimate_position_from_polar,
+    parse_see_message,
+    parse_sense_body_message,
+)
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Socket abstraction for dependency injection
+# ============================================================================
+
+
+class SocketInterface(Protocol):
+    """Protocol for socket communication (allows fake sockets for testing)."""
+
+    def send(self, data: str, addr: tuple[str, int]) -> None:
+        """Send data to address."""
+        ...
+
+    def recv(self, bufsize: int) -> tuple[str, tuple[str, int]]:
+        """Receive data from socket."""
+        ...
+
+    def close(self) -> None:
+        """Close the socket."""
+        ...
+
+
+class FakeSocket:
+    """Fake socket implementation for testing without server.
+
+    This allows testing the adapter logic without requiring rcssserver.
+    It stores sent commands and can be configured to return canned responses.
+    """
+
+    def __init__(self):
+        """Initialize fake socket."""
+        self.sent_commands: List[str] = []
+        self.response_queue: List[str] = []
+        self.closed = False
+
+    def send(self, data: str, addr: tuple[str, int]) -> None:
+        """Store sent command."""
+        if self.closed:
+            raise RuntimeError("Socket is closed")
+        self.sent_commands.append(data)
+        logger.debug(f"FakeSocket.send: {data} to {addr}")
+
+    def recv(self, bufsize: int) -> tuple[str, tuple[str, int]]:
+        """Return next queued response or empty string."""
+        if self.closed:
+            raise RuntimeError("Socket is closed")
+
+        if self.response_queue:
+            response = self.response_queue.pop(0)
+            return (response, ("localhost", 6000))
+        return ("", ("localhost", 6000))
+
+    def close(self) -> None:
+        """Mark socket as closed."""
+        self.closed = True
+        logger.debug("FakeSocket closed")
+
+    def queue_response(self, response: str) -> None:
+        """Queue a response to be returned by recv()."""
+        self.response_queue.append(response)
+
+
+# ============================================================================
+# RCSSServer Adapter
+# ============================================================================
 
 
 class RCSSServerAdapter(MultiAgentWorldBackend):
-    """STUB: Adapter for RoboCup Soccer Simulator (rcssserver).
+    """Adapter for RoboCup Soccer Simulator (rcssserver) with testable design.
 
-    This class is currently a placeholder for future implementation.
-    It documents the intended interface for connecting to a real rcssserver instance.
+    This adapter provides clean separation of concerns:
+    - Transport: UDP socket communication (real or fake)
+    - Protocol: Message parsing and command building
+    - Policy: Action decision making (delegated to external policies)
 
-    When implemented, this adapter will:
-    - Manage UDP connections to rcssserver (default port 6000)
-    - Handle player initialization and port assignment
-    - Translate SoccerAction to rcssserver commands
-    - Parse rcssserver messages into SoccerObservation
-    - Synchronize with server timesteps (default 100ms per cycle)
+    The adapter can be tested without rcssserver by using FakeSocket.
 
     Args:
         server_host: rcssserver hostname (default: localhost)
@@ -95,17 +124,23 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         team_name: Name of the team
         num_players: Number of players to connect (1-11)
         config: Soccer world configuration (for compatibility)
+        socket_factory: Factory function to create socket (default: FakeSocket)
 
-    Example (future):
+    Example (testing mode):
         >>> adapter = RCSSServerAdapter(
-        ...     server_host="localhost",
-        ...     server_port=6000,
-        ...     team_name="EvolvedTeam",
-        ...     num_players=11
+        ...     team_name="TestTeam",
+        ...     num_players=1,
+        ...     socket_factory=FakeSocket
         ... )
         >>> result = adapter.reset()
-        >>> # Train policies in SoccerTrainingWorld
-        >>> # Evaluate here with real rcssserver
+        >>> # Adapter is ready but not connected to real server
+
+    Example (real server mode - future):
+        >>> adapter = RCSSServerAdapter(
+        ...     team_name="MyTeam",
+        ...     num_players=11,
+        ...     socket_factory=RealSocket  # Not implemented yet
+        ... )
     """
 
     def __init__(
@@ -115,9 +150,10 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         team_name: str = "TankTeam",
         num_players: int = 11,
         config: Optional[SoccerWorldConfig] = None,
+        socket_factory: Callable[[], SocketInterface] = FakeSocket,
         **kwargs,
     ):
-        """Initialize rcssserver adapter (STUB - not implemented).
+        """Initialize rcssserver adapter.
 
         Args:
             server_host: Hostname of rcssserver
@@ -125,6 +161,7 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
             team_name: Team name for initialization
             num_players: Number of players to spawn
             config: Configuration (for compatibility with training world)
+            socket_factory: Factory to create socket (FakeSocket or RealSocket)
             **kwargs: Additional config overrides
         """
         self.server_host = server_host
@@ -132,125 +169,274 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         self.team_name = team_name
         self.num_players = num_players
         self.config = config or SoccerWorldConfig(**kwargs)
+        self.socket_factory = socket_factory
 
-        # Future: UDP socket connections
-        # self._sockets: Dict[PlayerID, socket.socket] = {}
-        # self._player_ports: Dict[PlayerID, int] = {}
+        # Transport layer
+        self._socket: Optional[SocketInterface] = None
 
-        raise NotImplementedError(
-            "RCSSServerAdapter is not yet implemented. "
-            "Use SoccerWorldBackendAdapter for training instead. "
-            "See module docstring for integration architecture."
+        # Game state
+        self._frame = 0
+        self._player_states: Dict[PlayerID, PlayerState] = {}
+        self._ball_state: Optional[BallState] = None
+        self._play_mode = "before_kick_off"
+        self._last_see_info: Dict[PlayerID, Optional[SeeInfo]] = {}
+        self._last_sense_info: Dict[PlayerID, Optional[SenseBodyInfo]] = {}
+
+        # Protocol support
+        self.supports_fast_step = False  # rcssserver doesn't support fast step
+
+        logger.info(
+            f"RCSSServerAdapter initialized: team={team_name}, "
+            f"players={num_players}, socket={socket_factory.__name__}"
         )
 
     def reset(
         self, seed: Optional[int] = None, config: Optional[Dict[str, Any]] = None
     ) -> StepResult:
-        """Reset by connecting to rcssserver and initializing players.
+        """Reset by initializing connection state.
 
-        Future implementation will:
-        1. Connect to rcssserver via UDP
-        2. Send (init TeamName) for each player
-        3. Parse server responses to get assigned ports
-        4. Wait for kickoff signal
-        5. Return initial observations
+        In fake socket mode: Just resets internal state
+        In real socket mode (future): Connects to server and initializes players
 
-        Raises:
-            NotImplementedError: This is a stub
+        Args:
+            seed: Random seed (not used in rcssserver mode)
+            config: Soccer-specific configuration overrides
+
+        Returns:
+            StepResult with initial observations and snapshot
         """
-        raise NotImplementedError("rcssserver integration not yet implemented")
+        # Create socket
+        self._socket = self.socket_factory()
+
+        # Reset state
+        self._frame = 0
+        self._player_states = {}
+        self._ball_state = BallState(position=Vector2D(0.0, 0.0), velocity=Vector2D(0.0, 0.0))
+        self._play_mode = "before_kick_off"
+        self._last_see_info = {}
+        self._last_sense_info = {}
+
+        # Initialize player states (placeholder positions)
+        for i in range(self.num_players):
+            player_id = f"left_{i + 1}"
+            self._player_states[player_id] = PlayerState(
+                player_id=player_id,
+                team="left",
+                position=Vector2D(-20.0 + i * 5, 0.0),
+                velocity=Vector2D(0.0, 0.0),
+                stamina=1.0,
+                facing_angle=0.0,
+            )
+            self._last_see_info[player_id] = None
+            self._last_sense_info[player_id] = None
+
+        # In real mode, would send init commands here
+        if isinstance(self._socket, FakeSocket):
+            logger.debug("Fake socket mode: skipping server initialization")
+        else:
+            # Future: Send init commands to server
+            for i in range(self.num_players):
+                init_cmd = build_init_command(self.team_name, version=15)
+                self._socket.send(init_cmd, (self.server_host, self.server_port))
+
+        logger.info(f"RCSSServerAdapter reset complete: {self.num_players} players")
+
+        return StepResult(
+            obs_by_agent=self._build_observations(),
+            snapshot=self._build_snapshot(),
+            events=[],
+            metrics=self.get_current_metrics(),
+            done=False,
+            info={"frame": self._frame, "mode": "rcssserver"},
+        )
 
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
         """Execute one simulation step by communicating with rcssserver.
 
-        Future implementation will:
-        1. Parse latest see/sense_body messages from server
-        2. Translate SoccerAction to rcssserver commands
-        3. Send commands via UDP
-        4. Wait for next server update
-        5. Return new observations
+        In fake socket mode: Processes actions and updates internal state
+        In real socket mode (future): Sends commands and receives observations
 
-        Raises:
-            NotImplementedError: This is a stub
+        Args:
+            actions_by_agent: Dict mapping player_id to action dict
+
+        Returns:
+            StepResult with observations, events, metrics, and done flag
         """
-        raise NotImplementedError("rcssserver integration not yet implemented")
+        # Process actions and send commands
+        if actions_by_agent:
+            self._process_actions(actions_by_agent)
+
+        # In real mode, would receive and parse server messages here
+        if isinstance(self._socket, FakeSocket):
+            # Fake mode: simulate minimal updates
+            self._simulate_fake_step()
+        else:
+            # Future: Receive see/sense_body messages and parse them
+            self._receive_and_parse_messages()
+
+        # Increment frame
+        self._frame += 1
+
+        # Build result
+        return StepResult(
+            obs_by_agent=self._build_observations(),
+            snapshot=self._build_snapshot(),
+            events=[],
+            metrics=self.get_current_metrics(),
+            done=False,
+            info={"frame": self._frame},
+        )
 
     def get_current_snapshot(self) -> Dict[str, Any]:
-        """Get current game state snapshot.
-
-        Raises:
-            NotImplementedError: This is a stub
-        """
-        raise NotImplementedError("rcssserver integration not yet implemented")
+        """Get current world state for rendering."""
+        return self._build_snapshot()
 
     def get_current_metrics(self) -> Dict[str, Any]:
-        """Get current metrics from rcssserver.
+        """Get current simulation metrics."""
+        return {
+            "frame": self._frame,
+            "num_players": len(self._player_states),
+            "play_mode": self._play_mode,
+            "mode": "rcssserver",
+        }
 
-        Raises:
-            NotImplementedError: This is a stub
-        """
-        raise NotImplementedError("rcssserver integration not yet implemented")
+    # =========================================================================
+    # Internal methods
+    # =========================================================================
 
-    # Future: Helper methods for protocol translation
+    def _process_actions(self, actions_by_agent: Dict[str, Any]) -> None:
+        """Process actions from agents and send commands to server."""
+        for player_id, action_data in actions_by_agent.items():
+            if player_id not in self._player_states:
+                continue
 
-    def _action_to_commands(self, action: SoccerAction) -> list[str]:
-        """Translate SoccerAction to rcssserver command strings.
+            player_state = self._player_states[player_id]
 
-        Example:
-            action = SoccerAction(
-                move_target=Vector2D(10, 5),
-                kick_power=0.8
+            # Parse action
+            try:
+                action = SoccerAction.from_dict(action_data)
+            except Exception as e:
+                logger.warning(f"Invalid action for {player_id}: {e}")
+                continue
+
+            # Translate to commands
+            commands = action_to_commands(action, player_state)
+
+            # Send commands
+            for cmd in commands:
+                if self._socket:
+                    self._socket.send(cmd, (self.server_host, self.server_port))
+                    logger.debug(f"Sent command for {player_id}: {cmd}")
+
+    def _simulate_fake_step(self) -> None:
+        """Simulate a minimal step in fake socket mode (for testing)."""
+        # In fake mode, just maintain current state
+        # Real implementation would parse server messages
+        pass
+
+    def _receive_and_parse_messages(self) -> None:
+        """Receive and parse messages from rcssserver (future implementation)."""
+        # Future: Receive see/sense_body messages
+        # Parse them using rcss_protocol functions
+        # Update _player_states and _ball_state
+        if not self._socket:
+            return
+
+        # Example structure (not implemented):
+        # msg, addr = self._socket.recv(8192)
+        # if msg.startswith("(see"):
+        #     see_info = parse_see_message(msg)
+        #     # Update state based on see_info
+        # elif msg.startswith("(sense_body"):
+        #     sense_info = parse_sense_body_message(msg)
+        #     # Update state based on sense_info
+        pass
+
+    def _build_observations(self) -> Dict[PlayerID, Dict[str, Any]]:
+        """Build observations for all players."""
+        observations = {}
+
+        for player_id, player_state in self._player_states.items():
+            # Get teammates and opponents
+            teammates = [
+                p
+                for pid, p in self._player_states.items()
+                if p.team == player_state.team and pid != player_id
+            ]
+            opponents = [p for p in self._player_states.values() if p.team != player_state.team]
+
+            # Build observation
+            obs = SoccerObservation(
+                self_state=player_state,
+                ball=self._ball_state,
+                teammates=teammates,
+                opponents=opponents,
+                game_time=self._frame / 10.0,  # rcssserver runs at 10 Hz
+                play_mode=self._play_mode,
+                field_bounds=(105.0, 68.0),  # Standard field size
             )
-            -> ["(dash 90 45)", "(kick 80 0)"]
 
-        Raises:
-            NotImplementedError: This is a stub
-        """
-        raise NotImplementedError("Protocol translation not yet implemented")
+            observations[player_id] = obs.to_dict()
 
-    def _parse_observation(self, see_msg: str, sense_msg: str) -> SoccerObservation:
-        """Parse rcssserver messages into SoccerObservation.
+        return observations
 
-        Example:
-            see_msg = "(see 0 ((ball) 5 10) ((player left 2) 3 45) ...)"
-            sense_msg = "(sense_body 0 (view_mode high normal) ...)"
-            -> SoccerObservation with estimated positions
+    def _build_snapshot(self) -> Dict[str, Any]:
+        """Build snapshot for rendering/persistence."""
+        return {
+            "frame": self._frame,
+            "ball": {
+                "x": self._ball_state.position.x if self._ball_state else 0.0,
+                "y": self._ball_state.position.y if self._ball_state else 0.0,
+                "vx": self._ball_state.velocity.x if self._ball_state else 0.0,
+                "vy": self._ball_state.velocity.y if self._ball_state else 0.0,
+            },
+            "players": [
+                {
+                    "id": player.player_id,
+                    "team": player.team,
+                    "x": player.position.x,
+                    "y": player.position.y,
+                    "vx": player.velocity.x,
+                    "vy": player.velocity.y,
+                    "facing": player.facing_angle,
+                    "stamina": player.stamina,
+                }
+                for player in self._player_states.values()
+            ],
+            "field": {
+                "width": 105.0,
+                "height": 68.0,
+                "goal_width": 7.32,
+            },
+            "play_mode": self._play_mode,
+        }
 
-        Raises:
-            NotImplementedError: This is a stub
-        """
-        raise NotImplementedError("Message parsing not yet implemented")
+    # =========================================================================
+    # Protocol methods for world-agnostic backend support
+    # =========================================================================
 
+    @property
+    def is_paused(self) -> bool:
+        """Whether the simulation is paused (protocol method)."""
+        return False
 
-# Future: Utility functions for rcssserver protocol
+    def set_paused(self, value: bool) -> None:
+        """Set the simulation paused state (protocol method)."""
+        pass  # rcssserver doesn't support pausing
 
+    def get_entities_for_snapshot(self) -> List[Any]:
+        """Get entities for snapshot building (protocol method)."""
+        return []  # Soccer uses different rendering model
 
-def parse_init_response(response: str) -> Tuple[str, int]:
-    """Parse server response to init command.
+    def capture_state_for_save(self) -> Dict[str, Any]:
+        """Capture complete world state for persistence (protocol method)."""
+        return {}  # rcssserver matches are ephemeral
 
-    Example:
-        "(init l 2 before_kick_off)" -> ("l", 2)
+    def restore_state_from_save(self, state: Dict[str, Any]) -> None:
+        """Restore world state from a saved snapshot (protocol method)."""
+        pass  # rcssserver matches are ephemeral
 
-    Returns:
-        (side, uniform_number) tuple
-
-    Raises:
-        NotImplementedError: This is a stub
-    """
-    raise NotImplementedError("Protocol parsing not yet implemented")
-
-
-def build_init_command(team_name: str, version: int = 15) -> str:
-    """Build initialization command for rcssserver.
-
-    Args:
-        team_name: Name of the team
-        version: Protocol version (default: 15)
-
-    Returns:
-        Command string, e.g., "(init TeamName (version 15))"
-
-    Raises:
-        NotImplementedError: This is a stub
-    """
-    raise NotImplementedError("Protocol building not yet implemented")
+    def __del__(self):
+        """Cleanup socket on deletion."""
+        if self._socket:
+            self._socket.close()
