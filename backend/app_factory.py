@@ -45,6 +45,7 @@ from backend.security import setup_security_middleware
 from backend.server_client import ServerClient
 from backend.startup_manager import StartupManager
 from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 from core.config.server import DEFAULT_API_PORT
 
 # Type alias for broadcast callbacks
@@ -87,6 +88,9 @@ class AppContext:
     # Broadcast task management
     broadcast_tasks: Dict[str, asyncio.Task] = field(default_factory=dict)
     broadcast_locks: Dict[str, asyncio.Lock] = field(default_factory=dict)
+    
+    # World manager (created after tank_registry)
+    world_manager: Optional[WorldManager] = None
 
     def get_server_info(self) -> ServerInfo:
         """Get information about the current server."""
@@ -287,6 +291,11 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
     from backend.routers import discovery, servers, tanks, transfers, websocket
     from backend.routers.solutions import create_solutions_router
+    from backend.routers.worlds import setup_worlds_router
+
+    # Create WorldManager if not already created
+    if ctx.world_manager is None:
+        ctx.world_manager = WorldManager(tank_registry=ctx.tank_registry)
 
     # Setup discovery router
     discovery_router = discovery.setup_router(ctx.discovery_service)
@@ -322,5 +331,9 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     # Setup solutions router
     solutions_router = create_solutions_router(ctx.tank_registry)
     app.include_router(solutions_router)
+
+    # Setup worlds router (world-agnostic API)
+    worlds_router = setup_worlds_router(ctx.world_manager)
+    app.include_router(worlds_router)
 
     ctx.logger.info("All API routers configured successfully")

@@ -30,6 +30,8 @@ class WorldMetadata:
     world_type: str
     view_mode: str
     display_name: str
+    supports_persistence: bool = True
+    supports_actions: bool = False
 
 
 SnapshotBuilderFactory = Callable[[], "SnapshotBuilder"]
@@ -94,17 +96,40 @@ def create_world(
     return world, snapshot_builder
 
 
+# Capability metadata per mode
+_MODE_CAPABILITIES: Dict[str, Dict[str, bool]] = {
+    "tank": {"supports_persistence": True, "supports_actions": False},
+    "petri": {"supports_persistence": True, "supports_actions": False},
+    "soccer": {"supports_persistence": False, "supports_actions": True},
+}
+
+
 def get_world_metadata(mode_id: str) -> Optional[WorldMetadata]:
     """Get metadata for a registered mode pack."""
     mode_pack = _MODE_PACKS.get(mode_id) or WorldRegistry.get_mode_pack(mode_id)
     if mode_pack is None:
         return None
+    caps = _MODE_CAPABILITIES.get(mode_id, {})
     return WorldMetadata(
         mode_id=mode_pack.mode_id,
         world_type=mode_pack.world_type,
         view_mode=mode_pack.default_view_mode,
         display_name=mode_pack.display_name,
+        supports_persistence=caps.get("supports_persistence", True),
+        supports_actions=caps.get("supports_actions", False),
     )
+
+
+def get_all_world_metadata() -> list[WorldMetadata]:
+    """Get metadata for all registered mode packs."""
+    result: list[WorldMetadata] = []
+    all_packs = dict(WorldRegistry.list_mode_packs())
+    all_packs.update(_MODE_PACKS)
+    for mode_id in all_packs:
+        meta = get_world_metadata(mode_id)
+        if meta is not None:
+            result.append(meta)
+    return result
 
 
 def get_registered_world_types() -> list[str]:
@@ -141,3 +166,16 @@ def _register_petri_mode() -> None:
 
 
 _register_petri_mode()
+
+
+def _register_soccer_mode() -> None:
+    from backend.snapshots.soccer_snapshot_builder import SoccerSnapshotBuilder
+    from core.modes.soccer import create_soccer_mode_pack
+
+    register_mode_pack(
+        create_soccer_mode_pack(snapshot_builder_factory=SoccerSnapshotBuilder),
+        SoccerSnapshotBuilder,
+    )
+
+
+_register_soccer_mode()
