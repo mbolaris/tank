@@ -138,6 +138,7 @@ class TankRegistry:
         persistent: bool = True,
         auto_save_interval: float = 300.0,
         tank_id: Optional[str] = None,
+        world_type: str = "tank",
     ) -> SimulationManager:
         """Create a new tank and add it to the registry.
 
@@ -151,6 +152,7 @@ class TankRegistry:
             server_id: Which server this tank should run on (default: local-server)
             persistent: Whether this tank should auto-save and restore
             auto_save_interval: Auto-save interval in seconds (default: 5 minutes)
+            world_type: Type of world to create (tank, petri, soccer_training, soccer)
 
         Returns:
             The newly created SimulationManager
@@ -162,6 +164,7 @@ class TankRegistry:
             persistent=persistent,
             auto_save_interval=auto_save_interval,
             tank_id=tank_id,
+            world_type=world_type,
         )
 
         # Update tank info with additional fields

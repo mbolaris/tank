@@ -50,6 +50,7 @@ def setup_crud_subrouter(
         is_public: bool = True,
         allow_transfers: bool = True,
         server_id_param: str = "local-server",
+        world_type: str = "tank",
     ):
         """Create a new tank simulation."""
         try:
@@ -70,6 +71,7 @@ def setup_crud_subrouter(
                 is_public=is_public,
                 allow_transfers=allow_transfers,
                 server_id=server_id_param,
+                world_type=world_type,
             )
 
             # Inject connection manager and tank registry for migrations

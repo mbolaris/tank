@@ -31,6 +31,7 @@ class TankInfo:
     tank_id: str
     name: str
     description: str = ""
+    world_type: str = "tank"  # Mode type: tank, petri, soccer_training, soccer
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     owner: Optional[str] = None
     server_id: str = "local-server"  # Which server this tank is running on
@@ -50,6 +51,7 @@ class TankInfo:
             "tank_id": self.tank_id,
             "name": self.name,
             "description": self.description,
+            "world_type": self.world_type,
             "created_at": self.created_at.isoformat(),
             "owner": self.owner,
             "server_id": self.server_id,
@@ -77,6 +79,7 @@ class SimulationManager:
         persistent: bool = True,
         auto_save_interval: float = 300.0,
         tank_id: Optional[str] = None,
+        world_type: str = "tank",
     ):
         """Initialize the simulation manager.
 
@@ -86,12 +89,14 @@ class SimulationManager:
             seed: Optional random seed for deterministic behavior
             persistent: Whether this tank should auto-save and restore
             auto_save_interval: Auto-save interval in seconds (default: 5 minutes)
+            world_type: Type of world to create (tank, petri, soccer_training, soccer)
         """
         # Generate unique tank ID
         self.tank_info = TankInfo(
             tank_id=tank_id if tank_id else str(uuid.uuid4()),
             name=tank_name,
             description=tank_description,
+            world_type=world_type,
             seed=seed,
             persistent=persistent,
             auto_save_interval=auto_save_interval,
@@ -99,7 +104,10 @@ class SimulationManager:
 
         # Create simulation runner
         self._runner = SimulationRunner(
-            seed=seed, tank_id=self.tank_info.tank_id, tank_name=self.tank_info.name
+            seed=seed,
+            tank_id=self.tank_info.tank_id,
+            tank_name=self.tank_info.name,
+            world_type=world_type,
         )
 
         # Track connected WebSocket clients
