@@ -84,6 +84,10 @@ def create_soccer_training_mode_pack(
         world_type="soccer_training",
         default_view_mode="topdown",
         display_name="Soccer Training",
+        supports_persistence=False,  # Training sessions are ephemeral
+        supports_actions=True,       # Requires agent actions
+        supports_websocket=True,
+        supports_transfer=False,
         snapshot_builder_factory=snapshot_builder_factory,
         normalizer=_normalize_soccer_training_config,
     )

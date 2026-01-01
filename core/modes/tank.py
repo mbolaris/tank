@@ -50,6 +50,10 @@ def create_tank_mode_pack(
         world_type="tank",
         default_view_mode="side",
         display_name="Fish Tank",
+        supports_persistence=True,
+        supports_actions=False,
+        supports_websocket=True,
+        supports_transfer=True,  # Tank supports fish transfer between tanks
         snapshot_builder_factory=snapshot_builder_factory,
         normalizer=normalize_tank_config,
     )

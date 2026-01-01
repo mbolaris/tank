@@ -37,6 +37,8 @@ class WorldTypeResponse(BaseModel):
     display_name: str
     supports_persistence: bool
     supports_actions: bool
+    supports_websocket: bool
+    supports_transfer: bool
 
 
 def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
@@ -71,6 +73,8 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                 display_name=m.display_name,
                 supports_persistence=m.supports_persistence,
                 supports_actions=m.supports_actions,
+                supports_websocket=m.supports_websocket,
+                supports_transfer=m.supports_transfer,
             )
             for m in metadata_list
         ]

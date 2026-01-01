@@ -108,6 +108,10 @@ def create_soccer_mode_pack(
         world_type="soccer",
         default_view_mode="topdown",
         display_name="Soccer Pitch",
+        supports_persistence=False,  # Soccer matches are ephemeral
+        supports_actions=True,       # Requires agent actions each step
+        supports_websocket=True,
+        supports_transfer=False,     # No entity transfer between soccer worlds
         snapshot_builder_factory=snapshot_builder_factory,
         normalizer=_normalize_soccer_config,
     )

@@ -24,7 +24,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class WorldMetadata:
-    """Metadata for a registered mode pack."""
+    """Metadata for a registered mode pack.
+
+    All capability flags are read from the canonical ModePackDefinition in core.
+    """
 
     mode_id: str
     world_type: str
@@ -32,6 +35,8 @@ class WorldMetadata:
     display_name: str
     supports_persistence: bool = True
     supports_actions: bool = False
+    supports_websocket: bool = True
+    supports_transfer: bool = False
 
 
 SnapshotBuilderFactory = Callable[[], "SnapshotBuilder"]
@@ -96,27 +101,24 @@ def create_world(
     return world, snapshot_builder
 
 
-# Capability metadata per mode
-_MODE_CAPABILITIES: Dict[str, Dict[str, bool]] = {
-    "tank": {"supports_persistence": True, "supports_actions": False},
-    "petri": {"supports_persistence": True, "supports_actions": False},
-    "soccer": {"supports_persistence": False, "supports_actions": True},
-}
-
-
 def get_world_metadata(mode_id: str) -> Optional[WorldMetadata]:
-    """Get metadata for a registered mode pack."""
+    """Get metadata for a registered mode pack.
+
+    Capability flags are read directly from the mode pack definition,
+    which is the canonical source of truth in core.modes.
+    """
     mode_pack = _MODE_PACKS.get(mode_id) or WorldRegistry.get_mode_pack(mode_id)
     if mode_pack is None:
         return None
-    caps = _MODE_CAPABILITIES.get(mode_id, {})
     return WorldMetadata(
         mode_id=mode_pack.mode_id,
         world_type=mode_pack.world_type,
         view_mode=mode_pack.default_view_mode,
         display_name=mode_pack.display_name,
-        supports_persistence=caps.get("supports_persistence", True),
-        supports_actions=caps.get("supports_actions", False),
+        supports_persistence=getattr(mode_pack, "supports_persistence", True),
+        supports_actions=getattr(mode_pack, "supports_actions", False),
+        supports_websocket=getattr(mode_pack, "supports_websocket", True),
+        supports_transfer=getattr(mode_pack, "supports_transfer", False),
     )
 
 

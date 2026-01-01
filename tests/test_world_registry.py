@@ -501,3 +501,95 @@ class TestStepResult:
         assert result.metrics == {"count": 5}
         assert result.done is True
         assert result.info == {"custom": "value"}
+
+
+class TestWorldTypeRegistryCanonical:
+    """Tests for the canonical world type registry.
+
+    These tests verify that there is exactly one registry and that
+    backend and core agree on available world types.
+    """
+
+    def test_all_world_types_registered_exactly_once(self):
+        """Each world type appears exactly once in the registry."""
+        mode_packs = WorldRegistry.list_mode_packs()
+        world_types = [mp.world_type for mp in mode_packs.values()]
+        # No duplicates - each world_type should appear exactly once
+        assert len(world_types) == len(set(world_types)), (
+            f"Duplicate world types found: {world_types}"
+        )
+
+    def test_factories_build_in_headless_mode(self):
+        """All factories create valid backends in headless mode."""
+        for mode_id in WorldRegistry.list_mode_packs():
+            world = WorldRegistry.create_world(mode_id, seed=42, headless=True)
+            assert isinstance(world, MultiAgentWorldBackend), (
+                f"Mode '{mode_id}' did not return a MultiAgentWorldBackend"
+            )
+
+    def test_capability_flags_match_expectations(self):
+        """Capability flags are correctly set for each world type."""
+        # Tank: persistent ecosystem, no actions required
+        tank = WorldRegistry.get_mode_pack("tank")
+        assert tank is not None
+        assert tank.supports_persistence is True
+        assert tank.supports_actions is False
+        assert tank.supports_transfer is True
+
+        # Soccer: ephemeral match, requires actions
+        soccer = WorldRegistry.get_mode_pack("soccer")
+        assert soccer is not None
+        assert soccer.supports_persistence is False
+        assert soccer.supports_actions is True
+        assert soccer.supports_transfer is False
+
+        # Petri: similar to tank
+        petri = WorldRegistry.get_mode_pack("petri")
+        assert petri is not None
+        assert petri.supports_persistence is True
+        assert petri.supports_actions is False
+
+    def test_backend_and_core_registries_agree(self):
+        """Backend and core return same world types."""
+        from backend.world_registry import get_all_world_metadata
+
+        backend_types = {m.mode_id for m in get_all_world_metadata()}
+        core_types = set(WorldRegistry.list_mode_packs().keys())
+        assert backend_types == core_types, (
+            f"Registry mismatch: backend={backend_types}, core={core_types}"
+        )
+
+    def test_mode_packs_have_all_required_fields(self):
+        """All mode packs have required capability fields."""
+        for mode_id, mode_pack in WorldRegistry.list_mode_packs().items():
+            # Check required base fields
+            assert hasattr(mode_pack, "mode_id")
+            assert hasattr(mode_pack, "world_type")
+            assert hasattr(mode_pack, "default_view_mode")
+            assert hasattr(mode_pack, "display_name")
+
+            # Check capability fields
+            assert hasattr(mode_pack, "supports_persistence"), (
+                f"Mode '{mode_id}' missing supports_persistence"
+            )
+            assert hasattr(mode_pack, "supports_actions"), (
+                f"Mode '{mode_id}' missing supports_actions"
+            )
+            assert hasattr(mode_pack, "supports_websocket"), (
+                f"Mode '{mode_id}' missing supports_websocket"
+            )
+            assert hasattr(mode_pack, "supports_transfer"), (
+                f"Mode '{mode_id}' missing supports_transfer"
+            )
+
+    def test_config_normalization_works(self):
+        """Config normalization helper works for all modes."""
+        from core.worlds.config_utils import normalize_config
+
+        for mode_id in WorldRegistry.list_mode_packs():
+            # Normalizing empty config should not raise
+            normalized = normalize_config(mode_id, {})
+            assert isinstance(normalized, dict)
+            # Should have at least headless set
+            assert "headless" in normalized
+
