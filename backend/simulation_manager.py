@@ -500,12 +500,18 @@ class SimulationManager:
                 tracker = getattr(self._runner, "evolution_benchmark_tracker", None)
                 if tracker is not None:
                     latest = tracker.get_latest_snapshot()
-                    if latest is not None and latest.confidence_vs_strong is not None:
-                        stats["poker_score"] = latest.confidence_vs_strong
-                        history = tracker.get_history()
-                        if history:
-                            valid_scores = [s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None]
-                            stats["poker_score_history"] = valid_scores[-20:]
+                    if latest is not None:
+                        if latest.confidence_vs_strong is not None:
+                            stats["poker_score"] = latest.confidence_vs_strong
+                        if latest.pop_mean_elo is not None:
+                            stats["poker_elo"] = latest.pop_mean_elo
+                    
+                    history = tracker.get_history()
+                    if history:
+                        valid_scores = [s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None]
+                        stats["poker_score_history"] = valid_scores[-20:]
+                        valid_elos = [s.pop_mean_elo for s in history if s.pop_mean_elo is not None]
+                        stats["poker_elo_history"] = valid_elos[-20:]
 
                 # Cache a copy of last-good stats for fallback
                 try:

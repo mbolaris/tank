@@ -196,6 +196,8 @@ export interface TankStatsSummary {
     plant_energy: number;
     poker_score?: number;
     poker_score_history?: number[];
+    poker_elo?: number;
+    poker_elo_history?: number[];
     poker_stats?: {
         total_games: number;
         total_wins: number;

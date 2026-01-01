@@ -278,6 +278,8 @@ export interface StatsData {
     max_fish_energy: number;
     poker_score?: number;
     poker_score_history?: number[];
+    poker_elo?: number;
+    poker_elo_history?: number[];
     // Max Energy Capacity Stats (Genetic)
     min_max_energy_capacity: number;
     max_max_energy_capacity: number;

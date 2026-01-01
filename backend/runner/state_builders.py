@@ -89,6 +89,8 @@ def build_energy_stats(
     stats: Dict[str, Any],
     poker_score: Optional[float],
     poker_score_history: List[float],
+    poker_elo: Optional[float] = None,
+    poker_elo_history: List[float] = None,
 ) -> Dict[str, Any]:
     """Build energy-related stats dictionary."""
     return {
@@ -129,6 +131,8 @@ def build_energy_stats(
         "fish_health_full": stats.get("fish_health_full", 0),
         "poker_score": poker_score,
         "poker_score_history": poker_score_history,
+        "poker_elo": poker_elo,
+        "poker_elo_history": poker_elo_history or [],
     }
 
 

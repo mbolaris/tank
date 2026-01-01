@@ -352,6 +352,8 @@ class StatsPayload:
     ))
     poker_score: Optional[float] = None
     poker_score_history: List[float] = field(default_factory=list)
+    poker_elo: Optional[float] = None
+    poker_elo_history: List[float] = field(default_factory=list)
     meta_stats: Dict[str, float] = field(default_factory=dict)
     total_sexual_births: int = 0
     total_asexual_births: int = 0
@@ -492,6 +494,10 @@ class StatsPayload:
             data["poker_score"] = self.poker_score
         if self.poker_score_history:
             data["poker_score_history"] = self.poker_score_history
+        if self.poker_elo is not None:
+            data["poker_elo"] = self.poker_elo
+        if self.poker_elo_history:
+            data["poker_elo_history"] = self.poker_elo_history
         if self.meta_stats:
             data.update(self.meta_stats)
         return data

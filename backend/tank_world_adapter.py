@@ -176,6 +176,8 @@ class TankWorldAdapter:
             "frame": stats_payload.frame,
             "fast_forward": stats_payload.fast_forward,
             "poker_score": stats_payload.poker_score,
+            "poker_elo": stats_payload.poker_elo,
+            "poker_elo_history": stats_payload.poker_elo_history,
         }
 
     def get_entities_snapshot(self) -> List["EntitySnapshot"]:

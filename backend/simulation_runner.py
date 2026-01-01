@@ -781,9 +781,27 @@ class SimulationRunner(CommandHandlerMixin):
                 valid_scores = [s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None]
                 poker_score_history = valid_scores[-20:]
 
+        # Get Poker Elo from evolution benchmark tracker
+        poker_elo = None
+        poker_elo_history: List[float] = []
+        if self.evolution_benchmark_tracker is not None:
+            latest = self.evolution_benchmark_tracker.get_latest_snapshot()
+            if latest is not None and latest.pop_mean_elo is not None:
+                poker_elo = latest.pop_mean_elo
+            history = self.evolution_benchmark_tracker.get_history()
+            if history:
+                valid_elos = [s.pop_mean_elo for s in history if s.pop_mean_elo is not None]
+                poker_elo_history = valid_elos[-20:]
+
         # Build stat components using helper functions
         base_stats = build_base_stats(stats, frame, self.current_actual_fps, self.fast_forward)
-        energy_stats = build_energy_stats(stats, poker_score, poker_score_history)
+        energy_stats = build_energy_stats(
+            stats,
+            poker_score,
+            poker_score_history,
+            poker_elo,
+            poker_elo_history,
+        )
         physical_stats = build_physical_stats(stats)
         meta_stats = build_meta_stats(stats)
         poker_stats = collect_poker_stats_payload(stats)
