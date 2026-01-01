@@ -403,12 +403,11 @@ class TestWebSocketUpdates:
 
     def test_websocket_default_endpoint_works(self, test_client):
         """Test that default /ws endpoint connects and receives data."""
-        # Create a tank first
-        create_response = test_client.post(
+        # Create a tank first (it becomes the default)
+        test_client.post(
             "/api/worlds",
             json={"world_type": "tank", "name": "WebSocket Default Test"},
         )
-        tank_id = create_response.json()["world_id"]
 
         # Connect to default WebSocket
         with test_client.websocket_connect("/ws") as websocket:
