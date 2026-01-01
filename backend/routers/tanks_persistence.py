@@ -1,11 +1,14 @@
 """Tank persistence operations (save, load, snapshots)."""
 
 import logging
+from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from backend.routers.world_guards import get_tank_manager_or_error
 from backend.tank_registry import CreateTankRequest, TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +16,7 @@ logger = logging.getLogger(__name__)
 def setup_persistence_subrouter(
     router: APIRouter,
     tank_registry: TankRegistry,
+    world_manager: Optional[WorldManager] = None,
 ) -> None:
     """Attach persistence endpoints to the router.
 
@@ -24,13 +28,18 @@ def setup_persistence_subrouter(
     """
 
     @router.post("/{tank_id}/save")
-    async def save_tank(tank_id: str):
+    async def save_tank(tank_id: str, request: Request):
         """Save tank state to a snapshot file."""
         from backend.tank_persistence import cleanup_old_snapshots, save_tank_state
 
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         # Save the tank state
         snapshot_path = save_tank_state(tank_id, manager)
@@ -99,13 +108,18 @@ def setup_persistence_subrouter(
         })
 
     @router.get("/{tank_id}/snapshots")
-    async def list_snapshots(tank_id: str):
+    async def list_snapshots(tank_id: str, request: Request):
         """List all available snapshots for a tank."""
         from backend.tank_persistence import list_tank_snapshots
 
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         snapshots = list_tank_snapshots(tank_id)
         return JSONResponse({
@@ -115,13 +129,18 @@ def setup_persistence_subrouter(
         })
 
     @router.delete("/{tank_id}/snapshots/{snapshot_filename}")
-    async def delete_tank_snapshot(tank_id: str, snapshot_filename: str):
+    async def delete_tank_snapshot(tank_id: str, snapshot_filename: str, request: Request):
         """Delete a specific snapshot file."""
         from backend.tank_persistence import DATA_DIR, delete_snapshot
 
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         # Build snapshot path
         snapshot_path = DATA_DIR / tank_id / "snapshots" / snapshot_filename

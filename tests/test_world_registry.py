@@ -535,6 +535,7 @@ class TestWorldTypeRegistryCanonical:
         assert tank.supports_persistence is True
         assert tank.supports_actions is False
         assert tank.supports_transfer is True
+        assert tank.has_fish is True
 
         # Soccer: ephemeral match, requires actions
         soccer = WorldRegistry.get_mode_pack("soccer")
@@ -542,12 +543,14 @@ class TestWorldTypeRegistryCanonical:
         assert soccer.supports_persistence is False
         assert soccer.supports_actions is True
         assert soccer.supports_transfer is False
+        assert soccer.has_fish is False
 
         # Petri: similar to tank
         petri = WorldRegistry.get_mode_pack("petri")
         assert petri is not None
         assert petri.supports_persistence is True
         assert petri.supports_actions is False
+        assert petri.has_fish is True
 
     def test_backend_and_core_registries_agree(self):
         """Backend and core return same world types."""
@@ -558,6 +561,22 @@ class TestWorldTypeRegistryCanonical:
         assert backend_types == core_types, (
             f"Registry mismatch: backend={backend_types}, core={core_types}"
         )
+
+    def test_backend_metadata_matches_core_mode_pack(self):
+        """Backend metadata mirrors core mode pack definitions."""
+        from backend.world_registry import get_all_world_metadata
+
+        for meta in get_all_world_metadata():
+            mode_pack = WorldRegistry.get_mode_pack(meta.mode_id)
+            assert mode_pack is not None
+            assert meta.world_type == mode_pack.world_type
+            assert meta.view_mode == mode_pack.default_view_mode
+            assert meta.display_name == mode_pack.display_name
+            assert meta.supports_persistence == mode_pack.supports_persistence
+            assert meta.supports_actions == mode_pack.supports_actions
+            assert meta.supports_websocket == mode_pack.supports_websocket
+            assert meta.supports_transfer == mode_pack.supports_transfer
+            assert meta.has_fish == mode_pack.has_fish
 
     def test_mode_packs_have_all_required_fields(self):
         """All mode packs have required capability fields."""
@@ -581,6 +600,9 @@ class TestWorldTypeRegistryCanonical:
             assert hasattr(mode_pack, "supports_transfer"), (
                 f"Mode '{mode_id}' missing supports_transfer"
             )
+            assert hasattr(mode_pack, "has_fish"), (
+                f"Mode '{mode_id}' missing has_fish"
+            )
 
     def test_config_normalization_works(self):
         """Config normalization helper works for all modes."""
@@ -592,4 +614,3 @@ class TestWorldTypeRegistryCanonical:
             assert isinstance(normalized, dict)
             # Should have at least headless set
             assert "headless" in normalized
-

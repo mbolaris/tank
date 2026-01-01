@@ -302,7 +302,11 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     app.include_router(discovery_router)
 
     # Setup transfers router
-    transfers_router = transfers.setup_router(ctx.tank_registry, ctx.connection_manager)
+    transfers_router = transfers.setup_router(
+        ctx.tank_registry,
+        ctx.connection_manager,
+        world_manager=ctx.world_manager,
+    )
     app.include_router(transfers_router)
 
     # Setup tanks router
@@ -312,6 +316,7 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
         start_broadcast_callback=start_broadcast_for_tank,
         stop_broadcast_callback=stop_broadcast_for_tank,
         auto_save_service=ctx.auto_save_service,
+        world_manager=ctx.world_manager,
     )
     app.include_router(tanks_router)
 

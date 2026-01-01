@@ -17,14 +17,16 @@ tank_pack = WorldRegistry.get_mode_pack("tank")
 print(tank_pack.supports_persistence)  # True
 ```
 
+The backend registry (`backend/world_registry.py`) only attaches runtime snapshot builders to the core mode packs.
+
 ## Available World Types
 
-| Mode ID | World Type | View Mode | Persistent | Actions | Transfer |
-|---------|-----------|-----------|------------|---------|----------|
-| `tank` | tank | side | ✓ | ✗ | ✓ |
-| `petri` | petri | topdown | ✓ | ✗ | ✓ |
-| `soccer` | soccer | topdown | ✗ | ✓ | ✗ |
-| `soccer_training` | soccer_training | topdown | ✗ | ✓ | ✗ |
+| Mode ID | World Type | View Mode | Persistent | Actions | Websocket | Transfer | Has Fish |
+|---------|-----------|-----------|------------|---------|-----------|----------|----------|
+| `tank` | tank | side | yes | no | yes | yes | yes |
+| `petri` | petri | topdown | yes | no | no | yes | yes |
+| `soccer` | soccer | topdown | no | yes | no | no | no |
+| `soccer_training` | soccer_training | topdown | no | yes | no | no | no |
 
 ## Capability Flags
 
@@ -34,6 +36,7 @@ Each world type defines capability flags:
 - **`supports_actions`**: Requires agent actions each step (soccer needs player inputs)
 - **`supports_websocket`**: Supports real-time websocket updates
 - **`supports_transfer`**: Supports entity transfer between worlds (fish migration)
+- **`has_fish`**: Contains fish entities and fish-specific systems
 
 ## Shared Systems
 
@@ -110,7 +113,8 @@ The `/api/worlds/types` endpoint returns all registered world types with their c
     "supports_persistence": true,
     "supports_actions": false,
     "supports_websocket": true,
-    "supports_transfer": true
+    "supports_transfer": true,
+    "has_fish": true
   }
 ]
 ```

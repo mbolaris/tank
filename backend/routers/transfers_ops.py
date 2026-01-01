@@ -1,9 +1,9 @@
 """Entity transfer operations (local and remote transfers)."""
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from backend.entity_transfer import (
@@ -12,7 +12,9 @@ from backend.entity_transfer import (
     try_deserialize_entity,
 )
 from backend.models import RemoteTransferRequest
+from backend.routers.world_guards import get_tank_manager_or_error
 from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +71,7 @@ def log_transfer_failure(
 def setup_transfer_ops_subrouter(
     router: APIRouter,
     tank_registry: TankRegistry,
+    world_manager: Optional[WorldManager] = None,
 ) -> None:
     """Attach transfer operation endpoints to the router.
 
@@ -80,17 +83,32 @@ def setup_transfer_ops_subrouter(
     """
 
     @router.post("/api/tanks/{source_tank_id}/transfer")
-    async def transfer_entity(source_tank_id: str, entity_id: int, destination_tank_id: str):
+    async def transfer_entity(
+        source_tank_id: str,
+        entity_id: int,
+        destination_tank_id: str,
+        request: Request,
+    ):
         """Transfer an entity from one tank to another."""
         # Get source tank
-        source_manager = tank_registry.get_tank(source_tank_id)
-        if source_manager is None:
-            return JSONResponse({"error": f"Source tank not found: {source_tank_id}"}, status_code=404)
+        source_manager, error = get_tank_manager_or_error(
+            tank_registry,
+            source_tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         # Get destination tank
-        dest_manager = tank_registry.get_tank(destination_tank_id)
-        if dest_manager is None:
-            return JSONResponse({"error": f"Destination tank not found: {destination_tank_id}"}, status_code=404)
+        dest_manager, error = get_tank_manager_or_error(
+            tank_registry,
+            destination_tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         # Check if source tank allows transfers
         if not source_manager.tank_info.allow_transfers:
@@ -210,7 +228,7 @@ def setup_transfer_ops_subrouter(
             return JSONResponse({"error": f"Transfer failed: {str(e)}"}, status_code=500)
 
     @router.post("/api/remote-transfer")
-    async def remote_transfer_entity(request: RemoteTransferRequest):
+    async def remote_transfer_entity(request: RemoteTransferRequest, http_request: Request):
         """Receive an entity from a remote server for cross-server migration."""
         destination_tank_id = request.destination_tank_id
         entity_data = request.entity_data
@@ -220,12 +238,14 @@ def setup_transfer_ops_subrouter(
         remote_source_id = f"{source_server_id}:{source_tank_id}"
         remote_source_name = f"Remote tank on {source_server_id}"
 
-        dest_manager = tank_registry.get_tank(destination_tank_id)
-        if dest_manager is None:
-            return JSONResponse(
-                {"error": f"Destination tank not found: {destination_tank_id}"},
-                status_code=404,
-            )
+        dest_manager, error = get_tank_manager_or_error(
+            tank_registry,
+            destination_tank_id,
+            request=http_request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         if not dest_manager.tank_info.allow_transfers:
             return JSONResponse(

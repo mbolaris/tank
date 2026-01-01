@@ -39,6 +39,7 @@ class WorldTypeResponse(BaseModel):
     supports_actions: bool
     supports_websocket: bool
     supports_transfer: bool
+    has_fish: bool
 
 
 def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
@@ -75,6 +76,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                 supports_actions=m.supports_actions,
                 supports_websocket=m.supports_websocket,
                 supports_transfer=m.supports_transfer,
+                has_fish=m.has_fish,
             )
             for m in metadata_list
         ]

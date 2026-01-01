@@ -53,6 +53,9 @@ class TestWorldTypesEndpoint:
             assert "display_name" in world_type
             assert "supports_persistence" in world_type
             assert "supports_actions" in world_type
+            assert "supports_websocket" in world_type
+            assert "supports_transfer" in world_type
+            assert "has_fish" in world_type
 
     def test_tank_supports_persistence(self, test_client):
         """Test that tank world supports persistence."""

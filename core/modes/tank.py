@@ -54,6 +54,7 @@ def create_tank_mode_pack(
         supports_actions=False,
         supports_websocket=True,
         supports_transfer=True,  # Tank supports fish transfer between tanks
+        has_fish=True,
         snapshot_builder_factory=snapshot_builder_factory,
         normalizer=normalize_tank_config,
     )

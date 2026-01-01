@@ -176,6 +176,11 @@ def _register_builtin_modes() -> None:
             default_view_mode="topdown",
             display_name="Soccer Pitch",
             normalizer=_identity_config,
+            supports_persistence=False,
+            supports_actions=True,
+            supports_websocket=False,
+            supports_transfer=False,
+            has_fish=False,
         )
     soccer_backend: type[MultiAgentWorldBackend] | None = None
     worlds_dir = Path(__file__).parent
@@ -210,6 +215,11 @@ def _register_builtin_modes() -> None:
             default_view_mode="topdown",
             display_name="Soccer Training",
             normalizer=_identity_config,
+            supports_persistence=False,
+            supports_actions=True,
+            supports_websocket=False,
+            supports_transfer=False,
+            has_fish=False,
         )
 
     soccer_training_backend: type[MultiAgentWorldBackend] | None = None

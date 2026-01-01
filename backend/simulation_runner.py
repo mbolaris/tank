@@ -868,6 +868,22 @@ class SimulationRunner(CommandHandlerMixin):
             data: Optional command data
         """
         # Map commands to handler methods
+        tank_only_commands = {
+            "add_food",
+            "spawn_fish",
+            "start_poker",
+            "poker_action",
+            "poker_process_ai_turn",
+            "poker_new_round",
+            "poker_autopilot_action",
+            "standard_poker_series",
+            "set_plant_energy_input",
+        }
+        if self.world_type != "tank" and command in tank_only_commands:
+            return self._create_error_response(
+                f"Unsupported for world_type={self.world_type}"
+            )
+
         handlers = {
             "add_food": self._cmd_add_food,
             "spawn_fish": self._cmd_spawn_fish,

@@ -3,10 +3,12 @@
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from backend.routers.world_guards import get_tank_manager_or_error
 from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,7 @@ def setup_crud_subrouter(
     start_broadcast_callback,
     stop_broadcast_callback,
     auto_save_service: Optional[Any] = None,
+    world_manager: Optional[WorldManager] = None,
 ) -> None:
     """Attach CRUD endpoints to the router.
 
@@ -90,19 +93,30 @@ def setup_crud_subrouter(
             return JSONResponse({"error": str(e)}, status_code=500)
 
     @router.get("/{tank_id}")
-    async def get_tank(tank_id: str):
+    async def get_tank(tank_id: str, request: Request):
         """Get information about a specific tank."""
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse(
-                {"error": f"Tank not found: {tank_id}"},
-                status_code=404,
-            )
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
         return JSONResponse(manager.get_status())
 
     @router.delete("/{tank_id}")
-    async def delete_tank(tank_id: str):
+    async def delete_tank(tank_id: str, request: Request):
         """Delete a tank from the registry."""
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
+
         # Stop auto-save first
         if auto_save_service:
             await auto_save_service.stop_tank_autosave(tank_id)
@@ -111,11 +125,11 @@ def setup_crud_subrouter(
         await stop_broadcast_callback(tank_id)
 
         # Remove from registry
-        if tank_registry.remove_tank(tank_id, delete_persistent_data=True):
-            logger.info(f"Deleted tank via API: {tank_id[:8]}")
-            return JSONResponse({"message": f"Tank {tank_id} deleted"})
-        else:
-            return JSONResponse(
-                {"error": f"Tank not found: {tank_id}"},
-                status_code=404,
-            )
+        if tank_registry.remove_tank(manager.tank_id, delete_persistent_data=True):
+            logger.info(f"Deleted tank via API: {manager.tank_id[:8]}")
+            return JSONResponse({"message": f"Tank {manager.tank_id} deleted"})
+
+        return JSONResponse(
+            {"error": f"Tank not found: {tank_id}"},
+            status_code=404,
+        )
