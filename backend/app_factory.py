@@ -324,8 +324,8 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     )
     app.include_router(servers_router)
 
-    # Setup websocket routes
-    websocket_router = websocket.setup_router(ctx.tank_registry)
+    # Setup websocket routes (with WorldManager for unified endpoint)
+    websocket_router = websocket.setup_router(ctx.tank_registry, ctx.world_manager)
     app.include_router(websocket_router)
 
     # Setup solutions router
