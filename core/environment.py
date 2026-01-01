@@ -536,11 +536,15 @@ class Environment:
 
         self._rng = require_rng_param(rng, "__init__")
         if code_pool is None:
-            from core.code_pool import CodePool
+            # Default to GenomeCodePool with all builtins for better safety + determinism
+            from core.code_pool import create_default_genome_code_pool
 
-            self.code_pool = CodePool()
+            self.genome_code_pool = create_default_genome_code_pool()
+            self.code_pool = self.genome_code_pool.pool  # Backward compatibility
         else:
+            # Legacy CodePool provided
             self.code_pool = code_pool
+            self.genome_code_pool = None  # Set explicitly if needed
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled
