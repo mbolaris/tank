@@ -167,9 +167,7 @@ def parse_and_validate(
     # Check complexity limits
     node_count, max_depth = _count_ast_complexity(tree)
     if node_count > max_ast_nodes:
-        raise ValidationError(
-            f"AST too complex: {node_count} nodes (max {max_ast_nodes})"
-        )
+        raise ValidationError(f"AST too complex: {node_count} nodes (max {max_ast_nodes})")
     if max_depth > max_function_depth:
         raise ValidationError(
             f"Function nesting too deep: {max_depth} levels (max {max_function_depth})"

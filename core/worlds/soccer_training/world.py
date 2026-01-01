@@ -250,12 +250,8 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             }
 
         team_fitness = {
-            LEFT_TEAM: sum(
-                p.energy for p in self._players.values() if p.team == LEFT_TEAM
-            ),
-            RIGHT_TEAM: sum(
-                p.energy for p in self._players.values() if p.team == RIGHT_TEAM
-            ),
+            LEFT_TEAM: sum(p.energy for p in self._players.values() if p.team == LEFT_TEAM),
+            RIGHT_TEAM: sum(p.energy for p in self._players.values() if p.team == RIGHT_TEAM),
         }
 
         return {
@@ -360,7 +356,9 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
                 return SoccerAction.from_dict(output)
             if "move_target" in output or "face_angle" in output:
                 if LegacySoccerAction is not None:
-                    return self._legacy_action_to_action(LegacySoccerAction.from_dict(output), player)
+                    return self._legacy_action_to_action(
+                        LegacySoccerAction.from_dict(output), player
+                    )
         if isinstance(output, (tuple, list)) and len(output) >= 4:
             try:
                 return SoccerAction(
@@ -373,9 +371,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
                 return None
         return None
 
-    def _legacy_action_to_action(
-        self, legacy_action: Any, player: SoccerPlayer
-    ) -> SoccerAction:
+    def _legacy_action_to_action(self, legacy_action: Any, player: SoccerPlayer) -> SoccerAction:
         turn = 0.0
         dash = 0.0
         if legacy_action.face_angle is not None:
