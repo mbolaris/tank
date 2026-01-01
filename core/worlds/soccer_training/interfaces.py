@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ class SoccerAction:
             return False
         return True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "turn": self.turn,
             "dash": self.dash,
@@ -36,7 +36,7 @@ class SoccerAction:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SoccerAction":
+    def from_dict(cls, data: dict[str, Any]) -> SoccerAction:
         def _to_float(value: Any, default: float = 0.0) -> float:
             try:
                 return float(value)

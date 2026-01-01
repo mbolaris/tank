@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
-
+from typing import Any
 
 DEFAULT_FIELD_WIDTH = 105.0
 DEFAULT_FIELD_HEIGHT = 68.0
@@ -67,7 +66,7 @@ class SoccerTrainingConfig:
 
     headless: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "field_width": self.field_width,
             "field_height": self.field_height,
@@ -94,7 +93,7 @@ class SoccerTrainingConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SoccerTrainingConfig":
+    def from_dict(cls, data: dict[str, Any]) -> SoccerTrainingConfig:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
     def validate(self) -> None:

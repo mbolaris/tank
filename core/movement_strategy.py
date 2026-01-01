@@ -207,7 +207,7 @@ class AlgorithmicMovement(MovementStrategy):
     def _execute_via_genome_pool(
         self,
         fish: Fish,
-        genome_pool: "GenomeCodePool",
+        genome_pool: GenomeCodePool,
         component_id: str,
         params: dict | None,
     ) -> VelocityComponents | None:

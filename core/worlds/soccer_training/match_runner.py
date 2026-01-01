@@ -11,9 +11,9 @@ from core.worlds.soccer_training.world import SoccerTrainingWorldBackendAdapter
 @dataclass
 class MatchResult:
     frames: int
-    score: Dict[str, int]
-    team_fitness: Dict[str, float]
-    agent_fitness: Dict[str, Dict[str, Any]]
+    score: dict[str, int]
+    team_fitness: dict[str, float]
+    agent_fitness: dict[str, dict[str, Any]]
 
 
 ActionProvider = Callable[[int, SoccerTrainingWorldBackendAdapter], Optional[Dict[str, Any]]]
@@ -28,10 +28,10 @@ class SoccerMatchRunner:
     def run(
         self,
         *,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         max_steps: int = 3000,
-        goal_limit: Optional[int] = None,
-        action_provider: Optional[ActionProvider] = None,
+        goal_limit: int | None = None,
+        action_provider: ActionProvider | None = None,
     ) -> MatchResult:
         self.world.reset(seed=seed)
 

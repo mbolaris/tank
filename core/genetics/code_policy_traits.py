@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from core.genetics.trait import GeneticTrait
 
@@ -50,8 +50,8 @@ class CodePolicyMutationConfig:
 
 
 def extract_policy_set_from_behavioral(
-    behavioral: "BehavioralTraits",
-) -> "GenomePolicySet":
+    behavioral: BehavioralTraits,
+) -> GenomePolicySet:
     """Extract a GenomePolicySet from BehavioralTraits.
 
     This bridges the current single-policy approach to the multi-policy GenomePolicySet.
@@ -78,8 +78,8 @@ def extract_policy_set_from_behavioral(
 
 
 def apply_policy_set_to_behavioral(
-    behavioral: "BehavioralTraits",
-    policy_set: "GenomePolicySet",
+    behavioral: BehavioralTraits,
+    policy_set: GenomePolicySet,
     rng: pyrandom.Random,
 ) -> None:
     """Apply a GenomePolicySet to BehavioralTraits.
@@ -112,11 +112,11 @@ def apply_policy_set_to_behavioral(
 
 
 def mutate_code_policies(
-    behavioral: "BehavioralTraits",
-    pool: "GenomeCodePool",
+    behavioral: BehavioralTraits,
+    pool: GenomeCodePool,
     rng: pyrandom.Random,
-    config: Optional[CodePolicyMutationConfig] = None,
-) -> "BehavioralTraits":
+    config: CodePolicyMutationConfig | None = None,
+) -> BehavioralTraits:
     """Mutate code policy traits using the GenomeCodePool.
 
     This performs pool-aware mutation:
@@ -168,12 +168,12 @@ def mutate_code_policies(
 
 
 def crossover_code_policies(
-    parent1: "BehavioralTraits",
-    parent2: "BehavioralTraits",
-    pool: "GenomeCodePool",
+    parent1: BehavioralTraits,
+    parent2: BehavioralTraits,
+    pool: GenomeCodePool,
     rng: pyrandom.Random,
     weight1: float = 0.5,
-) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, float]]]:
+) -> tuple[str | None, str | None, dict[str, float] | None]:
     """Crossover code policy traits from two parents.
 
     Args:
@@ -234,10 +234,10 @@ def crossover_code_policies(
 
 
 def validate_code_policy_ids(
-    behavioral: "BehavioralTraits",
-    pool: "GenomeCodePool",
+    behavioral: BehavioralTraits,
+    pool: GenomeCodePool,
     rng: pyrandom.Random,
-) -> List[str]:
+) -> list[str]:
     """Validate that code policy IDs reference valid components.
 
     If invalid, attempts to fix by:
@@ -288,8 +288,8 @@ def validate_code_policy_ids(
 
 
 def assign_random_policy(
-    behavioral: "BehavioralTraits",
-    pool: "GenomeCodePool",
+    behavioral: BehavioralTraits,
+    pool: GenomeCodePool,
     kind: str,
     rng: pyrandom.Random,
 ) -> bool:
@@ -324,7 +324,7 @@ def assign_random_policy(
 # =============================================================================
 
 
-def _get_trait_value(trait: Optional[GeneticTrait]) -> Any:
+def _get_trait_value(trait: GeneticTrait | None) -> Any:
     """Safely get the value from a GeneticTrait."""
     if trait is None:
         return None
@@ -332,10 +332,10 @@ def _get_trait_value(trait: Optional[GeneticTrait]) -> Any:
 
 
 def _mutate_params(
-    params: Dict[str, float],
+    params: dict[str, float],
     rng: pyrandom.Random,
     config: CodePolicyMutationConfig,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Mutate policy parameters."""
     result = {}
     for key, value in params.items():
@@ -350,10 +350,10 @@ def _mutate_params(
 
 
 def _blend_params(
-    params1: Optional[Dict[str, float]],
-    params2: Optional[Dict[str, float]],
+    params1: dict[str, float] | None,
+    params2: dict[str, float] | None,
     weight1: float,
-) -> Optional[Dict[str, float]]:
+) -> dict[str, float] | None:
     """Blend parameters from two parents."""
     if not params1 and not params2:
         return None

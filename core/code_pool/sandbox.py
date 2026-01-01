@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 import math
-from typing import Any, Optional
+from typing import Any
 
 from .models import ValidationError
 
@@ -128,9 +128,9 @@ class ASTValidator(ast.NodeVisitor):
 def parse_and_validate(
     source: str,
     *,
-    max_source_length: Optional[int] = None,
-    max_ast_nodes: Optional[int] = None,
-    max_function_depth: Optional[int] = None,
+    max_source_length: int | None = None,
+    max_ast_nodes: int | None = None,
+    max_function_depth: int | None = None,
 ) -> ast.AST:
     """Parse and validate Python source for the restricted sandbox.
 
