@@ -18,11 +18,11 @@ from __future__ import annotations
 import math
 import random as pyrandom
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable
 
-from .models import CodeComponent, ComponentNotFoundError
-from .pool import CodePool, CompiledComponent
-from .safety import SafeExecutor, SafetyConfig, SafetyViolation
+from .models import ComponentNotFoundError
+from .pool import CodePool
+from .safety import SafeExecutor, SafetyConfig, SafetyViolationError
 
 # Policy kinds that are considered "required" - genomes should have valid defaults
 REQUIRED_POLICY_KINDS: frozenset[str] = frozenset({"movement_policy"})
@@ -40,7 +40,7 @@ class PolicyExecutionResult:
 
     output: Any
     success: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
     was_clamped: bool = False
 
 
@@ -62,22 +62,22 @@ class GenomePolicySet:
         )
     """
 
-    component_ids: Dict[str, Optional[str]] = field(default_factory=dict)
-    params: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    component_ids: dict[str, str | None] = field(default_factory=dict)
+    params: dict[str, dict[str, float]] = field(default_factory=dict)
 
-    def get_component_id(self, kind: str) -> Optional[str]:
+    def get_component_id(self, kind: str) -> str | None:
         """Get the component ID for a policy kind."""
         return self.component_ids.get(kind)
 
-    def get_params(self, kind: str) -> Dict[str, float]:
+    def get_params(self, kind: str) -> dict[str, float]:
         """Get the parameters for a policy kind."""
         return self.params.get(kind, {})
 
     def set_policy(
         self,
         kind: str,
-        component_id: Optional[str],
-        params: Optional[Dict[str, float]] = None,
+        component_id: str | None,
+        params: dict[str, float] | None = None,
     ) -> None:
         """Set the policy for a given kind."""
         if kind not in ALL_POLICY_KINDS:
@@ -92,7 +92,7 @@ class GenomePolicySet:
         """Check if a policy is set for a kind."""
         return self.component_ids.get(kind) is not None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to a dictionary."""
         return {
             "component_ids": dict(self.component_ids),
@@ -100,13 +100,13 @@ class GenomePolicySet:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "GenomePolicySet":
+    def from_dict(cls, data: dict[str, Any]) -> GenomePolicySet:
         """Deserialize from a dictionary."""
         component_ids = dict(data.get("component_ids", {}))
         params = {k: dict(v) for k, v in data.get("params", {}).items()}
         return cls(component_ids=component_ids, params=params)
 
-    def clone(self) -> "GenomePolicySet":
+    def clone(self) -> GenomePolicySet:
         """Create a deep copy."""
         return GenomePolicySet(
             component_ids=dict(self.component_ids),
@@ -126,8 +126,8 @@ class GenomeCodePool:
 
     def __init__(
         self,
-        code_pool: Optional[CodePool] = None,
-        safety_config: Optional[SafetyConfig] = None,
+        code_pool: CodePool | None = None,
+        safety_config: SafetyConfig | None = None,
     ) -> None:
         """Initialize the GenomeCodePool.
 
@@ -140,10 +140,10 @@ class GenomeCodePool:
         self._executor = SafeExecutor(self._safety_config)
 
         # Index: kind -> list of component_ids
-        self._components_by_kind: Dict[str, List[str]] = {}
+        self._components_by_kind: dict[str, list[str]] = {}
 
         # Default component IDs for required kinds (set via register_default)
-        self._defaults: Dict[str, str] = {}
+        self._defaults: dict[str, str] = {}
 
         # Rebuild index from existing pool
         self._rebuild_kind_index()
@@ -173,7 +173,7 @@ class GenomeCodePool:
         name: str,
         source: str,
         entrypoint: str = "policy",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """Add a new component to the pool.
 
@@ -234,7 +234,7 @@ class GenomeCodePool:
             raise ComponentNotFoundError(f"Component not found: {component_id}")
         self._defaults[kind] = component_id
 
-    def get_default(self, kind: str) -> Optional[str]:
+    def get_default(self, kind: str) -> str | None:
         """Get the default component ID for a policy kind."""
         return self._defaults.get(kind)
 
@@ -247,7 +247,7 @@ class GenomeCodePool:
             # Also check registered builtins
             return self._pool.get_callable(component_id) is not None
 
-    def get_components_by_kind(self, kind: str) -> List[str]:
+    def get_components_by_kind(self, kind: str) -> list[str]:
         """Get all component IDs for a given policy kind."""
         return list(self._components_by_kind.get(kind, []))
 
@@ -274,10 +274,10 @@ class GenomeCodePool:
     def execute_policy(
         self,
         component_id: str,
-        observation: Dict[str, Any],
+        observation: dict[str, Any],
         rng: pyrandom.Random,
         dt: float = 1.0,
-        params: Optional[Dict[str, float]] = None,
+        params: dict[str, float] | None = None,
     ) -> PolicyExecutionResult:
         """Execute a policy with safety checks and determinism guarantees.
 
@@ -307,7 +307,7 @@ class GenomeCodePool:
 
         try:
             result = self._executor.execute(func, enriched_obs, rng)
-        except SafetyViolation as exc:
+        except SafetyViolationError as exc:
             return PolicyExecutionResult(
                 output=None,
                 success=False,
@@ -330,10 +330,10 @@ class GenomeCodePool:
     def execute_movement_policy(
         self,
         policy_set: GenomePolicySet,
-        observation: Dict[str, Any],
+        observation: dict[str, Any],
         rng: pyrandom.Random,
         dt: float = 1.0,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Execute a movement policy and return clamped (vx, vy).
 
         Args:
@@ -359,7 +359,7 @@ class GenomeCodePool:
 
         return self._parse_and_clamp_movement(result.output)
 
-    def _parse_and_clamp_movement(self, output: Any) -> Tuple[float, float]:
+    def _parse_and_clamp_movement(self, output: Any) -> tuple[float, float]:
         """Parse policy output and clamp to valid movement range."""
         # Parse various output formats
         if isinstance(output, (tuple, list)) and len(output) >= 2:
@@ -534,10 +534,10 @@ class GenomeCodePool:
 
     def _mutate_params(
         self,
-        params: Dict[str, float],
+        params: dict[str, float],
         rng: pyrandom.Random,
         strength: float,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Mutate policy parameters with Gaussian noise."""
         result = {}
         for key, value in params.items():
@@ -553,11 +553,11 @@ class GenomeCodePool:
 
     def _blend_params(
         self,
-        params1: Dict[str, float],
-        params2: Dict[str, float],
+        params1: dict[str, float],
+        params2: dict[str, float],
         weight1: float,
         rng: pyrandom.Random,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Blend parameters from two parents."""
         all_keys = set(params1.keys()) | set(params2.keys())
         result = {}
@@ -573,7 +573,7 @@ class GenomeCodePool:
     # Serialization
     # =========================================================================
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the GenomeCodePool to a dictionary."""
         return {
             "pool": self._pool.to_dict(),
@@ -582,7 +582,7 @@ class GenomeCodePool:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "GenomeCodePool":
+    def from_dict(cls, data: dict[str, Any]) -> GenomeCodePool:
         """Deserialize a GenomeCodePool from a dictionary."""
         pool = CodePool.from_dict(data.get("pool", {}))
         safety_config = SafetyConfig.from_dict(data.get("safety_config", {}))

@@ -24,8 +24,6 @@ from core.code_pool import (
     validate_rng_determinism,
 )
 from core.code_pool.sandbox import parse_and_validate
-from core.genetics.trait import GeneticTrait
-
 
 # =============================================================================
 # Fixtures
@@ -685,8 +683,6 @@ class TestIntegration:
 
     def test_determinism_across_steps(self, genome_code_pool: GenomeCodePool) -> None:
         """Same seed should produce same actions for N steps (acceptance criteria)."""
-        movement_ids = genome_code_pool.get_components_by_kind("movement_policy")
-
         # Add a policy that uses RNG (math module is available in sandbox globals)
         component_id = genome_code_pool.add_component(
             kind="movement_policy",
