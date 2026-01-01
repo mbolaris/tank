@@ -275,6 +275,46 @@ First solution submitted: **Opus-4.5 Poker Champion** (Elo 1230, beginner tier)
 
 - CI still runs Python 3.8 for tests. Use `from __future__ import annotations` or `typing.Tuple`/`typing.Dict` instead of builtin generics in new test modules to avoid `TypeError: 'type' object is not subscriptable`.
 
+## Pre-commit Hooks: Prevent Errors Before Committing
+
+**IMPORTANT:** Always set up pre-commit hooks to catch formatting, linting, and type errors locally before committing.
+
+### Initial Setup (One Time)
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files  # Validate on existing code
+```
+
+### What Hooks Check
+
+Pre-commit hooks automatically run on every commit:
+- **black**: Code formatting (100-char line length)
+- **ruff**: Linting (unused variables, imports, type issues)
+- **trailing-whitespace**: Removes trailing spaces
+- **end-of-file-fixer**: Ensures files end with newlines
+
+### Common Fixes
+
+When hooks fail, they often auto-fix issues. Just re-stage and commit:
+
+```bash
+git add .
+git commit -m "Your message"  # Will succeed on second attempt
+```
+
+### Manual Fixes
+
+If auto-fix doesn't work, run formatters manually:
+
+```bash
+black core/ tests/ tools/          # Auto-format Python
+ruff check --fix --unsafe-fixes core/ tests/ tools/  # Fix linting errors
+```
+
+**Why This Matters:** Agents that skip pre-commit setup consistently introduce formatting and type errors that fail CI. Using hooks prevents 95% of these issues.
+
 ## AI Tournament (Best Per Author)
 
 TankWorld includes a tournament runner that selects the best solution per author and runs a head-to-head round robin.
