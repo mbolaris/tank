@@ -123,17 +123,15 @@ class TestGenomeMutationValidity:
 
         # Mutate many times and verify IDs remain valid
         for _ in range(100):
-            mutated = genome_code_pool.mutate_policy_set(
-                policy_set, rng, mutation_rate=0.3
-            )
+            mutated = genome_code_pool.mutate_policy_set(policy_set, rng, mutation_rate=0.3)
 
             # Check all component IDs are valid
             for kind in ["movement_policy", "poker_policy", "soccer_policy"]:
                 component_id = mutated.get_component_id(kind)
                 if component_id is not None:
-                    assert genome_code_pool.has_component(component_id), (
-                        f"Mutation produced invalid {kind} ID: {component_id}"
-                    )
+                    assert genome_code_pool.has_component(
+                        component_id
+                    ), f"Mutation produced invalid {kind} ID: {component_id}"
 
             policy_set = mutated  # Use for next iteration
 
@@ -150,9 +148,7 @@ class TestGenomeMutationValidity:
         swapped = False
         for seed in range(1000):
             rng = random.Random(seed)
-            mutated = genome_code_pool.mutate_policy_set(
-                policy_set, rng, mutation_rate=0.5
-            )
+            mutated = genome_code_pool.mutate_policy_set(policy_set, rng, mutation_rate=0.5)
             new_id = mutated.get_component_id("movement_policy")
             if new_id is not None and new_id != original_id:
                 swapped = True
@@ -173,18 +169,14 @@ class TestGenomeMutationValidity:
         for seed in range(1000):
             rng = random.Random(seed)
             # High mutation rate to trigger drops more often
-            mutated = genome_code_pool.mutate_policy_set(
-                policy_set, rng, mutation_rate=1.0
-            )
+            mutated = genome_code_pool.mutate_policy_set(policy_set, rng, mutation_rate=1.0)
             if mutated.get_component_id("movement_policy") is None:
                 dropped = True
                 break
 
         assert dropped, "Mutation never dropped policy after 1000 tries"
 
-    def test_ensure_valid_policies_fills_missing(
-        self, genome_code_pool: GenomeCodePool
-    ) -> None:
+    def test_ensure_valid_policies_fills_missing(self, genome_code_pool: GenomeCodePool) -> None:
         """ensure_valid_policies should fill missing required policies."""
         rng = random.Random(42)
 
@@ -476,9 +468,7 @@ def policy(obs, rng):
 class TestCrossover:
     """Test crossover of parent policy sets."""
 
-    def test_crossover_inherits_from_parents(
-        self, genome_code_pool: GenomeCodePool
-    ) -> None:
+    def test_crossover_inherits_from_parents(self, genome_code_pool: GenomeCodePool) -> None:
         """Crossover should inherit policies from one of the parents."""
         movement_ids = genome_code_pool.get_components_by_kind("movement_policy")
         assert len(movement_ids) >= 2
@@ -527,9 +517,7 @@ class TestCrossover:
         assert "speed" in child_params
         assert child_params["speed"] == pytest.approx(0.5, abs=0.01)
 
-    def test_crossover_weighted_inheritance(
-        self, genome_code_pool: GenomeCodePool
-    ) -> None:
+    def test_crossover_weighted_inheritance(self, genome_code_pool: GenomeCodePool) -> None:
         """Weight parameter should bias inheritance toward one parent."""
         movement_ids = genome_code_pool.get_components_by_kind("movement_policy")
         assert len(movement_ids) >= 2
@@ -544,18 +532,14 @@ class TestCrossover:
         p1_count = 0
         for seed in range(100):
             rng = random.Random(seed)
-            child = genome_code_pool.crossover_policy_sets(
-                parent1, parent2, rng, weight1=0.9
-            )
+            child = genome_code_pool.crossover_policy_sets(parent1, parent2, rng, weight1=0.9)
             if child.get_component_id("movement_policy") == movement_ids[0]:
                 p1_count += 1
 
         # Should get parent1's policy most of the time
         assert p1_count > 80, f"Only got parent1's policy {p1_count}/100 times"
 
-    def test_crossover_handles_missing_policies(
-        self, genome_code_pool: GenomeCodePool
-    ) -> None:
+    def test_crossover_handles_missing_policies(self, genome_code_pool: GenomeCodePool) -> None:
         """Crossover should handle parents with missing policies."""
         movement_ids = genome_code_pool.get_components_by_kind("movement_policy")
 
@@ -662,9 +646,7 @@ class TestIntegration:
         }
         rng = create_deterministic_rng(42)
 
-        vx, vy = genome_code_pool.execute_movement_policy(
-            policy_set, observation, rng, dt=1.0
-        )
+        vx, vy = genome_code_pool.execute_movement_policy(policy_set, observation, rng, dt=1.0)
 
         # Should return valid movement direction
         assert -1.0 <= vx <= 1.0
@@ -697,9 +679,9 @@ class TestIntegration:
         # Check validity
         movement_id = validated.get_component_id("movement_policy")
         if movement_id is not None:
-            assert genome_code_pool.has_component(movement_id), (
-                f"Invalid component ID after mutation/crossover: {movement_id}"
-            )
+            assert genome_code_pool.has_component(
+                movement_id
+            ), f"Invalid component ID after mutation/crossover: {movement_id}"
 
     def test_determinism_across_steps(self, genome_code_pool: GenomeCodePool) -> None:
         """Same seed should produce same actions for N steps (acceptance criteria)."""
@@ -729,18 +711,14 @@ def policy(observation, rng):
         rng1 = create_deterministic_rng(seed)
         seq1 = []
         for step in range(n_steps):
-            result = genome_code_pool.execute_policy(
-                component_id, observation, rng1, dt=1.0
-            )
+            result = genome_code_pool.execute_policy(component_id, observation, rng1, dt=1.0)
             seq1.append(result.output)
 
         # Run sequence 2 with same seed
         rng2 = create_deterministic_rng(seed)
         seq2 = []
         for step in range(n_steps):
-            result = genome_code_pool.execute_policy(
-                component_id, observation, rng2, dt=1.0
-            )
+            result = genome_code_pool.execute_policy(component_id, observation, rng2, dt=1.0)
             seq2.append(result.output)
 
         # Verify determinism
