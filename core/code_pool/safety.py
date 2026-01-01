@@ -13,11 +13,10 @@ import ast
 import math
 import random as pyrandom
 import sys
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from .models import ValidationError
-
 
 # =============================================================================
 # Safety Configuration
@@ -42,9 +41,9 @@ class SafetyConfig:
 
     # Output clamping
     clamp_movement_output: bool = True  # Clamp movement vectors to [-1, 1]
-    clamp_value_range: Tuple[float, float] = (-1.0, 1.0)  # Range for clamping
+    clamp_value_range: tuple[float, float] = (-1.0, 1.0)  # Range for clamping
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
             "max_source_length": self.max_source_length,
@@ -57,7 +56,7 @@ class SafetyConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SafetyConfig":
+    def from_dict(cls, data: dict[str, Any]) -> SafetyConfig:
         """Deserialize from dictionary."""
         clamp_range = data.get("clamp_value_range", [-1.0, 1.0])
         return cls(
@@ -76,37 +75,37 @@ class SafetyConfig:
 # =============================================================================
 
 
-class SafetyViolation(Exception):
+class SafetyViolationError(Exception):
     """Raised when a safety check fails."""
 
     pass
 
 
-class SourceTooLongError(SafetyViolation):
+class SourceTooLongError(SafetyViolationError):
     """Raised when source code exceeds maximum length."""
 
     pass
 
 
-class ASTTooComplexError(SafetyViolation):
+class ASTTooComplexError(SafetyViolationError):
     """Raised when AST exceeds maximum node count."""
 
     pass
 
 
-class NestingTooDeepError(SafetyViolation):
+class NestingTooDeepError(SafetyViolationError):
     """Raised when function nesting exceeds maximum depth."""
 
     pass
 
 
-class RecursionLimitError(SafetyViolation):
+class RecursionLimitError(SafetyViolationError):
     """Raised when recursion depth is exceeded during execution."""
 
     pass
 
 
-class OutputTooLargeError(SafetyViolation):
+class OutputTooLargeError(SafetyViolationError):
     """Raised when output data structure is too large."""
 
     pass
@@ -200,7 +199,7 @@ class ExecutionResult:
 
     output: Any
     success: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
     was_clamped: bool = False
 
 
@@ -220,7 +219,7 @@ class SafeExecutor:
     def execute(
         self,
         func: Callable[..., Any],
-        observation: Dict[str, Any],
+        observation: dict[str, Any],
         rng: pyrandom.Random,
     ) -> ExecutionResult:
         """Execute a policy function with safety guards.
@@ -234,7 +233,7 @@ class SafeExecutor:
             ExecutionResult with output and status
 
         Raises:
-            SafetyViolation: If any safety check fails
+            SafetyViolationError: If any safety check fails
         """
         # Set recursion limit for this execution
         old_limit = sys.getrecursionlimit()
@@ -298,7 +297,7 @@ class SafeExecutor:
         # Unknown type - count as 1
         return 1
 
-    def _clamp_output(self, output: Any) -> Tuple[Any, bool]:
+    def _clamp_output(self, output: Any) -> tuple[Any, bool]:
         """Clamp output values to valid range.
 
         Returns:
@@ -378,7 +377,7 @@ def fork_rng(rng: pyrandom.Random) -> pyrandom.Random:
 
 def validate_rng_determinism(
     func: Callable[..., Any],
-    observation: Dict[str, Any],
+    observation: dict[str, Any],
     seed: int,
     num_trials: int = 3,
 ) -> bool:
@@ -407,8 +406,4 @@ def validate_rng_determinism(
         return False
 
     first = results[0]
-    for result in results[1:]:
-        if result != first:
-            return False
-
-    return True
+    return all(result == first for result in results[1:])
