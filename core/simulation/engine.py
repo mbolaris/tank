@@ -32,43 +32,69 @@ A future refactoring could:
 For now, we keep the explicit phase logic in update() for clarity.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import random
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol, TYPE_CHECKING
 
-from core import entities, environment
-from core.agents_wrapper import AgentsWrapper
-from core.collision_system import CollisionSystem
 from core.config.simulation_config import SimulationConfig
-from core.ecosystem import EcosystemManager
-from core.entities.plant import Plant, PlantNectar
-from core.entity_factory import create_initial_population
-from core.genetics import PlantGenome
-from core.plant_manager import PlantManager
-from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-from core.poker_interaction import PokerInteraction
-from core.poker_system import PokerSystem
-from core.reproduction_service import ReproductionService
-from core.reproduction_system import ReproductionSystem
-from core.root_spots import RootSpotManager
-from core.services.stats.calculator import StatsCalculator
 from core.simulation import diagnostics
 from core.simulation.entity_manager import EntityManager
 from core.simulation.entity_mutation_queue import EntityMutationQueue
 from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
-from core.systems.entity_lifecycle import EntityLifecycleSystem
-from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
-from core.systems.poker_proximity import PokerProximitySystem
 from core.time_system import TimeSystem
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 from core.sim.energy_ledger import EnergyLedger, EnergyDelta
 from core.sim.events import SimEvent, AteFood, Moved, EnergyBurned, PokerGamePlayed
 
+if TYPE_CHECKING:
+    from core import entities, environment
+    from core.agents_wrapper import AgentsWrapper
+    from core.collision_system import CollisionSystem
+    from core.ecosystem import EcosystemManager
+    from core.plant_manager import PlantManager
+    from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+    from core.poker_interaction import PokerInteraction
+    from core.poker_system import PokerSystem
+    from core.reproduction_service import ReproductionService
+    from core.reproduction_system import ReproductionSystem
+    from core.services.stats.calculator import StatsCalculator
+    from core.systems.entity_lifecycle import EntityLifecycleSystem
+    from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
+    from core.systems.poker_proximity import PokerProximitySystem
+    from core.worlds.system_pack import EnvironmentLike, SystemPack
+
 logger = logging.getLogger(__name__)
+
+
+class PackableEngine(Protocol):
+    """Minimal interface that a SystemPack expects from the engine."""
+    config: SimulationConfig
+    rng: random.Random
+    event_bus: Any
+    code_pool: Any
+    environment: Optional["environment.Environment"]
+    ecosystem: Optional["EcosystemManager"]
+    plant_manager: Optional["PlantManager"]
+    food_spawning_system: Optional["FoodSpawningSystem"]
+    time_system: "TimeSystem"
+    lifecycle_system: "EntityLifecycleSystem"
+    collision_system: "CollisionSystem"
+    reproduction_system: "ReproductionSystem"
+    poker_system: "PokerSystem"
+    poker_proximity_system: "PokerProximitySystem"
+    def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
+    def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
+    def _queue_sim_event(self, event: Any) -> None: ...
+    def _apply_entity_mutations(self, stage: str) -> None: ...
+    def create_initial_entities(self) -> None: ...
+    def _block_root_spots_with_obstacles(self) -> None: ...
+    def _build_spawn_rate_config(self) -> "SpawnRateConfig": ...
 
 
 class SimulationEngine:
@@ -108,15 +134,7 @@ class SimulationEngine:
         seed: Optional[int] = None,
         enable_poker_benchmarks: Optional[bool] = None,
     ) -> None:
-        """Initialize the simulation engine.
-
-        Args:
-            config: Aggregate simulation configuration
-            headless: Override headless mode (for backward compatibility)
-            rng: Shared random number generator for deterministic runs
-            seed: Optional seed (used if rng is not provided)
-            enable_poker_benchmarks: Override poker benchmark toggle
-        """
+        """Initialize the simulation engine."""
         self.frame_count: int = 0
         self.paused: bool = False
         self.config = config or SimulationConfig.production(headless=True)
@@ -129,8 +147,7 @@ class SimulationEngine:
         self.config.validate()
         self.headless = self.config.headless
 
-        # RNG handling: prefer explicit rng, then seed, then fresh RNG
-        # NOTE: Do not seed the global random module to avoid cross-engine contamination.
+        # RNG handling
         if rng is not None:
             self.rng: random.Random = rng
             self.seed = None
@@ -141,11 +158,10 @@ class SimulationEngine:
             self.rng = random.Random()
             self.seed = None
 
-        # Observability: Unique identifier for this simulation run
         self.run_id: str = str(uuid.uuid4())
         logger.info(f"SimulationEngine initialized with run_id={self.run_id}")
 
-        # Entity management (delegated to EntityManager)
+        # Components (delegated to managers)
         self._entity_manager = EntityManager(
             rng=self.rng,
             get_environment=lambda: self.environment,
@@ -153,59 +169,43 @@ class SimulationEngine:
             get_root_spot_manager=lambda: self.root_spot_manager,
         )
 
-        # Backward compatibility: expose entities_list
-        # This is a property that delegates to EntityManager
+        from core.agents_wrapper import AgentsWrapper
         self.agents = AgentsWrapper(self)
-
-        # System registry (delegated to SystemRegistry)
         self._system_registry = SystemRegistry()
-
-        # Central mutation queue for spawns/removals
         self._entity_mutations = EntityMutationQueue()
 
         # Core state
-        self.environment: Optional[environment.Environment] = None
-        self.ecosystem: Optional[EcosystemManager] = None
+        self.environment: Optional["environment.Environment"] = None
+        self.ecosystem: Optional["EcosystemManager"] = None
         self.time_system: TimeSystem = TimeSystem(self)
         self.start_time: float = time.time()
 
-        # NOTE: EventBus was removed as dead code. It subscribed to events
-        # that were never emitted, and emitted events with no subscribers.
-        # If we need pub/sub in the future, re-add it with actual use cases.
+        # Services
+        from core.services.stats.calculator import StatsCalculator
+        self.stats_calculator = StatsCalculator(self)
 
-        # Systems - initialized here, registered in setup()
-        self.collision_system = CollisionSystem(self)
-        self.reproduction_service = ReproductionService(self)
-        self.reproduction_system = ReproductionSystem(self)
-        self.poker_system = PokerSystem(self, max_events=self.config.poker.max_poker_events)
-        self.poker_system.enabled = self.config.server.poker_activity_enabled
-        self.poker_events = self.poker_system.poker_events
-        self.lifecycle_system = EntityLifecycleSystem(self)
-        self.poker_proximity_system = PokerProximitySystem(self)
-
-        # Food spawning (initialized in setup after environment exists)
-        self.food_spawning_system: Optional[FoodSpawningSystem] = None
-
-        # Plant management (initialized in setup)
-        self.plant_manager: Optional[PlantManager] = None
+        # Systems - these will be optionally initialized by the SystemPack in setup()
+        # but we keep them as Optional attributes for type safety and backward compat.
+        self.collision_system: Optional["CollisionSystem"] = None
+        self.reproduction_service: Optional["ReproductionService"] = None
+        self.reproduction_system: Optional["ReproductionSystem"] = None
+        self.poker_system: Optional["PokerSystem"] = None
+        self.lifecycle_system: Optional["EntityLifecycleSystem"] = None
+        self.poker_proximity_system: Optional["PokerProximitySystem"] = None
+        self.food_spawning_system: Optional["FoodSpawningSystem"] = None
+        self.plant_manager: Optional["PlantManager"] = None
+        self.poker_events: List[Any] = []
 
         # Periodic poker benchmark evaluation
-        self.benchmark_evaluator: Optional[PeriodicBenchmarkEvaluator] = None
-        if self.config.poker.enable_periodic_benchmarks:
-            self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
-                self.config.poker.benchmark_config
-            )
-
-        # Services
-        self.stats_calculator = StatsCalculator(self)
+        self.benchmark_evaluator: Optional["PeriodicBenchmarkEvaluator"] = None
+        
+        # Energy Ledger integration
+        self.energy_ledger = EnergyLedger()
+        self.pending_sim_events: List[SimEvent] = []
 
         # Phase tracking for debugging
         self._current_phase: Optional[UpdatePhase] = None
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
-
-        # Energy Ledger integration
-        self.energy_ledger = EnergyLedger()
-        self.pending_sim_events: List[SimEvent] = []
 
     # =========================================================================
     # Properties for Backward Compatibility
@@ -232,96 +232,57 @@ class SimulationEngine:
     # Setup
     # =========================================================================
 
-    def setup(self) -> None:
-        """Setup the simulation."""
-        # Clear global poker participant state to prevent cross-engine contamination
-        # when running multiple engines (e.g., in isolation tests)
-        from core.poker_participant_manager import _global_manager
+    def setup(self, pack: Optional["SystemPack"] = None) -> None:
+        """Setup the simulation using the provided SystemPack.
 
+        If no pack is provided, it tries to use the default Tank logic
+        (via TankPack) for backward compatibility.
+        """
+        # Clear global poker participant state to prevent cross-engine contamination
+        from core.poker_participant_manager import _global_manager
         _global_manager.clear_all()
 
-        display = self.config.display
-        eco_config = self.config.ecosystem
+        # Fallback to TankPack if no pack provided (backward compat)
+        if pack is None:
+            from core.worlds.tank.pack import TankPack
+            pack = TankPack(self.config)
 
-        # Create EventBus for domain event dispatch
-        from core.code_pool import (
-            BUILTIN_SEEK_NEAREST_FOOD_ID,
-            CodePool,
-            seek_nearest_food_policy,
-        )
-        from core.events import EventBus
+        # 1. Initialize core systems that every engine has
+        from core.systems.entity_lifecycle import EntityLifecycleSystem
+        from core.collision_system import CollisionSystem
+        from core.reproduction_service import ReproductionService
+        from core.reproduction_system import ReproductionSystem
+        from core.poker_system import PokerSystem
+        from core.systems.poker_proximity import PokerProximitySystem
 
-        self.event_bus = EventBus()
+        self.lifecycle_system = EntityLifecycleSystem(self)
+        self.collision_system = CollisionSystem(self)
+        self.reproduction_service = ReproductionService(self)
+        self.reproduction_system = ReproductionSystem(self)
+        self.poker_system = PokerSystem(self, max_events=self.config.poker.max_poker_events)
+        self.poker_system.enabled = self.config.server.poker_activity_enabled
+        self.poker_events = self.poker_system.poker_events
+        self.poker_proximity_system = PokerProximitySystem(self)
 
-        # Initialize code pool (per-engine for isolation)
-        self.code_pool = CodePool()
-        self.code_pool.register(BUILTIN_SEEK_NEAREST_FOOD_ID, seek_nearest_food_policy)
-
-        # Subscribe EnergyLedger queue to energy events
-        self.event_bus.subscribe(AteFood, self._queue_sim_event)
-        self.event_bus.subscribe(Moved, self._queue_sim_event)
-        self.event_bus.subscribe(EnergyBurned, self._queue_sim_event)
-        self.event_bus.subscribe(PokerGamePlayed, self._queue_sim_event)
-
-        # Initialize environment with EventBus for decoupled telemetry
-        self.environment = environment.Environment(
-            self._entity_manager.entities_list,
-            display.screen_width,
-            display.screen_height,
-            self.time_system,
-            rng=self.rng,
-            event_bus=self.event_bus,
-            code_pool=self.code_pool,
-            simulation_config=self.config,
-        )
-        self.environment.set_spawn_requester(self.request_spawn)
-        self.environment.set_remove_requester(self.request_remove)
-
-        # Initialize ecosystem manager with EventBus for telemetry subscriptions
-        self.ecosystem = EcosystemManager(
-            max_population=eco_config.max_population,
-            event_bus=self.event_bus,
-        )
-
-        # Initialize plant management
-        if self.config.server.plants_enabled:
-            self.plant_manager = PlantManager(
-                environment=self.environment,
-                ecosystem=self.ecosystem,
-                entity_adder=self,
-                rng=self.rng,
+        if self.config.poker.enable_periodic_benchmarks:
+            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+            self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
+                self.config.poker.benchmark_config
             )
 
-        # Initialize food spawning system
-        self.food_spawning_system = FoodSpawningSystem(
-            self,
-            rng=self.rng,
-            spawn_rate_config=self._build_spawn_rate_config(),
-            auto_food_enabled=self.config.food.auto_food_enabled,
-            display_config=display,
-        )
+        # 2. Let the pack build the environment
+        self.environment = pack.build_environment(self)
 
-        # Register systems in execution order
-        self._system_registry.register(self.lifecycle_system)
-        self._system_registry.register(self.time_system)
-        self._system_registry.register(self.food_spawning_system)
-        self._system_registry.register(self.collision_system)
-        self._system_registry.register(self.poker_proximity_system)
-        self._system_registry.register(self.reproduction_system)
-        self._system_registry.register(self.poker_system)
+        # 3. Let the pack register systems
+        pack.register_systems(self)
         self._validate_system_phase_declarations()
 
-        # Create initial entities
-        self.create_initial_entities()
+        # 4. Let the pack seed entities
+        pack.seed_entities(self)
 
-        # Create initial fractal plants
-        if self.plant_manager is not None:
-            self._block_root_spots_with_obstacles()
-            self.plant_manager.create_initial_plants(self._entity_manager.entities_list)
-            self._apply_entity_mutations("setup_plants")
-
-    def _build_spawn_rate_config(self) -> SpawnRateConfig:
+    def _build_spawn_rate_config(self) -> "SpawnRateConfig":
         """Translate SimulationConfig food settings into SpawnRateConfig."""
+        from core.systems.food_spawning import SpawnRateConfig
         food_cfg = self.config.food
         return SpawnRateConfig(
             base_rate=food_cfg.spawn_rate,
@@ -420,10 +381,11 @@ class SimulationEngine:
     # =========================================================================
 
     def create_initial_entities(self) -> None:
-        """Create initial entities in the fish tank with multiple species."""
+        """Create initial entities in the simulation."""
         if self.environment is None or self.ecosystem is None:
             return
 
+        from core.entity_factory import create_initial_population
         display = self.config.display
         population = create_initial_population(
             self.environment,
@@ -699,7 +661,8 @@ class SimulationEngine:
         entities_to_remove: List[entities.Agent] = []
 
         # Performance: Pre-fetch type references
-        Fish = entities.Fish
+        from core.entities import Fish
+        from core.entities.plant import Plant, PlantNectar
 
         ecosystem = self.ecosystem
         fish_count = len(self.get_fish_list()) if ecosystem is not None else 0
@@ -759,9 +722,10 @@ class SimulationEngine:
             self.request_remove(entity, reason="entity_act")
 
         # Process food removal (expiry, off-screen) - LifecycleSystem owns this logic
+        from core.entities import Food
         screen_height = self.config.display.screen_height
         for entity in list(self._entity_manager.entities_list):
-            if isinstance(entity, entities.Food):
+            if isinstance(entity, Food):
                 self.lifecycle_system.process_food_removal(entity, screen_height)
 
         # Cleanup fish that finished their death animation

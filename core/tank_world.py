@@ -113,6 +113,7 @@ class TankWorld:
         simulation_config: Optional[SimulationConfig] = None,
         rng: Optional[random.Random] = None,
         seed: Optional[int] = None,
+        pack: Optional["SystemPack"] = None,
     ):
         """Initialize TankWorld.
 
@@ -121,6 +122,7 @@ class TankWorld:
             simulation_config: New aggregate SimulationConfig (overrides config if provided)
             rng: Random number generator instance (creates new if None)
             seed: Random seed (only used if rng is None)
+            pack: Optional custom SystemPack (defaults to TankPack)
         """
         # Store configuration
         self.config = config if config is not None else TankWorldConfig()
@@ -137,16 +139,18 @@ class TankWorld:
 
         # Import here to avoid circular dependencies
         from core.simulation import SimulationEngine
+        from core.worlds.tank.pack import TankPack
 
         # Create the simulation engine
         self.engine = SimulationEngine(config=self.simulation_config, rng=self.rng)
+        self.pack = pack or TankPack(self.simulation_config)
 
     def setup(self) -> None:
         """Setup the simulation.
 
         This initializes the environment, ecosystem, and creates initial entities.
         """
-        self.engine.setup()
+        self.engine.setup(self.pack)
 
     def update(self) -> None:
         """Update the simulation by one frame."""

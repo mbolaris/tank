@@ -113,6 +113,20 @@ All systems expose `update(frame)`, `get_debug_info()`, and runtime enable/disab
 - No global RNG calls (`random.*`) in core simulation paths; use injected RNGs or per-instance `Random`.
 - The engine does not seed the global random module; determinism is explicit via seed/RNG injection.
 
+### Python Code Pool
+
+The simulation uses a two-layer code pool abstraction in `core/code_pool/`:
+
+- **GenomeCodePool** (`genome_code_pool.py`): Manages components, mutation, crossover, and persistence metadata. This is the **canonical abstraction** for genome-centric policy evolution.
+- **CodePool** (`pool.py`): Runtime compiled callables (cache layer). Stores components and compiles source to callables.
+
+**Usage:**
+- `Environment` creates `GenomeCodePool` by default (`create_default_genome_code_pool()`).
+- Access via `environment.genome_code_pool` (canonical) or `environment.code_pool` (backward compat).
+- Both Tank and Soccer training share this abstraction.
+
+See `docs/architecture/python_code_pool.md` for sandbox and safety details.
+
 ### 2. Web Backend (backend/)
 
 **Design Goal:** Real-time web UI via WebSocket with Tank World Net support

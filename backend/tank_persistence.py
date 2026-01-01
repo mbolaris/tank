@@ -198,16 +198,27 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
             from core.code_pool import (
                 BUILTIN_SEEK_NEAREST_FOOD_ID,
                 CodePool,
+                GenomeCodePool,
                 seek_nearest_food_policy,
+                create_default_genome_code_pool,
             )
             try:
                 restored_pool = CodePool.from_dict(snapshot["code_pool"])
                 # Re-register builtin policies (not serialized)
                 restored_pool.register(BUILTIN_SEEK_NEAREST_FOOD_ID, seek_nearest_food_policy)
                 engine.code_pool = restored_pool
-                # Wire into environment
-                if engine.environment:
-                    engine.environment.code_pool = engine.code_pool
+
+                # Rebuild GenomeCodePool wrapper with restored components
+                if engine.environment and hasattr(engine.environment, "genome_code_pool"):
+                    if engine.environment.genome_code_pool is not None:
+                        # Create fresh GenomeCodePool with existing pool data
+                        genome_pool = GenomeCodePool(code_pool=restored_pool)
+                        engine.environment.genome_code_pool = genome_pool
+                        engine.environment.code_pool = genome_pool.pool
+                    else:
+                        # Legacy Environment without GenomeCodePool - just update code_pool
+                        engine.environment.code_pool = engine.code_pool
+
                 component_count = len(restored_pool.list_components())
                 if component_count > 0:
                     logger.info(f"Restored {component_count} code pool components")

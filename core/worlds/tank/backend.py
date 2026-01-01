@@ -64,16 +64,17 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self.supports_fast_step = True
 
     def reset(
-        self, seed: Optional[int] = None, config: Optional[Dict[str, Any]] = None
+        self,
+        seed: Optional[int] = None,
+        config: Optional[Dict[str, Any]] = None,
+        pack: Optional["SystemPack"] = None,
     ) -> StepResult:
         """Reset the tank world to initial state.
 
         Args:
             seed: Random seed (overrides constructor seed if provided)
             config: Tank-specific configuration overrides
-
-        Returns:
-            StepResult with initial snapshot and metrics
+            pack: Optional SystemPack to use
         """
         # Use provided seed or fall back to constructor seed
         reset_seed = seed if seed is not None else self._seed
@@ -82,7 +83,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             self._base_config = TankWorldConfig.from_dict(merged)
 
         # Create fresh TankWorld instance
-        self._world = TankWorld(config=self._base_config, seed=reset_seed)
+        self._world = TankWorld(config=self._base_config, seed=reset_seed, pack=pack)
 
         # Setup the simulation (creates initial entities)
         self._world.setup()

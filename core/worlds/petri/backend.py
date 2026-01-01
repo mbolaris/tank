@@ -30,7 +30,13 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def reset(
         self, seed: int | None = None, config: dict[str, Any] | None = None
     ) -> StepResult:
-        result = self._tank_backend.reset(seed=seed, config=config)
+        from core.worlds.petri.pack import PetriPack
+
+        # Create a PetriPack from current config or provided overrides
+        # Petri mode reuses TankWorldConfig format
+        pack = PetriPack(self._tank_backend.config.to_simulation_config())
+
+        result = self._tank_backend.reset(seed=seed, config=config, pack=pack)
         self._last_step_result = self._patch_step_result(result)
         return self._last_step_result
 
