@@ -147,7 +147,6 @@ async def _handle_websocket(
     """
     from backend.tank_world_adapter import TankWorldAdapter
 
-    client_ip = _get_client_ip(websocket)
     manager = tank_registry.get_tank_or_default(tank_id)
 
     if manager is None:
@@ -179,8 +178,6 @@ async def _handle_websocket_for_world(
         world_manager: The WorldManager to get worlds from
         world_id: The world ID to connect to
     """
-    client_ip = _get_client_ip(websocket)
-
     # Get the world instance
     instance = world_manager.get_world(world_id)
     if instance is None:
