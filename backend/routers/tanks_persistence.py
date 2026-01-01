@@ -127,7 +127,9 @@ def setup_persistence_subrouter(
         snapshot_path = DATA_DIR / tank_id / "snapshots" / snapshot_filename
 
         # Validate filename to prevent directory traversal
-        if not snapshot_path.is_relative_to(DATA_DIR / tank_id / "snapshots"):
+        try:
+            snapshot_path.relative_to(DATA_DIR / tank_id / "snapshots")
+        except ValueError:
             return JSONResponse({"error": "Invalid snapshot filename"}, status_code=400)
 
         if not snapshot_path.exists():

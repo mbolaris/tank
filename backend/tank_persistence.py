@@ -127,7 +127,9 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
         resolved_path = Path(snapshot_path).resolve()
         data_root = DATA_DIR.resolve()
 
-        if not resolved_path.is_relative_to(data_root):
+        try:
+            resolved_path.relative_to(data_root)
+        except ValueError:
             logger.error("Rejected snapshot load outside data directory: %s", resolved_path)
             return None
 

@@ -5,7 +5,7 @@ worlds of all types (tank, petri, soccer) through a unified API.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
@@ -50,7 +50,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
     """
     router = APIRouter(prefix="/api/worlds", tags=["worlds"])
 
-    @router.get("/types", response_model=list[WorldTypeResponse])
+    @router.get("/types", response_model=List[WorldTypeResponse])
     async def list_world_types():
         """List all available world types with their capabilities.
 
