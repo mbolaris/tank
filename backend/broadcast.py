@@ -13,14 +13,13 @@ import logging
 import os
 import time
 from contextlib import suppress
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 from core.config.display import FRAME_RATE
 
 if TYPE_CHECKING:
     from backend.simulation_manager import SimulationManager
     from backend.tank_world_adapter import TankWorldAdapter
-    from backend.world_manager import WorldInstance
 
 logger = logging.getLogger("backend.broadcast")
 

@@ -8,10 +8,8 @@ This module tests that:
 5. Legacy /tanks endpoint still works
 """
 
-import asyncio
 import json
 import time
-from typing import Optional
 
 import pytest
 from fastapi.testclient import TestClient
