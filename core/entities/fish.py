@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from core.config.fish import (
     DIRECTION_CHANGE_ENERGY_BASE,
@@ -216,6 +216,23 @@ class Fish(Agent):
         # Rendering-only state is stored separately to keep domain logic lean.
         self.visual_state = FishVisualState()
         self.poker_cooldown: int = 0  # Cooldown between poker games
+
+        # Optional: Override movement policy (if set, used instead of genome behavior)
+        self._movement_policy: Optional[Any] = None
+
+    @property
+    def movement_policy(self) -> Optional[Any]:
+        """Get the override movement policy, if any."""
+        return self._movement_policy
+
+    @movement_policy.setter
+    def movement_policy(self, policy: Optional[Any]) -> None:
+        """Set an override movement policy.
+
+        If set, this policy will be used instead of the genome-based behavior.
+        Set to None to return to default genome behavior.
+        """
+        self._movement_policy = policy
 
     @property
     def typed_id(self) -> FishId:

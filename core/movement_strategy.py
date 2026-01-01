@@ -102,14 +102,31 @@ class AlgorithmicMovement(MovementStrategy):
         sprite_entity: Fish = sprite._entity if hasattr(sprite, "_entity") else sprite
         genome = sprite_entity.genome
 
-        # Check if fish has a composable behavior
-        composable_behavior = (
-            genome.behavioral.behavior.value if genome.behavioral.behavior else None
-        )
+        # Priority 1: Check for explicit movement policy override
+        if sprite_entity.movement_policy is not None:
+            observation = build_movement_observation(sprite_entity)
+            try:
+                desired_velocity = sprite_entity.movement_policy(
+                    observation, sprite_entity.environment.rng
+                )
+            except Exception:
+                desired_velocity = None
+            
+            # If policy returned valid velocity, we use it directly
+            # If it failed/returned None, we fall back to genome behavior below
+        else:
+            desired_velocity = None
 
-        desired_velocity = self._execute_policy_if_present(sprite_entity)
-
+        # Priority 2: Check for code policy in genome (if no override or override failed)
         if desired_velocity is None:
+            desired_velocity = self._execute_policy_if_present(sprite_entity)
+
+        # Priority 3: Check for standard behavior in genome
+        if desired_velocity is None:
+            composable_behavior = (
+                genome.behavioral.behavior.value if genome.behavioral.behavior else None
+            )
+
             if composable_behavior is None:
                 # Fallback to simple random movement
                 sprite_entity.add_random_velocity_change(
