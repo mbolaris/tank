@@ -1,12 +1,12 @@
-import pytest
-from unittest.mock import Mock, MagicMock
-from core.genetics.behavioral import BehavioralTraits, CODE_POLICY_DROP_PROBABILITY
-from core.code_pool.pool import BUILTIN_SEEK_NEAREST_FOOD_ID
-from core.entities.fish import Fish
-from core.genetics import Genome
-from core.genetics.trait import GeneticTrait
-from backend.entity_transfer import _deserialize_fish
 import random
+from unittest.mock import MagicMock
+
+import pytest
+
+from backend.entity_transfer import _deserialize_fish
+from core.code_pool.pool import BUILTIN_SEEK_NEAREST_FOOD_ID
+from core.genetics import Genome
+from core.genetics.behavioral import BehavioralTraits
 
 
 def test_legacy_fish_deserialization_assigns_default_policy():

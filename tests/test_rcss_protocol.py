@@ -6,12 +6,9 @@ based on the rcssserver protocol documentation.
 
 import math
 
-import pytest
-
 from core.policies.soccer_interfaces import PlayerState, SoccerAction, Vector2D
 from core.worlds.soccer.rcss_protocol import (
     HearInfo,
-    ObjectInfo,
     SeeInfo,
     SenseBodyInfo,
     action_to_commands,
@@ -26,26 +23,25 @@ from core.worlds.soccer.rcss_protocol import (
     parse_sense_body_message,
 )
 
-
 # ============================================================================
 # Golden test fixtures - real-ish message samples
 # ============================================================================
 
 
-SAMPLE_SEE_MESSAGE = """(see 0 ((f c) 58.7 0) ((f c t) 64.1 -7) ((f c b) 64.1 7) 
-((f l t) 64.8 -39) ((f l b) 41.1 39) ((f r t) 64.8 39) ((f r b) 41.1 -39) 
-((f g l t) 58.3 -20) ((f g l b) 58.3 20) ((f p l t) 41.6 -45) ((f p l b) 41.6 45) 
-((g l) 58.3 0) ((f t l 50) 47.6 -11) ((f t l 40) 42.4 -17) ((f t l 30) 37.1 -24) 
-((f t l 20) 31.8 -33) ((f t l 10) 26.5 -45) ((f t 0) 58.7 -90) ((f t r 10) 26.5 45) 
-((f t r 20) 31.8 33) ((f t r 30) 37.1 24) ((f t r 40) 42.4 17) ((f t r 50) 47.6 11) 
-((f b l 50) 47.6 11) ((f b l 40) 42.4 17) ((f b l 30) 37.1 24) ((f b l 20) 31.8 33) 
-((f b l 10) 26.5 45) ((f b 0) 58.7 90) ((f b r 10) 26.5 -45) ((f b r 20) 31.8 -33) 
-((f b r 30) 37.1 -24) ((f b r 40) 42.4 -17) ((f b r 50) 47.6 -11) ((g r) 58.3 -180) 
-((f g r t) 58.3 160) ((f g r b) 58.3 -160) ((f p r t) 41.6 135) ((f p r b) 41.6 -135) 
+SAMPLE_SEE_MESSAGE = """(see 0 ((f c) 58.7 0) ((f c t) 64.1 -7) ((f c b) 64.1 7)
+((f l t) 64.8 -39) ((f l b) 41.1 39) ((f r t) 64.8 39) ((f r b) 41.1 -39)
+((f g l t) 58.3 -20) ((f g l b) 58.3 20) ((f p l t) 41.6 -45) ((f p l b) 41.6 45)
+((g l) 58.3 0) ((f t l 50) 47.6 -11) ((f t l 40) 42.4 -17) ((f t l 30) 37.1 -24)
+((f t l 20) 31.8 -33) ((f t l 10) 26.5 -45) ((f t 0) 58.7 -90) ((f t r 10) 26.5 45)
+((f t r 20) 31.8 33) ((f t r 30) 37.1 24) ((f t r 40) 42.4 17) ((f t r 50) 47.6 11)
+((f b l 50) 47.6 11) ((f b l 40) 42.4 17) ((f b l 30) 37.1 24) ((f b l 20) 31.8 33)
+((f b l 10) 26.5 45) ((f b 0) 58.7 90) ((f b r 10) 26.5 -45) ((f b r 20) 31.8 -33)
+((f b r 30) 37.1 -24) ((f b r 40) 42.4 -17) ((f b r 50) 47.6 -11) ((g r) 58.3 -180)
+((f g r t) 58.3 160) ((f g r b) 58.3 -160) ((f p r t) 41.6 135) ((f p r b) 41.6 -135)
 ((b) 5.2 30.5) ((p left 2) 10.1 -15.0 0.5 -2.0 45.0 90.0) ((p right 5) 20.3 60))"""
 
-SAMPLE_SENSE_BODY_MESSAGE = """(sense_body 0 (view_mode high normal) (stamina 4000 1) 
-(speed 0 0) (head_angle 0) (kick 0) (dash 0) (turn 0) (say 0) (turn_neck 0) 
+SAMPLE_SENSE_BODY_MESSAGE = """(sense_body 0 (view_mode high normal) (stamina 4000 1)
+(speed 0 0) (head_angle 0) (kick 0) (dash 0) (turn 0) (say 0) (turn_neck 0)
 (catch 0) (move 0) (change_view 0))"""
 
 SAMPLE_HEAR_REFEREE = '(hear 120 referee "kick_off_left")'

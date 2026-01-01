@@ -7,7 +7,6 @@ as the codebase grows.
 from pathlib import Path
 from typing import List, Set, Tuple
 
-
 # Files that currently exceed the limit.
 # As we refactor these, remove them from the list.
 LEGACY_EXCEEDS: Set[str] = {

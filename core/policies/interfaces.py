@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Protocol
+from typing import TYPE_CHECKING, Any, Dict, Protocol
 
 if TYPE_CHECKING:
     from core.entities import Fish

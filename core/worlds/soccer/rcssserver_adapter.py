@@ -24,7 +24,6 @@ from core.policies.soccer_interfaces import (
     PlayerState,
     SoccerAction,
     SoccerObservation,
-    TeamID,
     Vector2D,
 )
 from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
@@ -34,9 +33,6 @@ from core.worlds.soccer.rcss_protocol import (
     SenseBodyInfo,
     action_to_commands,
     build_init_command,
-    estimate_position_from_polar,
-    parse_see_message,
-    parse_sense_body_message,
 )
 
 logger = logging.getLogger(__name__)
