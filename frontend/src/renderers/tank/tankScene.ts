@@ -1,6 +1,13 @@
 
 import type { EntityData } from '../../types/simulation';
 
+export interface PokerEffectState {
+    status: string;
+    amount: number;
+    target_id?: number;
+    target_type?: string;
+}
+
 export interface TankEntity {
     id: number;
     x: number;
@@ -10,6 +17,8 @@ export interface TankEntity {
     kind: string; // 'fish', 'food', etc.
     energy?: number;
     colorHue?: number;
+    poker_effect_state?: PokerEffectState;
+    birth_effect_timer?: number;
 }
 
 export interface TankScene {
@@ -48,7 +57,9 @@ export function buildTankScene(snapshot: any): TankScene {
                 headingRad,
                 kind: e.type,
                 energy: e.energy,
-                colorHue: e.genome_data?.color_hue
+                colorHue: e.genome_data?.color_hue,
+                poker_effect_state: e.poker_effect_state,
+                birth_effect_timer: e.birth_effect_timer,
             });
         });
     }
