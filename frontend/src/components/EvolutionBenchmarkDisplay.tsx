@@ -80,8 +80,8 @@ function PokerScore({ confStrong, confExpert, confStrongEma, trend }: {
                         'Needs Work';
 
     // Trend indicator
-    const trendIcon = trend === 'improving' ? '↑' :
-        trend === 'declining' ? '↓' : '';
+    const trendLabel = trend === 'improving' ? 'Improving' :
+        trend === 'declining' ? 'Declining' : '';
     const trendColor = trend === 'improving' ? '#22c55e' :
         trend === 'declining' ? '#ef4444' : colors.textSecondary;
 
@@ -89,12 +89,12 @@ function PokerScore({ confStrong, confExpert, confStrongEma, trend }: {
 
     const tooltipText = `Poker Score measures confidence that the population is PROFITABLE (not just winning hands) against ${useExpert ? 'expert' : 'strong'} AI opponents.
 
-Based on bb/100 (big blinds won per 100 hands) — this accounts for amounts won/lost, not just hand count.
+Based on bb/100 (big blinds won per 100 hands) - this accounts for amounts won/lost, not just hand count.
 
-• 50% = Uncertain (break-even)
-• 55%+ = Likely profitable
-• 70%+ = Confidently profitable
-• 90%+ = Strongly profitable`;
+- 50% = Uncertain (break-even)
+- 55%+ = Likely profitable
+- 70%+ = Confidently profitable
+- 90%+ = Strongly profitable`;
 
     return (
         <div style={styles.pokerScoreContainer}>
@@ -114,9 +114,9 @@ Based on bb/100 (big blinds won per 100 hands) — this accounts for amounts won
                         </div>
                     )}
                 </span>
-                {trend && trendIcon && (
+                {trendLabel && (
                     <span style={{ color: trendColor, fontSize: '14px', fontWeight: 700 }}>
-                        {trendIcon}
+                        {trendLabel}
                     </span>
                 )}
             </div>
@@ -304,8 +304,8 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
 
     const outOfRangePrefix = (v: number) => {
         if (metric !== 'bb100') return '';
-        if (v > maxVal) return '≥ ';
-        if (v < minVal) return '≤ ';
+        if (v > maxVal) return '>= ';
+        if (v < minVal) return '<= ';
         return '';
     };
 
@@ -516,7 +516,7 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
 
                 {clipped && (
                     <text x={padding.left + 6} y={padding.top + 12} fill={colors.textSecondary} fontSize={10}>
-                        bb/100 is volatile; values clipped to ±200 (switch to Confidence for a clearer signal)
+                        bb/100 is volatile; values clipped to +/-200 (switch to Confidence for a clearer signal)
                     </text>
                 )}
             </svg>
@@ -524,8 +524,8 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
             {selected && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                     <div style={{ color: colors.textSecondary, fontSize: '11px' }}>
-                        Selected: run {selected.index + 1}/{points.length} • frame {formatCompact(selected.frame)} • gen ~{selected.generation}
-                        {selected.timestamp ? ` • ${selected.timestamp.replace('T', ' ').slice(0, 19)}` : ''}
+                        Selected: run {selected.index + 1}/{points.length} | frame {formatCompact(selected.frame)} | gen ~{selected.generation}
+                        {selected.timestamp ? ` | ${selected.timestamp.replace('T', ' ').slice(0, 19)}` : ''}
                     </div>
                     <div style={{ display: 'flex', gap: '12px', color: colors.textSecondary, fontSize: '11px' }}>
                         {selected.pop_mean_elo !== undefined && (
@@ -583,7 +583,7 @@ function BaselineBreakdown({ perBaseline }: { perBaseline: Record<string, number
                     <div key={baseline.id} style={styles.baselineRow}>
                         <div style={styles.baselineName}>
                             <span>{baseline.name}</span>
-                            <span style={styles.difficulty}>{'★'.repeat(baseline.difficulty)}</span>
+                            <span style={styles.difficulty}>{'*'.repeat(baseline.difficulty)}</span>
                         </div>
                         <div style={styles.baselineBar}>
                             <div style={{
@@ -622,13 +622,24 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
     }
 
     const changeColor = (improvement.bb_per_100_change ?? 0) >= 0 ? '#22c55e' : '#ef4444';
-    const trendIcon = improvement.is_improving ? '📈' :
-        improvement.trend_direction === 'stable' ? '➡️' : '📉';
+    const trendLabel = improvement.is_improving ? 'Improving' :
+        improvement.trend_direction === 'stable' ? 'Stable' : 'Declining';
+    const trendLabelColor = improvement.is_improving ? '#22c55e' :
+        improvement.trend_direction === 'declining' ? '#ef4444' : colors.textSecondary;
+    const benchmarkStatuses = [
+        { label: 'Trivial', active: improvement.can_beat_trivial },
+        { label: 'Weak', active: improvement.can_beat_weak },
+        { label: 'Moderate', active: improvement.can_beat_moderate },
+        { label: 'Strong', active: improvement.can_beat_strong },
+        { label: 'Expert', active: improvement.can_beat_expert },
+    ];
 
     return (
         <div style={styles.improvementBanner}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '16px' }}>{trendIcon}</span>
+                <span style={{ color: trendLabelColor, fontSize: '14px', fontWeight: 600 }}>
+                    {trendLabel}
+                </span>
                 <span style={{ color: changeColor, fontWeight: 600 }}>
                     {(improvement.bb_per_100_change ?? 0) >= 0 ? '+' : ''}
                     {(improvement.bb_per_100_change ?? 0).toFixed(1)} bb/100
@@ -638,21 +649,14 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
                 </span>
             </div>
             <div style={styles.checkmarks}>
-                <span style={{ color: improvement.can_beat_trivial ? '#22c55e' : '#ef4444' }}>
-                    {improvement.can_beat_trivial ? '✓' : '✗'} Trivial
-                </span>
-                <span style={{ color: improvement.can_beat_weak ? '#22c55e' : '#ef4444' }}>
-                    {improvement.can_beat_weak ? '✓' : '✗'} Weak
-                </span>
-                <span style={{ color: improvement.can_beat_moderate ? '#22c55e' : '#ef4444' }}>
-                    {improvement.can_beat_moderate ? '✓' : '✗'} Moderate
-                </span>
-                <span style={{ color: improvement.can_beat_strong ? '#22c55e' : '#ef4444' }}>
-                    {improvement.can_beat_strong ? '✓' : '✗'} Strong
-                </span>
-                <span style={{ color: improvement.can_beat_expert ? '#22c55e' : '#ef4444' }}>
-                    {improvement.can_beat_expert ? '✓' : '✗'} Expert
-                </span>
+                {benchmarkStatuses.map(status => (
+                    <span
+                        key={status.label}
+                        style={{ color: status.active ? '#22c55e' : '#ef4444' }}
+                    >
+                        {status.label}: {status.active ? 'Yes' : 'No'}
+                    </span>
+                ))}
             </div>
         </div>
     );
@@ -901,11 +905,11 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
                                 <div style={styles.trendSummary}>
                                     <div>
                                         <span style={{ color: colors.textSecondary }}>Strategy: </span>
-                                        {improvement.dominant_strategy_start} → {improvement.dominant_strategy_end}
+                                        {improvement.dominant_strategy_start} &gt; {improvement.dominant_strategy_end}
                                     </div>
                                     <div>
                                         <span style={{ color: colors.textSecondary }}>Generations: </span>
-                                        {improvement.generation_start} → {improvement.generation_end}
+                                        {improvement.generation_start} &gt; {improvement.generation_end}
                                     </div>
                                     <div>
                                         <span style={{ color: colors.textSecondary }}>Snapshots: </span>
