@@ -337,15 +337,6 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         # Update _player_states and _ball_state
         if not self._socket:
             return
-
-        # Example structure (not implemented):
-        # msg, addr = self._socket.recv(8192)
-        # if msg.startswith("(see"):
-        #     see_info = parse_see_message(msg)
-        #     # Update state based on see_info
-        # elif msg.startswith("(sense_body"):
-        #     sense_info = parse_sense_body_message(msg)
-        #     # Update state based on sense_info
         pass
 
     def _build_observations(self) -> Dict[PlayerID, Dict[str, Any]]:

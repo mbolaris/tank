@@ -5,7 +5,6 @@ import { SizeSummaryGraph, CollapsibleSection } from './ui';
  */
 
 import EnergyEconomyPanel from './EnergyEconomyPanel';
-// import SizeHistogram from './ui/SizeHistogram'; // Removed unused import
 import type { GeneDistributionEntry, StatsData } from '../types/simulation';
 
 interface EcosystemStatsProps {

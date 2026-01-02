@@ -24,25 +24,12 @@ from core.poker.strategy.composable.definitions import (
     ShowdownTendency,
 )
 from core.poker.strategy.composable.opponent import SimpleOpponentModel
+from core.util import coerce_enum
 
 
 def _random_params(rng: random.Random) -> Dict[str, float]:
     """Generate random parameters within bounds."""
     return {key: rng.uniform(low, high) for key, (low, high) in POKER_SUB_BEHAVIOR_PARAMS.items()}
-
-
-def _coerce_enum(enum_cls, value, default: int = 0):
-    try:
-        return enum_cls(value)
-    except (TypeError, ValueError):
-        try:
-            index = int(value)
-        except (TypeError, ValueError):
-            index = default
-        size = len(enum_cls)
-        if size <= 0:
-            return enum_cls(default)
-        return enum_cls(index % size)
 
 
 def _blend_regret_tables(
@@ -132,15 +119,15 @@ class ComposablePokerStrategy:
 
         rng = require_rng_param(rng, "__init__")
         return cls(
-            hand_selection=_coerce_enum(HandSelection, rng.randint(0, len(HandSelection) - 1)),
-            betting_style=_coerce_enum(BettingStyle, rng.randint(0, len(BettingStyle) - 1)),
-            bluffing_approach=_coerce_enum(
+            hand_selection=coerce_enum(HandSelection, rng.randint(0, len(HandSelection) - 1)),
+            betting_style=coerce_enum(BettingStyle, rng.randint(0, len(BettingStyle) - 1)),
+            bluffing_approach=coerce_enum(
                 BluffingApproach, rng.randint(0, len(BluffingApproach) - 1)
             ),
-            position_awareness=_coerce_enum(
+            position_awareness=coerce_enum(
                 PositionAwareness, rng.randint(0, len(PositionAwareness) - 1)
             ),
-            showdown_tendency=_coerce_enum(
+            showdown_tendency=coerce_enum(
                 ShowdownTendency, rng.randint(0, len(ShowdownTendency) - 1)
             ),
             parameters=_random_params(rng),
@@ -473,21 +460,21 @@ class ComposablePokerStrategy:
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
-            self.hand_selection = _coerce_enum(
+            self.hand_selection = coerce_enum(
                 HandSelection, rng.randint(0, len(HandSelection) - 1)
             )
         if rng.random() < sub_behavior_switch_rate:
-            self.betting_style = _coerce_enum(BettingStyle, rng.randint(0, len(BettingStyle) - 1))
+            self.betting_style = coerce_enum(BettingStyle, rng.randint(0, len(BettingStyle) - 1))
         if rng.random() < sub_behavior_switch_rate:
-            self.bluffing_approach = _coerce_enum(
+            self.bluffing_approach = coerce_enum(
                 BluffingApproach, rng.randint(0, len(BluffingApproach) - 1)
             )
         if rng.random() < sub_behavior_switch_rate:
-            self.position_awareness = _coerce_enum(
+            self.position_awareness = coerce_enum(
                 PositionAwareness, rng.randint(0, len(PositionAwareness) - 1)
             )
         if rng.random() < sub_behavior_switch_rate:
-            self.showdown_tendency = _coerce_enum(
+            self.showdown_tendency = coerce_enum(
                 ShowdownTendency, rng.randint(0, len(ShowdownTendency) - 1)
             )
 
@@ -704,11 +691,11 @@ class ComposablePokerStrategy:
         """Deserialize from dictionary."""
         return cls(
             strategy_id=data.get("strategy_id", "composable"),
-            hand_selection=_coerce_enum(HandSelection, data.get("hand_selection", 2)),
-            betting_style=_coerce_enum(BettingStyle, data.get("betting_style", 1)),
-            bluffing_approach=_coerce_enum(BluffingApproach, data.get("bluffing_approach", 1)),
-            position_awareness=_coerce_enum(PositionAwareness, data.get("position_awareness", 1)),
-            showdown_tendency=_coerce_enum(ShowdownTendency, data.get("showdown_tendency", 1)),
+            hand_selection=coerce_enum(HandSelection, data.get("hand_selection", 2)),
+            betting_style=coerce_enum(BettingStyle, data.get("betting_style", 1)),
+            bluffing_approach=coerce_enum(BluffingApproach, data.get("bluffing_approach", 1)),
+            position_awareness=coerce_enum(PositionAwareness, data.get("position_awareness", 1)),
+            showdown_tendency=coerce_enum(ShowdownTendency, data.get("showdown_tendency", 1)),
             parameters=data.get("parameters", {}),
             learning_rate=data.get("learning_rate", 1.0),
             regret=data.get("regret", {}),

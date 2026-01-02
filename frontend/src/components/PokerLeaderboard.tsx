@@ -7,10 +7,9 @@ interface PokerLeaderboardProps {
 }
 
 export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard }) => {
-    // Don't render anything if there's no data - prevents layout shift
-    // if (!leaderboard || leaderboard.length === 0) {
-    //   return null;
-    // }
+    if (!leaderboard || leaderboard.length === 0) {
+        return null;
+    }
 
     return (
         <div className={styles.pokerLeaderboard}>
@@ -30,8 +29,7 @@ export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard 
                         </tr>
                     </thead>
                     <tbody>
-                        {leaderboard && leaderboard.length > 0 ? (
-                            leaderboard.map((entry) => {
+                        {leaderboard.map((entry) => {
                                 const rankClass = entry.rank === 1 ? styles.rank1 : entry.rank === 2 ? styles.rank2 : entry.rank === 3 ? styles.rank3 : '';
                                 return (
                                     <tr key={entry.fish_id} className={rankClass}>
@@ -76,14 +74,7 @@ export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard 
                                         </td>
                                     </tr>
                                 );
-                            })
-                        ) : (
-                            <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
-                                    No poker games played yet. Wait for fish to evolve poker strategies!
-                                </td>
-                            </tr>
-                        )}
+                            })}
                     </tbody>
                 </table>
             </div>
