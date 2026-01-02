@@ -36,6 +36,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.auto_save_service import AutoSaveService
+from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
 from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService
 from backend.logging_config import configure_logging
@@ -85,10 +86,6 @@ class AppContext:
     # Logging
     logger: logging.Logger = field(default_factory=lambda: logging.getLogger("backend"))
 
-    # Broadcast task management
-    broadcast_tasks: Dict[str, asyncio.Task] = field(default_factory=dict)
-    broadcast_locks: Dict[str, asyncio.Lock] = field(default_factory=dict)
-    
     # World manager (created after tank_registry)
     world_manager: Optional[WorldManager] = None
 
@@ -218,9 +215,6 @@ def create_app(
         ctx = app.state.context
 
         try:
-            # Import broadcast functions from broadcast module
-            from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
-
             # Create and initialize startup manager
             ctx.startup_manager = StartupManager(
                 tank_registry=ctx.tank_registry,
@@ -288,7 +282,6 @@ def create_app(
 
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
-    from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
     from backend.routers import discovery, servers, tanks, transfers, websocket
     from backend.routers.solutions import create_solutions_router
     from backend.routers.worlds import setup_worlds_router
