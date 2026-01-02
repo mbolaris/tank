@@ -262,13 +262,12 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         if actions_by_agent:
             self._process_actions(actions_by_agent)
 
-        # In real mode, would receive and parse server messages here
+        # Receive and parse server messages
+        self._receive_and_parse_messages()
+
+        # In fake mode, we might need to trigger a response if the fake socket needs poking
         if isinstance(self._socket, FakeSocket):
-            # Fake mode: simulate minimal updates
             self._simulate_fake_step()
-        else:
-            # Future: Receive see/sense_body messages and parse them
-            self._receive_and_parse_messages()
 
         # Increment frame
         self._frame += 1
@@ -331,13 +330,116 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         pass
 
     def _receive_and_parse_messages(self) -> None:
-        """Receive and parse messages from rcssserver (future implementation)."""
-        # Future: Receive see/sense_body messages
-        # Parse them using rcss_protocol functions
-        # Update _player_states and _ball_state
+        """Receive and parse messages from rcssserver."""
         if not self._socket:
             return
-        pass
+
+        # Limit max messages per step to avoid infinite loop
+        max_messages = 50
+
+        for _ in range(max_messages):
+            try:
+                # Try to receive data (assuming non-blocking or timeout set)
+                try:
+                    data, _ = self._socket.recv(4096)
+                except (TimeoutError, BlockingIOError):
+                    break
+                except Exception as e:
+                    # Some socket implementations might raise other errors
+                    logger.debug(f"Socket receive error: {e}")
+                    break
+
+                if not data:
+                    break
+
+                msg = data.strip()
+                if not msg:
+                    continue
+
+                self._parse_server_message(msg)
+
+            except Exception as e:
+                logger.error(f"Unexpected error in receive loop: {e}")
+                break
+
+    def _parse_server_message(self, msg: str) -> None:
+        """Parse a single server message and update state."""
+        from core.worlds.soccer.rcss_protocol import (
+            parse_see_message,
+            parse_sense_body_message,
+            parse_hear_message,
+            estimate_position_from_polar,
+        )
+
+        if msg.startswith("(see "):
+            see_info = parse_see_message(msg)
+            if see_info:
+                # Assign to first player for now (single-agent assumption)
+                if self._player_states:
+                    pid = list(self._player_states.keys())[0]
+                    self._update_state_from_see(pid, see_info)
+
+        elif msg.startswith("(sense_body "):
+            sense_info = parse_sense_body_message(msg)
+            if sense_info:
+                if self._player_states:
+                    pid = list(self._player_states.keys())[0]
+                    self._update_state_from_sense(pid, sense_info)
+
+        elif msg.startswith("(hear "):
+            hear_info = parse_hear_message(msg)
+            if hear_info:
+                if hear_info.sender == "referee":
+                    self._play_mode = hear_info.message
+
+    def _update_state_from_see(self, player_id: str, see_info: SeeInfo) -> None:
+        """Update player and ball state from visual info."""
+        from core.worlds.soccer.rcss_protocol import estimate_position_from_polar
+        
+        player = self._player_states[player_id]
+        self._last_see_info[player_id] = see_info
+        
+        # Update ball if visible
+        ball = see_info.get_ball()
+        if ball and ball.distance is not None and ball.direction is not None:
+            # Estimate ball absolute position
+            ball_pos = estimate_position_from_polar(
+                player.position,
+                player.facing_angle,
+                ball.distance,
+                ball.direction
+            )
+            
+            # Update shared ball state (BallState is frozen, so create new instance)
+            if self._ball_state:
+                self._ball_state = BallState(position=ball_pos, velocity=self._ball_state.velocity)
+            else:
+                self._ball_state = BallState(position=ball_pos, velocity=Vector2D(0,0))
+
+    def _update_state_from_sense(self, player_id: str, sense_info: SenseBodyInfo) -> None:
+        """Update player state from body sensor info."""
+        player = self._player_states[player_id]
+        self._last_sense_info[player_id] = sense_info
+        
+        # Update stamina
+        # PlayerState is NOT frozen in adapter dict, but it IS frozen in interfaces.py.
+        # Wait, self._player_states stores PlayerState which IS frozen.
+        # I need to check how self._player_states is populated. 
+        # In reset(), it creates PlayerState objects.
+        
+        # If PlayerState is frozen, I also need to replace the PlayerState object.
+        
+        new_stamina = sense_info.stamina
+        
+        if player.stamina != new_stamina:
+             self._player_states[player_id] = PlayerState(
+                player_id=player.player_id,
+                team=player.team,
+                position=player.position,
+                velocity=player.velocity,
+                stamina=new_stamina,
+                facing_angle=player.facing_angle
+             )
 
     def _build_observations(self) -> Dict[PlayerID, Dict[str, Any]]:
         """Build observations for all players."""
