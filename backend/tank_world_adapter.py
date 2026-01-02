@@ -18,7 +18,7 @@ from fastapi import WebSocket
 
 if TYPE_CHECKING:
     from backend.simulation_manager import SimulationManager
-    from backend.state_payloads import EntitySnapshot, FullStatePayload, DeltaStatePayload
+    from backend.state_payloads import DeltaStatePayload, EntitySnapshot, FullStatePayload
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class TankWorldAdapter:
         view_mode: Always "side" for tank worlds
     """
 
-    def __init__(self, manager: "SimulationManager") -> None:
+    def __init__(self, manager: SimulationManager) -> None:
         """Initialize the adapter with a SimulationManager.
 
         Args:
@@ -52,7 +52,7 @@ class TankWorldAdapter:
         self.view_mode = "side"
 
     @property
-    def manager(self) -> "SimulationManager":
+    def manager(self) -> SimulationManager:
         """Get the underlying SimulationManager."""
         return self._manager
 
@@ -180,7 +180,7 @@ class TankWorldAdapter:
             "poker_elo_history": stats_payload.poker_elo_history,
         }
 
-    def get_entities_snapshot(self) -> List["EntitySnapshot"]:
+    def get_entities_snapshot(self) -> List[EntitySnapshot]:
         """Get entity snapshots for rendering.
 
         Returns:
@@ -252,7 +252,7 @@ class TankWorldAdapter:
 
     def get_state(
         self, force_full: bool = False, allow_delta: bool = True
-    ) -> Union["FullStatePayload", "DeltaStatePayload"]:
+    ) -> Union[FullStatePayload, DeltaStatePayload]:
         """Get current simulation state for WebSocket broadcast.
 
         Args:
@@ -266,7 +266,7 @@ class TankWorldAdapter:
 
     async def get_state_async(
         self, force_full: bool = False, allow_delta: bool = True
-    ) -> Union["FullStatePayload", "DeltaStatePayload"]:
+    ) -> Union[FullStatePayload, DeltaStatePayload]:
         """Async wrapper for get_state.
 
         Args:
@@ -278,7 +278,7 @@ class TankWorldAdapter:
         """
         return await self._manager.get_state_async(force_full=force_full, allow_delta=allow_delta)
 
-    def serialize_state(self, state: Union["FullStatePayload", "DeltaStatePayload"]) -> bytes:
+    def serialize_state(self, state: Union[FullStatePayload, DeltaStatePayload]) -> bytes:
         """Serialize state payload to bytes.
 
         Args:
